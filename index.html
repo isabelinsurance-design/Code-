@@ -161,6 +161,26 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .brand-step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gold-g);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
 .copy-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none}
 .copy-toast.show{opacity:1}
+
+/* ─── PLANTILLAS DE POSTS ─── */
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.tpl-wrap{}
+.tpl-cap{font-size:12px;color:var(--text-muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.tpl-cap b{color:var(--text);font-size:13px}
+.bf{font-family:'Fraunces',serif}
+/* Square post 1080x1080 -> responsive square */
+.post{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;box-shadow:var(--sh2);display:flex;flex-direction:column;color:#fff}
+.post-9x16{aspect-ratio:9/16}
+.post-cover{aspect-ratio:16/9}
+.bfly{font-size:30px;line-height:1}
+.post-pad{padding:26px 24px;display:flex;flex-direction:column;height:100%}
+.post-name{font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;font-size:10px;opacity:.9}
+.post-photo{width:96px;height:96px;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center;line-height:1.2;color:rgba(255,255,255,.85)}
+.post-cta{align-self:flex-start;background:#F2A977;color:#3A2410;font-weight:700;padding:9px 18px;border-radius:24px;font-size:14px}
+.post-live-badge{align-self:flex-start;background:#C0392B;color:#fff;font-weight:700;font-size:12px;letter-spacing:.1em;padding:5px 12px;border-radius:6px;display:flex;align-items:center;gap:6px}
+.post-live-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tpl-note{background:var(--gold-lt);border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text-mid);line-height:1.45;margin-top:10px}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -436,6 +456,9 @@ tr:hover td{background:var(--surface)}
       </button>
       <button class="nav-item" onclick="showModule('marca',this)">
         <span class="nav-icon">🎨</span><span class="nav-label">Identidad de Marca</span>
+      </button>
+      <button class="nav-item" onclick="showModule('plantillas',this)">
+        <span class="nav-icon">🖼️</span><span class="nav-label">Plantillas de Posts</span>
       </button>
     </div>
     <div class="sidebar-label">COMMAND CENTER</div>
@@ -744,6 +767,90 @@ tr:hover td{background:var(--surface)}
           <div class="brand-step"><span class="brand-step-num">3</span><div>En <b>"Fuentes de marca"</b>, elige <b>Great Vibes</b> (acento), <b>Poppins</b> (títulos) y <b>Open Sans</b> (texto).</div></div>
           <div class="brand-step"><span class="brand-step-num">4</span><div>En <b>"Logos"</b>, sube tu logo de la mariposa "Medicare with Isabel" y tu foto profesional.</div></div>
           <div class="brand-step"><span class="brand-step-num">5</span><div>¡Listo! Ahora cada diseño usará tu marca automáticamente y todo se verá igual de profesional.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PLANTILLAS DE POSTS ══════ -->
+    <div class="module" id="mod-plantillas">
+      <div class="page-header">
+        <div class="page-title">🖼️ Plantillas de <em>Posts</em></div>
+        <div class="page-sub">Listas para empezar a publicar hoy. Hazles captura de pantalla para usarlas, o recréalas en Canva con tu marca.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--green-lt);border-color:var(--green)">
+        <span style="font-size:20px">📲</span>
+        <div><strong>Cómo usarlas:</strong> estas son una vista previa con tus colores de marca. Para la mejor calidad, recréalas en Canva (usa las fuentes <b>Poppins</b> y <b>Great Vibes</b> y agrega tu foto real). O simplemente haz captura de pantalla para publicar rápido.</div>
+      </div>
+
+      <div class="tpl-grid">
+        <!-- 1. Quién soy -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>1. Preséntate ("Quién soy")</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#3D8FD6,#333A4D)">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px">
+                <div class="post-photo">[ Tu foto<br/>aquí ]</div>
+                <div class="bf" style="font-size:30px;font-style:italic">Hola, soy Isabel</div>
+                <div style="font-size:15px;opacity:.95;line-height:1.4;max-width:80%">Te explico Medicare <b>claro y en tu idioma</b> — sin letra chiquita.</div>
+              </div>
+              <div style="text-align:center;font-size:11px;opacity:.9;line-height:1.6">
+                <b>ISABEL FUENTES</b> · Insurance Agent<br/>CA Lic #0D96598 · +1 (310) 270-0626
+              </div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Texto sugerido: "Mucho gusto 🦋 Soy Isabel Fuentes, tu agente de Medicare de confianza en el Sur de California. Mi misión: que entiendas tus opciones sin estrés y en español. ¿Preguntas? Escríbeme 👇"</div>
+        </div>
+
+        <!-- 2. Facebook Live -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>2. Anuncio de Facebook Live</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#333A4D,#1f2430)">
+            <div class="post-pad">
+              <div class="post-live-badge">EN VIVO</div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div class="bf" style="font-size:30px;line-height:1.2">Tus preguntas de <span style="color:#A9D4F0">Medicare</span>, en vivo</div>
+                <div style="font-size:14px;opacity:.9;line-height:1.5">Te respondo todo — gratis y sin compromiso. Trae tus dudas 🙋‍♀️</div>
+                <div style="display:inline-flex;align-items:center;gap:8px;background:#3D8FD6;align-self:flex-start;padding:8px 16px;border-radius:24px;font-weight:700;font-size:15px">📅 Jueves · 12:00 PM</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Cambia el día/hora a tu horario fijo. Termina siempre con: "Te espero 🦋 Dale 'Me interesa' para recordarte."</div>
+        </div>
+
+        <!-- 3. Tip educativo -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>3. Tip educativo ("¿Sabías que?")</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:#EAF4FB;color:#333A4D">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px;color:#3D8FD6"><span class="bfly">🦋</span><span class="post-name" style="opacity:1">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div style="font-size:13px;font-weight:700;color:#3D8FD6;letter-spacing:.05em">💡 ¿SABÍAS QUE...?</div>
+                <div class="bf" style="font-size:26px;font-style:italic;line-height:1.3">Puedes tener beneficios dentales y de visión <span style="color:#3D8FD6">sin costo extra</span> con ciertos planes Medicare Advantage.</div>
+              </div>
+              <div style="font-size:11px;color:#5C6270;line-height:1.6;border-top:1px solid #C9DCEC;padding-top:10px"><b>ISABEL FUENTES</b> · +1 (310) 270-0626</div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Pídele a <b>Cerebro IA</b> 10 tips como este. Termina con: "¿Quieres saber si tu plan los incluye? Escríbeme 💙"</div>
+        </div>
+
+        <!-- 4. Guía gratis (lead magnet) -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>4. Guía Gratis (captura leads)</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#3D8FD6,#2E6FB0)">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;opacity:.95">📘 GUÍA GRATIS</div>
+                <div class="bf" style="font-size:27px;font-style:italic;line-height:1.3">5 cosas que debes saber antes de elegir tu plan Medicare</div>
+                <div class="post-cta">Escríbeme "MEDICARE" 👇</div>
+              </div>
+              <div style="text-align:center;font-size:11px;opacity:.9">+1 (310) 270-0626 · CA Lic #0D96598</div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Esta es tu post más importante para conseguir leads (Fase 3). Crea la guía con <b>Cerebro IA</b> y mándala a quien escriba "MEDICARE".</div>
         </div>
       </div>
     </div>
