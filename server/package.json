@@ -1,0 +1,24 @@
+{
+  "name": "todo-isabel-directora",
+  "version": "1.0.0",
+  "description": "Autonomous WhatsApp chief-of-staff (La Directora) for Isabel Fuentes — delegates to specialist coaches, sends/checks email, messages Sami, and proactively reaches out on a schedule.",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "briefing": "node src/briefing.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.40.1",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "imapflow": "^1.0.171",
+    "node-cron": "^3.0.3",
+    "nodemailer": "^6.10.0",
+    "twilio": "^5.4.0"
+  }
+}
