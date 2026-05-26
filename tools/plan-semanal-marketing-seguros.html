@@ -1,0 +1,1248 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan de Marketing Semanal — Isabel Fuentes | Medicare SoCal</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Source+Serif+4:wght@300;400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #F7F3EC;
+  --surface: #FAF8F4;
+  --white: #FFFFFF;
+  --border: #E8E0D0;
+  --border-dark: #D4C9B5;
+  --gold: #C9A96E;
+  --gold-light: #F0E6D0;
+  --gold-dark: #A07840;
+  --teal: #4A7B9D;
+  --teal-light: #EBF3F8;
+  --red: #C0392B;
+  --red-light: #FDEDEB;
+  --green: #2E7D55;
+  --green-light: #EAF5EE;
+  --purple: #7B5EA7;
+  --purple-light: #F3EEF9;
+  --text: #2C2416;
+  --text-mid: #5C4A30;
+  --text-muted: #8C7A60;
+  --tag-bg: #F5EFE3;
+  --ff-display: 'Playfair Display', Georgia, serif;
+  --ff-body: 'Source Serif 4', Georgia, serif;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--ff-body); font-size: 14px; line-height: 1.6; }
+a { color: var(--teal); }
+
+/* ── HEADER ─────────────────────────── */
+.header { background: var(--white); border-bottom: 2px solid var(--gold); padding: 16px 20px; }
+.header-inner { max-width: 940px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+.header h1 { font-family: var(--ff-display); font-size: 22px; font-weight: 800; color: var(--text); margin-bottom: 3px; }
+.header p { font-size: 12px; color: var(--text-muted); }
+.header-badge { background: var(--gold-light); border: 1px solid rgba(201,169,110,.35); border-radius: 10px; padding: 8px 14px; text-align: center; }
+.header-badge .badge-label { font-size: 10px; font-weight: 700; color: var(--gold-dark); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 2px; }
+.header-badge .badge-name { font-weight: 800; font-size: 14px; color: var(--text); }
+.header-badge .badge-sub { font-size: 11px; color: var(--text-muted); }
+
+/* ── TAGS ────────────────────────────── */
+.tag { display: inline-block; border-radius: 6px; padding: 2px 9px; font-size: 11px; font-weight: 700; letter-spacing: .3px; }
+.tag-gold  { background: var(--gold-light);   color: var(--gold-dark);  border: 1px solid rgba(160,120,64,.25); }
+.tag-teal  { background: var(--teal-light);   color: var(--teal);       border: 1px solid rgba(74,123,157,.25); }
+.tag-red   { background: var(--red-light);    color: var(--red);        border: 1px solid rgba(192,57,43,.25); }
+.tag-green { background: var(--green-light);  color: var(--green);      border: 1px solid rgba(46,125,85,.25); }
+.tag-purple{ background: var(--purple-light); color: var(--purple);     border: 1px solid rgba(123,94,167,.25);}
+.tag-grey  { background: var(--tag-bg);       color: var(--text-mid);   border: 1px solid var(--border); }
+
+/* ── NAV ─────────────────────────────── */
+.nav { background: var(--white); border-bottom: 1px solid var(--border); overflow-x: auto; }
+.nav-inner { max-width: 940px; margin: 0 auto; display: flex; padding: 0 16px; }
+.nav-btn { background: none; border: none; border-bottom: 3px solid transparent; padding: 12px 14px; cursor: pointer; color: var(--text-muted); font-weight: 400; font-size: 12.5px; white-space: nowrap; display: flex; align-items: center; gap: 6px; font-family: var(--ff-body); transition: all .15s; }
+.nav-btn:hover { color: var(--text); }
+.nav-btn.active { border-bottom-color: var(--gold); color: var(--gold-dark); font-weight: 700; }
+
+/* ── MAIN ────────────────────────────── */
+.main { max-width: 940px; margin: 0 auto; padding: 24px 16px 48px; }
+
+/* ── SECTION PANELS ──────────────────── */
+.panel { display: none; }
+.panel.active { display: block; }
+
+/* ── ALERT BOXES ─────────────────────── */
+.alert { border-radius: 12px; padding: 12px 16px; margin-bottom: 18px; font-size: 13px; line-height: 1.6; }
+.alert-teal { background: var(--teal-light); border: 1px solid rgba(74,123,157,.25); }
+.alert-red  { background: var(--red-light);  border: 1px solid rgba(192,57,43,.25); }
+.alert-green{ background: var(--green-light);border: 1px solid rgba(46,125,85,.25); }
+.alert strong { font-weight: 700; }
+.alert-teal strong  { color: var(--teal); }
+.alert-red strong   { color: var(--red); }
+.alert-green strong { color: var(--green); }
+
+/* ── CARD ────────────────────────────── */
+.card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+.card-header { width: 100%; background: var(--white); border: none; padding: 13px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-align: left; gap: 12px; font-family: var(--ff-body); }
+.card-header:hover { background: var(--surface); }
+.card-body { display: none; border-top: 1px solid var(--border); padding: 14px 16px; background: var(--surface); }
+.card.open .card-body { display: block; }
+.card.open .chevron { transform: rotate(180deg); }
+.chevron { color: var(--text-muted); font-size: 14px; transition: transform .2s; flex-shrink: 0; }
+
+/* ── POST NUMBER ─────────────────────── */
+.post-num { font-weight: 800; font-size: 20px; color: var(--gold-dark); min-width: 32px; }
+.post-title { font-weight: 600; font-size: 14px; color: var(--text); margin-bottom: 5px; }
+
+/* ── COPY BLOCK ──────────────────────── */
+.copy-block { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-top: 0; }
+.copy-block-header { display: flex; justify-content: space-between; align-items: center; padding: 7px 12px; border-bottom: 1px solid var(--border); }
+.copy-block-label { font-size: 11px; color: var(--text-muted); font-weight: 700; }
+.copy-btn { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 12px; font-size: 11px; font-weight: 700; cursor: pointer; font-family: var(--ff-body); transition: background .15s; }
+.copy-btn:hover { background: #3a6b8d; }
+.copy-btn.copied { background: var(--green); }
+.copy-block pre { margin: 0; padding: 12px 14px; font-size: 12px; line-height: 1.85; color: var(--text); white-space: pre-wrap; word-break: break-word; font-family: 'Courier New', monospace; max-height: 320px; overflow-y: auto; }
+
+/* ── PILL FILTERS ────────────────────── */
+.filters { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.filter-btn { background: var(--tag-bg); color: var(--text-mid); border: none; border-radius: 8px; padding: 6px 14px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--ff-body); transition: background .15s; }
+.filter-btn.active { background: var(--gold); color: #fff; }
+.filter-btn:hover:not(.active) { background: var(--border); }
+
+/* ── WHY BOX ─────────────────────────── */
+.why-box { background: var(--green-light); border: 1px solid rgba(46,125,85,.2); border-radius: 8px; padding: 8px 12px; margin-bottom: 12px; font-size: 12px; color: var(--text); }
+.why-box strong { color: var(--green); }
+
+/* ── TABLE ───────────────────────────── */
+.tbl-wrap { overflow-x: auto; margin-top: 4px; }
+table { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+th { padding: 10px 12px; text-align: left; background: var(--gold-light); color: var(--gold-dark); font-weight: 700; border-bottom: 2px solid var(--gold); white-space: nowrap; }
+td { padding: 9px 12px; color: var(--text); border-bottom: 1px solid var(--border); vertical-align: top; }
+tr:nth-child(even) td { background: var(--surface); }
+tr:nth-child(odd) td { background: var(--white); }
+.col-letter { font-weight: 800; color: var(--teal); }
+.td-italic { font-style: italic; color: var(--text-mid); }
+
+/* ── SPEC LIST ───────────────────────── */
+.spec-list { display: flex; flex-direction: column; gap: 7px; }
+.spec-item { display: flex; gap: 8px; font-size: 13px; color: var(--text); align-items: flex-start; }
+.spec-arrow { color: var(--gold); font-weight: 700; flex-shrink: 0; }
+
+/* ── CALENDAR ────────────────────────── */
+.week-tabs { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+.week-tab { background: var(--tag-bg); color: var(--text-mid); border: none; border-radius: 10px; padding: 8px 16px; cursor: pointer; font-weight: 700; font-size: 12px; font-family: var(--ff-body); transition: background .15s; }
+.week-tab.active-teal   { background: var(--teal);   color: #fff; }
+.week-tab.active-gold   { background: var(--gold);   color: #fff; }
+.week-tab.active-green  { background: var(--green);  color: #fff; }
+.week-tab.active-red    { background: var(--red);    color: #fff; }
+.week-panel { display: none; }
+.week-panel.active { display: block; }
+.day-row { background: var(--white); border: 1px solid var(--border); border-radius: 10px; padding: 12px 14px; display: grid; grid-template-columns: 90px 1fr auto; gap: 12px; align-items: center; margin-bottom: 8px; }
+.day-label { font-weight: 700; font-size: 13px; color: var(--text); }
+.day-action { font-weight: 600; font-size: 13px; color: var(--text); margin-bottom: 3px; }
+.day-tool { font-size: 11.5px; color: var(--text-muted); }
+.day-meta { text-align: right; }
+.day-time { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+.entregables { background: var(--green-light); border: 1px solid rgba(46,125,85,.25); border-radius: 12px; padding: 14px 16px; margin-top: 14px; }
+.entregables h4 { font-weight: 700; font-size: 13px; color: var(--green); margin-bottom: 10px; }
+.entregable-item { display: flex; gap: 8px; font-size: 13px; color: var(--text); margin-bottom: 5px; }
+.entregable-arr { color: var(--green); font-weight: 700; }
+
+/* ── ROUTINE TABLE ───────────────────── */
+.routine-row { display: grid; grid-template-columns: 70px 90px 1fr 140px; gap: 12px; padding: 10px 14px; background: var(--white); border: 1px solid var(--border); border-radius: 10px; align-items: center; margin-bottom: 8px; font-size: 12.5px; color: var(--text); }
+
+/* ── COMPETITOR SECTION ──────────────── */
+.tool-row { display: flex; gap: 12px; padding: 10px 0; border-bottom: 1px solid var(--border); align-items: flex-start; }
+.tool-row:last-child { border-bottom: none; }
+.tool-num { background: var(--gold); color: #fff; border-radius: 50%; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 800; flex-shrink: 0; }
+.tool-name { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 3px; }
+.tool-url  { font-size: 11px; color: var(--text-muted); }
+.tool-uso  { font-size: 12px; color: var(--text-mid); }
+.comp-row { padding: 12px 0; border-bottom: 1px solid var(--border); }
+.comp-row:last-child { border-bottom: none; }
+.comp-name { font-weight: 700; font-size: 13px; color: var(--text); margin-bottom: 8px; }
+.comp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; font-size: 12px; }
+.comp-seña { background: var(--red-light); border-radius: 6px; padding: 6px 10px; }
+.comp-oport{ background: var(--green-light); border-radius: 6px; padding: 6px 10px; }
+.cms-item { display: flex; gap: 8px; align-items: flex-start; font-size: 12.5px; color: var(--text); margin-bottom: 5px; }
+.cms-x { color: var(--red); font-weight: 700; flex-shrink: 0; }
+.kw-grid { display: flex; flex-wrap: wrap; gap: 8px; }
+.kw-chip { display: flex; gap: 6px; align-items: center; background: var(--tag-bg); border-radius: 8px; padding: 5px 10px; font-size: 12px; color: var(--text); }
+.kw-copy { background: var(--teal); color: #fff; border: none; border-radius: 5px; padding: 3px 8px; font-size: 10px; font-weight: 700; cursor: pointer; font-family: var(--ff-body); }
+.kw-copy:hover { background: #3a6b8d; }
+.kw-copy.copied { background: var(--green); }
+
+/* ── FOOTER ──────────────────────────── */
+.footer { text-align: center; margin-top: 36px; padding-top: 20px; border-top: 1px solid var(--border); }
+.footer p { color: var(--text-muted); font-size: 11px; margin-bottom: 4px; }
+
+/* ── SECTION TITLES ──────────────────── */
+.section-h3 { font-family: var(--ff-display); font-size: 15px; font-weight: 700; color: var(--text); margin: 0 0 14px; }
+.section-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+.sub-tabs { display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap; }
+.sub-tab { background: var(--tag-bg); color: var(--text-mid); border: none; border-radius: 8px; padding: 7px 16px; font-size: 12px; font-weight: 600; cursor: pointer; font-family: var(--ff-body); }
+.sub-tab.active { background: var(--gold); color: #fff; }
+.sub-panel { display: none; }
+.sub-panel.active { display: block; }
+.steps-box { background: var(--green-light); border: 1px solid rgba(46,125,85,.2); border-radius: 10px; padding: 12px 14px; margin-top: 12px; }
+.steps-box p { font-weight: 700; font-size: 13px; color: var(--green); margin-bottom: 8px; }
+.step-item { font-size: 12.5px; color: var(--text); margin-bottom: 4px; }
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+        <span class="tag tag-red">STANDALONE MODULE</span>
+        <span class="tag tag-gold">Medicare · SoCal · Hispano</span>
+      </div>
+      <h1>Plan de Marketing Semanal</h1>
+      <p>Agentes de Seguros · Facebook/Meta · Mercado Hispano · Semanas 1–4 · 2026</p>
+    </div>
+    <div class="header-badge">
+      <div class="badge-label">Personalizado para</div>
+      <div class="badge-name">Isabel Fuentes</div>
+      <div class="badge-sub">Licensed Medicare Agent CA</div>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <div class="nav-inner">
+    <button class="nav-btn active" onclick="showPanel('banco',this)">💬 Banco de 20 Posts</button>
+    <button class="nav-btn" onclick="showPanel('pagina',this)">📘 Configuración FB</button>
+    <button class="nav-btn" onclick="showPanel('sheets',this)">📊 Plantilla Sheets</button>
+    <button class="nav-btn" onclick="showPanel('espia',this)">🕵️ Espía Competidores</button>
+    <button class="nav-btn" onclick="showPanel('calendario',this)">📅 Calendario Semanal</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ═══════════════════════════════════════════ BANCO 20 POSTS -->
+<div id="panel-banco" class="panel active">
+  <div class="alert alert-teal">
+    <strong>💡 Cómo usar este banco:</strong> Cada post incluye copy completo listo para publicar. Personaliza los placeholders en <strong>[CORCHETES]</strong>. Publica 1 post de este banco cada semana como mínimo.
+  </div>
+  <div class="filters" id="post-filters">
+    <button class="filter-btn active" onclick="filterPosts('Todos',this)">Todos (20)</button>
+    <button class="filter-btn" onclick="filterPosts('Elegibilidad',this)">Elegibilidad (5)</button>
+    <button class="filter-btn" onclick="filterPosts('Costos',this)">Costos (4)</button>
+    <button class="filter-btn" onclick="filterPosts('Cobertura',this)">Cobertura (5)</button>
+    <button class="filter-btn" onclick="filterPosts('Inscripcion',this)">Inscripción (3)</button>
+    <button class="filter-btn" onclick="filterPosts('Planes',this)">Planes y Carriers (3)</button>
+  </div>
+  <div id="posts-container"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ CONFIGURACIÓN FB -->
+<div id="panel-pagina" class="panel">
+  <div class="alert alert-red">
+    <strong>⚠️ Antes de publicar:</strong> Reemplaza TODOS los placeholders en <strong>[CORCHETES]</strong> con tu información real. Tu NPN es obligatorio en todos los materiales de marketing bajo las reglas CMS.
+  </div>
+  <div id="fb-sections-container"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════ PLANTILLA SHEETS -->
+<div id="panel-sheets" class="panel">
+  <div class="alert alert-teal">
+    <strong>📊 Cómo usar:</strong> Ve a <strong>sheets.google.com</strong> → Nuevo → hoja en blanco. Usa la pestaña "Copiar encabezados" para pegar los títulos en la fila 1 de tu hoja. Llena una fila por cada competidor investigado.
+  </div>
+  <div class="sub-tabs">
+    <button class="sub-tab active" onclick="showSubPanel('sheets','columnas',this)">Columnas y descripciones</button>
+    <button class="sub-tab" onclick="showSubPanel('sheets','ejemplo',this)">Datos de ejemplo</button>
+    <button class="sub-tab" onclick="showSubPanel('sheets','copiar',this)">Copiar encabezados</button>
+  </div>
+  <div id="sheets-columnas" class="sub-panel active">
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>Col</th><th>Nombre del Campo</th><th>Tipo</th><th>Ejemplo</th></tr></thead>
+        <tbody id="sheets-table-body"></tbody>
+      </table>
+    </div>
+  </div>
+  <div id="sheets-ejemplo" class="sub-panel">
+    <div class="alert alert-teal">Datos de ejemplo mostrando los 3 perfiles típicos de competidores. Columnas A–J visibles.</div>
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr id="sheets-ex-head"></tr></thead>
+        <tbody id="sheets-ex-body"></tbody>
+      </table>
+    </div>
+    <p style="font-size:11px;color:var(--text-muted);margin-top:8px;">* Mostrando primeras 10 columnas. Hay 19 columnas en total (A–S).</p>
+  </div>
+  <div id="sheets-copiar" class="sub-panel">
+    <div class="copy-block" style="margin-bottom:12px;">
+      <div class="copy-block-header">
+        <span class="copy-block-label">📋 Encabezados separados por tabulación — copia y pega en fila 1 de Google Sheets</span>
+        <button class="copy-btn" onclick="copyText(this,'sheets-headers-text')">Copiar todo</button>
+      </div>
+      <pre id="sheets-headers-text"></pre>
+    </div>
+    <div class="steps-box">
+      <p>Pasos para crear tu hoja:</p>
+      <div class="step-item">1. Ve a sheets.google.com → clic en '+' para nueva hoja</div>
+      <div class="step-item">2. Copia los encabezados de arriba (botón "Copiar todo")</div>
+      <div class="step-item">3. Clic en celda A1 de tu nueva Google Sheet</div>
+      <div class="step-item">4. Pega (Ctrl+V o Cmd+V) — cada columna va a su celda automáticamente</div>
+      <div class="step-item">5. Selecciona fila 1 → aplica negrita y color de fondo dorado</div>
+      <div class="step-item">6. Activa "Inmovilizar fila 1" (Ver → Inmovilizar → 1 fila)</div>
+      <div class="step-item">7. Crea una fila nueva por cada competidor que investigues</div>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ ESPÍA -->
+<div id="panel-espia" class="panel">
+  <div class="alert alert-red">
+    <strong>🔐 Nota legal:</strong> Toda la información en Meta Ad Library es PÚBLICA y legal de consultar. No necesitas cuenta de Facebook para ver anuncios activos. Nunca copies contenido de competidores — usa los insights para crear algo mejor.
+  </div>
+  <div class="section-card">
+    <h3 class="section-h3">🔧 Herramientas para usar (en orden)</h3>
+    <div id="espia-tools"></div>
+  </div>
+  <div class="section-card">
+    <h3 class="section-h3">🔎 Palabras clave para Meta Ad Library</h3>
+    <div class="kw-grid" id="kw-grid"></div>
+  </div>
+  <div class="section-card">
+    <h3 class="section-h3">🏆 Los 5 Perfiles de Competidores</h3>
+    <div id="comp-profiles"></div>
+  </div>
+  <div class="section-card">
+    <h3 class="section-h3">🚨 Errores de CMS a documentar en competidores</h3>
+    <div id="cms-errors"></div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════ CALENDARIO -->
+<div id="panel-calendario" class="panel">
+  <div class="week-tabs" id="week-tabs"></div>
+  <div id="week-panels"></div>
+  <div style="margin-top:24px;">
+    <h3 class="section-h3">📅 Rutina Semanal Permanente (desde Semana 2)</h3>
+    <div id="routine-rows"></div>
+  </div>
+</div>
+
+<div class="footer">
+  <p>Isabel Fuentes · Licensed Medicare Agent CA · withisabelfuentes.com · NPN: [TU NPN]</p>
+  <p>Módulo Standalone: Plan de Marketing Semanal · 2026 · Revisar mensualmente</p>
+</div>
+</div><!-- /main -->
+
+<script>
+// ─── DATA ────────────────────────────────────────────────────────────────────
+const POSTS = [
+  {num:1,cat:"Elegibilidad",tagClass:"tag-teal",trigger:"Curiosidad → Urgencia",titulo:"¿A qué edad me inscribo en Medicare?",porque:"La penalidad de por vida genera urgencia real. Pedir el mes de cumpleaños en comentarios es un lead cualificado directo.",copy:`⏰ ¿Cuándo exactamente debo inscribirme en Medicare?
+
+Esta es la pregunta #1 que recibo de personas que están llegando a los 65 años — y la respuesta te puede ahorrar miles de dólares.
+
+Aquí la clave:
+👉 Tu ventana de inscripción empieza 3 meses ANTES de tu cumpleaños 65
+👉 Tienes hasta 3 meses DESPUÉS para inscribirte sin penalidad
+👉 Si no te inscribes a tiempo → penalidad de por vida en tu prima mensual
+
+Esa penalidad nunca desaparece. Se paga cada mes, para siempre.
+
+¿Cuándo cumples 65? Escribe tu mes en los comentarios y te digo exactamente cuándo debes actuar.
+
+Soy Isabel Fuentes, agente licenciada de Medicare en California. Te ayudo gratis.
+📞 [TU TELÉFONO] | withisabelfuentes.com | NPN: [TU NPN]
+
+*Información educativa general. Tu situación puede variar. Consúltame directamente.`},
+  {num:2,cat:"Elegibilidad",tagClass:"tag-teal",trigger:"Confusión → Claridad",titulo:"¿Medicare cubre a mi esposo/a también?",porque:"Esta confusión es universal. Aclarar el mito + dar soluciones genera confianza inmediata.",copy:`❓ Pregunta que me hacen TODO el tiempo:
+
+"Isabel, ¿si yo tengo Medicare, ¿mi esposo/a también queda cubierto?"
+
+La respuesta corta: NO.
+
+Medicare es individual. Cada persona debe inscribirse por separado cuando cumpla 65 años.
+
+PERO hay buenas noticias:
+✅ Si tu cónyuge tiene menos de 65 años, puede calificar antes bajo ciertas condiciones
+✅ Si tiene discapacidad o condición crónica, puede calificar antes de los 65
+✅ Si ambos califican para Medi-Cal, hay planes especiales D-SNP disponibles
+
+¿Tienes 65+ y tu pareja aún no llega a esa edad?
+Escríbeme "PAREJA" en los comentarios y te explico las opciones.
+
+Isabel Fuentes | Agente Licenciada de Medicare CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:3,cat:"Elegibilidad",tagClass:"tag-teal",trigger:"Miedo → Alivio",titulo:"¿Tengo Residencia Permanente y puedo tener Medicare?",porque:"Tema de alta relevancia para la comunidad inmigrante. El miedo a no calificar es enorme — aliviarlo genera gratitud y confianza.",copy:`🟢 Para mis amigos y familia con Residencia Permanente:
+
+¿Puedo tener Medicare si no soy ciudadano americano?
+
+SÍ — y esto es lo que necesitas saber:
+
+✅ Puedes calificar si eres residente permanente (green card)
+✅ Debes haber vivido legalmente en EE.UU. por al menos 5 años continuos
+✅ Debes haber pagado impuestos de Medicare por 10 años (40 trimestres)
+
+¿No tienes los 10 años de trabajo? Aún puedes comprar Medicare Part A pagando una prima mensual.
+
+Nuestra comunidad merece saber esto. Hay muchas personas que NO saben que califican y pierden años de beneficios.
+
+¿Tienes residencia permanente y estás llegando a los 65?
+Escríbeme "RESIDENCIA" en los comentarios — te explico tu caso específico, gratis.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:4,cat:"Elegibilidad",tagClass:"tag-teal",trigger:"Confusión → Urgencia",titulo:"Sigo trabajando a los 65 — ¿me inscribo o espero?",porque:"Historia de consecuencia real + pregunta directa. Los detalles ($40,000) hacen la historia creíble y urgente.",copy:`💼 ¿Sigues trabajando a los 65 años? Lee esto antes de tomar una decisión.
+
+"Mi jefe me da seguro médico. ¿Tengo que inscribirme en Medicare de todas formas?"
+
+Depende — y equivocarte puede costarte caro:
+
+📌 Si tu empresa tiene MENOS de 20 empleados → Inscríbete ya. Medicare es tu seguro primario.
+📌 Si tu empresa tiene 20+ empleados → Puedes esperar. Tienes un Período Especial de Inscripción cuando dejes de trabajar.
+
+¿Por qué importa? Porque si no te inscribes correctamente y a tiempo, puedes quedar sin cobertura entre el trabajo y Medicare — o pagar penalidades permanentes.
+
+Esta es exactamente la situación que le pasó a un cliente mío el año pasado. Le costó $40,000 en gastos médicos descubiertos.
+
+¿Cuántos empleados tiene tu empresa? Cuéntame tu situación en los comentarios.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+
+*Información educativa. Consulta las reglas específicas para tu situación.`},
+  {num:5,cat:"Elegibilidad",tagClass:"tag-teal",trigger:"Miedo → Acción",titulo:"La penalidad de por vida que nadie te cuenta",porque:"Los números concretos de pérdida económica generan urgencia inmediata. 'Para siempre' es un hook emocional muy poderoso.",copy:`⚠️ La penalidad de Medicare que nadie te cuenta — hasta que es tarde.
+
+Si no te inscribes en Medicare Part B cuando debes hacerlo, el gobierno te cobra una penalidad del 10% por cada 12 meses que esperaste.
+
+Y eso se queda CONTIGO DE POR VIDA.
+
+Ejemplo real:
+→ Prima normal de Part B 2026: $202.90/mes
+→ Si esperaste 2 años de más: +$40.58/mes extra, para siempre
+→ En 10 años: $4,870 que pagaste de más... por no inscribirte a tiempo
+
+Hay personas en nuestra comunidad pagando penalidades desde hace 15 años porque nadie les explicó esto.
+
+¿Cuándo cumpliste 65? ¿Ya revisaste si tienes penalidades actuales?
+
+Escríbeme "PENALIDAD" en los comentarios — reviso tu situación gratuitamente.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:6,cat:"Costos",tagClass:"tag-gold",trigger:"Confusión → Claridad",titulo:"¿Medicare es gratis? La respuesta honesta",porque:"Desmitificar con números reales. La desglose de costos es altamente compartible y guardable.",copy:`💰 ¿Medicare es gratis? La respuesta honesta que nadie te da.
+
+La respuesta corta: Depende de qué parte.
+
+Aquí el desglose real para 2026:
+
+Medicare Part A (Hospital):
+✅ GRATIS si trabajaste 10+ años pagando impuestos
+💰 $505/mes si no tienes los 40 trimestres de trabajo
+
+Medicare Part B (Médicos):
+💰 $202.90/mes — se descuenta de tu Seguro Social
+
+Medicare Part D (Medicamentos):
+💰 Varía por plan — puede ser $0 a $50+/mes
+
+Medicare Advantage (Plan todo-en-uno):
+✅ Muchos planes con $0 de prima adicional
+✅ Puede incluir dental, visión, audífonos y más
+
+¿Quieres saber cuánto pagarías TÚ específicamente según tu código postal?
+Escríbeme "COSTOS" en los comentarios.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Beneficios y costos varían por plan y área geográfica.`},
+  {num:7,cat:"Costos",tagClass:"tag-gold",trigger:"Enojo → Solución",titulo:"La prima de Part B subió — ¿qué puedo hacer?",porque:"La injusticia del COLA vs Part B es enojo compartible. Da salidas concretas para no quedarse en el enojo.",copy:`😤 La prima de Medicare Part B subió a $202.90 este año.
+
+Eso es $17.90 más al mes que el año pasado. Casi 10% de aumento.
+
+Y el aumento del Seguro Social fue de solo $56.
+
+Haz las cuentas: Un tercio de tu aumento ya se fue solo en Medicare Part B.
+
+¿Eso es justo? No.
+¿Puedes hacer algo al respecto? Sí.
+
+Lo que muchos no saben:
+→ Ciertos planes Medicare Advantage ofrecen beneficios que compensan ese costo
+→ Si tienes Medi-Cal, tu Part B puede ser pagada por el estado
+→ El programa Extra Help (LIS) puede reducir tus costos de medicamentos
+
+No tienes que aguantar ese golpe sin opciones.
+
+¿Quieres que revise tu situación y te diga qué opciones tienes en tu condado?
+
+Escríbeme "PRIMA" al [TU TELÉFONO] y lo vemos juntos. Sin costo.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+withisabelfuentes.com
+*Beneficios varían por plan y área geográfica.`},
+  {num:8,cat:"Costos",tagClass:"tag-gold",trigger:"Curiosidad → Ahorro",titulo:"Medicare Original vs. Medicare Advantage — comparación honesta",porque:"Comparativa honesta (sin favorecer ninguna) genera confianza. El cierre personalizado convierte.",copy:`🔄 La pregunta del millón: ¿Medicare Original o Medicare Advantage?
+
+Aquí la comparación honesta:
+
+MEDICARE ORIGINAL:
+→ Más flexibilidad para elegir doctores
+→ Funciona en casi cualquier hospital del país
+→ Sin límites de red (pero sin límites de gastos tampoco)
+→ Sin cobertura dental, visión ni audífonos incluidos
+→ Necesitas un plan Medigap separado ($100-$300/mes extra)
+
+MEDICARE ADVANTAGE:
+→ Todo en uno (médicos, hospital, medicamentos)
+→ Muchos planes con $0 de prima mensual
+→ Límite máximo de gastos de tu bolsillo (Medicare Original no tiene)
+→ Beneficios extra: dental, visión, audífonos, OTC, transporte
+→ Red de médicos más limitada (importante verificar tus doctores)
+
+¿Cuál es mejor? Depende de:
+📍 Tu condado / código postal
+💊 Tus medicamentos actuales
+👨‍⚕️ Tus médicos actuales
+
+Comenta "COMPARAR" y te explico cuál funciona mejor para tu situación específica.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:9,cat:"Costos",tagClass:"tag-gold",trigger:"Sorpresa → Ahorro",titulo:"¿Puedes tener Medicare Y Medi-Cal al mismo tiempo?",porque:"El D-SNP es un beneficio que genera enorme sorpresa. 'Cambiar de plan cada mes' es información de altísimo valor percibido.",copy:`🌟 ¿Sabías que puedes tener Medicare Y Medi-Cal al mismo tiempo?
+
+Si calificas para ambos programas se llama "Dual Eligible" o Plan D-SNP — y los beneficios son mucho mejores.
+
+¿Qué significa tener los dos?
+
+✅ Medi-Cal puede pagar tu prima de Medicare Part B ($202.90/mes)
+✅ Puedes cambiar tu plan Medicare UNA VEZ AL MES (no esperas hasta octubre)
+✅ Copagos muy reducidos o $0
+✅ Beneficios extra en muchos planes: alimentos, transporte, OTC
+✅ Coordinación automática entre ambos programas
+
+¿Cómo sé si califico para los dos?
+→ Depende de tu ingreso y activos
+→ Si recibes SSI, casi seguro calificas
+→ Si tienes ingresos bajos, vale la pena verificarlo
+
+En el sur de California hay miles de personas que califican y no lo saben.
+
+¿Tienes Medicare y tu ingreso es limitado?
+Escríbeme "DUAL" y reviso tu elegibilidad gratuitamente.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:10,cat:"Cobertura",tagClass:"tag-green",trigger:"Confusión → Claridad",titulo:"¿Medicare cubre tus medicamentos?",porque:"El límite de $2,000 en 2026 es noticia nueva. Información de valor alto = post guardado.",copy:`💊 ¿Medicare cubre tus medicamentos? Respuesta completa aquí.
+
+Medicare Original (Parts A y B) cubre muy pocos medicamentos orales.
+
+Para medicamentos de receta necesitas:
+
+OPCIÓN 1: Medicare Part D (Plan de Medicamentos)
+→ Plan separado que se añade a Medicare Original
+→ Varía en precio y medicamentos que cubre
+→ Lista de medicamentos cubiertos = "formulario"
+
+OPCIÓN 2: Medicare Advantage con Part D incluido
+→ Un solo plan que lo cubre todo
+→ Muchos planes en California incluyen Part D sin costo extra
+
+IMPORTANTE para 2026:
+📌 El límite máximo de gastos de bolsillo en medicamentos es $2,000/año
+📌 La insulina no puede costar más de $35/mes
+📌 El programa Extra Help puede reducir tus copagos a casi $0
+
+¿Tienes medicamentos caros? Escríbeme el nombre de tus medicamentos en mensaje privado y te digo cuál plan los cubre mejor en tu código postal.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Cobertura varía por plan. Consulta el formulario de tu plan.`},
+  {num:11,cat:"Cobertura",tagClass:"tag-green",trigger:"Sorpresa → Acción",titulo:"¿Medicare cubre el dentista? La respuesta te va a sorprender",porque:"El dentista es el beneficio que más sorprende y moviliza. Los números de ahorro concreto generan acción inmediata.",copy:`😬 ¿Medicare cubre el dentista?
+
+Medicare Original: NO.
+(Excepto procedimientos dentales necesarios por cirugía médica — muy limitado)
+
+Medicare Advantage: DEPENDE DEL PLAN — y aquí está la oportunidad.
+
+En el sur de California, muchos planes Medicare Advantage ofrecen:
+✅ Limpiezas y exámenes anuales sin costo
+✅ Radiografías incluidas
+✅ Extracciones cubiertas
+✅ Algunos planes: endodoncias, coronas y dentaduras con cobertura parcial
+✅ Planes premium: hasta $2,000-$3,000/año en beneficios dentales
+
+¿Cuánto gastas al año en el dentista?
+
+La gente que conozco con buenos planes Medicare Advantage ahorra entre $800 y $2,500 al año solo en dental.
+
+Eso es real. Disponible aquí en Los Ángeles, Orange County e Inland Empire.
+
+¿Quieres que te muestre qué cobertura dental tienen los planes de TU código postal?
+
+Comenta "DENTAL" o escríbeme directamente.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Beneficios varían por plan y área geográfica.`},
+  {num:12,cat:"Cobertura",tagClass:"tag-green",trigger:"Sorpresa → Ahorro",titulo:"¿Medicare cubre la vista y los audífonos?",porque:"El precio de $3,000-$7,000 de audífonos sin cobertura crea contraste dramático con la solución.",copy:`👓 🦻 ¿Medicare cubre lentes y audífonos?
+
+Medicare Original: Casi nada.
+→ Cubre examen ocular solo si tienes diabetes o glaucoma
+→ NO cubre lentes graduados ni audífonos rutinarios
+
+Medicare Advantage: Aquí cambia todo.
+
+Lo que ofrecen muchos planes en California:
+
+VISIÓN:
+✅ Examen anual de la vista cubierto
+✅ Lentes o armazones con beneficio anual ($100-$300)
+✅ Lentes de contacto incluidos en algunos planes
+
+AUDÍFONOS:
+✅ Evaluación auditiva cubierta
+✅ Audífonos: algunos planes cubren $500-$2,500 por oído
+✅ Baterías y accesorios incluidos
+
+¿Sabes cuánto cuestan los audífonos sin seguro? Entre $3,000 y $7,000 el par.
+
+Con el plan correcto de Medicare Advantage, eso puede reducirse dramáticamente.
+
+¿Usas lentes o audífonos?
+Escríbeme "VISION" o "AUDIO" en los comentarios.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Beneficios varían por plan.`},
+  {num:13,cat:"Cobertura",tagClass:"tag-green",trigger:"Preocupación → Alivio",titulo:"¿Puedo seguir viendo a mi doctor de siempre?",porque:"La preocupación por perder al médico de confianza es emocional y universal. Posicionarse como protectora de esa relación genera confianza profunda.",copy:`👨‍⚕️ "¿Puedo seguir viendo al doctor que llevo 10 años viendo?"
+
+Esta es la pregunta que más miedo genera al cambiar a Medicare — y lo entiendo completamente.
+
+La respuesta honesta:
+
+CON MEDICARE ORIGINAL:
+✅ Puedes ir a casi cualquier doctor que acepte Medicare en el país
+
+CON MEDICARE ADVANTAGE:
+→ Depende de la red del plan
+→ Algunos médicos están en unos planes y no en otros
+→ SIEMPRE hay que verificar antes de elegir un plan
+
+Por eso lo primero que hago contigo es verificar si tus médicos actuales están en el plan que consideramos.
+
+Es un paso que no se puede saltar. Un plan que no cubre a tu médico favorito no sirve — no importa cuántos beneficios extra tenga.
+
+¿Tienes un médico específico que quieres mantener?
+Escríbeme su nombre y te digo en cuáles planes de tu condado aparece.
+
+Es gratis. Es rápido. Y es lo que hago para cada cliente antes de recomendar nada.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:14,cat:"Cobertura",tagClass:"tag-green",trigger:"Curiosidad → Claridad",titulo:"¿Medicare me cubre si viajo a México o mi país?",porque:"Para la comunidad inmigrante que viaja regularmente, esta información es crítica y muy compartible entre familia.",copy:`✈️ Pregunta que recibo mucho de nuestra comunidad:
+
+"¿Medicare me cubre si viajo a México o a mi país?"
+
+La respuesta que nadie quiere escuchar: En general, NO.
+
+Medicare Original NO cubre atención médica fuera de los Estados Unidos (con muy pocas excepciones de emergencia).
+
+¿Qué puedes hacer?
+
+1. Algunos planes Medicare Advantage tienen cobertura de emergencia en el extranjero — verificar específicamente con cada plan
+
+2. Para viajes largos o frecuentes, considera un seguro de viaje internacional adicional
+
+3. Si vas a México regularmente, hay planes con cobertura de urgencias cruzando la frontera en ciertas áreas de California
+
+¿Viajas con frecuencia a México u otro país?
+Cuéntame en los comentarios y te digo qué opciones existen para tu situación.
+
+Este es el tipo de detalle que marca la diferencia entre un plan que funciona PARA TI y uno que solo se ve bien en papel.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:15,cat:"Inscripcion",tagClass:"tag-purple",trigger:"Confusión → Claridad",titulo:"Los períodos de inscripción de Medicare — explicados de una vez",porque:"Información estructurada tipo guía = post guardado. El SEP mensual para D-SNP genera sorpresa valiosa.",copy:`📅 Los períodos de inscripción de Medicare — explicados de una vez por todas.
+
+Hay 4 momentos clave en el año:
+
+1️⃣ PERÍODO INICIAL (IEP)
+→ Cuando cumples 65 (3 meses antes + mes de cumpleaños + 3 meses después)
+→ Solo pasa UNA VEZ
+
+2️⃣ PERÍODO ANUAL (AEP) — 15 OCT al 7 DIC
+→ Todos pueden cambiar, añadir o quitar partes de Medicare
+→ Cambios efectivos el 1 de enero del año siguiente
+
+3️⃣ PERÍODO ABIERTO DE MEDICARE ADVANTAGE (OEP) — 1 ENE al 31 MAR
+→ Solo para cambiar de un Advantage a otro, o volver a Medicare Original
+
+4️⃣ PERÍODO ESPECIAL (SEP)
+→ Por eventos de vida: mudanza, perder cobertura del trabajo, calificar para Medi-Cal
+→ D-SNP (Dual Eligible): ¡puedes cambiar CADA MES del año!
+
+La mayoría de personas solo conoce el AEP de octubre. Pero hay mucho más.
+
+¿Tienes algún evento de vida reciente?
+Escríbeme y lo verifico contigo.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:16,cat:"Inscripcion",tagClass:"tag-purple",trigger:"Confusión → Acción",titulo:"¿Cómo me inscribo en Medicare? ¿Voy a Social Security?",porque:"Las instrucciones concretas con pasos claros generan altísimo engagement — la gente los guarda para compartirlos.",copy:`🏛️ "¿Cómo me inscribo en Medicare? ¿Tengo que ir a Social Security?"
+
+Depende de tu situación:
+
+OPCIÓN A: Inscripción automática
+→ Si ya recibes beneficios de Seguro Social antes de los 65, te inscriben automáticamente
+→ Te llega tu tarjeta de Medicare por correo
+→ ¡Pero aún tienes que elegir un plan! El Medicare Original solo no es suficiente.
+
+OPCIÓN B: Inscripción activa
+→ Ve a ssa.gov online (sin fila)
+→ Llama al 1-800-772-1213
+→ Ve a tu oficina local de Social Security
+
+¿Cuándo ir con un agente como yo?
+→ ANTES de elegir cualquier plan adicional
+→ Para comparar opciones según TUS médicos y medicamentos
+→ Para evitar penalidades por inscribirte tarde o mal
+
+El proceso de inscripción en Medicare es gratuito. Mi ayuda también es gratuita.
+
+¿Estás por cumplir 65 y no sabes por dónde empezar?
+Escríbeme "EMPEZAR" y te guío paso a paso.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:17,cat:"Inscripcion",tagClass:"tag-purple",trigger:"Sorpresa → Acción",titulo:"¿Puedo cambiar mi plan de Medicare después de inscribirme?",porque:"'Atrapado para siempre' es un miedo real. Liberar de ese miedo + dar acción inmediata = conversión alta.",copy:`🔄 ¿Estás atrapado con un plan de Medicare para siempre?
+
+¡Para nada! Aquí cuándo puedes cambiar:
+
+SI TIENES MEDICARE ADVANTAGE:
+→ AEP (15 oct - 7 dic): Cambias efectivo 1 de enero
+→ OEP (1 ene - 31 mar): Un cambio por año
+→ SEP: Si tienes un evento de vida calificante
+
+SI TIENES MEDICARE + MEDI-CAL (Dual):
+→ Puedes cambiar CADA MES del año
+→ Sin esperar períodos especiales
+→ El cambio aplica el primer día del mes siguiente
+
+¿Cuándo tiene sentido cambiar?
+✔ Tu médico favorito ya no está en tu red
+✔ Tus medicamentos subieron de precio
+✔ Encontraste un plan con mejores beneficios
+✔ Tu situación de salud cambió
+✔ Te mudaste a otro condado
+
+Mucha gente cree que está "atrapada" en un plan malo — y no es así.
+
+¿No estás contento con tu plan actual?
+Escríbeme "CAMBIO" y vemos tus opciones.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com`},
+  {num:18,cat:"Planes",tagClass:"tag-red",trigger:"Confusión → Confianza",titulo:"¿Cuál es mejor: SCAN, Anthem, Humana o LA Care?",porque:"Posicionarse como neutral entre carriers es poderoso. El agente independiente vs captivo es una ventaja competitiva real.",copy:`🤔 La pregunta más frecuente: ¿Cuál plan es mejor?
+
+La respuesta honesta de una agente que trabaja con TODOS ellos:
+
+No hay un plan universalmente mejor.
+Hay un plan mejor PARA TI.
+
+Lo que diferencia a SCAN, Anthem, Humana, LA Care, Molina, Health Net, Alignment y UHC en SoCal:
+
+📍 Red de médicos — cada plan tiene diferentes doctores
+💊 Formulario de medicamentos — cada plan cubre diferentes medicamentos
+🏥 Hospitales en red — algunos cubren mejor ciertos sistemas hospitalarios
+💰 Beneficios extras — dental, visión, OTC, transporte varían enormemente
+📌 Disponibilidad por ZIP code — no todos los planes están en todos los condados
+
+Soy agente independiente. Trabajo con TODOS esos carriers. No tengo favorito — tengo el que es correcto para cada cliente.
+
+¿Quieres una comparación de planes disponibles en TU código postal?
+Escríbeme "COMPARAR" con tu ZIP y te envío el análisis gratis.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Beneficios varían por plan y área geográfica.`},
+  {num:19,cat:"Planes",tagClass:"tag-red",trigger:"Curiosidad → Valor",titulo:"¿Qué son los beneficios OTC, transporte y alimentos?",porque:"El dinero para el supermercado es el beneficio que más sorprende y comparte. 'Tienes beneficios que no estás usando' es una oportunidad de acción inmediata.",copy:`🛒 ¿Tu plan de Medicare te puede dar dinero para el supermercado?
+
+Hay un mundo de beneficios extra en los planes Medicare Advantage que mucha gente nunca activa porque no sabe que los tiene.
+
+BENEFICIO OTC (Over-the-Counter):
+→ Tarjeta prepagada para vitaminas, higiene y productos de salud
+→ Algunos planes: $25 a $150 por mes
+→ Se usa en CVS, Walgreens, Walmart
+
+TRANSPORTE MÉDICO:
+→ Viajes al médico, farmacia, laboratorio
+→ Algunos planes: 20-48 viajes al año
+→ Sin costo para ti
+
+BENEFICIO DE ALIMENTOS:
+→ Para personas con condiciones crónicas
+→ Tarjeta para alimentos saludables aprobados
+→ Algunos planes: hasta $50-$150 al mes
+
+MEMBRESÍA DE GIMNASIO:
+→ SilverSneakers incluido
+→ Acceso a miles de gimnasios sin costo adicional
+
+¿Ya activaste todos los beneficios de tu plan actual?
+Muchas personas los tienen y nunca los han usado.
+
+Escríbeme "BENEFICIOS" y reviso si estás aprovechando todo lo que te corresponde.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [TU NPN]
+📞 [TU TELÉFONO] | withisabelfuentes.com
+*Beneficios varían por plan y área geográfica.`},
+  {num:20,cat:"Planes",tagClass:"tag-red",trigger:"Comunidad → Confianza",titulo:"¿Por qué trabajar con una agente independiente?",porque:"El cierre del banco con el post más personal construye la relación. Reconocer la desconfianza de frente es la táctica de confianza más poderosa.",copy:`🤝 ¿Por qué trabajar con una agente de Medicare independiente como yo?
+
+Entiendo la pregunta. Puedes ir directo a los sitios de las aseguradoras. Puedes llamar a Medicare. Puedes buscar en Google.
+
+Pero aquí está lo que solo una agente independiente puede hacer por ti:
+
+1. COMPARO TODOS LOS PLANES — No tengo uno favorito. Trabajo con SCAN, Anthem, Humana, LA Care, Molina, Health Net, Alignment y UHC. Te muestro el mejor para TI.
+
+2. CONOZCO TU COMUNIDAD — Hablo español. Entiendo las necesidades de nuestra comunidad en el sur de California. No soy un call center en otro estado.
+
+3. MI SERVICIO ES GRATIS — Los planes me compensan directamente. Tú no pagas ni un centavo más por tenerme de tu lado.
+
+4. ESTOY CONTIGO DESPUÉS — Si tienes un problema con tu plan, me llamas a mí. No esperas en una línea de 45 minutos.
+
+5. CONOZCO LAS REGLAS — Sé cuándo puedes cambiar, qué períodos aplican para ti y cómo evitar errores costosos.
+
+¿Has tenido malas experiencias con agentes de seguros antes?
+Cuéntame en los comentarios — entiendo la desconfianza, y me la he ganado persona a persona.
+
+Soy Isabel Fuentes.
+📞 [TU TELÉFONO] | withisabelfuentes.com | NPN: [TU NPN]`}
+];
+
+const FB_SECTIONS = [
+  {id:"perfil",icon:"🖼️",titulo:"Foto de Perfil",tipo:"specs",instruccion:"Usa tu foto personal profesional — NO un logo. Sonrisa natural, fondo neutro o de oficina. Mínimo 180×180px.",specs:["Tamaño: mínimo 180×180 px (recomendado 800×800)","Formato: JPG o PNG","Fondo: neutro (blanco, beige, gris suave)","Vestimenta: profesional pero accesible — no traje formal ni ropa casual","Expresión: sonrisa natural, mirada a cámara","Sin logos, sin marcos adicionales","Herramienta para editar: remove.bg para fondo limpio o Canva"],copy:null},
+  {id:"cover",icon:"🏷️",titulo:"Cover Photo — Texto para Canva",tipo:"both",instruccion:"Tu cover debe comunicar quién eres, a quién sirves y cómo contactarte en 3 segundos. Diseñalo en Canva (820 × 312 px).",specs:["Herramienta: canva.com → busca 'Facebook Cover'","Tamaño: 820 × 312 píxeles","Colores sugeridos: Fondo azul oscuro (#1a3a5c) + texto blanco + acento dorado (#C9A96E)","Foto tuya en el lado izquierdo (40% del espacio)","Texto en lado derecho (60% del espacio)"],copy:`LÍNEA 1 (fuente grande): Isabel Fuentes
+LÍNEA 2 (fuente mediana): Medicare Insurance Agent | California
+LÍNEA 3 (fuente pequeña): Licenciada · Bilingüe · Sin costo para ti
+
+CARRIERS (logos pequeños en fila):
+SCAN | Anthem | Humana | LA Care | Molina | Health Net | UHC
+
+CONTACTO VISIBLE:
+📞 [TU TELÉFONO]
+🌐 withisabelfuentes.com
+NPN: [TU NPN]
+
+ÁREA DE SERVICIO (en letra pequeña):
+Los Ángeles · Orange County · Inland Empire`},
+  {id:"about_es",icon:"📝",titulo:"\"Acerca De\" — Español",tipo:"copy",instruccion:null,specs:null,copy:`Soy Isabel Fuentes, Agente Licenciada de Medicare en California, especializada en ayudar a la comunidad hispana del sur de California a entender y elegir el mejor plan de Medicare — en español y sin complicaciones.
+
+Trabajo con los principales planes de salud de California:
+SCAN · Anthem · Humana · Alignment · LA Care · Health Net · Molina · United Healthcare
+
+¿Por qué trabajar conmigo?
+✅ Soy agente INDEPENDIENTE — comparo todos los planes sin favoritismo
+✅ Mi servicio es COMPLETAMENTE GRATUITO para ti
+✅ Hablo español — entiendo a nuestra comunidad
+✅ Conozco el sur de California: LA, Orange County e Inland Empire
+✅ Estoy contigo antes, durante y después de inscribirte
+
+Sirvo a toda la comunidad hispanohablante del sur de California.
+
+📞 [TU TELÉFONO]
+📱 WhatsApp: [TU NÚMERO DE WHATSAPP]
+🌐 withisabelfuentes.com
+📋 NPN: [TU NPN]
+📧 [TU EMAIL]
+
+Horario de atención:
+Lunes a Viernes: 9:00 AM – 6:00 PM
+Sábados: 10:00 AM – 2:00 PM`},
+  {id:"about_en",icon:"📝",titulo:"\"About\" — English",tipo:"copy",instruccion:null,specs:null,copy:`I'm Isabel Fuentes, a Licensed Medicare Insurance Agent in California, specializing in helping the Hispanic community in Southern California navigate Medicare — in Spanish, with no confusion and no cost to you.
+
+I work with California's leading health plans:
+SCAN · Anthem · Humana · Alignment · LA Care · Health Net · Molina · United Healthcare
+
+Why work with me?
+✅ INDEPENDENT agent — I compare all plans without bias
+✅ My services are COMPLETELY FREE to you
+✅ Bilingual: English & Spanish
+✅ I know SoCal: LA, Orange County & Inland Empire
+✅ I'm with you before, during, and after enrollment
+
+Serving the Hispanic community across Southern California.
+
+📞 [YOUR PHONE]
+📱 WhatsApp: [YOUR WHATSAPP NUMBER]
+🌐 withisabelfuentes.com
+📋 NPN: [YOUR NPN]
+📧 [YOUR EMAIL]
+
+Office Hours:
+Monday–Friday: 9:00 AM – 6:00 PM
+Saturdays: 10:00 AM – 2:00 PM`},
+  {id:"disclaimer",icon:"⚠️",titulo:"Disclaimer CMS Obligatorio",tipo:"copy",instruccion:"Agrega este texto en la sección 'Más información' de tu página o en un post fijado.",specs:null,copy:`⚠️ AVISO LEGAL / LEGAL DISCLAIMER
+
+I am not connected with or endorsed by the U.S. government or the federal Medicare program.
+No estoy conectada ni respaldada por el gobierno de los Estados Unidos ni por el programa federal de Medicare.
+
+Los planes están asegurados o cubiertos por una organización de Medicare Advantage con un contrato de Medicare y/o un patrocinador de Medicare Part D aprobado. La inscripción en el plan depende de la renovación del contrato del plan con Medicare.
+
+Plans are insured or covered by a Medicare Advantage organization with a Medicare contract and/or a Medicare-approved Part D sponsor. Enrollment in the plan depends on the plan's contract renewal with Medicare.
+
+Other pharmacies, physicians, or providers are available in our network. Otras farmacias, médicos o proveedores están disponibles en nuestra red.
+
+Benefits vary by plan and geographic area. Beneficios varían por plan y área geográfica.
+
+Isabel Fuentes | Licensed Insurance Agent
+California License: [TU NÚMERO DE LICENCIA CA]
+NPN: [TU NPN]`},
+  {id:"cta",icon:"🔘",titulo:"Botón CTA + Respuesta Automática",tipo:"both",instruccion:"Ve a tu página → Editar página → Agregar botón de acción. Configura así:",specs:["Botón principal recomendado: 'Enviar mensaje' (vinculado a WhatsApp Business)","Alternativa: 'Llamar ahora' con tu número directo","Activa WhatsApp Business y vincúlalo a tu página de Facebook","Configura el mensaje de bienvenida automático en Messenger"],copy:`MENSAJE DE BIENVENIDA AUTOMÁTICO (Messenger):
+
+¡Hola! Soy Isabel Fuentes, agente licenciada de Medicare en California. Gracias por escribirme 🙏
+
+Respondo todos los mensajes en 24 horas o menos.
+
+Para ayudarte mejor, cuéntame:
+1. ¿Cuántos años tienes?
+2. ¿Ya tienes Medicare o te estás preparando para inscribirte?
+3. ¿Tienes alguna pregunta específica?
+
+📞 Para urgencias: [TU TELÉFONO]
+🌐 withisabelfuentes.com
+
+— Isabel`},
+  {id:"primer_post",icon:"🚀",titulo:"Primer Post de Bienvenida",tipo:"copy",instruccion:"Publica este post el día que tengas tu página configurada. Fíjalo en la parte superior de tu página.",specs:null,copy:`🌟 ¡Hola, comunidad del sur de California! 🌟
+
+Soy Isabel Fuentes, tu Agente Licenciada de Medicare aquí en SoCal.
+
+Creé esta página para una sola razón:
+👉 Porque nuestra comunidad hispana MERECE entender Medicare — en español, sin letra chica y sin pagar nada extra por la ayuda.
+
+Si estás aquí es porque probablemente:
+• Te acercas a los 65 años y no sabes por dónde empezar
+• Ya tienes Medicare pero crees que puedes tener mejores beneficios
+• Alguien de tu familia necesita orientación sobre Medicare
+• Viste algo en redes y quieres saber si es legítimo
+
+Estoy aquí para todo eso.
+
+💬 Mi primera pregunta para ti:
+¿Cuál es tu MAYOR duda sobre Medicare ahora mismo?
+
+Escríbela en los comentarios — respondo a todas personalmente.
+
+📞 [TU TELÉFONO]
+📱 WhatsApp: [TU NÚMERO]
+🌐 withisabelfuentes.com
+
+Soy Isabel Fuentes. Licenciada. Bilingüe. Y de aquí de SoCal como tú. 💙
+
+---
+Isabel Fuentes | Licensed Medicare Agent | NPN: [TU NPN]
+Not connected with or endorsed by the U.S. government or the federal Medicare program.`}
+];
+
+const SHEETS_COLS = [
+  {col:"A",nombre:"Nombre del Competidor",tipo:"Texto",ejemplo:"Medicare con María"},
+  {col:"B",nombre:"URL Página Facebook",tipo:"Link",ejemplo:"facebook.com/medicareconmaria"},
+  {col:"C",nombre:"# Seguidores",tipo:"Número",ejemplo:"4,230"},
+  {col:"D",nombre:"Frecuencia Posts/semana",tipo:"Número",ejemplo:"3"},
+  {col:"E",nombre:"Tipo Contenido Principal",tipo:"Opción",ejemplo:"Video Reel / Imagen / Carrusel"},
+  {col:"F",nombre:"Idioma",tipo:"Opción",ejemplo:"Español / Inglés / Bilingüe"},
+  {col:"G",nombre:"Anuncios Activos (Sí/No)",tipo:"Sí/No",ejemplo:"Sí — 3 anuncios activos"},
+  {col:"H",nombre:"Mensaje Principal del Anuncio",tipo:"Texto",ejemplo:"'Beneficios gratis de Medicare'"},
+  {col:"I",nombre:"CTA que usan",tipo:"Texto",ejemplo:"'Llama ahora' / 'Más información'"},
+  {col:"J",nombre:"Engagement Promedio",tipo:"Número",ejemplo:"45 likes, 12 comentarios"},
+  {col:"K",nombre:"Tono de Comunicación",tipo:"Texto",ejemplo:"Formal / Cálido / Agresivo de ventas"},
+  {col:"L",nombre:"¿Usa Cara Propia?",tipo:"Sí/No",ejemplo:"No — usa stock photos"},
+  {col:"M",nombre:"Errores de Compliance CMS",tipo:"Texto",ejemplo:"Sin NPN visible / Promete montos específicos"},
+  {col:"N",nombre:"Su Mayor Debilidad",tipo:"Texto",ejemplo:"Solo publica en inglés, cero engagement"},
+  {col:"O",nombre:"Su Mayor Fortaleza",tipo:"Texto",ejemplo:"5 videos/semana, muy consistente"},
+  {col:"P",nombre:"Oportunidad para Isabel",tipo:"Texto",ejemplo:"Nadie en español auténtico en su área"},
+  {col:"Q",nombre:"Fuente (Meta Ad Library / FB)",tipo:"Texto",ejemplo:"Meta Ad Library"},
+  {col:"R",nombre:"Fecha de Investigación",tipo:"Fecha",ejemplo:"15/Mayo/2026"},
+  {col:"S",nombre:"Notas Adicionales",tipo:"Texto",ejemplo:"Parece inactivo desde enero 2026"}
+];
+
+const WEEKS = [
+  {label:"SEMANA 1",sub:"Investigación y Fundación",color:"teal",dias:[
+    {dia:"Lun–Mar",accion:"Ejecuta espionaje de competidores",tool:"Meta Ad Library + FB Search",tiempo:"3-4 hrs",tipo:"investigación",tipoCls:"tag-teal"},
+    {dia:"Mié–Jue",accion:"Minería de comentarios en grupos de Facebook",tool:"Grupos FB + páginas de carriers",tiempo:"2-3 hrs",tipo:"investigación",tipoCls:"tag-teal"},
+    {dia:"Vie–Dom",accion:"Configura / actualiza tu página de Facebook",tool:"Facebook + Canva",tiempo:"4-5 hrs",tipo:"configuración",tipoCls:"tag-purple"}
+  ],entregables:["Hoja de Google Sheets con 5 competidores documentados","Banco de 20 preguntas validadas contra comentarios reales","Página de Facebook 100% optimizada con todos los elementos","Primer post de bienvenida publicado"]},
+  {label:"SEMANA 2",sub:"Primeros Contenidos",color:"gold",dias:[
+    {dia:"Lunes",accion:"Video Reel cara a cámara (Alerta de estafas de Medicare)",tool:"Teléfono + luz natural",tiempo:"45 min",tipo:"video",tipoCls:"tag-red"},
+    {dia:"Miércoles",accion:"Infografía educativa del banco de preguntas",tool:"Canva",tiempo:"1 hr",tipo:"imagen",tipoCls:"tag-gold"},
+    {dia:"Jueves",accion:"Post de texto con pregunta a la audiencia",tool:"Facebook",tiempo:"20 min",tipo:"texto",tipoCls:"tag-green"},
+    {dia:"Sábado",accion:"Primer Facebook Live educativo (20-30 min)",tool:"Facebook Live",tiempo:"30 min",tipo:"live",tipoCls:"tag-red"}
+  ],entregables:["4 piezas de contenido publicadas","Primeras interacciones orgánicas","Lista de personas que comentaron (leads potenciales)","Estadísticas base de tu página documentadas"]},
+  {label:"SEMANA 3",sub:"Primeros Anuncios Pagados",color:"green",dias:[
+    {dia:"Lun–Mar",accion:"Configura Meta Business Suite + WhatsApp Business",tool:"Meta Business Suite",tiempo:"2 hrs",tipo:"configuración",tipoCls:"tag-purple"},
+    {dia:"Miércoles",accion:"Crea primer anuncio Click-to-WhatsApp",tool:"Meta Ads Manager",tiempo:"1.5 hrs",tipo:"ads",tipoCls:"tag-purple"},
+    {dia:"Jueves",accion:"Lanza campaña de prueba ($10-15/día)",tool:"Meta Ads Manager",tiempo:"30 min",tipo:"ads",tipoCls:"tag-purple"},
+    {dia:"Vie–Dom",accion:"Monitorea, responde leads y optimiza el anuncio",tool:"Meta Ads Manager + WhatsApp",tiempo:"15 min/día",tipo:"comunidad",tipoCls:"tag-green"}
+  ],entregables:["Primer anuncio activo y funcionando","WhatsApp Business configurado con respuesta automática","Primeros leads llegando al WhatsApp","Costo por lead inicial documentado"]},
+  {label:"SEMANA 4",sub:"Automatización y Escala",color:"red",dias:[
+    {dia:"Lunes",accion:"Crea contenido de las próximas 4 semanas en un día (batch)",tool:"Canva + documentos",tiempo:"4 hrs",tipo:"contenido",tipoCls:"tag-gold"},
+    {dia:"Martes",accion:"Programa todos los posts en Meta Business Suite",tool:"Meta Business Suite",tiempo:"1 hr",tipo:"configuración",tipoCls:"tag-purple"},
+    {dia:"Miércoles",accion:"Sube lista de contactos para crear Lookalike Audience",tool:"Meta Ads Manager",tiempo:"45 min",tipo:"ads",tipoCls:"tag-purple"},
+    {dia:"Jue–Dom",accion:"Responde comentarios y DMs diariamente",tool:"Facebook / WhatsApp",tiempo:"30 min/día",tipo:"comunidad",tipoCls:"tag-green"}
+  ],entregables:["Contenido de 4 semanas programado y listo","Lookalike Audience creada a partir de leads reales","Sistema de respuesta semi-automatizado activo","Revisión de métricas y ROI de las 4 semanas"]}
+];
+
+const ROUTINE = [
+  {dia:"Lunes",tipo:"Video",tipoCls:"tag-teal",tema:"Alerta semanal / noticia Medicare / respuesta a comentario trending",formato:"Reel 45–90 seg"},
+  {dia:"Miércoles",tipo:"Imagen",tipoCls:"tag-gold",tema:"Infografía educativa o dato sorpresivo del banco de preguntas",formato:"Carrusel 3–5 slides"},
+  {dia:"Jueves",tipo:"Texto",tipoCls:"tag-green",tema:"Post del Banco de Preguntas o historia de cliente (sin testimonios identificables)",formato:"Post texto largo"},
+  {dia:"Sábado",tipo:"Live",tipoCls:"tag-red",tema:"Seminario educativo en español (quincenal)",formato:"Facebook Live 20–45 min"},
+  {dia:"Domingo",tipo:"Story",tipoCls:"tag-purple",tema:"Detrás de cámaras / momento personal / recordatorio de la semana",formato:"Stories 15 seg"}
+];
+
+const ESPIA_TOOLS = [
+  {num:1,name:"Meta Ad Library",url:"facebook.com/ads/library",uso:"Ver TODOS los anuncios pagados activos de cualquier página — gratis, sin cuenta necesaria"},
+  {num:2,name:"Facebook Search",url:"facebook.com/search",uso:"Buscar páginas de agentes Medicare en español por nombre, ubicación o palabras clave"},
+  {num:3,name:"Who Posted What",url:"whopostedwhat.com",uso:"Buscar posts públicos por palabra clave en un rango de fechas específico"},
+  {num:4,name:"Social Blade",url:"socialblade.com",uso:"Ver el crecimiento de seguidores de páginas de Facebook en el tiempo"},
+  {num:5,name:"Meta Business Suite",url:"business.facebook.com",uso:"Ver insights de tu propia página y analizar benchmarks de la industria"}
+];
+
+const KEYWORDS = ["Medicare California español","Medicare hispano Los Angeles","seguro médico Medicare","Medicare gratis California","Medicare 2026 beneficios","SCAN Health Plan","Anthem Medicare español","Medicare Orange County","seguro de salud mayores","Plan de salud para seniors","Medicare Inland Empire","Medicare San Bernardino","Medicare Riverside","agente Medicare español","Medicare Advantage California"];
+
+const COMP_PROFILES = [
+  {tipo:"El Corporativo Frío",seña:"Solo en inglés, stock photos, posts técnicos sin emoción, cero interacción con comentarios",oport:"Tu autenticidad en español es invencible contra él. La conexión personal es TU ventaja."},
+  {tipo:"El Que Solo Vende",seña:"90% posts de venta, nunca educa, bajo engagement, violaciones sutiles de CMS en textos",oport:"La regla 80% educación / 20% CTA te diferencia totalmente. El banco de preguntas es tu arma."},
+  {tipo:"El Fantasma",seña:"Página creada pero inactivo 6+ meses. Tenía seguidores pero se rindió o dejó el negocio",oport:"Su audiencia está abandonada y sin servicio. Puedes captarla con ads de lookalike o retargeting."},
+  {tipo:"El Competidor Serio ⚠️",seña:"5,000+ seguidores, publica 3-4x/semana, usa su cara, mezcla videos con infografías",oport:"Estudia su contenido más exitoso → mejóralo en español auténtico. Si usa imágenes, tú usa video."},
+  {tipo:"La Organización / Clínica",seña:"FQHCs, clínicas comunitarias, páginas grandes e impersonales con mucho alcance",oport:"No pueden dar consejo personalizado. Tú eres el humano de confianza que ninguna clínica puede ser."}
+];
+
+const CMS_ERRORS = ["Sin NPN visible en ningún material de marketing (incluye posts y anuncios)","Promete montos específicos ($0, '$X al mes') sin disclaimer de variación por plan/área","Usa la palabra 'gratis' sin las calificaciones requeridas por CMS","Compara planes específicos sin seguir las reglas CMS de comparación equitativa","Hace inscripciones directas desde anuncios sin consentimiento documentado previamente","Usa testimonios de clientes sin autorización escrita firmada y archivada","No incluye 'Not connected with or endorsed by the U.S. government' en materiales","Hace inscripciones durante un Facebook Live (evento de alcance general)"];
+
+// ─── RENDER POSTS ─────────────────────────────────────────────────────────────
+function renderPosts(filter) {
+  const container = document.getElementById('posts-container');
+  const filtered = filter === 'Todos' ? POSTS : POSTS.filter(p => p.cat === filter || p.cat.startsWith(filter.slice(0,5)));
+  container.innerHTML = filtered.map(p => `
+    <div class="card" id="post-card-${p.num}" data-cat="${p.cat}">
+      <button class="card-header" onclick="toggleCard('post-card-${p.num}')">
+        <div style="display:flex;align-items:center;gap:12px;flex:1;min-width:0;">
+          <span class="post-num">#${p.num}</span>
+          <div>
+            <div class="post-title">${p.titulo}</div>
+            <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px;">
+              <span class="tag ${p.tagClass}">${p.cat}</span>
+              <span class="tag tag-gold">${p.trigger}</span>
+            </div>
+          </div>
+        </div>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="card-body">
+        <div class="why-box"><strong>¿Por qué funciona?</strong> ${p.porque}</div>
+        <div class="copy-block">
+          <div class="copy-block-header">
+            <span class="copy-block-label">🇲🇽 Copy completo — pega directo en Facebook</span>
+            <button class="copy-btn" onclick="copyText(this,'post-copy-${p.num}')">Copiar todo</button>
+          </div>
+          <pre id="post-copy-${p.num}">${escHtml(p.copy)}</pre>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+// ─── RENDER FB SECTIONS ───────────────────────────────────────────────────────
+function renderFBSections() {
+  const c = document.getElementById('fb-sections-container');
+  c.innerHTML = FB_SECTIONS.map(s => `
+    <div class="card" id="fb-card-${s.id}">
+      <button class="card-header" onclick="toggleCard('fb-card-${s.id}')">
+        <div style="display:flex;align-items:center;gap:10px;">
+          <span style="font-size:20px;">${s.icon}</span>
+          <span style="font-weight:700;font-size:14px;color:var(--text);">${s.titulo}</span>
+        </div>
+        <span class="chevron">▼</span>
+      </button>
+      <div class="card-body">
+        ${s.instruccion ? `<p style="font-size:13px;color:var(--text-mid);line-height:1.6;margin-bottom:12px;">${s.instruccion}</p>` : ''}
+        ${s.specs ? `<div class="spec-list" style="margin-bottom:${s.copy?'14px':'0'};">${s.specs.map(sp=>`<div class="spec-item"><span class="spec-arrow">→</span>${sp}</div>`).join('')}</div>` : ''}
+        ${s.copy ? `<div class="copy-block"><div class="copy-block-header"><span class="copy-block-label">📋 Texto listo para copiar</span><button class="copy-btn" onclick="copyText(this,'fb-copy-${s.id}')">Copiar todo</button></div><pre id="fb-copy-${s.id}">${escHtml(s.copy)}</pre></div>` : ''}
+      </div>
+    </div>`).join('');
+}
+
+// ─── RENDER SHEETS ────────────────────────────────────────────────────────────
+function renderSheets() {
+  // Table body
+  document.getElementById('sheets-table-body').innerHTML = SHEETS_COLS.map((c,i) =>
+    `<tr><td class="col-letter">${c.col}</td><td style="font-weight:600;">${c.nombre}</td><td><span class="tag tag-teal">${c.tipo}</span></td><td class="td-italic">${c.ejemplo}</td></tr>`
+  ).join('');
+  // Example header
+  document.getElementById('sheets-ex-head').innerHTML = SHEETS_COLS.slice(0,10).map(c =>
+    `<th>${c.col}. ${c.nombre.split(' ').slice(0,2).join(' ')}</th>`).join('');
+  // Example body
+  const examples = [
+    ["Competidor Tipo A — Solo vende","facebook.com/...","1,200","1-2x","Imagen","Inglés","Sí","'Llámanos'","Llamar ahora","8 likes"],
+    ["Competidor Tipo B — El Serio","facebook.com/...","6,400","4-5x","Video+Imagen","Bilingüe","Sí","'Benefits explained'","Más info","120 likes"],
+    ["Competidor Tipo C — Fantasma","facebook.com/...","890","0 (inactivo)","—","Español","No","—","—","0"]
+  ];
+  document.getElementById('sheets-ex-body').innerHTML = examples.map(row =>
+    `<tr>${row.map(cell=>`<td>${cell}</td>`).join('')}</tr>`).join('');
+  // Headers text
+  document.getElementById('sheets-headers-text').textContent = SHEETS_COLS.map(c=>c.nombre).join('\t');
+}
+
+// ─── RENDER ESPÍA ─────────────────────────────────────────────────────────────
+function renderEspia() {
+  document.getElementById('espia-tools').innerHTML = ESPIA_TOOLS.map((t,i) => `
+    <div class="tool-row">
+      <div class="tool-num">${t.num}</div>
+      <div>
+        <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:3px;">
+          <span class="tool-name">${t.name}</span>
+          <span class="tag tag-green">Gratis</span>
+          <span class="tool-url">${t.url}</span>
+        </div>
+        <span class="tool-uso">${t.uso}</span>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('kw-grid').innerHTML = KEYWORDS.map((kw,i) => `
+    <div class="kw-chip">
+      <span>"${kw}"</span>
+      <button class="kw-copy" onclick="copyKw(this,'${kw}')">Copiar</button>
+    </div>`).join('');
+
+  document.getElementById('comp-profiles').innerHTML = COMP_PROFILES.map((c,i) => `
+    <div class="comp-row">
+      <div class="comp-name">Tipo #${i+1}: ${c.tipo}</div>
+      <div class="comp-grid">
+        <div class="comp-seña"><strong style="color:var(--red);">Señas:</strong> ${c.seña}</div>
+        <div class="comp-oport"><strong style="color:var(--green);">Tu ventaja:</strong> ${c.oport}</div>
+      </div>
+    </div>`).join('');
+
+  document.getElementById('cms-errors').innerHTML = CMS_ERRORS.map(e => `
+    <div class="cms-item"><span class="cms-x">✗</span>${e}</div>`).join('');
+}
+
+// ─── RENDER CALENDARIO ────────────────────────────────────────────────────────
+function renderCalendario() {
+  const tabsEl = document.getElementById('week-tabs');
+  const panelsEl = document.getElementById('week-panels');
+  tabsEl.innerHTML = WEEKS.map((w,i) => `
+    <button class="week-tab ${i===0?'active-'+w.color:''}" data-wi="${i}" data-color="${w.color}" onclick="showWeek(${i})">${w.label}</button>`).join('');
+  panelsEl.innerHTML = WEEKS.map((w,i) => `
+    <div id="week-panel-${i}" class="week-panel ${i===0?'active':''}">
+      <h3 style="font-family:var(--ff-display);font-size:18px;font-weight:800;color:var(--${w.color});margin-bottom:16px;">${w.label} — ${w.sub}</h3>
+      ${w.dias.map(d=>`
+        <div class="day-row">
+          <span class="day-label">${d.dia}</span>
+          <div><div class="day-action">${d.accion}</div><div class="day-tool">🔧 ${d.tool}</div></div>
+          <div class="day-meta"><span class="tag ${d.tipoCls}">${d.tipo}</span><div class="day-time">⏱ ${d.tiempo}</div></div>
+        </div>`).join('')}
+      <div class="entregables">
+        <h4>✅ Entregables al final de esta semana</h4>
+        ${w.entregables.map(e=>`<div class="entregable-item"><span class="entregable-arr">→</span>${e}</div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  document.getElementById('routine-rows').innerHTML = ROUTINE.map(r => `
+    <div class="routine-row">
+      <span style="font-weight:700;">${r.dia}</span>
+      <span class="tag ${r.tipoCls}">${r.tipo}</span>
+      <span>${r.tema}</span>
+      <span style="color:var(--text-muted);font-size:11px;text-align:right;">${r.formato}</span>
+    </div>`).join('');
+}
+
+// ─── UTILITY FUNCTIONS ────────────────────────────────────────────────────────
+function escHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function showPanel(id, btn) {
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function toggleCard(id) {
+  const card = document.getElementById(id);
+  card.classList.toggle('open');
+}
+
+function filterPosts(cat, btn) {
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderPosts(cat);
+}
+
+function showSubPanel(group, id, btn) {
+  const prefix = 'sheets-';
+  document.querySelectorAll('#panel-sheets .sub-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('#panel-sheets .sub-tab').forEach(b=>b.classList.remove('active'));
+  document.getElementById(prefix+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+function showWeek(i) {
+  document.querySelectorAll('.week-panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.week-tab').forEach((b,bi)=>{
+    b.className='week-tab';
+    if(bi===i) b.className='week-tab active-'+WEEKS[i].color;
+  });
+  document.getElementById('week-panel-'+i).classList.add('active');
+}
+
+function copyText(btn, elId) {
+  const el = document.getElementById(elId);
+  const text = el.tagName === 'PRE' ? el.textContent : el.innerText;
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar todo'; btn.classList.remove('copied'); }, 2200);
+  });
+}
+
+function copyKw(btn, kw) {
+  navigator.clipboard.writeText(kw).then(() => {
+    btn.textContent = '✓';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderPosts('Todos');
+renderFBSections();
+renderSheets();
+renderEspia();
+renderCalendario();
+</script>
+</body>
+</html>
