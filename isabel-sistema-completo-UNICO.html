@@ -137,6 +137,30 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .plan-task input{margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--gold-dk);cursor:pointer}
 .plan-task input:checked + span{color:var(--text-muted);text-decoration:line-through}
 .plan-task b{color:var(--gold-dk);font-weight:600}
+
+/* ─── IDENTIDAD DE MARCA ─── */
+.brand-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.swatch{border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--white);transition:transform .12s}
+.swatch:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.swatch-color{height:64px;display:flex;align-items:flex-end;justify-content:flex-end;padding:6px}
+.swatch-copy{font-family:'DM Mono',monospace;font-size:9px;background:rgba(255,255,255,.85);color:#333;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity .15s}
+.swatch:hover .swatch-copy{opacity:1}
+.swatch-info{padding:8px 10px}
+.swatch-name{font-size:12px;font-weight:600;color:var(--text)}
+.swatch-hex{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.03em}
+.brand-quote{font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--gold-dk);line-height:1.4;padding:6px 0}
+.brand-list{list-style:none;padding:0;margin:0}
+.brand-list li{padding:7px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.5}
+.brand-list li:first-child{border-top:0}
+.brand-tag{display:inline-block;background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:5px 13px;font-size:13px;margin:0 6px 6px 0;color:var(--text-mid)}
+.brand-font-sample{padding:10px 0;border-top:1px solid var(--border)}
+.brand-font-sample:first-child{border-top:0}
+.brand-do{color:var(--green);font-weight:600}
+.brand-dont{color:var(--red);font-weight:600}
+.brand-step{display:flex;gap:10px;padding:7px 0;font-size:13.5px;color:var(--text);line-height:1.5}
+.brand-step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gold-g);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.copy-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none}
+.copy-toast.show{opacity:1}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -410,6 +434,9 @@ tr:hover td{background:var(--surface)}
       <button class="nav-item active" onclick="showModule('plan',this)">
         <span class="nav-icon">🎯</span><span class="nav-label">Plan de Acción</span>
       </button>
+      <button class="nav-item" onclick="showModule('marca',this)">
+        <span class="nav-icon">🎨</span><span class="nav-label">Identidad de Marca</span>
+      </button>
     </div>
     <div class="sidebar-label">COMMAND CENTER</div>
     <div class="sidebar-section">
@@ -613,6 +640,110 @@ tr:hover td{background:var(--surface)}
             <label class="plan-task"><input type="checkbox" data-task="wk-3" onchange="savePlan()"><span>Agendar mi primer <b>Facebook Live</b></span></label>
             <label class="plan-task"><input type="checkbox" data-task="wk-4" onchange="savePlan()"><span>Crear mi primera <b>guía gratis</b> (imán de leads)</span></label>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ IDENTIDAD DE MARCA ══════ -->
+    <div class="module" id="mod-marca">
+      <div class="page-header">
+        <div class="page-title">🎨 Identidad de <em>Marca</em></div>
+        <div class="page-sub">Tu marca "Medicare with Isabel" — lista para copiar en Canva. Haz clic en cualquier color para copiarlo.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">🦋</span>
+        <div><strong>Tu símbolo es la mariposa.</strong> Representa transformación, cuidado y tranquilidad — perfecto para acompañar a alguien en una nueva etapa de su vida. Úsala en todo tu contenido para que la gente te reconozca al instante.</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Esencia -->
+        <div class="card">
+          <div class="card-head"><span>💛</span><div class="card-title">Tu Esencia</div></div>
+          <div class="card-body">
+            <div class="brand-quote">"La agente que te explica Medicare claro, en tu idioma — sin letra chiquita."</div>
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55;margin-top:6px">Eres la persona de confianza que la comunidad hispana mayor de 60 puede entender de verdad. Cercana como de la familia, clara como una buena maestra, y siempre de su lado.</p>
+          </div>
+        </div>
+
+        <!-- Personalidad -->
+        <div class="card">
+          <div class="card-head"><span>✨</span><div class="card-title">Personalidad de Marca</div></div>
+          <div class="card-body">
+            <span class="brand-tag">🤗 Cálida y familiar</span>
+            <span class="brand-tag">🛡️ Confiable y profesional</span>
+            <span class="brand-tag">⚡ Con energía positiva</span>
+            <span class="brand-tag">🗣️ Clara y sencilla</span>
+            <span class="brand-tag">❤️ Empática</span>
+            <p style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:10px">El equilibrio: profesional para que confíen en ti, pero cálida para que te sientan cercana. Nunca fría ni complicada.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colores -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🎨</span><div class="card-title">Paleta de Colores</div><span style="margin-left:auto;font-size:11px;color:var(--text-muted)">clic para copiar</span></div>
+        <div class="card-body">
+          <div class="brand-swatches">
+            <div class="swatch" onclick="copyHex('#3D8FD6')"><div class="swatch-color" style="background:#3D8FD6"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Azul Mariposa</div><div class="swatch-hex">#3D8FD6</div></div></div>
+            <div class="swatch" onclick="copyHex('#333A4D')"><div class="swatch-color" style="background:#333A4D"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Navy Confianza</div><div class="swatch-hex">#333A4D</div></div></div>
+            <div class="swatch" onclick="copyHex('#A9D4F0')"><div class="swatch-color" style="background:#A9D4F0"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Azul Cielo</div><div class="swatch-hex">#A9D4F0</div></div></div>
+            <div class="swatch" onclick="copyHex('#EAF4FB')"><div class="swatch-color" style="background:#EAF4FB;border-bottom:1px solid var(--border)"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Fondo Suave</div><div class="swatch-hex">#EAF4FB</div></div></div>
+            <div class="swatch" onclick="copyHex('#5C6270')"><div class="swatch-color" style="background:#5C6270"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Gris Texto</div><div class="swatch-hex">#5C6270</div></div></div>
+            <div class="swatch" onclick="copyHex('#F2A977')"><div class="swatch-color" style="background:#F2A977"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Durazno Cálido</div><div class="swatch-hex">#F2A977</div></div></div>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:12px"><b style="color:var(--teal-dk)">Cómo usarlos:</b> Azul Mariposa = color principal (botones, títulos). Navy = textos importantes. Azul Cielo y Fondo Suave = fondos. Durazno Cálido = solo para resaltar llamadas a la acción ("Llámame", "Escríbeme") y darle energía.</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:14px">
+        <!-- Tipografía -->
+        <div class="card">
+          <div class="card-head"><span>🔤</span><div class="card-title">Tipografía (en Canva)</div></div>
+          <div class="card-body">
+            <div class="brand-font-sample"><div style="font-family:'Fraunces',serif;font-style:italic;font-size:26px;color:var(--gold-dk)">Medicare with Isabel</div><div class="swatch-hex" style="margin-top:2px">Acento / firma → <b>Great Vibes</b> (como tu logo). Úsala poco, para frases especiales.</div></div>
+            <div class="brand-font-sample"><div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:21px;color:var(--text)">Medicare claro y sencillo</div><div class="swatch-hex" style="margin-top:2px">Títulos → <b>Poppins</b> (SemiBold). Amigable y moderna.</div></div>
+            <div class="brand-font-sample"><div style="font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-mid);line-height:1.5">Texto normal para tus publicaciones, fácil de leer para todos.</div><div class="swatch-hex" style="margin-top:2px">Cuerpo → <b>Open Sans</b> o <b>Lato</b>.</div></div>
+          </div>
+        </div>
+
+        <!-- Voz y tono -->
+        <div class="card">
+          <div class="card-head"><span>🗣️</span><div class="card-title">Voz y Tono</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><span class="brand-do">SÍ:</span> Habla en español claro, como a un familiar. "Te explico", "no te preocupes", "estoy aquí para ti".</li>
+              <li><span class="brand-do">SÍ:</span> Frases cortas. Ejemplos de la vida real. Emojis con calma (🦋 💙 ✅).</li>
+              <li><span class="brand-dont">NO:</span> Términos técnicos sin explicar, letra chiquita, promesas exageradas.</li>
+              <li><span class="brand-dont">NO:</span> Sonar como aseguradora grande y fría.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frases / Taglines -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>💬</span><div class="card-title">Frases de Marca (Taglines)</div></div>
+        <div class="card-body">
+          <ul class="brand-list">
+            <li>🦋 <b>"Medicare explicado claro, en tu idioma."</b></li>
+            <li>🦋 <b>"Tu Medicare, sin letra chiquita."</b></li>
+            <li>🦋 <b>"Medicare con confianza, con Isabel."</b></li>
+            <li>🦋 <b>"Aquí estoy para ti — antes, durante y después."</b></li>
+            <li>🇺🇸 En inglés: <b>"Medicare made simple — in your language."</b></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Cómo ponerlo en Canva -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🖌️</span><div class="card-title">Cómo ponerlo en tu Canva (paso a paso)</div></div>
+        <div class="card-body">
+          <div class="brand-step"><span class="brand-step-num">1</span><div>Abre Canva → menú izquierdo → <b>"Marca"</b> (Brand Kit). Es gratis crear uno.</div></div>
+          <div class="brand-step"><span class="brand-step-num">2</span><div>En <b>"Colores de marca"</b>, agrega los 6 colores de arriba (copia cada código con un clic y pégalo).</div></div>
+          <div class="brand-step"><span class="brand-step-num">3</span><div>En <b>"Fuentes de marca"</b>, elige <b>Great Vibes</b> (acento), <b>Poppins</b> (títulos) y <b>Open Sans</b> (texto).</div></div>
+          <div class="brand-step"><span class="brand-step-num">4</span><div>En <b>"Logos"</b>, sube tu logo de la mariposa "Medicare with Isabel" y tu foto profesional.</div></div>
+          <div class="brand-step"><span class="brand-step-num">5</span><div>¡Listo! Ahora cada diseño usará tu marca automáticamente y todo se verá igual de profesional.</div></div>
         </div>
       </div>
     </div>
@@ -1629,12 +1760,9 @@ function openTool(file, btn, title){
   if(frame.getAttribute('data-file') !== file){
     frame.setAttribute('data-file', file);
     if(TOOL_DATA[file]){
-      if(!blobCache[file]){
-        const blob = new Blob([TOOL_DATA[file]], {type:'text/html'});
-        blobCache[file] = URL.createObjectURL(blob);
-      }
-      link.href = blobCache[file]; frame.src = blobCache[file];
-    } else { frame.src = TOOL_BASE + file; link.href = TOOL_BASE + file; }
+      if(!blobCache[file]){ const blob=new Blob([TOOL_DATA[file]],{type:'text/html'}); blobCache[file]=URL.createObjectURL(blob); }
+      link.href=blobCache[file]; frame.src=blobCache[file];
+    } else { frame.src=TOOL_BASE+file; link.href=TOOL_BASE+file; }
   }
   closeSidebar();
 }
@@ -2066,6 +2194,18 @@ function updatePlanProgress(){
   const pct = all.length ? Math.round(done.length/all.length*100) : 0;
   const bar = document.getElementById('planBar'); if(bar) bar.style.width = pct+'%';
   const lbl = document.getElementById('planPct'); if(lbl) lbl.textContent = pct+'% completado ('+done.length+'/'+all.length+')';
+}
+
+// ─── BRAND: copy hex ───
+function copyHex(hex){
+  navigator.clipboard.writeText(hex).then(()=>{
+    let t = document.getElementById('copyToast');
+    if(!t){ t = document.createElement('div'); t.id='copyToast'; t.className='copy-toast'; document.body.appendChild(t); }
+    t.textContent = '✅ Copiado: '+hex;
+    t.classList.add('show');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+  });
 }
 
 // ─── MOBILE SIDEBAR ───
