@@ -130,7 +130,17 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
 .grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
 @media(max-width:900px){.grid-4{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr}}
-@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.sidebar{display:none}.main{padding:16px}}
+@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.main{padding:16px}}
+
+/* ─── MOBILE SIDEBAR ─── */
+.menu-btn{display:none;background:none;border:none;cursor:pointer;padding:6px 10px;font-size:22px;color:var(--text);margin-right:4px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(44,36,22,.35);z-index:250}
+@media(max-width:700px){
+  .menu-btn{display:flex;align-items:center}
+  .sidebar{position:fixed;top:60px;left:0;bottom:0;z-index:260;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 16px rgba(44,36,22,.15)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+}
 
 /* ─── STAT CARDS ─── */
 .stat{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center}
@@ -343,7 +353,9 @@ tr:hover td{background:var(--surface)}
 <body>
 
 <!-- ─── TOPBAR ─── -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
 <header class="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menú">☰</button>
   <div class="logo">
     <div class="logo-icon">🌟</div>
     <div class="logo-text">
@@ -1472,6 +1484,7 @@ function showModule(id, btn){
   if(mod) mod.classList.add('active');
   if(btn) btn.classList.add('active');
   if(id==='calendar') renderCalendar();
+  closeSidebar();
 }
 
 // ─── FULL TOOLS (iframe) ───
@@ -1492,6 +1505,7 @@ function openTool(file, btn, title){
     frame.setAttribute('data-file', file);
     frame.src = TOOL_BASE + file;
   }
+  closeSidebar();
 }
 
 // ─── TABS ───
@@ -1882,6 +1896,16 @@ async function analyzeMetrics(){
 
   const prompt = `${metricsContext}\n\nPregunta del análisis: ${query||'¿Cuál es mi situación actual y dónde debo enfocarme?'}`;
   await callClaude(ISABEL_SYSTEM, prompt, 'metricasOutput');
+}
+
+// ─── MOBILE SIDEBAR ───
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
 // ─── INIT ───
