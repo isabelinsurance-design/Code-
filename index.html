@@ -112,6 +112,31 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .tool-bar-link{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.03em;color:var(--teal-dk);text-decoration:none;padding:5px 12px;border:1px solid var(--teal);border-radius:20px;background:var(--teal-lt)}
 .tool-bar-link:hover{background:var(--teal);color:#fff}
 .tool-frame{flex:1;width:100%;border:0;background:var(--bg)}
+
+/* ─── PLAN DE ACCIÓN ─── */
+.plan-goal{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.plan-goal-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--gold-dk);margin-bottom:12px}
+.plan-funnel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pf-step{background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text-mid)}
+.pf-step.pf-lead{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+.pf-step.pf-member{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.pf-arrow{color:var(--text-muted);font-weight:700}
+.plan-goal-sub{font-size:13.5px;color:var(--text-mid);line-height:1.5}
+.plan-focus{display:flex;gap:12px;align-items:flex-start;background:var(--amber-lt);border:1.5px solid var(--amber);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;color:var(--text);line-height:1.5}
+.plan-progress-wrap{margin-bottom:20px}
+.plan-progress-track{height:12px;background:var(--border);border-radius:20px;overflow:hidden}
+.plan-progress-bar{height:100%;width:0;background:var(--gold-g);border-radius:20px;transition:width .35s ease}
+.plan-progress-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right}
+.plan-phase{align-self:start}
+.plan-phase-priority{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-lt)}
+.plan-phase-goal{font-size:12.5px;color:var(--text-muted);font-style:italic;margin-bottom:10px}
+.plan-badge{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;background:var(--amber);color:#fff;padding:3px 9px;border-radius:20px;font-weight:600}
+.plan-tip{background:var(--teal-lt);border:1px solid var(--teal);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--teal-dk);margin-bottom:12px;line-height:1.45}
+.plan-task{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.45;cursor:pointer}
+.plan-task:first-of-type{border-top:0}
+.plan-task input{margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--gold-dk);cursor:pointer}
+.plan-task input:checked + span{color:var(--text-muted);text-decoration:line-through}
+.plan-task b{color:var(--gold-dk);font-weight:600}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -380,9 +405,15 @@ tr:hover td{background:var(--surface)}
 
   <!-- ─── SIDEBAR ─── -->
   <nav class="sidebar">
+    <div class="sidebar-label">EMPEZAR AQUÍ</div>
+    <div class="sidebar-section">
+      <button class="nav-item active" onclick="showModule('plan',this)">
+        <span class="nav-icon">🎯</span><span class="nav-label">Plan de Acción</span>
+      </button>
+    </div>
     <div class="sidebar-label">COMMAND CENTER</div>
     <div class="sidebar-section">
-      <button class="nav-item active" onclick="showModule('dashboard',this)">
+      <button class="nav-item" onclick="showModule('dashboard',this)">
         <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
       </button>
       <button class="nav-item" onclick="showModule('cerebro',this)">
@@ -417,7 +448,7 @@ tr:hover td{background:var(--surface)}
     <div class="sidebar-section">
       <button class="nav-item" onclick="showModule('crm',this)">
         <span class="nav-icon">👥</span><span class="nav-label">CRM Leads</span>
-        <span class="nav-badge" id="crmBadge">5</span>
+        <span class="nav-badge" id="crmBadge">0</span>
       </button>
       <button class="nav-item" onclick="showModule('metricas',this)">
         <span class="nav-icon">📈</span><span class="nav-label">Métricas</span>
@@ -493,6 +524,99 @@ tr:hover td{background:var(--surface)}
   <!-- ─── MAIN ─── -->
   <main class="main">
 
+    <!-- ══════ PLAN DE ACCIÓN ══════ -->
+    <div class="module active" id="mod-plan">
+      <div class="page-header">
+        <div class="page-title">🎯 Plan de <em>Acción</em></div>
+        <div class="page-sub">Tu hoja de ruta: de seguidores a leads, y de leads a miembros — paso a paso.</div>
+      </div>
+
+      <div class="plan-goal">
+        <div class="plan-goal-title">🥅 La meta</div>
+        <div class="plan-funnel">
+          <span class="pf-step">👀 Extraños</span><span class="pf-arrow">→</span>
+          <span class="pf-step">❤️ Seguidores</span><span class="pf-arrow">→</span>
+          <span class="pf-step pf-lead">📞 Leads</span><span class="pf-arrow">→</span>
+          <span class="pf-step pf-member">🎉 Miembros</span>
+        </div>
+        <div class="plan-goal-sub">Más leads · menos dinero · y convertirte en <strong>la referencia del mercado latino</strong> de Medicare en SoCal.</div>
+      </div>
+
+      <div class="plan-focus">
+        <span style="font-size:20px">📌</span>
+        <div><strong>Tu enfoque ahora:</strong> ya tienes seguidores — así que tu prioridad #1 es la <strong>FASE 3: convertir seguidores en leads</strong>. Las Fases 1 y 2 las haces rápido porque ya publicas. ¡La clave está en capturar contactos!</div>
+      </div>
+
+      <div class="plan-progress-wrap">
+        <div class="plan-progress-track"><div class="plan-progress-bar" id="planBar"></div></div>
+        <div class="plan-progress-label" id="planPct">0% completado (0/0)</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card plan-phase">
+          <div class="card-head"><span>🧭</span><div class="card-title">Fase 1 — Encuentra tu ángulo</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Que la gente deje de hacer scroll y te recuerde.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p1-1" onchange="savePlan()"><span>Abrir <b>Competencia Intel</b> y ver qué publican otros agentes</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p1-2" onchange="savePlan()"><span>Preguntarle a <b>Cerebro IA</b> cómo diferenciarme de las grandes aseguradoras</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p1-3" onchange="savePlan()"><span>Escribir mi <b>mensaje único</b> en una sola frase</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>🔥</span><div class="card-title">Fase 2 — Presencia con contenido barato</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Volverte una cara conocida y de confianza, casi gratis.</div>
+            <div class="plan-tip">💡 Lo más barato: <b>Facebook Lives ($1.80/lead)</b> y <b>Reels ($2.50)</b>. Evita posts estáticos ($6.20) y stories ($8.50).</div>
+            <label class="plan-task"><input type="checkbox" data-task="p2-1" onchange="savePlan()"><span>Programar <b>1 Facebook Live por semana</b> (usar <b>FB Live Scripts</b> + <b>Calendario</b>)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p2-2" onchange="savePlan()"><span>Crear <b>2–3 Reels por semana</b> con <b>Viral Generator</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p2-3" onchange="savePlan()"><span>Fijar mi <b>horario semanal</b> en el Calendario</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase plan-phase-priority">
+          <div class="card-head"><span>📞</span><div class="card-title">Fase 3 — Convierte seguidores en LEADS</div><span class="plan-badge">TU PRIORIDAD</span></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Conseguir su teléfono — aquí se vuelve dinero real.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p3-1" onchange="savePlan()"><span>Crear mi <b>guía gratis</b> (imán de leads) con <b>Cerebro IA</b> — ej: "5 cosas que debes saber antes de elegir tu plan Medicare"</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-2" onchange="savePlan()"><span>Crear un anuncio con <b>formulario de leads</b> en <b>Meta Ads Studio</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-3" onchange="savePlan()"><span>Agregar la misma <b>llamada a la acción</b> a TODOS mis posts y Lives: <i>"Escríbeme MEDICARE y te mando la guía gratis"</i></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-4" onchange="savePlan()"><span>Preparar un <b>mensaje de bienvenida</b> para quien me escriba</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>🎉</span><div class="card-title">Fase 4 — Convierte leads en MIEMBROS</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Dar seguimiento y lograr la inscripción.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p4-1" onchange="savePlan()"><span>Guardar <b>cada lead nuevo</b> en <b>CRM Leads</b> el mismo día</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p4-2" onchange="savePlan()"><span>Dar <b>seguimiento en 24–48 horas</b> a cada lead</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p4-3" onchange="savePlan()"><span>Construir mi <b>lista caliente para AEP</b> (Oct 15 – Dic 7) desde ahora</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>📈</span><div class="card-title">Fase 5 — Mide y mejora (cada viernes)</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Gastar menos y conseguir más.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p5-1" onchange="savePlan()"><span>Revisar <b>Métricas</b> cada viernes y ver qué trajo leads más baratos</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p5-2" onchange="savePlan()"><span>Hacer <b>más</b> de lo que funciona (Lives, Reels), dejar lo caro</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p5-3" onchange="savePlan()"><span>Pasar cada anuncio por <b>CMS Compliance</b> antes de publicar</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>✅</span><div class="card-title">Esta semana — empieza por aquí</div></div>
+          <div class="card-body">
+            <label class="plan-task"><input type="checkbox" data-task="wk-1" onchange="savePlan()"><span>Poner mi <b>API Key</b> (arriba a la derecha)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-2" onchange="savePlan()"><span>Fase 1: encontrar mi ángulo (30 min)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-3" onchange="savePlan()"><span>Agendar mi primer <b>Facebook Live</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-4" onchange="savePlan()"><span>Crear mi primera <b>guía gratis</b> (imán de leads)</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- ══════ FULL TOOL (iframe) ══════ -->
     <div class="module" id="mod-tool">
       <div class="tool-bar">
@@ -503,7 +627,7 @@ tr:hover td{background:var(--surface)}
     </div>
 
     <!-- ══════ DASHBOARD ══════ -->
-    <div class="module active" id="mod-dashboard">
+    <div class="module" id="mod-dashboard">
       <div class="page-header">
         <div class="page-title">Buen día, <em>Isabel</em> 👋</div>
         <div class="page-sub">Sistema Maestro · Medicare Marketing Intelligence · Sur de California</div>
@@ -515,10 +639,10 @@ tr:hover td{background:var(--surface)}
       </div>
 
       <div class="grid-4 mb-4">
-        <div class="stat"><div class="stat-icon">👥</div><div class="stat-val">247</div><div class="stat-label">Leads Este Mes</div><div class="stat-delta up">↑ 18% vs mes anterior</div></div>
-        <div class="stat"><div class="stat-icon">📋</div><div class="stat-val">89</div><div class="stat-label">Enrollments YTD</div><div class="stat-delta up">↑ 12% vs año pasado</div></div>
-        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">$4.20</div><div class="stat-label">CPL Promedio</div><div class="stat-delta up">↓ 8% (mejor)</div></div>
-        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val">62%</div><div class="stat-label">Reach Orgánico</div><div class="stat-delta up">↑ 5% esta semana</div></div>
+        <div class="stat"><div class="stat-icon">👥</div><div class="stat-val" id="dashLeads">0</div><div class="stat-label">Leads en tu CRM</div><div class="stat-delta">Desde tu CRM</div></div>
+        <div class="stat"><div class="stat-icon">📋</div><div class="stat-val">—</div><div class="stat-label">Inscripciones</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">—</div><div class="stat-label">Costo por Lead</div><div class="stat-delta">Cuando corras anuncios</div></div>
+        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val">—</div><div class="stat-label">Alcance</div><div class="stat-delta">Conecta tu Facebook</div></div>
       </div>
 
       <div class="grid-2">
@@ -1299,10 +1423,10 @@ tr:hover td{background:var(--surface)}
       </div>
 
       <div class="grid-4 mb-4">
-        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val" id="crmStatHot">5</div><div class="stat-label">Hot Leads</div></div>
-        <div class="stat"><div class="stat-icon">🌡️</div><div class="stat-val" id="crmStatWarm">12</div><div class="stat-label">Warm Leads</div></div>
-        <div class="stat"><div class="stat-icon">🧊</div><div class="stat-val" id="crmStatCold">8</div><div class="stat-label">Cold Leads</div></div>
-        <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="crmStatClosed">23</div><div class="stat-label">Cerrados Mes</div></div>
+        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val" id="crmStatHot">0</div><div class="stat-label">Hot Leads</div></div>
+        <div class="stat"><div class="stat-icon">🌡️</div><div class="stat-val" id="crmStatWarm">0</div><div class="stat-label">Warm Leads</div></div>
+        <div class="stat"><div class="stat-icon">🧊</div><div class="stat-val" id="crmStatCold">0</div><div class="stat-label">Cold Leads</div></div>
+        <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="crmStatClosed">0</div><div class="stat-label">Cerrados Mes</div></div>
       </div>
 
       <div class="grid-2">
@@ -1386,10 +1510,10 @@ tr:hover td{background:var(--surface)}
         <div class="page-sub">Análisis de rendimiento semanal y mensual · Toma decisiones basadas en datos</div>
       </div>
       <div class="grid-4 mb-4">
-        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">$3.85</div><div class="stat-label">CPL Actual</div><div class="stat-delta up">↓ Mejor que benchmark</div></div>
-        <div class="stat"><div class="stat-icon">👁️</div><div class="stat-val">42K</div><div class="stat-label">Alcance Semanal</div><div class="stat-delta up">↑ 14%</div></div>
-        <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val">4.2%</div><div class="stat-label">Engagement Rate</div><div class="stat-delta up">↑ Sobre promedio (3%)</div></div>
-        <div class="stat"><div class="stat-icon">🎯</div><div class="stat-val">18%</div><div class="stat-label">Tasa Cierre</div><div class="stat-delta up">↑ 3% vs mes pasado</div></div>
+        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">—</div><div class="stat-label">CPL Actual</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">👁️</div><div class="stat-val">—</div><div class="stat-label">Alcance Semanal</div><div class="stat-delta">Conecta Facebook</div></div>
+        <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val">—</div><div class="stat-label">Engagement Rate</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">🎯</div><div class="stat-val">—</div><div class="stat-label">Tasa Cierre</div><div class="stat-delta">Agrega tus datos</div></div>
       </div>
 
       <div class="card mb-4">
@@ -1818,11 +1942,23 @@ function addLead(){
   if(!name){alert('Ingresa el nombre del lead');return;}
   
   leads.push({id:Date.now(),name,phone,status,zone,notes,date:new Date().toLocaleDateString('es-MX')});
+  saveLeads();
   renderLeads();
   // Clear form
   ['leadName','leadPhone','leadNotes'].forEach(id=>document.getElementById(id).value='');
-  
+
   // Update stats
+  updateCRMStats();
+}
+
+// ─── CRM persistence (leads stay saved in your browser) ───
+const LEADS_STORE = 'isabel_crm_leads';
+function saveLeads(){
+  try{ localStorage.setItem(LEADS_STORE, JSON.stringify(leads)); }catch(_){}
+}
+function loadLeads(){
+  try{ const raw = localStorage.getItem(LEADS_STORE); if(raw) leads = JSON.parse(raw)||[]; }catch(_){ leads = []; }
+  renderLeads();
   updateCRMStats();
 }
 
@@ -1861,6 +1997,7 @@ function selectLead(id){
 
 function removeLead(id){
   leads = leads.filter(l=>l.id!==id);
+  saveLeads();
   renderLeads();
   updateCRMStats();
 }
@@ -1869,6 +2006,8 @@ function updateCRMStats(){
   document.getElementById('crmStatHot').textContent = leads.filter(l=>l.status.includes('Hot')).length;
   document.getElementById('crmStatWarm').textContent = leads.filter(l=>l.status.includes('Warm')).length;
   document.getElementById('crmStatCold').textContent = leads.filter(l=>l.status.includes('Cold')).length;
+  const dash = document.getElementById('dashLeads');
+  if(dash) dash.textContent = leads.length;
 }
 
 async function generateFollowUp(){
@@ -1885,17 +2024,41 @@ Incluye: apertura personal, propuesta de valor, CTA claro (llamar/responder/agen
 // ─── METRICS ───
 async function analyzeMetrics(){
   const query = document.getElementById('metricasQuery').value.trim();
-  const metricsContext = `Métricas actuales de Isabel Fuentes:
-- CPL: $3.85 (benchmark industria: $5-8)
-- Leads este mes: 247
-- Mejor contenido: FB Lives (CPL $1.80), Reels (CPL $2.50)
-- Peor contenido: Posts estáticos (CPL $6.20), Stories (CPL $8.50)
-- Zonas: LA 44%, IE 29%, OC 21%
-- Carriers top: SCAN 38%, Humana 24%, Anthem 19%
-- Engagement rate: 4.2% (benchmark: 3%)`;
+  const realLeads = leads.length;
+  const metricsContext = `Situación real de Isabel Fuentes (no inventes datos que no estén aquí):
+- Leads guardados en su CRM ahora mismo: ${realLeads}
+- Isabel está construyendo su sistema; aún NO tiene métricas históricas detalladas (CPL, alcance, engagement) registradas.
+- Mercado: hispano, mayor de 60, en LA / Orange County / Inland Empire.
 
-  const prompt = `${metricsContext}\n\nPregunta del análisis: ${query||'¿Cuál es mi situación actual y dónde debo enfocarme?'}`;
+Benchmarks GENERALES de la industria (referencia, NO son los resultados de Isabel):
+- CPL típico de Medicare: $5-8
+- Tipos de contenido más económicos suelen ser los Facebook Lives y Reels; los posts estáticos y stories suelen costar más por lead.
+- Engagement rate promedio del sector: ~3%`;
+
+  const prompt = `${metricsContext}\n\nPregunta del análisis: ${query||'Estoy empezando a usar mi sistema y quiero generar leads de forma económica. ¿Por dónde empiezo y qué debo medir?'}\n\nSé honesto: si no hay datos suficientes, ayúdame a definir qué medir y cómo empezar, sin inventar cifras.`;
   await callClaude(ISABEL_SYSTEM, prompt, 'metricasOutput');
+}
+
+// ─── PLAN DE ACCIÓN (progreso guardado) ───
+const PLAN_STORE = 'isabel_plan_progress';
+function savePlan(){
+  const state = {};
+  document.querySelectorAll('#mod-plan input[type=checkbox]').forEach(cb=>{ state[cb.dataset.task]=cb.checked; });
+  try{ localStorage.setItem(PLAN_STORE, JSON.stringify(state)); }catch(_){}
+  updatePlanProgress();
+}
+function loadPlan(){
+  let state = {};
+  try{ state = JSON.parse(localStorage.getItem(PLAN_STORE)||'{}'); }catch(_){ state = {}; }
+  document.querySelectorAll('#mod-plan input[type=checkbox]').forEach(cb=>{ if(state[cb.dataset.task]) cb.checked = true; });
+  updatePlanProgress();
+}
+function updatePlanProgress(){
+  const all = document.querySelectorAll('#mod-plan input[type=checkbox]');
+  const done = document.querySelectorAll('#mod-plan input[type=checkbox]:checked');
+  const pct = all.length ? Math.round(done.length/all.length*100) : 0;
+  const bar = document.getElementById('planBar'); if(bar) bar.style.width = pct+'%';
+  const lbl = document.getElementById('planPct'); if(lbl) lbl.textContent = pct+'% completado ('+done.length+'/'+all.length+')';
 }
 
 // ─── MOBILE SIDEBAR ───
@@ -1911,6 +2074,8 @@ function closeSidebar(){
 // ─── INIT ───
 renderCalendar();
 loadApiKey();
+loadLeads();
+loadPlan();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
