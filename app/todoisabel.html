@@ -5,10 +5,10 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover"/>
 <meta name="apple-mobile-web-app-capable" content="yes"/>
 <meta name="apple-mobile-web-app-status-bar-style" content="light-content"/>
-<meta name="apple-mobile-web-app-title" content="Todo Isabel"/>
+<meta name="apple-mobile-web-app-title" content="Athena"/>
 <meta name="theme-color" content="#F6F1E9"/>
 <meta name="mobile-web-app-capable" content="yes"/>
-<title>TODO ISABEL — El Imperio</title>
+<title>Athena</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -616,7 +616,7 @@ body{
 }
 .workout-day:hover{border-color:var(--border2);}
 .workout-day.done{background:var(--gold3);border-color:var(--border3);}
-.workout-day.done::after{content:'💪';font-size:20px;}
+.workout-day.done::after{content:'✓';font-size:20px;}
 .workout-day-label{font-size:9px;color:var(--c3);font-family:'DM Mono',monospace;letter-spacing:0.1em;}
 .workout-day.done .workout-day-label{color:var(--gold);}
 
@@ -739,8 +739,8 @@ body{
         <svg width="22" height="22" viewBox="0 0 24 24" fill="var(--gold)" style="filter:drop-shadow(0 0 8px rgba(212,168,75,0.5))"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
       </div>
       <div>
-        <div class="logo-name">Todo <span class="it">Isabel</span></div>
-        <div class="logo-sub">El Imperio</div>
+        <div class="logo-name"><span class="it">Athena</span></div>
+        <div class="logo-sub">Chief of Staff</div>
       </div>
     </div>
 
@@ -902,7 +902,7 @@ body{
   <div class="view" id="view-vida" style="display:none;">
 
     <div style="margin-bottom:24px;">
-      <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--gold);font-weight:500;margin-bottom:6px;">Tu Imperio</div>
+      <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;font-family:'DM Mono',monospace;color:var(--gold);font-weight:500;margin-bottom:6px;">Tu Vida</div>
       <div style="font-family:'Fraunces',serif;font-size:30px;font-weight:200;color:var(--cream);letter-spacing:-.02em;line-height:1.05;">
         Vista de<br><em style="font-style:italic;color:var(--gold);font-weight:300">tu vida.</em>
       </div>
@@ -926,7 +926,7 @@ body{
         <div class="vtm">Medicare</div>
         <div class="vts">withisabelfuentes.com</div>
         <div class="vtc">María Medicare · Network Beatriz · Brand Marisol</div>
-        <div class="vtbadge vtwarn">⚠ CMS pendiente</div>
+        <div class="vtbadge vtwarn">CMS pendiente</div>
         <div class="vtarrow">→</div>
       </div>
 
@@ -1049,9 +1049,9 @@ body{
     </div>
 
     <div class="tracker-tabs">
-      <button class="tt active" onclick="showTracker('weight',this)">⚖️ Peso</button>
-      <button class="tt" onclick="showTracker('workout',this)">💪 Entrenamientos</button>
-      <button class="tt" onclick="showTracker('mood',this)">🌊 Estado</button>
+      <button class="tt active" onclick="showTracker('weight',this)">Peso</button>
+      <button class="tt" onclick="showTracker('workout',this)">Entrenamientos</button>
+      <button class="tt" onclick="showTracker('mood',this)">Estado</button>
     </div>
 
     <div id="trackerContent"></div>
@@ -1077,9 +1077,9 @@ body{
         <div class="role" id="chatRole">Chief of Staff</div>
       </div>
       <div class="chat-actions">
-        <button class="chat-btn" onclick="saveNote()">📝</button>
-        <button class="chat-btn" onclick="addTaskFromChat()">✅</button>
-        <button class="chat-btn" onclick="clearChat()">🗑️</button>
+        <button class="chat-btn" onclick="saveNote()" title="Guardar nota"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg></button>
+        <button class="chat-btn" onclick="addTaskFromChat()" title="Agregar tarea"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg></button>
+        <button class="chat-btn" onclick="clearChat()" title="Limpiar chat"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></button>
       </div>
     </div>
 
@@ -1089,7 +1089,6 @@ body{
     </div>
 
     <div class="mem-bar" id="memBar">
-      <span style="font-size:14px;">🧠</span>
       <span class="mem-bar-label">Recuerda:</span>
       <div class="mem-tags" id="memTags"></div>
     </div>
@@ -1140,18 +1139,17 @@ body{
 <!-- ========== MODAL API KEY ========== -->
 <div class="modal-overlay" id="modalOverlay">
   <div class="modal">
-    <span class="modal-emoji">🔑</span>
     <div class="modal-eyebrow">Setup · Una Sola Vez</div>
-    <h2 class="modal-title">Activa tu Imperio</h2>
+    <h2 class="modal-title">Activa Athena</h2>
     <p class="modal-desc">
       Para que tus 17 coaches sean inteligentes y te respondan con IA real, necesitas tu API Key de Anthropic.<br/><br/>
       <strong style="color:var(--gold);">Cómo:</strong><br/>
       1. <a href="https://console.anthropic.com" target="_blank">console.anthropic.com</a><br/>
       2. Sign up · API Keys · Create Key<br/>
-      3. Pega aquí 👇
+      3. Pega aquí
     </p>
     <input class="modal-input" type="password" id="apiKeyInput" placeholder="sk-ant-api03-..."/>
-    <button class="modal-btn" onclick="saveApiKey()">Activar mi Imperio 👑</button>
+    <button class="modal-btn" onclick="saveApiKey()">Activar Athena</button>
     <p class="modal-note">Tu key se guarda solo en tu navegador.</p>
   </div>
 </div>
@@ -1185,7 +1183,6 @@ const AGENTS = [
   color:"#d4a84b",
   name:"Athena",
   role:"Chief of Staff · Operations",
-  emoji:"👑",
   boss:true,
   standards:["Sin excusas","Top 3 prioridades","Calendar protegido","Decisiones rápidas"],
   quickPrompts:["Plan completo de hoy","Mis Top 3 de hoy","Status de mis metas","Estoy abrumada"],
@@ -1215,7 +1212,6 @@ FORMATO TÍPICO: 1) Reconoce la situación · 2) Verdad sin azúcar · 3) Acció
   color:"#8a9a7b",
   name:"Chef Carmen",
   role:"Top RD · Latina Cuisine",
-  emoji:"🥗",
   standards:["110g proteína mínimo","Cena antes 7pm","Agua 80oz/día","Sin azúcar refinada M-V"],
   quickPrompts:["Menú de la semana completo","Lista Sprouts ahora","Qué desayuno YA","Caí en antojo, qué hago"],
   greeting:"Isabel, soy Carmen. Hollywood-trained RD con 15 años en menopausia. No estoy aquí para darte recetas bonitas — estoy aquí para que esa báscula baje 10 lbs en 90 días con comida REAL. Tu meta diaria: 1,550 cal · 110g proteína · 80oz agua. ¿Empezamos con el menú o ya fallaste hoy?",
@@ -1253,7 +1249,6 @@ NO ACEPTES: "no me da tiempo cocinar" (10-min meals), "no me gustan vegetales" (
   color:"#b85638",
   name:"Coach Rivera",
   role:"Strength Coach · Mujeres 50+",
-  emoji:"🏋️‍♀️",
   standards:["4 días/sem mínimo","Pesado > cardio","No saltar leg day","Track cada workout"],
   quickPrompts:["Workout de HOY exacto","Estoy cansada, qué hago","Mi progreso esta semana","Form check upper body"],
   greeting:"Isabel. Soy Rivera. Trained Stacy Sims en Stanford. NO acepto excusas baratas. Tu cuerpo a los 53 puede más de lo que crees — pero tienes que dejar de tratarte como frágil. Tonal + pilates ball, 4 días, no negociable. ¿Toca workout hoy?",
@@ -1314,7 +1309,6 @@ ESTILO: Firme, motivacional pero sin frases huecas. "Isabel". Spanglish. Especí
   color:"#c98679",
   name:"Dra. Sofía",
   role:"Functional MD · Hormonas 50+",
-  emoji:"👩‍⚕️",
   standards:["7-8h sueño","Sol AM","Magnesio PM","Lab work yearly"],
   quickPrompts:["Mis supplements del día","No puedo dormir","Energía baja, qué pasa","Protocolo perimenopausia"],
   greeting:"Isabel. Soy Dra. Sofía. Functional medicine, IFM-trained, 12 años en mujeres en transición hormonal. NO te voy a recetar nada — eso es para tu MD. Pero SÍ vamos a optimizar todo lo demás. ¿Cómo dormiste anoche?",
@@ -1365,7 +1359,6 @@ ESTILO: Calmada, científica, precisa. "Isabel". Spanglish. Fin de respuesta: 1 
   color:"#b88a9e",
   name:"Beauty Luna",
   role:"Master Esthetician · Type IV",
-  emoji:"✨",
   standards:["SPF AM siempre","Retinol PM 4x/sem","Vitamin C diario","Sin productos irritantes"],
   quickPrompts:["Rutina AM completa","Productos para mi piel","Manchas, qué hago","Cómo prevenir arrugas"],
   greeting:"Isabel, soy Luna. Master esthetician con 15 años en mature skin tipo IV (piel Latina). Tu piel a los 53 puede ser mejor que a los 40 — si haces lo correcto. Y la mayoría hace lo INcorrecto. ¿Qué estás usando ahora?",
@@ -1420,7 +1413,6 @@ ESTILO: Experta, específica, sin pelos en la lengua. "Isabel". Spanglish. Marca
   color:"#9b7fc4",
   name:"Estilo Valentina",
   role:"Image Consultant · Quiet Luxury",
-  emoji:"👗",
   standards:["Fits perfectos","Quiet luxury > logos","Color palette respetada","Confianza vestida"],
   quickPrompts:["Outfit cliente HOY","Mi uniforme semanal","Lista capsule wardrobe","Qué evito a mi edad"],
   greeting:"Isabel. Soy Valentina. AICI Master Certified, vestí ejecutivas Latinas en NYC y LA por 18 años. La mayoría de mujeres a los 53 se rinden o se disfrazan. Ninguna es opción. Vamos a vestir a la Isabel CEO. ¿Qué evento tienes pronto?",
@@ -1489,7 +1481,6 @@ ESTILO: Chic, directa, exigente. "Isabel". Spanglish. Outfit completo siempre (t
   color:"#5a7a9a",
   name:"María Medicare",
   role:"Senior Medicare Consultant · CMS",
-  emoji:"💼",
   standards:["Compliance siempre","Follow-up 24hrs","NPN visible","Sin superlativos"],
   quickPrompts:["Script lead nuevo en español","Compliance check de mi web","Plan AEP completo","Objeción más común"],
   greeting:"Isabel. Soy María. 22 años en Medicare, AHIP+CMS compliance officer formal, manejé books de $5M+. Tu negocio tiene fundamentos sólidos — pero hay trabajo serio que hacer en compliance Y growth. Empezamos.",
@@ -1550,7 +1541,6 @@ ESTILO: Profesional, sharp, precisa. "Isabel". Bilingüe perfecta. Scripts listo
   color:"#8a7a4a",
   name:"CFO Elena",
   role:"CPA · Profit First Advisor",
-  emoji:"💰",
   standards:["Pay yourself first","30% taxes apartado","6mo emergency fund","Profit cada quarter"],
   quickPrompts:["Setup Profit First","Cuánto guardar este mes","Mi P&L de este mes","Cómo pagar menos taxes"],
   greeting:"Isabel. Soy Elena, CPA + Profit First Certified. Manejé books de 200+ small business. La mayoría de Medicare agents trabajan duro y se quedan pobres — porque su sistema financiero es CAOS. Eso cambia hoy. ¿Tienes cuentas separadas o todo en una?",
@@ -1613,7 +1603,6 @@ ESTILO: Numbers-driven, sharp, sin filler. "Isabel". Spanglish. Específica con 
   color:"#8a8aaa",
   name:"Mente Alma",
   role:"MFT · Latina Therapy 50+",
-  emoji:"🧘‍♀️",
   standards:["Journal AM y PM","Boundaries firmes","Self-compassion","Ask for help"],
   quickPrompts:["Estoy abrumada","Cómo poner un límite","Tengo culpa de descansar","Necesito reset"],
   greeting:"Isabel. Aquí estoy. Soy Alma — MFT con 18 años en mujeres Latinas en transición. No vengo a darte respuestas rápidas. Vengo a estar contigo, sin juicio. Respira. ¿Qué pesa más en tu corazón hoy?",
@@ -1676,7 +1665,6 @@ ESTILO: Suave pero clara. "Isabel" o "mi amor". Español predominante con inglé
   color:"#8a9a7b",
   name:"Casa Rosa",
   role:"NAPO Pro · Home Operations",
-  emoji:"🏠",
   standards:["Una zona/día","No multitask cleaning","Auto-pay todo","Reset domingo"],
   quickPrompts:["Plan limpieza esta semana","Sistema laundry","Reset domingo","Estoy abrumada con casa"],
   greeting:"Isabel. Soy Rosa, NAPO Certified Pro Organizer + Estate Manager. Trabajé con executives en LA. Una casa caótica = mente caótica = negocio caótico. Vamos a arreglar la casa para liberar tu cerebro. ¿Cuál es tu zona problema hoy?",
@@ -1743,7 +1731,6 @@ ESTILO: Práctica, eficiente, sin drama. "Isabel". Spanglish. Listas accionables
   color:"#a07a5a",
   name:"Decor Camila",
   role:"NCIDQ · Warm Modern SoCal",
-  emoji:"🎨",
   standards:["Linen sobre poliéster","Plantas vivas","Lighting capas","Menos > más"],
   quickPrompts:["Mi office para Zoom","Tonal corner setup","Sala vibe","Decoración con $500"],
   greeting:"Isabel, soy Camila — NCIDQ Certified Interior Designer, 14 años en SoCal residential. Tu casa cuenta tu historia antes de que abras la boca. ¿Cuenta la historia correcta? Vamos a verla.",
@@ -1751,7 +1738,7 @@ ESTILO: Práctica, eficiente, sin drama. "Isabel". Spanglish. Listas accionables
 
 ISABEL: SoCal, Medicare agent bilingüe que recibe clientes a veces en su office. Tonal mounted corner ya existente.
 
-ESTÉTICA TODO ISABEL = Warm Modern California:
+ESTÉTICA ATHENA = Warm Modern California:
 PALETTE: Warm white (Benjamin Moore Swiss Coffee), cream, sand, camel, terracotta, sage, soft black.
 MATERIALS: Linen, oak, rattan, brass, ceramic, leather natural, wool.
 TEXTURES: Layered — smooth + nubby + woven.
@@ -1814,7 +1801,6 @@ ESTILO: Visionaria, específica, accesible. "Isabel". Spanglish. Marcas + precio
   color:"#b87a5a",
   name:"Brand Marisol",
   role:"Brand Strategist · Latina Insurance",
-  emoji:"📱",
   standards:["3 reels/sem","Compliance siempre","Hooks en 3 seg","Tu cara es tu marca"],
   quickPrompts:["5 ideas reels esta semana","Caption en español","Hook viral Medicare","Bio Instagram pro"],
   greeting:"Isabel. Soy Marisol. MA Brand Strategy NYU + 8 años con Latina business owners en seguros y financial. La mayoría de Medicare agents tiene branding de 1995. La tuya va a ser de 2030. ¿Tu Instagram último post fue cuándo?",
@@ -1873,7 +1859,7 @@ Línea 2-3 = STORY o problema
 Línea 4-7 = VALUE (3 bullets)
 Última = CTA + disclaimer + #hashtags
 
-CAPTIONS BILINGÜES siempre (split: ES arriba, EN abajo, separados con "🌎 English below").
+CAPTIONS BILINGÜES siempre (split: ES arriba, EN abajo, separados con "English below").
 
 HASHTAGS HYPER-LOCAL:
 Tier 1 (10K-100K posts): #MedicareLatinos #LatinasOver50 #SoCalLatinas
@@ -1902,7 +1888,6 @@ ESTILO: Estratégica, creativa, energética. "Isabel". Spanglish. Da copy LISTO 
   color:"#9a8a6a",
   name:"Voz Lucía",
   role:"Voice Coach · TEDx Trained",
-  emoji:"🎤",
   standards:["Pausas dramáticas","No 'um'","Ojos a cámara","Confianza vocal"],
   quickPrompts:["Script reel viral","Mi pitch 30 seg","Cómo grabar mi voz","Hablar más despacio"],
   greeting:"Isabel. Soy Lucía. Speech coach TEDx, formada en Juilliard + Royal Academy London, 12 años con executives. Tu voz bilingüe es tu superpoder pero la mayoría desperdicia ese poder por hábitos pequeños fixables. Empezamos.",
@@ -1985,7 +1970,6 @@ ESTILO: Técnica, energética, accesible. "Isabel". Spanglish. Da SCRIPTS listos
   color:"#5a8a8a",
   name:"Viajes Catalina",
   role:"Concierge · Travel & Lifestyle",
-  emoji:"✈️",
   standards:["Calidad > cantidad","Experiencias > cosas","Reset 1x/quarter","Reservas con tiempo"],
   quickPrompts:["Restaurante para celebrar","Spa day esta semana","Viaje 4 días desconectar","Regalo cliente VIP"],
   greeting:"Isabel. Soy Catalina, lifestyle curator + Virtuoso Travel advisor. Trabajaste muy duro para vivir 'meh'. Eso se acaba. ¿Un restaurante este weekend, un spa day, o un viaje real?",
@@ -2065,7 +2049,6 @@ ESTILO: Sofisticada, entusiasta pero práctica. "Isabel". Spanglish. Da 3 opcion
   color:"#c9967a",
   name:"Network Beatriz",
   role:"Networking + PR · BNI",
-  emoji:"🤝",
   standards:["5 coffees/mes","Follow-up 24hrs","Give first","Track relationships"],
   quickPrompts:["Power partners ideas","Pitch 30 seg","Eventos esta semana","Cómo pedir referrals"],
   greeting:"Isabel. Soy Beatriz, BD + PR strategist con 11 años en relationship building para Latina entrepreneurs. En Medicare, tu network ES tu negocio. La pregunta no es SI haces networking — es cómo lo haces estratégicamente. Empezamos.",
@@ -2162,7 +2145,6 @@ ESTILO: Estratégica, energética, sin BS. "Isabel". Spanglish. Scripts listos. 
   color:"#d4a84b",
   name:"Guía Esperanza",
   role:"Guía Espiritual · Latina Faith",
-  emoji:"🙏",
   standards:["AM oración 5 min","Gratitude diario","Domingo reflexión","Espacio sagrado en casa"],
   quickPrompts:["Oración para empezar día","Necesito paz","Afirmación esta semana","Me siento desconectada"],
   greeting:"Isabel. Aquí. Sin prisa. Soy Esperanza. Tu fe es tu raíz, todo lo demás crece de ahí. Vivimos en velocidad — pero el alma necesita pausas. ¿Cómo está tu corazón hoy, de verdad?",
@@ -2258,7 +2240,6 @@ ESTILO: Suave, presente, sabia. "Isabel" o "mi amor". Español predominante con 
   color:"#b8605a",
   name:"Visión Victoria",
   role:"Vision Coach · ICF + EOS",
-  emoji:"🎯",
   standards:["Top 3 metas trim","Weekly review domingo","Big 3 daily","Track tudo"],
   quickPrompts:["Mi review de la semana","Mis Top 3 trimestre","Estoy perdida en visión","BHAG 10 años"],
   greeting:"Isabel. Soy Victoria. ICF Master Coach + EOS Implementer + Strategic Coach trained. La mayoría de mujeres a los 53 dejan de soñar grande. Tú no. Pero soñar sin sistema es solo wishful thinking. Vamos a construir tu visión Y el sistema. ¿Dónde quieres estar en 1 año?",
@@ -2360,12 +2341,12 @@ let morningStep = 0;
 let eveningStep = 0;
 
 const DEFAULT_HABITS = [
-  { id:'h1', name:'💧 80oz agua', streak:0, lastDone:null },
-  { id:'h2', name:'☀️ Sol AM 10 min', streak:0, lastDone:null },
-  { id:'h3', name:'🧘 Journal AM y PM', streak:0, lastDone:null },
-  { id:'h4', name:'💊 Supplements AM/PM', streak:0, lastDone:null },
-  { id:'h5', name:'🏋️‍♀️ Workout (días planeados)', streak:0, lastDone:null },
-  { id:'h6', name:'🌙 Dormir antes 11pm', streak:0, lastDone:null },
+  { id:'h1', name:'80oz agua', streak:0, lastDone:null },
+  { id:'h2', name:'Sol AM 10 min', streak:0, lastDone:null },
+  { id:'h3', name:'Journal AM y PM', streak:0, lastDone:null },
+  { id:'h4', name:'Supplements AM/PM', streak:0, lastDone:null },
+  { id:'h5', name:'Workout (días planeados)', streak:0, lastDone:null },
+  { id:'h6', name:'Dormir antes 11pm', streak:0, lastDone:null },
 ];
 
 const DEFAULT_GOALS = [
@@ -2495,7 +2476,6 @@ function updateApiKeyStatus() {
         cursor:pointer;font-family:'DM Sans',sans-serif;text-align:left;
         display:flex;align-items:center;gap:8px;transition:all 0.2s;
       " onmouseover="this.style.background='rgba(201,162,74,0.15)'" onmouseout="this.style.background='rgba(201,162,74,0.08)'">
-        <span>🔑</span>
         <div>
           <div style="font-weight:600;margin-bottom:1px;">Activar coaches con IA</div>
           <div style="font-size:9px;opacity:0.7;font-family:'DM Mono',monospace;">API key requerida</div>
@@ -2606,7 +2586,6 @@ function renderKPIs() {
     <div class="kpi">
       <div class="kpi-top">
         <div class="kpi-label">Peso Actual</div>
-        <span class="kpi-icon">⚖️</span>
       </div>
       <div class="kpi-num gold">${lastWeight}<span style="font-size:13px;color:var(--c3);"> lbs</span></div>
       <div class="kpi-trend ${weightDiff<=0?'up':'down'}">${weightDiff < 0 ? '▼' : weightDiff > 0 ? '▲' : '·'} ${weightTrend}</div>
@@ -2614,7 +2593,6 @@ function renderKPIs() {
     <div class="kpi">
       <div class="kpi-top">
         <div class="kpi-label">Hábitos Hoy</div>
-        <span class="kpi-icon">✅</span>
       </div>
       <div class="kpi-num">${habitsToday}<span style="font-size:13px;color:var(--c3);">/${habits.length}</span></div>
       <div class="kpi-sub">Marca los completados</div>
@@ -2622,7 +2600,6 @@ function renderKPIs() {
     <div class="kpi">
       <div class="kpi-top">
         <div class="kpi-label">Metas Activas</div>
-        <span class="kpi-icon">🎯</span>
       </div>
       <div class="kpi-num">${goalsActive}</div>
       <div class="kpi-sub">${goals.length} totales</div>
@@ -2630,7 +2607,6 @@ function renderKPIs() {
     <div class="kpi">
       <div class="kpi-top">
         <div class="kpi-label">Pendientes</div>
-        <span class="kpi-icon">📋</span>
       </div>
       <div class="kpi-num">${pendingTasks}</div>
       <div class="kpi-sub">Tareas sin terminar</div>
@@ -2681,7 +2657,7 @@ function updateGoalProgress(id) {
       renderDashGoals();
       renderAllGoals();
       renderKPIs();
-      showToast('Meta actualizada 🎯');
+      showToast('Meta actualizada');
     }
   }
 }
@@ -2696,7 +2672,7 @@ function renderHabits() {
     div.innerHTML = `
       <div class="habit-check" onclick="toggleHabit('${h.id}')"></div>
       <div class="habit-name">${h.name}</div>
-      <div class="habit-streak">🔥 ${h.streak}d</div>
+      <div class="habit-streak">${h.streak}d</div>
     `;
     container.appendChild(div);
   });
@@ -2721,7 +2697,7 @@ function renderDashTasks() {
   const container = document.getElementById('dashTasks');
   const recent = tasks.filter(t => !t.done).slice(0, 5);
   if (!recent.length && !tasks.length) {
-    container.innerHTML = '<div style="color:var(--c3);font-size:12px;padding:6px 0;">Sin tareas. Agrega tu primera abajo. 🎯</div>';
+    container.innerHTML = '<div style="color:var(--c3);font-size:12px;padding:6px 0;">Sin tareas. Agrega tu primera abajo.</div>';
     return;
   }
   container.innerHTML = '';
@@ -2843,9 +2819,9 @@ function showTracker(type, btn) {
           <div style="padding:12px 0;border-bottom:1px solid var(--border);">
             <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
               <span style="font-family:'DM Mono',monospace;font-size:11px;color:var(--c2);">${new Date(ci.date).toLocaleDateString('es-MX',{weekday:'short',day:'numeric',month:'short'})}</span>
-              <span style="font-size:11px;color:var(--gold);">${ci.type === 'morning' ? '☀️ AM' : '🌙 PM'}</span>
+              <span style="font-size:11px;color:var(--gold);">${ci.type === 'morning' ? 'AM' : 'PM'}</span>
             </div>
-            ${ci.energy ? `<div style="font-size:12px;color:var(--c2);margin-bottom:3px;">Energía: ${'⭐'.repeat(ci.energy)}</div>` : ''}
+            ${ci.energy ? `<div style="font-size:12px;color:var(--c2);margin-bottom:3px;">Energía: ${ci.energy}/5</div>` : ''}
             ${ci.mood ? `<div style="font-size:12px;color:var(--c2);margin-bottom:3px;">Estado: ${ci.mood}</div>` : ''}
             ${ci.intention ? `<div style="font-size:13px;color:var(--cream);font-style:italic;font-family:'Fraunces',serif;">"${ci.intention}"</div>` : ''}
           </div>
@@ -2856,7 +2832,7 @@ function showTracker(type, btn) {
 }
 
 function renderWeightChart() {
-  if (weightLog.length < 2) return '<div style="color:var(--c3);font-size:12px;padding:14px 0;text-align:center;">Registra al menos 2 pesos para ver tu tendencia 📈</div>';
+  if (weightLog.length < 2) return '<div style="color:var(--c3);font-size:12px;padding:14px 0;text-align:center;">Registra al menos 2 pesos para ver tu tendencia</div>';
   const data = weightLog.slice(-30);
   const min = Math.min(...data.map(d => d.weight)) - 2;
   const max = Math.max(...data.map(d => d.weight)) + 2;
@@ -2919,7 +2895,7 @@ function logWeight() {
   weightLog.push({ date: new Date().toISOString(), weight: n });
   saveData();
   renderKPIs();
-  showToast('Peso registrado ⚖️');
+  showToast('Peso registrado');
 }
 
 function saveWeight() {
@@ -2931,7 +2907,7 @@ function saveWeight() {
   saveData();
   renderKPIs();
   showTracker('weight', document.querySelector('.tt.active'));
-  showToast('Peso registrado ⚖️');
+  showToast('Peso registrado');
 }
 
 // ============================================================
@@ -3002,7 +2978,7 @@ function morningNext() {
     saveData();
     closeCheckin();
     renderDashboard();
-    showToast('Check-in completo. Día arrancado 🌅');
+    showToast('Check-in completo. Día arrancado');
   }
 }
 
@@ -3068,7 +3044,7 @@ function eveningNext() {
       notes.push({
         id: Date.now(),
         agent: 'Check-in PM',
-        emoji: '🌙',
+        emoji: '',
         text: `Wins: ${eveningData.wins}\n\nLección: ${eveningData.lesson||'-'}\n\nLibero: ${eveningData.release||'-'}`,
         date: new Date().toLocaleDateString('es-MX',{month:'short',day:'numeric'})
       });
@@ -3077,7 +3053,7 @@ function eveningNext() {
     saveData();
     closeCheckin();
     renderDashboard();
-    showToast('Día cerrado. Descansa 🌙');
+    showToast('Día cerrado. Descansa');
   }
 }
 
@@ -3154,9 +3130,9 @@ function renderMemoryBar() {
   const sections = Object.entries(wiki).filter(([,v]) => v && v.length > 0);
   const totalItems = sections.reduce((sum,[,v]) => sum + v.length, 0);
   const labels = {
-    cuerpo:'💪 Cuerpo', negocio:'💼 Negocio', emocional:'🧘 Emocional',
-    aprendizajes:'🧠 Aprendizajes', clientes:'👥 Clientes', 
-    pendientes:'⚠️ Pendientes', logros:'🏆 Wins', conversaciones:'💬 Historial'
+    cuerpo:'Cuerpo', negocio:'Negocio', emocional:'Emocional',
+    aprendizajes:'Aprendizajes', clientes:'Clientes', 
+    pendientes:'Pendientes', logros:'Wins', conversaciones:'Historial'
   };
   if (totalItems > 0) {
     bar.classList.add('visible');
@@ -3165,7 +3141,7 @@ function renderMemoryBar() {
     ).join('') + `<span class="mem-tag" style="opacity:.6">${totalItems} recuerdos</span>`;
   } else {
     bar.classList.add('visible');
-    tags.innerHTML = '<span class="mem-tag">Wiki vacía — yo aprendo con cada conversación 🧠</span>';
+    tags.innerHTML = '<span class="mem-tag">Wiki vacía — yo aprendo con cada conversación</span>';
   }
 }
 
@@ -3223,7 +3199,7 @@ async function sendMessage() {
     if (!response.ok) {
       const err = await response.json().catch(() => ({}));
       if (response.status === 401) {
-        showToast('API Key inválida 🔑');
+        showToast('API Key inválida');
         apiKey = ''; localStorage.removeItem('tiKey');
         showApiModal();
       } else {
@@ -3281,7 +3257,7 @@ WIKI DE ISABEL — Lo que sabes de ella
 Última actualización: ${new Date().toLocaleDateString('es-MX',{weekday:'long',day:'numeric',month:'long'})}
 ═══════════════════════════════════════
 
-📊 PROGRESO ACTUAL:
+PROGRESO ACTUAL:
 - Peso: ${lw} lbs (meta: 168 lbs, faltan ${(lw-168).toFixed(1)} lbs)
 - Workouts esta semana: ${wkWorkouts}/4 (meta 4x/sem)
 - Hábitos completados hoy: ${habitsDone}/${habits.length}
@@ -3289,7 +3265,7 @@ WIKI DE ISABEL — Lo que sabes de ella
 - Tareas pendientes: ${tasks.filter(t=>!t.done).length}`;
 
   if (lastCheckin) {
-    ctx += `\n\n💭 ÚLTIMO CHECK-IN (${new Date(lastCheckin.date).toLocaleDateString('es-MX',{weekday:'long'})}):`;
+    ctx += `\n\nÚLTIMO CHECK-IN (${new Date(lastCheckin.date).toLocaleDateString('es-MX',{weekday:'long'})}):`;
     if (lastCheckin.energy) ctx += `\n- Energía: ${lastCheckin.energy}/5`;
     if (lastCheckin.sleep) ctx += `\n- Sueño: ${lastCheckin.sleep}/5`;
     if (lastCheckin.intention) ctx += `\n- Intención del día: "${lastCheckin.intention}"`;
@@ -3301,10 +3277,10 @@ WIKI DE ISABEL — Lo que sabes de ella
   sections.forEach(s => {
     if (wiki[s] && wiki[s].length > 0) {
       const labels = {
-        cuerpo:'💪 CUERPO & SALUD', negocio:'💼 NEGOCIO & CLIENTES',
-        emocional:'🧘 ESTADO EMOCIONAL', aprendizajes:'🧠 APRENDIZAJES RECIENTES',
-        clientes:'👥 CLIENTES MEDICARE', pendientes:'⚠️ PENDIENTES IMPORTANTES',
-        logros:'🏆 LOGROS Y WINS'
+        cuerpo:'CUERPO & SALUD', negocio:'NEGOCIO & CLIENTES',
+        emocional:'ESTADO EMOCIONAL', aprendizajes:'APRENDIZAJES RECIENTES',
+        clientes:'CLIENTES MEDICARE', pendientes:'PENDIENTES IMPORTANTES',
+        logros:'LOGROS Y WINS'
       };
       ctx += `\n\n${labels[s]}:`;
       wiki[s].slice(-8).forEach(item => ctx += `\n- ${item}`);
@@ -3313,7 +3289,7 @@ WIKI DE ISABEL — Lo que sabes de ella
 
   // Add recent conversation highlights
   if (wiki.conversaciones && wiki.conversaciones.length > 0) {
-    ctx += `\n\n💬 CONVERSACIONES RECIENTES:`;
+    ctx += `\n\nCONVERSACIONES RECIENTES:`;
     wiki.conversaciones.slice(-5).forEach(c => ctx += `\n- ${c}`);
   }
 
@@ -3451,12 +3427,11 @@ function saveNote() {
   notes.push({
     id: Date.now(),
     agent: currentAgent?.name || 'Agent',
-    emoji: currentAgent?.emoji || '📝',
     text: lastBubble.innerText.slice(0, 400),
     date: new Date().toLocaleDateString('es-MX',{month:'short',day:'numeric'})
   });
   saveData();
-  showToast('Nota guardada 📝');
+  showToast('Nota guardada');
 }
 
 function addTaskFromChat() {
@@ -3471,7 +3446,7 @@ function renderNotes() {
   const c = document.getElementById('notesGrid');
   c.innerHTML = '';
   if (!notes.length) {
-    c.innerHTML = '<div style="color:var(--c3);font-size:13px;">Aún no hay notas. Chatea con un coach y guarda sus respuestas. 📝</div>';
+    c.innerHTML = '<div style="color:var(--c3);font-size:13px;">Aún no hay notas. Chatea con un coach y guarda sus respuestas.</div>';
     return;
   }
   [...notes].reverse().forEach(n => {
@@ -3479,8 +3454,7 @@ function renderNotes() {
     card.className = 'coach-card';
     card.style.textAlign = 'left';
     card.innerHTML = `
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;">
-        <span style="font-size:24px;">${n.emoji}</span>
+      <div style="display:flex;justify-content:flex-end;align-items:center;margin-bottom:8px;">
         <button class="task-del" onclick="deleteNote(${n.id});event.stopPropagation();">✕</button>
       </div>
       <div style="font-size:9px;letter-spacing:0.18em;text-transform:uppercase;color:var(--gold);margin-bottom:4px;font-family:'DM Mono',monospace;">${n.agent}</div>
@@ -3497,7 +3471,6 @@ function addNote() {
   notes.push({
     id: Date.now(),
     agent: 'Personal',
-    emoji: '📝',
     text: t,
     date: new Date().toLocaleDateString('es-MX',{month:'short',day:'numeric'})
   });
@@ -3523,7 +3496,7 @@ function saveApiKey() {
   localStorage.setItem('tiKey', key);
   document.getElementById('modalOverlay').classList.remove('show');
   updateApiKeyStatus();
-  showToast('¡Coaches activados! 👑');
+  showToast('¡Coaches activados!');
 }
 
 // ============================================================
@@ -3581,7 +3554,7 @@ function startVoiceThought() {
   voiceMode='thought';
   startVoiceInternal((text)=>{
     const el=document.getElementById('thoughtsIn');
-    if(el){el.value=text;showToast('Pensamiento capturado 🎙️');}
+    if(el){el.value=text;showToast('Pensamiento capturado');}
   });
 }
 
@@ -3589,7 +3562,7 @@ function startVoiceThought() {
 function startVoiceInternal(callback) {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRecognition) {
-    showToast('Tu navegador no soporta voz. Usa Chrome o Safari. 🎙️');
+    showToast('Tu navegador no soporta voz. Usa Chrome o Safari.');
     return;
   }
 
@@ -3641,7 +3614,7 @@ function startVoiceInternal(callback) {
 
     const text = finalTranscript.trim() || interimTranscript.trim();
     if (!text) {
-      showToast('No se escuchó nada. Intenta de nuevo 🎙️');
+      showToast('No se escuchó nada. Intenta de nuevo');
       return;
     }
 
@@ -3651,7 +3624,7 @@ function startVoiceInternal(callback) {
       // Smart task processing — detect agent keywords
       const agentKw = detectAgent(text);
       addTask(text, agentKw);
-      showToast(`✅ Tarea agregada: "${text.slice(0,35)}${text.length>35?'...':''}" `);
+      showToast(`Tarea agregada: "${text.slice(0,35)}${text.length>35?'...':''}" `);
       // Flash the task input
       const inp = document.getElementById('taskInput');
       if (inp) { inp.value = text; setTimeout(() => inp.value = '', 2000); }
@@ -3674,7 +3647,7 @@ function startVoiceInternal(callback) {
     if (chatBtn) chatBtn.classList.remove('listening');
 
     const msgs = {
-      'not-allowed': 'Necesitas permitir el micrófono en tu browser 🎙️',
+      'not-allowed': 'Necesitas permitir el micrófono en tu browser',
       'no-speech': 'No se escuchó voz. Intenta de nuevo.',
       'network': 'Error de red. Verifica tu conexión.',
     };
@@ -3741,16 +3714,16 @@ function voiceAnywhere() {
 // PWA — NOTIFICATIONS (ella te busca, no tú a ella)
 // ============================================================
 const NOTIF_SCHEDULES = [
-  { id:'morning',   hour:6,  min:30, title:'☀️ Buenos días, Isabel', body:'Tu check-in AM te espera. La mejor Isabel arranca ahora.', tag:'morning' },
-  { id:'supps',     hour:7,  min:0,  title:'💊 Supplements AM', body:'D3+K2 · Omega-3 · Probiótico · Multi 50+. 30 segundos, todo el día de beneficio.', tag:'supps' },
-  { id:'workout',   hour:7,  min:30, title:'💪 Rivera te está esperando', body:'Tu Tonal está listo. 30 minutos que cambian tu cuerpo.', tag:'workout' },
-  { id:'agua',      hour:10, min:0,  title:'💧 ¿Ya tomaste agua?', body:'Meta: 80oz hoy. Cada vaso cuenta.', tag:'agua' },
-  { id:'lunch',     hour:12, min:30, title:'🥗 Carmen dice: tiempo de comer', body:'Recuerda: proteína primero. 30-40g en el almuerzo.', tag:'lunch' },
-  { id:'checkin2',  hour:15, min:0,  title:'⚡ Revisa tus Top 3', body:'¿Cómo van tus prioridades de hoy? Athena pregunta.', tag:'checkin2' },
-  { id:'cena',      hour:18, min:30, title:'🍽️ Cena antes de las 7pm', body:'Carmen lo dice. Ventana de ayuno. Tu cuerpo te lo agradecerá.', tag:'cena' },
-  { id:'evening',   hour:21, min:0,  title:'🌙 Review PM', body:'3 wins del día. Cierra fuerte, Isabel.', tag:'evening' },
-  { id:'magnesio',  hour:21, min:30, title:'💊 Magnesio Glicinato', body:'300-400mg antes de dormir. Tu recovery y tu sueño te lo agradecen.', tag:'magnesio' },
-  { id:'sleep',     hour:22, min:30, title:'🌙 Hora de cerrar el día', body:'Sin pantalla en 30 min. La Isabel de mañana necesita tu descanso de hoy.', tag:'sleep' },
+  { id:'morning',   hour:6,  min:30, title:'Buenos días, Isabel', body:'Tu check-in AM te espera. La mejor Isabel arranca ahora.', tag:'morning' },
+  { id:'supps',     hour:7,  min:0,  title:'Supplements AM', body:'D3+K2 · Omega-3 · Probiótico · Multi 50+. 30 segundos, todo el día de beneficio.', tag:'supps' },
+  { id:'workout',   hour:7,  min:30, title:'Coach Rivera te está esperando', body:'Tu Tonal está listo. 30 minutos que cambian tu cuerpo.', tag:'workout' },
+  { id:'agua',      hour:10, min:0,  title:'¿Ya tomaste agua?', body:'Meta: 80oz hoy. Cada vaso cuenta.', tag:'agua' },
+  { id:'lunch',     hour:12, min:30, title:'Chef Carmen dice: tiempo de comer', body:'Recuerda: proteína primero. 30-40g en el almuerzo.', tag:'lunch' },
+  { id:'checkin2',  hour:15, min:0,  title:'Revisa tus Top 3', body:'¿Cómo van tus prioridades de hoy? Athena pregunta.', tag:'checkin2' },
+  { id:'cena',      hour:18, min:30, title:'Cena antes de las 7pm', body:'Carmen lo dice. Ventana de ayuno. Tu cuerpo te lo agradecerá.', tag:'cena' },
+  { id:'evening',   hour:21, min:0,  title:'Review PM', body:'3 wins del día. Cierra fuerte, Isabel.', tag:'evening' },
+  { id:'magnesio',  hour:21, min:30, title:'Magnesio Glicinato', body:'300-400mg antes de dormir. Tu recovery y tu sueño te lo agradecen.', tag:'magnesio' },
+  { id:'sleep',     hour:22, min:30, title:'Hora de cerrar el día', body:'Sin pantalla en 30 min. La Isabel de mañana necesita tu descanso de hoy.', tag:'sleep' },
 ];
 
 let notifPermission = 'default';
@@ -3758,7 +3731,7 @@ let notifTimer = null;
 
 async function requestNotifications() {
   if (!('Notification' in window)) {
-    showToast('Tu navegador no soporta notificaciones 📱');
+    showToast('Tu navegador no soporta notificaciones');
     return false;
   }
   if (Notification.permission === 'granted') {
@@ -3771,10 +3744,10 @@ async function requestNotifications() {
   notifPermission = perm;
   if (perm === 'granted') {
     startNotifScheduler();
-    showToast('✅ Notificaciones activadas. Te busco yo. 👑');
+    showToast('Notificaciones activadas. Te busco yo.');
     // Send welcome notification
     setTimeout(() => {
-      sendNotif('👑 Todo Isabel activado', 'Te busco cada mañana. No necesitas abrir la app.', 'welcome');
+      sendNotif('Athena activada', 'Te busco cada mañana. No necesitas abrir la app.', 'welcome');
     }, 2000);
   } else {
     showToast('Notificaciones bloqueadas en tu browser settings.');
@@ -3788,8 +3761,8 @@ function sendNotif(title, body, tag='general') {
   const n = new Notification(title, {
     body,
     tag,
-    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👑</text></svg>',
-    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">👑</text></svg>',
+    icon: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">A</text></svg>',
+    badge: 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><text y=".9em" font-size="90">A</text></svg>',
     requireInteraction: false,
     silent: false,
   });
@@ -3838,12 +3811,12 @@ function updateNotifBtn() {
   const btn = document.getElementById('notifBtn');
   if (!btn) return;
   if (Notification.permission === 'granted') {
-    btn.innerHTML = '🔔 Activas';
+    btn.innerHTML = 'Activas';
     btn.style.background = 'rgba(90,138,98,0.15)';
     btn.style.borderColor = 'rgba(90,138,98,0.3)';
     btn.style.color = 'var(--green)';
   } else {
-    btn.innerHTML = '🔔 Activar avisos';
+    btn.innerHTML = 'Activar avisos';
     btn.style.background = '';
     btn.style.borderColor = '';
     btn.style.color = '';
@@ -4007,10 +3980,10 @@ if ('speechSynthesis' in window) {
 function showWikiModal() {
   const wiki = getIsabelWiki();
   const labels = {
-    cuerpo:'💪 Cuerpo & Salud', negocio:'💼 Negocio',
-    emocional:'🧘 Emocional', aprendizajes:'🧠 Aprendizajes',
-    clientes:'👥 Clientes', pendientes:'⚠️ Pendientes',
-    logros:'🏆 Wins', conversaciones:'💬 Historial'
+    cuerpo:'Cuerpo & Salud', negocio:'Negocio',
+    emocional:'Emocional', aprendizajes:'Aprendizajes',
+    clientes:'Clientes', pendientes:'Pendientes',
+    logros:'Wins', conversaciones:'Historial'
   };
   const lw = weightLog.length ? weightLog[weightLog.length-1].weight : 178;
   const wkStart = new Date(); wkStart.setDate(wkStart.getDate()-7);
@@ -4020,7 +3993,6 @@ function showWikiModal() {
   let sections = '';
   if (totalItems === 0) {
     sections = `<div style="text-align:center;padding:24px;color:var(--c3)">
-      <div style="font-size:28px;margin-bottom:8px">🧠</div>
       <div style="font-size:13px;color:var(--cream);margin-bottom:4px">Tu wiki está vacía</div>
       <div style="font-size:11px">Cada conversación con un coach llena tu wiki automáticamente.</div>
     </div>`;
@@ -4045,15 +4017,15 @@ function showWikiModal() {
           <button onclick="document.getElementById('wikiModal').remove()" style="background:var(--bg3);border:1px solid var(--border);border-radius:7px;padding:6px 11px;color:var(--c2);cursor:pointer;font-size:11px;font-family:'DM Sans',sans-serif">✕</button>
         </div>
         <div style="background:var(--bg3);border:1px solid var(--border);border-radius:9px;padding:12px;margin-bottom:14px;display:grid;grid-template-columns:1fr 1fr;gap:7px">
-          <div style="font-size:12px;color:var(--c2)">⚖️ <strong style="color:var(--cream)">${lw} lbs</strong> actuales</div>
-          <div style="font-size:12px;color:var(--c2)">🏋️ <strong style="color:var(--cream)">${wkW}/4</strong> workouts/sem</div>
-          <div style="font-size:12px;color:var(--c2)">🎯 Meta: <strong style="color:var(--amber)">168 lbs</strong></div>
-          <div style="font-size:12px;color:var(--c2)">🧠 <strong style="color:var(--cream)">${totalItems}</strong> recuerdos</div>
+          <div style="font-size:12px;color:var(--c2)"><strong style="color:var(--cream)">${lw} lbs</strong> actuales</div>
+          <div style="font-size:12px;color:var(--c2)"><strong style="color:var(--cream)">${wkW}/4</strong> workouts/sem</div>
+          <div style="font-size:12px;color:var(--c2)">Meta: <strong style="color:var(--amber)">168 lbs</strong></div>
+          <div style="font-size:12px;color:var(--c2)"><strong style="color:var(--cream)">${totalItems}</strong> recuerdos</div>
         </div>
         ${sections}
         <div style="display:flex;gap:8px;margin-top:14px">
           <button onclick="clearIsabelWiki()" style="flex:1;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:8px;color:var(--c3);font-size:11px;cursor:pointer;font-family:'DM Sans',sans-serif">Borrar todo</button>
-          <button onclick="document.getElementById('wikiModal').remove()" style="flex:2;background:linear-gradient(135deg,var(--amber),var(--amber2));border:none;border-radius:8px;padding:8px;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Cerrar 👑</button>
+          <button onclick="document.getElementById('wikiModal').remove()" style="flex:2;background:linear-gradient(135deg,var(--amber),var(--amber2));border:none;border-radius:8px;padding:8px;color:#fff;font-weight:600;font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif">Cerrar</button>
         </div>
       </div>
     </div>`);
