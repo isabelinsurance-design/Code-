@@ -1,7 +1,7 @@
-# Todo Isabel — Project Context
+# Athena — Project Context
 
 ## What this is
-A personal coaching app for Isabel Fuentes (isabel.insurance@gmail.com). A static HTML app (`app/todoisabel.html`) plus a WhatsApp server (`server/`) that acts as an autonomous chief-of-staff via AI coaches.
+**Athena** — a personal coaching app for Isabel Fuentes (isabel.insurance@gmail.com). A static HTML app (`app/todoisabel.html`) plus a WhatsApp server (`server/`) that acts as an autonomous chief-of-staff via AI coaches. ("Athena" is the user-facing brand and the name of the chief-of-staff coach; the file is still `todoisabel.html` and the repo is `Code-`.)
 
 ## Structure
 - `app/todoisabel.html` — the entire front-end (single file)
