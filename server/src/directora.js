@@ -3,7 +3,7 @@ import { DIRECTORA } from './agents.js';
 import { toolDefinitions, runTool } from './tools.js';
 import { buildWikiContext } from './memory.js';
 
-// Corre a La Directora sobre un historial de conversación.
+// Corre a Athena sobre un historial de conversación.
 // Maneja el "loop de herramientas": si Claude pide usar una
 // herramienta, la ejecutamos, le devolvemos el resultado, y
 // seguimos hasta que tenga una respuesta final para Isabel.

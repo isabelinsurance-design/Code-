@@ -1,7 +1,7 @@
 {
   "name": "todo-isabel-directora",
   "version": "1.0.0",
-  "description": "Autonomous WhatsApp chief-of-staff (La Directora) for Isabel Fuentes — delegates to specialist coaches, sends/checks email, messages Sami, and proactively reaches out on a schedule.",
+  "description": "Autonomous WhatsApp chief-of-staff (Athena) for Isabel Fuentes — delegates to specialist coaches, sends/checks email, messages Sami, and proactively reaches out on a schedule.",
   "type": "module",
   "main": "src/index.js",
   "scripts": {

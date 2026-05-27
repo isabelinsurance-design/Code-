@@ -2,7 +2,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 
-// El briefing de la mañana: La Directora le escribe a Isabel SIN que
+// El briefing de la mañana: Athena le escribe a Isabel SIN que
 // Isabel tenga que abrir nada. Esto es lo que la hace "autónoma".
 // Lo dispara el cron en index.js (o puedes correrlo a mano con
 // `npm run briefing`).

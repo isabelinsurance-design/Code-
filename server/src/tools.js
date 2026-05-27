@@ -4,7 +4,7 @@ import { sendMessage } from './whatsapp.js';
 import { sendEmail, checkEmails } from './email.js';
 import { remember, buildWikiContext } from './memory.js';
 
-// Definiciones de las herramientas que La Directora puede usar.
+// Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
 export const toolDefinitions = [
   {
@@ -79,7 +79,7 @@ export async function runTool(name, input) {
     case 'mensaje_a_sami': {
       const to = process.env.SAMI_WHATSAPP;
       if (!to) return 'No hay número de Sami configurado (SAMI_WHATSAPP en el .env).';
-      await sendMessage(to, `📋 De La Directora (Isabel):\n${input.mensaje}`);
+      await sendMessage(to, `📋 De Athena (Isabel):\n${input.mensaje}`);
       return `Mensaje enviado a Sami: "${input.mensaje}"`;
     }
     case 'enviar_email':

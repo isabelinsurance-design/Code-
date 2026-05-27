@@ -11,7 +11,7 @@ const app = express();
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
-app.get('/', (_req, res) => res.send('Todo Isabel — La Directora está despierta. 👑'));
+app.get('/', (_req, res) => res.send('Todo Isabel — Athena está despierta. 👑'));
 app.get('/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
 
 // ---- Webhook de WhatsApp entrante (Twilio le pega aquí) ----
@@ -75,5 +75,5 @@ if (cron.validate(cronExpr)) {
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
-  console.log(`👑 La Directora escuchando en el puerto ${port}`);
+  console.log(`👑 Athena escuchando en el puerto ${port}`);
 });

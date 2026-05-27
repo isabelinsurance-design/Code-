@@ -49,7 +49,7 @@ export function buildWikiContext() {
     .join('\n');
 }
 
-// ---- Historial de la conversación de WhatsApp con La Directora ----
+// ---- Historial de la conversación de WhatsApp con Athena ----
 // La API de Anthropic es sin estado: hay que mandarle el historial
 // completo cada vez. Lo guardamos aquí entre mensajes.
 export function getHistory() {

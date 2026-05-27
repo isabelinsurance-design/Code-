@@ -837,7 +837,7 @@ body{
         </button>
         <button class="qa-btn" onclick="selectAgent(getAgent('directora'))">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>
-          La Directora
+          Athena
         </button>
       </div>
     </div>
@@ -845,7 +845,7 @@ body{
     <!-- Thoughts capture -->
     <div style="background:var(--card);border:1px solid rgba(139,115,85,0.2);border-radius:12px;padding:18px;margin-bottom:20px;box-shadow:0 2px 10px rgba(60,50,35,0.07);">
       <div style="font-size:9px;letter-spacing:.28em;text-transform:uppercase;color:var(--gold);font-family:'DM Mono',monospace;font-weight:500;margin-bottom:10px;">Mis Pensamientos</div>
-      <textarea id="thoughtsIn" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Fraunces',serif;font-style:italic;font-size:14px;color:var(--cream);outline:none;resize:none;min-height:54px;transition:border-color .2s;line-height:1.55;font-weight:300;" placeholder="Escribe lo que tienes en mente... o usa el micrófono. La Directora lo guarda y organiza." onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
+      <textarea id="thoughtsIn" rows="2" style="width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:11px 14px;font-family:'Fraunces',serif;font-style:italic;font-size:14px;color:var(--cream);outline:none;resize:none;min-height:54px;transition:border-color .2s;line-height:1.55;font-weight:300;" placeholder="Escribe lo que tienes en mente... o usa el micrófono. Athena lo guarda y organiza." onfocus="this.style.borderColor='var(--gold)'" onblur="this.style.borderColor='var(--border)'"></textarea>
       <div style="display:flex;gap:7px;margin-top:9px;">
         <button id="thoughtVoiceBtn" onclick="startVoiceThought()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--gold3);border:1px solid var(--border2);border-radius:7px;color:var(--gold);font-size:11.5px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1a3 3 0 00-3 3v8a3 3 0 006 0V4a3 3 0 00-3-3z"/><path d="M19 10v2a7 7 0 01-14 0v-2M12 19v4M8 23h8"/></svg>
@@ -853,7 +853,7 @@ body{
         </button>
         <button onclick="sendThought()" style="display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg4);border:1px solid var(--border);border-radius:7px;color:var(--c2);font-size:11.5px;font-weight:500;cursor:pointer;transition:all .2s;font-family:'DM Sans',sans-serif;" onmouseover="this.style.borderColor='var(--border2)';this.style.color='var(--gold)'" onmouseout="this.style.borderColor='var(--border)';this.style.color='var(--c2)'">
           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          Enviar a La Directora
+          Enviar a Athena
         </button>
       </div>
     </div>
@@ -1073,7 +1073,7 @@ body{
       <button class="mobile-menu-btn" onclick="document.getElementById('sidebar').classList.toggle('open')">☰</button>
       <div id="chatEmoji" style="width:36px;height:36px;border-radius:9px;background:var(--gold3);border:1px solid var(--border2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;font-family:'DM Mono',monospace;color:var(--gold);flex-shrink:0;">DI</div>
       <div class="chat-info">
-        <div class="name" id="chatName">La Directora</div>
+        <div class="name" id="chatName">Athena</div>
         <div class="role" id="chatRole">Chief of Staff</div>
       </div>
       <div class="chat-actions">
@@ -1183,14 +1183,14 @@ const AGENTS = [
   id:"directora",
   initials:"DI",
   color:"#d4a84b",
-  name:"La Directora",
+  name:"Athena",
   role:"Chief of Staff · Operations",
   emoji:"👑",
   boss:true,
   standards:["Sin excusas","Top 3 prioridades","Calendar protegido","Decisiones rápidas"],
   quickPrompts:["Plan completo de hoy","Mis Top 3 de hoy","Status de mis metas","Estoy abrumada"],
-  greeting:"Isabel. Soy La Directora. No estoy aquí para hacerte sentir bien — estoy aquí para hacerte CRECER. Cada minuto cuenta. ¿Cuáles son tus 3 prioridades de hoy?",
-  system:`Eres LA DIRECTORA, Chief of Staff personal de Isabel Fuentes. NO eres una asistente complaciente. Eres su jefa de operaciones — estricta, estratégica, sin tolerancia a la mediocridad. Como Sheryl Sandberg meets una entrenadora militar.
+  greeting:"Isabel. Soy Athena. No estoy aquí para hacerte sentir bien — estoy aquí para hacerte CRECER. Cada minuto cuenta. ¿Cuáles son tus 3 prioridades de hoy?",
+  system:`Eres ATHENA, Chief of Staff personal de Isabel Fuentes. NO eres una asistente complaciente. Eres su jefa de operaciones — estricta, estratégica, sin tolerancia a la mediocridad. Como Sheryl Sandberg meets una entrenadora militar.
 
 ISABEL: 53 años, 5'7", 178 lbs (meta 168 en 90 días). Medicare agent SoCal — SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC. Web: withisabelfuentes.com. Tonal + pilates ball. Sprouts. Website CMS pendiente: multi-plan disclaimer, 1-800-MEDICARE, NPN, "plans not available in all areas", quitar superlativos, footer disclaimers.
 
@@ -1363,7 +1363,7 @@ ESTILO: Calmada, científica, precisa. "Isabel". Spanglish. Fin de respuesta: 1 
   id:"luna",
   initials:"LU",
   color:"#b88a9e",
-  name:"Luna",
+  name:"Beauty Luna",
   role:"Master Esthetician · Type IV",
   emoji:"✨",
   standards:["SPF AM siempre","Retinol PM 4x/sem","Vitamin C diario","Sin productos irritantes"],
@@ -1418,7 +1418,7 @@ ESTILO: Experta, específica, sin pelos en la lengua. "Isabel". Spanglish. Marca
   id:"valentina",
   initials:"VA",
   color:"#9b7fc4",
-  name:"Valentina",
+  name:"Estilo Valentina",
   role:"Image Consultant · Quiet Luxury",
   emoji:"👗",
   standards:["Fits perfectos","Quiet luxury > logos","Color palette respetada","Confianza vestida"],
@@ -1611,7 +1611,7 @@ ESTILO: Numbers-driven, sharp, sin filler. "Isabel". Spanglish. Específica con 
   id:"alma",
   initials:"AL",
   color:"#8a8aaa",
-  name:"Alma",
+  name:"Mente Alma",
   role:"MFT · Latina Therapy 50+",
   emoji:"🧘‍♀️",
   standards:["Journal AM y PM","Boundaries firmes","Self-compassion","Ask for help"],
@@ -1674,7 +1674,7 @@ ESTILO: Suave pero clara. "Isabel" o "mi amor". Español predominante con inglé
   id:"rosa",
   initials:"RO",
   color:"#8a9a7b",
-  name:"Rosa",
+  name:"Casa Rosa",
   role:"NAPO Pro · Home Operations",
   emoji:"🏠",
   standards:["Una zona/día","No multitask cleaning","Auto-pay todo","Reset domingo"],
@@ -1741,7 +1741,7 @@ ESTILO: Práctica, eficiente, sin drama. "Isabel". Spanglish. Listas accionables
   id:"camila",
   initials:"CM",
   color:"#a07a5a",
-  name:"Camila",
+  name:"Decor Camila",
   role:"NCIDQ · Warm Modern SoCal",
   emoji:"🎨",
   standards:["Linen sobre poliéster","Plantas vivas","Lighting capas","Menos > más"],
@@ -1812,7 +1812,7 @@ ESTILO: Visionaria, específica, accesible. "Isabel". Spanglish. Marcas + precio
   id:"marisol",
   initials:"MS",
   color:"#b87a5a",
-  name:"Marisol",
+  name:"Brand Marisol",
   role:"Brand Strategist · Latina Insurance",
   emoji:"📱",
   standards:["3 reels/sem","Compliance siempre","Hooks en 3 seg","Tu cara es tu marca"],
@@ -1900,7 +1900,7 @@ ESTILO: Estratégica, creativa, energética. "Isabel". Spanglish. Da copy LISTO 
   id:"lucia",
   initials:"LC",
   color:"#9a8a6a",
-  name:"Lucía",
+  name:"Voz Lucía",
   role:"Voice Coach · TEDx Trained",
   emoji:"🎤",
   standards:["Pausas dramáticas","No 'um'","Ojos a cámara","Confianza vocal"],
@@ -1983,7 +1983,7 @@ ESTILO: Técnica, energética, accesible. "Isabel". Spanglish. Da SCRIPTS listos
   id:"catalina",
   initials:"CT",
   color:"#5a8a8a",
-  name:"Catalina",
+  name:"Viajes Catalina",
   role:"Concierge · Travel & Lifestyle",
   emoji:"✈️",
   standards:["Calidad > cantidad","Experiencias > cosas","Reset 1x/quarter","Reservas con tiempo"],
@@ -2063,7 +2063,7 @@ ESTILO: Sofisticada, entusiasta pero práctica. "Isabel". Spanglish. Da 3 opcion
   id:"beatriz",
   initials:"BE",
   color:"#c9967a",
-  name:"Beatriz",
+  name:"Network Beatriz",
   role:"Networking + PR · BNI",
   emoji:"🤝",
   standards:["5 coffees/mes","Follow-up 24hrs","Give first","Track relationships"],
@@ -2160,7 +2160,7 @@ ESTILO: Estratégica, energética, sin BS. "Isabel". Spanglish. Scripts listos. 
   id:"esperanza",
   initials:"ES",
   color:"#d4a84b",
-  name:"Esperanza",
+  name:"Guía Esperanza",
   role:"Guía Espiritual · Latina Faith",
   emoji:"🙏",
   standards:["AM oración 5 min","Gratitude diario","Domingo reflexión","Espacio sagrado en casa"],
@@ -2256,7 +2256,7 @@ ESTILO: Suave, presente, sabia. "Isabel" o "mi amor". Español predominante con 
   id:"victoria",
   initials:"VI",
   color:"#b8605a",
-  name:"Victoria",
+  name:"Visión Victoria",
   role:"Vision Coach · ICF + EOS",
   emoji:"🎯",
   standards:["Top 3 metas trim","Weekly review domingo","Big 3 daily","Track tudo"],
@@ -3710,13 +3710,13 @@ function detectAgent(text) {
   if (/sofía|suplemento|dormir|sueño|energía|vitamina|probiotico/.test(t)) return 'Dra. Sofía';
   if (/maría|cliente|medicare|lead|script|scan|anthem|humana/.test(t)) return 'María Medicare';
   if (/elena|dinero|finanza|gasto|ahorro|budget|ingreso/.test(t)) return 'CFO Elena';
-  if (/alma|estres|ansiedad|agobiada|abrumada|sentir/.test(t)) return 'Alma';
-  if (/valentina|ropa|outfit|vestir|estilo|look/.test(t)) return 'Valentina';
-  if (/marisol|reel|instagram|contenido|post|marketing/.test(t)) return 'Marisol';
-  if (/rosa|casa|limpiar|lavar|organizar/.test(t)) return 'Rosa';
-  if (/camila|decorar|mueble|sala|cuarto|office/.test(t)) return 'Camila';
-  if (/victoria|meta|objetivo|visión|plan|lograr/.test(t)) return 'Victoria';
-  if (/beatriz|networking|referido|evento|contacto/.test(t)) return 'Beatriz';
+  if (/alma|estres|ansiedad|agobiada|abrumada|sentir/.test(t)) return 'Mente Alma';
+  if (/valentina|ropa|outfit|vestir|estilo|look/.test(t)) return 'Estilo Valentina';
+  if (/marisol|reel|instagram|contenido|post|marketing/.test(t)) return 'Brand Marisol';
+  if (/rosa|casa|limpiar|lavar|organizar/.test(t)) return 'Casa Rosa';
+  if (/camila|decorar|mueble|sala|cuarto|office/.test(t)) return 'Decor Camila';
+  if (/victoria|meta|objetivo|visión|plan|lograr/.test(t)) return 'Visión Victoria';
+  if (/beatriz|networking|referido|evento|contacto/.test(t)) return 'Network Beatriz';
   return 'General';
 }
 
@@ -3746,7 +3746,7 @@ const NOTIF_SCHEDULES = [
   { id:'workout',   hour:7,  min:30, title:'💪 Rivera te está esperando', body:'Tu Tonal está listo. 30 minutos que cambian tu cuerpo.', tag:'workout' },
   { id:'agua',      hour:10, min:0,  title:'💧 ¿Ya tomaste agua?', body:'Meta: 80oz hoy. Cada vaso cuenta.', tag:'agua' },
   { id:'lunch',     hour:12, min:30, title:'🥗 Carmen dice: tiempo de comer', body:'Recuerda: proteína primero. 30-40g en el almuerzo.', tag:'lunch' },
-  { id:'checkin2',  hour:15, min:0,  title:'⚡ Revisa tus Top 3', body:'¿Cómo van tus prioridades de hoy? La Directora pregunta.', tag:'checkin2' },
+  { id:'checkin2',  hour:15, min:0,  title:'⚡ Revisa tus Top 3', body:'¿Cómo van tus prioridades de hoy? Athena pregunta.', tag:'checkin2' },
   { id:'cena',      hour:18, min:30, title:'🍽️ Cena antes de las 7pm', body:'Carmen lo dice. Ventana de ayuno. Tu cuerpo te lo agradecerá.', tag:'cena' },
   { id:'evening',   hour:21, min:0,  title:'🌙 Review PM', body:'3 wins del día. Cierra fuerte, Isabel.', tag:'evening' },
   { id:'magnesio',  hour:21, min:30, title:'💊 Magnesio Glicinato', body:'300-400mg antes de dormir. Tu recovery y tu sueño te lo agradecen.', tag:'magnesio' },
