@@ -53,8 +53,16 @@ python3 -m http.server 7788 --directory app
 ## Dev branch
 `claude/sleepy-darwin-P4k2z`
 
+## Isabel's philosophy (baked into every coach)
+All coaches reason from Isabel's own framework, condensed from her book "Más completa, no más perfecta." It's defined as `ISABEL_FILOSOFIA` and interpolated into every system prompt:
+- **Server**: `server/src/agents.js` — exported constant, injected after `${ISABEL_BASE}` in all 8 prompts.
+- **App**: `app/todoisabel.html` — `const ISABEL_FILOSOFIA` declared just before `const AGENTS`, interpolated at the end of every coach's `system:` template literal (17 coaches).
+
+The block covers: the 3 categories (urgente/importante/mantenimiento), the 4-step system (capturar → clasificar → ejecutar → revisar), the 13 áreas de vida, the non-negotiable rules ("máx 3 prioridades/día", "volver no es empezar de cero", "no todo es mío", descanso-in-structure, growth from curiosity). If you edit the philosophy, edit it in both files so they stay in sync.
+
 ## Key rules
 - Never change coach `id` fields
 - Server is Node.js ESM (`"type": "module"`)
 - App is a single HTML file — no build step
 - Spanglish is intentional throughout
+- Keep `ISABEL_FILOSOFIA` synced between app and server
