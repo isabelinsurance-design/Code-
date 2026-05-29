@@ -53,9 +53,88 @@ function logActivity(PDO $pdo, int $agente_id, ?int $miembro_id, string $tipo, s
         $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
             ->execute([$agente_id, $miembro_id, $tipo, $desc]);
     } catch(Exception $e) { /* silent */ }
+    // Audit centralizado (con PII redactado). Nunca rompe la operación.
+    lunaAudit($pdo, $agente_id, 'WRITE:' . $tipo, $desc);
 }
 function intOrNull($v) { return ($v === '' || $v === null) ? null : (int)$v; }
 function strOrNull($v) { $v = trim((string)$v); return $v === '' ? null : $v; }
+
+// ── Compliance & audit helpers (capa de confianza) ───────
+// Redacta PII antes de guardar en logs: teléfono, email, MBI.
+function redactPII($s) {
+    $s = (string)$s;
+    $s = preg_replace('/\b[1-9][A-Za-z0-9]{2}-?[A-Za-z0-9]{2}-?[A-Za-z0-9]{4}\b/', '[MBI]', $s);
+    $s = preg_replace('/[A-Za-z0-9._%+\-]+@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}/', '[email]', $s);
+    $s = preg_replace('/\b(\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}\b/', '[tel]', $s);
+    return $s;
+}
+// Tabla de audit: se crea sola la primera vez por request.
+function lunaAudit(PDO $pdo, ?int $uid, string $action, string $detail) {
+    static $ready = false;
+    try {
+        if (!$ready) {
+            $pdo->exec("CREATE TABLE IF NOT EXISTS luna_audit_log (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                user_id INT DEFAULT NULL,
+                action VARCHAR(60) NOT NULL,
+                detail TEXT,
+                ip VARCHAR(45) DEFAULT NULL,
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                INDEX idx_user (user_id), INDEX idx_action (action), INDEX idx_created (created_at)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+            $ready = true;
+        }
+        $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        $pdo->prepare("INSERT INTO luna_audit_log (user_id, action, detail, ip) VALUES (?,?,?,?)")
+            ->execute([$uid, mb_substr($action,0,60), mb_substr(redactPII($detail),0,2000), $ip]);
+    } catch (Exception $e) { /* audit nunca rompe la operación */ }
+}
+// Review-hooks deterministas antes de mandar algo a un cliente (CMS).
+function reviewOutbound($body, $subject = '') {
+    $flags = [];
+    $t = mb_strtolower($subject . ' ' . $body);
+    if (preg_match('/\$\s?\d|\bcopago\b|\bdeducible\b/u', $t))
+        $flags[] = ['sev'=>'alto','msg'=>'Posible precio/costo específico — requiere SOA y contexto.'];
+    if (preg_match('/\b(diagn[oó]stico|receta médica|dosis|tratamiento|s[ií]ntoma)\b/u', $t))
+        $flags[] = ['sev'=>'alto','msg'=>'Posible consejo médico — fuera del scope del agente.'];
+    if (preg_match('/\b(mejor plan|garantiz|el m[aá]s barato|sin costo alguno)\b/u', $t))
+        $flags[] = ['sev'=>'alto','msg'=>'Claim potencialmente engañoso (reglas de marketing CMS).'];
+    if (preg_match('/\bgratis\b/u', $t))
+        $flags[] = ['sev'=>'aviso','msg'=>'Uso de "gratis" — solo si es literalmente cierto.'];
+    foreach (['anthem','scan','la care','alignment','humana','molina','health net','unitedhealthcare','uhc','blue shield'] as $c)
+        if (strpos($t,$c) !== false) { $flags[]=['sev'=>'aviso','msg'=>"Menciona carrier ($c) — confirmar permiso/contexto."]; break; }
+    if (mb_strlen($body) > 400 && stripos($body,'not connected with') === false && stripos($body,'no está afiliado') === false)
+        $flags[] = ['sev'=>'aviso','msg'=>'Falta disclaimer CMS en pieza larga.'];
+    if (mb_strlen($body) > 5000)
+        $flags[] = ['sev'=>'aviso','msg'=>'Mensaje muy largo (>5000 caracteres).'];
+    $blocked = (bool)array_filter($flags, fn($f) => $f['sev'] === 'alto');
+    return ['flags'=>$flags, 'blocked'=>$blocked];
+}
+// Horas de silencio: 9pm–7am hora de Los Angeles.
+function withinQuietHours() {
+    try { $h = (int)(new DateTime('now', new DateTimeZone('America/Los_Angeles')))->format('G'); }
+    catch (Exception $e) { $h = (int)date('G'); }
+    return ($h >= 21 || $h < 7);
+}
+// Crea la tabla de cola outbound (una vez por request).
+function ensureOutboundTable(PDO $pdo) {
+    static $done = false; if ($done) return; $done = true;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS luna_outbound_queue (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        miembro_id INT DEFAULT NULL,
+        channel ENUM('EMAIL','SMS','WHATSAPP') DEFAULT 'EMAIL',
+        recipient VARCHAR(160) DEFAULT NULL,
+        subject VARCHAR(200) DEFAULT NULL,
+        body TEXT,
+        status ENUM('DRAFT','APPROVED','SENT','REJECTED') DEFAULT 'DRAFT',
+        review_flags TEXT DEFAULT NULL,
+        created_by INT DEFAULT NULL,
+        approved_by INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        sent_at DATETIME DEFAULT NULL,
+        INDEX idx_status (status), INDEX idx_miembro (miembro_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
 
 // ═══════════════════════════════════════════════════════
 // ROUTING
@@ -1283,6 +1362,154 @@ case 'luna_memory_bulk_import':
     }
 
     ok(['imported' => $imported]);
+    break;
+
+// ════════════════════════════════════════════════════════
+// CAPA DE CONFIANZA — audit log + cola de outbound + review
+// ════════════════════════════════════════════════════════
+
+// ── AUDIT LOG — solo Isabel ──────────────────────────────
+case 'luna_audit_view':
+    requireAdmin();
+    lunaAudit($pdo, $uid, 'READ', 'audit_view'); // asegura tabla + registra el acceso
+    $limit  = max(10, min(200, (int)($_GET['limit'] ?? 100)));
+    $action_f = strOrNull($_GET['action'] ?? '');
+    $sql = "SELECT a.id, a.user_id, u.nombre AS usuario, a.action, a.detail, a.ip, a.created_at
+            FROM luna_audit_log a LEFT JOIN usuarios u ON a.user_id = u.id";
+    $params = [];
+    if ($action_f) { $sql .= " WHERE a.action LIKE ?"; $params[] = '%'.$action_f.'%'; }
+    $sql .= " ORDER BY a.id DESC LIMIT $limit";
+    $stmt = $pdo->prepare($sql); $stmt->execute($params);
+    ok(['entries' => $stmt->fetchAll()]);
+    break;
+
+// ── REVIEW OUTBOUND — corre los hooks sin guardar nada ───
+// Útil para el botón "copiar" de Estudio Creativo: revisa antes de mostrar.
+case 'luna_review_outbound':
+    requirePost();
+    $body    = (string)($_POST['body'] ?? '');
+    $subject = (string)($_POST['subject'] ?? '');
+    if ($body === '') err('Falta body.');
+    ok(reviewOutbound($body, $subject));
+    break;
+
+// ── OUTBOUND ENQUEUE — guarda un borrador (no envía) ─────
+case 'luna_outbound_enqueue':
+    requirePost();
+    ensureOutboundTable($pdo);
+    $channel   = strtoupper(strOrNull($_POST['channel'] ?? 'EMAIL'));
+    if (!in_array($channel, ['EMAIL','SMS','WHATSAPP'])) $channel = 'EMAIL';
+    $miembroId = intOrNull($_POST['miembro_id'] ?? null);
+    $recipient = strOrNull($_POST['recipient'] ?? '');
+    $subject   = strOrNull($_POST['subject'] ?? '');
+    $body      = strOrNull($_POST['body'] ?? '');
+    if (!$body) err('Falta body del mensaje.');
+
+    // Si no dan recipient pero sí miembro_id, lo resolvemos del CRM
+    if (!$recipient && $miembroId) {
+        $r = $pdo->prepare("SELECT email, telefono FROM miembros WHERE id=?");
+        $r->execute([$miembroId]);
+        $m = $r->fetch();
+        if ($m) $recipient = ($channel === 'EMAIL') ? ($m['email'] ?? '') : ($m['telefono'] ?? '');
+    }
+
+    $review = reviewOutbound($body, (string)$subject);
+    $pdo->prepare("INSERT INTO luna_outbound_queue
+        (miembro_id, channel, recipient, subject, body, status, review_flags, created_by)
+        VALUES (?,?,?,?,?,'DRAFT',?,?)")
+        ->execute([$miembroId, $channel, $recipient, $subject, $body,
+                   json_encode($review['flags'], JSON_UNESCAPED_UNICODE), $uid]);
+    $id = (int)$pdo->lastInsertId();
+    logActivity($pdo, $uid, $miembroId, 'OUTBOUND', "Borrador #$id encolado [$channel] vía LUNA");
+    ok(['id'=>$id, 'review'=>$review, 'status'=>'DRAFT']);
+    break;
+
+// ── OUTBOUND LIST ────────────────────────────────────────
+case 'luna_outbound_list':
+    ensureOutboundTable($pdo);
+    $status = strtoupper(strOrNull($_GET['status'] ?? ''));
+    $where = "1=1"; $params = [];
+    if (in_array($status, ['DRAFT','APPROVED','SENT','REJECTED'])) { $where .= " AND q.status=?"; $params[]=$status; }
+    if (!$admin) { $where .= " AND q.created_by=?"; $params[]=$uid; } // agentes ven solo lo suyo
+    $sql = "SELECT q.id, q.miembro_id, q.channel, q.recipient, q.subject, q.body, q.status,
+                   q.review_flags, q.created_by, q.approved_by, q.created_at, q.sent_at,
+                   CONCAT(m.nombre,' ',m.apellido) AS miembro
+            FROM luna_outbound_queue q LEFT JOIN miembros m ON q.miembro_id=m.id
+            WHERE $where ORDER BY q.id DESC LIMIT 100";
+    $stmt = $pdo->prepare($sql); $stmt->execute($params);
+    ok(['queue'=>$stmt->fetchAll()]);
+    break;
+
+// ── OUTBOUND APPROVE — solo Isabel; envía si es EMAIL ────
+case 'luna_outbound_approve':
+    requirePost();
+    requireAdmin();
+    ensureOutboundTable($pdo);
+    $id    = intOrNull($_POST['id'] ?? null);
+    $force = ($_POST['force'] ?? '') === '1';   // forzar envío en horas de silencio
+    if (!$id) err('Falta id.');
+
+    $stmt = $pdo->prepare("SELECT * FROM luna_outbound_queue WHERE id=?");
+    $stmt->execute([$id]);
+    $row = $stmt->fetch();
+    if (!$row) err('Borrador no encontrado.', 404);
+    if ($row['status'] === 'SENT') err('Ya fue enviado.');
+
+    // Re-evaluamos los hooks: si hay flag 'alto' no se aprueba sin override explícito.
+    $review = reviewOutbound($row['body'], (string)$row['subject']);
+    if ($review['blocked'] && !$force) {
+        err('Bloqueado por compliance (flags ALTO). Revisa y reescribe, o usa force=1 si es intencional.', 422);
+    }
+
+    // Horas de silencio (no enviar de noche salvo force)
+    if (withinQuietHours() && !$force) {
+        $pdo->prepare("UPDATE luna_outbound_queue SET status='APPROVED', approved_by=? WHERE id=?")
+            ->execute([$uid, $id]);
+        logActivity($pdo, $uid, $row['miembro_id'], 'OUTBOUND', "Borrador #$id aprobado (en espera por horas de silencio)");
+        ok(['status'=>'APPROVED','queued'=>true,'reason'=>'horas de silencio (9pm–7am); se enviará fuera de ese rango o usa force=1']);
+    }
+
+    // Cap diario de seguridad (anti-runaway)
+    $sentToday = (int)$pdo->query("SELECT COUNT(*) FROM luna_outbound_queue WHERE status='SENT' AND DATE(sent_at)=CURDATE()")->fetchColumn();
+    if ($sentToday >= 200 && !$force) err('Cap diario de envíos alcanzado (200). Usa force=1 para excepción.', 429);
+
+    $sent = false;
+    if ($row['channel'] === 'EMAIL' && $row['recipient']) {
+        $headers = implode("\r\n", [
+            'MIME-Version: 1.0',
+            'Content-Type: text/html; charset=UTF-8',
+            'From: Isabel Fuentes · Medicare <isabel@withisabelfuentes.com>',
+            'Reply-To: info@withisabelfuentes.com',
+            'X-Mailer: LUNA-Outbound',
+        ]);
+        $sent = @mail($row['recipient'], $row['subject'] ?: 'Mensaje de Medicare with Isabel', $row['body'], $headers);
+    }
+
+    if ($sent) {
+        $pdo->prepare("UPDATE luna_outbound_queue SET status='SENT', approved_by=?, sent_at=NOW() WHERE id=?")
+            ->execute([$uid, $id]);
+        logActivity($pdo, $uid, $row['miembro_id'], 'OUTBOUND', "Borrador #$id ENVIADO [{$row['channel']}] vía LUNA");
+        ok(['status'=>'SENT']);
+    } else {
+        // SMS/WhatsApp o email sin mailer: queda APROBADO para envío manual/externo.
+        $pdo->prepare("UPDATE luna_outbound_queue SET status='APPROVED', approved_by=? WHERE id=?")
+            ->execute([$uid, $id]);
+        logActivity($pdo, $uid, $row['miembro_id'], 'OUTBOUND', "Borrador #$id aprobado (envío {$row['channel']} manual/externo)");
+        ok(['status'=>'APPROVED','sent'=>false,'note'=>'Aprobado. Canal sin envío automático en el servidor — enviar manualmente.']);
+    }
+    break;
+
+// ── OUTBOUND REJECT — solo Isabel ────────────────────────
+case 'luna_outbound_reject':
+    requirePost();
+    requireAdmin();
+    ensureOutboundTable($pdo);
+    $id = intOrNull($_POST['id'] ?? null);
+    if (!$id) err('Falta id.');
+    $pdo->prepare("UPDATE luna_outbound_queue SET status='REJECTED', approved_by=? WHERE id=? AND status!='SENT'")
+        ->execute([$uid, $id]);
+    logActivity($pdo, $uid, null, 'OUTBOUND', "Borrador #$id rechazado");
+    ok(['status'=>'REJECTED']);
     break;
 
 // ─────────────────────────────────────────────────────────
