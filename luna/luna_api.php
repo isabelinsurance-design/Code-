@@ -1512,6 +1512,49 @@ case 'luna_outbound_reject':
     ok(['status'=>'REJECTED']);
     break;
 
+// ════════════════════════════════════════════════════════
+// PLAN DE CONTENIDO — reemplaza PLAN_STORE (localStorage) del
+// viejo "Sistema Maestro". Sincroniza el plan semanal en MySQL.
+// ════════════════════════════════════════════════════════
+function ensurePlanTable(PDO $pdo) {
+    static $done = false; if ($done) return; $done = true;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS plan_contenido (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        item_key VARCHAR(80) NOT NULL,
+        dia VARCHAR(20) DEFAULT NULL,
+        tipo VARCHAR(20) DEFAULT 'post',
+        texto VARCHAR(1000) DEFAULT NULL,
+        done TINYINT(1) DEFAULT 0,
+        owner_user_id INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_item (item_key)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+case 'luna_plan_get':
+    ensurePlanTable($pdo);
+    ok(['plan' => $pdo->query("SELECT item_key, dia, tipo, texto, done, updated_at
+                               FROM plan_contenido ORDER BY dia, item_key")->fetchAll()]);
+    break;
+
+case 'luna_plan_set':
+    requirePost();
+    ensurePlanTable($pdo);
+    $itemKey = strOrNull($_POST['item_key'] ?? '');
+    if (!$itemKey) err('Falta item_key.');
+    $dia   = strOrNull($_POST['dia'] ?? '');
+    $tipo  = strOrNull($_POST['tipo'] ?? 'post');
+    $texto = strOrNull($_POST['texto'] ?? '');
+    $done  = (int)(($_POST['done'] ?? '0') === '1' || ($_POST['done'] ?? '') === 'true');
+    $pdo->prepare("INSERT INTO plan_contenido (item_key, dia, tipo, texto, done, owner_user_id)
+                   VALUES (?,?,?,?,?,?)
+                   ON DUPLICATE KEY UPDATE dia=VALUES(dia), tipo=VALUES(tipo),
+                       texto=VALUES(texto), done=VALUES(done), updated_at=NOW()")
+        ->execute([$itemKey, $dia, $tipo, $texto, $done, $uid]);
+    ok(['saved' => true, 'item_key' => $itemKey]);
+    break;
+
 // ─────────────────────────────────────────────────────────
 default:
     err('Acción desconocida: ' . $action, 404);

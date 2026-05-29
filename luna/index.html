@@ -737,12 +737,17 @@ ${OP}`
     color:'#c2185b', colorS:'rgba(194,24,91,.10)',
     desc:'Crea todo el contenido: redes sociales, emails, scripts, presentaciones, videos — todo CMS-compliant',
     quick:[
-      '📱 Plan de contenido de Facebook/Instagram para esta semana',
-      '🎬 Script para Facebook Live del martes — tema Medicare 2025',
-      '📧 Email de bienvenida para nuevos miembros enrollados',
-      '📄 Newsletter mensual para clientes activos'
+      '🎣 Dame 5 GANCHOS virales para Reels de Facebook, en español cálido del Sur de California, para el mercado hispano 60+. Cada gancho de 1 frase que capte la atención en los primeros 3 segundos. Numéralos 1-5 y agrega 1 línea de por qué funciona.',
+      '🎥 Escribe un GUION de Facebook Live de 5-7 minutos para mi Q&A semanal de Medicare en español. Estructura: gancho inicial (3 seg), bienvenida cálida, 3 puntos clave del tema "Medicare Advantage vs. Suplementario", invitación a comentar dudas, y cierre con CTA "Escríbeme MEDICARE y te mando mi guía gratis". Tono cercano, sin jerga.',
+      '📲 Dame 3 IDEAS de Reels para esta semana para hacerme viral en el mercado latino de Medicare en SoCal. Para cada uno: (1) tema, (2) gancho de 3 seg, (3) guion corto de 30-45 seg, (4) CTA, (5) por qué se compartiría.',
+      '💡 Escribe un post de Facebook "¿Sabías que…?" en español para audiencia latina 60+ sobre UN beneficio poco conocido de Medicare Advantage (dental, transporte, dinero para comida). Formato: gancho fuerte + dato sorprendente + explicación en 2-3 líneas + CTA "Escríbeme y te explico si tu plan lo incluye 💙".',
+      '🎯 Escribe el COPY de un post para ofrecer mi guía gratis "5 cosas que debes saber antes de elegir tu plan Medicare". Tono cálido, español sencillo: hook que detenga el scroll, 3 razones para descargarla, CTA "Escríbeme MEDICARE y te la mando gratis", emojis 🦋 estratégicos, invita a etiquetar a alguien que cumple 65.',
+      '📖 Dame una PLANTILLA de historia inspiradora para Facebook (español, mercado hispano SoCal) que pueda completar con un cliente real (con su permiso). Estructura: situación inicial (confusión/miedo), el cambio, el resultado, la lección. Marca con [corchetes] lo que debo completar. NO inventes nombres ni testimonios.',
+      '📩 Escribe un SMS de seguimiento Day 1 (máx 150 palabras) para un nuevo lead que me escribió por Facebook. Cálido, en español, sin mencionar precios ni carriers. Objetivo: agradecer el contacto y proponer una llamada corta.',
+      '📞 Escríbeme un guion de voicemail (buzón) Day 3 para un lead que no contestó. Breve, cálido, en español, sin detalles de plan. Objetivo: que me devuelva la llamada.',
+      '✉️ Escribe un email de seguimiento Day 7 para un lead que sigue indeciso. Español, educativo, sin precios específicos ni recomendación de carrier; invita a una cita con Isabel.'
     ],
-    info:{ Plataformas:'FB, IG, Email, Video, PDF', Compliance:'CMS-compliant siempre', Idioma:'Español primero', Audiencia:'55-75 hispanos LA County' },
+    info:{ Plataformas:'FB, IG, Email, Video, PDF', Compliance:'Revisión automática antes de copiar', Idioma:'Español primero', Audiencia:'55-75 hispanos LA County' },
     system:`Eres el Estudio Creativo de Medicare with Isabel — el centro de toda la creación de contenido para Isabel Fuentes en Los Angeles County (foco principal Van Nuys).
 
 TODO LO QUE HACES:
@@ -2080,7 +2085,7 @@ const AGENT_TOOLS = {
   'analista':    ['pipeline','t65','retention','hotleads','carriers','commissions',
                   'attendance','activity','all_goals','briefing','tickets_all'],
   // ── ✍️ Estudio Creativo ─────────────────────────────
-  'estudio':     ['pipeline','carriers'],
+  'estudio':     ['pipeline','carriers','create_member','search'],
   // ── ⚖️ Compliance ───────────────────────────────────
   'compliance':  ['soa','detail','activity','search','today_appts'],
   // ── 🎯 Sales Coach ──────────────────────────────────
@@ -2448,7 +2453,7 @@ function renderChat() {
     return;
   }
 
-  el.innerHTML = msgs.map(m => {
+  el.innerHTML = msgs.map((m, mi) => {
     const isRemember = m.role === 'user' && detectRemember(m.content);
     return `
     <div class="msg ${m.role === 'user' ? 'u' : 'a'}">
@@ -2458,6 +2463,7 @@ function renderChat() {
       <div class="mbody">
         <div class="mbubble">${renderBubble(m.content, m.streaming||false)}</div>
         ${isRemember ? `<div style="font-size:10px;color:var(--grn);font-weight:700;margin-top:3px;">📌 Guardado en memoria de LUNA</div>` : ''}
+        ${renderComplianceStrip(m, mi)}
         <div class="mmeta">${m.time}</div>
       </div>
     </div>`;
@@ -2483,6 +2489,66 @@ function renderChat() {
 function sendQ(q) {
   document.getElementById('chatInput').value = q;
   sendMsg();
+}
+
+/* ══════════════════════════════════════════
+   ESTUDIO CREATIVO — Compliance review antes de copiar
+   Todo output de Estudio pasa por luna_review_outbound (hooks
+   deterministas de CMS) antes de habilitar el botón "Copiar".
+══════════════════════════════════════════ */
+async function reviewEstudioOutput(agentId, msg) {
+  // Texto limpio (sin marcadores internos) para revisar y copiar
+  const clean = (msg.content || '').replace(/\[\[.*?\]\]/g, '').trim();
+  msg.cleanText = clean;
+  try {
+    const fd = new FormData();
+    fd.append('action', 'luna_review_outbound');
+    fd.append('body', clean);
+    const r = await fetch(CRM_BASE, { method:'POST', body:fd });
+    const d = await r.json();
+    msg.review = (d && d.ok) ? d.data : { flags:[], blocked:false, _err:true };
+  } catch(e) {
+    // Si el server no responde, no bloqueamos — marcamos revisión no disponible
+    msg.review = { flags:[], blocked:false, _err:true };
+  }
+  saveHistory();
+  renderChat();
+}
+
+function renderComplianceStrip(m, mi) {
+  if (m.role !== 'assistant' || !m.review) return '';
+  const r = m.review;
+  const flags = r.flags || [];
+  const alto  = flags.filter(f => f.sev === 'alto');
+  const aviso = flags.filter(f => f.sev === 'aviso');
+  let head, color, bg;
+  if (r._err) { head = '⚠️ Compliance no disponible — revisa manualmente'; color = 'var(--amb)'; bg = 'var(--amb-s)'; }
+  else if (r.blocked) { head = `❌ Compliance: ${alto.length} problema(s) ALTO — corrige antes de publicar`; color = 'var(--rose)'; bg = 'var(--rose-s)'; }
+  else if (aviso.length) { head = `⚠️ Compliance: ${aviso.length} aviso(s) — revisa antes de publicar`; color = 'var(--amb)'; bg = 'var(--amb-s)'; }
+  else { head = '✅ Compliance: sin observaciones'; color = 'var(--grn)'; bg = 'var(--grn-s)'; }
+
+  const items = flags.map(f =>
+    `<div style="font-size:11px;color:var(--t2);margin-top:3px;">${f.sev==='alto'?'🔴':'🟡'} ${esc(f.msg)}</div>`).join('');
+
+  // El botón "Copiar" solo aparece si NO está bloqueado por un flag ALTO
+  const copyBtn = r.blocked
+    ? `<span style="font-size:10px;color:var(--rose);font-weight:700;">Copiar deshabilitado hasta corregir</span>`
+    : `<button onclick="copyEstudio('${currentAgent.id}',${mi})" style="background:var(--panel);border:1px solid ${color}55;color:${color};border-radius:8px;padding:5px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">📋 Copiar</button>`;
+
+  return `<div style="margin-top:8px;background:${bg};border:1px solid ${color}33;border-radius:10px;padding:9px 12px;">
+    <div style="font-size:11px;font-weight:700;color:${color};">${head}</div>
+    ${items}
+    <div style="margin-top:8px;">${copyBtn}</div>
+  </div>`;
+}
+
+function copyEstudio(agentId, mi) {
+  const msgs = history[agentId] || [];
+  const m = msgs[mi];
+  if (!m) return;
+  const text = m.cleanText || (m.content||'').replace(/\[\[.*?\]\]/g,'').trim();
+  navigator.clipboard.writeText(text).then(() => toast('✅ Copiado al portapapeles'))
+    .catch(() => toast('No se pudo copiar'));
 }
 
 async function sendMsg() {
@@ -2598,6 +2664,11 @@ async function sendMsg() {
 
     const last = history[a.id][history[a.id].length-1];
     if (last) last.streaming = false;
+
+    // ── Estudio Creativo: pasa el output por Compliance antes de copiar ──
+    if (a.id === 'estudio' && last && last.role === 'assistant' && last.content && last.content.length > 20) {
+      reviewEstudioOutput(a.id, last);
+    }
 
     // ── Post-response memory processing ───────────────────
     // Detect [[SET_GOAL|...]] in response
