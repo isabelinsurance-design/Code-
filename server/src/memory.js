@@ -80,6 +80,8 @@ export function setSeason(texto) {
 const TASKS_FILE_PATH = join(DATA_DIR, 'tasks.json');
 const COMMITMENTS_FILE_PATH = join(DATA_DIR, 'commitments.json');
 const CRM_FILE_PATH = join(DATA_DIR, 'crm.json');
+const ENTITIES_FILE_PATH = join(DATA_DIR, 'entities.json');
+const SIGNALS_FILE_PATH = join(DATA_DIR, 'signals.json');
 
 function readJsonSafe(path, fallback) {
   try {
@@ -103,25 +105,77 @@ function commitmentsContextInline() {
 }
 
 function crmSnapshotInline() {
-  const all = readJsonSafe(CRM_FILE_PATH, []);
-  if (!all.length) return '';
-  const counts = {
-    lead: all.filter((c) => c.status === 'lead').length,
-    prospect: all.filter((c) => c.status === 'prospect').length,
-    active: all.filter((c) => c.status === 'active').length,
-  };
-  // Stale 30d
-  const cutoff30 = Date.now() - 30 * 86_400_000;
-  const stale = all.filter(
-    (c) => (c.status === 'active' || c.status === 'prospect') && new Date(c.ultimo_contacto || 0).getTime() < cutoff30,
-  ).length;
-  // Renewals 60d
-  const now = Date.now();
-  const max = now + 60 * 86_400_000;
-  const renewals = all.filter(
-    (c) => c.renewal_date && new Date(c.renewal_date).getTime() >= now && new Date(c.renewal_date).getTime() <= max,
-  ).length;
-  return `CRM: ${all.length} clientes (${counts.active} activos, ${counts.prospect} prospects, ${counts.lead} leads). Atención: ${stale} sin contactar 30+d, ${renewals} renovaciones en 60d.`;
+  // Lo importante (compliance + atención) lo construye crm.buildCrmSnapshot
+  // pero crm.js depende de fs y no de memory — para evitar el ciclo,
+  // import dinámico aquí. Si falla, fallback a la versión cruda inline.
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const all = readJsonSafe(CRM_FILE_PATH, []);
+    if (!all.length) return '';
+    // Versión cruda — buildCrmSnapshot vive en crm.js y se usa
+    // cuando tools.js lo llama. Para el contexto inline, replicamos
+    // los conteos mínimos sin importar crm.js (evita ciclo).
+    const counts = {
+      lead: all.filter((c) => c.status === 'lead').length,
+      prospect: all.filter((c) => c.status === 'prospect').length,
+      active: all.filter((c) => c.status === 'active').length,
+    };
+    const cutoff30 = Date.now() - 30 * 86_400_000;
+    const now = Date.now();
+    const stale = all.filter(
+      (c) => (c.status === 'active' || c.status === 'prospect') && new Date(c.ultimo_contacto || 0).getTime() < cutoff30,
+    ).length;
+    const renewals30 = all.filter(
+      (c) => c.renewal_date && new Date(c.renewal_date).getTime() >= now && new Date(c.renewal_date).getTime() <= now + 30 * 86_400_000,
+    ).length;
+    // Compliance counters
+    const mbiPending = all.filter((c) => (c.status === 'active' || c.status === 'prospect') && (c.mbi_verified?.status || 'pending') !== 'verified').length;
+    const soaIssue = all.filter((c) => {
+      const s = c.soa?.status || 'none';
+      return s !== 'signed';
+    }).length;
+    const annualTouch = all.filter((c) => (c.status === 'active' || c.status === 'prospect')).filter((c) => {
+      const cutoff = Date.now() - 12 * 30 * 86_400_000;
+      const tps = c.aep_touchpoints || [];
+      return tps.filter((t) => new Date(t.ts).getTime() >= cutoff).length === 0;
+    }).length;
+    const lines = [
+      `CRM: ${all.length} clientes (${counts.active} activos, ${counts.prospect} prospects, ${counts.lead} leads).`,
+      `Atención: ${stale} sin contactar 30+d · ${renewals30} renovaciones en 30d.`,
+    ];
+    const comp = [];
+    if (mbiPending) comp.push(`${mbiPending} MBI pendiente`);
+    if (soaIssue) comp.push(`${soaIssue} SOA faltante`);
+    if (annualTouch) comp.push(`${annualTouch} sin touchpoint 12+m`);
+    if (comp.length) lines.push(`Compliance: ${comp.join(' · ')}.`);
+    return lines.join('\n');
+  } catch {
+    return '';
+  }
+}
+
+function entitiesContextInline() {
+  const rows = readJsonSafe(ENTITIES_FILE_PATH, []);
+  if (!rows.length) return '';
+  const recent = rows
+    .slice()
+    .sort((a, b) => new Date(b.ultima_mencion || b.actualizado || 0).getTime() - new Date(a.ultima_mencion || a.actualizado || 0).getTime())
+    .slice(0, 12);
+  const lines = recent.map((e) => {
+    const top = (e.notas || []).slice().sort((a, b) => (b.salience || 5) - (a.salience || 5))[0];
+    const blurb = top ? top.texto.slice(0, 70) : 'sin notas';
+    return `  - [${e.id}] ${e.canonical_name} (${e.type}): ${blurb}`;
+  });
+  return `PERSONAS QUE RECONOZCO (entidades — usa entidad_anotar para añadir, entidad_expediente para profundizar):\n${lines.join('\n')}`;
+}
+
+function signalsContextInline() {
+  const blob = readJsonSafe(SIGNALS_FILE_PATH, { signals: [] });
+  const sigs = blob.signals || [];
+  if (!sigs.length) return '';
+  const byPrio = ['alto', 'aviso', 'info'];
+  const sorted = sigs.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
+  return `SEÑALES ACTIVAS (computadas anoche — úsalas para decidir qué traer arriba hoy):\n${sorted.map((s) => `  [${s.severidad}] ${s.mensaje}`).join('\n')}`;
 }
 
 function tasksContextInline() {
@@ -160,6 +214,10 @@ export function buildWikiContext() {
   if (commitCtx) parts.push(commitCtx);
   const crmCtx = crmSnapshotInline();
   if (crmCtx) parts.push(crmCtx);
+  const entitiesCtx = entitiesContextInline();
+  if (entitiesCtx) parts.push(entitiesCtx);
+  const signalsCtx = signalsContextInline();
+  if (signalsCtx) parts.push(signalsCtx);
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;

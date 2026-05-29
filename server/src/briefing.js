@@ -31,7 +31,15 @@ export async function sendMorningBriefing() {
   const messages = getHistory();
   messages.push({
     role: 'user',
-    content: `[BRIEFING AUTOMÁTICO DE LA MAÑANA — ${fecha}] Salúdame con energía, recuérdame mis prioridades y pregúntame mis Top 3 de hoy. Si tienes contexto de días anteriores en tu memoria, úsalo. Sé breve y motivadora. Esto se manda solo, así que no esperes que yo haya dicho nada antes.`,
+    content: `[BRIEFING AUTOMÁTICO DE LA MAÑANA — ${fecha}] Salúdame con energía y dame tu mejor lectura del día.
+
+PRIMERO consulta señales_de_hoy (yo las computé anoche a las 2am — incluyen umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana" y estados como "5 renovaciones en 30 días"). Trae arriba LAS DOS o TRES más relevantes — no todas. Usa las severidades alto > aviso > info para decidir.
+
+SEGUNDO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los compromisos que me deben.
+
+TERCERO, pregúntame mis Top 3 de hoy.
+
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);

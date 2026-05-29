@@ -108,29 +108,50 @@ export async function sendWeeklyReview() {
 }
 
 // ---- Reflexión nocturna (2am — NO se manda a Isabel) ----
-// Athena se sienta a "procesar" el día: lee la conversación reciente,
-// identifica wins/aprendizajes/patrones, y los guarda con la herramienta
-// recordar. No manda ningún mensaje. Es trabajo interno de memoria.
+// 2026 best practice ("Dreaming"): la fase profunda no solo
+// captura — también CONSOLIDA. Tres trabajos:
+//   1) Extract: wins/decisiones/preferencias nuevas → recordar
+//   2) Entities: nombres de personas mencionadas → entidad_anotar
+//   3) Consolidate: revisa la wiki, marca contradicciones y
+//      pide bajar saliencia de notas obsoletas
+//   4) Signals: corre computeSignals() al final
+// No manda mensaje. Trabajo interno de memoria + cómputo de
+// señales para el briefing de mañana.
 export async function nightlyReflection() {
-  // Cuidado: este corre a las 2am, dentro de quiet hours.
-  // Por diseño NO manda mensajes — solo actualiza la memoria
-  // a través de la herramienta `recordar`. canSendProactive
-  // no aplica aquí.
   const messages = getHistory();
   if (!messages.length) {
-    console.log('[reflection] sin historial — nada que reflexionar.');
+    console.log('[reflection] sin historial — solo cómputo de señales.');
+    const { computeSignals } = await import('./signals.js');
+    const sigs = computeSignals();
+    console.log(`[reflection] ${sigs.length} señales computadas.`);
     return;
   }
   messages.push({
     role: 'user',
-    content: `[REFLEXIÓN NOCTURNA — NO le respondas a Isabel] Es 2am y estás procesando el día. Revisa los últimos turnos de nuestra conversación. Identifica MÁXIMO 5 datos que valga la pena consolidar en la memoria de largo plazo: wins concretos, decisiones, preferencias nuevas, patrones emocionales, pendientes que mencionó. Para cada uno llama la herramienta recordar con una frase clara. Si no hay nada nuevo de fondo (solo small talk), no guardes nada y dilo. NO mandes mensaje a Isabel — esta reflexión es solo para ti. Responde con un resumen corto de qué guardaste.`,
+    content: `[REFLEXIÓN NOCTURNA — NO le respondas a Isabel] Es 2am, fase profunda.
+TRABAJOS QUE TIENES QUE HACER (en este orden):
+
+1) EXTRACT — Revisa los últimos turnos. Identifica MÁXIMO 5 cosas para memoria de largo plazo: wins concretos, decisiones, preferencias nuevas, patrones emocionales, pendientes. Llama recordar para cada uno con una frase clara. Si solo fue small talk: no guardes y dilo.
+
+2) ENTIDADES — Identifica nombres de PERSONAS que se mencionaron (clientes, familia, vendors, brokers, doctores, amigas). Para cada una llama entidad_anotar con tipo y una nota corta sobre qué pasó hoy con esa persona. Si Isabel ya tiene un cliente en el CRM con ese nombre, la entidad se vincula automáticamente — no te preocupes por duplicar.
+
+3) CONTRADICCIONES — Mira tu wiki actual (lo tienes en el contexto). ¿Algo que aprendiste hoy contradice algo viejo? Ej: peso anterior 178, hoy 174 → guarda el nuevo y NO toques el viejo (el histórico importa). Pero si una preferencia cambió ("ya no le gusta X"), llama olvidar con la nota vieja y recordar con la nueva. Sé conservadora: solo olvidar si Isabel lo dijo EXPLÍCITAMENTE.
+
+4) Termina con un resumen de 3-4 líneas de qué guardaste, qué entidades reconociste, y qué consolidaste. Eso es todo. NO le mandes mensaje a Isabel.`,
   });
-  // OJO: corremos runDirectora pero NO mandamos el reply al WhatsApp.
-  // El side-effect importante son los logActivity + remember.
   const { reply, messages: updated } = await runDirectora(messages);
-  // Recortamos historial: nos quedamos con los últimos 7 días aproximados.
-  // (40 turnos = unos 5 días de uso normal, suficiente.)
+  // Recorte agresivo del historial: nos quedamos con los últimos 5 días.
   saveHistory(updated.slice(-40));
+
+  // Computa señales DESPUÉS de la reflexión para que las nuevas notas
+  // y entidades alimenten los thresholds y patterns.
+  try {
+    const { computeSignals } = await import('./signals.js');
+    const sigs = computeSignals();
+    console.log(`[reflection] ${sigs.length} señales computadas para el briefing.`);
+  } catch (err) {
+    console.warn('[reflection] cómputo de señales falló:', err.message);
+  }
   console.log('[reflection] resumen:', String(reply).slice(0, 200));
 }
 

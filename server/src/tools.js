@@ -54,6 +54,31 @@ import {
   snapshot as igSnapshot,
   instagramConfigured,
 } from './instagram.js';
+import {
+  upsertEntity,
+  findEntity,
+  getEntity,
+  listEntities,
+  linkClient,
+  mergeEntities,
+  entityCard,
+} from './entities.js';
+import {
+  recordSoa,
+  setMbiVerification,
+  recordTcpaConsent,
+  addTouchpoint,
+  addDrug,
+  removeDrug,
+  addProvider,
+  recordCallRecording,
+  clientsNeedingAnnualTouch,
+  clientsWithMbiPending,
+  clientsWithSoaIssue,
+  t65Pipeline,
+  aepTouchpointCount,
+} from './crm.js';
+import { loadSignals } from './signals.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -555,6 +580,208 @@ export const toolDefinitions = [
       required: [],
     },
   },
+  // ───────── ENTIDADES (memoria por persona) ─────────
+  {
+    name: 'entidad_anotar',
+    description: 'Captura una nota sobre una PERSONA (no sobre Isabel — para Isabel usa recordar). Usa SIEMPRE que Isabel mencione un nombre + algo de contexto: "mi mamá está enferma" → entidad_anotar(persona="mamá", tipo="family", nota="enferma"). Si la persona ya existe se acumula la nota en su expediente; si no, se crea. salience 0-10 indica importancia (default 5, sube a 8-10 si es vital).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Nombre canónico de la persona (como Isabel la llama más seguido).' },
+        nota: { type: 'string', description: 'Lo que pasó / lo que es importante recordar.' },
+        tipo: { type: 'string', enum: ['client', 'lead', 'family', 'team', 'vendor', 'broker', 'doctor', 'friend', 'other'], description: 'Default "other". Sube tipo si lo sabes.' },
+        alias: { type: 'string', description: 'Opcional. Otro nombre por el que se le conoce ("Mari" para "Maria Hernández").' },
+        salience: { type: 'integer', description: 'Importancia 0-10. Default 5.' },
+        cliente_id: { type: 'string', description: 'Opcional. Vincular a un cliente del CRM.' },
+      },
+      required: ['persona', 'nota'],
+    },
+  },
+  {
+    name: 'entidad_buscar',
+    description: 'Busca personas en mi memoria por nombre o alias. Devuelve hasta 10 matches. Úsalo antes de llamar entidad_anotar si dudas que ya exista.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        q: { type: 'string', description: 'Nombre o parte del nombre.' },
+      },
+      required: ['q'],
+    },
+  },
+  {
+    name: 'entidad_expediente',
+    description: 'Devuelve TODO lo que sé sobre una persona: tipo, alias, vínculo al CRM, notas con salience. Úsalo cuando Isabel pregunte "¿qué sabes de [persona]?" o antes de redactar algo para esa persona.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la entidad (ent_...).' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'entidad_vincular_cliente',
+    description: 'Une una entidad a un cliente del CRM. Cuando Athena cree una entidad para una persona Y luego la misma persona se vuelve cliente, vincúlalas para que el expediente CRM aparezca asociado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        entidad_id: { type: 'string' },
+        cliente_id: { type: 'string' },
+      },
+      required: ['entidad_id', 'cliente_id'],
+    },
+  },
+  {
+    name: 'entidad_fusionar',
+    description: 'Fusiona dos entidades en una (caso típico: "Maria" y "Maria Hernández" terminaron como dos por error — keep_id absorbe drop_id como alias). Solo úsalo cuando estés SEGURA que son la misma persona.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        keep_id: { type: 'string', description: 'La que sobrevive.' },
+        drop_id: { type: 'string', description: 'La que se absorbe como alias.' },
+      },
+      required: ['keep_id', 'drop_id'],
+    },
+  },
+  // ───────── CRM COMPLIANCE MEDICARE ─────────
+  {
+    name: 'cliente_soa_firmar',
+    description: 'Registra que un cliente FIRMÓ el Scope of Appointment (SOA). CMS requiere SOA antes de hablar de planes Medicare Advantage/PDP, y retención de 10 años. Llámalo CUANDO Isabel confirme que recibió la SOA firmada de vuelta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del cliente.' },
+        version: { type: 'string', description: 'Versión del formulario SOA (default "2026.1").' },
+        productos_discutidos: { type: 'array', items: { type: 'string' }, description: 'Categorías: MA, MAPD, PDP, MedSupp, DSNP, etc.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cliente_mbi_estado',
+    description: 'Marca el estado de verificación del MBI (Medicare Beneficiary Identifier) del cliente. Sin MBI verificado no puedes enrollarlo en nada.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        status: { type: 'string', enum: ['verified', 'pending', 'invalid'] },
+        source: { type: 'string', enum: ['card_photo', 'carrier_portal', 'verbal', 'mymedicare'], description: 'Cómo se verificó.' },
+      },
+      required: ['id', 'status'],
+    },
+  },
+  {
+    name: 'cliente_tcpa',
+    description: 'Registra consentimiento TCPA del cliente (autorización para contactar por teléfono/SMS). Sin esto, llamarle o textearle viola la ley federal y Final Rule 2027 endurece la trazabilidad.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        version: { type: 'string', description: 'Default "2026.1".' },
+        idioma: { type: 'string', enum: ['es', 'en'], description: 'En qué idioma se le presentó. Default "es".' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cliente_touchpoint',
+    description: 'Registra un contacto con el cliente (call/email/sms/whatsapp/in_person). CRUCIAL para la regla CMS de 12 meses de contacto. También actualiza ultimo_contacto.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        tipo: { type: 'string', enum: ['call', 'email', 'sms', 'whatsapp', 'in_person'] },
+        resumen: { type: 'string', description: 'De qué se habló.' },
+      },
+      required: ['id', 'tipo', 'resumen'],
+    },
+  },
+  {
+    name: 'cliente_medicamento_agregar',
+    description: 'Agrega un medicamento a la lista del cliente. Necesario para comparar PDP/MAPD y verificar formulary coverage en Plan Finder.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        nombre: { type: 'string', description: 'Nombre del medicamento.' },
+        dosis: { type: 'string', description: 'Ej. "10mg".' },
+        frecuencia: { type: 'string', description: 'Ej. "1 al día", "2 al día con comida".' },
+        generico_o_marca: { type: 'string', enum: ['generico', 'marca', ''] },
+      },
+      required: ['id', 'nombre'],
+    },
+  },
+  {
+    name: 'cliente_medicamento_quitar',
+    description: 'Quita un medicamento del cliente (lo dejó de tomar o se cambió). Match por nombre case-insensitive.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        nombre: { type: 'string' },
+      },
+      required: ['id', 'nombre'],
+    },
+  },
+  {
+    name: 'cliente_doctor_agregar',
+    description: 'Agrega un proveedor (doctor, especialista, clínica) a la lista del cliente. Necesario para verificar provider network en MA plans.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        nombre: { type: 'string' },
+        especialidad: { type: 'string' },
+        ubicacion: { type: 'string', description: 'Ciudad o dirección.' },
+      },
+      required: ['id', 'nombre'],
+    },
+  },
+  {
+    name: 'cliente_grabacion',
+    description: 'Registra el URL de una grabación de llamada del cliente. CMS exige grabar las llamadas de venta de MA/PDP por 10 años.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        url: { type: 'string', description: 'URL de la grabación (Twilio, Nextiva, etc.).' },
+        transcript_ref: { type: 'string', description: 'Opcional: ID o link al transcript.' },
+      },
+      required: ['id', 'url'],
+    },
+  },
+  // Vistas derivadas de compliance:
+  {
+    name: 'compliance_sin_touchpoint',
+    description: 'Devuelve clientes activos/prospects que llevan 12+ meses sin contacto. Riesgo alto bajo la regla CMS de 12 meses. Úsalo en briefing o cuando Isabel pregunte "¿con quién no he hablado en un año?".',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'compliance_mbi_pendiente',
+    description: 'Lista clientes activos con MBI sin verificar — bloqueador para cualquier enrollment.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'compliance_soa_faltante',
+    description: 'Lista clientes/leads sin SOA firmada o con SOA vencida. Necesaria antes de hablar de planes.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'pipeline_t65',
+    description: 'Lista prospectos que cumplen 65 en los próximos N meses (default 6). Ventana de oro del ICEP — 3 meses antes hasta 3 después del mes del cumple.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        meses: { type: 'integer', description: 'Ventana en meses (default 6).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'señales_de_hoy',
+    description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -912,6 +1139,108 @@ async function dispatchTool(name, input) {
       if (!r.ok) return r.reason;
       const s = r.snapshot;
       return `@${s.username}: ${s.followers_count} followers · ${s.follows_count} follows · ${s.media_count} posts.`;
+    }
+    // ── entidades ──
+    case 'entidad_anotar': {
+      try {
+        const e = upsertEntity({
+          canonical_name: input.persona,
+          type: input.tipo || 'other',
+          alias: input.alias || null,
+          nota: input.nota,
+          salience: input.salience,
+          cliente_id: input.cliente_id,
+        });
+        return `Nota guardada en ${e.canonical_name} [${e.id}] (${e.type}, ${e.notas.length} nota${e.notas.length === 1 ? '' : 's'} total).`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'entidad_buscar': {
+      const r = findEntity(input.q);
+      if (!r.length) return `Sin matches para "${input.q}".`;
+      return r.slice(0, 10).map((e) => {
+        const aliases = e.aliases?.length ? ` (a.k.a. ${e.aliases.join(', ')})` : '';
+        return `[${e.id}] ${e.canonical_name}${aliases} — ${e.type}, ${e.notas?.length || 0} nota(s)`;
+      }).join('\n');
+    }
+    case 'entidad_expediente': {
+      const e = getEntity(input.id);
+      return e ? entityCard(e) : `No encontré ${input.id}.`;
+    }
+    case 'entidad_vincular_cliente': {
+      const e = linkClient(input.entidad_id, input.cliente_id);
+      return e ? `Entidad ${e.canonical_name} vinculada al cliente ${input.cliente_id}.` : `No encontré ${input.entidad_id}.`;
+    }
+    case 'entidad_fusionar': {
+      const e = mergeEntities(input.keep_id, input.drop_id);
+      return e ? `Fusionadas. ${e.canonical_name} ahora tiene ${e.notas.length} notas y aliases ${e.aliases.join(', ') || '(ninguno)'}.` : 'No encontré alguna de las dos.';
+    }
+    // ── compliance Medicare ──
+    case 'cliente_soa_firmar': {
+      const c = recordSoa(input.id, { version: input.version, products_discussed: input.productos_discutidos });
+      return c ? `SOA firmada registrada para ${c.nombre}. Retención hasta ${c.soa.retention_until.slice(0, 10)}.` : `No encontré ${input.id}.`;
+    }
+    case 'cliente_mbi_estado': {
+      try {
+        const c = setMbiVerification(input.id, { status: input.status, source: input.source });
+        return c ? `MBI de ${c.nombre} marcado ${input.status}${input.source ? ` (fuente: ${input.source})` : ''}.` : `No encontré ${input.id}.`;
+      } catch (err) { return `Error: ${err.message}`; }
+    }
+    case 'cliente_tcpa': {
+      const c = recordTcpaConsent(input.id, { version: input.version, language: input.idioma });
+      return c ? `TCPA consentido por ${c.nombre} (v${c.tcpa_consent.version}, ${c.tcpa_consent.language}).` : `No encontré ${input.id}.`;
+    }
+    case 'cliente_touchpoint': {
+      try {
+        const c = addTouchpoint(input.id, { type: input.tipo, summary: input.resumen });
+        const count = aepTouchpointCount(c, 12);
+        return c ? `Touchpoint registrado en ${c.nombre}. Lleva ${count} en los últimos 12 meses.` : `No encontré ${input.id}.`;
+      } catch (err) { return `Error: ${err.message}`; }
+    }
+    case 'cliente_medicamento_agregar': {
+      const c = addDrug(input.id, { nombre: input.nombre, dosis: input.dosis, frecuencia: input.frecuencia, generico_o_marca: input.generico_o_marca });
+      return c ? `Medicamento "${input.nombre}" agregado a ${c.nombre}. Total: ${c.drug_list.length}.` : `No encontré ${input.id}.`;
+    }
+    case 'cliente_medicamento_quitar': {
+      const c = removeDrug(input.id, input.nombre);
+      return c ? `Medicamento "${input.nombre}" quitado de ${c.nombre}. Total: ${c.drug_list.length}.` : `No encontré ${input.id}.`;
+    }
+    case 'cliente_doctor_agregar': {
+      const c = addProvider(input.id, { nombre: input.nombre, especialidad: input.especialidad, ubicacion: input.ubicacion });
+      return c ? `Doctor "${input.nombre}" agregado a ${c.nombre}. Total: ${c.providers.length}.` : `No encontré ${input.id}.`;
+    }
+    case 'cliente_grabacion': {
+      const c = recordCallRecording(input.id, { url: input.url, transcript_ref: input.transcript_ref });
+      return c ? `Grabación registrada para ${c.nombre}.` : `No encontré ${input.id}.`;
+    }
+    case 'compliance_sin_touchpoint': {
+      const items = clientsNeedingAnnualTouch();
+      if (!items.length) return 'Todos los clientes activos/prospects tuvieron touchpoint en los últimos 12 meses. ✓';
+      return `${items.length} clientes sin touchpoint en 12+ meses:\n` + items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} · ${c.telefono || 'sin tel'} · último ${new Date(c.ultimo_contacto || 0).toISOString().slice(0, 10)}`).join('\n');
+    }
+    case 'compliance_mbi_pendiente': {
+      const items = clientsWithMbiPending();
+      if (!items.length) return 'Todos los activos/prospects tienen MBI verificado. ✓';
+      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} (${c.mbi_verified?.status || 'pending'})`).join('\n');
+    }
+    case 'compliance_soa_faltante': {
+      const items = clientsWithSoaIssue();
+      if (!items.length) return 'Todos los clientes tienen SOA firmada vigente. ✓';
+      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} — ${c.soa?.status || 'none'}`).join('\n');
+    }
+    case 'pipeline_t65': {
+      const meses = parseInt(input.meses, 10) || 6;
+      const items = t65Pipeline(meses);
+      if (!items.length) return `Sin T65 en los próximos ${meses} meses.`;
+      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} — ${c.t65.meses_para_65}m para los 65 (ICEP ${c.t65.icep_start.slice(0, 10)} → ${c.t65.icep_end.slice(0, 10)})`).join('\n');
+    }
+    case 'señales_de_hoy': {
+      const { signals, ts } = loadSignals();
+      if (!signals?.length) return 'Sin señales computadas todavía (la reflexión nocturna corre a las 2am).';
+      const byPrio = ['alto', 'aviso', 'info'];
+      const sorted = signals.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
+      return `Señales (computadas ${ts?.slice(0, 16) || '?'}):\n` + sorted.map((s) => `[${s.severidad}] ${s.mensaje}`).join('\n');
     }
     default:
       return `Herramienta desconocida: ${name}`;
