@@ -2,7 +2,6 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactPII } from './security.js';
-import { buildGapsSummary } from './gaps.js';
 import { buildSkillsContext } from './skills.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -172,12 +171,10 @@ function entitiesContextInline() {
   return `PERSONAS QUE RECONOZCO (entidades — usa entidad_anotar para añadir, entidad_expediente para profundizar):\n${lines.join('\n')}`;
 }
 
-// Snapshot 1-línea de gaps. NO el detalle completo (eso vive en la tool
-// gaps_overview), solo "hay 4 altos, top campos faltantes son MBI, SOA,
-// touchpoint_12m". El briefing pide el detalle cuando lo necesita.
-function gapsContextInline() {
-  try { return buildGapsSummary(); } catch { return ''; }
-}
+// gaps.js retirado — el CRM real vive en LUNA. Cuando se necesite el
+// detalle de huecos del negocio Medicare, Athena llama luna_compliance_
+// pendiente directamente como tool. No se inyecta en el contexto base.
+function gapsContextInline() { return ''; }
 
 function signalsContextInline() {
   const blob = readJsonSafe(SIGNALS_FILE_PATH, { signals: [] });

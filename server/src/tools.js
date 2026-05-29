@@ -53,19 +53,6 @@ import {
   cancelCommitment,
   noteCommitment,
 } from './commitments.js';
-import {
-  createClient,
-  updateClient,
-  addClientNote,
-  findClient,
-  getClient,
-  listClients,
-  staleClients,
-  upcomingRenewals,
-  upcomingBirthdays,
-  clientLine,
-  clientCard,
-} from './crm.js';
 import { pendingResponses, recentActivity, nextivaConfigured } from './nextiva.js';
 import {
   pendingDms,
@@ -83,24 +70,8 @@ import {
   mergeEntities,
   entityCard,
 } from './entities.js';
-import {
-  recordSoa,
-  setMbiVerification,
-  recordTcpaConsent,
-  addTouchpoint,
-  addDrug,
-  removeDrug,
-  addProvider,
-  recordCallRecording,
-  clientsNeedingAnnualTouch,
-  clientsWithMbiPending,
-  clientsWithSoaIssue,
-  t65Pipeline,
-  aepTouchpointCount,
-} from './crm.js';
 import { loadSignals } from './signals.js';
 import { placeOutboundCall } from './voice.js';
-import { computeGaps, gapsForClient } from './gaps.js';
 import { reviewOutbound, formatReviewForHumans } from './hooks.js';
 import {
   proposeSkill,
@@ -113,7 +84,6 @@ import {
   skillCard,
   seedMedicareSkills,
 } from './skills.js';
-import { auditCrm, formatAuditFinding } from './auditor.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -425,128 +395,6 @@ export const toolDefinitions = [
     },
   },
   // ───────── CRM (clientes Medicare + leads) ─────────
-  {
-    name: 'crear_cliente',
-    description: 'Crea un cliente o lead en el CRM. USA esto cuando Isabel mencione UN NUEVO CLIENTE/LEAD por primera vez ("acabo de hablar con Maria Hernández, le interesa SCAN") — captura proactivamente. Si ya existe (buscar primero), usa actualizar_cliente.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        nombre: { type: 'string', description: 'Nombre completo.' },
-        telefono: { type: 'string', description: 'Teléfono (con o sin +1).' },
-        email: { type: 'string' },
-        fecha_nacimiento: { type: 'string', description: 'YYYY-MM-DD si la sabe.' },
-        carrier: { type: 'string', description: 'SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC, otro.' },
-        plan: { type: 'string', description: 'Nombre del plan, ej. "Classic HMO".' },
-        mbi: { type: 'string', description: 'Medicare Beneficiary Identifier si la tiene.' },
-        effective_date: { type: 'string', description: 'YYYY-MM-DD desde cuándo está activo el plan.' },
-        renewal_date: { type: 'string', description: 'YYYY-MM-DD cuándo renueva.' },
-        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'], description: 'Default lead.' },
-        fuente: { type: 'string', description: 'Cómo llegó: referido X, walk-in, marketing, etc.' },
-        notas_iniciales: { type: 'string', description: 'Contexto del primer contacto.' },
-      },
-      required: ['nombre'],
-    },
-  },
-  {
-    name: 'actualizar_cliente',
-    description: 'Modifica campos de un cliente existente (cambió teléfono, status pasó de lead a active, agrega renewal_date, etc.). Si solo quieres agregar una nota usa nota_cliente.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'ID del cliente (ej. cl1k9...).' },
-        nombre: { type: 'string' },
-        telefono: { type: 'string' },
-        email: { type: 'string' },
-        carrier: { type: 'string' },
-        plan: { type: 'string' },
-        mbi: { type: 'string' },
-        effective_date: { type: 'string' },
-        renewal_date: { type: 'string' },
-        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'] },
-        proximo_contacto: { type: 'string', description: 'YYYY-MM-DD próximo follow-up planeado.' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'nota_cliente',
-    description: 'Agrega una nota fechada al expediente del cliente (lo que hablaron, lo que decidieron, lo que sigue). Actualiza automáticamente "último contacto".',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        nota: { type: 'string', description: 'Lo que pasó / lo que se acordó.' },
-      },
-      required: ['id', 'nota'],
-    },
-  },
-  {
-    name: 'buscar_cliente',
-    description: 'Busca clientes por nombre, teléfono, email, MBI o plan. Devuelve match parcial. Úsalo SIEMPRE antes de crear, para evitar duplicados.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        q: { type: 'string', description: 'Texto a buscar.' },
-      },
-      required: ['q'],
-    },
-  },
-  {
-    name: 'expediente_cliente',
-    description: 'Devuelve el expediente completo de UN cliente (todos los campos + últimas notas). Úsalo cuando Isabel pregunte "¿qué sabemos de [nombre]?" o antes de llamarlo.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'ID del cliente.' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'lista_clientes',
-    description: 'Lista clientes filtrados por status. Útil para vistas tipo "muéstrame mis leads" o "mis activos".',
-    input_schema: {
-      type: 'object',
-      properties: {
-        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'] },
-        limite: { type: 'integer', description: 'Default 50.' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'clientes_descuidados',
-    description: 'Devuelve los clientes activos/prospects que NO se han contactado en N días. Úsalo en el briefing semanal o cuando Isabel pregunta "¿a quién no le he hablado?". Default 30 días.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        dias: { type: 'integer', description: 'Días sin contacto (default 30).' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'proximas_renovaciones',
-    description: 'Devuelve clientes con fecha de renovación en los próximos N días. Vital para AEP y retención. Default 60 días.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        dias: { type: 'integer', description: 'Ventana (default 60).' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'proximos_cumples',
-    description: 'Devuelve clientes con cumpleaños en los próximos N días. Default 14. Útil para detalles humanos que retienen clientes.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        dias: { type: 'integer', description: 'Ventana (default 14).' },
-      },
-      required: [],
-    },
-  },
   // ───────── NEXTIVA (SMS de negocio sin responder) ─────────
   {
     name: 'nextiva_pendientes',
@@ -679,180 +527,14 @@ export const toolDefinitions = [
     },
   },
   // ───────── CRM COMPLIANCE MEDICARE ─────────
-  {
-    name: 'cliente_soa_firmar',
-    description: 'Registra que un cliente FIRMÓ el Scope of Appointment (SOA). CMS requiere SOA antes de hablar de planes Medicare Advantage/PDP, y retención de 10 años. Llámalo CUANDO Isabel confirme que recibió la SOA firmada de vuelta.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'ID del cliente.' },
-        version: { type: 'string', description: 'Versión del formulario SOA (default "2026.1").' },
-        productos_discutidos: { type: 'array', items: { type: 'string' }, description: 'Categorías: MA, MAPD, PDP, MedSupp, DSNP, etc.' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'cliente_mbi_estado',
-    description: 'Marca el estado de verificación del MBI (Medicare Beneficiary Identifier) del cliente. Sin MBI verificado no puedes enrollarlo en nada.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        status: { type: 'string', enum: ['verified', 'pending', 'invalid'] },
-        source: { type: 'string', enum: ['card_photo', 'carrier_portal', 'verbal', 'mymedicare'], description: 'Cómo se verificó.' },
-      },
-      required: ['id', 'status'],
-    },
-  },
-  {
-    name: 'cliente_tcpa',
-    description: 'Registra consentimiento TCPA del cliente (autorización para contactar por teléfono/SMS). Sin esto, llamarle o textearle viola la ley federal y Final Rule 2027 endurece la trazabilidad.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        version: { type: 'string', description: 'Default "2026.1".' },
-        idioma: { type: 'string', enum: ['es', 'en'], description: 'En qué idioma se le presentó. Default "es".' },
-      },
-      required: ['id'],
-    },
-  },
-  {
-    name: 'cliente_touchpoint',
-    description: 'Registra un contacto con el cliente (call/email/sms/whatsapp/in_person). CRUCIAL para la regla CMS de 12 meses de contacto. También actualiza ultimo_contacto.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        tipo: { type: 'string', enum: ['call', 'email', 'sms', 'whatsapp', 'in_person'] },
-        resumen: { type: 'string', description: 'De qué se habló.' },
-      },
-      required: ['id', 'tipo', 'resumen'],
-    },
-  },
-  {
-    name: 'cliente_medicamento_agregar',
-    description: 'Agrega un medicamento a la lista del cliente. Necesario para comparar PDP/MAPD y verificar formulary coverage en Plan Finder.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        nombre: { type: 'string', description: 'Nombre del medicamento.' },
-        dosis: { type: 'string', description: 'Ej. "10mg".' },
-        frecuencia: { type: 'string', description: 'Ej. "1 al día", "2 al día con comida".' },
-        generico_o_marca: { type: 'string', enum: ['generico', 'marca', ''] },
-      },
-      required: ['id', 'nombre'],
-    },
-  },
-  {
-    name: 'cliente_medicamento_quitar',
-    description: 'Quita un medicamento del cliente (lo dejó de tomar o se cambió). Match por nombre case-insensitive.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        nombre: { type: 'string' },
-      },
-      required: ['id', 'nombre'],
-    },
-  },
-  {
-    name: 'cliente_doctor_agregar',
-    description: 'Agrega un proveedor (doctor, especialista, clínica) a la lista del cliente. Necesario para verificar provider network en MA plans.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        nombre: { type: 'string' },
-        especialidad: { type: 'string' },
-        ubicacion: { type: 'string', description: 'Ciudad o dirección.' },
-      },
-      required: ['id', 'nombre'],
-    },
-  },
-  {
-    name: 'cliente_grabacion',
-    description: 'Registra el URL de una grabación de llamada del cliente. CMS exige grabar las llamadas de venta de MA/PDP por 10 años.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string' },
-        url: { type: 'string', description: 'URL de la grabación (Twilio, Nextiva, etc.).' },
-        transcript_ref: { type: 'string', description: 'Opcional: ID o link al transcript.' },
-      },
-      required: ['id', 'url'],
-    },
-  },
   // Vistas derivadas de compliance:
-  {
-    name: 'compliance_sin_touchpoint',
-    description: 'Devuelve clientes activos/prospects que llevan 12+ meses sin contacto. Riesgo alto bajo la regla CMS de 12 meses. Úsalo en briefing o cuando Isabel pregunte "¿con quién no he hablado en un año?".',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'compliance_mbi_pendiente',
-    description: 'Lista clientes activos con MBI sin verificar — bloqueador para cualquier enrollment.',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'compliance_soa_faltante',
-    description: 'Lista clientes/leads sin SOA firmada o con SOA vencida. Necesaria antes de hablar de planes.',
-    input_schema: { type: 'object', properties: {}, required: [] },
-  },
-  {
-    name: 'pipeline_t65',
-    description: 'Lista prospectos que cumplen 65 en los próximos N meses (default 6). Ventana de oro del ICEP — 3 meses antes hasta 3 después del mes del cumple.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        meses: { type: 'integer', description: 'Ventana en meses (default 6).' },
-      },
-      required: [],
-    },
-  },
   {
     name: 'señales_de_hoy',
     description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
-  {
-    name: 'gaps_overview',
-    description: 'Devuelve los HUECOS de información — campos que faltan en clientes/entidades/compromisos. Severidades: alto (bloqueador compliance: MBI no verificado, SOA faltante, TCPA sin consentir, sin touchpoint 12m), aviso (operacional: sin teléfono, sin renewal_date, sin drug list para MAPD), info (sin proveedores, entidades sin tipo). USA esto SIEMPRE en el briefing matutino antes de pedirle a Isabel sus Top 3 — los gaps altos deberían convertirse en tareas de cierre del día.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        limite: { type: 'integer', description: 'Cuántos huecos devolver (default 30).' },
-        solo_severidad: { type: 'string', enum: ['alto', 'aviso', 'info'], description: 'Opcional. Filtra por severidad.' },
-      },
-      required: [],
-    },
-  },
-  {
-    name: 'gaps_de_cliente',
-    description: 'Devuelve los huecos de UN cliente específico. Útil ANTES DE UNA LLAMADA: "voy a llamar a María, ¿qué me falta saber de ella?" → te digo MBI sin verificar + sin drug list. Pasa lo que falta como agenda de la llamada.',
-    input_schema: {
-      type: 'object',
-      properties: {
-        id: { type: 'string', description: 'ID del cliente.' },
-      },
-      required: ['id'],
-    },
-  },
   // ───────── AUDITOR DEL CRM ─────────
-  {
-    name: 'crm_auditar',
-    description: 'Corre una auditoría de calidad del CRM completo. Devuelve duplicados, inconsistencias, registros stale, huérfanos y patrones raros. Distinto a gaps_overview (que mira "qué campos faltan en cada cliente") — esto mira "qué está MAL en la estructura del CRM". Úsalo antes de AEP, después de importar leads, o cuando Isabel diga "dame un repaso de mi CRM".',
-    input_schema: {
-      type: 'object',
-      properties: {
-        limite: { type: 'integer', description: 'Cuántos hallazgos devolver (default 30).' },
-      },
-      required: [],
-    },
-  },
   {
     name: 'medicare_pack_seed',
     description: 'Crea 6 skills draft del workflow Medicare (AEP outreach, intake, check-in 12m, renovación, chase SOA, brief comparar planes). Idempotente: si ya existen, las salta. Isabel debe aprobar cada una antes de poder invocarlas.',
@@ -1474,58 +1156,6 @@ async function dispatchTool(name, input) {
       return c ? `Compromiso ${c.id} marcado fallido.` : `No encontré ${input.id}.`;
     }
     // ── CRM ──
-    case 'crear_cliente': {
-      try {
-        const c = createClient(input);
-        return `Cliente creado [${c.id}]: ${c.nombre} (${c.status}).`;
-      } catch (err) {
-        return `Error: ${err.message}`;
-      }
-    }
-    case 'actualizar_cliente': {
-      try {
-        const c = updateClient(input.id, input);
-        return c ? `Cliente ${c.id} actualizado.` : `No encontré ${input.id}.`;
-      } catch (err) {
-        return `Error: ${err.message}`;
-      }
-    }
-    case 'nota_cliente': {
-      const c = addClientNote(input.id, input.nota);
-      return c ? `Nota agregada al expediente de ${c.nombre} (${c.id}).` : `No encontré ${input.id}.`;
-    }
-    case 'buscar_cliente': {
-      const results = findClient(input.q);
-      if (!results.length) return `Sin matches para "${input.q}".`;
-      return results.slice(0, 10).map((c) => clientLine(c, { showLastContact: true })).join('\n');
-    }
-    case 'expediente_cliente': {
-      const c = getClient(input.id);
-      return c ? clientCard(c) : `No encontré ${input.id}.`;
-    }
-    case 'lista_clientes': {
-      const items = listClients({ status: input.status || null, limit: input.limite || 50 });
-      if (!items.length) return 'No hay clientes en ese filtro.';
-      return items.map((c) => clientLine(c, { showRenewal: true, showLastContact: true })).join('\n');
-    }
-    case 'clientes_descuidados': {
-      const dias = parseInt(input.dias, 10) || 30;
-      const items = staleClients(dias);
-      if (!items.length) return `Todos los clientes activos/prospects han tenido contacto en los últimos ${dias} días. ✓`;
-      return `Clientes sin contacto en ${dias}+ días:\n` + items.map((c) => clientLine(c, { showLastContact: true })).join('\n');
-    }
-    case 'proximas_renovaciones': {
-      const dias = parseInt(input.dias, 10) || 60;
-      const items = upcomingRenewals(dias);
-      if (!items.length) return `Sin renovaciones en los próximos ${dias} días.`;
-      return `Renovaciones próximas (${dias}d):\n` + items.map((c) => clientLine(c, { showRenewal: true })).join('\n');
-    }
-    case 'proximos_cumples': {
-      const dias = parseInt(input.dias, 10) || 14;
-      const items = upcomingBirthdays(dias);
-      if (!items.length) return `Sin cumpleaños en los próximos ${dias} días.`;
-      return items.map((c) => `[${c.id}] ${c.nombre} — ${c.diasFalta} día(s) (${c.telefono})`).join('\n');
-    }
     // ── nextiva ──
     case 'nextiva_pendientes': {
       const r = await pendingResponses({ sinceHours: parseInt(input.horas, 10) || 168 });
@@ -1625,102 +1255,12 @@ async function dispatchTool(name, input) {
       return e ? `Fusionadas. ${e.canonical_name} ahora tiene ${e.notas.length} notas y aliases ${e.aliases.join(', ') || '(ninguno)'}.` : 'No encontré alguna de las dos.';
     }
     // ── compliance Medicare ──
-    case 'cliente_soa_firmar': {
-      const c = recordSoa(input.id, { version: input.version, products_discussed: input.productos_discutidos });
-      return c ? `SOA firmada registrada para ${c.nombre}. Retención hasta ${c.soa.retention_until.slice(0, 10)}.` : `No encontré ${input.id}.`;
-    }
-    case 'cliente_mbi_estado': {
-      try {
-        const c = setMbiVerification(input.id, { status: input.status, source: input.source });
-        return c ? `MBI de ${c.nombre} marcado ${input.status}${input.source ? ` (fuente: ${input.source})` : ''}.` : `No encontré ${input.id}.`;
-      } catch (err) { return `Error: ${err.message}`; }
-    }
-    case 'cliente_tcpa': {
-      const c = recordTcpaConsent(input.id, { version: input.version, language: input.idioma });
-      return c ? `TCPA consentido por ${c.nombre} (v${c.tcpa_consent.version}, ${c.tcpa_consent.language}).` : `No encontré ${input.id}.`;
-    }
-    case 'cliente_touchpoint': {
-      try {
-        const c = addTouchpoint(input.id, { type: input.tipo, summary: input.resumen });
-        const count = aepTouchpointCount(c, 12);
-        return c ? `Touchpoint registrado en ${c.nombre}. Lleva ${count} en los últimos 12 meses.` : `No encontré ${input.id}.`;
-      } catch (err) { return `Error: ${err.message}`; }
-    }
-    case 'cliente_medicamento_agregar': {
-      const c = addDrug(input.id, { nombre: input.nombre, dosis: input.dosis, frecuencia: input.frecuencia, generico_o_marca: input.generico_o_marca });
-      return c ? `Medicamento "${input.nombre}" agregado a ${c.nombre}. Total: ${c.drug_list.length}.` : `No encontré ${input.id}.`;
-    }
-    case 'cliente_medicamento_quitar': {
-      const c = removeDrug(input.id, input.nombre);
-      return c ? `Medicamento "${input.nombre}" quitado de ${c.nombre}. Total: ${c.drug_list.length}.` : `No encontré ${input.id}.`;
-    }
-    case 'cliente_doctor_agregar': {
-      const c = addProvider(input.id, { nombre: input.nombre, especialidad: input.especialidad, ubicacion: input.ubicacion });
-      return c ? `Doctor "${input.nombre}" agregado a ${c.nombre}. Total: ${c.providers.length}.` : `No encontré ${input.id}.`;
-    }
-    case 'cliente_grabacion': {
-      const c = recordCallRecording(input.id, { url: input.url, transcript_ref: input.transcript_ref });
-      return c ? `Grabación registrada para ${c.nombre}.` : `No encontré ${input.id}.`;
-    }
-    case 'compliance_sin_touchpoint': {
-      const items = clientsNeedingAnnualTouch();
-      if (!items.length) return 'Todos los clientes activos/prospects tuvieron touchpoint en los últimos 12 meses. ✓';
-      return `${items.length} clientes sin touchpoint en 12+ meses:\n` + items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} · ${c.telefono || 'sin tel'} · último ${new Date(c.ultimo_contacto || 0).toISOString().slice(0, 10)}`).join('\n');
-    }
-    case 'compliance_mbi_pendiente': {
-      const items = clientsWithMbiPending();
-      if (!items.length) return 'Todos los activos/prospects tienen MBI verificado. ✓';
-      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} (${c.mbi_verified?.status || 'pending'})`).join('\n');
-    }
-    case 'compliance_soa_faltante': {
-      const items = clientsWithSoaIssue();
-      if (!items.length) return 'Todos los clientes tienen SOA firmada vigente. ✓';
-      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} — ${c.soa?.status || 'none'}`).join('\n');
-    }
-    case 'pipeline_t65': {
-      const meses = parseInt(input.meses, 10) || 6;
-      const items = t65Pipeline(meses);
-      if (!items.length) return `Sin T65 en los próximos ${meses} meses.`;
-      return items.slice(0, 20).map((c) => `[${c.id}] ${c.nombre} — ${c.t65.meses_para_65}m para los 65 (ICEP ${c.t65.icep_start.slice(0, 10)} → ${c.t65.icep_end.slice(0, 10)})`).join('\n');
-    }
     case 'señales_de_hoy': {
       const { signals, ts } = loadSignals();
       if (!signals?.length) return 'Sin señales computadas todavía (la reflexión nocturna corre a las 2am).';
       const byPrio = ['alto', 'aviso', 'info'];
       const sorted = signals.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
       return `Señales (computadas ${ts?.slice(0, 16) || '?'}):\n` + sorted.map((s) => `[${s.severidad}] ${s.mensaje}`).join('\n');
-    }
-    case 'gaps_overview': {
-      const limite = parseInt(input.limite, 10) || 30;
-      let gaps = computeGaps({ limit: 200 });
-      if (input.solo_severidad) gaps = gaps.filter((g) => g.severidad === input.solo_severidad);
-      gaps = gaps.slice(0, limite);
-      if (!gaps.length) return 'Sin huecos detectados — al día. ✓';
-      const counts = { alto: 0, aviso: 0, info: 0 };
-      for (const g of gaps) counts[g.severidad] = (counts[g.severidad] || 0) + 1;
-      const head = `${gaps.length} huecos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):`;
-      const body = gaps.map((g) => {
-        const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
-        return `${icon} [${g.kind}] ${g.target_name} · ${g.missing_field} — ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
-      }).join('\n');
-      return `${head}\n${body}`;
-    }
-    case 'gaps_de_cliente': {
-      const gaps = gapsForClient(input.id);
-      if (!gaps.length) return `Sin huecos en ese cliente. ✓`;
-      return gaps.map((g) => {
-        const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
-        return `${icon} ${g.missing_field}: ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
-      }).join('\n');
-    }
-    case 'crm_auditar': {
-      const findings = auditCrm({ limit: parseInt(input.limite, 10) || 30 });
-      if (!findings.length) return 'CRM limpio — sin hallazgos. ✓';
-      const counts = { alto: 0, aviso: 0, info: 0 };
-      for (const f of findings) counts[f.severidad] = (counts[f.severidad] || 0) + 1;
-      const head = `${findings.length} hallazgos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):`;
-      const body = findings.map(formatAuditFinding).join('\n');
-      return `${head}\n${body}`;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

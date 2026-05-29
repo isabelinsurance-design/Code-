@@ -27,7 +27,12 @@ import { anthropic } from './claude.js';
 import { DIRECTORA } from './agents.js';
 import { toolDefinitions, runTool } from './tools.js';
 import { buildWikiContext, logActivity, remember } from './memory.js';
-import { findClient, addTouchpoint, recordCallRecording } from './crm.js';
+import {
+  lunaConfigured,
+  searchMember as lunaSearchMember,
+  logActivityToLuna,
+  addMemberNote as lunaAddMemberNote,
+} from './luna_client.js';
 import { upsertEntity } from './entities.js';
 
 const VOICE_MODEL = process.env.VOICE_MODEL || 'claude-sonnet-4-6';
@@ -88,13 +93,12 @@ export async function handleVoiceStatus(req, res) {
 }
 
 async function attachRecordingToClient(fromPhone, recordingUrl, callSid) {
-  if (!fromPhone) return;
-  const matches = findClient(fromPhone);
-  if (matches.length) {
-    const c = matches[0];
-    recordCallRecording(c.id, { url: recordingUrl, transcript_ref: callSid });
-    logActivity({ tool: 'voice_recording_saved', input_summary: c.id, result_summary: recordingUrl });
-  }
+  if (!fromPhone || !lunaConfigured()) return;
+  const r = await lunaSearchMember(fromPhone);
+  const match = (r.data || [])[0];
+  if (!match) return;
+  await lunaAddMemberNote(match.id, `Recording: ${recordingUrl} (callSid=${callSid})`);
+  logActivity({ tool: 'voice_recording_saved', input_summary: match.id, result_summary: recordingUrl });
 }
 
 // ============================================================
@@ -173,14 +177,16 @@ async function onSetup(session, msg) {
   session.callSid = msg.callSid || msg.sessionId || null;
   // ConversationRelay envía customParameters + from + to en setup
   session.fromNumber = msg.from || '';
-  // Buscar al caller en el CRM por teléfono
-  if (session.fromNumber) {
-    const matches = findClient(session.fromNumber);
-    if (matches.length) {
-      const c = matches[0];
-      session.callerName = c.nombre;
-      session.callerClientId = c.id;
-    }
+  // Buscar al caller en LUNA por teléfono
+  if (session.fromNumber && lunaConfigured()) {
+    try {
+      const r = await lunaSearchMember(session.fromNumber);
+      const match = (r.data || [])[0];
+      if (match) {
+        session.callerName = `${match.nombre || ''} ${match.apellido || ''}`.trim();
+        session.callerClientId = match.id;
+      }
+    } catch { /* swallow — log shows it */ }
   }
   logActivity({
     tool: 'voice_call_start',
@@ -292,12 +298,16 @@ RESUMEN:`,
     summary = `Llamada de ${session.fromNumber || 'desconocido'} (resumen falló: ${err.message}).`;
   }
 
-  // Si era cliente del CRM: touchpoint + nota.
-  if (session.callerClientId) {
+  // Si era miembro de LUNA: registra la actividad de la llamada.
+  if (session.callerClientId && lunaConfigured()) {
     try {
-      addTouchpoint(session.callerClientId, { type: 'call', summary: summary.slice(0, 500) });
+      await logActivityToLuna({
+        tipo: 'LLAMADA',
+        descripcion: summary.slice(0, 500),
+        memberId: session.callerClientId,
+      });
     } catch (err) {
-      console.warn('[voice] addTouchpoint:', err.message);
+      console.warn('[voice] logActivityToLuna:', err.message);
     }
   } else if (session.fromNumber) {
     // Si no era cliente, anotamos en entities por si Isabel lo quiere recordar.

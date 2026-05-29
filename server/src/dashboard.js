@@ -293,39 +293,18 @@ function render(s) {
 
   // 1. KPI hero
   const kpis = [
-    { lbl: 'Clientes activos', val: s.crm.active, sub: s.crm.total + ' totales' },
-    { lbl: 'Leads', val: s.crm.lead, sub: s.crm.prospect + ' prospects' },
     { lbl: 'Tareas activas', val: s.tasks.active },
     { lbl: 'Borradores', val: s.outbound.length, cls: s.outbound.length > 5 ? 'warn' : '' },
     { lbl: 'Compromisos', val: s.commitments.pending },
-    { lbl: 'Gaps', val: s.gaps.length, cls: s.gaps_alto > 0 ? 'bad' : (s.gaps.length > 10 ? 'warn' : '') },
-    { lbl: 'Auditor', val: s.auditor.length, cls: s.auditor_alto > 0 ? 'bad' : '' },
     { lbl: 'Skills activas', val: s.skills.active, sub: s.skills.draft + ' drafts' },
   ];
   cardWide('Estado general', \`<div class="kpis">\${kpis.map(k =>
     \`<div class="kpi-tile \${k.cls || ''}"><div class="lbl">\${k.lbl}</div><div class="val">\${k.val}</div>\${k.sub ? \`<div class="sub">\${k.sub}</div>\` : ''}</div>\`
   ).join('')}</div>\`, 'kpi');
 
-  // 2. Compliance Medicare (top-priority)
-  cardEl('Compliance Medicare',
-    \`<div class="row"><span class="label">SOA faltante</span><span class="val">\${s.compliance.soa_missing}</span></div>
-     <div class="row"><span class="label">MBI pendiente</span><span class="val">\${s.compliance.mbi_pending}</span></div>
-     <div class="row"><span class="label">Sin touchpoint 12m</span><span class="val">\${s.compliance.no_touchpoint_12m}</span></div>
-     <div class="row"><span class="label">TCPA sin firmar</span><span class="val">\${s.compliance.tcpa_missing}</span></div>
-     <div class="row"><span class="label">T65 pipeline (6m)</span><span class="val">\${s.compliance.t65_pipeline}</span></div>
-     <div class="row"><span class="label">Próx renovaciones (60d)</span><span class="val">\${s.compliance.upcoming_renewals}</span></div>\`);
-
-  // 3. Auditor — calidad del CRM
-  const auditHtml = s.auditor.length ? s.auditor.slice(0, 12).map(a =>
-    \`<div class="item"><span class="pill \${a.severidad}">\${a.severidad}</span>\${escapeHtml(a.target_name || '—')}<div class="meta">\${escapeHtml(a.mensaje)}</div></div>\`
-  ).join('') : '<div class="muted">CRM limpio. ✓</div>';
-  cardEl(\`Auditor CRM (\${s.auditor.length})\`, auditHtml);
-
-  // 4. Gaps / known unknowns
-  const gapsHtml = s.gaps.length ? s.gaps.slice(0, 12).map(g =>
-    \`<div class="item"><span class="pill \${g.severidad}">\${g.severidad}</span>\${escapeHtml(g.target_name || '—')}<div class="meta">\${escapeHtml(g.missing_field)}</div></div>\`
-  ).join('') : '<div class="muted">Sin huecos. ✓</div>';
-  cardEl(\`Known-unknowns (\${s.gaps.length})\`, gapsHtml);
+  // CRM Medicare ahora vive en LUNA — el dashboard de Athena
+  // ya no muestra paneles de CRM. Para auditor/gaps/compliance,
+  // consultar LUNA directamente (web admin de Skarleth/Samia).
 
   // 5. Signals
   const sigHtml = s.signals.length ? s.signals.map(x =>
@@ -426,61 +405,20 @@ function aepWindow() {
 }
 
 export async function buildDashboardState() {
-  const crm = readJsonSafe(join(DATA_DIR, 'crm.json'), []);
   const tasks = readJsonSafe(join(DATA_DIR, 'tasks.json'), []);
   const commitments = readJsonSafe(join(DATA_DIR, 'commitments.json'), []);
   const outbound = readJsonSafe(join(DATA_DIR, 'outbound_queue.json'), []);
   const activity = readJsonSafe(join(DATA_DIR, 'activity.json'), []);
   const signalsBlob = readJsonSafe(join(DATA_DIR, 'signals.json'), { signals: [] });
 
-  // Computed via modules
-  let gaps = [];
-  let auditor = [];
   let skillsActive = [];
   let skillsDraft = [];
-  let crmHelpers = null;
-  try {
-    const g = await import('./gaps.js');
-    gaps = g.computeGaps({ limit: 100 });
-  } catch { /* ignore */ }
-  try {
-    const a = await import('./auditor.js');
-    auditor = a.auditCrm({ limit: 50 });
-  } catch { /* ignore */ }
   try {
     const sk = await import('./skills.js');
     skillsActive = sk.listSkills({ status: 'active' });
     skillsDraft = sk.listSkills({ status: 'draft' });
   } catch { /* ignore */ }
-  try {
-    crmHelpers = await import('./crm.js');
-  } catch { /* ignore */ }
 
-  // Compliance counters (via crm.js helpers if available)
-  const compliance = {
-    soa_missing: 0,
-    mbi_pending: 0,
-    no_touchpoint_12m: 0,
-    tcpa_missing: 0,
-    t65_pipeline: 0,
-    upcoming_renewals: 0,
-  };
-  try {
-    if (crmHelpers) {
-      compliance.soa_missing = crmHelpers.clientsWithSoaIssue?.()?.length || 0;
-      compliance.mbi_pending = crmHelpers.clientsWithMbiPending?.()?.length || 0;
-      compliance.no_touchpoint_12m = crmHelpers.clientsNeedingAnnualTouch?.()?.length || 0;
-      compliance.t65_pipeline = crmHelpers.t65Pipeline?.(6)?.length || 0;
-      compliance.upcoming_renewals = crmHelpers.upcomingRenewals?.(60)?.length || 0;
-      // TCPA missing — count manually since no exported helper
-      compliance.tcpa_missing = crm.filter((c) =>
-        (c.status === 'active' || c.status === 'prospect') &&
-        !(c.tcpa_consent?.status === 'signed')
-      ).length;
-    }
-  } catch { /* swallow — dashboard is best-effort */ }
-
-  // Backups
   let backups = [];
   if (existsSync(BACKUP_DIR)) {
     backups = readdirSync(BACKUP_DIR)
@@ -505,14 +443,6 @@ export async function buildDashboardState() {
   return {
     aep_active: aep.active,
     aep_days_left: aep.daysLeft,
-    crm: {
-      active: crm.filter((c) => c.status === 'active').length,
-      lead: crm.filter((c) => c.status === 'lead').length,
-      prospect: crm.filter((c) => c.status === 'prospect').length,
-      inactive: crm.filter((c) => c.status === 'inactive').length,
-      total: crm.length,
-    },
-    compliance,
     tasks: {
       active: activeTasks.length,
       by_owner: byOwner,
@@ -523,10 +453,6 @@ export async function buildDashboardState() {
       recent: pendingCommits.slice(0, 10),
     },
     outbound,
-    gaps,
-    gaps_alto: gaps.filter((g) => g.severidad === 'alto').length,
-    auditor,
-    auditor_alto: auditor.filter((a) => a.severidad === 'alto').length,
     signals: signalsBlob.signals || [],
     skills: {
       active: skillsActive.length,

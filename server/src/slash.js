@@ -18,7 +18,7 @@
 const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
-  'compromisos', 'skills', 'tareas', 'auditar', 'huecos', 'luna',
+  'compromisos', 'skills', 'tareas', 'huecos', 'luna',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -65,6 +65,7 @@ export async function runSlash(text, from) {
       case 'auditar': return { ok: true, reply: await runAuditar(args) };
       case 'huecos': return { ok: true, reply: await runHuecos(args) };
       case 'luna': return { ok: true, reply: await runLuna(args) };
+      case 'auditar': return { ok: true, reply: 'Auditor local retirado — el CRM real vive en LUNA. Para auditoría estructural del equipo, usa LUNA directamente.' };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
       case 'envía': return await runEnvia(args);          // solo isabel — flush drafts
@@ -91,7 +92,6 @@ function buildHelp(role) {
     '/tareas [athena|isabel|sami] — cola por dueño',
     '/skills — playbooks activos',
     '/historial [n] — últimas N acciones',
-    '/auditar — corre auditoría de calidad del CRM',
     '/huecos [dias] — huecos libres en el calendario (default 7 días)',
     '/luna [ping] — briefing del CRM real de LUNA (sin args = full briefing)',
   ];
@@ -301,15 +301,6 @@ async function runHuecos(args) {
   if (!r.ok) return `No pude buscar huecos: ${r.reason}`;
   if (!r.slots.length) return `No hay huecos en los próximos ${dias} días con horario laboral default.`;
   return `${r.slots.length} huecos en los próximos ${dias} días:\n${r.slots.map((s) => `  • ${s.inicio_local}`).join('\n')}`;
-}
-
-async function runAuditar(args) {
-  const { auditCrm, formatAuditFinding } = await import('./auditor.js');
-  const findings = auditCrm({ limit: parseInt(args, 10) || 30 });
-  if (!findings.length) return 'CRM limpio — sin hallazgos. ✓';
-  const counts = { alto: 0, aviso: 0, info: 0 };
-  for (const f of findings) counts[f.severidad] = (counts[f.severidad] || 0) + 1;
-  return `${findings.length} hallazgos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):\n${findings.slice(0, 20).map(formatAuditFinding).join('\n')}`;
 }
 
 async function runSeedMedicare() {

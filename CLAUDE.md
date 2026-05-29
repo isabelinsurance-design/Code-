@@ -27,7 +27,17 @@ She lives in two places:
 
 ---
 
-## What's been built (10 phases + ops hardening)
+## Architecture — three systems, one universe
+
+Athena does NOT own the Medicare CRM. There are three systems that share data:
+
+- **Athena** (this repo) — Isabel's personal chief of staff. WhatsApp + voice. Node.js on Railway. Owns: wiki, season, tasks, commitments, entities, signals, skills, drafts queue.
+- **LUNA** (separate repo, Bluehost) — the team's workspace. PHP + MySQL. Skarleth, Arlette, Samia, and Isabel use it from a browser. Owns: miembros (clients), pólizas, SOAs, tickets, citas, actividad log, comisiones, metas.
+- **Sistema Maestro IA** (being absorbed into LUNA) — marketing/content tool. Will retire as a standalone.
+
+**Athena reads/writes LUNA via `luna_api.php` using shared-secret auth (X-Athena-Key header).** All Medicare-client operations (search, expediente, notes, touchpoints, tickets, citas, lead creation) flow through 14 `luna_*` tools that call LUNA's API. Athena no longer has its own CRM — `data/crm.json` is empty/legacy.
+
+## What's been built
 
 ### Phase 1 — original Athena
 Static HTML app with the 17 coaches as direct conversation partners.
@@ -75,6 +85,27 @@ Multi-provider TTS: OpenAI default, **ElevenLabs** for voice cloning (set `ELEVE
 ### Phase 10 — skills
 Athena can grow her own playbooks. When she notices a recurring pattern, she proposes a draft skill (`skill_proponer`) — a markdown body that orchestrates existing tools. Isabel approves (`skill_aprobar`) before it can execute. Next time the pattern hits, `skill_invocar(nombre, inputs)` runs the playbook as a sub-conversation. Skills can't introduce new code or new tools — they only reuse what Athena already has. Versioning + retire workflow lets Isabel iterate without losing history.
 
+### Phase 11 — calendar WRITE + free-slots
+Athena creates / moves / cancels Google Calendar events on Isabel's behalf. `buscar_huecos` finds real free slots respecting working hours, days of week, and a buffer between meetings (15min default). `crear_cita` guards against conflicts by default — fails with conflict details if the slot overlaps something, unless `permitir_conflicto=true`.
+
+### Phase 13 — Medicare workflow pack + dashboard rebrand
+Six Medicare workflow skills (AEP outreach, intake, 12-month check-in, renewal followup, SOA chase, plan comparison) seeded as drafts via `medicare_pack_seed`. All skill bodies use `luna_*` tools — they read/write to LUNA's MySQL, not local data. Operational dashboard at `/dashboard` rebranded to lino cálido palette matching `todoisabel.html`, with KPI hero + tasks/commitments/skills/activity panels.
+
+### Phase 13.5 — LUNA bridge + local CRM retired
+Athena no longer maintains a parallel CRM. The 14 `luna_*` tools talk to LUNA's PHP API:
+- Reads: `luna_buscar_miembro`, `luna_expediente_miembro`, `luna_briefing_completo`, `luna_pipeline_resumen`, `luna_t65_alertas`, `luna_hot_leads`, `luna_compliance_pendiente`, `luna_actividad_reciente`, `luna_carriers_breakdown`, `luna_today_appointments`
+- Writes: `luna_agregar_nota`, `luna_registrar_actividad`, `luna_crear_miembro`, `luna_crear_ticket`, `luna_crear_cita`
+
+24 legacy CRM tools removed from Athena's exposed surface: `crear_cliente`, `actualizar_cliente`, `nota_cliente`, `buscar_cliente`, `expediente_cliente`, `lista_clientes`, `clientes_descuidados`, `proximas_renovaciones`, `proximos_cumples`, `cliente_soa_firmar`, `cliente_mbi_estado`, `cliente_tcpa`, `cliente_touchpoint`, `cliente_medicamento_agregar`, `cliente_medicamento_quitar`, `cliente_doctor_agregar`, `cliente_grabacion`, `compliance_*` (3), `pipeline_t65`, `gaps_overview`, `gaps_de_cliente`, `crm_auditar`.
+
+`voice.js` refactored to look up callers in LUNA via `luna_searchMember` and register call recordings + post-call summaries via `luna_addMemberNote` / `luna_registrar_actividad`.
+
+**Soft retire:** `crm.js`, `gaps.js`, `auditor.js` still exist as internal helpers used by `briefing.js` (`isAepNow`), `signals.js`, and `hooks.js` (`findClient`). These read from the now-empty local CRM and silently return zeros. To be fully refactored to LUNA in a future iteration.
+
+`/luna [ping]` slash command lets Sami spot-check connectivity. `/auditar` retired with a friendly message.
+
+Required env vars on Railway: `LUNA_BASE_URL`, `LUNA_API_KEY`. Required PHP patch on Bluehost: at top of `luna_api.php`, accept `HTTP_X_ATHENA_KEY` header matching `LUNA_INTERNAL_KEY` env var to bypass session and treat as Isabel-admin. Patch snippet in `server/src/luna_client.js` comment block.
+
 ---
 
 ## File-by-file architecture (server)
@@ -87,7 +118,7 @@ server/
 │  ├─ claude.js                    Anthropic SDK client
 │  ├─ agents.js                    The 17 coach personas + ISABEL_FILOSOFIA + ISABEL_BASE
 │  ├─ directora.js                 Athena's main run loop (Opus 4.8 + tools + memory context)
-│  ├─ tools.js                     67 tools — definitions + dispatcher
+│  ├─ tools.js                     63 tools — definitions + dispatcher
 │  ├─ whatsapp.js                  Twilio WhatsApp send (supports media + voice notes out)
 │  ├─ email.js                     Gmail IMAP + SMTP (nodemailer + imapflow)
 │  ├─ transcribe.js                Whisper voice-note transcription
@@ -180,7 +211,7 @@ The block covers:
 
 ---
 
-## The 67 tools (organized by category)
+## The 63 tools (organized by category)
 
 ### Memory & priorities
 `recordar`, `olvidar`, `que_recuerdas`, `actualizar_temporada`, `consultar_temporada`, `historial`
@@ -194,23 +225,21 @@ The block covers:
 ### Entities (per-person memory)
 `entidad_anotar`, `entidad_buscar`, `entidad_expediente`, `entidad_vincular_cliente`, `entidad_fusionar`
 
-### CRM — base
-`crear_cliente`, `actualizar_cliente`, `nota_cliente`, `buscar_cliente`, `expediente_cliente`, `lista_clientes`, `clientes_descuidados`, `proximas_renovaciones`, `proximos_cumples`
+### LUNA bridge — CRM real del equipo Medicare
+Reads: `luna_buscar_miembro`, `luna_expediente_miembro`, `luna_briefing_completo`, `luna_pipeline_resumen`, `luna_t65_alertas`, `luna_hot_leads`, `luna_compliance_pendiente`, `luna_actividad_reciente`, `luna_carriers_breakdown`
+Writes: `luna_agregar_nota`, `luna_registrar_actividad`, `luna_crear_miembro`, `luna_crear_ticket`, `luna_crear_cita`
 
-### CRM — Medicare compliance
-`cliente_soa_firmar`, `cliente_mbi_estado`, `cliente_tcpa`, `cliente_touchpoint`, `cliente_medicamento_agregar`, `cliente_medicamento_quitar`, `cliente_doctor_agregar`, `cliente_grabacion`, `compliance_sin_touchpoint`, `compliance_mbi_pendiente`, `compliance_soa_faltante`, `pipeline_t65`
-
-### Signals & known unknowns
-`señales_de_hoy`, `gaps_overview`, `gaps_de_cliente`
+### Signals
+`señales_de_hoy`
 
 ### Communications outbound (all review-gated)
 `enviar_email`, `enviar_sms`, `mensaje_a_sami`, `confirmar_envio`, `descartar_envio`, `revisar_emails`
 
 ### Phone calls
-`llamar_cliente` (outbound; inbound is automatic via `/voice/incoming` webhook)
+`llamar_cliente` (outbound; inbound is automatic via `/voice/incoming` webhook). Caller lookup + post-call touchpoint via LUNA.
 
-### Calendar (Google, read-only scaffold)
-`proximos_eventos`, `detalles_cita`
+### Calendar (Google, full write)
+`proximos_eventos`, `detalles_cita`, `crear_cita`, `reagendar_cita`, `cancelar_cita`, `buscar_huecos`
 
 ### External read-only
 `web_search` (Anthropic built-in), `nextiva_pendientes`, `nextiva_actividad`, `ig_dms_pendientes`, `ig_comentarios_pendientes`, `ig_actividad`, `ig_stats`
