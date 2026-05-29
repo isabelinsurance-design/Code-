@@ -46,6 +46,38 @@ cualquiera que haya visto el código fuente la tiene.
 - Cada consulta IA se registra en `actividad` como `LUNA_CHAT` (audit, sin PII).
 - Los datos del CRM en el banner de alertas ahora pasan por `esc()` (anti-XSS).
 
-## Pendiente (roadmap) — ver conversación
-Rate limiting, cola de borradores outbound, review-hooks de compliance,
-y aprobación previa para TODAS las tools de escritura.
+## Crons a programar en Bluehost
+```
+0 7  * * *  php .../luna/cron/luna_briefing_cron.php       # briefing matutino
+0 2  * * *  php .../luna/cron/luna_signals_cron.php        # señales nocturnas (#7/#15)
+0 3  * * *  php .../luna/cron/luna_backup_cron.php         # respaldo MySQL (#5)
+0 17 * * 5  php .../luna/cron/luna_weekly_cron.php         # reporte viernes
+0 8  1 * *  php .../luna/cron/luna_compliance_cron.php     # auditoría mensual
+0 9  * * 3  php .../luna/cron/luna_referral_cron.php       # referidos miércoles
+0 8  * * *  php .../luna/cron/luna_email_marketing_cron.php # cumpleaños/newsletter/AEP
+```
+> Recuerda el path de `config.php`: los crons hacen `require '/../config.php'`.
+> Si los dejas en `luna/cron/`, ese path sube **dos** niveles y no encontrará
+> el config en `public_html/`. Ajusta a `'/../../config.php'` o mueve los crons
+> a `luna/`. Confirma antes de programar.
+
+## Respaldos (#5) — opciones en config.php
+```php
+// Carpeta destino (por defecto: ../private_backups, FUERA de public_html)
+define('BACKUP_DIR', '/home/usuario/private_backups');
+// Retención: el script guarda 30 días por defecto.
+// Subida offsite opcional ({FILE} = ruta del .gz):
+define('BACKUP_OFFSITE_CMD', 'aws s3 cp {FILE} s3://mi-bucket/luna/');
+// Telegram opcional para avisos de backup:
+define('TG_TOKEN', '123456:abc...');
+define('TG_ISABEL_CHAT', '99999999');
+```
+El backup usa `mysqldump --single-transaction` (seguro en InnoDB), comprime con
+gzip, rota por antigüedad y borra automáticamente un respaldo corrupto (<1KB).
+**Verifica que `mysqldump` esté en el PATH del cron de Bluehost.**
+
+## Capa de confianza + memoria por capas (ya en el código)
+- Audit log con PII redactado (`luna_audit_log`) + `luna_audit_view` (admin).
+- Cola de outbound con aprobación, review-hooks CMS y horas de silencio.
+- Entidades, señales, skills, gaps y auditoría estructural (`luna_structural_audit`).
+- Todas las tablas se autocrean en el primer uso — sin SQL manual.
