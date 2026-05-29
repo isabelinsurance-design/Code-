@@ -80,6 +80,8 @@ import {
 } from './crm.js';
 import { loadSignals } from './signals.js';
 import { placeOutboundCall } from './voice.js';
+import { computeGaps, gapsForClient } from './gaps.js';
+import { reviewOutbound, formatReviewForHumans } from './hooks.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -783,6 +785,30 @@ export const toolDefinitions = [
     description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
+  // ───────── KNOWN UNKNOWNS / GAPS ─────────
+  {
+    name: 'gaps_overview',
+    description: 'Devuelve los HUECOS de información — campos que faltan en clientes/entidades/compromisos. Severidades: alto (bloqueador compliance: MBI no verificado, SOA faltante, TCPA sin consentir, sin touchpoint 12m), aviso (operacional: sin teléfono, sin renewal_date, sin drug list para MAPD), info (sin proveedores, entidades sin tipo). USA esto SIEMPRE en el briefing matutino antes de pedirle a Isabel sus Top 3 — los gaps altos deberían convertirse en tareas de cierre del día.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limite: { type: 'integer', description: 'Cuántos huecos devolver (default 30).' },
+        solo_severidad: { type: 'string', enum: ['alto', 'aviso', 'info'], description: 'Opcional. Filtra por severidad.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'gaps_de_cliente',
+    description: 'Devuelve los huecos de UN cliente específico. Útil ANTES DE UNA LLAMADA: "voy a llamar a María, ¿qué me falta saber de ella?" → te digo MBI sin verificar + sin drug list. Pasa lo que falta como agenda de la llamada.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del cliente.' },
+      },
+      required: ['id'],
+    },
+  },
   // ───────── LLAMADAS TELEFÓNICAS ─────────
   {
     name: 'llamar_cliente',
@@ -861,24 +887,38 @@ async function dispatchTool(name, input) {
     case 'mensaje_a_sami': {
       const to = process.env.SAMI_WHATSAPP;
       if (!to) return 'No hay número de Sami configurado (SAMI_WHATSAPP en el .env).';
+      // Sami se manda solo (humano-en-el-loop) → revisamos ANTES de mandar.
+      // Si hay flag "alto" lo bloqueamos para que Athena recapacite.
+      const review = await reviewOutbound({ toolName: 'mensaje_a_sami', input });
+      if (review.severidad_max === 'alto') {
+        return `🛑 Mensaje a Sami BLOQUEADO por revisión:\n${formatReviewForHumans(review)}\n\nReformula y vuelve a llamar la tool.`;
+      }
       await sendMessage(to, `De Athena (Isabel):\n${input.mensaje}`);
-      return `Mensaje enviado a Sami: "${input.mensaje}"`;
+      const flagSuffix = review.flags.length ? `\n${formatReviewForHumans(review)}` : '';
+      return `Mensaje enviado a Sami: "${input.mensaje}"${flagSuffix}`;
     }
     case 'enviar_sms': {
       let to = String(input.para || '').trim();
       if (!to) return 'Falta el número de teléfono.';
       if (!to.startsWith('+')) to = '+' + to.replace(/^[^\d]*/, '');
-      const id = queueOutbound({ type: 'sms', para: to, mensaje: input.mensaje });
-      return `Borrador SMS encolado (id=${id}). Para: ${to}. Mensaje: "${input.mensaje}". ESPERA que Isabel diga "envía" o "sí" antes de llamar confirmar_envio.`;
+      // Review en paralelo — corre mientras encolamos. El resultado
+      // se incluye en el draft para que Isabel lo vea antes de "envía".
+      const review = await reviewOutbound({ toolName: 'enviar_sms', input: { para: to, mensaje: input.mensaje } });
+      const id = queueOutbound({ type: 'sms', para: to, mensaje: input.mensaje, review: review.flags });
+      const flagSuffix = review.flags.length ? `\n${formatReviewForHumans(review)}` : '';
+      return `Borrador SMS encolado (id=${id}). Para: ${to}. Mensaje: "${input.mensaje}".${flagSuffix}\nESPERA que Isabel diga "envía" o "sí" antes de llamar confirmar_envio.`;
     }
     case 'enviar_email': {
+      const review = await reviewOutbound({ toolName: 'enviar_email', input });
       const id = queueOutbound({
         type: 'email',
         para: input.para,
         asunto: input.asunto,
         cuerpo: input.cuerpo,
+        review: review.flags,
       });
-      return `Borrador email encolado (id=${id}).\nPara: ${input.para}\nAsunto: ${input.asunto}\n---\n${input.cuerpo}\n---\nESPERA que Isabel confirme antes de llamar confirmar_envio.`;
+      const flagSuffix = review.flags.length ? `\n${formatReviewForHumans(review)}` : '';
+      return `Borrador email encolado (id=${id}).\nPara: ${input.para}\nAsunto: ${input.asunto}\n---\n${input.cuerpo}\n---${flagSuffix}\nESPERA que Isabel confirme antes de llamar confirmar_envio.`;
     }
     case 'confirmar_envio': {
       const item = popOutbound(input.id || null);
@@ -1256,6 +1296,29 @@ async function dispatchTool(name, input) {
       const byPrio = ['alto', 'aviso', 'info'];
       const sorted = signals.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
       return `Señales (computadas ${ts?.slice(0, 16) || '?'}):\n` + sorted.map((s) => `[${s.severidad}] ${s.mensaje}`).join('\n');
+    }
+    case 'gaps_overview': {
+      const limite = parseInt(input.limite, 10) || 30;
+      let gaps = computeGaps({ limit: 200 });
+      if (input.solo_severidad) gaps = gaps.filter((g) => g.severidad === input.solo_severidad);
+      gaps = gaps.slice(0, limite);
+      if (!gaps.length) return 'Sin huecos detectados — al día. ✓';
+      const counts = { alto: 0, aviso: 0, info: 0 };
+      for (const g of gaps) counts[g.severidad] = (counts[g.severidad] || 0) + 1;
+      const head = `${gaps.length} huecos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):`;
+      const body = gaps.map((g) => {
+        const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
+        return `${icon} [${g.kind}] ${g.target_name} · ${g.missing_field} — ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
+      }).join('\n');
+      return `${head}\n${body}`;
+    }
+    case 'gaps_de_cliente': {
+      const gaps = gapsForClient(input.id);
+      if (!gaps.length) return `Sin huecos en ese cliente. ✓`;
+      return gaps.map((g) => {
+        const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
+        return `${icon} ${g.missing_field}: ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
+      }).join('\n');
     }
     case 'llamar_cliente': {
       try {

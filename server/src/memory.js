@@ -2,6 +2,7 @@ import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactPII } from './security.js';
+import { buildGapsSummary } from './gaps.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -82,6 +83,7 @@ const COMMITMENTS_FILE_PATH = join(DATA_DIR, 'commitments.json');
 const CRM_FILE_PATH = join(DATA_DIR, 'crm.json');
 const ENTITIES_FILE_PATH = join(DATA_DIR, 'entities.json');
 const SIGNALS_FILE_PATH = join(DATA_DIR, 'signals.json');
+// Gaps se computan on-demand (no se persisten) — import dinámico abajo.
 
 function readJsonSafe(path, fallback) {
   try {
@@ -169,6 +171,13 @@ function entitiesContextInline() {
   return `PERSONAS QUE RECONOZCO (entidades — usa entidad_anotar para añadir, entidad_expediente para profundizar):\n${lines.join('\n')}`;
 }
 
+// Snapshot 1-línea de gaps. NO el detalle completo (eso vive en la tool
+// gaps_overview), solo "hay 4 altos, top campos faltantes son MBI, SOA,
+// touchpoint_12m". El briefing pide el detalle cuando lo necesita.
+function gapsContextInline() {
+  try { return buildGapsSummary(); } catch { return ''; }
+}
+
 function signalsContextInline() {
   const blob = readJsonSafe(SIGNALS_FILE_PATH, { signals: [] });
   const sigs = blob.signals || [];
@@ -218,6 +227,8 @@ export function buildWikiContext() {
   if (entitiesCtx) parts.push(entitiesCtx);
   const signalsCtx = signalsContextInline();
   if (signalsCtx) parts.push(signalsCtx);
+  const gapsCtx = gapsContextInline();
+  if (gapsCtx) parts.push(gapsCtx);
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;

@@ -57,9 +57,11 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
 
 PRIMERO consulta señales_de_hoy (yo las computé anoche a las 2am — incluyen umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana" y estados como "5 renovaciones en 30 días"). Trae arriba LAS DOS o TRES más relevantes — no todas. Usa las severidades alto > aviso > info para decidir.
 
-SEGUNDO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los compromisos que me deben.
+SEGUNDO, consulta gaps_overview con solo_severidad="alto" — son cosas QUE NO SÉ todavía pero debería (MBI no verificado, SOA faltante, TCPA sin consentir, sin touchpoint en 12+ meses). Si hay 1-3 huecos altos, méteme UNO como propuesta de "cerralo hoy" — concreto, específico, con la persona y la acción. No me leas la lista — escoge el más doloroso.
 
-TERCERO, pregúntame mis Top 3 de hoy.
+TERCERO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los compromisos que me deben.
+
+CUARTO, pregúntame mis Top 3 de hoy.
 
 Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}`,
   });
