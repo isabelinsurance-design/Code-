@@ -67,6 +67,112 @@ export async function listUpcomingEvents({ withinHours = 24, limit = 10 } = {}) 
   }
 }
 
+// ---- ESCRITURA: crear / actualizar / cancelar eventos ----
+// Cuando hay cliente_id, registramos automáticamente un touchpoint
+// (call/in_person según el tipo de evento) para que la CMS regla de
+// 12 meses cuente.
+//
+// IMPORTANTE: Google manda invitaciones a los attendees por default —
+// estamos esencialmente metiéndonos en sus calendarios. Por eso el
+// prompt de Athena exige confirmación explícita de Isabel antes de
+// llamar crear_cita salvo casos triviales (eventos personales sin
+// attendees).
+export async function createEvent({
+  titulo,
+  inicio,           // ISO 8601 con tz, ej "2026-06-05T15:00:00-07:00"
+  duracion_min = 30,
+  descripcion = '',
+  ubicacion = '',
+  asistentes = [],  // array de emails
+  conferencia = false,  // true = pide hangoutLink (Google Meet)
+}) {
+  const cal = getCalendarClient();
+  if (!cal) return { ok: false, reason: 'Calendar no configurado.' };
+  if (!titulo) return { ok: false, reason: 'Falta título.' };
+  if (!inicio) return { ok: false, reason: 'Falta hora de inicio.' };
+  const start = new Date(inicio);
+  if (isNaN(start.getTime())) return { ok: false, reason: 'inicio no es una fecha válida.' };
+  const end = new Date(start.getTime() + Number(duracion_min) * 60_000);
+
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  const requestBody = {
+    summary: titulo,
+    description: descripcion || undefined,
+    location: ubicacion || undefined,
+    start: { dateTime: start.toISOString(), timeZone: TZ() },
+    end: { dateTime: end.toISOString(), timeZone: TZ() },
+    attendees: asistentes.filter((a) => a && a.includes('@')).map((email) => ({ email })),
+  };
+  // Google Meet requiere conferenceData + conferenceDataVersion=1
+  const params = { calendarId, requestBody, sendUpdates: 'all' };
+  if (conferencia) {
+    requestBody.conferenceData = {
+      createRequest: {
+        requestId: `athena-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        conferenceSolutionKey: { type: 'hangoutsMeet' },
+      },
+    };
+    params.conferenceDataVersion = 1;
+  }
+  try {
+    const res = await cal.events.insert(params);
+    return { ok: true, event: toLite(res.data, true) };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+export async function updateEvent(eventId, patch) {
+  const cal = getCalendarClient();
+  if (!cal) return { ok: false, reason: 'Calendar no configurado.' };
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  // Traemos el evento actual primero para no perder campos que el patch
+  // no toque (Google espera el body completo en update; usamos patch
+  // para el merge automático).
+  const requestBody = {};
+  if (patch.titulo !== undefined) requestBody.summary = patch.titulo;
+  if (patch.descripcion !== undefined) requestBody.description = patch.descripcion;
+  if (patch.ubicacion !== undefined) requestBody.location = patch.ubicacion;
+  if (patch.inicio || patch.duracion_min) {
+    const current = await cal.events.get({ calendarId, eventId });
+    const currStart = current.data.start?.dateTime;
+    const newStart = patch.inicio ? new Date(patch.inicio) : new Date(currStart);
+    if (isNaN(newStart.getTime())) return { ok: false, reason: 'inicio inválido.' };
+    const dur = patch.duracion_min
+      ? Number(patch.duracion_min)
+      : (new Date(current.data.end?.dateTime).getTime() - new Date(currStart).getTime()) / 60_000;
+    const newEnd = new Date(newStart.getTime() + dur * 60_000);
+    requestBody.start = { dateTime: newStart.toISOString(), timeZone: TZ() };
+    requestBody.end = { dateTime: newEnd.toISOString(), timeZone: TZ() };
+  }
+  if (Array.isArray(patch.asistentes)) {
+    requestBody.attendees = patch.asistentes.filter((a) => a && a.includes('@')).map((email) => ({ email }));
+  }
+  try {
+    const res = await cal.events.patch({
+      calendarId,
+      eventId,
+      requestBody,
+      sendUpdates: 'all',
+    });
+    return { ok: true, event: toLite(res.data, true) };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
+export async function deleteEvent(eventId) {
+  const cal = getCalendarClient();
+  if (!cal) return { ok: false, reason: 'Calendar no configurado.' };
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  try {
+    await cal.events.delete({ calendarId, eventId, sendUpdates: 'all' });
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, reason: err.message };
+  }
+}
+
 export async function getEvent(eventId) {
   const cal = getCalendarClient();
   if (!cal) return { ok: false, reason: 'Calendar no configurado.' };

@@ -23,7 +23,7 @@ import {
   cancelTask,
   addTaskNote,
 } from './tasks.js';
-import { listUpcomingEvents, getEvent, calendarConfigured } from './calendar.js';
+import { listUpcomingEvents, getEvent, createEvent, updateEvent, deleteEvent, calendarConfigured } from './calendar.js';
 import {
   createCommitment,
   listCommitments,
@@ -819,6 +819,63 @@ export const toolDefinitions = [
       required: ['id'],
     },
   },
+  // ───────── CALENDARIO — escritura ─────────
+  {
+    name: 'crear_cita',
+    description: `Crea un evento en el Google Calendar de Isabel. CUÁNDO USAR:
+- Isabel dice "agéndame con [persona] el [día/hora]".
+- Después de una llamada/conversación quedó una próxima reunión acordada.
+- Pre-llamada Medicare: agéndale el follow-up post-SOA o post-cita.
+
+REGLAS:
+- Si hay asistentes (sus emails), Google les manda invitación automática. Antes de añadir asistentes verifica que Isabel quiere mandar invitación — si no, deja la lista vacía y luego le pegas el link tú.
+- Si el evento es con un cliente del CRM, pasa cliente_id para que se registre automáticamente como touchpoint.
+- Para reuniones de plan Medicare con cliente: ANTES de crear, verifica que su SOA esté firmada (consulta expediente_cliente). Si no, primero pídeselo, después agendas.
+- Hora SIEMPRE en ISO 8601 con timezone, ej "2026-06-05T15:00:00-07:00".`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Título del evento.' },
+        inicio: { type: 'string', description: 'ISO 8601 con timezone offset.' },
+        duracion_min: { type: 'integer', description: 'Default 30.' },
+        descripcion: { type: 'string', description: 'Notas, agenda, link a SOA, etc.' },
+        ubicacion: { type: 'string', description: 'Dirección física o "Google Meet".' },
+        asistentes: { type: 'array', items: { type: 'string' }, description: 'Lista de emails. Vacía si Isabel solo agenda para ella.' },
+        conferencia: { type: 'boolean', description: 'true = añade link de Google Meet.' },
+        cliente_id: { type: 'string', description: 'Opcional. ID del cliente del CRM — auto-registra touchpoint.' },
+      },
+      required: ['titulo', 'inicio'],
+    },
+  },
+  {
+    name: 'reagendar_cita',
+    description: 'Cambia la hora / duración / asistentes / descripción de una cita existente. Google le manda update a los asistentes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id: { type: 'string' },
+        titulo: { type: 'string' },
+        inicio: { type: 'string', description: 'Nueva hora ISO 8601 con tz.' },
+        duracion_min: { type: 'integer' },
+        descripcion: { type: 'string' },
+        ubicacion: { type: 'string' },
+        asistentes: { type: 'array', items: { type: 'string' } },
+      },
+      required: ['event_id'],
+    },
+  },
+  {
+    name: 'cancelar_cita',
+    description: 'Cancela un evento del calendario. Google notifica a los asistentes. Úsalo cuando Isabel diga "cancela la junta con X" o cuando un cliente reagende.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        event_id: { type: 'string' },
+        razon: { type: 'string', description: 'Opcional. Si lo das, lo dejo en la memoria.' },
+      },
+      required: ['event_id'],
+    },
+  },
   // ───────── SKILLS — playbooks reusables ─────────
   {
     name: 'skill_proponer',
@@ -1435,6 +1492,40 @@ async function dispatchTool(name, input) {
         const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
         return `${icon} ${g.missing_field}: ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
       }).join('\n');
+    }
+    case 'crear_cita': {
+      if (!calendarConfigured()) return 'Google Calendar no configurado. Faltan GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN.';
+      const r = await createEvent(input);
+      if (!r.ok) return `No pude crear la cita: ${r.reason}`;
+      // Auto-touchpoint si hay cliente_id
+      let touchpointMsg = '';
+      if (input.cliente_id) {
+        try {
+          const { addTouchpoint } = await import('./crm.js');
+          addTouchpoint(input.cliente_id, {
+            type: 'in_person',
+            summary: `Cita agendada: ${r.event.titulo} (${r.event.inicio_local}).`,
+          });
+          touchpointMsg = ' (touchpoint registrado en el cliente)';
+        } catch (err) { touchpointMsg = ` (no pude registrar touchpoint: ${err.message})`; }
+      }
+      const meetMsg = r.event.meet ? `\nGoogle Meet: ${r.event.meet}` : '';
+      return `Cita creada: "${r.event.titulo}" — ${r.event.inicio_local}${touchpointMsg}.${meetMsg}\nLink: ${r.event.link}`;
+    }
+    case 'reagendar_cita': {
+      if (!calendarConfigured()) return 'Google Calendar no configurado.';
+      const r = await updateEvent(input.event_id, input);
+      if (!r.ok) return `No pude reagendar: ${r.reason}`;
+      return `Cita actualizada: "${r.event.titulo}" — ahora ${r.event.inicio_local}.\nLink: ${r.event.link}`;
+    }
+    case 'cancelar_cita': {
+      if (!calendarConfigured()) return 'Google Calendar no configurado.';
+      const r = await deleteEvent(input.event_id);
+      if (!r.ok) return `No pude cancelar: ${r.reason}`;
+      if (input.razon) {
+        try { remember(`Cita cancelada (${input.event_id}): ${input.razon}`); } catch { /* ignore */ }
+      }
+      return `Cita ${input.event_id} cancelada. Google notificó a los asistentes.`;
     }
     case 'skill_proponer': {
       try {

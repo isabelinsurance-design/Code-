@@ -22,6 +22,8 @@ import {
 import { snapshot as backupSnapshot } from './backup.js';
 import { startInboxIdle, inboxIdleEnabled } from './inbox_idle.js';
 import { buildIncomingTwiml, handleVoiceStatus, attachVoiceRelay } from './voice.js';
+import { runSlash } from './slash.js';
+import { dashboardEnabled, dashboardAuth, renderDashboardHtml, buildDashboardState } from './dashboard.js';
 
 const app = express();
 // Si estamos detrás de un proxy (Railway/Render/Fly), confiamos en
@@ -48,6 +50,26 @@ app.post('/voice/incoming', twilioSignatureMiddleware, (req, res) => {
   res.send(twiml);
 });
 app.post('/voice/status', twilioSignatureMiddleware, handleVoiceStatus);
+
+// ---- Dashboard (Basic Auth con DASHBOARD_PASSWORD) ----
+// Si la env no está, el dashboard devuelve 404 — no se expone nada.
+if (dashboardEnabled()) {
+  app.get('/dashboard', dashboardAuth, (_req, res) => {
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.send(renderDashboardHtml());
+  });
+  app.get('/dashboard/state', dashboardAuth, async (_req, res) => {
+    try {
+      const state = await buildDashboardState();
+      res.json(state);
+    } catch (err) {
+      res.status(500).json({ error: err.message });
+    }
+  });
+  console.log('[dashboard] activado en /dashboard (Basic Auth).');
+} else {
+  console.log('[dashboard] desactivado (DASHBOARD_PASSWORD no está).');
+}
 
 // ---- Webhook de WhatsApp entrante (Twilio le pega aquí) ----
 // Middleware en orden: rate limit (barato, primero) → firma Twilio
@@ -76,6 +98,23 @@ app.post('/whatsapp', rateLimitMiddleware, twilioSignatureMiddleware, async (req
 
   // Detecta si Isabel mandó audio — Athena le responde con voz también.
   const userSentVoice = audioMediaPresent(numMedia, req.body);
+
+  // Slash commands se ejecutan SIN llamar a Athena (más rápido,
+  // determinista, y Sami tiene su propio allowlist). Si el mensaje
+  // empieza con "/" y es un comando válido, contestamos directo.
+  if (text.startsWith('/')) {
+    try {
+      const slashResult = await runSlash(text, from);
+      if (slashResult) {
+        await replyTo(from, slashResult.reply, { voice: false });
+        return;
+      }
+    } catch (err) {
+      console.error('[slash] error:', err.message);
+      await sendMessage(from, `Error en slash command: ${err.message}`).catch(() => {});
+      return;
+    }
+  }
 
   try {
     const messages = getHistory();
