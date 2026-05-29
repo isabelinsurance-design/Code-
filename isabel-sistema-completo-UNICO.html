@@ -181,6 +181,25 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .post-live-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
 @keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
 .tpl-note{background:var(--gold-lt);border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text-mid);line-height:1.45;margin-top:10px}
+
+/* ─── EQUIPO IA (parallel agents) ─── */
+.eq-hero{background:linear-gradient(135deg,#333A4D,#3D8FD6);border-radius:14px;padding:24px;color:#fff;margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:var(--sh2)}
+.eq-hero-text{flex:1;min-width:200px}
+.eq-hero-title{font-family:'Fraunces',serif;font-size:22px;font-style:italic;line-height:1.2;margin-bottom:5px}
+.eq-hero-sub{font-size:13px;opacity:.92;line-height:1.5}
+.eq-run-btn{background:#F2A977;color:#3A2410;border:0;border-radius:30px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(242,169,119,.35);transition:transform .15s,box-shadow .15s}
+.eq-run-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(242,169,119,.45)}
+.eq-run-btn:disabled{opacity:.7;cursor:not-allowed}
+.eq-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);text-align:right;margin-bottom:8px;min-height:14px}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+.eq-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.eq-card-head{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--text)}
+.eq-card-icon{font-size:20px}
+.eq-card-sub{font-size:11.5px;color:var(--text-muted);margin-top:-4px}
+.eq-card .ai-box{flex:1;min-height:120px}
+.eq-card-actions{display:flex;justify-content:flex-end}
+.eq-copy{background:none;border:1px solid var(--border-d);border-radius:18px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--text-mid)}
+.eq-copy:hover{background:var(--tag)}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -462,6 +481,9 @@ tr:hover td{background:var(--surface)}
       </button>
       <button class="nav-item" onclick="showModule('viralguia',this)">
         <span class="nav-icon">📣</span><span class="nav-label">Viral & Autoridad</span>
+      </button>
+      <button class="nav-item" onclick="showModule('equipo',this)">
+        <span class="nav-icon">🤖</span><span class="nav-label">Equipo IA</span>
       </button>
     </div>
     <div class="sidebar-label">COMMAND CENTER</div>
@@ -932,6 +954,62 @@ tr:hover td{background:var(--surface)}
             <li><b>Sábado/Domingo:</b> Algo personal y cercano (quién eres, tu "por qué")</li>
           </ul>
           <div class="tpl-note" style="margin-top:12px">Sé constante 90 días seguidos y verás el cambio. La consistencia es lo que te vuelve reconocida. 🦋</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ EQUIPO IA (agentes en paralelo) ══════ -->
+    <div class="module" id="mod-equipo">
+      <div class="page-header">
+        <div class="page-title">🤖 Equipo <em>IA</em></div>
+        <div class="page-sub">6 agentes de IA trabajando al mismo tiempo para darte tu semana de contenido lista en un clic.</div>
+      </div>
+
+      <div class="eq-hero">
+        <div class="eq-hero-text">
+          <div class="eq-hero-title">Tu semana de contenido en 30 segundos 🦋</div>
+          <div class="eq-hero-sub">Un clic dispara 6 agentes al mismo tiempo: ganchos virales, guion de Live, ideas de Reels, un tip educativo, copy de captura de leads y una historia. Todo alineado con tu marca y misión.</div>
+        </div>
+        <button class="eq-run-btn" id="eqRunBtn" onclick="runEquipoIA()">🚀 Generar Mi Semana</button>
+      </div>
+      <div class="eq-status" id="eqStatus">Listo. Asegúrate de tener tu API Key arriba a la derecha.</div>
+
+      <div class="eq-grid">
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">🎣</span>Ganchos Virales</div>
+          <div class="eq-card-sub">5 hooks para Reels — primeros 3 segundos</div>
+          <div class="ai-box" id="eqOut1"><div class="ai-label">✨ Ganchos</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut1')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">🎙️</span>Guion Facebook Live</div>
+          <div class="eq-card-sub">Tu cita semanal — Q&A de Medicare</div>
+          <div class="ai-box" id="eqOut2"><div class="ai-label">✨ Guion</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut2')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">📹</span>Ideas de Reels</div>
+          <div class="eq-card-sub">3 conceptos con hook + CTA</div>
+          <div class="ai-box" id="eqOut3"><div class="ai-label">✨ Reels</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut3')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">💡</span>Tip "¿Sabías que…?"</div>
+          <div class="eq-card-sub">Post educativo para esta semana</div>
+          <div class="ai-box" id="eqOut4"><div class="ai-label">✨ Tip</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut4')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">📘</span>Captura de Leads</div>
+          <div class="eq-card-sub">Copy para tu guía gratis (lead magnet)</div>
+          <div class="ai-box" id="eqOut5"><div class="ai-label">✨ Lead</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut5')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">❤️</span>Historia Inspiradora</div>
+          <div class="eq-card-sub">Plantilla para que la llenes con un cliente real (con su permiso)</div>
+          <div class="ai-box" id="eqOut6"><div class="ai-label">✨ Historia</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut6')">📋 Copiar</button></div>
         </div>
       </div>
     </div>
@@ -2391,6 +2469,38 @@ function updatePlanProgress(){
   const pct = all.length ? Math.round(done.length/all.length*100) : 0;
   const bar = document.getElementById('planBar'); if(bar) bar.style.width = pct+'%';
   const lbl = document.getElementById('planPct'); if(lbl) lbl.textContent = pct+'% completado ('+done.length+'/'+all.length+')';
+}
+
+// ─── EQUIPO IA: 6 agentes en paralelo ───
+async function runEquipoIA(){
+  if(!apiKey){
+    document.getElementById('eqStatus').textContent = '⚠️ Pon tu API Key arriba a la derecha y vuelve a intentar.';
+    return;
+  }
+  const btn = document.getElementById('eqRunBtn');
+  const status = document.getElementById('eqStatus');
+  btn.disabled = true;
+  const t0 = Date.now();
+  const agents = [
+    {id:'eqOut1', name:'Ganchos', prompt:'Dame 5 GANCHOS virales para Reels de Facebook, en español cálido del Sur de California, para el mercado hispano 60+. Cada gancho de 1 frase, capta la atención en los primeros 3 segundos. Numéralos 1-5 y agrega 1 línea de por qué funciona.'},
+    {id:'eqOut2', name:'Live', prompt:'Escribe un GUION de Facebook Live de 5-7 minutos para mi cita semanal de Q&A de Medicare en español. Estructura: gancho inicial (3 seg), bienvenida cálida, 3 puntos clave del tema "Diferencia entre Medicare Advantage y Medicare Suplementario", invitación a comentar dudas, y cierre con CTA "Escríbeme MEDICARE y te mando mi guía gratis". Tono cercano, sin jerga.'},
+    {id:'eqOut3', name:'Reels', prompt:'Dame 3 IDEAS de Reels para esta semana enfocados en hacerme viral en el mercado latino de Medicare en SoCal. Para cada uno: (1) tema, (2) gancho de 3 segundos, (3) guion corto de 30-45 seg, (4) CTA al final, (5) por qué se compartiría.'},
+    {id:'eqOut4', name:'Tip', prompt:'Escribe un post de Facebook "¿Sabías que…?" en español para mi audiencia latina 60+ sobre UN beneficio poco conocido de Medicare Advantage (ejemplo: beneficios dentales, transporte, dinero para comida). Formato: gancho fuerte + dato sorprendente + explicación clara en 2-3 líneas + CTA "Escríbeme y te explico si tu plan lo incluye 💙". Que sea fácil de compartir.'},
+    {id:'eqOut5', name:'Lead', prompt:'Escribe el COPY de un post de Facebook para ofrecer mi guía gratis "5 cosas que debes saber antes de elegir tu plan Medicare". Tono cálido, español sencillo. Incluye: hook que detenga el scroll, 3 razones para descargarla, CTA clara ("Escríbeme MEDICARE y te la mando gratis"), y emojis 🦋 estratégicos. Que invite a etiquetar a alguien que cumple 65.'},
+    {id:'eqOut6', name:'Historia', prompt:'Dame una PLANTILLA de historia inspiradora para Facebook (en español, mercado hispano SoCal) que Isabel pueda completar con detalles de un cliente real (con su permiso). Estructura: situación inicial del cliente (confusión/miedo), el momento del cambio, el resultado positivo, la lección. Deja espacios marcados con [corchetes] donde Isabel debe agregar detalles reales. Recuerda: NO inventes nombres ni testimonios falsos.'}
+  ];
+  agents.forEach(a => setOutput(a.id,'<div class="ai-loading">✨ Generando<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>'));
+  let done = 0;
+  status.textContent = '🚀 6 agentes trabajando en paralelo… 0/6';
+  await Promise.all(agents.map(a =>
+    callClaude(ISABEL_SYSTEM, a.prompt, a.id).then(()=>{
+      done++;
+      status.textContent = `🚀 6 agentes trabajando en paralelo… ${done}/6`;
+    }).catch(e => setOutput(a.id, '❌ Error: '+e.message))
+  ));
+  const secs = ((Date.now()-t0)/1000).toFixed(1);
+  status.textContent = `✅ Listo en ${secs}s. Copia lo que te sirva y a publicar 🦋`;
+  btn.disabled = false;
 }
 
 // ─── BRAND: copy hex ───
