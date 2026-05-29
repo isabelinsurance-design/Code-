@@ -1859,6 +1859,38 @@ case 'luna_structural_audit':
     ok(['findings'=>$findings, 'total'=>count($findings)]);
     break;
 
+// ── SELF-TEST — verifica que todo quedó bien instalado (#deploy) ──
+// Admin abre luna_api.php?action=luna_selftest tras desplegar.
+// Crea/verifica tablas nuevas y hace una lectura trivial de cada feature.
+case 'luna_selftest':
+    requireAdmin();
+    $checks = [];
+    $check = function($name, $fn) use (&$checks) {
+        try { $fn(); $checks[$name] = 'OK'; }
+        catch (Exception $e) { $checks[$name] = 'FALLÓ: ' . $e->getMessage(); }
+    };
+
+    // Tablas nuevas se autocrean y se leen
+    $check('audit_log',        function() use ($pdo,$uid){ lunaAudit($pdo,$uid,'SELFTEST','ping'); $pdo->query("SELECT 1 FROM luna_audit_log LIMIT 1"); });
+    $check('outbound_queue',   function() use ($pdo){ ensureOutboundTable($pdo); $pdo->query("SELECT 1 FROM luna_outbound_queue LIMIT 1"); });
+    $check('plan_contenido',   function() use ($pdo){ ensurePlanTable($pdo); $pdo->query("SELECT 1 FROM plan_contenido LIMIT 1"); });
+    $check('entidades',        function() use ($pdo){ ensureEntityTable($pdo); $pdo->query("SELECT 1 FROM luna_entidades LIMIT 1"); });
+    $check('senales',          function() use ($pdo){ ensureSignalTable($pdo); $pdo->query("SELECT 1 FROM luna_senales LIMIT 1"); });
+    $check('skills',           function() use ($pdo){ ensureSkillTable($pdo); $pdo->query("SELECT 1 FROM luna_skills LIMIT 1"); });
+    // Lecturas base contra el CRM real
+    $check('crm_miembros',     function() use ($pdo){ $pdo->query("SELECT COUNT(*) FROM miembros"); });
+    $check('crm_soa',          function() use ($pdo){ $pdo->query("SELECT COUNT(*) FROM soa LIMIT 1"); });
+    $check('compute_signals',  function() use ($pdo){ computeSignals($pdo); });
+    $check('gaps',             function() use ($pdo){ $pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO'"); });
+
+    // API key del chat (no la revelamos, solo si existe)
+    $hasKey = (bool)(getenv('ANTHROPIC_API_KEY') ?: (defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : ''));
+    $checks['anthropic_api_key'] = $hasKey ? 'OK (configurada)' : 'FALTA — el chat no funcionará';
+
+    $allOk = !in_array(false, array_map(fn($v) => strpos($v,'FALL')===false && strpos($v,'FALTA')===false, $checks), true);
+    ok(['all_ok'=>$allOk, 'checks'=>$checks, 'version'=>'trust+memory+ads+web']);
+    break;
+
 // ─────────────────────────────────────────────────────────
 default:
     err('Acción desconocida: ' . $action, 404);
