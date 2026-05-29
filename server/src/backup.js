@@ -15,9 +15,10 @@
 // ============================================================
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, mkdirSync, readdirSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 
 const execP = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -42,16 +43,54 @@ export async function snapshot() {
   rotateLocal();
 
   let synced = null;
+  // Modo A: comando externo (rclone, restic, awscli, scp…)
   if (process.env.BACKUP_SYNC_CMD) {
     const cmd = process.env.BACKUP_SYNC_CMD.replace(/\{file\}/g, file);
     try {
       await execP(cmd, { timeout: 60_000 });
       synced = cmd;
     } catch (err) {
-      console.warn('[backup] sync command falló:', err.message);
+      console.warn('[backup] BACKUP_SYNC_CMD falló:', err.message);
+    }
+  }
+  // Modo B: subir directo a S3-compatible (R2, B2, S3, MinIO, etc.)
+  //         sin necesidad de instalar binarios en el server.
+  if (process.env.BACKUP_S3_BUCKET && process.env.BACKUP_S3_ACCESS_KEY_ID) {
+    try {
+      await uploadToS3(file);
+      synced = synced ? `${synced} + s3` : 's3';
+    } catch (err) {
+      console.warn('[backup] subida S3/R2 falló:', err.message);
     }
   }
   return { ok: true, file, synced };
+}
+
+let _s3 = null;
+function getS3Client() {
+  if (_s3) return _s3;
+  const region = process.env.BACKUP_S3_REGION || 'auto';
+  const endpoint = process.env.BACKUP_S3_ENDPOINT; // ej. https://<acct>.r2.cloudflarestorage.com
+  _s3 = new S3Client({
+    region,
+    endpoint,
+    credentials: {
+      accessKeyId: process.env.BACKUP_S3_ACCESS_KEY_ID,
+      secretAccessKey: process.env.BACKUP_S3_SECRET_ACCESS_KEY,
+    },
+    forcePathStyle: true, // R2/MinIO lo prefieren
+  });
+  return _s3;
+}
+
+async function uploadToS3(filePath) {
+  const Bucket = process.env.BACKUP_S3_BUCKET;
+  const prefix = (process.env.BACKUP_S3_PREFIX || 'athena').replace(/\/+$/, '');
+  const Key = `${prefix}/${basename(filePath)}`;
+  const body = readFileSync(filePath);
+  await getS3Client().send(new PutObjectCommand({
+    Bucket, Key, Body: body, ContentType: 'application/gzip',
+  }));
 }
 
 function rotateLocal() {
