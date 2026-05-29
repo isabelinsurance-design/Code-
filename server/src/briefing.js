@@ -2,6 +2,23 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { canSendProactive } from './proactive.js';
+import { isAepNow } from './crm.js';
+
+// Devuelve true si estamos a 30 días (o menos) del inicio del AEP
+// (15 oct), del OEP (1 ene), o ya dentro del AEP. Sirve para activar
+// el digest de noticias Medicare en el briefing.
+function isAepWindow() {
+  const now = new Date();
+  if (isAepNow(now)) return true;
+  const year = now.getFullYear();
+  const aepStart = new Date(year, 9, 15);
+  const daysToAep = (aepStart.getTime() - now.getTime()) / 86_400_000;
+  if (daysToAep > 0 && daysToAep <= 30) return true;
+  const oepStart = new Date(year + 1, 0, 1);
+  const daysToOep = (oepStart.getTime() - now.getTime()) / 86_400_000;
+  if (daysToOep > 0 && daysToOep <= 14) return true;
+  return false;
+}
 
 // El briefing de la mañana: Athena le escribe a Isabel SIN que
 // Isabel tenga que abrir nada. Esto es lo que la hace "autónoma".
@@ -29,6 +46,11 @@ export async function sendMorningBriefing() {
   });
 
   const messages = getHistory();
+  const aep = isAepWindow();
+  const aepHint = aep ? `
+
+CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Llama web_search con UNA query enfocada (ej: "Medicare news SCAN Humana Anthem ${new Date().getFullYear()} ${new Date().toLocaleString('en-US',{month:'short'})}" o "CMS Final Rule 2027 brokers"). Trae 1-2 datos accionables (cambio de tarifa, plan nuevo, regla nueva) — no un resumen genérico. Si web_search no devuelve nada relevante, salta el digest.` : '';
+
   messages.push({
     role: 'user',
     content: `[BRIEFING AUTOMÁTICO DE LA MAÑANA — ${fecha}] Salúdame con energía y dame tu mejor lectura del día.
@@ -39,7 +61,7 @@ SEGUNDO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los co
 
 TERCERO, pregúntame mis Top 3 de hoy.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);

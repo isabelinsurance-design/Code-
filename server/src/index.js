@@ -20,6 +20,7 @@ import {
   pruneRateLimit,
 } from './security.js';
 import { snapshot as backupSnapshot } from './backup.js';
+import { startInboxIdle, inboxIdleEnabled } from './inbox_idle.js';
 
 const app = express();
 // Si estamos detrás de un proxy (Railway/Render/Fly), confiamos en
@@ -103,7 +104,8 @@ async function replyTo(to, text, { voice = false } = {}) {
 
 // Convierte un mensaje entrante de WhatsApp (texto + 0..N adjuntos)
 // en el formato de content que Anthropic espera.
-//  - Imágenes → image blocks base64
+//  - Imágenes (jpg/png/webp/gif) → image blocks base64
+//  - PDFs → document blocks base64 (Claude los lee nativo desde 3.5)
 //  - Audio (voice notes) → transcripción Whisper, se mete como texto
 //  - Otros → nota textual
 async function buildUserContent(text, numMedia, body) {
@@ -120,6 +122,18 @@ async function buildUserContent(text, numMedia, body) {
         type: 'image',
         source: { type: 'base64', media_type: ctype, data: img },
       });
+    } else if (ctype === 'application/pdf') {
+      // Claude lee PDFs nativo. Ideal para SOA firmadas, EOB, plan
+      // summaries, screenshots de Plan Finder, etc.
+      try {
+        const pdf = await fetchTwilioMedia(url);
+        parts.push({
+          type: 'document',
+          source: { type: 'base64', media_type: 'application/pdf', data: pdf },
+        });
+      } catch (err) {
+        transcripts.push(`[Isabel mandó un PDF que no pude descargar: ${err.message}]`);
+      }
     } else if (ctype.startsWith('audio/')) {
       const t = await transcribeWhatsAppAudio(url, ctype);
       if (t.ok && t.transcript) {
@@ -132,7 +146,7 @@ async function buildUserContent(text, numMedia, body) {
     }
   }
   const merged = [text, ...transcripts].filter(Boolean).join('\n\n');
-  parts.push({ type: 'text', text: merged || '(Isabel mandó adjunto sin texto — describe lo que ves/oíste y reacciona.)' });
+  parts.push({ type: 'text', text: merged || '(Isabel mandó adjunto sin texto — describe lo que ves/oíste/leíste y reacciona.)' });
   return parts;
 }
 
@@ -207,4 +221,10 @@ if (calendarConfigured()) {
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
+  // Arranca el listener de Gmail IDLE (event-driven inbox). Si las
+  // credenciales no están, no hace nada. Si la conexión cae, se
+  // reconecta con backoff. NO bloquea el arranque del server.
+  if (inboxIdleEnabled) {
+    startInboxIdle().catch((err) => console.error('[idle] arranque falló:', err.message));
+  }
 });
