@@ -99,72 +99,290 @@ Railway es hosting diseñado para procesos persistentes como Athena:
 
 Cada feature es un toggle de env var. Athena detecta qué está configurado y prende lo que tiene.
 
-### Los 7 pasos del deploy mínimo (~45 min)
+### Antes de empezar — ten esto a la mano
 
-**1. Anthropic API key (5 min).**
-- https://console.anthropic.com → API Keys → "Create Key" → cópiala (empieza con `sk-ant-`).
-- Asegúrense que la cuenta tenga al menos $10 de crédito.
+1. Una computadora con browser (Chrome/Safari/Edge)
+2. El teléfono de Isabel con WhatsApp instalado
+3. Una app de notas abierta (Notepad, Notes, lo que sea) — vas a copiar/pegar 5 cosas importantes
+4. La tarjeta de crédito de Isabel (para Anthropic y OpenAI mínimo)
+5. Acceso a GitHub con la cuenta de `isabelinsurance-design` (para Railway)
 
-**2. OpenAI API key (5 min).**
-- https://platform.openai.com → API keys → "Create new secret key" → copiar.
-- Agregar $5 de crédito (para Whisper cuando Isabel manda voice notes).
+> **Regla de oro:** cuando una página te muestre una "API Key" o "Token", **CÓPIALA INMEDIATAMENTE** a tu app de notas. Si cierras la página sin copiar, casi siempre la tienes que crear de nuevo desde cero.
 
-**3. Twilio + WhatsApp Sandbox (10 min).**
-- https://www.twilio.com/try-twilio → trial gratis con $15.
-- Console → Messaging → "Try it out" → "Send a WhatsApp message".
-- Verán un "join code" (ej. `join sunny-tiger`).
-- Desde el WhatsApp de Isabel, mandar ese mensaje exacto a `+1 415 523 8886`. Twilio responderá confirmando que está suscrita al sandbox.
-- Desde el dashboard principal de Twilio: copiar **Account SID** + **Auth Token** (los guardamos en paso 5).
+---
 
-**4. Railway deploy (10 min).**
-- https://railway.app/login → sign in con GitHub.
-- "New Project" → "Deploy from GitHub repo" → seleccionar `isabelinsurance-design/Code-`.
-- En Settings → seleccionar la branch `claude/sleepy-darwin-P4k2z`.
-- Railway empieza a construir. Esperar ~3 min.
-- Cuando termine: Settings → "Generate Domain" → copiar el URL (algo como `https://athena-isabel-production.up.railway.app`).
+## PASO 1 — Sacar la API key de Anthropic (5 min)
 
-**5. Variables mínimas en Railway (10 min).**
-Variables tab → "Raw editor" → pegar tal cual, reemplazando los placeholders:
+Esta es la "cabeza" de Athena. Sin esto, Athena no piensa.
+
+**1.1.** Abre tu browser y entra a: **https://console.anthropic.com**
+
+**1.2.** Si no tienes cuenta de Anthropic:
+- Click "Sign Up"
+- Usa el email de Isabel
+- Sigue las instrucciones (verificación de email, etc.)
+
+**1.3.** Si ya tienes cuenta: Login.
+
+**1.4.** Una vez dentro del console, en el menú izquierdo busca **"API Keys"**. Click.
+
+**1.5.** Click el botón **"Create Key"** (arriba a la derecha).
+
+**1.6.** Te aparece un popup. En "Name" escribe: `Athena`. Click **"Create Key"**.
+
+**1.7.** ⚠️ Te muestra una llave que empieza con `sk-ant-api03-...` (es muy larga).
+
+**1.8.** **COPIA ESA LLAVE COMPLETA** y pégala en tu app de notas con la etiqueta `ANTHROPIC_API_KEY`. Si cierras este popup sin copiar, NO la podrás ver otra vez — hay que crear una nueva.
+
+**1.9.** Verifica que la cuenta tenga crédito: arriba a la derecha → **"Plans & Billing"**. Debe decir al menos $10 disponibles. Si no, agregar tarjeta y mínimo $20.
+
+✅ **Al final de este paso tienes:** una key `sk-ant-...` copiada en notas.
+
+---
+
+## PASO 2 — Sacar la API key de OpenAI (5 min)
+
+Esta es para que Athena pueda escuchar las voice notes que Isabel le mande (Whisper).
+
+**2.1.** Abre: **https://platform.openai.com**
+
+**2.2.** Login (o crear cuenta si no tienes).
+
+**2.3.** En el menú izquierdo (a veces hay que abrirlo con el icono ☰), busca **"API keys"**.
+
+**2.4.** Click **"Create new secret key"**.
+
+**2.5.** En "Name" escribe: `Athena`. Permissions: deja "All" (default). Click **"Create secret key"**.
+
+**2.6.** ⚠️ Te aparece una llave que empieza con `sk-...`.
+
+**2.7.** **COPIA ESA LLAVE** a tu app de notas con la etiqueta `OPENAI_API_KEY`. (Igual que con Anthropic — si la pierdes hay que crear nueva.)
+
+**2.8.** Verifica crédito: arriba derecha → Settings → **Billing** → debe haber al menos $5. Si no, agrega tarjeta.
+
+✅ **Al final de este paso tienes:** una key `sk-...` copiada en notas.
+
+---
+
+## PASO 3 — Crear cuenta Twilio + activar WhatsApp Sandbox (10 min)
+
+Esto es lo que conecta WhatsApp con Athena. Vamos a usar el "Sandbox" de Twilio porque es gratis y funciona inmediato (sin esperar aprobación de Meta para el número real, que tarda 3-7 días).
+
+**3.1.** Abre: **https://www.twilio.com/try-twilio**
+
+**3.2.** Click "Sign Up". Llena el formulario:
+- Email de Isabel
+- Password fuerte
+- Número de teléfono de Isabel (para verificación SMS)
+
+**3.3.** Verifica el código SMS que te mandan al teléfono de Isabel.
+
+**3.4.** Twilio te pregunta unas cosas para personalizar la cuenta:
+- "What do you plan to build?": **Other**
+- "Which Twilio product?": **Messaging** y **WhatsApp**
+- "Which language?": **JavaScript / Node.js**
+- "Are you a developer?": **No**
+
+**3.5.** Llegas al dashboard. Arriba a la derecha verás un banner: **"Trial Balance: $15.00"**. Eso es suficiente.
+
+**3.6.** En el menú izquierdo: **"Messaging"** → **"Try it out"** → **"Send a WhatsApp message"**.
+
+**3.7.** En esa pantalla aparece (anota estos dos datos):
+- Un número de teléfono: **`+1 415 523 8886`** (este es el número sandbox de Twilio, lo mismo para todos)
+- Un "join code" tipo: **`join word-word`** (por ejemplo: `join sunny-tiger`) — este es ÚNICO para tu cuenta
+
+**3.8.** ⚠️ Ahora **abre WhatsApp en el teléfono de Isabel**.
+
+**3.9.** Agrega un contacto nuevo:
+- Nombre: `Athena Sandbox`
+- Número: `+1 415 523 8886`
+
+**3.10.** Manda un mensaje a ese contacto con el texto exacto del "join code" del paso 3.7 (por ejemplo: `join sunny-tiger`).
+
+**3.11.** Espera 5 segundos. Twilio te debe responder algo como:
+> ✅ Twilio Sandbox: You are all set! Messages sent to this number...
+
+Si te respondió eso, el teléfono de Isabel está **suscrito al sandbox**. Sin este paso, Athena no le puede mandar mensajes a Isabel.
+
+**3.12.** Ahora copia los credenciales de Twilio:
+- Click el logo de Twilio (arriba izquierda) para volver al dashboard principal
+- En el centro de la pantalla, en una caja gris, verás:
+  - **Account SID:** empieza con `AC` y es muy largo → **CÓPIALO** a notas como `TWILIO_ACCOUNT_SID`
+  - **Auth Token:** está oculto con `••••`. Click el ícono del ojo para verlo → **CÓPIALO** a notas como `TWILIO_AUTH_TOKEN`
+
+✅ **Al final de este paso tienes:**
+- WhatsApp de Isabel suscrito al sandbox de Twilio
+- `TWILIO_ACCOUNT_SID` copiado
+- `TWILIO_AUTH_TOKEN` copiado
+
+---
+
+## PASO 4 — Deployar a Railway (10 min)
+
+Railway es donde Athena va a vivir 24/7.
+
+**4.1.** Abre: **https://railway.app/login**
+
+**4.2.** Click **"Login with GitHub"**. Si te pide autorizar, autoriza.
+
+**4.3.** Si es tu primera vez en Railway, te pregunta si quieres el trial gratis. Acepta. Te da $5 de crédito gratis.
+
+**4.4.** En el dashboard, click el botón **"New Project"** (arriba derecha o en el centro).
+
+**4.5.** Selecciona **"Deploy from GitHub repo"**.
+
+**4.6.** Te pide autorizar Railway para ver tus repos de GitHub. Click "Configure GitHub App" → autoriza el repo `isabelinsurance-design/Code-` (puedes autorizar solo ese, no todos).
+
+**4.7.** De vuelta en Railway, ahora puedes seleccionar el repo. Selecciona **`isabelinsurance-design/Code-`**.
+
+**4.8.** Railway empieza a buildear automáticamente. **PERO** está usando la branch `main` y necesitamos otra branch. Vamos a cambiarla:
+- Click en el cuadro del servicio (donde dice el nombre del repo)
+- Click **"Settings"** tab
+- Scroll hasta **"Source"** section
+- En "Branch", cambia de `main` a: **`claude/sleepy-darwin-P4k2z`**
+- Click fuera para guardar
+- Railway va a re-buildear con la branch correcta. Esperar 2-3 minutos.
+
+**4.9.** Ver el progreso: click **"Deployments"** tab. El último deploy debe pasar de "Building" → "Deploying" → "Active" (con check verde). Si dice "Crashed", click el deploy y revisa los logs.
+
+**4.10.** Una vez "Active", generar el URL público:
+- Settings tab → scroll a **"Networking"** section
+- Click **"Generate Domain"**
+- Te aparece un URL como: **`https://athena-isabel-production-XXXX.up.railway.app`**
+
+**4.11.** ⚠️ **COPIA ESE URL COMPLETO** a tu app de notas como `PUBLIC_URL`. Es la dirección donde vive Athena en internet.
+
+✅ **Al final de este paso tienes:**
+- Athena deployada en Railway (pero todavía sin variables, así que crashea)
+- URL público copiado
+
+---
+
+## PASO 5 — Pegar las 11 variables en Railway (10 min)
+
+Las variables son la configuración secreta de Athena. Sin ellas no funciona.
+
+**5.1.** En el proyecto Railway (donde estás), click **"Variables"** tab.
+
+**5.2.** Click **"Raw Editor"** (arriba a la derecha).
+
+**5.3.** Te aparece una caja vacía. **COPIA Y PEGA esto tal cual:**
 
 ```bash
-ANTHROPIC_API_KEY=sk-ant-XXXXXX
-OPENAI_API_KEY=sk-XXXXXX
-PUBLIC_URL=https://athena-isabel-production.up.railway.app
-TWILIO_ACCOUNT_SID=ACXXXXXX
-TWILIO_AUTH_TOKEN=XXXXXX
+ANTHROPIC_API_KEY=sk-ant-PEGA-AQUI
+OPENAI_API_KEY=sk-PEGA-AQUI
+PUBLIC_URL=https://PEGA-AQUI.railway.app
+TWILIO_ACCOUNT_SID=ACPEGA-AQUI
+TWILIO_AUTH_TOKEN=PEGA-AQUI
 TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
 TWILIO_REQUIRE_SIGNATURE=true
 ISABEL_WHATSAPP=whatsapp:+1XXXXXXXXXX
 ISABEL_NAME=Isabel
 TIMEZONE=America/Los_Angeles
-DASHBOARD_PASSWORD=algoSeguroQueElijan
+DASHBOARD_PASSWORD=ELIJAN-UN-PASSWORD
 ```
 
-Save. Railway redespliega solo (~1 min).
+**5.4.** Ahora reemplaza cada `PEGA-AQUI` con el valor real de tus notas:
+- `ANTHROPIC_API_KEY` → la del paso 1
+- `OPENAI_API_KEY` → la del paso 2
+- `PUBLIC_URL` → el URL del paso 4.11 (completo, con `https://`)
+- `TWILIO_ACCOUNT_SID` → del paso 3.12 (empieza con `AC`)
+- `TWILIO_AUTH_TOKEN` → del paso 3.12
+- `ISABEL_WHATSAPP` → el número de Isabel con `whatsapp:+1` adelante (ej. `whatsapp:+13105551234`)
+- `DASHBOARD_PASSWORD` → invéntense uno (mínimo 8 caracteres, será para abrir el dashboard)
 
-**6. Apuntar Twilio webhook a Railway (2 min).**
-- Twilio Console → Messaging → "Try it Out" → "Send a WhatsApp message" → "Sandbox Settings".
-- En "WHEN A MESSAGE COMES IN": pegar `https://athena-isabel-production.up.railway.app/whatsapp` (su URL real).
-- Method: POST.
-- Save.
+**5.5.** **NO toques estos** (déjenlos exacto como están):
+- `TWILIO_WHATSAPP_FROM=whatsapp:+14155238886` ← este es el sandbox de Twilio, igual para todos
+- `TWILIO_REQUIRE_SIGNATURE=true`
+- `ISABEL_NAME=Isabel`
+- `TIMEZONE=America/Los_Angeles`
 
-**7. Test (3 min).**
-Desde el WhatsApp de Isabel (ya suscrito al sandbox): mandar `hola`.
+**5.6.** Click **"Update Variables"**.
 
-Athena debería contestar en español, presentándose. Si contesta: 🎉 está viva.
+**5.7.** Railway detecta el cambio y redespliega automáticamente. Esperen 1-2 min. **Deployments tab** → último deploy debe pasar a verde "Active" otra vez.
 
-Si no contesta:
-- Railway → Deployments → último deploy → View Logs → busquen el error.
-- Lo más común: env var mal escrita o webhook URL incorrecta.
+✅ **Al final de este paso:** Athena está corriendo con todas las credenciales.
 
-### Cosas que probar cuando esté viva
+---
 
-- `"Recuerda que prefiero hablar con clientes después de las 11am"` → Athena guarda en wiki
-- `"¿Qué recuerdas de mí?"` → te lo lee de vuelta
-- `"/help"` → lista de comandos slash
-- `"Consulta a María sobre cómo prepararme para AEP"` → consulta especialista (sin LUNA todavía, solo conocimiento general Medicare)
-- Abrir `https://athena-isabel-production.up.railway.app/dashboard` con `DASHBOARD_PASSWORD` → ven el dashboard en vivo
-- Esperen al día siguiente 6:30am → debería llegar briefing matutino solo
+## PASO 6 — Apuntar el webhook de Twilio a Railway (2 min)
+
+Esto le dice a Twilio "cuando llegue un mensaje al sandbox, mándaselo a Athena en Railway".
+
+**6.1.** Abre otra vez Twilio Console: **https://console.twilio.com**
+
+**6.2.** Menú izquierdo → **"Messaging"** → **"Try it out"** → **"Send a WhatsApp message"**.
+
+**6.3.** Arriba en la pantalla, hay 3 tabs: "Send a WhatsApp message" / "**Sandbox settings**" / "Sandbox participants". Click **"Sandbox settings"**.
+
+**6.4.** Verás dos campos:
+- **"WHEN A MESSAGE COMES IN"** ← este es el importante
+- **"STATUS CALLBACK URL"** ← deja vacío
+
+**6.5.** En el primer campo, BORRA lo que haya y pega tu URL Railway + `/whatsapp` al final.
+
+Ejemplo: si tu `PUBLIC_URL` es `https://athena-isabel-production-7a2k.up.railway.app`, entonces aquí va:
+```
+https://athena-isabel-production-7a2k.up.railway.app/whatsapp
+```
+
+**6.6.** Method al lado: déjalo en **`HTTP POST`** (default).
+
+**6.7.** Scroll hasta abajo → click **"Save"**.
+
+✅ **Al final de este paso:** Twilio sabe a dónde mandar los mensajes que reciba.
+
+---
+
+## PASO 7 — La prueba (3 min)
+
+Momento de la verdad.
+
+**7.1.** Abre WhatsApp en el teléfono de Isabel.
+
+**7.2.** Ve al chat con "Athena Sandbox" (el contacto del paso 3.9).
+
+**7.3.** Manda el mensaje: **`hola`**
+
+**7.4.** Espera entre 5 y 15 segundos.
+
+**7.5.** **Athena debe contestar** con un saludo en español/spanglish, presentándose como tu chief of staff.
+
+### Si SÍ contestó
+
+🎉 **Está VIVA.** Ya puedes:
+
+- Mandarle `"Recuerda que prefiero llamar a clientes después de las 11am"` → guarda en memoria
+- Mandarle `"¿Qué recuerdas de mí?"` → te lo lee de vuelta
+- Mandarle `"/help"` → lista de comandos
+- Mandarle `"Consulta a María Medicare sobre AEP"` → consulta especialista
+- Abrir `https://TU-URL.railway.app/dashboard` en un browser → te pide usuario (cualquiera) y password (el `DASHBOARD_PASSWORD` del paso 5.4)
+- Mañana a las 6:30am debe llegar el briefing matutino solo
+
+### Si NO contestó
+
+1. **Railway** → Deployments tab → último deploy → **"View Logs"**
+2. Busca líneas con `error`, `failed`, `crashed`, o `Cannot find`
+3. Lo más común:
+   - **Env var mal escrita** (un espacio extra, una letra de menos en el SID). Re-checar paso 5.
+   - **URL Railway mal copiada en el webhook Twilio** (paso 6.5). Re-checar.
+   - **Anthropic sin crédito** (paso 1.9). Agregar más dinero.
+   - **El teléfono de Isabel NO está suscrito al sandbox** (paso 3.11 nunca pasó). Mandar el "join code" otra vez.
+4. Si nada de eso es: copia el error de los logs y pásalo a la sesión de Claude para que diagnostique.
+
+---
+
+## ✅ Checklist final del deploy mínimo
+
+Marcá cada uno cuando lo termines:
+
+- [ ] PASO 1: `ANTHROPIC_API_KEY` copiada
+- [ ] PASO 2: `OPENAI_API_KEY` copiada
+- [ ] PASO 3: WhatsApp de Isabel suscrito al sandbox + Twilio SID/Token copiados
+- [ ] PASO 4: Railway deployado, URL público copiado
+- [ ] PASO 5: 11 variables pegadas en Railway
+- [ ] PASO 6: Webhook de Twilio apuntando a Railway
+- [ ] PASO 7: Athena contestó "hola" por WhatsApp 🎉
 
 ### Después, agreguen features una por una
 
