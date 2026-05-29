@@ -32,8 +32,17 @@ function newId() {
 }
 const nowIso = () => new Date().toISOString();
 const tz = () => process.env.TIMEZONE || 'America/Los_Angeles';
+// shortDate: para timestamps "instante en el tiempo" (creado, ultimo_contacto,
+// SOA signed_at). Se muestra en la TZ de Isabel.
 const shortDate = (iso) => iso
   ? new Date(iso).toLocaleDateString('es-MX', { timeZone: tz(), month: 'short', day: 'numeric', year: 'numeric' })
+  : '—';
+// shortCalDate: para fechas-de-calendario (fecha_nacimiento, renewal_date,
+// effective_date, ICEP window, retention_until). Estas NO son momentos —
+// son "el día X del calendario", por lo que se formatean en UTC para
+// evitar el shift visual de -1 día.
+const shortCalDate = (iso) => iso
+  ? new Date(iso).toLocaleDateString('es-MX', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' })
   : '—';
 
 function normalizePhone(p) {
@@ -176,13 +185,15 @@ export function upcomingRenewals(diasVentana = 60) {
 }
 
 // Cumpleaños próximos (default 14 días).
+// fecha_nacimiento es una fecha-calendario, por eso usamos getUTCMonth/Date
+// para extraer mes/día sin que la TZ del server los corra un día.
 export function upcomingBirthdays(diasVentana = 14) {
   const all = load().filter((c) => c.fecha_nacimiento);
   const today = new Date();
   return all.map((c) => {
     const fn = new Date(c.fecha_nacimiento);
-    const next = new Date(today.getFullYear(), fn.getMonth(), fn.getDate());
-    if (next < today) next.setFullYear(today.getFullYear() + 1);
+    const next = new Date(Date.UTC(today.getUTCFullYear(), fn.getUTCMonth(), fn.getUTCDate()));
+    if (next.getTime() < today.getTime()) next.setUTCFullYear(today.getUTCFullYear() + 1);
     const diasFalta = Math.ceil((next.getTime() - today.getTime()) / 86_400_000);
     return { ...c, diasFalta, proximo_cumple: next.toISOString() };
   })
@@ -198,12 +209,18 @@ export function upcomingBirthdays(diasVentana = 14) {
 export function t65Info(c, ventanaMeses = 6) {
   if (!c.fecha_nacimiento) return null;
   const fn = new Date(c.fecha_nacimiento);
-  const sixtyFive = new Date(fn.getFullYear() + 65, fn.getMonth(), fn.getDate());
+  // Usamos UTC en todo el cómputo para que fecha_nacimiento "1961-09-15"
+  // (que JS parsea como medianoche UTC) no se vuelva 14 sep en zonas con
+  // offset negativo. Y devolvemos ISO de medianoche UTC del día calendario.
+  const y65 = fn.getUTCFullYear() + 65;
+  const m65 = fn.getUTCMonth();
+  const d65 = fn.getUTCDate();
+  const sixtyFive = new Date(Date.UTC(y65, m65, d65));
   const today = new Date();
-  const diffMonths = (sixtyFive.getFullYear() - today.getFullYear()) * 12 + (sixtyFive.getMonth() - today.getMonth());
+  const diffMonths = (y65 - today.getUTCFullYear()) * 12 + (m65 - today.getUTCMonth());
   if (diffMonths < -3 || diffMonths > ventanaMeses) return null;
-  const icep_start = new Date(sixtyFive.getFullYear(), sixtyFive.getMonth() - 3, 1);
-  const icep_end = new Date(sixtyFive.getFullYear(), sixtyFive.getMonth() + 4, 0); // último día del mes +3
+  const icep_start = new Date(Date.UTC(y65, m65 - 3, 1));
+  const icep_end = new Date(Date.UTC(y65, m65 + 4, 0));
   return {
     cumple_65: sixtyFive.toISOString(),
     meses_para_65: diffMonths,
@@ -398,7 +415,7 @@ function clientLine(c, opts = {}) {
   if (c.carrier) parts.push(c.carrier);
   if (opts.showStatus !== false) parts.push(`(${c.status})`);
   if (opts.showLastContact) parts.push(`último: ${shortDate(c.ultimo_contacto)}`);
-  if (opts.showRenewal && c.renewal_date) parts.push(`renew: ${shortDate(c.renewal_date)}`);
+  if (opts.showRenewal && c.renewal_date) parts.push(`renew: ${shortCalDate(c.renewal_date)}`);
   return parts.join(' · ');
 }
 
@@ -409,25 +426,27 @@ export function clientCard(c) {
   ];
   if (c.telefono) lines.push(`Tel: ${c.telefono}`);
   if (c.email) lines.push(`Email: ${c.email}`);
-  if (c.fecha_nacimiento) lines.push(`Nacimiento: ${shortDate(c.fecha_nacimiento)}`);
+  if (c.fecha_nacimiento) lines.push(`Nacimiento: ${shortCalDate(c.fecha_nacimiento)}`);
   if (c.carrier || c.plan) lines.push(`Plan: ${c.carrier || ''} ${c.plan || ''}`.trim());
   if (c.mbi) {
     const mbiStatus = c.mbi_verified?.status || 'pending';
     const mbiIcon = mbiStatus === 'verified' ? '✓' : mbiStatus === 'invalid' ? '✗' : '?';
     lines.push(`MBI: ${c.mbi} ${mbiIcon} ${mbiStatus}${c.mbi_verified?.source ? ` (${c.mbi_verified.source})` : ''}`);
   }
-  if (c.effective_date) lines.push(`Efectivo: ${shortDate(c.effective_date)}`);
-  if (c.renewal_date) lines.push(`Renovación: ${shortDate(c.renewal_date)}`);
+  if (c.effective_date) lines.push(`Efectivo: ${shortCalDate(c.effective_date)}`);
+  if (c.renewal_date) lines.push(`Renovación: ${shortCalDate(c.renewal_date)}`);
 
   // Compliance block
   if (c.soa) {
     const s = c.soa.status;
-    if (s === 'signed') lines.push(`SOA: firmada ${shortDate(c.soa.signed_at)} (retención hasta ${shortDate(c.soa.retention_until)})`);
+    // signed_at es un INSTANTE (cuándo se firmó), shortDate. retention_until
+    // es una fecha-calendario (hasta qué día calendario hay que retenerla).
+    if (s === 'signed') lines.push(`SOA: firmada ${shortDate(c.soa.signed_at)} (retención hasta ${shortCalDate(c.soa.retention_until)})`);
     else if (s !== 'none') lines.push(`SOA: ${s}`);
   }
   if (c.tcpa_consent?.granted) lines.push(`TCPA: consentido ${shortDate(c.tcpa_consent.granted_at)} (v${c.tcpa_consent.version})`);
   const t65 = t65Info(c, 6);
-  if (t65) lines.push(`T65: en ${t65.meses_para_65} meses (ICEP ${shortDate(t65.icep_start)} → ${shortDate(t65.icep_end)})`);
+  if (t65) lines.push(`T65: en ${t65.meses_para_65} meses (ICEP ${shortCalDate(t65.icep_start)} → ${shortCalDate(t65.icep_end)})`);
   const aepCount = aepTouchpointCount(c, 12);
   if (aepCount) lines.push(`Touchpoints últimos 12m: ${aepCount}`);
   if (c.drug_list?.length) {

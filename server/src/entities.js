@@ -39,10 +39,12 @@ function newId() {
 const nowIso = () => new Date().toISOString();
 
 // Normalización para matching: minúsculas, sin acentos, sin puntos.
+// U+0300..U+036F = combining diacritical marks. Usar el escape Unicode
+// explícito en vez del rango literal evita fragilidad entre editores.
 function norm(s) {
   return String(s || '')
     .toLowerCase()
-    .normalize('NFD').replace(/[̀-ͯ]/g, '')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
     .replace(/[^\w\s]/g, '')
     .replace(/\s+/g, ' ')
     .trim();
