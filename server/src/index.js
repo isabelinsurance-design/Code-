@@ -1,7 +1,6 @@
 import 'dotenv/config';
 import express from 'express';
 import cron from 'node-cron';
-import twilio from 'twilio';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
@@ -13,8 +12,19 @@ import { transcribeWhatsAppAudio } from './transcribe.js';
 import { checkUpcomingMeetingsTick, calendarConfigured } from './calendar.js';
 import { commitmentChaseTick } from './commitments.js';
 import { synthToPublicUrl, ttsConfigured, cleanupOldAudio, AUDIO_DIR } from './tts.js';
+import {
+  twilioSignatureMiddleware,
+  checkAndMarkSid,
+  pruneSeenSids,
+  rateLimitMiddleware,
+  pruneRateLimit,
+} from './security.js';
+import { snapshot as backupSnapshot } from './backup.js';
 
 const app = express();
+// Si estamos detrás de un proxy (Railway/Render/Fly), confiamos en
+// X-Forwarded-* para que rate limit y firma vean el IP/host reales.
+app.set('trust proxy', 1);
 app.use(express.urlencoded({ extended: false }));
 app.use(express.json());
 
@@ -26,26 +36,13 @@ app.get('/health', (_req, res) => res.json({ ok: true, time: new Date().toISOStr
 app.use('/audio', express.static(AUDIO_DIR, { maxAge: '6h', extensions: ['mp3'] }));
 
 // ---- Webhook de WhatsApp entrante (Twilio le pega aquí) ----
-app.post('/whatsapp', async (req, res) => {
-  // Verificación opcional de que el mensaje viene de Twilio de verdad.
-  if (process.env.VERIFY_TWILIO_SIGNATURE === 'true') {
-    const signature = req.headers['x-twilio-signature'];
-    const url = `${process.env.PUBLIC_URL}/whatsapp`;
-    const valid = twilio.validateRequest(
-      process.env.TWILIO_AUTH_TOKEN,
-      signature,
-      url,
-      req.body
-    );
-    if (!valid) {
-      console.warn('[whatsapp] Firma de Twilio inválida — rechazado.');
-      return res.status(403).send('Forbidden');
-    }
-  }
-
+// Middleware en orden: rate limit (barato, primero) → firma Twilio
+// (rechaza requests que no vienen de Twilio) → handler.
+app.post('/whatsapp', rateLimitMiddleware, twilioSignatureMiddleware, async (req, res) => {
   const from = req.body.From; // ej. whatsapp:+1...
   const text = (req.body.Body || '').trim();
   const numMedia = parseInt(req.body.NumMedia || '0', 10);
+  const sid = req.body.MessageSid;
 
   // Respondemos 200 de inmediato para que Twilio no reintente,
   // y procesamos la respuesta en segundo plano.
@@ -54,6 +51,14 @@ app.post('/whatsapp', async (req, res) => {
 
   if (!from) return;
   if (!text && !numMedia) return;
+
+  // Idempotencia: si Twilio ya nos mandó este SID (reintento por timeout
+  // o ack perdido), saltamos para no duplicar la respuesta de Athena.
+  const dup = checkAndMarkSid(sid);
+  if (dup.duplicate) {
+    console.log(`[whatsapp] SID duplicado ${sid} — ignorado (visto hace ${Math.round((Date.now()-dup.seenAt)/1000)}s).`);
+    return;
+  }
 
   // Detecta si Isabel mandó audio — Athena le responde con voz también.
   const userSentVoice = audioMediaPresent(numMedia, req.body);
@@ -177,6 +182,19 @@ scheduleCron('chase',   process.env.COMMITMENT_CHASE_CRON || '0 8-20/2 * * *', c
 scheduleCron('audio_gc', '0 * * * *', async () => {
   const n = cleanupOldAudio(24);
   if (n) console.log(`[audio_gc] borrados ${n} MP3 viejos.`);
+});
+// Backup horario: snapshot completo de data/ con rotación local de
+// 24 + sync opcional (configurar BACKUP_SYNC_CMD para offsite).
+scheduleCron('backup', process.env.BACKUP_CRON || '15 * * * *', async () => {
+  const r = await backupSnapshot();
+  if (r.ok) console.log(`[backup] snapshot OK ${r.file}${r.synced ? ' (sync ✓)' : ''}`);
+  else console.warn('[backup]', r.reason);
+});
+// Prune horario de los Maps de seguridad (idempotencia + rate limit).
+scheduleCron('security_gc', '5 * * * *', async () => {
+  const sids = pruneSeenSids();
+  pruneRateLimit();
+  if (sids) console.log(`[security_gc] borrados ${sids} SIDs vencidos.`);
 });
 // Pre-meeting brief: cada 5 min revisa si hay una junta en 10-20 min
 // y manda el brief. Solo se activa si Google Calendar está configurado.

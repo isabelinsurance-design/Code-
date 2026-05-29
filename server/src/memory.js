@@ -1,6 +1,7 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { redactPII } from './security.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -186,12 +187,15 @@ export function saveHistory(messages) {
 // Esto da trazabilidad ("¿qué hiciste hoy en mi nombre, Athena?") y
 // es el backbone del comando /historial.
 export function logActivity({ tool, input_summary, result_summary }) {
+  // Redactamos PII antes de persistir — el audit log NO debe contener
+  // teléfonos, emails, SSN o MBI en claro. Los expedientes de cliente
+  // viven en crm.json (acceso controlado); aquí solo metadatos.
   const log = load(ACTIVITY_FILE, []);
   log.unshift({
     ts: new Date().toISOString(),
     tool,
-    input_summary: String(input_summary || '').slice(0, 200),
-    result_summary: String(result_summary || '').slice(0, 200),
+    input_summary: redactPII(String(input_summary || '').slice(0, 200)),
+    result_summary: redactPII(String(result_summary || '').slice(0, 200)),
   });
   save(ACTIVITY_FILE, log.slice(0, 500));
 }

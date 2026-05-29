@@ -19,11 +19,23 @@ export async function runDirectora(messages, opts = {}) {
     {
       type: 'text',
       text: DIRECTORA.system,
-      cache_control: { type: 'ephemeral' }, // el prompt grande no cambia → se cachea
+      // TTL de 1h: el system prompt (filosofía + reglas + voz) NO cambia
+      // durante el día. Anthropic dropeó el default a 5min en feb 2026
+      // y eso encarece nuestro tráfico ~30-60% sin esto. La escritura
+      // del cache 1h cuesta 2x, pero la lectura sigue a 0.1x → con
+      // ≥3 turnos/hora ya estamos al positivo. Isabel pasa de eso fácil.
+      cache_control: { type: 'ephemeral', ttl: '1h' },
     },
   ];
   if (wiki) {
-    system.push({ type: 'text', text: `MEMORIA ACTUAL DE ISABEL:\n${wiki}` });
+    // La memoria cambia más seguido (cualquier recordar/tarea/nota la muta).
+    // La cacheamos a TTL corto (default 5min) para no pagar escritura cara
+    // por bursts de turnos seguidos.
+    system.push({
+      type: 'text',
+      text: `MEMORIA ACTUAL DE ISABEL:\n${wiki}`,
+      cache_control: { type: 'ephemeral' },
+    });
   }
 
   // Loop: como máximo `maxRounds` vueltas de herramientas antes de cortar.
