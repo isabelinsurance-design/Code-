@@ -31,6 +31,18 @@ export const toolDefinitions = [
     },
   },
   {
+    name: 'enviar_sms',
+    description: 'Manda un SMS (mensaje de texto estándar, NO WhatsApp) a un número de teléfono. Úsalo principalmente para contactar clientes de Medicare que no usan WhatsApp: recordatorios de cita, confirmaciones, avisos de AEP/OEP, follow-ups cortos. Mantén el mensaje breve — SMS cobra por segmento.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        para: { type: 'string', description: 'Número de teléfono en formato internacional con + (ej. +13105551234).' },
+        mensaje: { type: 'string', description: 'El texto del SMS. Sin formato. Corto y claro.' },
+      },
+      required: ['para', 'mensaje'],
+    },
+  },
+  {
     name: 'enviar_email',
     description: 'Manda un correo electrónico desde la cuenta de Isabel. Úsalo para responder clientes, mandar info, o seguimiento por escrito.',
     input_schema: {
@@ -79,8 +91,15 @@ export async function runTool(name, input) {
     case 'mensaje_a_sami': {
       const to = process.env.SAMI_WHATSAPP;
       if (!to) return 'No hay número de Sami configurado (SAMI_WHATSAPP en el .env).';
-      await sendMessage(to, `📋 De Athena (Isabel):\n${input.mensaje}`);
+      await sendMessage(to, `De Athena (Isabel):\n${input.mensaje}`);
       return `Mensaje enviado a Sami: "${input.mensaje}"`;
+    }
+    case 'enviar_sms': {
+      let to = String(input.para || '').trim();
+      if (!to) return 'Falta el número de teléfono.';
+      if (!to.startsWith('+')) to = '+' + to.replace(/^[^\d]*/, '');
+      await sendMessage(to, input.mensaje);
+      return `SMS enviado a ${to}.`;
     }
     case 'enviar_email':
       return await sendEmail(input.para, input.asunto, input.cuerpo);

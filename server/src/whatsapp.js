@@ -14,7 +14,7 @@ export async function sendMessage(to, body) {
   }
   const from = to.startsWith('whatsapp:')
     ? process.env.TWILIO_WHATSAPP_FROM
-    : process.env.TWILIO_WHATSAPP_FROM?.replace('whatsapp:', '');
+    : (process.env.TWILIO_SMS_FROM || process.env.TWILIO_WHATSAPP_FROM?.replace('whatsapp:', ''));
 
   // WhatsApp corta mensajes largos; los partimos en ~1500 chars.
   const chunks = splitMessage(body, 1500);
