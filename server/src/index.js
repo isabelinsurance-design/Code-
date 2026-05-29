@@ -11,6 +11,7 @@ import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
 import { transcribeWhatsAppAudio } from './transcribe.js';
 import { checkUpcomingMeetingsTick, calendarConfigured } from './calendar.js';
+import { commitmentChaseTick } from './commitments.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -135,6 +136,10 @@ scheduleCron('triage',  process.env.EMAIL_TRIAGE_CRON    || '0 5 * * *',  nightl
 // silencioso de Athena puede correr a cualquier hora pero lo
 // limitamos a horas despiertas para acotar costo.
 scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 7-21 * * *', taskTick);
+// Persecución de compromisos: cada 2h en horas despiertas reviso
+// promesas vencidas. Si tengo cómo, le doy un nudge cordial a la
+// persona; en cualquier caso le aviso a Isabel (una vez por compromiso).
+scheduleCron('chase',   process.env.COMMITMENT_CHASE_CRON || '0 8-20/2 * * *', commitmentChaseTick);
 // Pre-meeting brief: cada 5 min revisa si hay una junta en 10-20 min
 // y manda el brief. Solo se activa si Google Calendar está configurado.
 if (calendarConfigured()) {

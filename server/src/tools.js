@@ -24,6 +24,29 @@ import {
   addTaskNote,
 } from './tasks.js';
 import { listUpcomingEvents, getEvent, calendarConfigured } from './calendar.js';
+import {
+  createCommitment,
+  listCommitments,
+  getCommitment,
+  completeCommitment,
+  failCommitment,
+  cancelCommitment,
+  noteCommitment,
+} from './commitments.js';
+import {
+  createClient,
+  updateClient,
+  addClientNote,
+  findClient,
+  getClient,
+  listClients,
+  staleClients,
+  upcomingRenewals,
+  upcomingBirthdays,
+  clientLine,
+  clientCard,
+} from './crm.js';
+import { pendingResponses, recentActivity, nextivaConfigured } from './nextiva.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -279,6 +302,208 @@ export const toolDefinitions = [
       required: ['id'],
     },
   },
+  // ───────── COMPROMISOS (lo que OTROS le deben a Isabel) ─────────
+  {
+    name: 'comprometer_entrega',
+    description: 'Registra una promesa que OTRA persona le hizo a Isabel (un reporte, un callback, un follow-up, una entrega). Cada 2h reviso compromisos vencidos: si tengo cómo contactar a la persona le mando un recordatorio, y a Isabel le aviso UNA vez. USA esto cuando: "Sami me iba a mandar el reporte el viernes", "el cliente me iba a llamar mañana", "el broker me dijo que respondía en 24h".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Nombre de quien prometió.' },
+        descripcion: { type: 'string', description: 'Qué prometió. Sé específica.' },
+        canal: { type: 'string', enum: ['email', 'sms', 'whatsapp', 'callback', 'reporte', 'otro'], description: 'Por dónde tiene que llegar.' },
+        vence: { type: 'string', description: 'Opcional. ISO 8601 cuándo vence.' },
+        vence_en_horas: { type: 'integer', description: 'Opcional. Horas desde ahora.' },
+        vence_en_dias: { type: 'integer', description: 'Opcional. Días desde ahora.' },
+        persona_contacto: { type: 'string', description: 'Opcional pero recomendado: email/teléfono de la persona para que yo le mande el recordatorio cuando se atrase.' },
+        notas: { type: 'string', description: 'Opcional. Contexto que vas a querer cuando lo coberes.' },
+      },
+      required: ['persona', 'descripcion', 'canal'],
+    },
+  },
+  {
+    name: 'mis_compromisos',
+    description: 'Lista los compromisos pendientes (cosas que OTROS le deben a Isabel). Filtra por persona o status. Útil cuando Isabel pregunta "¿qué me deben?", "¿qué le pedí a Sami?", "¿qué falta entregar?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Opcional. Filtra por nombre.' },
+        status: { type: 'string', enum: ['pendiente', 'cumplido', 'fallido', 'cancelado'], description: 'Opcional. Default = pendiente.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'marcar_cumplido',
+    description: 'Marca un compromiso como cumplido. Úsalo cuando la entrega llegó (Isabel te lo dice, o tú lo detectas en email/SMS).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del compromiso.' },
+        evidencia: { type: 'string', description: 'Qué confirma que se cumplió ("recibí el email a las 4pm", "mandó el reporte", etc.).' },
+      },
+      required: ['id', 'evidencia'],
+    },
+  },
+  {
+    name: 'marcar_fallido',
+    description: 'Marca un compromiso como fallido (la persona definitivamente no entregó y se queda así). Diferente a cancelar — esto deja record que falló.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        razon: { type: 'string', description: 'Por qué se considera fallido.' },
+      },
+      required: ['id'],
+    },
+  },
+  // ───────── CRM (clientes Medicare + leads) ─────────
+  {
+    name: 'crear_cliente',
+    description: 'Crea un cliente o lead en el CRM. USA esto cuando Isabel mencione UN NUEVO CLIENTE/LEAD por primera vez ("acabo de hablar con Maria Hernández, le interesa SCAN") — captura proactivamente. Si ya existe (buscar primero), usa actualizar_cliente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre completo.' },
+        telefono: { type: 'string', description: 'Teléfono (con o sin +1).' },
+        email: { type: 'string' },
+        fecha_nacimiento: { type: 'string', description: 'YYYY-MM-DD si la sabe.' },
+        carrier: { type: 'string', description: 'SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC, otro.' },
+        plan: { type: 'string', description: 'Nombre del plan, ej. "Classic HMO".' },
+        mbi: { type: 'string', description: 'Medicare Beneficiary Identifier si la tiene.' },
+        effective_date: { type: 'string', description: 'YYYY-MM-DD desde cuándo está activo el plan.' },
+        renewal_date: { type: 'string', description: 'YYYY-MM-DD cuándo renueva.' },
+        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'], description: 'Default lead.' },
+        fuente: { type: 'string', description: 'Cómo llegó: referido X, walk-in, marketing, etc.' },
+        notas_iniciales: { type: 'string', description: 'Contexto del primer contacto.' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'actualizar_cliente',
+    description: 'Modifica campos de un cliente existente (cambió teléfono, status pasó de lead a active, agrega renewal_date, etc.). Si solo quieres agregar una nota usa nota_cliente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del cliente (ej. cl1k9...).' },
+        nombre: { type: 'string' },
+        telefono: { type: 'string' },
+        email: { type: 'string' },
+        carrier: { type: 'string' },
+        plan: { type: 'string' },
+        mbi: { type: 'string' },
+        effective_date: { type: 'string' },
+        renewal_date: { type: 'string' },
+        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'] },
+        proximo_contacto: { type: 'string', description: 'YYYY-MM-DD próximo follow-up planeado.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'nota_cliente',
+    description: 'Agrega una nota fechada al expediente del cliente (lo que hablaron, lo que decidieron, lo que sigue). Actualiza automáticamente "último contacto".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        nota: { type: 'string', description: 'Lo que pasó / lo que se acordó.' },
+      },
+      required: ['id', 'nota'],
+    },
+  },
+  {
+    name: 'buscar_cliente',
+    description: 'Busca clientes por nombre, teléfono, email, MBI o plan. Devuelve match parcial. Úsalo SIEMPRE antes de crear, para evitar duplicados.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        q: { type: 'string', description: 'Texto a buscar.' },
+      },
+      required: ['q'],
+    },
+  },
+  {
+    name: 'expediente_cliente',
+    description: 'Devuelve el expediente completo de UN cliente (todos los campos + últimas notas). Úsalo cuando Isabel pregunte "¿qué sabemos de [nombre]?" o antes de llamarlo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del cliente.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'lista_clientes',
+    description: 'Lista clientes filtrados por status. Útil para vistas tipo "muéstrame mis leads" o "mis activos".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['lead', 'prospect', 'active', 'inactive'] },
+        limite: { type: 'integer', description: 'Default 50.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'clientes_descuidados',
+    description: 'Devuelve los clientes activos/prospects que NO se han contactado en N días. Úsalo en el briefing semanal o cuando Isabel pregunta "¿a quién no le he hablado?". Default 30 días.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dias: { type: 'integer', description: 'Días sin contacto (default 30).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'proximas_renovaciones',
+    description: 'Devuelve clientes con fecha de renovación en los próximos N días. Vital para AEP y retención. Default 60 días.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dias: { type: 'integer', description: 'Ventana (default 60).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'proximos_cumples',
+    description: 'Devuelve clientes con cumpleaños en los próximos N días. Default 14. Útil para detalles humanos que retienen clientes.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dias: { type: 'integer', description: 'Ventana (default 14).' },
+      },
+      required: [],
+    },
+  },
+  // ───────── NEXTIVA (SMS de negocio sin responder) ─────────
+  {
+    name: 'nextiva_pendientes',
+    description: 'Devuelve los hilos de SMS de Nextiva donde el ÚLTIMO mensaje es de un CLIENTE (entrante) — o sea, clientes esperando respuesta de Isabel. Ordenados por antigüedad descendente (los más viejos primero).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        horas: { type: 'integer', description: 'Ventana en horas (default 168 = 7 días).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'nextiva_actividad',
+    description: 'Devuelve los hilos recientes de Nextiva (entrantes + salientes) en una ventana. Para auditar qué tan rápido se está respondiendo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        horas: { type: 'integer', description: 'Default 24.' },
+        limite: { type: 'integer', description: 'Default 30.' },
+      },
+      required: [],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -493,6 +718,110 @@ async function dispatchTool(name, input) {
       if (e.organizador) lines.push(`Organiza: ${e.organizador}`);
       if (e.descripcion) lines.push(`\nDescripción:\n${e.descripcion}`);
       return lines.join('\n');
+    }
+    // ── compromisos ──
+    case 'comprometer_entrega': {
+      try {
+        const c = createCommitment(input);
+        const due = c.vence ? ` Vence: ${new Date(c.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles' })}.` : '';
+        const reach = c.persona_contacto ? ` Lo voy a perseguir vía ${c.canal} a ${c.persona_contacto}.` : ' Sin contacto registrado — solo te aviso cuando se atrase.';
+        return `Compromiso registrado [${c.id}]: ${c.persona} → "${c.descripcion}".${due}${reach}`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'mis_compromisos': {
+      const items = listCommitments({ status: input.status || null, persona: input.persona || null });
+      if (!items.length) return 'No hay compromisos en ese filtro.';
+      return items.map((c) => {
+        const due = c.vence ? ` (vence ${new Date(c.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})` : '';
+        const overdue = c.vence && new Date(c.vence).getTime() < Date.now() && c.status === 'pendiente' ? ' VENCIDO' : '';
+        return `[${c.id}] ${c.persona} · ${c.descripcion} (via ${c.canal})${due}${overdue}`;
+      }).join('\n');
+    }
+    case 'marcar_cumplido': {
+      const c = completeCommitment(input.id, input.evidencia);
+      return c ? `Compromiso ${c.id} marcado cumplido. Evidencia: ${c.evidencia}` : `No encontré ${input.id}.`;
+    }
+    case 'marcar_fallido': {
+      const c = failCommitment(input.id, input.razon || '');
+      return c ? `Compromiso ${c.id} marcado fallido.` : `No encontré ${input.id}.`;
+    }
+    // ── CRM ──
+    case 'crear_cliente': {
+      try {
+        const c = createClient(input);
+        return `Cliente creado [${c.id}]: ${c.nombre} (${c.status}).`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'actualizar_cliente': {
+      try {
+        const c = updateClient(input.id, input);
+        return c ? `Cliente ${c.id} actualizado.` : `No encontré ${input.id}.`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'nota_cliente': {
+      const c = addClientNote(input.id, input.nota);
+      return c ? `Nota agregada al expediente de ${c.nombre} (${c.id}).` : `No encontré ${input.id}.`;
+    }
+    case 'buscar_cliente': {
+      const results = findClient(input.q);
+      if (!results.length) return `Sin matches para "${input.q}".`;
+      return results.slice(0, 10).map((c) => clientLine(c, { showLastContact: true })).join('\n');
+    }
+    case 'expediente_cliente': {
+      const c = getClient(input.id);
+      return c ? clientCard(c) : `No encontré ${input.id}.`;
+    }
+    case 'lista_clientes': {
+      const items = listClients({ status: input.status || null, limit: input.limite || 50 });
+      if (!items.length) return 'No hay clientes en ese filtro.';
+      return items.map((c) => clientLine(c, { showRenewal: true, showLastContact: true })).join('\n');
+    }
+    case 'clientes_descuidados': {
+      const dias = parseInt(input.dias, 10) || 30;
+      const items = staleClients(dias);
+      if (!items.length) return `Todos los clientes activos/prospects han tenido contacto en los últimos ${dias} días. ✓`;
+      return `Clientes sin contacto en ${dias}+ días:\n` + items.map((c) => clientLine(c, { showLastContact: true })).join('\n');
+    }
+    case 'proximas_renovaciones': {
+      const dias = parseInt(input.dias, 10) || 60;
+      const items = upcomingRenewals(dias);
+      if (!items.length) return `Sin renovaciones en los próximos ${dias} días.`;
+      return `Renovaciones próximas (${dias}d):\n` + items.map((c) => clientLine(c, { showRenewal: true })).join('\n');
+    }
+    case 'proximos_cumples': {
+      const dias = parseInt(input.dias, 10) || 14;
+      const items = upcomingBirthdays(dias);
+      if (!items.length) return `Sin cumpleaños en los próximos ${dias} días.`;
+      return items.map((c) => `[${c.id}] ${c.nombre} — ${c.diasFalta} día(s) (${c.telefono})`).join('\n');
+    }
+    // ── nextiva ──
+    case 'nextiva_pendientes': {
+      const r = await pendingResponses({ sinceHours: parseInt(input.horas, 10) || 168 });
+      if (!r.ok) return r.reason;
+      if (!r.items.length) return 'Sin SMS pendientes de respuesta — al día. ✓';
+      return r.items.slice(0, 20).map((t) => {
+        const name = t.contact_name || t.contact_phone || 'desconocido';
+        const last = t.messages.slice().sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
+        const ago = last ? Math.round((Date.now() - new Date(last.at).getTime()) / 3600_000) : '?';
+        const preview = (last?.body || '').replace(/\s+/g, ' ').slice(0, 80);
+        return `${name} · esperando ${ago}h · "${preview}"`;
+      }).join('\n');
+    }
+    case 'nextiva_actividad': {
+      const r = await recentActivity({ sinceHours: parseInt(input.horas, 10) || 24, limit: parseInt(input.limite, 10) || 30 });
+      if (!r.ok) return r.reason;
+      if (!r.items.length) return 'Sin actividad en esa ventana.';
+      return r.items.map((t) => {
+        const name = t.contact_name || t.contact_phone || 'desconocido';
+        const last = t.messages.slice().sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
+        return `${name} (${last?.direction || '?'}): "${(last?.body || '').slice(0, 60)}"`;
+      }).join('\n');
     }
     default:
       return `Herramienta desconocida: ${name}`;

@@ -74,19 +74,57 @@ export function setSeason(texto) {
   return s;
 }
 
-// Lee tareas directo del disco (sin importar tasks.js) para evitar
-// el ciclo tasks ↔ memory. Genera la vista corta inline.
+// Lee tareas y compromisos directo del disco (sin importar los
+// módulos respectivos) para evitar ciclos tasks/commitments/crm ↔ memory.
 const TASKS_FILE_PATH = join(DATA_DIR, 'tasks.json');
-function readTasksFile() {
+const COMMITMENTS_FILE_PATH = join(DATA_DIR, 'commitments.json');
+const CRM_FILE_PATH = join(DATA_DIR, 'crm.json');
+
+function readJsonSafe(path, fallback) {
   try {
-    if (existsSync(TASKS_FILE_PATH)) return JSON.parse(readFileSync(TASKS_FILE_PATH, 'utf8'));
-  } catch {
-    /* corrupt or missing — return [] */
-  }
-  return [];
+    if (existsSync(path)) return JSON.parse(readFileSync(path, 'utf8'));
+  } catch { /* ignore */ }
+  return fallback;
 }
+
+function commitmentsContextInline() {
+  const rows = readJsonSafe(COMMITMENTS_FILE_PATH, []).filter((c) => c.status === 'pendiente');
+  if (!rows.length) return '';
+  const tz = process.env.TIMEZONE || 'America/Los_Angeles';
+  const lines = rows.slice(0, 15).map((c) => {
+    const due = c.vence
+      ? ` (vence ${new Date(c.vence).toLocaleString('es-MX', { timeZone: tz, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})`
+      : '';
+    const overdue = c.vence && new Date(c.vence).getTime() < Date.now() ? ' VENCIDO' : '';
+    return `  - [${c.id}] ${c.persona} → ${c.descripcion} via ${c.canal}${due}${overdue}`;
+  });
+  return `COMPROMISOS DE TERCEROS HACIA ISABEL (lo que otros le deben — persigue cuando venzan):\n${lines.join('\n')}`;
+}
+
+function crmSnapshotInline() {
+  const all = readJsonSafe(CRM_FILE_PATH, []);
+  if (!all.length) return '';
+  const counts = {
+    lead: all.filter((c) => c.status === 'lead').length,
+    prospect: all.filter((c) => c.status === 'prospect').length,
+    active: all.filter((c) => c.status === 'active').length,
+  };
+  // Stale 30d
+  const cutoff30 = Date.now() - 30 * 86_400_000;
+  const stale = all.filter(
+    (c) => (c.status === 'active' || c.status === 'prospect') && new Date(c.ultimo_contacto || 0).getTime() < cutoff30,
+  ).length;
+  // Renewals 60d
+  const now = Date.now();
+  const max = now + 60 * 86_400_000;
+  const renewals = all.filter(
+    (c) => c.renewal_date && new Date(c.renewal_date).getTime() >= now && new Date(c.renewal_date).getTime() <= max,
+  ).length;
+  return `CRM: ${all.length} clientes (${counts.active} activos, ${counts.prospect} prospects, ${counts.lead} leads). Atención: ${stale} sin contactar 30+d, ${renewals} renovaciones en 60d.`;
+}
+
 function tasksContextInline() {
-  const all = readTasksFile().filter((t) => t.status !== 'lista' && t.status !== 'cancelada');
+  const all = readJsonSafe(TASKS_FILE_PATH, []).filter((t) => t.status !== 'lista' && t.status !== 'cancelada');
   if (!all.length) return '';
   const groups = { athena: [], isabel: [], sami: [] };
   const tz = process.env.TIMEZONE || 'America/Los_Angeles';
@@ -117,6 +155,10 @@ export function buildWikiContext() {
   }
   const tasksCtx = tasksContextInline();
   if (tasksCtx) parts.push(tasksCtx);
+  const commitCtx = commitmentsContextInline();
+  if (commitCtx) parts.push(commitCtx);
+  const crmCtx = crmSnapshotInline();
+  if (crmCtx) parts.push(crmCtx);
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;
