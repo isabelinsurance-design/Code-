@@ -2,22 +2,41 @@ import { SPECIALISTS, specialistList } from './agents.js';
 import { askSpecialist } from './claude.js';
 import { sendMessage } from './whatsapp.js';
 import { sendEmail, checkEmails } from './email.js';
-import { remember, buildWikiContext } from './memory.js';
+import { remember, forget, listMemories, setSeason, buildWikiContext } from './memory.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
 export const toolDefinitions = [
   {
-    name: 'consultar_especialista',
-    description: `Consulta a una coach especialista del equipo de Isabel para temas específicos. Especialistas disponibles: ${specialistList()}. Úsala cuando la pregunta es del dominio de una experta (comida=carmen, ejercicio=rivera, sueño/energía=sofia, Medicare/clientes=maria, dinero=elena, estrés/mindset=alma, metas/visión=victoria).`,
+    name: 'consultar_especialistas',
+    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel EN PARALELO. Pasa un array \`consultas\` con una entrada por coach que quieras consultar. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — es ~3x más rápido y te permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=maria, dinero=elena, estrés/mindset=alma, metas/visión=victoria.`,
     input_schema: {
       type: 'object',
       properties: {
-        especialista: { type: 'string', description: 'El id de la especialista (ej. carmen, rivera, maria)' },
-        pregunta: { type: 'string', description: 'La pregunta o situación, con contexto suficiente para que responda bien.' },
+        consultas: {
+          type: 'array',
+          minItems: 1,
+          items: {
+            type: 'object',
+            properties: {
+              especialista: { type: 'string', description: 'El id de la coach (ej. carmen, rivera, maria).' },
+              tarea: { type: 'string', description: 'Lo que necesitas de ella, con contexto suficiente. Sé específica.' },
+              formato_salida: { type: 'string', description: 'Opcional. Formato esperado, ej. "3 bullets máx", "1 acción concreta", "plan de 4 días".' },
+              presupuesto_palabras: { type: 'integer', description: 'Opcional. Máximo de palabras de la respuesta (default 150).' },
+            },
+            required: ['especialista', 'tarea'],
+          },
+        },
       },
-      required: ['especialista', 'pregunta'],
+      required: ['consultas'],
     },
+  },
+  // Web search server-side de Anthropic — los resultados llegan al modelo
+  // automáticamente, no pasan por runTool. max_uses limita su uso por turno.
+  {
+    type: 'web_search_20250305',
+    name: 'web_search',
+    max_uses: 3,
   },
   {
     name: 'mensaje_a_sami',
@@ -68,13 +87,46 @@ export const toolDefinitions = [
   },
   {
     name: 'recordar',
-    description: 'Guarda un dato importante en la memoria de largo plazo de Isabel (preferencias, decisiones, contexto que servirá en futuras conversaciones). Todas las coaches pueden leer esta memoria.',
+    description: 'Guarda un dato importante en la memoria de largo plazo de Isabel (preferencias, decisiones, contexto que servirá en futuras conversaciones). Todas las coaches pueden leer esta memoria. Si Isabel dice "recuerda que..." o "anota que..." usa esta herramienta.',
     input_schema: {
       type: 'object',
       properties: {
-        nota: { type: 'string', description: 'El dato a recordar, en una frase clara.' },
+        nota: { type: 'string', description: 'El dato a recordar, en una frase clara y completa.' },
       },
       required: ['nota'],
+    },
+  },
+  {
+    name: 'olvidar',
+    description: 'Borra de la memoria todas las notas que contengan el texto dado (búsqueda por substring, case-insensitive). Si Isabel dice "olvida X" o "ya no es cierto que X" usa esta herramienta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        que: { type: 'string', description: 'Texto a buscar y borrar. Sé específica para no borrar más de la cuenta.' },
+      },
+      required: ['que'],
+    },
+  },
+  {
+    name: 'que_recuerdas',
+    description: 'Devuelve un listado de lo que Athena tiene guardado en la memoria de largo plazo. Útil cuando Isabel pregunta "¿qué recuerdas de mí?" o "¿qué sabes?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        cuantas: { type: 'integer', description: 'Cuántas notas devolver (default 20, máximo 50).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'actualizar_temporada',
+    description: 'Actualiza el resumen de "temporada actual" — 1 o 2 frases que describen en qué está enfocada Isabel ahora mismo. Esto se inyecta en el contexto de TODAS las coaches para que sepan dónde está su cabeza. Úsalo cuando Isabel diga "ahora estoy enfocada en X", cambie de fase, o notes un giro claro en sus prioridades.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        texto: { type: 'string', description: '1-2 frases describiendo el foco actual. Ej: "Post-launch de la app, reconstruyendo rutina de mañana y bajando de peso."' },
+      },
+      required: ['texto'],
     },
   },
 ];
@@ -82,11 +134,30 @@ export const toolDefinitions = [
 // Ejecuta una herramienta y devuelve el resultado como texto.
 export async function runTool(name, input) {
   switch (name) {
-    case 'consultar_especialista': {
-      const spec = SPECIALISTS[input.especialista];
-      if (!spec) return `No existe la especialista "${input.especialista}". Opciones: ${specialistList()}.`;
-      const answer = await askSpecialist(spec, input.pregunta, buildWikiContext());
-      return `${spec.name} dice:\n${answer}`;
+    case 'consultar_especialistas': {
+      const consultas = Array.isArray(input.consultas) ? input.consultas : [];
+      if (!consultas.length) {
+        return 'Pasa al menos una entrada en `consultas` con {especialista, tarea}.';
+      }
+      const wiki = buildWikiContext();
+      const results = await Promise.all(
+        consultas.map(async (c) => {
+          const spec = SPECIALISTS[c.especialista];
+          if (!spec) {
+            return `[${c.especialista} — no existe esa coach. Opciones: ${specialistList()}]`;
+          }
+          try {
+            const answer = await askSpecialist(spec, c.tarea, wiki, {
+              formato: c.formato_salida,
+              presupuesto: c.presupuesto_palabras,
+            });
+            return `${spec.name} dice:\n${answer}`;
+          } catch (err) {
+            return `[${spec.name} — error: ${err.message}]`;
+          }
+        })
+      );
+      return results.join('\n\n---\n\n');
     }
     case 'mensaje_a_sami': {
       const to = process.env.SAMI_WHATSAPP;
@@ -108,6 +179,21 @@ export async function runTool(name, input) {
     case 'recordar':
       remember(input.nota);
       return `Guardado en la memoria: "${input.nota}"`;
+    case 'olvidar': {
+      const { borradas, restantes } = forget(input.que);
+      if (!borradas) return `No encontré nada en la memoria que matchee "${input.que}".`;
+      return `Borré ${borradas} nota(s) que mencionaban "${input.que}". Quedan ${restantes} en total.`;
+    }
+    case 'que_recuerdas': {
+      const cuantas = Math.min(Math.max(parseInt(input.cuantas, 10) || 20, 1), 50);
+      const notas = listMemories(cuantas);
+      if (!notas.length) return 'Tu wiki está vacía — todavía no he guardado nada.';
+      return notas.map((n, i) => `${i + 1}. ${n.nota}`).join('\n');
+    }
+    case 'actualizar_temporada': {
+      const s = setSeason(input.texto);
+      return s.texto ? `Temporada actualizada: "${s.texto}"` : 'Temporada vacía.';
+    }
     default:
       return `Herramienta desconocida: ${name}`;
   }

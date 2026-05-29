@@ -46,18 +46,23 @@ export async function runDirectora(messages) {
       return { reply: text || 'Lista, Isabel.', messages };
     }
 
-    // Ejecutamos cada herramienta que pidió y devolvemos los resultados.
+    // Ejecutamos en PARALELO las herramientas que pidió en este turno.
+    // (Promise.all aprovecha que el modelo a veces emite varios tool_use
+    // independientes a la vez — ej. revisar email + consultar coaches.)
+    // Las built-in tools de Anthropic (ej. web_search) se ejecutan del lado
+    // del servidor y NO aparecen aquí, así que las saltamos automáticamente.
     const toolUses = res.content.filter((b) => b.type === 'tool_use');
-    const results = [];
-    for (const tu of toolUses) {
-      let content;
-      try {
-        content = await runTool(tu.name, tu.input);
-      } catch (err) {
-        content = `Error al ejecutar ${tu.name}: ${err.message}`;
-      }
-      results.push({ type: 'tool_result', tool_use_id: tu.id, content });
-    }
+    const results = await Promise.all(
+      toolUses.map(async (tu) => {
+        let content;
+        try {
+          content = await runTool(tu.name, tu.input);
+        } catch (err) {
+          content = `Error al ejecutar ${tu.name}: ${err.message}`;
+        }
+        return { type: 'tool_result', tool_use_id: tu.id, content };
+      })
+    );
     messages.push({ role: 'user', content: results });
   }
 

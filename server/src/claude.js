@@ -4,11 +4,17 @@ export const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY,
 });
 
-// Una llamada simple a un coach especialista: un system prompt + una pregunta.
-// Sin herramientas, sin historial — solo "experta, contesta esto".
-export async function askSpecialist(specialist, question, wikiContext = '') {
+// Llamada a un coach especialista. Sin herramientas, sin historial —
+// solo "experta, contesta esto". Usa el `model` configurado por coach
+// (Opus/Sonnet/Haiku) y acepta opciones de formato/presupuesto.
+export async function askSpecialist(specialist, question, wikiContext = '', opts = {}) {
+  const constraints = [];
+  if (opts.formato) constraints.push(`Formato pedido: ${opts.formato}.`);
+  if (opts.presupuesto) constraints.push(`Máximo ${opts.presupuesto} palabras.`);
+  constraints.push('Termina con UNA acción concreta para Isabel.');
+
   const res = await anthropic.messages.create({
-    model: 'claude-sonnet-4-6',
+    model: specialist.model || 'claude-sonnet-4-6',
     max_tokens: 700,
     system: [
       {
@@ -17,7 +23,12 @@ export async function askSpecialist(specialist, question, wikiContext = '') {
         cache_control: { type: 'ephemeral' },
       },
     ],
-    messages: [{ role: 'user', content: question }],
+    messages: [
+      {
+        role: 'user',
+        content: `${question}\n\n${constraints.join(' ')}`,
+      },
+    ],
   });
   return res.content
     .filter((b) => b.type === 'text')
