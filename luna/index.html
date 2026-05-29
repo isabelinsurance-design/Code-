@@ -525,6 +525,10 @@ MEMORIA POR CAPAS (úsala cuando aplique):
   [[ENTITY|Nombre|persona|la nota corta a recordar]]
   (tipo puede ser persona/doctor/clinica/org/lugar). Hazlo solo con hechos reales que Isabel dijo, nunca inventes.
 
+BÚSQUEDA WEB: algunos agentes tienen acceso a búsqueda web en vivo. Úsala SOLO cuando necesites información actual y verificable (cambios de planes/carriers para el año, reglas CMS recientes, noticias de Medicare). Cita la fuente. Para datos del negocio usa siempre las tools del CRM, no la web.
+
+AUDITORÍA ESTRUCTURAL: si Isabel pregunta por errores o duplicados en la base, usa [[TOOL:audit_struct]] (solo admin) — encuentra datos rotos (duplicados, activos sin póliza, registros huérfanos).
+
 === END OPERATIONAL CONTEXT ===
 `;
 
@@ -536,7 +540,7 @@ const AGENTS = [
      Conoce todos los subagentes y sabe cuándo usar cada uno.
   ════════════════════════════════════════════════════════ */
   {
-    id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA',
+    id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA', webSearch:true,
     color:'#1a56ff', colorS:'rgba(26,86,255,.12)',
     desc:'Tu asistente principal — háblale en lenguaje natural, ella decide qué hacer y a qué subagente consultar',
     quick:[
@@ -668,7 +672,7 @@ ${OP}`
      📊 ANALISTA — Datos del negocio (Analítico+Comisiones+CRM+Metas)
   ════════════════════════════════════════════════════════ */
   {
-    id:'analista', cat:'inteligencia', emoji:'📊', name:'Analista',
+    id:'analista', cat:'inteligencia', emoji:'📊', name:'Analista', webSearch:true,
     color:'#0097a7', colorS:'rgba(0,151,167,.10)',
     desc:'Todo lo de datos: pipeline, comisiones, metas, métricas y proyecciones del negocio',
     adminOnly: ['comisiones'], // 🔒 comisiones = Isabel only
@@ -741,7 +745,7 @@ ${OP}`
      ✍️ ESTUDIO CREATIVO — Todo el contenido (Contenido+Redes)
   ════════════════════════════════════════════════════════ */
   {
-    id:'estudio', cat:'contenido', emoji:'✍️', name:'Estudio Creativo',
+    id:'estudio', cat:'contenido', emoji:'✍️', name:'Estudio Creativo', webSearch:true,
     color:'#c2185b', colorS:'rgba(194,24,91,.10)',
     desc:'Crea todo el contenido: redes sociales, emails, scripts, presentaciones, videos — todo CMS-compliant',
     quick:[
@@ -818,7 +822,7 @@ ${OP}`
      ⚖️ COMPLIANCE — Guardián de la licencia
   ════════════════════════════════════════════════════════ */
   {
-    id:'compliance', cat:'operaciones', emoji:'⚖️', name:'Compliance',
+    id:'compliance', cat:'operaciones', emoji:'⚖️', name:'Compliance', webSearch:true,
     color:'#d97706', colorS:'rgba(217,119,6,.10)',
     desc:'Guardián de tu licencia — revisa contenido, monitorea SOAs, te alerta sobre riesgos CMS',
     quick:[
@@ -1361,7 +1365,7 @@ ${OP}`
      Migrado del "Sistema Maestro IA": métricas/ROI + intel competitiva.
   ════════════════════════════════════════════════════════ */
   {
-    id:'ads', cat:'inteligencia', emoji:'📢', name:'Ads & Métricas',
+    id:'ads', cat:'inteligencia', emoji:'📢', name:'Ads & Métricas', webSearch:true,
     color:'#0097a7', colorS:'rgba(0,151,167,.10)',
     adminOnly:true,   // 🔒 ruta accesible solo a Isabel
     desc:'Análisis semanal de anuncios: CPL, ROI, rendimiento por tipo de contenido e inteligencia competitiva — solo Isabel',
@@ -2150,7 +2154,7 @@ const AGENT_TOOLS = {
                   'tickets_all','today_appts','attendance','commissions','carriers','activity',
                   'log','note','create_member','update_status','create_ticket','create_appt',
                   'notif','batch_tickets','all_goals','memory_view','team_config',
-                  'signals','gaps','entities','entity_save','skill_list'],
+                  'signals','gaps','entities','entity_save','skill_list','audit_struct'],
   // ── 🎛️ Centro de Comando ────────────────────────────
   'comando':     ['briefing','pipeline','t65','retention','hotleads','search','tickets_all',
                   'attendance','commissions','carriers','activity','batch_tickets',
@@ -2158,7 +2162,7 @@ const AGENT_TOOLS = {
                   'today_appts','log','signals','gaps','skill_list'],
   // ── 📊 Analista (datos consolidados) ────────────────
   'analista':    ['pipeline','t65','retention','hotleads','carriers','commissions',
-                  'attendance','activity','all_goals','briefing','tickets_all','gaps','signals'],
+                  'attendance','activity','all_goals','briefing','tickets_all','gaps','signals','audit_struct'],
   // ── ✍️ Estudio Creativo ─────────────────────────────
   'estudio':     ['pipeline','carriers','create_member','search'],
   // ── ⚖️ Compliance ───────────────────────────────────
@@ -2254,6 +2258,8 @@ async function callTool(toolName, params = {}) {
         return await (await fetch(CRM_BASE + qs('signals_list'))).json();
       case 'gaps':
         return await (await fetch(CRM_BASE + qs('gaps_overview'))).json();
+      case 'audit_struct':
+        return await (await fetch(CRM_BASE + qs('structural_audit'))).json();
       case 'entities':
         return await (await fetch(CRM_BASE + qs('entity_search', {q: params.q||''}))).json();
       // ── Memoria por capas (write) ──
@@ -2343,6 +2349,7 @@ function buildToolContext(agentId) {
     memory_view:   'memory_view — ver toda la memoria de LUNA: metas, notas, historial de pipeline, lecciones',
     signals:       'signals — señales del negocio ya computadas (hot leads fríos, retención, SOA, T65, AEP) ordenadas por severidad',
     gaps:          'gaps — qué datos FALTAN en el CRM (activos sin email/teléfono/DOB/carrier/SOA, leads sin fuente)',
+    audit_struct:  'audit_struct — auditoría estructural: errores de integridad (duplicados por tel/email/MBI, activos sin póliza, citas/tickets huérfanos, DOB inválidos) — SOLO ADMIN',
     entities:      'entity_search — busca personas/doctores/clínicas que Isabel ha mencionado (params: q=término)',
     entity_save:   'entity_upsert — ESCRIBE: registra/actualiza una entidad mencionada (params: name=, tipo=persona|doctor|clinica|org|lugar, alias=, nota=, miembro_id=)',
     skill_list:    'skill_list — playbooks/skills guardados (params: approved=1 para solo aprobados)',
@@ -2708,7 +2715,7 @@ async function sendMsg() {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       credentials:'same-origin',
-      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:1800 })
+      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:1800, web_search: !!a.webSearch })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const reader = res.body.getReader();

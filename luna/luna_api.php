@@ -177,17 +177,27 @@ case 'luna_chat':
     $system   = (string)($body['system'] ?? '');
     $messages = $body['messages'];
     $maxTok   = min(4096, max(256, (int)($body['max_tokens'] ?? 1800)));
+    $useWeb   = !empty($body['web_search']);
 
     // Audit ligero: registramos QUE hubo una consulta IA (sin guardar el contenido/PII).
-    logActivity($pdo, $uid, null, 'LUNA_CHAT', 'Consulta IA vía LUNA');
+    logActivity($pdo, $uid, null, 'LUNA_CHAT', $useWeb ? 'Consulta IA vía LUNA (web_search)' : 'Consulta IA vía LUNA');
 
-    $payload = json_encode([
+    $reqBody = [
         'model'      => 'claude-sonnet-4-6',
         'max_tokens' => $maxTok,
         'system'     => $system,
         'stream'     => true,
         'messages'   => $messages,
-    ], JSON_UNESCAPED_UNICODE);
+    ];
+    // #20 Web search nativo de Anthropic (solo si el agente lo pide).
+    if ($useWeb) {
+        $reqBody['tools'] = [[
+            'type'     => 'web_search_20250305',
+            'name'     => 'web_search',
+            'max_uses' => 5,
+        ]];
+    }
+    $payload = json_encode($reqBody, JSON_UNESCAPED_UNICODE);
 
     // Cambiamos la respuesta a streaming SSE (sobrescribe el Content-Type JSON de arriba).
     while (ob_get_level() > 0) { ob_end_clean(); }
@@ -1774,6 +1784,79 @@ case 'luna_gaps_overview':
     $gaps['activos_sin_soa'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros m WHERE m.estado='ACTIVO' AND (SELECT COUNT(*) FROM soa s WHERE s.miembro_id=m.id AND s.estado='FIRMADO')=0")->fetchColumn();
     $total = array_sum($gaps);
     ok(['gaps' => $gaps, 'total' => $total]);
+    break;
+
+// ── STRUCTURAL AUDIT — errores de integridad en la base (#17) ──
+// Distinto del compliance cron (riesgo CMS): esto busca DATOS ROTOS.
+// Cada check va en try/catch para tolerar diferencias de esquema.
+case 'luna_structural_audit':
+    requireAdmin();
+    $findings = [];
+    $add = function($sev, $titulo, $detalle, $rows) use (&$findings) {
+        $n = is_array($rows) ? count($rows) : (int)$rows;
+        if ($n > 0) $findings[] = ['sev'=>$sev, 'titulo'=>$titulo, 'detalle'=>$detalle,
+                                   'count'=>$n, 'sample'=>is_array($rows) ? array_slice($rows,0,5) : []];
+    };
+    $try = function($fn) { try { return $fn(); } catch (Exception $e) { return null; } };
+
+    // 1. Teléfonos duplicados
+    $r = $try(fn() => $pdo->query("SELECT telefono, COUNT(*) c, GROUP_CONCAT(id) ids
+        FROM miembros WHERE telefono IS NOT NULL AND telefono!='' GROUP BY telefono HAVING c>1 LIMIT 50")->fetchAll());
+    if ($r !== null) $add('alto','Teléfonos duplicados','Mismo teléfono en varios miembros — posible duplicado.',
+        array_map(fn($x)=>"tel {$x['telefono']} → ids {$x['ids']}", $r));
+
+    // 2. Emails duplicados
+    $r = $try(fn() => $pdo->query("SELECT email, COUNT(*) c, GROUP_CONCAT(id) ids
+        FROM miembros WHERE email IS NOT NULL AND email!='' GROUP BY email HAVING c>1 LIMIT 50")->fetchAll());
+    if ($r !== null) $add('medio','Emails duplicados','Mismo email en varios miembros.',
+        array_map(fn($x)=>"{$x['email']} → ids {$x['ids']}", $r));
+
+    // 3. MBI duplicados
+    $r = $try(fn() => $pdo->query("SELECT mbi, COUNT(*) c, GROUP_CONCAT(id) ids
+        FROM miembros WHERE mbi IS NOT NULL AND mbi!='' GROUP BY mbi HAVING c>1 LIMIT 50")->fetchAll());
+    if ($r !== null) $add('alto','MBI duplicados','Mismo MBI en varios registros — error grave de datos.',
+        array_map(fn($x)=>"MBI {$x['mbi']} → ids {$x['ids']}", $r));
+
+    // 4. ACTIVO sin póliza registrada
+    $r = $try(fn() => $pdo->query("SELECT m.id, m.nombre, m.apellido FROM miembros m
+        WHERE m.estado='ACTIVO' AND NOT EXISTS (SELECT 1 FROM polizas p WHERE p.miembro_id=m.id) LIMIT 50")->fetchAll());
+    if ($r !== null) $add('alto','Activos sin póliza','Miembro ACTIVO sin ninguna póliza registrada.',
+        array_map(fn($x)=>"#{$x['id']} {$x['nombre']} {$x['apellido']}", $r));
+
+    // 5. ACTIVO sin forma de contacto (ni tel ni email)
+    $r = $try(fn() => $pdo->query("SELECT id, nombre, apellido FROM miembros
+        WHERE estado='ACTIVO' AND (telefono IS NULL OR telefono='') AND (email IS NULL OR email='') LIMIT 50")->fetchAll());
+    if ($r !== null) $add('alto','Activos no contactables','ACTIVO sin teléfono ni email.',
+        array_map(fn($x)=>"#{$x['id']} {$x['nombre']} {$x['apellido']}", $r));
+
+    // 6. ACTIVO sin carrier
+    $r = $try(fn() => $pdo->query("SELECT id, nombre, apellido FROM miembros
+        WHERE estado='ACTIVO' AND (carrier IS NULL OR carrier='') LIMIT 50")->fetchAll());
+    if ($r !== null) $add('medio','Activos sin carrier','ACTIVO sin carrier asignado.',
+        array_map(fn($x)=>"#{$x['id']} {$x['nombre']} {$x['apellido']}", $r));
+
+    // 7. Citas huérfanas (miembro_id que no existe)
+    $r = $try(fn() => $pdo->query("SELECT c.id FROM citas c LEFT JOIN miembros m ON c.miembro_id=m.id
+        WHERE c.miembro_id IS NOT NULL AND m.id IS NULL LIMIT 50")->fetchAll());
+    if ($r !== null) $add('medio','Citas huérfanas','Citas que apuntan a un miembro inexistente.',
+        array_map(fn($x)=>"cita #{$x['id']}", $r));
+
+    // 8. Tickets huérfanos
+    $r = $try(fn() => $pdo->query("SELECT t.id FROM tickets t LEFT JOIN miembros m ON t.miembro_id=m.id
+        WHERE t.miembro_id IS NOT NULL AND m.id IS NULL LIMIT 50")->fetchAll());
+    if ($r !== null) $add('bajo','Tickets huérfanos','Tickets que apuntan a un miembro inexistente.',
+        array_map(fn($x)=>"ticket #{$x['id']}", $r));
+
+    // 9. DOB inválido / futuro
+    $r = $try(fn() => $pdo->query("SELECT id, nombre, apellido, dob FROM miembros
+        WHERE dob IS NOT NULL AND (dob > CURDATE() OR dob < '1900-01-01') LIMIT 50")->fetchAll());
+    if ($r !== null) $add('medio','Fechas de nacimiento inválidas','DOB en el futuro o anterior a 1900.',
+        array_map(fn($x)=>"#{$x['id']} {$x['nombre']} {$x['apellido']} ({$x['dob']})", $r));
+
+    $order = ['alto'=>0,'medio'=>1,'bajo'=>2];
+    usort($findings, fn($a,$b) => ($order[$a['sev']]??9) <=> ($order[$b['sev']]??9));
+    lunaAudit($pdo, $uid, 'AUDIT', 'structural_audit findings=' . count($findings));
+    ok(['findings'=>$findings, 'total'=>count($findings)]);
     break;
 
 // ─────────────────────────────────────────────────────────
