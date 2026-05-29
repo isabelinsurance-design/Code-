@@ -1,16 +1,78 @@
 # Deploying Athena
 
-A step-by-step for going from the GitHub repo to Athena live on WhatsApp,
-written for Isabel. Time budget: **~90 minutes the first time**, half of
-that waiting on accounts to finish creating.
+Guía paso a paso para poner Athena en producción. Pensada para que **Sami la siga sin pelearse**. Presupuesto de tiempo: **~90 minutos la primera vez**, la mitad esperando que cuentas terminen de crearse.
 
-Stack we're targeting tonight:
+---
+
+## Para Sami — por qué Railway y NO Bluehost
+
+LUNA vive en Bluehost. Eso ya funciona perfecto y no se toca. **Athena NO puede vivir en Bluehost.** Esta es la razón clara, en una página, para que no haya dudas cuando alguien pregunte "¿y por qué no la metemos donde ya tenemos hosting?":
+
+### LUNA y Athena son técnicamente diferentes
+
+| | LUNA | Athena |
+|---|---|---|
+| **Tipo de app** | Web tradicional (request/response) | Proceso 24/7 siempre prendido |
+| **Lenguaje** | PHP + MySQL | Node.js + archivos JSON |
+| **Cómo trabaja** | Skarleth abre browser → PHP responde → cierra | Athena escucha cron jobs, WhatsApp entrante, llamadas, IMAP — todo el día sin parar |
+| **Hosting que necesita** | Bluehost (shared hosting clásico) ✓ | Hosting que corra Node.js persistente ✗ Bluehost no |
+
+### Las 4 cosas que Athena hace que Bluehost NO soporta
+
+**1. Athena necesita un proceso Node.js corriendo 24/7.**
+Adentro del proceso viven 10 cron jobs:
+- 6:30am — briefing matutino a Isabel
+- 9pm — evening check-in
+- Domingo 6pm — review semanal
+- 2am — reflexión nocturna (el cerebro de Athena consolida memorias mientras Isabel duerme)
+- 5am — triage de Gmail
+- Cada hora 7am-9pm — task tick (Athena trabaja silenciosamente en su cola)
+- Cada 2h — chase de compromisos
+- Cada hora — backup a Cloudflare R2
+- Cada hora — limpieza de archivos de audio temporales
+- Cada hora — limpieza de seen-message IDs
+
+Bluehost shared hosting NO mantiene procesos prendidos. Cada request PHP nace y muere. Si tratas de meter Athena ahí, los crons no se ejecutan, Athena no manda el briefing, no reacciona a emails.
+
+**2. Athena necesita WebSocket server.**
+Cuando un cliente Medicare llama al teléfono Twilio de Isabel, Athena contesta usando **Twilio ConversationRelay** — una conexión WebSocket en vivo donde Twilio le manda lo que dice el cliente y Athena le manda de regreso la voz de Isabel. WebSocket = conexión que dura minutos, no segundos. Bluehost shared NO soporta WebSocket servers. Sin esto: el teléfono de Athena no funciona.
+
+**3. Athena necesita IMAP IDLE persistente con Gmail.**
+Para que Athena reaccione a emails al SEGUNDO que llegan (no esperar a las 5am), abre una conexión IMAP IDLE con Gmail que queda colgada esperando notificación. Es una conexión de horas. Bluehost shared no permite mantener conexiones así.
+
+**4. Athena necesita memoria en RAM compartida entre requests.**
+Las protecciones contra ataques (rate limiting, idempotencia, dedupe de mensajes Twilio) viven en estructuras de datos en RAM del proceso. Si cada request es un proceso nuevo (PHP), no hay manera de mantener esa memoria entre requests. Athena sería vulnerable a doble-procesamiento de mensajes.
+
+### Por qué Railway resuelve todo
+
+Railway es hosting diseñado para procesos persistentes como Athena:
+
+- ✅ **Procesos Node.js 24/7 nativos** — los cron jobs corren porque el proceso nunca muere
+- ✅ **WebSocket out of the box** — la llamada de Twilio se conecta sin configuración extra
+- ✅ **Volúmenes persistentes** — la carpeta `data/` (wiki, tareas, memoria de Athena) sobrevive deploys
+- ✅ **Deploy desde GitHub con un click** — push a la branch → Railway redespliega solo
+- ✅ **Env vars en panel web** — sin tocar archivos
+- ✅ **Auto-restart si crashea** — Athena se levanta sola
+- ✅ **Logs en vivo** — cuando algo falla, ves qué pasó
+- ✅ **$5/mo** vs días peleando para hacerlo en Bluehost (que terminaría no funcionando)
+
+### La regla simple
+
+> **LUNA vive en Bluehost** (donde brilla — PHP, MySQL, web app).
+> **Athena vive en Railway** (donde brilla — Node.js, cron, WebSocket).
+> **Se hablan entre sí por HTTP** vía `luna_api.php` con un secret compartido (ver Paso 5.5).
+> **NUNCA las mezcles.** Cada una en su hosting óptimo.
+
+---
+
+## Stack que vas a parar tonight
+
 - **Hosting:** Railway ($5/mo Hobby plan)
-- **WhatsApp transport:** Twilio Sandbox tonight → your real number after
-  Meta verification (3–7 days, runs in parallel)
+- **WhatsApp transport:** Twilio Sandbox tonight → real number after Meta verification (3–7 days, runs in parallel)
 - **Backups:** Cloudflare R2 (~$0.15/mo)
 - **AI:** Anthropic (Athena's brain) + OpenAI (voice in/out)
 - **Email:** Gmail with an app password
+- **Bridge a LUNA:** secret compartido en header (ver Paso 5.5)
 - **Optional later:** Google Calendar, Nextiva, Instagram
 
 ---
