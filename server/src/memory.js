@@ -7,6 +7,9 @@ const DATA_DIR = join(__dirname, '..', 'data');
 const WIKI_FILE = join(DATA_DIR, 'isabel_wiki.json');
 const HISTORY_FILE = join(DATA_DIR, 'conversation.json');
 const SEASON_FILE = join(DATA_DIR, 'season.json');
+const ACTIVITY_FILE = join(DATA_DIR, 'activity.json');
+const OUTBOUND_FILE = join(DATA_DIR, 'outbound_queue.json');
+const PROACTIVE_FILE = join(DATA_DIR, 'proactive_counter.json');
 
 // NOTA: esto guarda en un archivo JSON en el disco del servidor.
 // Funciona perfecto para una sola usuaria. En Railway el disco se
@@ -74,10 +77,19 @@ export function setSeason(texto) {
 export function buildWikiContext() {
   const season = getSeason();
   const wiki = getWiki();
+  const pending = getPendingOutbound();
   const parts = [];
   if (season.texto) parts.push(`TEMPORADA ACTUAL (en qué está enfocada Isabel ahora): ${season.texto}`);
   if (wiki.notas.length) {
     parts.push(wiki.notas.slice(0, 25).map((n) => `- ${n.nota}`).join('\n'));
+  }
+  if (pending.length) {
+    const items = pending.map((p) => {
+      if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;
+      if (p.type === 'sms') return `- [${p.id}] SMS a ${p.para}`;
+      return `- [${p.id}] ${p.type}`;
+    }).join('\n');
+    parts.push(`BORRADORES PENDIENTES DE CONFIRMACIÓN (NO se han mandado — Isabel debe decir "envía" o "sí"):\n${items}`);
   }
   return parts.join('\n\n');
 }
@@ -92,4 +104,82 @@ export function getHistory() {
 export function saveHistory(messages) {
   // Guardamos solo los últimos 40 turnos para no crecer sin límite.
   save(HISTORY_FILE, messages.slice(-40));
+}
+
+// ---- Audit log: TODA acción de Athena queda registrada ----
+// Esto da trazabilidad ("¿qué hiciste hoy en mi nombre, Athena?") y
+// es el backbone del comando /historial.
+export function logActivity({ tool, input_summary, result_summary }) {
+  const log = load(ACTIVITY_FILE, []);
+  log.unshift({
+    ts: new Date().toISOString(),
+    tool,
+    input_summary: String(input_summary || '').slice(0, 200),
+    result_summary: String(result_summary || '').slice(0, 200),
+  });
+  save(ACTIVITY_FILE, log.slice(0, 500));
+}
+
+export function getActivity(sinceIso = null) {
+  const log = load(ACTIVITY_FILE, []);
+  if (!sinceIso) return log;
+  return log.filter((e) => e.ts >= sinceIso);
+}
+
+// ---- Cola de envíos pendientes de confirmación ----
+// Toda comunicación a TERCEROS (email + SMS a clientes) entra aquí.
+// Solo se manda después de que Isabel diga "envía"/"sí".
+// mensaje_a_sami NO usa esta cola porque Sami es humano-en-el-loop.
+export function queueOutbound(item) {
+  const queue = load(OUTBOUND_FILE, []);
+  const id = `q${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;
+  queue.push({ id, ts: new Date().toISOString(), ...item });
+  save(OUTBOUND_FILE, queue);
+  return id;
+}
+
+export function getPendingOutbound() {
+  return load(OUTBOUND_FILE, []);
+}
+
+export function popOutbound(id = null) {
+  const queue = load(OUTBOUND_FILE, []);
+  if (!queue.length) return null;
+  let item;
+  if (id) {
+    const idx = queue.findIndex((q) => q.id === id);
+    if (idx < 0) return null;
+    [item] = queue.splice(idx, 1);
+  } else {
+    // Sin id → toma el último (el que acaba de redactarse, más probable).
+    item = queue.pop();
+  }
+  save(OUTBOUND_FILE, queue);
+  return item;
+}
+
+export function clearOutbound() {
+  const queue = load(OUTBOUND_FILE, []);
+  const n = queue.length;
+  save(OUTBOUND_FILE, []);
+  return n;
+}
+
+// ---- Contador diario de mensajes proactivos (para el rate-limit) ----
+// Resetea automáticamente cada día.
+export function getProactiveCount(dayKey) {
+  const data = load(PROACTIVE_FILE, { day: null, count: 0 });
+  if (data.day !== dayKey) return 0;
+  return data.count;
+}
+
+export function bumpProactiveCount(dayKey) {
+  const data = load(PROACTIVE_FILE, { day: null, count: 0 });
+  if (data.day !== dayKey) {
+    save(PROACTIVE_FILE, { day: dayKey, count: 1 });
+    return 1;
+  }
+  data.count += 1;
+  save(PROACTIVE_FILE, data);
+  return data.count;
 }

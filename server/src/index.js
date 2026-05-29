@@ -6,6 +6,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
+import { sendEveningCheckin, sendWeeklyReview, nightlyReflection } from './proactive.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -93,24 +94,25 @@ async function fetchTwilioMedia(url) {
   return buf.toString('base64');
 }
 
-// ---- Briefing de la mañana (cron) ----
+// ---- Cron jobs proactivos ----
 // node-cron corre dentro del servidor mientras esté vivo. Como el
 // servidor en la nube NO se duerme, esto sí dispara aunque Isabel
 // tenga todo cerrado.
-const cronExpr = process.env.MORNING_BRIEFING_CRON || '30 6 * * *';
 const tz = process.env.TIMEZONE || 'America/Los_Angeles';
-if (cron.validate(cronExpr)) {
-  cron.schedule(
-    cronExpr,
-    () => {
-      sendMorningBriefing().catch((e) => console.error('[briefing] error:', e));
-    },
-    { timezone: tz }
-  );
-  console.log(`[cron] Briefing de la mañana programado: "${cronExpr}" (${tz})`);
-} else {
-  console.warn(`[cron] Expresión inválida: ${cronExpr} — briefing desactivado.`);
+
+function scheduleCron(label, expr, fn) {
+  if (!cron.validate(expr)) {
+    console.warn(`[cron] ${label}: expresión inválida "${expr}" — desactivado.`);
+    return;
+  }
+  cron.schedule(expr, () => fn().catch((e) => console.error(`[${label}] error:`, e)), { timezone: tz });
+  console.log(`[cron] ${label} programado: "${expr}" (${tz})`);
 }
+
+scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', sendMorningBriefing);
+scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
+scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
+scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

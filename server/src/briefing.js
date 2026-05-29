@@ -1,6 +1,7 @@
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
+import { canSendProactive } from './proactive.js';
 
 // El briefing de la mañana: Athena le escribe a Isabel SIN que
 // Isabel tenga que abrir nada. Esto es lo que la hace "autónoma".
@@ -10,6 +11,13 @@ export async function sendMorningBriefing() {
   const to = process.env.ISABEL_WHATSAPP;
   if (!to) {
     console.warn('[briefing] No hay ISABEL_WHATSAPP configurado.');
+    return;
+  }
+  // El briefing es "force": pasa por encima del cap diario porque es
+  // el único mensaje crítico del día. Pero sigue respetando quiet hours.
+  const gate = canSendProactive({ force: true });
+  if (!gate.ok) {
+    console.log(`[briefing] saltado: ${gate.reason}`);
     return;
   }
 
@@ -28,7 +36,7 @@ export async function sendMorningBriefing() {
 
   const { reply, messages: updated } = await runDirectora(messages);
   saveHistory(updated);
-  await sendMessage(to, `☀️ ${reply}`);
+  await sendMessage(to, reply);
   console.log('[briefing] Enviado a Isabel.');
 }
 
