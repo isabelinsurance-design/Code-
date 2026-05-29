@@ -8,6 +8,9 @@ import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
 import { sendEveningCheckin, sendWeeklyReview, nightlyReflection } from './proactive.js';
 import { taskTick } from './tasks.js';
+import { nightlyEmailTriage } from './triage.js';
+import { transcribeWhatsAppAudio } from './transcribe.js';
+import { checkUpcomingMeetingsTick, calendarConfigured } from './calendar.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -59,28 +62,38 @@ app.post('/whatsapp', async (req, res) => {
   }
 });
 
-// Convierte un mensaje entrante de WhatsApp (texto + 0..N imágenes adjuntas)
-// en el formato de content que Anthropic espera. Si solo hay texto, devuelve
-// un string para no cambiar la forma de los mensajes viejos en el historial.
+// Convierte un mensaje entrante de WhatsApp (texto + 0..N adjuntos)
+// en el formato de content que Anthropic espera.
+//  - Imágenes → image blocks base64
+//  - Audio (voice notes) → transcripción Whisper, se mete como texto
+//  - Otros → nota textual
 async function buildUserContent(text, numMedia, body) {
   if (!numMedia) return text;
   const parts = [];
+  const transcripts = [];
   for (let i = 0; i < numMedia; i++) {
     const url = body[`MediaUrl${i}`];
     const ctype = body[`MediaContentType${i}`] || '';
     if (!url) continue;
-    if (!ctype.startsWith('image/')) {
-      // Por ahora solo imágenes — audio/video los manejamos en una iteración futura.
-      parts.push({ type: 'text', text: `[Isabel adjuntó un archivo ${ctype} que todavía no puedo procesar.]` });
-      continue;
+    if (ctype.startsWith('image/')) {
+      const img = await fetchTwilioMedia(url);
+      parts.push({
+        type: 'image',
+        source: { type: 'base64', media_type: ctype, data: img },
+      });
+    } else if (ctype.startsWith('audio/')) {
+      const t = await transcribeWhatsAppAudio(url, ctype);
+      if (t.ok && t.transcript) {
+        transcripts.push(`[Nota de voz transcrita] ${t.transcript}`);
+      } else {
+        transcripts.push(t.note || '[Audio recibido, no se pudo transcribir.]');
+      }
+    } else {
+      transcripts.push(`[Isabel adjuntó un archivo ${ctype} que todavía no puedo procesar.]`);
     }
-    const img = await fetchTwilioMedia(url);
-    parts.push({
-      type: 'image',
-      source: { type: 'base64', media_type: ctype, data: img },
-    });
   }
-  parts.push({ type: 'text', text: text || '(Isabel mandó imagen sin texto — describe lo que ves y reacciona.)' });
+  const merged = [text, ...transcripts].filter(Boolean).join('\n\n');
+  parts.push({ type: 'text', text: merged || '(Isabel mandó adjunto sin texto — describe lo que ves/oíste y reacciona.)' });
   return parts;
 }
 
@@ -114,11 +127,21 @@ scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', send
 scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
 scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
+// Triage corre antes del briefing para que Athena tenga lista la
+// clasificación + borradores en cola cuando salude a Isabel.
+scheduleCron('triage',  process.env.EMAIL_TRIAGE_CRON    || '0 5 * * *',  nightlyEmailTriage);
 // Task tick: cada hora entre 7am y 9pm (TZ local). taskTick adentro
 // también respeta quiet hours para los recordatorios. El trabajo
 // silencioso de Athena puede correr a cualquier hora pero lo
 // limitamos a horas despiertas para acotar costo.
 scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 7-21 * * *', taskTick);
+// Pre-meeting brief: cada 5 min revisa si hay una junta en 10-20 min
+// y manda el brief. Solo se activa si Google Calendar está configurado.
+if (calendarConfigured()) {
+  scheduleCron('cal',    process.env.CAL_TICK_CRON        || '*/5 7-21 * * *', checkUpcomingMeetingsTick);
+} else {
+  console.log('[cron] cal: Google Calendar no configurado — pre-meeting briefs desactivados.');
+}
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {

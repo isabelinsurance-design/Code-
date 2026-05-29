@@ -23,6 +23,7 @@ import {
   cancelTask,
   addTaskNote,
 } from './tasks.js';
+import { listUpcomingEvents, getEvent, calendarConfigured } from './calendar.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -255,6 +256,29 @@ export const toolDefinitions = [
       required: ['id'],
     },
   },
+  {
+    name: 'proximos_eventos',
+    description: 'Lee el Google Calendar de Isabel y devuelve los próximos eventos. Úsalo cuando ella pregunte "¿qué tengo hoy/mañana/esta semana?", "¿con quién me junto?", o cuando necesites planear (saber qué bloquear, qué compite con qué).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        horas: { type: 'integer', description: 'Cuántas horas hacia adelante mirar (default 24, máximo 168 = 1 semana).' },
+        limite: { type: 'integer', description: 'Máximo de eventos a devolver (default 10).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'detalles_cita',
+    description: 'Devuelve los detalles completos de un evento del calendario (descripción, link Meet, asistentes, etc.). Úsalo cuando Isabel pregunte "¿de qué era la junta con X?" o cuando vayas a generar un brief antes de una reunión.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del evento (lo devuelve proximos_eventos).' },
+      },
+      required: ['id'],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -439,6 +463,36 @@ async function dispatchTool(name, input) {
       if (!t) return `No encontré la tarea ${input.id}.`;
       if (input.razon) addTaskNote(input.id, `Cancelada: ${input.razon}`);
       return `Tarea ${t.id} cancelada.`;
+    }
+    case 'proximos_eventos': {
+      if (!calendarConfigured()) {
+        return 'Google Calendar todavía no está conectado. Para activarlo Isabel necesita autorizar OAuth (Sami o tú le pueden guiar) y agregar GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, GOOGLE_REFRESH_TOKEN al .env.';
+      }
+      const horas = Math.min(Math.max(parseInt(input.horas, 10) || 24, 1), 168);
+      const limite = Math.min(Math.max(parseInt(input.limite, 10) || 10, 1), 25);
+      const r = await listUpcomingEvents({ withinHours: horas, limit: limite });
+      if (!r.ok) return `No pude leer el calendario: ${r.reason}`;
+      if (!r.events.length) return 'No hay eventos en ese rango.';
+      return r.events
+        .map((e) => {
+          const who = e.asistentes.length ? ` · con ${e.asistentes.slice(0, 3).join(', ')}` : '';
+          const where = e.ubicacion ? ` · ${e.ubicacion}` : '';
+          return `[${e.id}] ${e.inicio_local} — ${e.titulo}${who}${where}`;
+        })
+        .join('\n');
+    }
+    case 'detalles_cita': {
+      if (!calendarConfigured()) return 'Google Calendar no configurado.';
+      const r = await getEvent(input.id);
+      if (!r.ok) return `No pude obtener el evento: ${r.reason}`;
+      const e = r.event;
+      const lines = [`${e.titulo}`, `Cuándo: ${e.inicio_local}`];
+      if (e.ubicacion) lines.push(`Lugar: ${e.ubicacion}`);
+      if (e.meet) lines.push(`Meet: ${e.meet}`);
+      if (e.asistentes.length) lines.push(`Asistentes: ${e.asistentes.join(', ')}`);
+      if (e.organizador) lines.push(`Organiza: ${e.organizador}`);
+      if (e.descripcion) lines.push(`\nDescripción:\n${e.descripcion}`);
+      return lines.join('\n');
     }
     default:
       return `Herramienta desconocida: ${name}`;

@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { ImapFlow } from 'imapflow';
+import { simpleParser } from 'mailparser';
 
 const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
@@ -58,6 +59,53 @@ export async function checkEmails(limit = 5) {
     await client.logout();
   }
   return summaries.reverse().join('\n') || 'No hay correos recientes.';
+}
+
+// Devuelve los últimos N correos con CUERPO + asunto + remitente + flags.
+// Lo usa la triage nocturna para clasificar y redactar respuestas.
+export async function fetchRecentEmails(limit = 25) {
+  if (!emailEnabled) return [];
+  const client = new ImapFlow({
+    host: 'imap.gmail.com',
+    port: 993,
+    secure: true,
+    auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    logger: false,
+  });
+  await client.connect();
+  const out = [];
+  try {
+    const lock = await client.getMailboxLock('INBOX');
+    try {
+      const total = client.mailbox.exists;
+      if (!total) return [];
+      const start = Math.max(1, total - limit + 1);
+      for await (const msg of client.fetch(`${start}:*`, { envelope: true, flags: true, source: true, uid: true })) {
+        const env = msg.envelope || {};
+        let body = '';
+        try {
+          const parsed = await simpleParser(msg.source);
+          body = (parsed.text || parsed.html || '').replace(/\s+/g, ' ').trim().slice(0, 2000);
+        } catch {
+          body = '(no se pudo parsear el cuerpo)';
+        }
+        out.push({
+          uid: msg.uid,
+          fecha: env.date,
+          de: env.from?.[0]?.address || '',
+          de_nombre: env.from?.[0]?.name || '',
+          asunto: env.subject || '(sin asunto)',
+          no_leido: !msg.flags?.has('\\Seen'),
+          body_preview: body,
+        });
+      }
+    } finally {
+      lock.release();
+    }
+  } finally {
+    await client.logout();
+  }
+  return out.reverse();
 }
 
 export { emailEnabled };
