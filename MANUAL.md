@@ -57,17 +57,17 @@ Athena guarda eso AUTOMÁTICAMENTE en LUNA (si es sobre un cliente Medicare) o e
 ### 2. Resumen de cliente Medicare
 > "Platícame de María Hernández antes de mi llamada de las 11."
 
-Athena lee LUNA en vivo, te da: estado actual + último touchpoint + qué carrier + qué notas hay + qué tickets abiertos tiene.
+Athena consulta a **Maria Medicare** (su especialista). Maria es la única coach con acceso a LUNA — ella lee el expediente en vivo y te lo resume: estado actual + último touchpoint + carrier + notas + tickets abiertos. Tú no tienes que saber dónde vive el dato; Athena delega y te trae la respuesta.
 
 ### 3. Cuestionario de intake (lead nuevo)
 > "Agarré un lead nuevo en el evento, se llama Lupita Vargas, su teléfono es 818-555-9999."
 
-Athena lo crea en LUNA como PROSPECTO. Después puedes invocar la skill "Intake cliente Medicare" para que te guíe por las 12 preguntas.
+Athena le pasa a Maria, Maria lo registra en LUNA como PROSPECTO. Después puedes invocar la skill "Intake cliente Medicare" para que te guíe por las 12 preguntas.
 
 ### 4. Delegar al equipo
 > "Que Sami llame a María Hernández mañana sobre la SOA."
 
-Athena crea un ticket en LUNA asignado a Samia (user_id 10). Samia lo ve en su workspace.
+Athena consulta a Maria, Maria crea el ticket en LUNA asignado a Samia (user_id 10). Samia lo ve en su workspace.
 
 ### 5. Agendar (Google Calendar)
 > "Búscame huecos esta semana para una review de 30 min."
@@ -124,8 +124,8 @@ Escribe cualquiera de estas en WhatsApp:
 | Comando | Qué hace |
 |---|---|
 | `/help` | Lista todos los comandos |
-| `/luna` | Briefing en vivo del CRM real (pipeline + alertas) |
-| `/luna ping` | Test rápido: ¿está LUNA respondiendo? |
+| `/luna` | (Sami: test de conectividad) Briefing en vivo del CRM real |
+| `/luna ping` | (Sami: test rápido) ¿está LUNA respondiendo? |
 | `/agenda` | Próximos eventos de tu Google Calendar |
 | `/huecos 7` | Huecos libres próximos 7 días (cambia 7 por N días) |
 | `/pendientes` | Borradores esperando que digas `envía` |
