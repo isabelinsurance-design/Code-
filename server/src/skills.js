@@ -365,3 +365,167 @@ export function recentAutoDrafts({ hoursBack = 24 } = {}) {
   return listSkills({ status: 'draft' })
     .filter((s) => s.propuesto_por === 'athena_auto' && new Date(s.creado).getTime() >= cutoff);
 }
+
+// ============================================================
+//  Medicare workflow pack (Phase 13)
+//  ──────────────────────────────────
+//  6 skills seed que Isabel aprueba una vez y luego María/Athena
+//  invoca a través del año. Idempotente — si ya existe el skill
+//  (en cualquier estado), no se sobrescribe.
+// ============================================================
+const MEDICARE_PACK = [
+  {
+    nombre: 'AEP outreach',
+    descripcion: 'Plan completo de outreach AEP para UN cliente: verifica SOA, revisa gaps, redacta email + SMS personalizados, crea tarea de follow-up, registra touchpoint.',
+    trigger: 'cuando Isabel diga "prepara AEP de X" / "ataca AEP de X"',
+    inputs_schema: [{ nombre: 'cliente_id', descripcion: 'ID del cliente', requerido: true }],
+    cuerpo: `# AEP Outreach — un cliente
+
+## Pasos
+
+1. expediente_cliente(id={cliente_id}) — necesito el estado completo.
+2. gaps_de_cliente(id={cliente_id}) — si hay altos de compliance (SOA / MBI / TCPA), prioriza eso primero.
+3. Si SOA NO firmada: redacta email pidiendo SOA, PARA AQUÍ. Resume "Primero cierra SOA, luego mando AEP".
+4. Si SOA firmada y touchpoint en últimos 11 meses: redacta SMS amable de check-in, sin urgencia.
+5. Si SOA firmada y touchpoint >11m: redacta email personalizado (su nombre + plan actual + invitación a review pre-AEP) + SMS corto con link a calendario. Crea tarea responsable=isabel "AEP review con [nombre]" vence_en_dias=5.
+6. cliente_touchpoint(id, tipo="email", resumen="AEP outreach iniciado [fecha]").
+7. Resume en 3 líneas qué quedó en cola.`,
+  },
+  {
+    nombre: 'Intake cliente Medicare',
+    descripcion: 'Guía un lead nuevo por 12 preguntas conversacionales (Spanglish), auto-popula CRM con MBI, drug list, providers, TCPA. Termina con resumen.',
+    trigger: 'cuando Isabel diga "agarré un lead nuevo X" / "hazle el intake a X"',
+    inputs_schema: [
+      { nombre: 'nombre', descripcion: 'Nombre del lead', requerido: true },
+      { nombre: 'contacto', descripcion: 'Teléfono o WhatsApp', requerido: true },
+    ],
+    cuerpo: `# Intake — cliente Medicare nuevo
+
+## Pasos
+
+1. buscar_cliente({nombre}) — evita duplicados. Si existe, ACTUALIZAR, no crear.
+2. Si no existe: crear_cliente con status="lead", nombre={nombre}, telefono={contacto}.
+3. Ejecuta el cuestionario UNA pregunta a la vez por WhatsApp/SMS. Cada respuesta del cliente la procesa Athena para popular el campo correcto.
+
+## Cuestionario (Spanglish cálido, no formal)
+
+1. "Hola [nombre], gracias por contactarme. Para ayudarte mejor con tu Medicare, te paso unas preguntas rápidas. ¿Cuál es tu nombre completo como aparece en tu Medicare card?"
+2. "¿Fecha de nacimiento?"  → actualizar_cliente(fecha_nacimiento)
+3. "¿Tienes tu Medicare card a la mano? Pásame el MBI — la línea con letras y números." → actualizar_cliente(mbi), cliente_mbi_estado(status="pending", source="verbal")
+4. "¿Tienes plan ahorita o estás aging-in?" → notas
+5. Si tiene plan: "¿Con quién? SCAN, Anthem, Humana, etc.?" → actualizar_cliente(carrier, plan)
+6. "¿Sabes la fecha de renovación?" → actualizar_cliente(renewal_date)
+7. "¿Tomas medicamentos diario? Si sí, pásame nombre y dosis de cada uno." → cliente_medicamento_agregar por cada uno
+8. "¿Quién es tu doctor principal? ¿Algún especialista que veas seguido?" → cliente_doctor_agregar por cada uno
+9. "Para mandarte info por SMS o llamarte, ¿está bien?" → si SÍ: cliente_tcpa(idioma="es")
+10. "¿Cómo me conociste?" → actualizar_cliente(fuente)
+11. "¿Cuándo es buen momento para hablar 20 min?" → crear_tarea o proponer cita
+12. "¿Algo importante de tu salud o tu situación que deba saber?" → nota_cliente
+
+## Cierre
+
+- nota_cliente con resumen ("Intake completo: tomó SCAN HMO, X medicamentos, Dr. Y. Quiere review en 3 días.").
+- Si el cliente NO completó algunas preguntas, marca los gaps en el resumen y proponme follow-up para la próxima vez.`,
+  },
+  {
+    nombre: 'Check-in 12 meses (CMS)',
+    descripcion: 'Para clientes cerca de cumplir 12 meses sin touchpoint. Cubre la regla CMS de contacto anual con SMS personalizado + oferta de cita.',
+    trigger: 'cuando Isabel diga "hazle check-in 12m a X" o cuando el briefing surface a alguien en este estado',
+    inputs_schema: [{ nombre: 'cliente_id', descripcion: 'ID del cliente', requerido: true }],
+    cuerpo: `# Check-in anual 12 meses (CMS)
+
+## Pasos
+
+1. expediente_cliente(id={cliente_id}).
+2. gaps_de_cliente(id={cliente_id}) — si hay otros bloqueadores (SOA vencida, MBI sin verificar), súmalos a la conversación.
+3. Redacta SMS cálido + personalizado al teléfono del cliente: "Hola [nombre], soy Isabel — ya casi cumplimos un año desde que te tengo en [carrier]. ¿Quieres que platiquemos 15 min de cómo va todo? Sin compromiso."
+4. enviar_sms (queda en draft hasta envía).
+5. Cuando Isabel diga envía y el cliente conteste, llama cliente_touchpoint(id, tipo="sms", resumen="Check-in anual CMS — cliente {confirmó / desistió / pidió otra fecha}").
+6. Si el cliente confirma cita: propon crear_cita con su carrier o aseguradora, marca cliente_id.`,
+  },
+  {
+    nombre: 'Seguimiento renovación 30d',
+    descripcion: 'Para clientes con renovación próxima en 30 días. Web search cambios del plan, brief comparativo, email personalizado, tarea de llamada.',
+    trigger: 'cuando Isabel diga "renovación próxima de X" o el briefing surface renewals',
+    inputs_schema: [{ nombre: 'cliente_id', descripcion: 'ID del cliente', requerido: true }],
+    cuerpo: `# Seguimiento renovación (30 días antes)
+
+## Pasos
+
+1. expediente_cliente(id={cliente_id}) — necesito carrier, plan, renewal_date, drug_list.
+2. gaps_de_cliente(id={cliente_id}) — si drug_list o providers vacíos, márcame esos huecos PRIMERO (los necesito para comparar).
+3. web_search "[carrier] [plan] 2026 changes premium deductible formulary" — trae 1-2 datos accionables.
+4. Redacta email personalizado: "Tu plan [X] renueva [fecha]. Estos son los cambios para 2026: [insertar]. Te propongo [reseña / cambio / quedarse]. ¿Cuándo te llamo?". Encóla con enviar_email.
+5. crear_tarea responsable=isabel "Llamar a [cliente] antes de [renewal_date menos 7 días] para renovación", vence_en_dias=7.
+6. cliente_touchpoint(id, tipo="email", resumen="Renovación notificada — [carrier] [plan]").`,
+  },
+  {
+    nombre: 'Chase SOA pendiente',
+    descripcion: 'Cliente lleva días sin firmar la SOA mandada. Chase amable escalado: nada los primeros 3d, recordatorio 3-7d, llamada vía Sami >7d.',
+    trigger: 'cuando Isabel diga "todavía no firma SOA X" o el briefing surface SOA pending',
+    inputs_schema: [
+      { nombre: 'cliente_id', descripcion: 'ID del cliente', requerido: true },
+      { nombre: 'dias_desde_ultimo', descripcion: 'Días desde que mandaste la SOA', requerido: true },
+    ],
+    cuerpo: `# Chase SOA pendiente
+
+## Pasos
+
+1. expediente_cliente(id={cliente_id}) — para tono y contexto.
+2. Si dias_desde_ultimo < 3: NO chase, todavía no. Cierra. Sugiere esperar.
+3. Si dias_desde_ultimo entre 3 y 7: redacta SMS recordatorio amable + relink. enviar_sms.
+4. Si dias_desde_ultimo > 7: redacta SMS final + mensaje_a_sami "Llamar a [cliente] hoy para confirmar SOA" + crear_tarea responsable=isabel "Si Sami no consigue SOA en 48h, escalo yo".
+5. cliente_touchpoint(id, tipo="sms", resumen="Chase SOA día [N]").
+6. comprometer_entrega(persona="[nombre cliente]", descripcion="firmar SOA", canal="email", vence_en_dias=3) — para que el chase futuro corra solo.`,
+  },
+  {
+    nombre: 'Brief comparar planes',
+    descripcion: 'Cliente quiere comparar 2-3 planes Medicare. Arma side-by-side con premium / deductible / MOOP / cobertura de SUS medicamentos.',
+    trigger: 'cuando Isabel diga "compárame [plan A] vs [plan B] para X"',
+    inputs_schema: [
+      { nombre: 'cliente_id', descripcion: 'ID del cliente', requerido: true },
+      { nombre: 'planes', descripcion: 'Lista de planes a comparar (ej. ["SCAN Classic HMO", "Anthem MediBlue HMO"])', requerido: true },
+    ],
+    cuerpo: `# Comparativa de planes
+
+## Pasos
+
+1. expediente_cliente(id={cliente_id}) — necesito drug_list y providers.
+2. Si drug_list vacía: PARA. "No puedo comparar formulary sin saber qué toma. Llenémoslo primero."
+3. Si providers vacíos: WARN — la comparación de red será estimada.
+4. Para cada plan en {planes}: web_search "[plan] 2026 premium deductible MOOP formulary".
+5. Arma tabla 4 columnas: Plan / Premium / Deductible+MOOP / Cobertura de SUS medicamentos.
+6. Para cobertura de medicamentos, verifica cada uno del drug_list contra el formulary del plan (asume Tier 1-5).
+7. Resumen de 4 líneas: "Para [nombre], [carrier+plan] sale mejor porque [razón]. Pero ojo con [riesgo]. Próximo paso: [accion]".
+8. enviar_email al cliente con la tabla y resumen.
+9. cliente_touchpoint(id, tipo="email", resumen="Brief de comparación entre [planes]").`,
+  },
+];
+
+// Crea las skills como DRAFTS. Idempotente: si ya existe con ese
+// slug (cualquier status), salta y no la sobrescribe.
+export function seedMedicareSkills() {
+  const created = [];
+  const skipped = [];
+  for (const tpl of MEDICARE_PACK) {
+    const existing = loadSkill(tpl.nombre);
+    if (existing) {
+      skipped.push(existing.name);
+      continue;
+    }
+    try {
+      const s = proposeSkill({
+        nombre: tpl.nombre,
+        descripcion: tpl.descripcion,
+        trigger: tpl.trigger,
+        cuerpo: tpl.cuerpo,
+        inputs_schema: tpl.inputs_schema,
+        propuesto_por: 'athena_seed',
+      });
+      created.push(s.name);
+    } catch (err) {
+      console.warn('[seed] falló', tpl.nombre, ':', err.message);
+    }
+  }
+  return { created, skipped };
+}

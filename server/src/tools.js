@@ -91,7 +91,9 @@ import {
   listSkills,
   markInvoked,
   skillCard,
+  seedMedicareSkills,
 } from './skills.js';
+import { auditCrm, formatAuditFinding } from './auditor.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -819,6 +821,23 @@ export const toolDefinitions = [
       required: ['id'],
     },
   },
+  // ───────── AUDITOR DEL CRM ─────────
+  {
+    name: 'crm_auditar',
+    description: 'Corre una auditoría de calidad del CRM completo. Devuelve duplicados, inconsistencias, registros stale, huérfanos y patrones raros. Distinto a gaps_overview (que mira "qué campos faltan en cada cliente") — esto mira "qué está MAL en la estructura del CRM". Úsalo antes de AEP, después de importar leads, o cuando Isabel diga "dame un repaso de mi CRM".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limite: { type: 'integer', description: 'Cuántos hallazgos devolver (default 30).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'medicare_pack_seed',
+    description: 'Crea 6 skills draft del workflow Medicare (AEP outreach, intake, check-in 12m, renovación, chase SOA, brief comparar planes). Idempotente: si ya existen, las salta. Isabel debe aprobar cada una antes de poder invocarlas.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
   // ───────── CALENDARIO — escritura ─────────
   {
     name: 'crear_cita',
@@ -1492,6 +1511,24 @@ async function dispatchTool(name, input) {
         const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
         return `${icon} ${g.missing_field}: ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
       }).join('\n');
+    }
+    case 'crm_auditar': {
+      const findings = auditCrm({ limit: parseInt(input.limite, 10) || 30 });
+      if (!findings.length) return 'CRM limpio — sin hallazgos. ✓';
+      const counts = { alto: 0, aviso: 0, info: 0 };
+      for (const f of findings) counts[f.severidad] = (counts[f.severidad] || 0) + 1;
+      const head = `${findings.length} hallazgos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):`;
+      const body = findings.map(formatAuditFinding).join('\n');
+      return `${head}\n${body}`;
+    }
+    case 'medicare_pack_seed': {
+      const r = seedMedicareSkills();
+      if (!r.created.length && !r.skipped.length) return 'No pude crear ni una. Revisa los logs.';
+      const lines = [];
+      if (r.created.length) lines.push(`Creadas (${r.created.length} drafts): ${r.created.join(', ')}`);
+      if (r.skipped.length) lines.push(`Ya existían: ${r.skipped.join(', ')}`);
+      lines.push('Aprueba cada una con "aprueba la skill X" cuando estés lista.');
+      return lines.join('\n');
     }
     case 'crear_cita': {
       if (!calendarConfigured()) return 'Google Calendar no configurado. Faltan GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN.';

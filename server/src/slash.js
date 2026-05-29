@@ -18,7 +18,7 @@
 const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
-  'compromisos', 'skills', 'tareas',
+  'compromisos', 'skills', 'tareas', 'auditar',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -62,6 +62,8 @@ export async function runSlash(text, from) {
       case 'compromisos': return { ok: true, reply: await runCompromisos(args) };
       case 'skills': return { ok: true, reply: await runSkills(args) };
       case 'tareas': return { ok: true, reply: await runTareas(args) };
+      case 'auditar': return { ok: true, reply: await runAuditar(args) };
+      case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
       case 'envía': return await runEnvia(args);          // solo isabel — flush drafts
       case 'descartar': return await runDescartar();      // solo isabel
@@ -87,6 +89,7 @@ function buildHelp(role) {
     '/tareas [athena|isabel|sami] — cola por dueño',
     '/skills — playbooks activos',
     '/historial [n] — últimas N acciones',
+    '/auditar — corre auditoría de calidad del CRM',
   ];
   const isabelExtras = [
     '/triage — corre triage de email ahora',
@@ -96,6 +99,7 @@ function buildHelp(role) {
     '/envía [id?] — manda los borradores pendientes',
     '/descartar — descarta todos los borradores',
     '/backup — snapshot inmediato a R2',
+    '/seed-medicare-pack — instala 6 skills draft del workflow Medicare',
   ];
   return role === 'isabel'
     ? `Comandos disponibles:\n${samiCmds.join('\n')}\n\nExtras (solo tú):\n${isabelExtras.join('\n')}`
@@ -250,6 +254,25 @@ async function runDescartar() {
   const { clearOutbound } = await import('./memory.js');
   const n = clearOutbound();
   return { ok: true, reply: n ? `Descarté ${n} borrador(es).` : 'No había nada en cola.' };
+}
+
+async function runAuditar(args) {
+  const { auditCrm, formatAuditFinding } = await import('./auditor.js');
+  const findings = auditCrm({ limit: parseInt(args, 10) || 30 });
+  if (!findings.length) return 'CRM limpio — sin hallazgos. ✓';
+  const counts = { alto: 0, aviso: 0, info: 0 };
+  for (const f of findings) counts[f.severidad] = (counts[f.severidad] || 0) + 1;
+  return `${findings.length} hallazgos (alto=${counts.alto} · aviso=${counts.aviso} · info=${counts.info}):\n${findings.slice(0, 20).map(formatAuditFinding).join('\n')}`;
+}
+
+async function runSeedMedicare() {
+  const { seedMedicareSkills } = await import('./skills.js');
+  const r = seedMedicareSkills();
+  const parts = [];
+  if (r.created.length) parts.push(`Creadas (${r.created.length}): ${r.created.join(', ')}`);
+  if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
+  parts.push('Aprueba cada una con "aprueba la skill X" cuando quieras activarla.');
+  return { ok: true, reply: parts.join('\n') };
 }
 
 async function runBackup() {
