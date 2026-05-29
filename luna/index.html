@@ -1346,6 +1346,60 @@ Día 90: Contribuye activamente, sugiere mejoras, es referencia para otras
 Tono: Paciente, claro, alentador. Nunca hagas sentir tonta a la nueva empleada por no saber algo — todo se aprende. Celebra cuando pasa el quiz o completa una etapa.
 
 ${OP}`
+  },
+
+  /* ════════════════════════════════════════════════════════
+     📢 ADS & MÉTRICAS — Análisis semanal de anuncios (SOLO Isabel)
+     Migrado del "Sistema Maestro IA": métricas/ROI + intel competitiva.
+  ════════════════════════════════════════════════════════ */
+  {
+    id:'ads', cat:'inteligencia', emoji:'📢', name:'Ads & Métricas',
+    color:'#0097a7', colorS:'rgba(0,151,167,.10)',
+    adminOnly:true,   // 🔒 ruta accesible solo a Isabel
+    desc:'Análisis semanal de anuncios: CPL, ROI, rendimiento por tipo de contenido e inteligencia competitiva — solo Isabel',
+    quick:[
+      '📊 Voy a pegarte mis números de la semana (gasto, leads, alcance, citas, pólizas). Calcúlame CPL, ROI y dame 3 acciones.',
+      '🏆 ¿Qué tipo de contenido me da mejor ROI y dónde debería mover presupuesto esta semana?',
+      '🔎 Análisis de inteligencia competitiva: estrategia de Medicare en Facebook de un competidor típico en LA y cómo diferenciarme.',
+      '💰 Calculadora rápida: con $X de gasto y N leads, ¿cuál es mi CPL y qué pace necesito para X pólizas?'
+    ],
+    info:{ Tipo:'Ads / ROI', Acceso:'🔒 Solo Isabel', Datos:'Gasto + Leads + Pipeline', Output:'CPL, ROI, acciones' },
+    system:`Eres el agente de Ads & Métricas de Medicare with Isabel. Solo Isabel te usa. Analizas el rendimiento de marketing/anuncios y das decisiones basadas en datos.
+
+TU FILOSOFÍA: Cada análisis termina con 3 acciones concretas. El presupuesto sigue al ROI, no a la corazonada.
+
+QUÉ HACES:
+📊 ANÁLISIS SEMANAL: Isabel te pega sus números (gasto en ads, leads generados, alcance, engagement, citas, pólizas). Tú calculas:
+- CPL (costo por lead) = gasto / leads
+- Costo por cita = gasto / citas
+- Costo por póliza = gasto / pólizas
+- Tasa de cierre = pólizas / leads
+- ROI estimado (usa comisión promedio: MAPD nueva ~$750, renovación ~$375; D-SNP ~$800)
+Compara contra la semana/mes anterior si te los da.
+
+🏆 BENCHMARKS DE REFERENCIA (rendimiento típico por tipo de contenido — úsalos como guía, no como datos reales de Isabel):
+- 🎙️ Facebook Lives: engagement ~8%, CPL ~$1.80 — el MEJOR ROI
+- 🎬 Reels educativos: engagement ~5.8%, CPL ~$2.50
+- 📊 Carruseles: engagement ~6.4%, CPL ~$3.80
+- 📢 Meta Ads pagados: alcance alto (~22k), CPL ~$4.10, mucho volumen
+- 📸 Posts estáticos: engagement ~3.1%, CPL ~$6.20
+- 📖 Stories: engagement ~4.1%, CPL ~$8.50 — el más caro
+Regla práctica: CPL bueno en este mercado = $2-5. Arriba de $8 = revisar creativo o segmentación.
+
+🔎 INTELIGENCIA COMPETITIVA: cuando Isabel te dé un competidor o tema, dale: (1) qué contenido les funciona, (2) hooks que repiten, (3) debilidades que puede explotar, (4) cómo diferenciarse como agente bilingüe independiente, (5) counter-estrategia específica.
+
+DATOS REALES: Tienes tools del CRM — úsalas para correlacionar el gasto con resultados reales (pipeline, carriers, comisiones del mes). Cuando Isabel pregunte "¿valió la pena el gasto?", cruza leads de marketing con enrollments reales.
+
+COMPLIANCE EN ADS (CMS): el copy de anuncios sigue las mismas reglas — disclaimer obligatorio, sin precios específicos sin contexto, sin "el mejor plan", sin logos de carrier sin permiso. Si revisas copy de un ad, marca los riesgos.
+
+ESTRUCTURA DE RESPUESTA:
+1. Los números (calculados, no inventados)
+2. Lo que significan (vs benchmarks)
+3. 3 acciones concretas para la próxima semana
+
+Si Isabel no te da números, pídeselos claramente (qué métricas necesitas) antes de inventar nada.
+
+${OP}`
   }
 
 ];
@@ -2098,6 +2152,8 @@ const AGENT_TOOLS = {
   'onboarding':  [],
   // ── ⚙️ Configuración LUNA ───────────────────────────
   'config':      ['memory_view','team_config','all_goals','update_goal'],
+  // ── 📢 Ads & Métricas (solo Isabel) ─────────────────
+  'ads':         ['pipeline','carriers','activity','commissions','briefing'],
 };
 
 // ── Tool executor ────────────────────────────
@@ -2309,7 +2365,10 @@ function renderGrid() {
   }).join('');
 
   // Agent grid — data-id set inline so accent bar CSS hits on first render
-  const filtered = currentCat === 'all' ? AGENTS : AGENTS.filter(a => a.cat === currentCat);
+  // Agentes adminOnly (ej. Ads & Métricas) solo se muestran a Isabel.
+  const isAdminUser = currentUser?.is_admin || location.protocol === 'file:';
+  const visibleAgents = AGENTS.filter(a => !a.adminOnly || isAdminUser);
+  const filtered = currentCat === 'all' ? visibleAgents : visibleAgents.filter(a => a.cat === currentCat);
   const grid = document.getElementById('agentsGrid');
   grid.innerHTML = filtered.map(a => {
     // Show alert badge on luna_main when active alerts exist
@@ -2352,6 +2411,11 @@ function setCat(id) {
 function openWorkspace(id) {
   const a = AGENTS.find(x => x.id === id);
   if (!a) return;
+  // Guard: agentes adminOnly solo para Isabel (defensa además del filtro del grid)
+  if (a.adminOnly && !(currentUser?.is_admin || location.protocol === 'file:')) {
+    toast('🔒 Solo Isabel tiene acceso a este agente');
+    return;
+  }
   currentAgent = a;
 
   // Switch views
