@@ -517,6 +517,14 @@ LUNA NUNCA HACE (líneas rojas):
 ✗ Enviar mensajes en chat_mensajes (comunicación humana)
 ✗ Submitir applications (eso es NPN-bound, solo Isabel en su portal de carrier)
 
+MEMORIA POR CAPAS (úsala cuando aplique):
+- SEÑALES: usa la tool [[TOOL:signals]] para ver alertas ya computadas (hot leads fríos, retención, SOA, T65, AEP). Empieza ahí cuando Isabel pida "qué necesita atención".
+- HUECOS: usa [[TOOL:gaps]] para ver qué datos faltan en el CRM (activos sin email/teléfono/SOA, leads sin fuente). Útil para sugerir limpieza de datos.
+- ENTIDADES: busca personas/doctores/clínicas mencionadas con [[TOOL:entities|q=nombre]].
+- CAPTURA POR DEFECTO: cuando Isabel mencione un hecho durable sobre una persona (preferencia, doctor, relación, promesa) que valga la pena recordar, regístralo SIN preguntar emitiendo al final de tu respuesta:
+  [[ENTITY|Nombre|persona|la nota corta a recordar]]
+  (tipo puede ser persona/doctor/clinica/org/lugar). Hazlo solo con hechos reales que Isabel dijo, nunca inventes.
+
 === END OPERATIONAL CONTEXT ===
 `;
 
@@ -1576,11 +1584,23 @@ async function deleteMemory(type, key) {
 
 function detectRemember(text) {
   const t = text.trim().toLowerCase();
-  const prefixes = ['recuerda que ','recuerda ','anota que ','remember '];
+  // Captura por defecto (#9): más frases que disparan memoria sin preguntar
+  const prefixes = ['recuerda que ','recuerda ','anota que ','anota ','apunta que ','apunta ',
+                    'no olvides que ','no olvides ','ten en cuenta que ','ten en cuenta ',
+                    'para que sepas ','remember '];
   for (const p of prefixes) {
     if (t.startsWith(p)) return text.trim().replace(new RegExp('^'+p,'i'),'').trim();
   }
   return null;
+}
+
+// [[ENTITY|nombre|tipo|nota]] — LUNA registra una persona/lugar mencionado.
+function detectEntitySave(text) {
+  const m = text.match(/\[\[ENTITY\|([^\]]+)\]\]/);
+  if (!m) return null;
+  const parts = m[1].split('|').map(s => s.trim());
+  if (!parts[0]) return null;
+  return { name: parts[0], tipo: parts[1] || 'persona', nota: parts[2] || '' };
 }
 
 function addRememberNote(note) {
@@ -2129,15 +2149,16 @@ const AGENT_TOOLS = {
   'luna_main':   ['briefing','pipeline','t65','retention','hotleads','search','detail','soa',
                   'tickets_all','today_appts','attendance','commissions','carriers','activity',
                   'log','note','create_member','update_status','create_ticket','create_appt',
-                  'notif','batch_tickets','all_goals','memory_view','team_config'],
+                  'notif','batch_tickets','all_goals','memory_view','team_config',
+                  'signals','gaps','entities','entity_save','skill_list'],
   // ── 🎛️ Centro de Comando ────────────────────────────
   'comando':     ['briefing','pipeline','t65','retention','hotleads','search','tickets_all',
                   'attendance','commissions','carriers','activity','batch_tickets',
                   'create_ticket','update_status','notif','create_appt','all_goals',
-                  'today_appts','log'],
+                  'today_appts','log','signals','gaps','skill_list'],
   // ── 📊 Analista (datos consolidados) ────────────────
   'analista':    ['pipeline','t65','retention','hotleads','carriers','commissions',
-                  'attendance','activity','all_goals','briefing','tickets_all'],
+                  'attendance','activity','all_goals','briefing','tickets_all','gaps','signals'],
   // ── ✍️ Estudio Creativo ─────────────────────────────
   'estudio':     ['pipeline','carriers','create_member','search'],
   // ── ⚖️ Compliance ───────────────────────────────────
@@ -2228,6 +2249,18 @@ async function callTool(toolName, params = {}) {
         return await getTeamConfigData();
       case 'memory_view':
         return getMemoryData();
+      // ── Memoria por capas (read) ──
+      case 'signals':
+        return await (await fetch(CRM_BASE + qs('signals_list'))).json();
+      case 'gaps':
+        return await (await fetch(CRM_BASE + qs('gaps_overview'))).json();
+      case 'entities':
+        return await (await fetch(CRM_BASE + qs('entity_search', {q: params.q||''}))).json();
+      // ── Memoria por capas (write) ──
+      case 'entity_save':
+        return await post('entity_upsert', params);
+      case 'skill_list':
+        return await (await fetch(CRM_BASE + qs('skill_list', {approved: params.approved||''}))).json();
       default:
         return {ok:false, error:`Tool desconocida: ${toolName}`};
     }
@@ -2308,6 +2341,11 @@ function buildToolContext(agentId) {
     callbacks:     'pending_callbacks — llamadas perdidas pendientes',
     team_config:   'team_config — ver configuración actual del equipo definida por Isabel',
     memory_view:   'memory_view — ver toda la memoria de LUNA: metas, notas, historial de pipeline, lecciones',
+    signals:       'signals — señales del negocio ya computadas (hot leads fríos, retención, SOA, T65, AEP) ordenadas por severidad',
+    gaps:          'gaps — qué datos FALTAN en el CRM (activos sin email/teléfono/DOB/carrier/SOA, leads sin fuente)',
+    entities:      'entity_search — busca personas/doctores/clínicas que Isabel ha mencionado (params: q=término)',
+    entity_save:   'entity_upsert — ESCRIBE: registra/actualiza una entidad mencionada (params: name=, tipo=persona|doctor|clinica|org|lugar, alias=, nota=, miembro_id=)',
+    skill_list:    'skill_list — playbooks/skills guardados (params: approved=1 para solo aprobados)',
   };
 
   const toolList = allowed.map(t => `  [[TOOL:${t}]] → ${toolDescriptions[t]||t}`).join('\n');
@@ -2751,6 +2789,11 @@ async function sendMsg() {
       lunaMemory.lessons.unshift(lessonData);
       if (lunaMemory.lessons.length > 30) lunaMemory.lessons = lunaMemory.lessons.slice(0,30);
       setMemory('lesson', null, lessonData);
+    }
+    // Detect [[ENTITY|...]] in response — registra persona/lugar mencionado (#6/#9)
+    const entityData = detectEntitySave(accumulated);
+    if (entityData) {
+      callTool('entity_save', entityData).catch(()=>{});
     }
     // Store session summary when conversation gets meaningful
     storeSessionSummary(a.id, history[a.id]);

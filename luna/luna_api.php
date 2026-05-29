@@ -1555,6 +1555,227 @@ case 'luna_plan_set':
     ok(['saved' => true, 'item_key' => $itemKey]);
     break;
 
+// ════════════════════════════════════════════════════════
+// MEMORIA POR CAPAS — entidades, señales, skills, gaps
+// (roadmap #6–10). Tablas se autocrean la primera vez.
+// ════════════════════════════════════════════════════════
+
+function ensureEntityTable(PDO $pdo) {
+    static $d=false; if($d) return; $d=true;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS luna_entidades (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        canonical VARCHAR(160) NOT NULL,
+        tipo VARCHAR(20) DEFAULT 'persona',
+        aliases TEXT DEFAULT NULL,
+        miembro_id INT DEFAULT NULL,
+        salience INT DEFAULT 1,
+        notas TEXT DEFAULT NULL,
+        last_seen DATETIME DEFAULT CURRENT_TIMESTAMP,
+        created_by INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_canon (canonical),
+        INDEX idx_salience (salience), INDEX idx_miembro (miembro_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+function ensureSignalTable(PDO $pdo) {
+    static $d=false; if($d) return; $d=true;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS luna_senales (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        skey VARCHAR(80) DEFAULT NULL,
+        tipo VARCHAR(20) DEFAULT 'state',
+        severity VARCHAR(10) DEFAULT 'medium',
+        titulo VARCHAR(200) NOT NULL,
+        detalle TEXT DEFAULT NULL,
+        valor INT DEFAULT NULL,
+        status VARCHAR(12) DEFAULT 'open',
+        auto TINYINT(1) DEFAULT 1,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_skey (skey),
+        INDEX idx_status (status), INDEX idx_sev (severity)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+function ensureSkillTable(PDO $pdo) {
+    static $d=false; if($d) return; $d=true;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS luna_skills (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        slug VARCHAR(60) NOT NULL,
+        nombre VARCHAR(120) NOT NULL,
+        descripcion TEXT DEFAULT NULL,
+        pasos TEXT DEFAULT NULL,
+        aprobado TINYINT(1) DEFAULT 0,
+        created_by INT DEFAULT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_slug (slug)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+}
+
+// Recalcula señales desde el CRM. Reemplaza las señales auto-abiertas.
+// Reutilizable por el cron nocturno (luna_signals_cron.php).
+function computeSignals(PDO $pdo) {
+    ensureSignalTable($pdo);
+    $sig = []; // [skey => [tipo, severity, titulo, detalle, valor]]
+
+    $hotCold = (int)$pdo->query("SELECT COUNT(*) FROM miembros m WHERE m.estado='HOT LEAD'
+        AND DATEDIFF(CURDATE(), COALESCE((SELECT MAX(DATE(a.fecha_hora)) FROM actividad a WHERE a.miembro_id=m.id), m.created_at)) >= 3")->fetchColumn();
+    if ($hotCold > 0) $sig['hot_cold'] = ['pattern','critical',"$hotCold hot leads sin contacto +3 días",'Riesgo de perder leads calificados.',$hotCold];
+
+    $ret = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO' AND fecha_efectiva IN
+        (DATE_SUB(CURDATE(),INTERVAL 7 DAY),DATE_SUB(CURDATE(),INTERVAL 30 DAY),DATE_SUB(CURDATE(),INTERVAL 60 DAY),DATE_SUB(CURDATE(),INTERVAL 90 DAY))")->fetchColumn();
+    if ($ret > 0) $sig['retencion_hoy'] = ['calendar','critical',"$ret miembro(s) para llamada de retención HOY",'Day 7/30/60/90 — Samia ejecuta.',$ret];
+
+    $soa = (int)$pdo->query("SELECT COUNT(*) FROM miembros m WHERE m.estado IN('ACTIVO','PENDIENTE')
+        AND (SELECT COUNT(*) FROM soa s WHERE s.miembro_id=m.id AND s.estado='FIRMADO')=0")->fetchColumn();
+    if ($soa >= 3) $sig['soa_riesgo'] = ['threshold','critical',"$soa miembros activos SIN SOA firmado",'Riesgo de auditoría CMS.',$soa];
+
+    $t65 = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado!='ACTIVO'
+        AND DATE_ADD(dob,INTERVAL 65 YEAR) BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 30 DAY)")->fetchColumn();
+    if ($t65 > 0) $sig['t65_urgente'] = ['calendar','high',"$t65 T65 cumplen 65 en <30 días",'Ventana IEP cerrándose.',$t65];
+
+    $cb = (int)$pdo->query("SELECT COUNT(*) FROM llamadas_perdidas WHERE estado='PENDIENTE'")->fetchColumn();
+    if ($cb >= 2) $sig['callbacks'] = ['state','medium',"$cb llamadas perdidas sin devolver",'Regla de 60 minutos en riesgo.',$cb];
+
+    // Calendar: cuenta regresiva al AEP (Oct 15)
+    $today = new DateTime('now', new DateTimeZone('America/Los_Angeles'));
+    $aep = new DateTime($today->format('Y') . '-10-15', new DateTimeZone('America/Los_Angeles'));
+    if ($today > $aep) $aep->modify('+1 year');
+    $dToAep = (int)$today->diff($aep)->days;
+    if ($dToAep <= 45 && $dToAep >= 0) $sig['aep_proximo'] = ['calendar','high',"AEP en $dToAep días",'Prepara revisiones anuales con clientes activos.',$dToAep];
+
+    // Reemplaza señales auto-abiertas con el set fresco
+    $pdo->exec("DELETE FROM luna_senales WHERE auto=1");
+    $ins = $pdo->prepare("INSERT INTO luna_senales (skey,tipo,severity,titulo,detalle,valor,status,auto)
+                          VALUES (?,?,?,?,?,?, 'open', 1)
+                          ON DUPLICATE KEY UPDATE tipo=VALUES(tipo),severity=VALUES(severity),
+                              titulo=VALUES(titulo),detalle=VALUES(detalle),valor=VALUES(valor),status='open'");
+    foreach ($sig as $k => $v) $ins->execute([$k, $v[0], $v[1], $v[2], $v[3], $v[4]]);
+    return count($sig);
+}
+
+// ── ENTIDADES ────────────────────────────────────────────
+case 'luna_entity_upsert':
+    requirePost();
+    ensureEntityTable($pdo);
+    $name = strOrNull($_POST['name'] ?? '');
+    if (!$name) err('Falta name.');
+    $tipo  = strtolower(strOrNull($_POST['tipo'] ?? 'persona'));
+    if (!in_array($tipo, ['persona','doctor','clinica','org','lugar','otro'])) $tipo = 'otro';
+    $alias = strOrNull($_POST['alias'] ?? '');
+    $nota  = strOrNull($_POST['nota'] ?? '');
+    $miembroId = intOrNull($_POST['miembro_id'] ?? null);
+    $needle = mb_strtolower($name);
+
+    // Resolver: por canonical o por alias (case-insensitive)
+    $found = null;
+    foreach ($pdo->query("SELECT * FROM luna_entidades")->fetchAll() as $e) {
+        $al = json_decode($e['aliases'] ?? '[]', true) ?: [];
+        $al = array_map('mb_strtolower', array_map('strval', $al));
+        if (mb_strtolower($e['canonical']) === $needle || in_array($needle, $al, true)) { $found = $e; break; }
+    }
+
+    if ($found) {
+        $al = json_decode($found['aliases'] ?? '[]', true) ?: [];
+        if ($alias && !in_array($alias, $al, true)) $al[] = $alias;
+        $notas = trim(($found['notas'] ? $found['notas']."\n" : '') . ($nota ? '['.date('d M').'] '.$nota : ''));
+        $pdo->prepare("UPDATE luna_entidades SET salience=salience+1, last_seen=NOW(),
+                       aliases=?, notas=?, miembro_id=COALESCE(?, miembro_id), tipo=? WHERE id=?")
+            ->execute([json_encode(array_values($al), JSON_UNESCAPED_UNICODE), mb_substr($notas,0,4000), $miembroId, $tipo, $found['id']]);
+        ok(['id'=>(int)$found['id'], 'resolved'=>true, 'canonical'=>$found['canonical']]);
+    } else {
+        $al = $alias ? [$alias] : [];
+        $pdo->prepare("INSERT INTO luna_entidades (canonical, tipo, aliases, miembro_id, notas, created_by)
+                       VALUES (?,?,?,?,?,?)")
+            ->execute([$name, $tipo, json_encode($al, JSON_UNESCAPED_UNICODE), $miembroId,
+                       $nota ? '['.date('d M').'] '.$nota : null, $uid]);
+        ok(['id'=>(int)$pdo->lastInsertId(), 'resolved'=>false, 'canonical'=>$name]);
+    }
+    break;
+
+case 'luna_entity_search':
+    ensureEntityTable($pdo);
+    $q = mb_strtolower(trim($_GET['q'] ?? ''));
+    $rows = $pdo->query("SELECT id, canonical, tipo, aliases, miembro_id, salience, notas, last_seen
+                         FROM luna_entidades ORDER BY salience DESC LIMIT 200")->fetchAll();
+    if ($q !== '') {
+        $rows = array_values(array_filter($rows, function($e) use ($q) {
+            $al = json_decode($e['aliases'] ?? '[]', true) ?: [];
+            $hay = mb_strtolower($e['canonical'].' '.implode(' ',$al).' '.($e['notas']??''));
+            return strpos($hay, $q) !== false;
+        }));
+    }
+    ok(['entities' => array_slice($rows, 0, 30)]);
+    break;
+
+// ── SEÑALES ──────────────────────────────────────────────
+case 'luna_signals_list':
+    ensureSignalTable($pdo);
+    $rows = $pdo->query("SELECT id, skey, tipo, severity, titulo, detalle, valor, created_at
+                         FROM luna_senales WHERE status='open'
+                         ORDER BY FIELD(severity,'critical','high','medium','low'), valor DESC")->fetchAll();
+    ok(['signals' => $rows]);
+    break;
+
+case 'luna_signals_compute':
+    requireAdmin();
+    $n = computeSignals($pdo);
+    lunaAudit($pdo, $uid, 'COMPUTE', "signals=$n");
+    ok(['computed' => $n]);
+    break;
+
+case 'luna_signal_dismiss':
+    requirePost();
+    requireAdmin();
+    ensureSignalTable($pdo);
+    $id = intOrNull($_POST['id'] ?? null);
+    $skey = strOrNull($_POST['skey'] ?? '');
+    if ($id)        $pdo->prepare("UPDATE luna_senales SET status='dismissed' WHERE id=?")->execute([$id]);
+    elseif ($skey)  $pdo->prepare("UPDATE luna_senales SET status='dismissed' WHERE skey=?")->execute([$skey]);
+    else            err('Falta id o skey.');
+    ok(['dismissed'=>true]);
+    break;
+
+// ── SKILLS (playbooks aprobados) ─────────────────────────
+case 'luna_skill_list':
+    ensureSkillTable($pdo);
+    $onlyApproved = ($_GET['approved'] ?? '') === '1';
+    $sql = "SELECT id, slug, nombre, descripcion, pasos, aprobado, updated_at FROM luna_skills";
+    if ($onlyApproved) $sql .= " WHERE aprobado=1";
+    $sql .= " ORDER BY nombre";
+    ok(['skills' => $pdo->query($sql)->fetchAll()]);
+    break;
+
+case 'luna_skill_save':
+    requirePost();
+    requireAdmin();   // solo Isabel aprueba/edita playbooks
+    ensureSkillTable($pdo);
+    $slug = strtolower(preg_replace('/[^a-z0-9_\-]/i','', (string)($_POST['slug'] ?? '')));
+    $nombre = strOrNull($_POST['nombre'] ?? '');
+    if (!$slug || !$nombre) err('Faltan slug o nombre.');
+    $desc  = strOrNull($_POST['descripcion'] ?? '');
+    $pasos = strOrNull($_POST['pasos'] ?? '');
+    $aprob = (int)(($_POST['aprobado'] ?? '0') === '1' || ($_POST['aprobado'] ?? '') === 'true');
+    $pdo->prepare("INSERT INTO luna_skills (slug,nombre,descripcion,pasos,aprobado,created_by)
+                   VALUES (?,?,?,?,?,?)
+                   ON DUPLICATE KEY UPDATE nombre=VALUES(nombre),descripcion=VALUES(descripcion),
+                       pasos=VALUES(pasos),aprobado=VALUES(aprobado),updated_at=NOW()")
+        ->execute([$slug,$nombre,$desc,$pasos,$aprob,$uid]);
+    ok(['saved'=>true, 'slug'=>$slug]);
+    break;
+
+// ── GAPS OVERVIEW — qué le falta a los datos del CRM ─────
+case 'luna_gaps_overview':
+    $gaps = [];
+    $gaps['activos_sin_email'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO' AND (email IS NULL OR email='')")->fetchColumn();
+    $gaps['activos_sin_telefono'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO' AND (telefono IS NULL OR telefono='')")->fetchColumn();
+    $gaps['activos_sin_dob'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO' AND dob IS NULL")->fetchColumn();
+    $gaps['leads_sin_fuente'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado IN('PROSPECTO','HOT LEAD','T65','FOLLOW-UP') AND (fuente IS NULL OR fuente='')")->fetchColumn();
+    $gaps['activos_sin_carrier'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO' AND (carrier IS NULL OR carrier='')")->fetchColumn();
+    $gaps['activos_sin_soa'] = (int)$pdo->query("SELECT COUNT(*) FROM miembros m WHERE m.estado='ACTIVO' AND (SELECT COUNT(*) FROM soa s WHERE s.miembro_id=m.id AND s.estado='FIRMADO')=0")->fetchColumn();
+    $total = array_sum($gaps);
+    ok(['gaps' => $gaps, 'total' => $total]);
+    break;
+
 // ─────────────────────────────────────────────────────────
 default:
     err('Acción desconocida: ' . $action, 404);
