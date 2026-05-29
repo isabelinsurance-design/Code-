@@ -73,7 +73,9 @@ async function runProactive(syntheticUserMessage, prefix = '') {
 }
 
 // ---- Cierre del día (9pm aprox — ANTES de quiet hours) ----
-// Pregunta 3 wins + 1 para mañana. Captura logros, siembra prioridades.
+// Phase 12: arranca con stats reales del día. El blurb concreto da
+// a Athena material honesto para los wins en vez de invitarla a
+// inventar.
 export async function sendEveningCheckin() {
   const gate = canSendProactive({ force: true });
   if (!gate.ok) {
@@ -87,8 +89,26 @@ export async function sendEveningCheckin() {
     month: 'long',
     timeZone: TZ(),
   });
+  // Pide los stats antes de la conversación para que Athena los use.
+  let statsBlurb = '';
+  try {
+    const { dailyStatsBlurb } = await import('./stats.js');
+    statsBlurb = dailyStatsBlurb();
+  } catch { /* ignore */ }
   await runProactive(
-    `[CIERRE DE DÍA AUTOMÁTICO — ${fecha}] Pregúntale 3 wins de hoy + 1 cosa para mañana. Corto, cálido, sin presión. Si responde, guarda los wins con la herramienta recordar (con el prefijo "Win: ") y la cosa de mañana como "Para mañana: ". Esto se manda solo — no esperes que ella haya hablado primero.`,
+    `[CIERRE DE DÍA AUTOMÁTICO — ${fecha}]
+
+DATOS DEL DÍA (úsalos para que los wins sean honestos, NO inventes):
+${statsBlurb}
+
+INSTRUCCIONES:
+- Salúdame brevemente y reconóceme algún dato concreto de los stats si hay (ej. "tocaste 4 clientes hoy, eso es disciplina").
+- Pregúntame 3 wins de hoy + 1 cosa para mañana.
+- Tono: corto, cálido, sin presión. Sin listas — frases continuas.
+- Si te respondo con wins, guárdalos con recordar (prefijo "Win: ") y la cosa de mañana como "Para mañana: ".
+- Si los stats son cero todo, no me regañes — di algo como "día tranquilo en data, pero el valor no siempre está en los números".
+
+Esto se manda solo, no esperes que yo haya dicho nada.`,
   );
   console.log('[evening] check-in enviado.');
 }
@@ -151,6 +171,17 @@ TRABAJOS QUE TIENES QUE HACER (en este orden):
     console.log(`[reflection] ${sigs.length} señales computadas para el briefing.`);
   } catch (err) {
     console.warn('[reflection] cómputo de señales falló:', err.message);
+  }
+  // Auto-skill detection: revisa patrones de 7 días en el audit log,
+  // propone hasta 1 draft. El briefing matutino los menciona.
+  try {
+    const { detectPatternsAndPropose } = await import('./skills.js');
+    const drafts = await detectPatternsAndPropose();
+    if (drafts.length) {
+      console.log(`[reflection] ${drafts.length} skill(s) auto-propuestas: ${drafts.map((d) => d.name).join(', ')}`);
+    }
+  } catch (err) {
+    console.warn('[reflection] auto-skill detection falló:', err.message);
   }
   console.log('[reflection] resumen:', String(reply).slice(0, 200));
 }

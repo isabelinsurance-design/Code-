@@ -51,6 +51,21 @@ export async function sendMorningBriefing() {
 
 CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Llama web_search con UNA query enfocada (ej: "Medicare news SCAN Humana Anthem ${new Date().getFullYear()} ${new Date().toLocaleString('en-US',{month:'short'})}" o "CMS Final Rule 2027 brokers"). Trae 1-2 datos accionables (cambio de tarifa, plan nuevo, regla nueva) — no un resumen genérico. Si web_search no devuelve nada relevante, salta el digest.` : '';
 
+  // Phase 12: si anoche auto-propusiste alguna skill nueva, menciónala
+  // en el briefing para que Isabel la apruebe o descarte conscientemente.
+  let autoSkillHint = '';
+  try {
+    const { recentAutoDrafts } = await import('./skills.js');
+    const drafts = recentAutoDrafts({ hoursBack: 24 });
+    if (drafts.length) {
+      const list = drafts.map((d) => `[${d.name}] — ${d.descripcion}`).join('\n  ');
+      autoSkillHint = `
+
+NUEVAS SKILLS AUTO-PROPUESTAS (anoche detecté patrones y armé drafts — mencionaselos a Isabel UNA vez, breve, al final, para que apruebe o descarte):
+  ${list}`;
+    }
+  } catch { /* ignore */ }
+
   messages.push({
     role: 'user',
     content: `[BRIEFING AUTOMÁTICO DE LA MAÑANA — ${fecha}] Salúdame con energía y dame tu mejor lectura del día.
@@ -63,7 +78,7 @@ TERCERO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los co
 
 CUARTO, pregúntame mis Top 3 de hoy.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
