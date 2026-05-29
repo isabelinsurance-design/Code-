@@ -485,6 +485,9 @@ tr:hover td{background:var(--surface)}
       <button class="nav-item" onclick="showModule('equipo',this)">
         <span class="nav-icon">🤖</span><span class="nav-label">Equipo IA</span>
       </button>
+      <button class="nav-item" onclick="showModule('movil',this)">
+        <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
+      </button>
     </div>
     <div class="sidebar-label">COMMAND CENTER</div>
     <div class="sidebar-section">
@@ -1010,6 +1013,78 @@ tr:hover td{background:var(--surface)}
           <div class="eq-card-sub">Plantilla para que la llenes con un cliente real (con su permiso)</div>
           <div class="ai-box" id="eqOut6"><div class="ai-label">✨ Historia</div></div>
           <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut6')">📋 Copiar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ AGENTE MÓVIL (Telegram bot) ══════ -->
+    <div class="module" id="mod-movil">
+      <div class="page-header">
+        <div class="page-title">📱 Agente <em>Móvil</em></div>
+        <div class="page-sub">Habla con tu IA desde el celular por Telegram. Dale tareas mientras manejas, mientras esperas, donde sea.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">💬</span>
+        <div><strong>¿Cómo funciona?</strong> Tu agente vive en Telegram. Le escribes como a un asistente: <i>"dame 3 ideas para mañana"</i> o usas comandos rápidos. Te responde al instante con contenido alineado a tu marca y misión 🦋.</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Lo que puede hacer -->
+        <div class="card">
+          <div class="card-head"><span>⚡</span><div class="card-title">Comandos que puedes darle</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><code>/hook</code> <i>tema</i> — 5 ganchos virales sobre el tema</li>
+              <li><code>/idea</code> — 3 ideas de Reels para esta semana</li>
+              <li><code>/live</code> <i>tema</i> — guion completo para tu Facebook Live</li>
+              <li><code>/tip</code> — un post "¿Sabías que…?"</li>
+              <li><code>/lead</code> — copy para tu guía gratis (captura leads)</li>
+              <li><code>/historia</code> — plantilla de historia para llenar con un cliente real</li>
+              <li>🚀 <code>/semana</code> — TODO lo de arriba al mismo tiempo</li>
+              <li>💬 O escríbele en español como hablas con cualquier persona</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- WhatsApp note -->
+        <div class="card">
+          <div class="card-head"><span>📲</span><div class="card-title">¿Y WhatsApp?</div></div>
+          <div class="card-body">
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55">WhatsApp también se puede — pero requiere verificación de cuenta de negocio con Meta y aprobación de plantillas. Es un proceso más largo.</p>
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55;margin-top:8px"><b>Mi recomendación:</b> empezamos con Telegram (gratis, listo en 10 min). Una vez que veas que te sirve, conectamos WhatsApp Business como segundo canal.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Setup steps -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🛠️</span><div class="card-title">Cómo instalarlo (4 pasos)</div></div>
+        <div class="card-body">
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px"><i>Esta parte la puede hacer alguien técnico que te ayude (ej. Sammy). Todo lo que necesita está en la carpeta <code>bot/</code> de tu repo.</i></p>
+          <div class="brand-step"><span class="brand-step-num">1</span><div><b>Crea tu bot en Telegram.</b> Abre Telegram → busca <b>@BotFather</b> → escríbele <code>/newbot</code> → ponle un nombre (ej: "Medicare with Isabel") → guarda el <b>token</b> que te da (es como una contraseña).</div></div>
+          <div class="brand-step"><span class="brand-step-num">2</span><div><b>Sube el bot a un servidor.</b> Recomendado: <b>Railway.app</b> (tiene plan gratis). Conecta tu repo de GitHub, selecciona la carpeta <code>bot/</code>.</div></div>
+          <div class="brand-step"><span class="brand-step-num">3</span><div><b>Agrega las 2 llaves secretas</b> en Railway → Variables:
+            <ul style="margin:6px 0 0 18px;font-size:12.5px;color:var(--text-mid)">
+              <li><code>TELEGRAM_BOT_TOKEN</code> = el token de @BotFather</li>
+              <li><code>ANTHROPIC_API_KEY</code> = tu API key (la misma que usas aquí)</li>
+            </ul>
+          </div></div>
+          <div class="brand-step"><span class="brand-step-num">4</span><div><b>Abre Telegram y empieza a escribirle a tu bot.</b> Mándale <code>/start</code> y verás todos los comandos. ¡Listo! 🦋</div></div>
+          <div class="tpl-note" style="margin-top:14px">💡 Toda la info técnica está en <code>bot/README.md</code> dentro de tu repo. La persona que te ayude solo necesita seguir ese archivo.</div>
+        </div>
+      </div>
+
+      <!-- Example interactions -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>💬</span><div class="card-title">Ejemplo de cómo se siente usarlo</div></div>
+        <div class="card-body">
+          <div style="background:var(--surface);border-radius:12px;padding:14px;font-size:13.5px;line-height:1.6;color:var(--text)">
+            <div style="margin-bottom:8px"><b style="color:var(--teal-dk)">Tú:</b> "Estoy manejando — dame 3 ideas de Reels para grabar al llegar a casa"</div>
+            <div style="margin-bottom:8px"><b style="color:var(--gold-dk)">Bot 🦋:</b> 1) Reel "Mito vs Verdad: Medicare es gratis"…  2) Reel beneficios dentales que no sabías…  3) Reel "Si cumples 65 este año, esto es lo único que importa"…</div>
+            <div style="margin-bottom:8px"><b style="color:var(--teal-dk)">Tú:</b> "/live diferencia entre Advantage y Suplementario"</div>
+            <div><b style="color:var(--gold-dk)">Bot 🦋:</b> [Guion completo de 5-7 minutos para tu Live] …</div>
+          </div>
         </div>
       </div>
     </div>

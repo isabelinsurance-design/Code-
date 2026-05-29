@@ -22,6 +22,7 @@ her finished files over technical steps.
 | `index.html` | **The shell / source of truth.** Single-page app. Edit THIS. Loads tools from `tools/` via iframe `src`. |
 | `tools/` (18 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
 | `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 18 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
+| `bot/` | Telegram bot (Python). Same `ISABEL_SYSTEM` prompt as the web app. Deployable to Railway/Replit/Render. See `bot/README.md`. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
 ## Build step — IMPORTANT
