@@ -21,6 +21,7 @@ import {
 } from './security.js';
 import { snapshot as backupSnapshot } from './backup.js';
 import { startInboxIdle, inboxIdleEnabled } from './inbox_idle.js';
+import { buildIncomingTwiml, handleVoiceStatus, attachVoiceRelay } from './voice.js';
 
 const app = express();
 // Si estamos detrás de un proxy (Railway/Render/Fly), confiamos en
@@ -35,6 +36,18 @@ app.get('/health', (_req, res) => res.json({ ok: true, time: new Date().toISOStr
 // Sirve los MP3 generados por TTS para que Twilio los pueda jalar.
 // Carpeta efímera — los archivos se borran después de 24h.
 app.use('/audio', express.static(AUDIO_DIR, { maxAge: '6h', extensions: ['mp3'] }));
+
+// ---- Webhooks de voz (Twilio Programmable Voice + ConversationRelay) ----
+// /voice/incoming devuelve TwiML que conecta la llamada a nuestro WS.
+// /voice/status recibe lifecycle updates (start, ring, answer, complete,
+// recording-available). El WebSocket en wss:///voice/relay se atacha
+// abajo, después de crear el http.Server.
+app.post('/voice/incoming', twilioSignatureMiddleware, (req, res) => {
+  const twiml = buildIncomingTwiml(req);
+  res.set('Content-Type', 'text/xml');
+  res.send(twiml);
+});
+app.post('/voice/status', twilioSignatureMiddleware, handleVoiceStatus);
 
 // ---- Webhook de WhatsApp entrante (Twilio le pega aquí) ----
 // Middleware en orden: rate limit (barato, primero) → firma Twilio
@@ -219,7 +232,7 @@ if (calendarConfigured()) {
 }
 
 const port = process.env.PORT || 3000;
-app.listen(port, () => {
+const httpServer = app.listen(port, () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
   // Arranca el listener de Gmail IDLE (event-driven inbox). Si las
   // credenciales no están, no hace nada. Si la conexión cae, se
@@ -228,3 +241,7 @@ app.listen(port, () => {
     startInboxIdle().catch((err) => console.error('[idle] arranque falló:', err.message));
   }
 });
+// Atacha el endpoint WebSocket /voice/relay al mismo HTTP server.
+// Twilio ConversationRelay nos pega aquí con el streaming texto-a-texto
+// (ya hace STT/TTS por su lado).
+attachVoiceRelay(httpServer);

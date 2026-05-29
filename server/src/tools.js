@@ -79,6 +79,7 @@ import {
   aepTouchpointCount,
 } from './crm.js';
 import { loadSignals } from './signals.js';
+import { placeOutboundCall } from './voice.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -782,6 +783,20 @@ export const toolDefinitions = [
     description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
+  // ───────── LLAMADAS TELEFÓNICAS ─────────
+  {
+    name: 'llamar_cliente',
+    description: 'Coloca una LLAMADA telefónica en nombre de Isabel. La llamada va al número que pases, suena, y cuando contestan TÚ misma (Athena) hablas con la persona vía Twilio Programmable Voice + ConversationRelay. Después de que cuelguen yo (post-call) genero un resumen, lo añado como touchpoint del cliente, y guardo la grabación. USA esto cuando Isabel diga "llámale a [cliente]" o "confírmale a [cliente] la junta de mañana". CUIDADO: la llamada se ejecuta de inmediato. Antes de llamarle a un cliente Medicare por temas de PLANES, verifica que tenga SOA firmada (consulta expediente_cliente). Para call recording siempre activamos record=true (CMS-compliance).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        telefono: { type: 'string', description: 'Número en formato E.164 (+13105551234) o 10 dígitos US.' },
+        motivo: { type: 'string', description: 'Razón de la llamada (1-2 frases). Athena lo usa como contexto al iniciar la conversación.' },
+        cliente_id: { type: 'string', description: 'Opcional. ID del cliente del CRM. Si lo das, el touchpoint se atribuye correctamente.' },
+      },
+      required: ['telefono', 'motivo'],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -1241,6 +1256,18 @@ async function dispatchTool(name, input) {
       const byPrio = ['alto', 'aviso', 'info'];
       const sorted = signals.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
       return `Señales (computadas ${ts?.slice(0, 16) || '?'}):\n` + sorted.map((s) => `[${s.severidad}] ${s.mensaje}`).join('\n');
+    }
+    case 'llamar_cliente': {
+      try {
+        const r = await placeOutboundCall({
+          to: input.telefono,
+          motivo: input.motivo,
+          cliente_id: input.cliente_id || null,
+        });
+        return `Llamada iniciada [${r.sid}] a ${r.to}. Status: ${r.status}. Cuando contesten yo hablo, grabo, y después de colgar te paso el resumen + touchpoint en el CRM.`;
+      } catch (err) {
+        return `No pude llamar: ${err.message}`;
+      }
     }
     default:
       return `Herramienta desconocida: ${name}`;
