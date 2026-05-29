@@ -82,6 +82,16 @@ import { loadSignals } from './signals.js';
 import { placeOutboundCall } from './voice.js';
 import { computeGaps, gapsForClient } from './gaps.js';
 import { reviewOutbound, formatReviewForHumans } from './hooks.js';
+import {
+  proposeSkill,
+  approveSkill,
+  retireSkill,
+  deleteSkill,
+  loadSkill,
+  listSkills,
+  markInvoked,
+  skillCard,
+} from './skills.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -809,6 +819,112 @@ export const toolDefinitions = [
       required: ['id'],
     },
   },
+  // ───────── SKILLS — playbooks reusables ─────────
+  {
+    name: 'skill_proponer',
+    description: `Crea un BORRADOR de skill (playbook reusable). USA esto cuando:
+- Isabel acaba de pedirte algo que claramente se va a repetir ("cada AEP haz esto con cada cliente").
+- Después de hacer una secuencia compleja de 4+ tools, te das cuenta que la pueden volver a pedir.
+- Isabel dice explícitamente "haz una skill / playbook / proceso para X".
+
+El skill queda en status "draft" y NO se ejecuta hasta que Isabel diga algo como "aprueba la skill X". Para describir los pasos, usa markdown con acciones concretas — "Paso 1: llama expediente_cliente con el id...". Mantén el cuerpo enfocado (10-30 líneas). NO incluyas datos específicos de cliente — usa los inputs del schema.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre humano de la skill (ej. "AEP outreach sequence"). Yo lo paso a slug.' },
+        descripcion: { type: 'string', description: 'Una frase que explica qué hace y cuándo se usa.' },
+        cuerpo: { type: 'string', description: 'Markdown con los pasos concretos. Cada paso debe mencionar la tool exacta que usa.' },
+        trigger: { type: 'string', description: 'Opcional. Cuándo Isabel debería invocarla ("cuando diga prepara AEP de X").' },
+        inputs_schema: {
+          type: 'array',
+          description: 'Opcional. Lista de inputs que necesita ej. [{nombre:"cliente_id", descripcion:"ID del cliente", requerido:true}].',
+          items: {
+            type: 'object',
+            properties: {
+              nombre: { type: 'string' },
+              descripcion: { type: 'string' },
+              requerido: { type: 'boolean' },
+            },
+          },
+        },
+      },
+      required: ['nombre', 'descripcion', 'cuerpo'],
+    },
+  },
+  {
+    name: 'skill_aprobar',
+    description: 'Aprueba un skill draft → status "active". Llámalo SOLO cuando Isabel diga textualmente "aprueba la skill X" / "ok actívala" / "sí, dale". NO la apruebes tú sola.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre o slug de la skill.' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'skill_retirar',
+    description: 'Retira una skill activa (status "retired"). Úsalo cuando Isabel diga que ya no funciona, o cuando vas a proponer una nueva versión.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'skill_eliminar',
+    description: 'BORRA permanentemente una skill (cualquier estado). Úsalo solo cuando Isabel diga "borra la skill X / olvídala completa".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'skills_lista',
+    description: 'Lista las skills (default: solo activas). Útil cuando Isabel pregunta "¿qué playbooks tienes?" o cuando vas a invocar algo y no recuerdas el nombre exacto.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['draft', 'active', 'retired'], description: 'Opcional. Default = active.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'skill_ver',
+    description: 'Devuelve el cuerpo completo de una skill (markdown + metadata + stats). Úsalo para leer una skill antes de invocarla, o cuando Isabel pregunta "¿qué dice la skill X?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'skill_invocar',
+    description: `EJECUTA un skill activo con los inputs dados. La skill aparece como instrucciones que TÚ misma sigues — corres las tools que el playbook indica, paso por paso. Llámala cuando:
+- Isabel pide algo que claramente matchea un trigger de una skill activa.
+- Necesitas ahorrar tokens repitiendo un proceso largo ya codificado.
+
+REGLAS:
+- Verifica que la skill esté en status "active". Si está en "draft", dile a Isabel que la apruebe primero.
+- Pasa TODOS los inputs requeridos. Si te falta alguno, pídeselo a Isabel ANTES de invocar.
+- NO te metas en bucle: no llames skill_invocar desde dentro de una skill que se llama igual.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre o slug de la skill.' },
+        inputs: { type: 'object', description: 'Los valores para los inputs declarados en la skill. Pasa un objeto con las llaves del inputs_schema.' },
+      },
+      required: ['nombre'],
+    },
+  },
   // ───────── LLAMADAS TELEFÓNICAS ─────────
   {
     name: 'llamar_cliente',
@@ -1319,6 +1435,91 @@ async function dispatchTool(name, input) {
         const icon = g.severidad === 'alto' ? '🛑' : g.severidad === 'aviso' ? '⚠️' : 'ℹ️';
         return `${icon} ${g.missing_field}: ${g.mensaje}${g.accion ? `\n   → ${g.accion}` : ''}`;
       }).join('\n');
+    }
+    case 'skill_proponer': {
+      try {
+        const s = proposeSkill({
+          nombre: input.nombre,
+          descripcion: input.descripcion,
+          cuerpo: input.cuerpo,
+          trigger: input.trigger,
+          inputs_schema: input.inputs_schema,
+          propuesto_por: 'athena',
+        });
+        return `Skill DRAFT creada: ${s.nombre_humano} [${s.name}] v${s.version}.\nEspera que Isabel diga "aprueba la skill ${s.name}" para activarla. Mientras tanto NO se ejecuta.`;
+      } catch (err) {
+        return `Error proponiendo skill: ${err.message}`;
+      }
+    }
+    case 'skill_aprobar': {
+      const s = approveSkill(input.nombre, 'isabel');
+      return s ? `Skill ${s.name} aprobada (v${s.version}). Status: active. Ya la puedes invocar.` : `No encontré skill "${input.nombre}".`;
+    }
+    case 'skill_retirar': {
+      const s = retireSkill(input.nombre);
+      return s ? `Skill ${s.name} retirada (status: retired). Ya no se puede invocar — pero queda en el archivo por histórico.` : `No encontré skill "${input.nombre}".`;
+    }
+    case 'skill_eliminar': {
+      const ok = deleteSkill(input.nombre);
+      return ok ? `Skill ${input.nombre} borrada permanentemente.` : `No encontré skill "${input.nombre}".`;
+    }
+    case 'skills_lista': {
+      const status = input.status || 'active';
+      const skills = listSkills({ status });
+      if (!skills.length) return `Sin skills con status "${status}".`;
+      return skills.map((s) => `[${s.name}] (${s.status}, ${s.invocaciones || 0} usos): ${s.descripcion}`).join('\n');
+    }
+    case 'skill_ver': {
+      const s = loadSkill(input.nombre);
+      return s ? skillCard(s) : `No encontré skill "${input.nombre}".`;
+    }
+    case 'skill_invocar': {
+      const s = loadSkill(input.nombre);
+      if (!s) return `No encontré skill "${input.nombre}".`;
+      if (s.status !== 'active') {
+        return `Skill "${s.name}" está en status "${s.status}" — no se puede ejecutar. Pídele a Isabel que la apruebe primero.`;
+      }
+      // Anti-recursión: evitamos ciclo dentro de una sola cadena de llamadas.
+      // Cada llamada arranca con depth=0; bumpamos en cada invocar; cortamos
+      // en >=2 (skill puede invocar UNA sub-skill, no más).
+      const depth = parseInt(process.env.__SKILL_DEPTH__ || '0', 10);
+      if (depth >= 2) {
+        return `Profundidad máxima de skills alcanzada (${depth}). No invoco "${s.name}" para evitar ciclo.`;
+      }
+      markInvoked(s.name);
+      // Validamos inputs requeridos
+      const provided = input.inputs || {};
+      const faltantes = (s.inputs_schema || [])
+        .filter((i) => i.requerido !== false && !(i.nombre in provided))
+        .map((i) => i.nombre);
+      if (faltantes.length) {
+        return `Para invocar "${s.name}" me faltan estos inputs: ${faltantes.join(', ')}. Pídeselos a Isabel y vuelve a llamar skill_invocar con todos.`;
+      }
+      // Corremos la skill como sub-conversación: el cuerpo es la instrucción.
+      try {
+        process.env.__SKILL_DEPTH__ = String(depth + 1);
+        // Dinámico para evitar ciclo: tools.js no puede importar directora.js
+        // arriba porque directora.js importa tools.js.
+        const { runDirectora } = await import('./directora.js');
+        const skillPrompt = `[EJECUCIÓN DE SKILL: ${s.name}]
+La siguiente es una skill APROBADA que Isabel quiere que ejecutes ahora. Sigue los pasos, llama las tools que indica, y al final devuelve UN resumen corto (3-4 líneas) de qué hiciste y qué pendientes quedaron.
+
+Inputs:
+${JSON.stringify(provided, null, 2)}
+
+--- CUERPO DE LA SKILL ---
+${s.cuerpo}
+--- FIN DE LA SKILL ---
+
+Empieza ya. No le mandes mensaje a Isabel hasta el resumen final.`;
+        const subMessages = [{ role: 'user', content: skillPrompt }];
+        const { reply } = await runDirectora(subMessages, { maxRounds: 8 });
+        return `Skill "${s.name}" ejecutada.\n\n${reply}`;
+      } catch (err) {
+        return `Error ejecutando skill "${s.name}": ${err.message}`;
+      } finally {
+        process.env.__SKILL_DEPTH__ = String(depth);
+      }
     }
     case 'llamar_cliente': {
       try {

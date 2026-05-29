@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactPII } from './security.js';
 import { buildGapsSummary } from './gaps.js';
+import { buildSkillsContext } from './skills.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -229,6 +230,8 @@ export function buildWikiContext() {
   if (signalsCtx) parts.push(signalsCtx);
   const gapsCtx = gapsContextInline();
   if (gapsCtx) parts.push(gapsCtx);
+  const skillsCtx = (() => { try { return buildSkillsContext(); } catch { return ''; } })();
+  if (skillsCtx) parts.push(skillsCtx);
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;
