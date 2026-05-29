@@ -1912,8 +1912,8 @@ function renderAlertsBanner() {
               <span style="font-size:9px;font-weight:700;letter-spacing:1px;color:${sc.border};background:${sc.bg};border:1px solid ${sc.border}33;padding:1px 6px;border-radius:10px;">${sc.label}</span>
               <span style="font-size:10px;font-weight:600;color:var(--t3);">${alert.label}</span>
             </div>
-            <div style="font-size:13px;font-weight:700;color:var(--t1);line-height:1.4;margin-bottom:3px;">${alert.title}</div>
-            <div style="font-size:11px;color:var(--t2);line-height:1.4;">${alert.detail}</div>
+            <div style="font-size:13px;font-weight:700;color:var(--t1);line-height:1.4;margin-bottom:3px;">${esc(alert.title)}</div>
+            <div style="font-size:11px;color:var(--t2);line-height:1.4;">${esc(alert.detail)}</div>
           </div>
         </div>
         <button onclick="dismissAlert('${alert.key}')" title="Ocultar 24h" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:14px;padding:0;line-height:1;flex-shrink:0;">✕</button>
@@ -2163,8 +2163,6 @@ async function callTool(toolName, params = {}) {
         return await (await fetch(CRM_BASE + qs('get_all_goals'))).json();
       case 'update_goal':
         return await post('update_goal', params);
-      case 'callbacks':
-        return await (await fetch(CRM_BASE + qs('pending_callbacks'))).json();
       case 'team_config':
         return await getTeamConfigData();
       case 'memory_view':
@@ -2372,9 +2370,12 @@ function openWorkspace(id) {
   document.getElementById('wsName').textContent = a.name;
   document.getElementById('wsDesc').textContent = a.desc;
 
-  // Quick buttons
-  document.getElementById('wsQuick').innerHTML = (a.quick||[]).map(q =>
-    `<button class="qchip" onclick="sendQ(${JSON.stringify(q)})">${q}</button>`).join('');
+  // Quick buttons — index via data attribute + listener (no frágil string en onclick)
+  const wsQuickEl = document.getElementById('wsQuick');
+  wsQuickEl.innerHTML = (a.quick||[]).map((q,i) =>
+    `<button class="qchip" data-qi="${i}">${esc(q)}</button>`).join('');
+  wsQuickEl.querySelectorAll('.qchip').forEach(btn =>
+    btn.addEventListener('click', () => sendQ(a.quick[+btn.dataset.qi])));
 
   // Info rows
   if (a.info) {
@@ -2533,15 +2534,13 @@ async function sendMsg() {
   };
 
   const streamRequest = async (messages, systemPrompt) => {
-    const res = await fetch('https://api.anthropic.com/v1/messages', {
+    // La API key vive SOLO en el servidor. El browser llama a luna_api.php?action=luna_chat,
+    // que reenvía a Anthropic con la key y nos devuelve el mismo stream SSE.
+    const res = await fetch(`${CRM_BASE}?action=luna_chat`, {
       method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'x-api-key': 'TU_API_KEY_AQUI',             // ← pega tu nueva API key de Anthropic
-        'anthropic-version': '2023-06-01',
-        'anthropic-dangerous-direct-browser-access': 'true'
-      },
-      body: JSON.stringify({model:'claude-sonnet-4-6', max_tokens:1800, system:systemPrompt, stream:true, messages})
+      headers:{ 'Content-Type':'application/json' },
+      credentials:'same-origin',
+      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:1800 })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const reader = res.body.getReader();

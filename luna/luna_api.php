@@ -76,6 +76,71 @@ case 'luna_whoami':
     ]);
     break;
 
+// ── LUNA CHAT — proxy a Anthropic (la API key vive en el servidor) ──
+// El browser ya NO lleva la API key. Llama aquí; reenviamos a Anthropic
+// con la key del servidor y devolvemos el mismo stream SSE tal cual,
+// para que el parser del frontend (content_block_delta) no cambie.
+// La key se toma de la env var ANTHROPIC_API_KEY o de una constante
+// ANTHROPIC_API_KEY definida en config.php.
+case 'luna_chat':
+    requirePost();
+
+    $apiKey = getenv('ANTHROPIC_API_KEY')
+        ?: (defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : '');
+    if (!$apiKey) {
+        err('Falta ANTHROPIC_API_KEY en el servidor (env var o constante en config.php).', 500);
+    }
+
+    $body = json_decode(file_get_contents('php://input'), true);
+    if (!is_array($body) || empty($body['messages']) || !is_array($body['messages'])) {
+        err('Body inválido: se requiere messages[].');
+    }
+    $system   = (string)($body['system'] ?? '');
+    $messages = $body['messages'];
+    $maxTok   = min(4096, max(256, (int)($body['max_tokens'] ?? 1800)));
+
+    // Audit ligero: registramos QUE hubo una consulta IA (sin guardar el contenido/PII).
+    logActivity($pdo, $uid, null, 'LUNA_CHAT', 'Consulta IA vía LUNA');
+
+    $payload = json_encode([
+        'model'      => 'claude-sonnet-4-6',
+        'max_tokens' => $maxTok,
+        'system'     => $system,
+        'stream'     => true,
+        'messages'   => $messages,
+    ], JSON_UNESCAPED_UNICODE);
+
+    // Cambiamos la respuesta a streaming SSE (sobrescribe el Content-Type JSON de arriba).
+    while (ob_get_level() > 0) { ob_end_clean(); }
+    header('Content-Type: text/event-stream; charset=utf-8');
+    header('Cache-Control: no-cache');
+    header('X-Accel-Buffering: no'); // evita buffering en proxies tipo nginx
+
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+        CURLOPT_POST          => true,
+        CURLOPT_POSTFIELDS    => $payload,
+        CURLOPT_HTTPHEADER    => [
+            'Content-Type: application/json',
+            'x-api-key: ' . $apiKey,
+            'anthropic-version: 2023-06-01',
+        ],
+        CURLOPT_TIMEOUT       => 120,
+        CURLOPT_WRITEFUNCTION => function ($ch, $chunk) {
+            echo $chunk;
+            @ob_flush();
+            @flush();
+            return strlen($chunk);
+        },
+    ]);
+    $okCurl = curl_exec($ch);
+    if ($okCurl === false) {
+        // Si falla antes de emitir nada, mandamos un evento de error en formato SSE.
+        echo "event: error\ndata: " . json_encode(['error' => curl_error($ch)]) . "\n\n";
+    }
+    curl_close($ch);
+    exit;
+
 // ── PIPELINE SUMMARY ────────────────────────────────────
 case 'luna_pipeline_summary':
     $rows = $pdo->query("
