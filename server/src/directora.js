@@ -9,7 +9,11 @@ import { buildWikiContext } from './memory.js';
 // seguimos hasta que tenga una respuesta final para Isabel.
 //
 // Recibe y devuelve el array de mensajes para que index.js lo guarde.
-export async function runDirectora(messages) {
+// opts.maxRounds: máximo de vueltas de tool_use (default 6).
+// opts.persistHistory: si false, el caller NO debería guardar el
+// resultado a disco (lo usamos en task ticks y reflexión interna).
+export async function runDirectora(messages, opts = {}) {
+  const maxRounds = opts.maxRounds || 6;
   const wiki = buildWikiContext();
   const system = [
     {
@@ -22,8 +26,8 @@ export async function runDirectora(messages) {
     system.push({ type: 'text', text: `MEMORIA ACTUAL DE ISABEL:\n${wiki}` });
   }
 
-  // Loop: como máximo 6 vueltas de herramientas antes de cortar.
-  for (let i = 0; i < 6; i++) {
+  // Loop: como máximo `maxRounds` vueltas de herramientas antes de cortar.
+  for (let i = 0; i < maxRounds; i++) {
     const res = await anthropic.messages.create({
       model: DIRECTORA.model,
       max_tokens: 1500,

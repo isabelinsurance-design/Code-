@@ -15,6 +15,14 @@ import {
   logActivity,
   getActivity,
 } from './memory.js';
+import {
+  createTask,
+  listTasks,
+  completeTask,
+  snoozeTask,
+  cancelTask,
+  addTaskNote,
+} from './tasks.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -175,6 +183,78 @@ export const toolDefinitions = [
       required: [],
     },
   },
+  {
+    name: 'crear_tarea',
+    description: `Crea una tarea en la cola persistente de Athena. CUÁNDO USAR:
+- Isabel dice "recuérdame X [el martes / mañana / en 3 días]" → responsable='isabel', con vence.
+- Isabel dice "investiga X", "averigua Y", "busca info de Z", "redacta X" → responsable='athena' (la trabajo yo entre conversaciones).
+- Isabel dice "haz seguimiento con [cliente] [el martes]" o necesita una llamada/cita → responsable='sami' con vence.
+- Si la cosa va a tardar más de una conversación, créala como tarea aunque también la estés trabajando ahora.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        descripcion: { type: 'string', description: 'Una frase clara, accionable. Ej: "Investigar plan nuevo de Humana 2026 lanzado esta semana".' },
+        responsable: { type: 'string', enum: ['athena', 'isabel', 'sami'], description: 'Quién la ejecuta. athena = trabajo silencioso mío entre ticks.' },
+        prioridad: { type: 'string', enum: ['alta', 'media', 'baja'], description: 'Default media.' },
+        vence: { type: 'string', description: 'Opcional. Fecha-hora ISO 8601 cuándo vence. Ej: "2026-06-05T17:00:00-07:00".' },
+        vence_en_horas: { type: 'integer', description: 'Opcional. Alternativa a vence: cuántas horas desde ahora.' },
+        vence_en_dias: { type: 'integer', description: 'Opcional. Alternativa a vence: cuántos días desde ahora (a las 9am).' },
+        notas_iniciales: { type: 'string', description: 'Opcional. Contexto inicial que vas a necesitar después.' },
+      },
+      required: ['descripcion', 'responsable'],
+    },
+  },
+  {
+    name: 'mis_tareas',
+    description: 'Devuelve la lista de tareas activas. Úsala cuando Isabel pregunte "¿qué tienes pendiente?", "¿en qué estás?", "¿qué tareas tengo?", o cuando necesites planear tu próximo movimiento.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        responsable: { type: 'string', enum: ['athena', 'isabel', 'sami'], description: 'Opcional. Filtra por dueño.' },
+        status: { type: 'string', enum: ['pendiente', 'en_progreso', 'lista', 'cancelada'], description: 'Opcional. Default = activas (pendiente + en_progreso).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'completar_tarea',
+    description: 'Marca una tarea como "lista" con un resultado conciso. Úsalo cuando termines el trabajo (o cuando Isabel/Sami digan que ya hicieron lo suyo). El resultado se guarda permanentemente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la tarea (ej. t1k9...).' },
+        resultado: { type: 'string', description: 'Resultado final, en 1-3 frases. Ej: "Humana lanzó MAPD con dental $2k. Beneficios similares a SCAN. Documentado en memoria."' },
+      },
+      required: ['id', 'resultado'],
+    },
+  },
+  {
+    name: 'posponer_tarea',
+    description: 'Mueve la fecha de vencimiento de una tarea (la mantiene pendiente). Úsala cuando avanzaste pero necesitas más tiempo, o Isabel pide cambiar el cuándo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la tarea.' },
+        vence: { type: 'string', description: 'Opcional. Nueva fecha ISO 8601.' },
+        vence_en_horas: { type: 'integer', description: 'Opcional. Cuántas horas desde ahora.' },
+        vence_en_dias: { type: 'integer', description: 'Opcional. Cuántos días desde ahora (a las 9am).' },
+        nota: { type: 'string', description: 'Opcional. Razón del aplazamiento ("falta info de Sami", "esperando confirmación", etc).' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'cancelar_tarea',
+    description: 'Cancela una tarea (no la borra: queda con status="cancelada" en el historial). Úsala cuando Isabel diga "ya no la necesito" o cuando la tarea quede obsoleta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la tarea.' },
+        razon: { type: 'string', description: 'Opcional. Por qué se cancela.' },
+      },
+      required: ['id'],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -203,6 +283,9 @@ function summarizeInput(name, input) {
     const ids = (input.consultas || []).map((c) => c.especialista).join('+');
     return `coaches=${ids}`;
   }
+  if (name === 'crear_tarea') return `${input.responsable}: ${String(input.descripcion || '').slice(0, 80)}`;
+  if (name === 'completar_tarea') return input.id;
+  if (name === 'posponer_tarea' || name === 'cancelar_tarea') return input.id;
   return JSON.stringify(input).slice(0, 200);
 }
 
@@ -312,6 +395,50 @@ async function dispatchTool(name, input) {
           return `${t} · ${e.tool}${e.input_summary ? ` (${e.input_summary})` : ''}`;
         })
         .join('\n');
+    }
+    case 'crear_tarea': {
+      try {
+        const t = createTask(input);
+        const venceStr = t.vence
+          ? ` Vence: ${new Date(t.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles' })}.`
+          : '';
+        return `Tarea creada [${t.id}] para ${t.responsable}: "${t.descripcion}".${venceStr}`;
+      } catch (err) {
+        return `Error creando tarea: ${err.message}`;
+      }
+    }
+    case 'mis_tareas': {
+      const items = listTasks({ responsable: input.responsable || null, status: input.status || null });
+      if (!items.length) return 'No hay tareas activas.';
+      return items
+        .map((t) => {
+          const due = t.vence
+            ? ` (vence ${new Date(t.vence).toLocaleDateString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles', month: 'short', day: 'numeric' })})`
+            : '';
+          return `[${t.id}] ${t.responsable} · ${t.descripcion}${due}${t.prioridad === 'alta' ? ' ★' : ''}`;
+        })
+        .join('\n');
+    }
+    case 'completar_tarea': {
+      const t = completeTask(input.id, input.resultado);
+      if (!t) return `No encontré la tarea ${input.id}.`;
+      return `Tarea ${t.id} completada: "${t.descripcion}". Resultado guardado.`;
+    }
+    case 'posponer_tarea': {
+      try {
+        const t = snoozeTask(input.id, input);
+        if (!t) return `No encontré la tarea ${input.id}.`;
+        if (input.nota) addTaskNote(input.id, input.nota);
+        return `Tarea ${t.id} pospuesta. Nueva fecha: ${new Date(t.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles' })}.`;
+      } catch (err) {
+        return `Error posponiendo: ${err.message}`;
+      }
+    }
+    case 'cancelar_tarea': {
+      const t = cancelTask(input.id);
+      if (!t) return `No encontré la tarea ${input.id}.`;
+      if (input.razon) addTaskNote(input.id, `Cancelada: ${input.razon}`);
+      return `Tarea ${t.id} cancelada.`;
     }
     default:
       return `Herramienta desconocida: ${name}`;

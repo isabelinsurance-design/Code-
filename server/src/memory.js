@@ -74,6 +74,38 @@ export function setSeason(texto) {
   return s;
 }
 
+// Lee tareas directo del disco (sin importar tasks.js) para evitar
+// el ciclo tasks ↔ memory. Genera la vista corta inline.
+const TASKS_FILE_PATH = join(DATA_DIR, 'tasks.json');
+function readTasksFile() {
+  try {
+    if (existsSync(TASKS_FILE_PATH)) return JSON.parse(readFileSync(TASKS_FILE_PATH, 'utf8'));
+  } catch {
+    /* corrupt or missing — return [] */
+  }
+  return [];
+}
+function tasksContextInline() {
+  const all = readTasksFile().filter((t) => t.status !== 'lista' && t.status !== 'cancelada');
+  if (!all.length) return '';
+  const groups = { athena: [], isabel: [], sami: [] };
+  const tz = process.env.TIMEZONE || 'America/Los_Angeles';
+  for (const t of all) {
+    if (!groups[t.responsable]) continue;
+    const due = t.vence
+      ? ` (vence ${new Date(t.vence).toLocaleString('es-MX', { timeZone: tz, month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })})`
+      : '';
+    const pri = t.prioridad === 'alta' ? '★ ' : '';
+    groups[t.responsable].push(`[${t.id}] ${pri}${t.descripcion}${due}`);
+  }
+  const lines = [];
+  for (const owner of ['athena', 'isabel', 'sami']) {
+    if (!groups[owner].length) continue;
+    lines.push(`${owner.toUpperCase()} (${groups[owner].length}):\n${groups[owner].map((s) => `  - ${s}`).join('\n')}`);
+  }
+  return `TAREAS ACTIVAS — tu cola actual:\n${lines.join('\n')}`;
+}
+
 export function buildWikiContext() {
   const season = getSeason();
   const wiki = getWiki();
@@ -83,6 +115,8 @@ export function buildWikiContext() {
   if (wiki.notas.length) {
     parts.push(wiki.notas.slice(0, 25).map((n) => `- ${n.nota}`).join('\n'));
   }
+  const tasksCtx = tasksContextInline();
+  if (tasksCtx) parts.push(tasksCtx);
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;

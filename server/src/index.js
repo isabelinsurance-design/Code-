@@ -7,6 +7,7 @@ import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
 import { sendEveningCheckin, sendWeeklyReview, nightlyReflection } from './proactive.js';
+import { taskTick } from './tasks.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -113,6 +114,11 @@ scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', send
 scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
 scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
+// Task tick: cada hora entre 7am y 9pm (TZ local). taskTick adentro
+// también respeta quiet hours para los recordatorios. El trabajo
+// silencioso de Athena puede correr a cualquier hora pero lo
+// limitamos a horas despiertas para acotar costo.
+scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 7-21 * * *', taskTick);
 
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
