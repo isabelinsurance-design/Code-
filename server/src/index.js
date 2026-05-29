@@ -12,6 +12,7 @@ import { nightlyEmailTriage } from './triage.js';
 import { transcribeWhatsAppAudio } from './transcribe.js';
 import { checkUpcomingMeetingsTick, calendarConfigured } from './calendar.js';
 import { commitmentChaseTick } from './commitments.js';
+import { synthToPublicUrl, ttsConfigured, cleanupOldAudio, AUDIO_DIR } from './tts.js';
 
 const app = express();
 app.use(express.urlencoded({ extended: false }));
@@ -19,6 +20,10 @@ app.use(express.json());
 
 app.get('/', (_req, res) => res.send('Todo Isabel — Athena está despierta. 👑'));
 app.get('/health', (_req, res) => res.json({ ok: true, time: new Date().toISOString() }));
+
+// Sirve los MP3 generados por TTS para que Twilio los pueda jalar.
+// Carpeta efímera — los archivos se borran después de 24h.
+app.use('/audio', express.static(AUDIO_DIR, { maxAge: '6h', extensions: ['mp3'] }));
 
 // ---- Webhook de WhatsApp entrante (Twilio le pega aquí) ----
 app.post('/whatsapp', async (req, res) => {
@@ -50,18 +55,46 @@ app.post('/whatsapp', async (req, res) => {
   if (!from) return;
   if (!text && !numMedia) return;
 
+  // Detecta si Isabel mandó audio — Athena le responde con voz también.
+  const userSentVoice = audioMediaPresent(numMedia, req.body);
+
   try {
     const messages = getHistory();
     const userContent = await buildUserContent(text, numMedia, req.body);
     messages.push({ role: 'user', content: userContent });
     const { reply, messages: updated } = await runDirectora(messages);
     saveHistory(updated);
-    await sendMessage(from, reply);
+    await replyTo(from, reply, { voice: userSentVoice });
   } catch (err) {
     console.error('[whatsapp] Error procesando mensaje:', err);
     await sendMessage(from, 'Tuve un problema técnico, Isabel. Intenta de nuevo en un momento.').catch(() => {});
   }
 });
+
+function audioMediaPresent(numMedia, body) {
+  for (let i = 0; i < numMedia; i++) {
+    if ((body[`MediaContentType${i}`] || '').startsWith('audio/')) return true;
+  }
+  return false;
+}
+
+// Si Isabel mandó voz, intentamos responder con voz (sintetizamos +
+// mandamos como mediaUrl). Si TTS no está configurado o falla,
+// hacemos fallback a texto sin drama.
+async function replyTo(to, text, { voice = false } = {}) {
+  if (voice && ttsConfigured()) {
+    try {
+      const audioUrl = await synthToPublicUrl(text);
+      if (audioUrl) {
+        await sendMessage(to, '', { mediaUrl: audioUrl });
+        return;
+      }
+    } catch (err) {
+      console.warn('[whatsapp] TTS falló, fallback a texto:', err.message);
+    }
+  }
+  await sendMessage(to, text);
+}
 
 // Convierte un mensaje entrante de WhatsApp (texto + 0..N adjuntos)
 // en el formato de content que Anthropic espera.
@@ -140,6 +173,11 @@ scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 7-21 * * *', task
 // promesas vencidas. Si tengo cómo, le doy un nudge cordial a la
 // persona; en cualquier caso le aviso a Isabel (una vez por compromiso).
 scheduleCron('chase',   process.env.COMMITMENT_CHASE_CRON || '0 8-20/2 * * *', commitmentChaseTick);
+// Limpieza horaria de los MP3 viejos generados por TTS (>24h).
+scheduleCron('audio_gc', '0 * * * *', async () => {
+  const n = cleanupOldAudio(24);
+  if (n) console.log(`[audio_gc] borrados ${n} MP3 viejos.`);
+});
 // Pre-meeting brief: cada 5 min revisa si hay una junta en 10-20 min
 // y manda el brief. Solo se activa si Google Calendar está configurado.
 if (calendarConfigured()) {

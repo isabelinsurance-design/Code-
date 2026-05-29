@@ -47,6 +47,13 @@ import {
   clientCard,
 } from './crm.js';
 import { pendingResponses, recentActivity, nextivaConfigured } from './nextiva.js';
+import {
+  pendingDms,
+  pendingComments,
+  recentComments,
+  snapshot as igSnapshot,
+  instagramConfigured,
+} from './instagram.js';
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
@@ -504,6 +511,50 @@ export const toolDefinitions = [
       required: [],
     },
   },
+  // ───────── INSTAGRAM (Business / Creator) ─────────
+  {
+    name: 'ig_dms_pendientes',
+    description: 'Devuelve los DMs de Instagram donde el ÚLTIMO mensaje NO es de Isabel — es decir, personas esperando respuesta. Ordenados por antigüedad descendente (los más viejos primero).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        limite: { type: 'integer', description: 'Máximo de conversaciones a revisar (default 25).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'ig_comentarios_pendientes',
+    description: 'Devuelve comentarios recientes en los posts de Isabel que aún NO tienen respuesta de ella. Útil para no perder engagement.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        posts: { type: 'integer', description: 'Cuántos posts recientes escanear (default 10).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'ig_actividad',
+    description: 'Devuelve los comentarios MÁS RECIENTES en los posts de Isabel (todos, no solo pendientes). Para tener el pulso del engagement.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        posts: { type: 'integer', description: 'Cuántos posts recientes escanear (default 10).' },
+        limite: { type: 'integer', description: 'Máximo de comentarios a devolver (default 25).' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'ig_stats',
+    description: 'Devuelve snapshot rápido de la cuenta de Instagram: followers, follows, total de posts. Útil para metas de marca y trending.',
+    input_schema: {
+      type: 'object',
+      properties: {},
+      required: [],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -822,6 +873,45 @@ async function dispatchTool(name, input) {
         const last = t.messages.slice().sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
         return `${name} (${last?.direction || '?'}): "${(last?.body || '').slice(0, 60)}"`;
       }).join('\n');
+    }
+    // ── instagram ──
+    case 'ig_dms_pendientes': {
+      const r = await pendingDms({ limit: parseInt(input.limite, 10) || 25 });
+      if (!r.ok) return r.reason;
+      if (!r.items.length) return 'Sin DMs pendientes — al día. ✓';
+      return r.items.slice(0, 20).map((c) => {
+        const ago = Math.round((Date.now() - new Date(c.ultimo_at).getTime()) / 3600_000);
+        const prev = (c.ultimo_mensaje || '').replace(/\s+/g, ' ').slice(0, 80);
+        return `@${c.interlocutor} · esperando ${ago}h · "${prev}"`;
+      }).join('\n');
+    }
+    case 'ig_comentarios_pendientes': {
+      const r = await pendingComments({ postsToScan: parseInt(input.posts, 10) || 10 });
+      if (!r.ok) return r.reason;
+      if (!r.items.length) return 'Sin comentarios sin responder. ✓';
+      return r.items.slice(0, 20).map((c) => {
+        const ago = Math.round((Date.now() - new Date(c.cuando).getTime()) / 3600_000);
+        return `@${c.de} (hace ${ago}h en "${c.post_caption}…"): "${(c.texto || '').slice(0, 100)}"`;
+      }).join('\n');
+    }
+    case 'ig_actividad': {
+      const r = await recentComments({
+        postsToScan: parseInt(input.posts, 10) || 10,
+        limit: parseInt(input.limite, 10) || 25,
+      });
+      if (!r.ok) return r.reason;
+      if (!r.items.length) return 'Sin actividad reciente en comentarios.';
+      return r.items.map((c) => {
+        const ago = Math.round((Date.now() - new Date(c.cuando).getTime()) / 3600_000);
+        const respondido = c.tiene_respuestas ? ' [respondido]' : '';
+        return `@${c.de} (${ago}h): "${(c.texto || '').slice(0, 80)}"${respondido}`;
+      }).join('\n');
+    }
+    case 'ig_stats': {
+      const r = await igSnapshot();
+      if (!r.ok) return r.reason;
+      const s = r.snapshot;
+      return `@${s.username}: ${s.followers_count} followers · ${s.follows_count} follows · ${s.media_count} posts.`;
     }
     default:
       return `Herramienta desconocida: ${name}`;
