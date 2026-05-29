@@ -1,10 +1,10 @@
 // ============================================================
 //  Integración con Google Calendar
 //  ────────────────────────────────
-//  Lectura de próximos eventos + brief de pre-junta 15 min antes.
-//  Por ahora SOLO lectura — escribir/crear eventos requiere otro
-//  scope y un humano-en-el-loop más cuidadoso, lo dejamos para
-//  iteración siguiente.
+//  Lectura + escritura. Lectura: próximos eventos + brief de pre-junta
+//  15 min antes. Escritura: crear, mover, cancelar. Disponibilidad:
+//  findFreeSlots para que Athena proponga horas reales y listConflicts
+//  como guard automático antes de crear evento.
 //
 //  Requiere variables de entorno:
 //    GOOGLE_CLIENT_ID
@@ -85,6 +85,7 @@ export async function createEvent({
   ubicacion = '',
   asistentes = [],  // array de emails
   conferencia = false,  // true = pide hangoutLink (Google Meet)
+  evitar_conflicto = true, // si true y la hora choca con otro evento, no crea
 }) {
   const cal = getCalendarClient();
   if (!cal) return { ok: false, reason: 'Calendar no configurado.' };
@@ -95,6 +96,16 @@ export async function createEvent({
   const end = new Date(start.getTime() + Number(duracion_min) * 60_000);
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+
+  // Guard de conflicto: si ya hay algo agendado en la ventana,
+  // devolvemos los eventos que chocan en vez de crear duplicado.
+  if (evitar_conflicto) {
+    const conflicts = await listConflicts(start, end);
+    if (conflicts.length > 0) {
+      return { ok: false, reason: 'conflicto', conflictos: conflicts };
+    }
+  }
+
   const requestBody = {
     summary: titulo,
     description: descripcion || undefined,
@@ -251,6 +262,156 @@ export async function checkUpcomingMeetingsTick() {
     bumpProactiveCount(gate.dayKey);
     logActivity({ tool: 'pre_meeting_brief', input_summary: ev.id, result_summary: ev.titulo });
   }
+}
+
+// ============================================================
+//  Disponibilidad: huecos + detección de conflictos
+//  ────────────────────────────────────────────────
+//  buscar_huecos le da a Athena la lista de horas reales en que
+//  Isabel está libre, para que proponga citas que NO chocan con
+//  nada. Sin esto, Athena sugiere a ciegas y luego falla al crear.
+// ============================================================
+
+// Devuelve los eventos que se traslapan con [start, end). Vacío si está libre.
+async function listConflicts(start, end) {
+  const cal = getCalendarClient();
+  if (!cal) return [];
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  try {
+    const res = await cal.events.list({
+      calendarId,
+      timeMin: new Date(start.getTime() - 60_000).toISOString(),
+      timeMax: new Date(end.getTime() + 60_000).toISOString(),
+      singleEvents: true,
+      orderBy: 'startTime',
+    });
+    return (res.data.items || [])
+      .filter((ev) => {
+        const evStart = new Date(ev.start?.dateTime || ev.start?.date).getTime();
+        const evEnd = new Date(ev.end?.dateTime || ev.end?.date).getTime();
+        return evStart < end.getTime() && evEnd > start.getTime();
+      })
+      .map((ev) => toLite(ev, false));
+  } catch {
+    return [];
+  }
+}
+
+// Hora local (HH:MM) y día de la semana (0=Dom..6=Sáb) en la TZ configurada.
+function tzClock(date, tz) {
+  const fmt = new Intl.DateTimeFormat('en-US', {
+    timeZone: tz,
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+    weekday: 'short',
+  });
+  const parts = fmt.formatToParts(date);
+  const hour = parseInt(parts.find((p) => p.type === 'hour').value, 10);
+  const minute = parseInt(parts.find((p) => p.type === 'minute').value, 10);
+  const wd = parts.find((p) => p.type === 'weekday').value;
+  const dayMap = { Sun: 0, Mon: 1, Tue: 2, Wed: 3, Thu: 4, Fri: 5, Sat: 6 };
+  return { minOfDay: hour * 60 + minute, dow: dayMap[wd] };
+}
+
+function parseHHMM(s) {
+  const [h, m] = String(s || '').split(':').map(Number);
+  return (h || 0) * 60 + (m || 0);
+}
+
+// Busca huecos libres entre fecha_inicio y fecha_fin, respetando
+// horario laboral, días de la semana y un buffer entre citas.
+export async function findFreeSlots({
+  fecha_inicio,
+  fecha_fin,
+  duracion_min = 30,
+  horario = { inicio: '09:00', fin: '17:00' },
+  dias_semana = [1, 2, 3, 4, 5],
+  buffer_min = 15,
+  step_min = 30,
+  limit = 12,
+} = {}) {
+  const cal = getCalendarClient();
+  if (!cal) return { ok: false, reason: 'Calendar no configurado.', slots: [] };
+
+  const start = new Date(fecha_inicio);
+  const end = new Date(fecha_fin);
+  if (isNaN(start.getTime()) || isNaN(end.getTime())) {
+    return { ok: false, reason: 'fecha_inicio o fecha_fin inválida.', slots: [] };
+  }
+  if (end <= start) {
+    return { ok: false, reason: 'fecha_fin debe ser posterior a fecha_inicio.', slots: [] };
+  }
+
+  // Limita la ventana a 30 días para no abusar de la API.
+  const MAX_WINDOW_MS = 30 * 86_400_000;
+  if (end - start > MAX_WINDOW_MS) {
+    return { ok: false, reason: 'Ventana máxima de 30 días.', slots: [] };
+  }
+
+  // Eventos ocupados
+  const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
+  let busy = [];
+  try {
+    const fb = await cal.freebusy.query({
+      requestBody: {
+        timeMin: start.toISOString(),
+        timeMax: end.toISOString(),
+        timeZone: TZ(),
+        items: [{ id: calendarId }],
+      },
+    });
+    busy = (fb.data.calendars?.[calendarId]?.busy || []).map((b) => ({
+      start: new Date(b.start).getTime(),
+      end: new Date(b.end).getTime(),
+    }));
+  } catch (err) {
+    return { ok: false, reason: err.message, slots: [] };
+  }
+
+  const tz = TZ();
+  const whStart = parseHHMM(horario.inicio || '09:00');
+  const whEnd = parseHHMM(horario.fin || '17:00');
+  const stepMs = Number(step_min) * 60_000;
+  const durMs = Number(duracion_min) * 60_000;
+  const bufMs = Number(buffer_min) * 60_000;
+
+  // Snap cursor al siguiente múltiplo de step_min en UTC para limpieza visual.
+  const slots = [];
+  let cursor = new Date(Math.ceil(start.getTime() / stepMs) * stepMs);
+  while (cursor < end && slots.length < limit) {
+    const slotEnd = new Date(cursor.getTime() + durMs);
+    if (slotEnd > end) break;
+
+    const clockStart = tzClock(cursor, tz);
+    const clockEnd = tzClock(new Date(slotEnd.getTime() - 1), tz);
+
+    const dayOk = dias_semana.includes(clockStart.dow) && dias_semana.includes(clockEnd.dow);
+    const inHours = clockStart.minOfDay >= whStart && clockEnd.minOfDay <= whEnd;
+
+    if (dayOk && inHours) {
+      const sMs = cursor.getTime();
+      const eMs = slotEnd.getTime();
+      const conflict = busy.some((b) => !(eMs + bufMs <= b.start || sMs >= b.end + bufMs));
+      if (!conflict) {
+        slots.push({
+          inicio: cursor.toISOString(),
+          fin: slotEnd.toISOString(),
+          inicio_local: cursor.toLocaleString('es-MX', {
+            timeZone: tz,
+            weekday: 'short',
+            day: 'numeric',
+            month: 'short',
+            hour: '2-digit',
+            minute: '2-digit',
+          }),
+          duracion_min,
+        });
+      }
+    }
+    cursor = new Date(cursor.getTime() + stepMs);
+  }
+  return { ok: true, slots };
 }
 
 // Para CLI: `node src/calendar.js list` o `node src/calendar.js tick`

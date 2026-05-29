@@ -23,7 +23,7 @@ import {
   cancelTask,
   addTaskNote,
 } from './tasks.js';
-import { listUpcomingEvents, getEvent, createEvent, updateEvent, deleteEvent, calendarConfigured } from './calendar.js';
+import { listUpcomingEvents, getEvent, createEvent, updateEvent, deleteEvent, findFreeSlots, calendarConfigured } from './calendar.js';
 import {
   createCommitment,
   listCommitments,
@@ -862,8 +862,43 @@ REGLAS:
         asistentes: { type: 'array', items: { type: 'string' }, description: 'Lista de emails. Vacía si Isabel solo agenda para ella.' },
         conferencia: { type: 'boolean', description: 'true = añade link de Google Meet.' },
         cliente_id: { type: 'string', description: 'Opcional. ID del cliente del CRM — auto-registra touchpoint.' },
+        permitir_conflicto: { type: 'boolean', description: 'Default false. Si false (recomendado) y la hora choca con otro evento, no se crea y te devuelvo qué chocó. Pásalo true SOLO si Isabel a propósito quiere double-booking.' },
       },
       required: ['titulo', 'inicio'],
+    },
+  },
+  {
+    name: 'buscar_huecos',
+    description: `Encuentra los próximos huecos REALES en el calendario de Isabel donde quepa una cita. Úsalo ANTES de proponer una hora — sin esto propones a ciegas y luego "crear_cita" falla por conflicto.
+
+CUÁNDO USAR:
+- Cliente Medicare dice "¿cuándo nos podemos juntar?" → buscar_huecos próximos 7 días → propones 3 opciones.
+- Quieres ofrecer slots para AEP review entre dos fechas.
+- Estás armando un día de back-to-back y necesitas saber dónde puedes meter algo de 45 min.
+
+DEFAULTS sensatos:
+- Horario laboral 09:00–17:00 (override si Isabel trabaja distinto).
+- Lunes a viernes (dias_semana = [1,2,3,4,5]; 0=domingo).
+- Buffer 15 min entre citas (no pegar de espalda).
+- Granularidad 30 min (slots empiezan en :00 o :30).
+- Máximo 12 slots, ventana máxima 30 días.
+
+REGLAS:
+- fecha_inicio y fecha_fin en ISO 8601 con TZ, ej "2026-06-02T09:00:00-07:00".
+- La ventana NO puede pasar de 30 días; si necesitas más, parte en dos llamadas.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        fecha_inicio: { type: 'string', description: 'ISO 8601 con tz (cuándo empezar a buscar).' },
+        fecha_fin: { type: 'string', description: 'ISO 8601 con tz (cuándo dejar de buscar).' },
+        duracion_min: { type: 'integer', description: 'Default 30.' },
+        horario_inicio: { type: 'string', description: 'HH:MM en horario laboral. Default 09:00.' },
+        horario_fin: { type: 'string', description: 'HH:MM en horario laboral. Default 17:00.' },
+        dias_semana: { type: 'array', items: { type: 'integer' }, description: '0=domingo..6=sábado. Default [1,2,3,4,5].' },
+        buffer_min: { type: 'integer', description: 'Minutos entre citas. Default 15.' },
+        limite: { type: 'integer', description: 'Máx slots a devolver. Default 12.' },
+      },
+      required: ['fecha_inicio', 'fecha_fin'],
     },
   },
   {
@@ -1530,10 +1565,36 @@ async function dispatchTool(name, input) {
       lines.push('Aprueba cada una con "aprueba la skill X" cuando estés lista.');
       return lines.join('\n');
     }
+    case 'buscar_huecos': {
+      if (!calendarConfigured()) return 'Google Calendar no configurado. Faltan GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN.';
+      const r = await findFreeSlots({
+        fecha_inicio: input.fecha_inicio,
+        fecha_fin: input.fecha_fin,
+        duracion_min: input.duracion_min || 30,
+        horario: { inicio: input.horario_inicio || '09:00', fin: input.horario_fin || '17:00' },
+        dias_semana: Array.isArray(input.dias_semana) ? input.dias_semana : [1, 2, 3, 4, 5],
+        buffer_min: input.buffer_min ?? 15,
+        limit: input.limite ?? 12,
+      });
+      if (!r.ok) return `No pude buscar huecos: ${r.reason}`;
+      if (!r.slots.length) return 'No hay huecos disponibles en esa ventana con esos parámetros. Prueba ensanchar el horario o el rango.';
+      return `${r.slots.length} huecos disponibles:\n${r.slots.map((s) => `  • ${s.inicio_local} (${s.duracion_min}min)`).join('\n')}`;
+    }
     case 'crear_cita': {
       if (!calendarConfigured()) return 'Google Calendar no configurado. Faltan GOOGLE_CLIENT_ID/SECRET/REFRESH_TOKEN.';
-      const r = await createEvent(input);
-      if (!r.ok) return `No pude crear la cita: ${r.reason}`;
+      const r = await createEvent({
+        ...input,
+        evitar_conflicto: input.permitir_conflicto ? false : true,
+      });
+      if (!r.ok) {
+        if (r.reason === 'conflicto' && r.conflictos?.length) {
+          const lista = r.conflictos
+            .map((c) => `  • "${c.titulo}" — ${c.inicio_local}`)
+            .join('\n');
+          return `No agendé: esa hora choca con ${r.conflictos.length} evento(s) existente(s):\n${lista}\n\nUsa buscar_huecos para encontrar otra hora, o si Isabel a propósito quiere double-booking pasa permitir_conflicto=true.`;
+        }
+        return `No pude crear la cita: ${r.reason}`;
+      }
       // Auto-touchpoint si hay cliente_id
       let touchpointMsg = '';
       if (input.cliente_id) {

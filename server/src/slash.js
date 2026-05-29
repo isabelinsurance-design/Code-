@@ -18,7 +18,7 @@
 const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
-  'compromisos', 'skills', 'tareas', 'auditar',
+  'compromisos', 'skills', 'tareas', 'auditar', 'huecos',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -63,6 +63,7 @@ export async function runSlash(text, from) {
       case 'skills': return { ok: true, reply: await runSkills(args) };
       case 'tareas': return { ok: true, reply: await runTareas(args) };
       case 'auditar': return { ok: true, reply: await runAuditar(args) };
+      case 'huecos': return { ok: true, reply: await runHuecos(args) };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
       case 'envía': return await runEnvia(args);          // solo isabel — flush drafts
@@ -90,6 +91,7 @@ function buildHelp(role) {
     '/skills — playbooks activos',
     '/historial [n] — últimas N acciones',
     '/auditar — corre auditoría de calidad del CRM',
+    '/huecos [dias] — huecos libres en el calendario (default 7 días)',
   ];
   const isabelExtras = [
     '/triage — corre triage de email ahora',
@@ -254,6 +256,24 @@ async function runDescartar() {
   const { clearOutbound } = await import('./memory.js');
   const n = clearOutbound();
   return { ok: true, reply: n ? `Descarté ${n} borrador(es).` : 'No había nada en cola.' };
+}
+
+async function runHuecos(args) {
+  const { findFreeSlots, calendarConfigured } = await import('./calendar.js');
+  if (!calendarConfigured()) return 'Google Calendar no configurado.';
+  // Default: próximos 7 días, slots de 30 min, 09:00–17:00, L-V.
+  const dias = Math.min(Math.max(parseInt(args, 10) || 7, 1), 30);
+  const ahora = new Date();
+  const fin = new Date(ahora.getTime() + dias * 86_400_000);
+  const r = await findFreeSlots({
+    fecha_inicio: ahora.toISOString(),
+    fecha_fin: fin.toISOString(),
+    duracion_min: 30,
+    limit: 12,
+  });
+  if (!r.ok) return `No pude buscar huecos: ${r.reason}`;
+  if (!r.slots.length) return `No hay huecos en los próximos ${dias} días con horario laboral default.`;
+  return `${r.slots.length} huecos en los próximos ${dias} días:\n${r.slots.map((s) => `  • ${s.inicio_local}`).join('\n')}`;
 }
 
 async function runAuditar(args) {
