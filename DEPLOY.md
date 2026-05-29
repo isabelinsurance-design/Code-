@@ -126,6 +126,13 @@ BACKUP_S3_REGION=auto
 BACKUP_S3_ACCESS_KEY_ID=...                  # from step 2
 BACKUP_S3_SECRET_ACCESS_KEY=...
 
+# === LUNA bridge (Athena ↔ CRM del equipo) ===
+LUNA_BASE_URL=https://withisabelfuentes.com/luna_api.php
+LUNA_API_KEY=                                # ver Paso 5.5 abajo
+
+# === Dashboard operacional ===
+DASHBOARD_PASSWORD=                           # contraseña que tú elijas
+
 # === Optional (add when ready) ===
 # Google Calendar — needs OAuth flow, defer for now
 # GOOGLE_CALENDAR_CLIENT_ID=
@@ -140,6 +147,85 @@ BACKUP_S3_SECRET_ACCESS_KEY=...
 ```
 
 Railway will auto-redeploy when you save.
+
+---
+
+## 5.5. Conectar Athena con LUNA (10 min — solo si tienes el CRM LUNA en Bluehost)
+
+LUNA vive aparte en Bluehost (PHP + MySQL). Athena le habla por HTTP usando
+un secret compartido en un header. **El CRM de los clientes Medicare vive
+en LUNA, no en Athena.** Sin este paso, Maria Medicare en WhatsApp no puede
+leer ni escribir los expedientes reales.
+
+### A. Genera el secret compartido
+
+En tu terminal local (o usa cualquier generador hex de 64 caracteres):
+
+```bash
+openssl rand -hex 32
+```
+
+Copia el resultado. Es el mismo string que va a vivir en DOS lugares:
+- **Railway** (Athena) → variable `LUNA_API_KEY`
+- **Bluehost** (LUNA) → variable `LUNA_INTERNAL_KEY`
+
+### B. Pega el secret en Railway
+
+En Railway → tu proyecto Athena → Variables tab, agrega:
+
+```bash
+LUNA_API_KEY=<el-string-de-64-caracteres>
+LUNA_BASE_URL=https://withisabelfuentes.com/luna_api.php
+```
+
+(`LUNA_BASE_URL` es la ruta completa al archivo `luna_api.php` de tu LUNA
+en Bluehost. Ajústalo si tu LUNA vive en otra subcarpeta.)
+
+### C. Pega el patch PHP en Bluehost
+
+Abre `luna_api.php` en tu Bluehost. **Al inicio del archivo, ANTES de
+`session_start()`**, pega esto:
+
+```php
+$athenaKey = $_SERVER['HTTP_X_ATHENA_KEY'] ?? '';
+$expected  = getenv('LUNA_INTERNAL_KEY') ?: '';
+if ($athenaKey && $expected && hash_equals($expected, $athenaKey)) {
+    // Petición viene de Athena con el secret correcto → tratarla
+    // como Isabel-admin sin necesidad de session de browser.
+    $_SESSION['user_id']   = 6;          // ID de Isabel en LUNA
+    $_SESSION['rol']       = 'admin';
+    $_SESSION['nombre']    = 'Isabel (vía Athena)';
+    $_SESSION['is_athena'] = true;
+} else {
+    session_start();
+}
+```
+
+### D. Configura `LUNA_INTERNAL_KEY` en Bluehost
+
+Bluehost cPanel → **Variables de entorno** (busca PHP env vars o
+similar). Agrega:
+
+```
+LUNA_INTERNAL_KEY=<el-mismo-string-de-64-caracteres>
+```
+
+Si tu hosting no permite env vars, alternativa rápida: pega el secret
+directo en el PHP arriba del bloque (no recomendado para producción
+pero funciona). Reemplaza `getenv('LUNA_INTERNAL_KEY') ?: ''` por
+`'<el-string>'`.
+
+### E. Verifica conectividad
+
+Después de que Railway se redespliegue, mándale a Athena por WhatsApp:
+
+```
+/luna ping
+```
+
+Debería contestarte: `LUNA ✓ — 83 miembros en pipeline.` (con tu conteo
+real). Si dice "LUNA inalcanzable", revisa que el secret coincida en
+ambos lados y que `LUNA_BASE_URL` apunte exactamente al `.php` correcto.
 
 ---
 
