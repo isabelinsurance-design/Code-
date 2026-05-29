@@ -65,6 +65,123 @@ Railway es hosting diseñado para procesos persistentes como Athena:
 
 ---
 
+## ⚡ Deploy MÍNIMO — pónganla viva hoy, agreguen features después
+
+**Si esta es la primera vez deployando Athena**, vayan por esta ruta corta primero. ~45 minutos. Deja TODAS las features opcionales (voz, LUNA, Calendar, ElevenLabs, etc.) para activar después. Lo importante es ver Athena viva contestando WhatsApp esta noche.
+
+> Si quieren la guía completa con todas las integraciones desde el día 1, salten esta sección y vayan a "Stack que vas a parar tonight" abajo.
+
+### Lo que VA a funcionar después de este deploy mínimo
+
+- ✅ WhatsApp conversacional con Athena (texto, voz notes, fotos, PDFs)
+- ✅ Las 17 coaches consultables vía Athena (consultar_especialistas)
+- ✅ Capture by default (notas, tareas, entidades, compromisos)
+- ✅ Memoria por capas (wiki, temporada, historial 40 turnos)
+- ✅ Borradores de email/SMS con confirmación ("envía")
+- ✅ Skills (proponer, aprobar, invocar)
+- ✅ Dashboard operacional en `/dashboard` con `DASHBOARD_PASSWORD`
+- ✅ Crons proactivos: briefing 6:30am, evening 9pm, weekly review domingo, reflexión nocturna 2am
+- ✅ Slash commands (/help, /agenda, /pendientes, /historial, /tareas, etc.)
+
+### Lo que se queda APAGADO (activable después con env var)
+
+| Feature | Para activar después agregar... |
+|---|---|
+| Llamadas telefónicas en vivo | Comprar número Twilio Voice + apuntar webhook `/voice/incoming` |
+| Voz clonada de Isabel | `ELEVENLABS_API_KEY` + `ELEVENLABS_VOICE_ID` |
+| Maria habla con LUNA (CRM real) | `LUNA_BASE_URL` + `LUNA_API_KEY` + patch PHP (paso 5.5) |
+| Email triage automático 5am | `GMAIL_USER` + `GMAIL_APP_PASSWORD` |
+| Reacción instantánea a emails (IMAP IDLE) | `INBOX_IDLE=true` después de Gmail config |
+| Google Calendar (ver/crear citas) | `GOOGLE_CALENDAR_CLIENT_ID/SECRET/REFRESH_TOKEN` |
+| Backups automáticos a R2 | `BACKUP_S3_ENDPOINT/BUCKET/REGION/ACCESS_KEY_ID/SECRET_ACCESS_KEY` |
+| Instagram read-only | `IG_ACCESS_TOKEN` + `IG_USER_ID` |
+| Nextiva SMS visibility | `NEXTIVA_API_KEY` + `NEXTIVA_ACCOUNT_ID` |
+
+Cada feature es un toggle de env var. Athena detecta qué está configurado y prende lo que tiene.
+
+### Los 7 pasos del deploy mínimo (~45 min)
+
+**1. Anthropic API key (5 min).**
+- https://console.anthropic.com → API Keys → "Create Key" → cópiala (empieza con `sk-ant-`).
+- Asegúrense que la cuenta tenga al menos $10 de crédito.
+
+**2. OpenAI API key (5 min).**
+- https://platform.openai.com → API keys → "Create new secret key" → copiar.
+- Agregar $5 de crédito (para Whisper cuando Isabel manda voice notes).
+
+**3. Twilio + WhatsApp Sandbox (10 min).**
+- https://www.twilio.com/try-twilio → trial gratis con $15.
+- Console → Messaging → "Try it out" → "Send a WhatsApp message".
+- Verán un "join code" (ej. `join sunny-tiger`).
+- Desde el WhatsApp de Isabel, mandar ese mensaje exacto a `+1 415 523 8886`. Twilio responderá confirmando que está suscrita al sandbox.
+- Desde el dashboard principal de Twilio: copiar **Account SID** + **Auth Token** (los guardamos en paso 5).
+
+**4. Railway deploy (10 min).**
+- https://railway.app/login → sign in con GitHub.
+- "New Project" → "Deploy from GitHub repo" → seleccionar `isabelinsurance-design/Code-`.
+- En Settings → seleccionar la branch `claude/sleepy-darwin-P4k2z`.
+- Railway empieza a construir. Esperar ~3 min.
+- Cuando termine: Settings → "Generate Domain" → copiar el URL (algo como `https://athena-isabel-production.up.railway.app`).
+
+**5. Variables mínimas en Railway (10 min).**
+Variables tab → "Raw editor" → pegar tal cual, reemplazando los placeholders:
+
+```bash
+ANTHROPIC_API_KEY=sk-ant-XXXXXX
+OPENAI_API_KEY=sk-XXXXXX
+PUBLIC_URL=https://athena-isabel-production.up.railway.app
+TWILIO_ACCOUNT_SID=ACXXXXXX
+TWILIO_AUTH_TOKEN=XXXXXX
+TWILIO_WHATSAPP_FROM=whatsapp:+14155238886
+TWILIO_REQUIRE_SIGNATURE=true
+ISABEL_WHATSAPP=whatsapp:+1XXXXXXXXXX
+ISABEL_NAME=Isabel
+TIMEZONE=America/Los_Angeles
+DASHBOARD_PASSWORD=algoSeguroQueElijan
+```
+
+Save. Railway redespliega solo (~1 min).
+
+**6. Apuntar Twilio webhook a Railway (2 min).**
+- Twilio Console → Messaging → "Try it Out" → "Send a WhatsApp message" → "Sandbox Settings".
+- En "WHEN A MESSAGE COMES IN": pegar `https://athena-isabel-production.up.railway.app/whatsapp` (su URL real).
+- Method: POST.
+- Save.
+
+**7. Test (3 min).**
+Desde el WhatsApp de Isabel (ya suscrito al sandbox): mandar `hola`.
+
+Athena debería contestar en español, presentándose. Si contesta: 🎉 está viva.
+
+Si no contesta:
+- Railway → Deployments → último deploy → View Logs → busquen el error.
+- Lo más común: env var mal escrita o webhook URL incorrecta.
+
+### Cosas que probar cuando esté viva
+
+- `"Recuerda que prefiero hablar con clientes después de las 11am"` → Athena guarda en wiki
+- `"¿Qué recuerdas de mí?"` → te lo lee de vuelta
+- `"/help"` → lista de comandos slash
+- `"Consulta a María sobre cómo prepararme para AEP"` → consulta especialista (sin LUNA todavía, solo conocimiento general Medicare)
+- Abrir `https://athena-isabel-production.up.railway.app/dashboard` con `DASHBOARD_PASSWORD` → ven el dashboard en vivo
+- Esperen al día siguiente 6:30am → debería llegar briefing matutino solo
+
+### Después, agreguen features una por una
+
+Orden recomendado para ir agregando, en orden de mayor valor / menor esfuerzo:
+
+1. **Gmail app password** (5 min) → triage matutino + drafts de email
+2. **Cloudflare R2 backups** (5 min) → seguridad de la memoria de Athena
+3. **LUNA bridge** (30 min — necesita patch PHP en Bluehost) → Maria puede leer/escribir CRM real
+4. **Google Calendar** (15 min — OAuth) → ver agenda + crear citas
+5. **Llamadas telefónicas** (1 hora — número Twilio Voice) → Athena contesta llamadas
+6. **ElevenLabs voz clonada** (30 min — grabar 5 min de Isabel) → Athena suena como Isabel en llamadas
+7. **Instagram / Nextiva** (10 min cada uno) → si las usan
+
+Cada paso es: agregar env vars → Railway redespliega solo → la feature se enciende.
+
+---
+
 ## Stack que vas a parar tonight
 
 - **Hosting:** Railway ($5/mo Hobby plan)
