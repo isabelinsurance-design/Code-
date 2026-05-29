@@ -18,7 +18,7 @@
 const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
-  'compromisos', 'skills', 'tareas', 'auditar', 'huecos',
+  'compromisos', 'skills', 'tareas', 'auditar', 'huecos', 'luna',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -64,6 +64,7 @@ export async function runSlash(text, from) {
       case 'tareas': return { ok: true, reply: await runTareas(args) };
       case 'auditar': return { ok: true, reply: await runAuditar(args) };
       case 'huecos': return { ok: true, reply: await runHuecos(args) };
+      case 'luna': return { ok: true, reply: await runLuna(args) };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
       case 'envía': return await runEnvia(args);          // solo isabel — flush drafts
@@ -92,6 +93,7 @@ function buildHelp(role) {
     '/historial [n] — últimas N acciones',
     '/auditar — corre auditoría de calidad del CRM',
     '/huecos [dias] — huecos libres en el calendario (default 7 días)',
+    '/luna [ping] — briefing del CRM real de LUNA (sin args = full briefing)',
   ];
   const isabelExtras = [
     '/triage — corre triage de email ahora',
@@ -256,6 +258,31 @@ async function runDescartar() {
   const { clearOutbound } = await import('./memory.js');
   const n = clearOutbound();
   return { ok: true, reply: n ? `Descarté ${n} borrador(es).` : 'No había nada en cola.' };
+}
+
+async function runLuna(args) {
+  const { lunaConfigured, fullBriefing, pipelineSummary } = await import('./luna_client.js');
+  if (!lunaConfigured()) {
+    return 'LUNA no está configurado en este servidor. Faltan LUNA_BASE_URL y LUNA_API_KEY.';
+  }
+  // Sin args → briefing. Con "ping" → solo pipeline (test ligero).
+  if (args === 'ping') {
+    const r = await pipelineSummary();
+    if (!r.ok) return `LUNA inalcanzable: ${r.error}`;
+    return `LUNA ✓ — ${r.data?.total_miembros || 0} miembros en pipeline.`;
+  }
+  const r = await fullBriefing();
+  if (!r.ok) return `LUNA inalcanzable: ${r.error}`;
+  const d = r.data || {};
+  const lines = [];
+  if (d.estados) lines.push(`Pipeline: ${Object.entries(d.estados).map(([k, v]) => `${k}=${v}`).join(' · ')}`);
+  if (d.hot_leads_frios?.length) lines.push(`🔥 ${d.hot_leads_frios.length} hot leads fríos`);
+  if (d.t65_urgentes?.length) lines.push(`🎂 ${d.t65_urgentes.length} T65 urgentes`);
+  if (d.retencion_hoy?.length) lines.push(`📞 ${d.retencion_hoy.length} llamadas retención hoy`);
+  if (d.soa_pendiente) lines.push(`⚠️ ${d.soa_pendiente} SOAs faltantes`);
+  if (d.tickets_urgentes?.length) lines.push(`🚨 ${d.tickets_urgentes.length} tickets ALTA`);
+  if (d.callbacks) lines.push(`☎️ ${d.callbacks} callbacks pendientes`);
+  return lines.length ? lines.join('\n') : 'LUNA limpio — sin alertas activas.';
 }
 
 async function runHuecos(args) {
