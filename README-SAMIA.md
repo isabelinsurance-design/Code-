@@ -82,6 +82,9 @@ server/
   intel/
     signals.js        # Patrón #16: señales con severidad (threshold/pattern/state/calendar)
     reflection.js     # Patrón #15: reflexión nocturna de 4 pasos
+    commitments.js    # Patrón #19: commitment tracker (promesas con fecha + vencidas)
+    briefing.js       # Patrón #20: briefing matutino priorizado
+    scheduler.js      # Patrón #21: scheduler en-proceso (reflexión/briefing/repaso/tick)
   memory/
     index.js          # agentes, sesiones, audit log, reflexiones (#6/#12/#15)
     entities.js       # Patrón #11: personas (miembros/leads) + alias + salience + gaps
@@ -145,6 +148,29 @@ Endpoints nuevos: `GET /api/intel/signals`, `POST /api/intel/signals/refresh`,
 `POST /api/intel/reflect`, `GET /api/intel/reflections`,
 `GET /api/memory/merge-candidates`, `POST /api/memory/merge`.
 
+### Fase 5 — Autonomía
+
+- **#19 Commitment tracker** (`intel/commitments.js`): detecta promesas del turno
+  ("le voy a enviar el SOA a María el lunes", "el grupo dijo que confirmaría mañana"),
+  les pone **fecha** (parser de español: mañana, lunes, "en 3 días", "7 de diciembre"…)
+  y las marca **vencidas** cuando pasa la fecha. Equipo vs tercero. Determinista.
+- **#20 Briefing matutino** (`intel/briefing.js`): lo que importa hoy, priorizado —
+  prioridad ALTA → compromisos vencidos/de hoy → avisos → datos pendientes → resumen
+  de anoche. Corto, no un volcado.
+- **#21 Scheduler en-proceso** (`intel/scheduler.js`): el latido. Reflexión 02:00,
+  briefing 06:30, repaso semanal lun 07:00, *task tick* horario (revisa compromisos +
+  refresca señales). Persiste `lastRun` por trabajo → **no duplica ni salta**, y hace
+  **catch-up** si el server estuvo caído.
+
+> ⚠️ **Honestidad sobre el entorno:** el scheduler solo corre mientras el proceso del
+> servidor está vivo. En un sandbox efímero los crons **no** siguen tras cerrar la
+> sesión — para que disparen de verdad a las 6:30am hay que desplegar en algo
+> *always-on* (Railway, etc.). La maquinaria está construida y verificada disparando
+> los trabajos a mano (`POST /api/intel/run-jobs`).
+
+Endpoints nuevos: `GET|POST /api/intel/briefing`, `GET|POST /api/intel/commitments`,
+`GET /api/intel/scheduler`, `POST /api/intel/run-jobs`.
+
 > **Connecture sigue siendo la fuente oficial para cotizar.** El KB es para
 > orientar; cuando un dato pudo cambiar, SAMIA manda a verificar.
 
@@ -164,6 +190,7 @@ Endpoints nuevos: `GET /api/intel/signals`, `POST /api/intel/signals/refresh`,
 
 ## Próximas fases sugeridas
 
-- **Fase 5 — Autonomía:** briefing matutino, task tick, commitment tracker (cron jobs).
 - **Fase 7 — Seguridad:** confirmation gate + review hooks (clave en Medicare/CMS).
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).
+- **Despliegue always-on** (Railway): requisito para que el scheduler de la Fase 5
+  dispare de verdad (hoy la maquinaria está lista pero el sandbox es efímero).

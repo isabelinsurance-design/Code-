@@ -20,6 +20,9 @@ import * as wiki from './memory/wiki.js';
 import { captureTurn, memoryContext } from './memory/capture.js';
 import { getSignals, refreshSignals, signalsContext } from './intel/signals.js';
 import { runReflection, getReflections } from './intel/reflection.js';
+import * as commitments from './intel/commitments.js';
+import { buildBriefing, generateBriefing, getLatestBriefing } from './intel/briefing.js';
+import { startScheduler, schedulerStatus, tick } from './intel/scheduler.js';
 import { serveStatic } from './static.js';
 
 const json = (res, code, obj) => {
@@ -60,10 +63,12 @@ function buildSystem(specId, userText, agentId, passthroughContext) {
   const memCtx = memoryContext(userText);
   if (memCtx) parts.push(memCtx);
 
-  // Señales activas (patron #16) — solo en modos operativos (no en role-play).
+  // Señales activas (#16) + compromisos que vencen (#19) — solo en modos operativos.
   if (spec.lookups) {
     const sig = signalsContext();
     if (sig) parts.push(sig);
+    const com = commitments.commitmentsContext();
+    if (com) parts.push(com);
   }
 
   if (passthroughContext) {
@@ -134,7 +139,10 @@ async function handleChat(req, res) {
     // CAPTURA POR DEFECTO (#13): guarda personas/datos del turno sin pedir permiso.
     // No bloquea la respuesta ni la rompe si falla. EXCEPCION: en 'practica' los
     // prospectos son FICTICIOS (role-play de ventas) — no contaminar la memoria real.
-    if (specId !== 'practica') captureTurn({ userText, assistantText: text }).catch(() => {});
+    if (specId !== 'practica') {
+      captureTurn({ userText, assistantText: text }).catch(() => {});
+      commitments.captureCommitments(userText); // promesas con fecha (#19)
+    }
 
     return json(res, 200, { reply: text, content, specialist: specId, usage });
   } catch (e) {
@@ -191,6 +199,31 @@ const server = createServer(async (req, res) => {
     const e = entities.mergeEntities(body.into, body.from);
     return e ? json(res, 200, { entity: e }) : json(res, 404, { error: 'entidad no encontrada' });
   }
+
+  // --- AUTONOMIA (Fase 5) ---
+  if (path === '/api/intel/briefing' && req.method === 'GET')
+    return json(res, 200, { briefing: getLatestBriefing() || buildBriefing() });
+  if (path === '/api/intel/briefing' && req.method === 'POST')
+    return json(res, 200, { briefing: generateBriefing() });
+  if (path === '/api/intel/commitments' && req.method === 'GET') {
+    commitments.reviewCommitments();
+    return json(res, 200, { commitments: commitments.listCommitments({ status: url.searchParams.get('status') || undefined }) });
+  }
+  if (path === '/api/intel/commitments' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    if (body.id && body.status) {
+      const c = commitments.setStatus(body.id, body.status);
+      return c ? json(res, 200, { commitment: c }) : json(res, 404, { error: 'no encontrado' });
+    }
+    if (body.text) return json(res, 200, { commitment: commitments.addCommitment(body) });
+    return json(res, 400, { error: 'text (nuevo) o id+status (actualizar) requeridos' });
+  }
+  if (path === '/api/intel/scheduler' && req.method === 'GET') return json(res, 200, schedulerStatus());
+  if (path === '/api/intel/run-jobs' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const ran = await tick(new Date(), { force: body.force !== false, only: body.only || null });
+    return json(res, 200, { ran });
+  }
   if (path === '/api/memory/season' && req.method === 'GET') return json(res, 200, { season: wiki.getSeason() });
   if (path === '/api/memory/wiki' && req.method === 'GET') return json(res, 200, { facts: wiki.getFacts() });
   if (path === '/api/memory/season' && req.method === 'POST') {
@@ -215,4 +248,8 @@ server.listen(PORT, () => {
   const s = kbStats();
   console.log(`SAMIA backend -> http://localhost:${PORT}`);
   console.log(`KB: ${s.cases} casos · ${s.medicalGroups} grupos · ${s.doctors} doctores · ${s.plans} planes`);
+  // Latido de autonomia (#21). Inofensivo si el proceso es efimero; en always-on
+  // dispara reflexion 02:00, briefing 06:30, repaso semanal lun 07:00, tick horario.
+  startScheduler();
+  console.log('Scheduler activo: reflexion 02:00 · briefing 06:30 · repaso lun 07:00 · tick :00');
 });
