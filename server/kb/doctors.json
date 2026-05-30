@@ -1,0 +1,20 @@
+{
+  "_meta": {
+    "description": "Doctores conocidos y su IPA/grupo medico. Semilla de los tickets de SAMIA. Verificar siempre con la clinica antes de cambiar PCP o aplicar.",
+    "lastReviewed": "2026-05-30"
+  },
+  "doctors": [
+    { "name": "Dr. Samuel Oregel", "group": "Optum Care Network", "location": "Van Nuys", "notes": "" },
+    { "name": "Dra. Salehani", "group": "Optum Care Network", "location": "", "notes": "No acepta pacientes nuevos. Alternativa: Dr. Pike (mismo Optum). Verificar grafia exacta del apellido (Salehani / Salahani)." },
+    { "name": "Dr. Pike", "group": "Optum Care Network", "location": "Van Nuys", "notes": "" },
+    { "name": "Dr. Brett", "group": "Optum Care Network", "location": "Van Nuys", "notes": "" },
+    { "name": "Dr. Matthew Martinez", "group": "Facey Medical Group", "location": "", "notes": "" },
+    { "name": "Dr. Javier Quesada", "group": "Prospect Medical Group", "location": "Citrus Valley", "notes": "" },
+    { "name": "Dr. Robert Hashemiyoon", "group": "Lakeside Community Healthcare", "location": "Van Nuys", "notes": "Tambien conocido como Dr. Ivan. PCP ID 108123." },
+    { "name": "Dra. Francine Choi", "group": "Optum Care Network", "location": "Van Nuys", "notes": "" },
+    { "name": "Dr. Manoukian", "group": "Optum Care Network", "location": "", "notes": "Zona SCAN/Optum." },
+    { "name": "Dr. Arjun Reyes", "group": null, "location": "", "notes": "NO acepta NINGUNO de nuestros grupos medicos (ni Regal, Optum, Facey). Si el miembro lo quiere, no hay plan disponible con nosotros actualmente." },
+    { "name": "Dr. Brandon Leon", "group": null, "location": "", "notes": "ADVERTENCIA: su oficina ya no acepta Medicare Advantage." },
+    { "name": "Dra. Erlinda Grey", "group": "Preferred IPA", "location": "", "notes": "No aparece en el sistema estandar — contactar a Gohar (Broker Support) para agregar manualmente." }
+  ]
+}

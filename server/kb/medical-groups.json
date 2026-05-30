@@ -1,0 +1,85 @@
+{
+  "_meta": {
+    "description": "Grupos medicos / IPAs en SoCal. Semilla extraida del conocimiento de SAMIA (2,233 tickets). Ampliar aqui — la fuente oficial sigue siendo Connecture.",
+    "lastReviewed": "2026-05-30"
+  },
+  "groups": [
+    {
+      "name": "Optum Care Network",
+      "aka": ["HealthCare Partners", "Optum"],
+      "regions": ["Van Nuys", "San Fernando Valley", "North Hollywood", "Superior Choice", "Lakeside"],
+      "acceptedByPlans": ["Anthem Select", "Anthem Full Dual", "Humana Gold Plus 021", "SCAN Classic", "Alignment 039", "Alignment 054"],
+      "notes": "Multiples doctores: Oregel, Salehani, Pike, Brett, Matthew Martinez (este ultimo en Facey)."
+    },
+    {
+      "name": "Facey Medical Group",
+      "aka": ["Facey"],
+      "regions": ["Santa Clarita", "San Fernando", "Panorama City"],
+      "acceptedByPlans": ["Anthem Full Dual", "Humana Gold Plus 021", "SCAN Classic"],
+      "notes": "NO esta en SCAN Allied Pacific. Humana Gold Plus 021 es el unico plan que acepta Facey Y Optum a la vez."
+    },
+    {
+      "name": "Allied Pacific IPA",
+      "aka": ["Allied Pacific", "Allied"],
+      "regions": [],
+      "acceptedByPlans": ["SCAN Allied Pacific"],
+      "notes": "Solo en ciertos planes SCAN. NO incluye Facey ni (en algunos casos) Optum."
+    },
+    {
+      "name": "Regal Medical Group",
+      "aka": ["Regal"],
+      "regions": ["Woodland Hills", "West San Fernando Valley"],
+      "acceptedByPlans": ["SCAN Allied Pacific", "Anthem Full Dual"],
+      "notes": ""
+    },
+    {
+      "name": "Heritage Provider Network",
+      "aka": ["Heritage"],
+      "regions": ["Este de SFV"],
+      "acceptedByPlans": ["Anthem Full Dual", "Anthem Select"],
+      "notes": ""
+    },
+    {
+      "name": "Prospect Medical Group",
+      "aka": ["Prospect", "AltaMed"],
+      "regions": ["varios condados"],
+      "acceptedByPlans": ["SCAN Allied Pacific", "LA Care"],
+      "notes": "Prospect / AltaMed."
+    },
+    {
+      "name": "HCLA",
+      "aka": ["Healthcare LA"],
+      "regions": ["Los Angeles"],
+      "acceptedByPlans": ["Anthem Select"],
+      "notes": "NO esta en Allied."
+    },
+    {
+      "name": "Metropolitan IPA",
+      "aka": ["Metropolitan"],
+      "regions": [],
+      "acceptedByPlans": [],
+      "notes": "Limitado. A veces aparece por error en tarjetas en lugar de Facey."
+    },
+    {
+      "name": "Lakeside Community Healthcare",
+      "aka": ["Lakeside"],
+      "regions": ["Noreste SFV"],
+      "acceptedByPlans": [],
+      "notes": "A veces se cambia el grupo a Lakeside cuando la clinica lo requiere para autorizaciones."
+    },
+    {
+      "name": "Preferred IPA",
+      "aka": ["Preferred"],
+      "regions": [],
+      "acceptedByPlans": [],
+      "notes": "Casos especiales. Puede no aparecer en el sistema estandar — contactar a Gohar (Broker Support) para agregar al doctor manualmente."
+    },
+    {
+      "name": "Camino Real",
+      "aka": ["Camino Real Ventura"],
+      "regions": ["Ventura"],
+      "acceptedByPlans": [],
+      "notes": "Acepta: Gold Coast, Total Care Advantage, Santa Paula Family Group. Fuera de la red estandar SCAN/Anthem/Humana del valle."
+    }
+  ]
+}

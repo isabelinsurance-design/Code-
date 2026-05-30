@@ -1,0 +1,68 @@
+{
+  "_meta": {
+    "description": "Planes Medicare Advantage que maneja el equipo y que grupos medicos aceptan. Semilla de los tickets. Connecture es la fuente oficial para cotizar.",
+    "lastReviewed": "2026-05-30"
+  },
+  "plans": [
+    {
+      "name": "SCAN Allied Pacific",
+      "carrier": "SCAN",
+      "acceptedGroups": ["Allied Pacific IPA", "Prospect Medical Group", "Regal Medical Group"],
+      "notes": "SOLO acepta Allied, Prospect, Regal. NO incluye Facey ni (en algunos casos) Optum. Algunos planes dan Give Back $130."
+    },
+    {
+      "name": "SCAN Classic",
+      "carrier": "SCAN",
+      "acceptedGroups": ["Optum Care Network", "Facey Medical Group", "Allied Pacific IPA"],
+      "notes": "Acepta todos los grupos medicos disponibles en el plan. Es el destino comun cuando un caso de Strive/Connections no califica."
+    },
+    {
+      "name": "SCAN Strive",
+      "carrier": "SCAN",
+      "acceptedGroups": [],
+      "notes": "Requiere condicion cronica CONFIRMADA por el Dr. Prediabetes NO califica. Si no califica -> mover a SCAN Classic o Select."
+    },
+    {
+      "name": "Anthem Full Dual",
+      "carrier": "Anthem Blue Cross",
+      "acceptedGroups": ["Optum Care Network", "Facey Medical Group", "HCLA", "Heritage Provider Network", "Regal Medical Group", "Prospect Medical Group"],
+      "notes": "D-SNP para Full Dual (Medicare + Medi-Cal). Buena cobertura dental (Liberty Dental). Verificar grupo por zona."
+    },
+    {
+      "name": "Anthem Select",
+      "carrier": "Anthem Blue Cross",
+      "acceptedGroups": ["Optum Care Network", "HCLA", "Heritage Provider Network"],
+      "notes": "Principalmente para HCLA y Optum."
+    },
+    {
+      "name": "Humana Gold Plus 021",
+      "carrier": "Humana",
+      "acceptedGroups": ["Optum Care Network", "Facey Medical Group"],
+      "notes": "UNICO plan que acepta Optum Y Facey a la vez. Verificar que el Dr especifico acepte Humana en Facey."
+    },
+    {
+      "name": "Alignment 039",
+      "carrier": "Alignment Health Plan",
+      "acceptedGroups": ["Optum Care Network"],
+      "notes": "Da $129 en tarjeta. NO cubre implantes dentales. Puede bloquear ciertos casos de Parte A."
+    },
+    {
+      "name": "Alignment 054",
+      "carrier": "Alignment Health Plan",
+      "acceptedGroups": ["Optum Care Network"],
+      "notes": "Paga Ozempic/Mounjaro. Buena opcion para miembro con medicamento de diabetes caro. NO cubre implantes dentales."
+    },
+    {
+      "name": "LA Care",
+      "carrier": "L.A. Care",
+      "acceptedGroups": ["Prospect Medical Group"],
+      "notes": "Acepta Prospect, AltaMed y otros grupos comunitarios."
+    },
+    {
+      "name": "Health Net (Wellcare)",
+      "carrier": "Health Net / Centene",
+      "acceptedGroups": [],
+      "notes": "NO cubre implantes ni coronas dentales. Si el miembro necesita implantes y tiene Medi-Cal -> considerar Anthem Full Dual."
+    }
+  ]
+}

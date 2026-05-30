@@ -1,0 +1,12 @@
+# Secretos — nunca subir
+.env
+
+# Dependencias (el backend es zero-dep, pero por si acaso)
+node_modules/
+
+# Datos de runtime de SAMIA (memoria, sesiones, audit log)
+data/*.json
+
+# Sistema
+.DS_Store
+*.log

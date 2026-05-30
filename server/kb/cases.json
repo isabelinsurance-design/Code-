@@ -1,0 +1,464 @@
+[
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Salió con Allied Pacific pero el Dr es de Facey",
+  "a": "Allied Pacific NO incluye Facey. Opciones: 1) Mover a SCAN Classic (Facey incluido) 2) Humana Gold Plus 021 (acepta Facey Y Optum) 3) Anthem Full Dual si tiene Medi-Cal."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Tarjeta muestra Metropolitan pero debería ser Facey",
+  "a": "Error de IPA en tarjeta. Llamar a Broker Support. Mientras tanto dar ID digital con IPA correcto. Tarjetas correctas llegan en 14 días."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Dr no acepta el plan en su clínica / dice que no estamos en red",
+  "a": "1) Llamar a la clínica y pedir el grupo médico que aceptan 2) Verificar si el IPA del miembro coincide 3) Si no coincide → cambio de plan o cambio de Dr dentro del mismo IPA."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Dr. Salehani Optum no acepta pacientes nuevos",
+  "a": "Mismo Optum: Dr. Pike (misma clínica). También: Dr. Oregel Optum Van Nuys, Dr. Matthew Martinez Facey. Verificar quién acepta en Optum antes de proponer."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Quiere SCAN Allied pero su Dr es de HCLA",
+  "a": "HCLA no está en Allied. Con HCLA → Anthem Select. Confirmar que el Dr acepta Anthem. Sino → buscar Dr en Optum o Facey para poder usar Allied."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "SCAN Strive — miembro prediabético le quieren cancelar el plan",
+  "a": "SCAN Strive requiere condición crónica CONFIRMADA por el Dr. Prediabetes NO califica. El Dr debe confirmar diabetes activa. Si no califica → mover a SCAN Classic."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Dr dice que ya no acepta SCAN pero el miembro no quiere cambiar",
+  "a": "Llamar a la clínica para confirmar. Si realmente ya no acepta → hay que explicar al miembro: o cambia de Dr (mismo Optum/Facey) o cambia de plan. Sin las dos cosas a la vez."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Dr. Arjun Reyes — averiguar qué grupos médicos acepta",
+  "a": "Llamamos al consultorio: NO acepta Regal, Optum, Facey ni ninguno de nuestros grupos. Si el miembro quiere este Dr → no hay plan disponible con nosotros actualmente."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Miembro en Allied y quiere cambiarse al que le devuelve $130",
+  "a": "Allied Pacific plan (Give Back $130). Problema: Allied NO tiene Facey ni todos los grupos. Si el Dr es de Facey → el miembro no puede estar en Allied. Verificar Dr primero."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Paciente en la clínica sin cita — le dicen que no está activo",
+  "a": "Caso real: fue sin cita, Optum no atiende sin cita. No era problema del seguro. Explicar al miembro que siempre necesita cita previa con Optum."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Referencia de especialista que ya no está en ese grupo médico",
+  "a": "Pedir al Dr primario una nueva referencia para otro especialista dentro del mismo grupo médico. Llamar a la clínica del especialista para verificar."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Alignment 039 Optum vs Alignment 054",
+  "a": "039: Optum, da $129 en tarjeta. 054: Optum, paga Ozempic/Mounjaro. Verificar qué necesita el miembro: si toma diabetes medication cara → 054. Si quiere más tarjeta → 039."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Humana Gold Plus 021 — acepta Optum Y Facey",
+  "a": "Único plan que acepta ambos grupos médicos. Ideal para miembro con Dr en Facey que quiere beneficios Humana. Verificar que el Dr específico acepta Humana en Facey."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Camino Real Ventura — qué grupos médicos acepta",
+  "a": "Acepta: Gold Coast, Total Care Advantage, Santa Paula Family Group. No están en la red estándar de SCAN/Anthem/Humana típica del valle."
+ },
+ {
+  "cat": "ipa",
+  "lbl": "IPA/Redes",
+  "q": "Clínica le dice que su IPA es Preferred IPA pero no aparece en el sistema",
+  "a": "Enviar email a Gohar (broker support) para que agreguen el Dr al sistema de forma manual. Pedir ID de la doctora. Caso real: Dra. Erlinda Grey con Preferred IPA."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Bill $250-300 de hospitalización — tiene Full Dual",
+  "a": "Full Dual debería ser $0 copago. Pedir foto del bill. Llamar al hospital con ID de Medi-Cal + Anthem. El balance debe quedar en $0. Tiempo: 1-2 semanas."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Bill $333 de visita al Dr en enero — no aparecía con Full Dual",
+  "a": "Llamar a Optum Cobros (855-922-0781). Dijeron: en enero no aparecía con Full Dual hasta mayo. → Llamar a Medicare para verificar qué aseguranza tenía en enero exactamente."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "EOB de $500 — el miembro cree que tiene que pagar",
+  "a": "EOB = Explanation of Benefits. NO es un cobro. Si dice \"This is not a bill\" → tranquilizar al miembro. Solo es información de lo que pagó la aseguranza por él."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Copago $5 de insulina cuando debería ser $0",
+  "a": "Plan diabetes Full Dual = $0 insulina (Ley IRA, máx $35). Llamar a la aseguranza. Pedir foto del recibo. Escalar a Itzel para verificar beneficio diabetes."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Bill complejo de más de 30 días",
+  "a": "Si pasaron más de 30 días o es muy complejo → escalar a Crystal (Optum). Dar: nombre del miembro, fecha de servicio, monto, ID de aseguranza."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Cobro 20% SCAN cuando no debería aplicar",
+  "a": "Full Dual debería ser $0 copago. Poner reclamo formal ante SCAN. Documentar: fecha, monto, servicio. Seguimiento en 30-60 días."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Bill $1,000 de emergencias del año pasado — Anthem no lo cubrió",
+  "a": "Solicitar EOB de ese período. Verificar si la visita fue in-network. Si fue in-network y es Full Dual → apelar. Carta de apelación con # de visita y EOB."
+ },
+ {
+  "cat": "bills",
+  "lbl": "Bills",
+  "q": "Cobro por medicina Forxiga/Janubio — medicamento para diabetes",
+  "a": "Verificar tier en formulario del plan. Si era Tier 1-2 y cobró Tier 3-4 → disputa. Programa de asistencia del fabricante si muy caro. Prior auth si Tier alto."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Tarjeta de beneficios solo le da para vitaminas e higiene — tiene diabetes y Full Dual",
+  "a": "Full Dual + diabetes/osteoporosis/COPD puede tener beneficio EXTRA de comida (grocery). Hay que llenar el cuestionario SSBCI. Llamar a SCAN/carrier para hacer el cuestionario. Esperar 3-4 días para activación."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Fue a Walmart con la tarjeta y no le aceptaron nada",
+  "a": "1) ¿Activó la tarjeta? Llamar a aseguranza para activar. 2) ¿Llenó el cuestionario SSBCI para comida? Si no → hacer cuestionario. 3) ¿Es la tarjeta correcta? Hay DOS tarjetas (doctor vs beneficios)."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Confunde tarjeta del doctor con tarjeta de beneficios",
+  "a": "HAY DOS TARJETAS: 1) TARJETA DEL DOCTOR → citas médicas, urgencias, farmacia con receta. 2) TARJETA DE BENEFICIOS OTC → tiendas (Walmart, CVS, Walgreens, Food 4 Less). NO se mezclan."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Tarjeta Nations no le funciona en el plan Prime",
+  "a": "Plan Prime NO soporta Nations Benefits. Mover al plan Select donde sí funciona Nations. Encargar nueva tarjeta. 14 días para llegar."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "No le dieron lentes usando la tarjeta de beneficios",
+  "a": "Estaba usando la tarjeta equivocada. La tarjeta de beneficios NO cubre citas médicas/óptica. La tarjeta del Dr es la correcta. Educar la diferencia. El plan sí cubre visión."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Tarjeta no ha llegado — nuevo miembro",
+  "a": "OTC card: 7 días. SCAN/Anthem: 14 días hábiles. Verificar dirección COMPLETA (¿falta APT/UNIT?). Si pasaron 14 días → solicitar reposición en portal Broker Support. Follow-up en 1 semana."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Solo le cubrió $12.42 — no le cubrió desodorante",
+  "a": "Artículos de cuidado personal básico (desodorante sin receta) no siempre son elegibles en OTC. El plan define categorías específicas. Explicar qué sí y qué no cubre."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Saldo SCAN — no podemos verlo en el portal",
+  "a": "SCAN NO muestra saldo de beneficios en el portal del agente por privacidad. El miembro debe llamar DIRECTAMENTE al número al reverso de su tarjeta para ver el saldo."
+ },
+ {
+  "cat": "tarjeta",
+  "lbl": "Tarjeta",
+  "q": "Llegaron 2 tarjetas de beneficios — tiene 2 aseguranzas",
+  "a": "Investigan en sistema. Posible que alguien hizo aplicación duplicada o hay transición de plan. Verificar cuál plan está activo. Reportar a la aseguranza."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Firmó Connections pero no tiene Medi-Cal activo",
+  "a": "ERROR CRÍTICO. Mover a SCAN Classic INMEDIATO. La aplicación está en el sistema incorrecta. Llamar a Broker Support para corregir. SIEMPRE verificar Medi-Cal antes."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Alignment bloquea la aplicación por Parte A",
+  "a": "Workaround: Anthem Full Dual o SCAN Full Dual. Alignment tiene problema técnico con ciertos casos de Parte A. Usar DOB + ID Medi-Cal en Anthem. Anotar número de confirmación."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Regresar al Full Dual — pasos completos",
+  "a": "1) Verificar Medi-Cal ACTIVO 2) Verificar Parte A y B 3) Confirmar Dr y grupo médico acepta plan 4) Aplicar en portal 5) Anotar # confirmación 6) Avisar fecha efectiva al miembro 7) Seguimiento aprobación."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Miembro con Share of Cost en Medi-Cal",
+  "a": "Share of Cost = tiene Medi-Cal pero debe pagar un deducible. Puede calificar para Connections dependiendo del monto. Buscar plan con Give Back Benefit para compensar el costo."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Se canceló del Strive — moverlo",
+  "a": "Cancelación del Strive → mover a SCAN Classic o Select INMEDIATAMENTE para no dejarlo sin cobertura. No esperar. Aplicación el mismo día si es posible."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "SEP — ¿cuándo aplica para cambio de plan?",
+  "a": "SEP aplica: mudanza de condado (60 días), pérdida de Medi-Cal, salida de hospital, Parte B activa nueva. Verificar cuál SEP aplica antes de hacer cambio. Sin SEP → esperar AEP."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Aplicación denegada por CMS (RFI)",
+  "a": "Identificar razón de denegación. Hacer nueva aplicación con información correcta. Si persiste → escalar a Kim (Broker Support Anthem) para revisión manual."
+ },
+ {
+  "cat": "aplicaciones",
+  "lbl": "App",
+  "q": "Health Net NO cubre implantes dentales — quiere cambiarse",
+  "a": "Mover a Anthem Full Dual si tiene Medi-Cal. Anthem tiene mejor cobertura dental. Verificar Dr está en red de Anthem antes de cambiar."
+ },
+ {
+  "cat": "farmacia",
+  "lbl": "Farmacia",
+  "q": "Farmacia no da medicina — aparece con aseguranza anterior",
+  "a": "Cambios de aseguranza tardan 1-3 días hábiles en actualizarse. Llamada 3 vías: tú + nueva aseguranza + farmacia. Pedir que la aseguranza llame directamente. Anotar referencia."
+ },
+ {
+  "cat": "farmacia",
+  "lbl": "Farmacia",
+  "q": "Monjaro/Ozempic precio completo cuando debería ser $42 o menos",
+  "a": "Tier 4-5 generalmente. Verificar formulario del plan. Si la aseguranza dice que era Tier menor → disputa. Programa de asistencia del fabricante (Lilly/Novo). Considerar cambio a plan 054 de Alignment."
+ },
+ {
+  "cat": "farmacia",
+  "lbl": "Farmacia",
+  "q": "Gabapentin 300mg — nuevo Dr no quiere recetarlo",
+  "a": "Pedir referido a especialista (neurólogo). O agendar con PCP actual para re-evaluar. Si el problema es el Dr → considerar cambio de Dr dentro del mismo grupo médico."
+ },
+ {
+  "cat": "farmacia",
+  "lbl": "Farmacia",
+  "q": "Insulina copago $5 — plan diabetes debería ser $0",
+  "a": "Ley IRA: insulina máx $35. Plan diabetes Full Dual: $0. Llamar aseguranza con miembro. Pedir foto del recibo. Escalar si no resuelven."
+ },
+ {
+  "cat": "farmacia",
+  "lbl": "Farmacia",
+  "q": "Prior Authorization — cuánto tarda",
+  "a": "Prior Auth urgente: 72 horas. Normal: 7 días. Para medicamentos Tier 4-5 como Monjaro, Ozempic, Eliquis. El Dr debe enviar la solicitud con justificación médica."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "Navarro Dental no acepta SCAN",
+  "a": "Navarro no acepta DentalQuest (red de SCAN). Opciones: buscar dentista en red DentalQuest o mover a Anthem (Liberty Dental). Preguntar a Isabel antes de recomendar dentista específico."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "Western Dental Van Nuys 8600 — no lo aceptan",
+  "a": "Llamamos a todas las clínicas de Western Dental en esa área — ninguna acepta DentalQuest. Buscar dentista alternativo en red. Preguntar a Glenda/Jackie para recomendaciones."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "DentalQuest — implantes, ¿están cubiertos?",
+  "a": "Llamamos a DentalQuest: SÍ cubre implantes PERO la clínica debe enviar solicitud formal a DentalQuest primero. DentalQuest decide caso por caso. Proceso puede tomar semanas."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "La Peña Dental — contrato terminó",
+  "a": "La Peña ya no acepta el plan desde mayo 1. Miembros que vayan allá pueden ser rechazados. Cobros indebidos → escalar a Glenda para reversión."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "Panorama Dental Van Nuys — ¿acepta el plan?",
+  "a": "Panorama es clínica dental asociada con la oficina de Isabel. Para miembros de Southern CA. Verificar con Glenda o Jackie antes de enviar miembro."
+ },
+ {
+  "cat": "dental",
+  "lbl": "Dental",
+  "q": "Plan no cubre todo el tratamiento dental — le cobran la diferencia",
+  "a": "Enseñar a leer el EOD (Explanation of Dental Benefits). La diferencia entre lo que cubre el plan y el costo real es responsabilidad del miembro. Buscar plan de pago con la clínica."
+ },
+ {
+  "cat": "urgente",
+  "lbl": "URGENTE",
+  "q": "Cirugía de emergencia — no sale activo en el sistema del hospital",
+  "a": "1) WhatsApp a Isabel YA (aunque esté en reunión). 2) Llamar a la aseguranza, verificar eligibilidad. 3) Llamada 3 vías: agente + aseguranza + hospital. 4) Obtener # de autorización de emergencia. 5) Documentar todo en tiempo real. 6) Si no resuelves en 30 min → escalar aunque Isabel esté ocupada."
+ },
+ {
+  "cat": "urgente",
+  "lbl": "URGENTE",
+  "q": "Procedimiento denegado — necesita apelación urgente",
+  "a": "1) Buscar # de apelaciones EN la carta de denegación. 2) Llamar con el miembro en línea. 3) Citar: \"El Dr lo recetó por necesidad médica.\" 4) Apelación urgente: 72h. Normal: 30-60 días. 5) Documentar referencia de la apelación."
+ },
+ {
+  "cat": "urgente",
+  "lbl": "URGENTE",
+  "q": "Referencia a especialista que ya no está con el grupo médico",
+  "a": "Caso real (ileoscopía): el lugar ya no estaba con el grupo médico. Llamar a la clínica del Dr → le darán nueva referencia para otro lugar dentro del grupo. No dejar al miembro sin resolución."
+ },
+ {
+  "cat": "urgente",
+  "lbl": "URGENTE",
+  "q": "Miembro necesita autorización para inyección/procedimiento ocular",
+  "a": "Cambiar grupo médico a Lakeside si la clínica lo requiere. Email a Kim para caso urgente. Llamar 3 vías con aseguranza + clínica si el procedimiento es inminente."
+ },
+ {
+  "cat": "cartas",
+  "lbl": "Cartas",
+  "q": "EOB — miembro confundido, cree que tiene que pagar",
+  "a": "\"Esta carta solo muestra lo que la aseguranza pagó por usted. Si dice Explanation of Benefits o This is not a bill → no tiene que pagar nada. Es solo información.\""
+ },
+ {
+  "cat": "cartas",
+  "lbl": "Cartas",
+  "q": "Carta que le quieren cancelar el Strive por no cumplir requisito",
+  "a": "SCAN Strive requiere condición crónica confirmada por el Dr. Si el Dr dice que es prediabético pero no diabético → no califica. Mover a Classic o Select. El Dr Oregel confirmó en caso real."
+ },
+ {
+  "cat": "cartas",
+  "lbl": "Cartas",
+  "q": "Carta de cancelación de Medicare Parte B",
+  "a": "NUNCA es culpa nuestra. Parte B la administra SSA. Posible causa: no pagó la prima o no respondió carta de SSA. Para reactivar → SSA: 1-800-772-1213. Agendar con Isabel para SEP."
+ },
+ {
+  "cat": "cartas",
+  "lbl": "Cartas",
+  "q": "Respondió OK a mensaje automático de Anthem — la dieron de baja",
+  "a": " URGENTE. Iniciar proceso de Reinstatement administrativo inmediato. Educar: NUNCA responder OK/STOP/YES a mensajes automáticos de aseguranzas. Pueden interpretarlo como cancelación voluntaria."
+ },
+ {
+  "cat": "cartas",
+  "lbl": "Cartas",
+  "q": "Le llegaron 4 cartas y no sabe leer bien",
+  "a": "Revisar las cartas en persona o por foto. Identificar si es EOB, carta informativa, denegación o cobro real. Explicar en términos simples. Si es denegación → iniciar apelación."
+ },
+ {
+  "cat": "comida",
+  "lbl": "Comida/OTC",
+  "q": "Cuestionario SSBCI — para activar beneficio de comida",
+  "a": "Miembros con condición crónica (diabetes, COPD, etc.) pueden calificar para beneficio de comida (grocery). Hay que llenar cuestionario de salud crónica. Llamar a la aseguranza para hacerlo. Activación: 3-4 días. Caso Francisca Cerna documentado."
+ },
+ {
+  "cat": "comida",
+  "lbl": "Comida/OTC",
+  "q": "Tarjeta solo cubre medicamentos — no comida",
+  "a": "Si el plan solo tiene OTC básico → verificar si el miembro tiene condición crónica que califique para upgrade de beneficio. Si es Full Dual + diabetes → debería tener comida. Si no → el plan específico no lo incluye."
+ },
+ {
+  "cat": "comida",
+  "lbl": "Comida/OTC",
+  "q": "No puede comprar comida en tiendas con la tarjeta",
+  "a": "Verificar: 1) ¿Está activada la tarjeta? 2) ¿Llenó el cuestionario SSBCI? 3) ¿La tienda acepta el plan? (no todas aceptan todos los planes). 4) ¿Ya pasaron los 4 días de activación?"
+ },
+ {
+  "cat": "comida",
+  "lbl": "Comida/OTC",
+  "q": "Beneficio de comida cancelado para 3 miembros (caso Betis, Santiago, Patricia)",
+  "a": "Llamar a Broker Support y pedir reactivación del beneficio. Verificar si llenaron cuestionario nuevamente. Enviar email a Elsa para apoyo. Urgente."
+ },
+ {
+  "cat": "comida",
+  "lbl": "Comida/OTC",
+  "q": "Uber Salud — el transporte no llega",
+  "a": "Llamar al despacho: 877-718-4213. Confirmar dirección exacta y hora. Dar # de confirmación al miembro por SMS. Humana incluye Uber Salud. También: 844-613-1638."
+ },
+ {
+  "cat": "llamadas",
+  "lbl": "Llamadas",
+  "q": "Script: devolver llamada perdida",
+  "a": "\"Buenos días/tardes, soy [nombre] del equipo de Isabel Fuentes. Vi que nos llamó, ¿en qué le puedo ayudar?\" Máximo 2 horas para devolver. Reaccionar a fotos de llamadas perdidas en Nextiva."
+ },
+ {
+  "cat": "llamadas",
+  "lbl": "Llamadas",
+  "q": "Script: miembro muy molesto en el teléfono",
+  "a": "\"[Nombre], entiendo su frustración y lamento mucho esta experiencia. Tiene toda la razón en estar molesto. Déjeme ayudarle a resolver esto.\" → Escuchar SIN interrumpir → \"¿Me puede decir exactamente qué pasó?\" → Acción concreta con tiempo específico → CUMPLIR."
+ },
+ {
+  "cat": "llamadas",
+  "lbl": "Llamadas",
+  "q": "Script: voicemail cuando no contestan",
+  "a": "\"Hola [Nombre], soy [nombre] del equipo de Isabel Fuentes. Le llamo sobre [motivo]. Por favor llámenos al [número]. Gracias, que tenga buen día.\""
+ },
+ {
+  "cat": "llamadas",
+  "lbl": "Llamadas",
+  "q": "Script: prospecto que no ha contestado",
+  "a": "\"Mi nombre es [nombre], llamo del equipo de Medicare with Isabel. Le hemos estado intentando comunicar. ¿Es buen momento para hablar unos minutos sobre su plan de Medicare?\""
+ },
+ {
+  "cat": "llamadas",
+  "lbl": "Llamadas",
+  "q": "Miembro llama a SSA para Parte B — ¿qué decirle?",
+  "a": "SSA: 1-800-772-1213. Para sacar Parte B en línea: ssa.gov/medicare → cuenta Login.gov. Llevar: SSN, fecha de nacimiento, dirección. Guardar número de recibo. NUNCA decir que es culpa nuestra."
+ },
+ {
+  "cat": "prospectos",
+  "lbl": "Prospectos",
+  "q": "Prospecto de Affordable — ¿qué hacer?",
+  "a": "1) Anotar en Excel también (no solo Notion). 2) Verificar si ya tiene Medicare activo. 3) Si AEP → crear ticket CITA AEP. 4) Avisar a Isabel. 5) Si es recomendado de Affordable → nota especial de origen."
+ },
+ {
+  "cat": "prospectos",
+  "lbl": "Prospectos",
+  "q": "Persona llama por Covered California — no es Medicare",
+  "a": "No es nuestro producto directo. Referir a Ara para Covered CA. Si tiene edad para Medicare → primero tramitar Medicare, luego puede calificar para plan con nosotros. Caso Susana: desempleada, perdió trabajo."
+ },
+ {
+  "cat": "prospectos",
+  "lbl": "Prospectos",
+  "q": "Prospecto en hospital — ¿hacemos cita?",
+  "a": "Esperar que salga del hospital. No hacer aplicación mientras está internado. Anotar en Notion con seguimiento en 2-3 semanas. Llamar para ver cómo está cuando salga."
+ },
+ {
+  "cat": "prospectos",
+  "lbl": "Prospectos",
+  "q": "Prospecto con Medicare que falta Parte B",
+  "a": "Hacerle cita con Isabel para que le ayude con el trámite de la Parte B (SSA). Sin Parte B → no puede inscribirse en plan Medicare Advantage. SSA: 1-800-772-1213."
+ },
+ {
+  "cat": "errores",
+  "lbl": "Errores",
+  "q": "Los 10 errores más comunes del equipo",
+  "a": "1) Connections sin Medi-Cal. 2) No verificar IPA antes de aplicar. 3) Allied sin Facey. 4) Confundir EOB con bill. 5) Prometer llamar y no llamar. 6) No dar # de referencia. 7) No documentar en CRM. 8) Responder OK a automáticos. 9) No informar tiempos. 10) Asumir que el problema es el plan cuando es el Dr o la clínica."
+ },
+ {
+  "cat": "errores",
+  "lbl": "Errores",
+  "q": "Tarjeta llegó con el Dr equivocado — ¿qué pasó?",
+  "a": "Puede ser: 1) Dr fue cambiado en el sistema sin aviso. 2) Error de IPA (Metropolitan en lugar de Facey). 3) Información de aplicación incorrecta. → Llamar a Broker Support, pedir corrección. Nuevas tarjetas en 14 días. Dar ID digital mientras tanto."
+ },
+ {
+  "cat": "errores",
+  "lbl": "Errores",
+  "q": "Aplicación doble — alguien más inscribió al miembro",
+  "a": "Caso real: se enroló en enero, lo cancelaron en febrero, otro agente lo inscribió en otro plan. → Intentar recuperarlo. Si ya firmó con otro agente → no podemos hacer nada hasta AEP. Documentar en Notion."
+ }
+]
