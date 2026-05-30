@@ -311,6 +311,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
   </div>
 
   <div class="topbar-end">
+    <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
       <div class="uav">👩</div>
@@ -336,6 +337,19 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
 
     <!-- AGENT GRID -->
     <div class="agents-grid" id="agentsGrid"></div>
+  </div>
+</div>
+
+<!-- ── RECURSOS VIEW (biblioteca de marketing) ─────────── -->
+<div id="recursosView" style="display:none;">
+  <div class="grid-wrap">
+    <div class="grid-hero">
+      <div class="grid-hero-sup">Biblioteca de Marketing</div>
+      <div class="grid-hero-title">📚 <em>Recursos</em> listos para usar</div>
+      <div class="grid-hero-sub">Tu contenido de marketing — anuncios, guiones de Live, sistema viral e inteligencia competitiva. Copia y pega. Sin generar, sin API.</div>
+    </div>
+    <div class="cat-row" id="recursosTabs"></div>
+    <div id="recursosBody"></div>
   </div>
 </div>
 
@@ -2543,6 +2557,67 @@ function closeWorkspace() {
   document.getElementById('agentBreadcrumb').classList.remove('show');
   currentAgent = null;
 }
+
+/* ══════════════════════════════════════════
+   RECURSOS — biblioteca de marketing (contenido estático)
+   Carga luna/recursos.json. Sin IA, sin API key — copia y pega.
+══════════════════════════════════════════ */
+let recursosData = null;
+let recursosCat = null;
+
+async function toggleRecursos() {
+  const rv = document.getElementById('recursosView');
+  const showing = rv.style.display !== 'none';
+  if (showing) { // volver a agentes
+    rv.style.display = 'none';
+    document.getElementById('gridView').style.display = 'block';
+    return;
+  }
+  // mostrar recursos
+  closeWorkspace();
+  document.getElementById('gridView').style.display = 'none';
+  rv.style.display = 'block';
+  if (!recursosData) {
+    try {
+      const r = await fetch('recursos.json', {cache:'no-store'});
+      recursosData = await r.json();
+    } catch(e) {
+      document.getElementById('recursosBody').innerHTML =
+        '<div style="padding:30px;color:var(--t3);">No se pudo cargar recursos.json. Verifica que esté en /luna/.</div>';
+      return;
+    }
+  }
+  if (!recursosCat && recursosData.categorias?.length) recursosCat = recursosData.categorias[0].id;
+  renderRecursos();
+}
+
+function renderRecursos() {
+  const cats = recursosData?.categorias || [];
+  document.getElementById('recursosTabs').innerHTML = cats.map(c =>
+    `<div class="cat-pill ${recursosCat===c.id?'active':''}" onclick="setRecursosCat('${c.id}')">${c.emoji} ${esc(c.titulo)} <span class="cpill-count">${c.items.length}</span></div>`
+  ).join('');
+
+  const cat = cats.find(c => c.id === recursosCat) || cats[0];
+  if (!cat) { document.getElementById('recursosBody').innerHTML=''; return; }
+  let html = `<div style="font-size:13px;color:var(--t2);margin:4px 0 18px;">${esc(cat.desc||'')}</div>`;
+  html += cat.items.map((it, i) => `
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--sh);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px;">
+        <div style="font-size:13px;font-weight:700;color:var(--t1);line-height:1.4;">${esc(it.titulo)}</div>
+        <button data-rc="${i}" class="rc-copy" style="flex-shrink:0;background:var(--blue);color:#fff;border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--font);">📋 Copiar</button>
+      </div>
+      <pre style="white-space:pre-wrap;word-break:break-word;font-family:var(--font);font-size:12.5px;line-height:1.6;color:var(--t2);margin:0;">${esc(it.texto)}</pre>
+    </div>`).join('');
+  const body = document.getElementById('recursosBody');
+  body.innerHTML = html;
+  body.querySelectorAll('.rc-copy').forEach(btn =>
+    btn.addEventListener('click', () => {
+      const it = cat.items[+btn.dataset.rc];
+      navigator.clipboard.writeText(it.texto).then(()=>toast('✅ Copiado')).catch(()=>toast('No se pudo copiar'));
+    }));
+}
+
+function setRecursosCat(id) { recursosCat = id; renderRecursos(); }
 
 /* ══════════════════════════════════════════
    CHAT
