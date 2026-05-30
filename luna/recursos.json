@@ -248,6 +248,190 @@
           "texto": "Plan de Acción — 2 Semanas\n\nHaz clic en cada tarea para marcarla como completada\n  \n\n  \n  \n    ⚡ Protocolo Diario — 15 Minutos\n    ›5 min → Revisar y responder TODOS los comentarios de tus posts\n    ›5 min → Revisar grupos de Facebook Medicare en español (responder como experta)\n    ›5 min → Revisar Meta Ad Library con 1-2 términos del protocolo semanal"
         }
       ]
+    },
+    {
+      "id": "prompts",
+      "emoji": "🤖",
+      "titulo": "Plantillas de Prompts IA",
+      "desc": "Recetas de prompts listas. Pégalas en LUNA o cualquier IA y completa los [corchetes].",
+      "items": [
+        {
+          "titulo": "Contexto de esta semana:",
+          "texto": "Contexto de esta semana:\n- Fecha: [escribe hoy, ej: 26 de mayo 2026]\n- Período: [AEP / OEP / Pre-AEP / SEP]\n- Mi objetivo: [ej: 5 leads nuevos esta semana]\n- Lo más importante esta semana: [ej: AEP empieza en 5 meses]\n- Vi este contenido de competidor: [describe o pega lo que viste]\n- Pregunta más común que me hacen: [la pregunta real de un cliente]\n\nNecesito para esta semana:\n1. 2 posts de Facebook (educativos, en español, CMS-compliant)\n2. 1 script de Reel de 45 segundos (con gancho fuerte)\n3. 1 carrusel de 5 slides (tema: [escribe el tema])\n4. Respuesta lista para los 3 comentarios más comunes\n\nFormato: Dame el texto listo para copiar a Canva y luego a Blotato."
+        },
+        {
+          "titulo": "Analiza estos comentarios de mi último post de Facebook.",
+          "texto": "Analiza estos comentarios de mi último post de Facebook.\nPara cada uno dime: ¿Es lead caliente/tibio/frío?\n¿Qué respuesta debo dar? ¿Qué post nuevo puedo crear basado en estas preguntas?\n\n[COMENTARIO 1]: [pega aquí]\n[COMENTARIO 2]: [pega aquí]\n[COMENTARIO 3]: [pega aquí]"
+        },
+        {
+          "titulo": "Vi este anuncio de un competidor en Meta Ad Library:",
+          "texto": "Vi este anuncio de un competidor en Meta Ad Library:\n[Describe el anuncio: texto, imagen, CTA, cuánto tiempo lleva corriendo]\n\nAnaliza:\n- ¿Por qué está funcionando (o no)?\n- ¿Qué ángulo están usando?\n- ¿Cómo puedo crear algo que lo supere?\n- Dame el texto de un anuncio mejor, CMS-compliant."
+        },
+        {
+          "titulo": "Aquí están mis métricas de la semana pasada:",
+          "texto": "Aquí están mis métricas de la semana pasada:\n- Alcance total: [número]\n- Mejor post: [describe cuál y cuántas interacciones]\n- Peor post: [describe]\n- Leads generados: [número]\n- CPL (costo por lead): $[número]\n- Seguidores nuevos: [número]\n\n¿Qué funcionó? ¿Qué elimino? ¿Qué duplico esta semana?"
+        },
+        {
+          "titulo": "Acabo de terminar mi Facebook Live.",
+          "texto": "Acabo de terminar mi Facebook Live.\nTema del live: [escribe el tema]\nDuración: [minutos]\nPuntos que cubrí: [lista rápida]\n\nDame:\n- Los 5 clips exactos que debo cortar (minuto X al Y)\n- El título de cada Reel\n- El texto para acompañar cada Reel en Facebook\n- Los hashtags para cada uno"
+        },
+        {
+          "titulo": "Diseña esto en Canva:",
+          "texto": "Diseña esto en Canva:\nTipo: [Post Facebook / Carrusel / Reel / Story]\nTexto del post: [pega el texto que generamos]\nEstilo: cálido, hispano, profesional, colores dorados y teal\nIncluir: mi logo/nombre Isabel Fuentes · withisabelfuentes.com"
+        },
+        {
+          "titulo": "Isabel Fuentes | Licensed Insurance Agent | CA | NPN: [TU NP…",
+          "texto": "Isabel Fuentes | Licensed Insurance Agent | CA | NPN: [TU NPN]\nPlans not available in all areas. Not connected with or endorsed \nby the U.S. Government or the federal Medicare program.\n📞 [Tu teléfono] | 🌐 withisabelfuentes.com"
+        },
+        {
+          "titulo": "Agente de Medicare licenciada en California, hablando españo…",
+          "texto": "Agente de Medicare licenciada en California, hablando español e inglés.\nAyudo a hispanos en el Sur de California (Los Ángeles, Orange County, \nInland Empire) a encontrar el mejor plan de Medicare sin costo.\n\nCarriers: SCAN · Anthem · Humana · Alignment · LA Care · Health Net · \nMolina · United Healthcare\n\nMedicare Advantage · Medicare Supplement · Parte D · Dual Eligible\n✓ Sin costo para ti ✓ En tu idioma ✓ Licenciada en California\n\n📞 [Tu teléfono] | 🌐 withisabelfuentes.com"
+        },
+        {
+          "titulo": "¡Hola! Soy Isabel Fuentes, agente de Medicare licenciada en …",
+          "texto": "¡Hola! Soy Isabel Fuentes, agente de Medicare licenciada en California. \nGracias por escribirme. Te respondo en menos de 2 horas.\n\n¿Tienes preguntas sobre Medicare? ¿Cumples 65 pronto? \nPodemos hacer una consulta gratis y sin compromiso.\n\n📞 También me puedes llamar: [Tu teléfono]\n🌐 withisabelfuentes.com\n\nIsabel Fuentes | Licensed Insurance Agent | CA | NPN: [TU NPN]\nNot connected with or endorsed by the U.S. Government or Medicare."
+        },
+        {
+          "titulo": "Isabel Fuentes | Licensed Insurance Agent | CA | NPN: [TU NP…",
+          "texto": "Isabel Fuentes | Licensed Insurance Agent | CA | NPN: [TU NPN]\nPlans not available in all areas. Not connected with or endorsed \nby the U.S. Government or the federal Medicare program.\nFor accommodation of persons with special needs at sales meetings \ncall [tu teléfono].\n📞 [Tu teléfono] | 🌐 withisabelfuentes.com"
+        },
+        {
+          "titulo": "Isabel Fuentes | Licensed Agent CA | NPN: [TU NPN]",
+          "texto": "Isabel Fuentes | Licensed Agent CA | NPN: [TU NPN]\nNot affiliated with the federal Medicare program.\n📞 [Tu teléfono] · withisabelfuentes.com"
+        },
+        {
+          "titulo": "Búsqueda 1: \"Medicare en español California",
+          "texto": "Búsqueda 1: \"Medicare en español California\"\nBúsqueda 2: \"Medicare Advantage Los Angeles\"\nBúsqueda 3: \"seguro de salud mayores California\"\nBúsqueda 4: \"agente Medicare hispano\"\nBúsqueda 5: [Nombre de un competidor específico]\nBúsqueda 6: \"SCAN Health Plan\" [o cualquier carrier]\nBúsqueda 7: \"Medicare 2026 California\""
+        },
+        {
+          "titulo": "Encontré estos anuncios de competidores esta semana:",
+          "texto": "Encontré estos anuncios de competidores esta semana:\n\nANUNCIO 1:\n- Empresa/Agente: [nombre]\n- Lleva corriendo: [X días/semanas]\n- Tipo: [video/imagen/carrusel]\n- Texto del anuncio: [lo que dice]\n- CTA: [qué pide]\n\nANUNCIO 2: [mismo formato]\n\nAnaliza: ¿Por qué están funcionando? ¿Qué ángulo usan?\nDame un anuncio mío que los supere, CMS-compliant."
+        },
+        {
+          "titulo": "¡Hola! Mi servicio como agente es completamente gratis para …",
+          "texto": "¡Hola! Mi servicio como agente es completamente gratis para ti — los carriers me pagan a mí. Hay planes con prima de $0 al mes disponibles en tu área, pero depende de tu ubicación y elegibilidad. Te explico todo sin compromiso. ¿Me escribes por mensaje directo o al [teléfono]? 😊"
+        },
+        {
+          "titulo": "¡Buena pregunta! A los 63 aún no puedes inscribirte a Medica…",
+          "texto": "¡Buena pregunta! A los 63 aún no puedes inscribirte a Medicare (empieza a los 65), pero es el momento PERFECTO para planear. Te explico cuándo es exactamente tu ventana y qué hacer mientras tanto. ¿Me escribes? La consulta es gratis. 📞"
+        },
+        {
+          "titulo": "¡Sí aplica! Y si tienes Medicare + Medi-Cal, puedes califica…",
+          "texto": "¡Sí aplica! Y si tienes Medicare + Medi-Cal, puedes calificar para planes con beneficios extra. Hay programas de ayuda para el pago de la Parte B también. Te reviso tu situación gratis — escríbeme por mensaje directo. 🙏"
+        }
+      ]
+    },
+    {
+      "id": "guias",
+      "emoji": "📄",
+      "titulo": "Guías y Lead Magnets",
+      "desc": "Material descargable / de captura de leads.",
+      "items": [
+        {
+          "titulo": "GUÍA GRATUITA 2026:",
+          "texto": "\"GUÍA GRATUITA 2026:\nLos 7 Errores que Cometen los Hispanos\nal Elegir Medicare en California\n(y cómo evitarlos)\"\n\nPor Isabel Fuentes\nLicensed Medicare Agent | California\nwithisabelfuentes.com | NPN: [XXXXX]\n\n→ Distribuye en grupos de Facebook a cambio de email/teléfono.\n→ 100% CMS-compliant si no menciona planes específicos ni promete beneficios sin contexto."
+        },
+        {
+          "titulo": "*Beneficios varían por plan y área geográfica. Disponible en…",
+          "texto": "*Beneficios varían por plan y área geográfica. Disponible en planes seleccionados. Isabel Fuentes es agente independiente licenciada en California, NPN: [XXXXX]. No afiliada con Medicare ni ningún programa federal. El plan de cobertura puede cambiar. Para más información visita medicare.gov o withisabelfuentes.com"
+        }
+      ]
+    },
+    {
+      "id": "posts_fb",
+      "emoji": "📝",
+      "titulo": "Posts de Facebook (Banco)",
+      "desc": "Banco de posts listos para publicar + rutina semanal y keywords.",
+      "items": [
+        {
+          "titulo": "📅 Rutina Semanal Permanente",
+          "texto": "📅 RUTINA SEMANAL PERMANENTE\n\nLunes: Alerta semanal / noticia Medicare / respuesta a comentario trending\n  → Reel 45–90 seg\nMiércoles: Infografía educativa o dato sorpresivo del banco de preguntas\n  → Carrusel 3–5 slides\nJueves: Post del Banco de Preguntas o historia de cliente (sin testimonios identificables)\n  → Post texto largo\nSábado: Seminario educativo en español (quincenal)\n  → Facebook Live 20–45 min\nDomingo: Detrás de cámaras / momento personal / recordatorio de la semana\n  → Stories 15 seg"
+        },
+        {
+          "titulo": "🔎 Keywords Meta Ad Library",
+          "texto": "🔎 PALABRAS CLAVE — Meta Ad Library\n\n• Medicare California español\n• Medicare hispano Los Angeles\n• seguro médico Medicare\n• Medicare gratis California\n• Medicare 2026 beneficios\n• SCAN Health Plan\n• Anthem Medicare español\n• Medicare Orange County\n• seguro de salud mayores\n• Plan de salud para seniors\n• Medicare Inland Empire\n• Medicare San Bernardino\n• Medicare Riverside\n• agente Medicare español\n• Medicare Advantage California"
+        },
+        {
+          "titulo": "[Elegibilidad] ¿A qué edad me inscribo en Medicare?",
+          "texto": "⏰ ¿Cuándo exactamente debo inscribirme en Medicare?\n\nEsta es la pregunta #1 que recibo de personas que están llegando a los 65 años — y la respuesta te puede ahorrar miles de dólares.\n\nAquí la clave:\n👉 Tu ventana de inscripción empieza 3 meses ANTES de tu cumpleaños 65\n👉 Tienes hasta 3 meses DESPUÉS para inscribirte sin penalidad\n👉 Si no te inscribes a tiempo → penalidad de por vida en tu prima mensual\n\nEsa penalidad nunca desaparece. Se paga cada mes, para siempre.\n\n¿Cuándo cumples 65? Escribe tu mes en los comentarios y te digo exactamente cuándo debes actuar.\n\nSoy Isabel Fuentes, agente licenciada de Medicare en California. Te ayudo gratis.\n📞 [TU TELÉFONO] | withisabelfuentes.com | NPN: [TU NPN]\n\n*Información educativa general. Tu situación puede variar. Consúltame directamente."
+        },
+        {
+          "titulo": "[Elegibilidad] ¿Medicare cubre a mi esposo/a también?",
+          "texto": "❓ Pregunta que me hacen TODO el tiempo:\n\n\"Isabel, ¿si yo tengo Medicare, ¿mi esposo/a también queda cubierto?\"\n\nLa respuesta corta: NO.\n\nMedicare es individual. Cada persona debe inscribirse por separado cuando cumpla 65 años.\n\nPERO hay buenas noticias:\n✅ Si tu cónyuge tiene menos de 65 años, puede calificar antes bajo ciertas condiciones\n✅ Si tiene discapacidad o condición crónica, puede calificar antes de los 65\n✅ Si ambos califican para Medi-Cal, hay planes especiales D-SNP disponibles\n\n¿Tienes 65+ y tu pareja aún no llega a esa edad?\nEscríbeme \"PAREJA\" en los comentarios y te explico las opciones.\n\nIsabel Fuentes | Agente Licenciada de Medicare CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Elegibilidad] ¿Tengo Residencia Permanente y puedo tener Me",
+          "texto": "🟢 Para mis amigos y familia con Residencia Permanente:\n\n¿Puedo tener Medicare si no soy ciudadano americano?\n\nSÍ — y esto es lo que necesitas saber:\n\n✅ Puedes calificar si eres residente permanente (green card)\n✅ Debes haber vivido legalmente en EE.UU. por al menos 5 años continuos\n✅ Debes haber pagado impuestos de Medicare por 10 años (40 trimestres)\n\n¿No tienes los 10 años de trabajo? Aún puedes comprar Medicare Part A pagando una prima mensual.\n\nNuestra comunidad merece saber esto. Hay muchas personas que NO saben que califican y pierden años de beneficios.\n\n¿Tienes residencia permanente y estás llegando a los 65?\nEscríbeme \"RESIDENCIA\" en los comentarios — te explico tu caso específico, gratis.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Elegibilidad] Sigo trabajando a los 65 — ¿me inscribo o esp",
+          "texto": "💼 ¿Sigues trabajando a los 65 años? Lee esto antes de tomar una decisión.\n\n\"Mi jefe me da seguro médico. ¿Tengo que inscribirme en Medicare de todas formas?\"\n\nDepende — y equivocarte puede costarte caro:\n\n📌 Si tu empresa tiene MENOS de 20 empleados → Inscríbete ya. Medicare es tu seguro primario.\n📌 Si tu empresa tiene 20+ empleados → Puedes esperar. Tienes un Período Especial de Inscripción cuando dejes de trabajar.\n\n¿Por qué importa? Porque si no te inscribes correctamente y a tiempo, puedes quedar sin cobertura entre el trabajo y Medicare — o pagar penalidades permanentes.\n\nEsta es exactamente la situación que le pasó a un cliente mío el año pasado. Le costó $40,000 en gastos médicos descubiertos.\n\n¿Cuántos empleados tiene tu empresa? Cuéntame tu situación en los comentarios.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n\n*Información educativa. Consulta las reglas específicas para tu situación."
+        },
+        {
+          "titulo": "[Elegibilidad] La penalidad de por vida que nadie te cuenta",
+          "texto": "⚠️ La penalidad de Medicare que nadie te cuenta — hasta que es tarde.\n\nSi no te inscribes en Medicare Part B cuando debes hacerlo, el gobierno te cobra una penalidad del 10% por cada 12 meses que esperaste.\n\nY eso se queda CONTIGO DE POR VIDA.\n\nEjemplo real:\n→ Prima normal de Part B 2026: $202.90/mes\n→ Si esperaste 2 años de más: +$40.58/mes extra, para siempre\n→ En 10 años: $4,870 que pagaste de más... por no inscribirte a tiempo\n\nHay personas en nuestra comunidad pagando penalidades desde hace 15 años porque nadie les explicó esto.\n\n¿Cuándo cumpliste 65? ¿Ya revisaste si tienes penalidades actuales?\n\nEscríbeme \"PENALIDAD\" en los comentarios — reviso tu situación gratuitamente.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Costos] ¿Medicare es gratis? La respuesta honesta",
+          "texto": "💰 ¿Medicare es gratis? La respuesta honesta que nadie te da.\n\nLa respuesta corta: Depende de qué parte.\n\nAquí el desglose real para 2026:\n\nMedicare Part A (Hospital):\n✅ GRATIS si trabajaste 10+ años pagando impuestos\n💰 $505/mes si no tienes los 40 trimestres de trabajo\n\nMedicare Part B (Médicos):\n💰 $202.90/mes — se descuenta de tu Seguro Social\n\nMedicare Part D (Medicamentos):\n💰 Varía por plan — puede ser $0 a $50+/mes\n\nMedicare Advantage (Plan todo-en-uno):\n✅ Muchos planes con $0 de prima adicional\n✅ Puede incluir dental, visión, audífonos y más\n\n¿Quieres saber cuánto pagarías TÚ específicamente según tu código postal?\nEscríbeme \"COSTOS\" en los comentarios.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Beneficios y costos varían por plan y área geográfica."
+        },
+        {
+          "titulo": "[Costos] La prima de Part B subió — ¿qué puedo hacer?",
+          "texto": "😤 La prima de Medicare Part B subió a $202.90 este año.\n\nEso es $17.90 más al mes que el año pasado. Casi 10% de aumento.\n\nY el aumento del Seguro Social fue de solo $56.\n\nHaz las cuentas: Un tercio de tu aumento ya se fue solo en Medicare Part B.\n\n¿Eso es justo? No.\n¿Puedes hacer algo al respecto? Sí.\n\nLo que muchos no saben:\n→ Ciertos planes Medicare Advantage ofrecen beneficios que compensan ese costo\n→ Si tienes Medi-Cal, tu Part B puede ser pagada por el estado\n→ El programa Extra Help (LIS) puede reducir tus costos de medicamentos\n\nNo tienes que aguantar ese golpe sin opciones.\n\n¿Quieres que revise tu situación y te diga qué opciones tienes en tu condado?\n\nEscríbeme \"PRIMA\" al [TU TELÉFONO] y lo vemos juntos. Sin costo.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\nwithisabelfuentes.com\n*Beneficios varían por plan y área geográfica."
+        },
+        {
+          "titulo": "[Costos] Medicare Original vs. Medicare Advantage — comparac",
+          "texto": "🔄 La pregunta del millón: ¿Medicare Original o Medicare Advantage?\n\nAquí la comparación honesta:\n\nMEDICARE ORIGINAL:\n→ Más flexibilidad para elegir doctores\n→ Funciona en casi cualquier hospital del país\n→ Sin límites de red (pero sin límites de gastos tampoco)\n→ Sin cobertura dental, visión ni audífonos incluidos\n→ Necesitas un plan Medigap separado ($100-$300/mes extra)\n\nMEDICARE ADVANTAGE:\n→ Todo en uno (médicos, hospital, medicamentos)\n→ Muchos planes con $0 de prima mensual\n→ Límite máximo de gastos de tu bolsillo (Medicare Original no tiene)\n→ Beneficios extra: dental, visión, audífonos, OTC, transporte\n→ Red de médicos más limitada (importante verificar tus doctores)\n\n¿Cuál es mejor? Depende de:\n📍 Tu condado / código postal\n💊 Tus medicamentos actuales\n👨‍⚕️ Tus médicos actuales\n\nComenta \"COMPARAR\" y te explico cuál funciona mejor para tu situación específica.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Costos] ¿Puedes tener Medicare Y Medi-Cal al mismo tiempo?",
+          "texto": "🌟 ¿Sabías que puedes tener Medicare Y Medi-Cal al mismo tiempo?\n\nSi calificas para ambos programas se llama \"Dual Eligible\" o Plan D-SNP — y los beneficios son mucho mejores.\n\n¿Qué significa tener los dos?\n\n✅ Medi-Cal puede pagar tu prima de Medicare Part B ($202.90/mes)\n✅ Puedes cambiar tu plan Medicare UNA VEZ AL MES (no esperas hasta octubre)\n✅ Copagos muy reducidos o $0\n✅ Beneficios extra en muchos planes: alimentos, transporte, OTC\n✅ Coordinación automática entre ambos programas\n\n¿Cómo sé si califico para los dos?\n→ Depende de tu ingreso y activos\n→ Si recibes SSI, casi seguro calificas\n→ Si tienes ingresos bajos, vale la pena verificarlo\n\nEn el sur de California hay miles de personas que califican y no lo saben.\n\n¿Tienes Medicare y tu ingreso es limitado?\nEscríbeme \"DUAL\" y reviso tu elegibilidad gratuitamente.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Cobertura] ¿Medicare cubre tus medicamentos?",
+          "texto": "💊 ¿Medicare cubre tus medicamentos? Respuesta completa aquí.\n\nMedicare Original (Parts A y B) cubre muy pocos medicamentos orales.\n\nPara medicamentos de receta necesitas:\n\nOPCIÓN 1: Medicare Part D (Plan de Medicamentos)\n→ Plan separado que se añade a Medicare Original\n→ Varía en precio y medicamentos que cubre\n→ Lista de medicamentos cubiertos = \"formulario\"\n\nOPCIÓN 2: Medicare Advantage con Part D incluido\n→ Un solo plan que lo cubre todo\n→ Muchos planes en California incluyen Part D sin costo extra\n\nIMPORTANTE para 2026:\n📌 El límite máximo de gastos de bolsillo en medicamentos es $2,000/año\n📌 La insulina no puede costar más de $35/mes\n📌 El programa Extra Help puede reducir tus copagos a casi $0\n\n¿Tienes medicamentos caros? Escríbeme el nombre de tus medicamentos en mensaje privado y te digo cuál plan los cubre mejor en tu código postal.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Cobertura varía por plan. Consulta el formulario de tu plan."
+        },
+        {
+          "titulo": "[Cobertura] ¿Medicare cubre el dentista? La respuesta te va ",
+          "texto": "😬 ¿Medicare cubre el dentista?\n\nMedicare Original: NO.\n(Excepto procedimientos dentales necesarios por cirugía médica — muy limitado)\n\nMedicare Advantage: DEPENDE DEL PLAN — y aquí está la oportunidad.\n\nEn el sur de California, muchos planes Medicare Advantage ofrecen:\n✅ Limpiezas y exámenes anuales sin costo\n✅ Radiografías incluidas\n✅ Extracciones cubiertas\n✅ Algunos planes: endodoncias, coronas y dentaduras con cobertura parcial\n✅ Planes premium: hasta $2,000-$3,000/año en beneficios dentales\n\n¿Cuánto gastas al año en el dentista?\n\nLa gente que conozco con buenos planes Medicare Advantage ahorra entre $800 y $2,500 al año solo en dental.\n\nEso es real. Disponible aquí en Los Ángeles, Orange County e Inland Empire.\n\n¿Quieres que te muestre qué cobertura dental tienen los planes de TU código postal?\n\nComenta \"DENTAL\" o escríbeme directamente.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Beneficios varían por plan y área geográfica."
+        },
+        {
+          "titulo": "[Cobertura] ¿Medicare cubre la vista y los audífonos?",
+          "texto": "👓 🦻 ¿Medicare cubre lentes y audífonos?\n\nMedicare Original: Casi nada.\n→ Cubre examen ocular solo si tienes diabetes o glaucoma\n→ NO cubre lentes graduados ni audífonos rutinarios\n\nMedicare Advantage: Aquí cambia todo.\n\nLo que ofrecen muchos planes en California:\n\nVISIÓN:\n✅ Examen anual de la vista cubierto\n✅ Lentes o armazones con beneficio anual ($100-$300)\n✅ Lentes de contacto incluidos en algunos planes\n\nAUDÍFONOS:\n✅ Evaluación auditiva cubierta\n✅ Audífonos: algunos planes cubren $500-$2,500 por oído\n✅ Baterías y accesorios incluidos\n\n¿Sabes cuánto cuestan los audífonos sin seguro? Entre $3,000 y $7,000 el par.\n\nCon el plan correcto de Medicare Advantage, eso puede reducirse dramáticamente.\n\n¿Usas lentes o audífonos?\nEscríbeme \"VISION\" o \"AUDIO\" en los comentarios.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Beneficios varían por plan."
+        },
+        {
+          "titulo": "[Cobertura] ¿Puedo seguir viendo a mi doctor de siempre?",
+          "texto": "👨‍⚕️ \"¿Puedo seguir viendo al doctor que llevo 10 años viendo?\"\n\nEsta es la pregunta que más miedo genera al cambiar a Medicare — y lo entiendo completamente.\n\nLa respuesta honesta:\n\nCON MEDICARE ORIGINAL:\n✅ Puedes ir a casi cualquier doctor que acepte Medicare en el país\n\nCON MEDICARE ADVANTAGE:\n→ Depende de la red del plan\n→ Algunos médicos están en unos planes y no en otros\n→ SIEMPRE hay que verificar antes de elegir un plan\n\nPor eso lo primero que hago contigo es verificar si tus médicos actuales están en el plan que consideramos.\n\nEs un paso que no se puede saltar. Un plan que no cubre a tu médico favorito no sirve — no importa cuántos beneficios extra tenga.\n\n¿Tienes un médico específico que quieres mantener?\nEscríbeme su nombre y te digo en cuáles planes de tu condado aparece.\n\nEs gratis. Es rápido. Y es lo que hago para cada cliente antes de recomendar nada.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Cobertura] ¿Medicare me cubre si viajo a México o mi país?",
+          "texto": "✈️ Pregunta que recibo mucho de nuestra comunidad:\n\n\"¿Medicare me cubre si viajo a México o a mi país?\"\n\nLa respuesta que nadie quiere escuchar: En general, NO.\n\nMedicare Original NO cubre atención médica fuera de los Estados Unidos (con muy pocas excepciones de emergencia).\n\n¿Qué puedes hacer?\n\n1. Algunos planes Medicare Advantage tienen cobertura de emergencia en el extranjero — verificar específicamente con cada plan\n\n2. Para viajes largos o frecuentes, considera un seguro de viaje internacional adicional\n\n3. Si vas a México regularmente, hay planes con cobertura de urgencias cruzando la frontera en ciertas áreas de California\n\n¿Viajas con frecuencia a México u otro país?\nCuéntame en los comentarios y te digo qué opciones existen para tu situación.\n\nEste es el tipo de detalle que marca la diferencia entre un plan que funciona PARA TI y uno que solo se ve bien en papel.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Inscripcion] Los períodos de inscripción de Medicare — expl",
+          "texto": "📅 Los períodos de inscripción de Medicare — explicados de una vez por todas.\n\nHay 4 momentos clave en el año:\n\n1️⃣ PERÍODO INICIAL (IEP)\n→ Cuando cumples 65 (3 meses antes + mes de cumpleaños + 3 meses después)\n→ Solo pasa UNA VEZ\n\n2️⃣ PERÍODO ANUAL (AEP) — 15 OCT al 7 DIC\n→ Todos pueden cambiar, añadir o quitar partes de Medicare\n→ Cambios efectivos el 1 de enero del año siguiente\n\n3️⃣ PERÍODO ABIERTO DE MEDICARE ADVANTAGE (OEP) — 1 ENE al 31 MAR\n→ Solo para cambiar de un Advantage a otro, o volver a Medicare Original\n\n4️⃣ PERÍODO ESPECIAL (SEP)\n→ Por eventos de vida: mudanza, perder cobertura del trabajo, calificar para Medi-Cal\n→ D-SNP (Dual Eligible): ¡puedes cambiar CADA MES del año!\n\nLa mayoría de personas solo conoce el AEP de octubre. Pero hay mucho más.\n\n¿Tienes algún evento de vida reciente?\nEscríbeme y lo verifico contigo.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Inscripcion] ¿Cómo me inscribo en Medicare? ¿Voy a Social S",
+          "texto": "🏛️ \"¿Cómo me inscribo en Medicare? ¿Tengo que ir a Social Security?\"\n\nDepende de tu situación:\n\nOPCIÓN A: Inscripción automática\n→ Si ya recibes beneficios de Seguro Social antes de los 65, te inscriben automáticamente\n→ Te llega tu tarjeta de Medicare por correo\n→ ¡Pero aún tienes que elegir un plan! El Medicare Original solo no es suficiente.\n\nOPCIÓN B: Inscripción activa\n→ Ve a ssa.gov online (sin fila)\n→ Llama al 1-800-772-1213\n→ Ve a tu oficina local de Social Security\n\n¿Cuándo ir con un agente como yo?\n→ ANTES de elegir cualquier plan adicional\n→ Para comparar opciones según TUS médicos y medicamentos\n→ Para evitar penalidades por inscribirte tarde o mal\n\nEl proceso de inscripción en Medicare es gratuito. Mi ayuda también es gratuita.\n\n¿Estás por cumplir 65 y no sabes por dónde empezar?\nEscríbeme \"EMPEZAR\" y te guío paso a paso.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Inscripcion] ¿Puedo cambiar mi plan de Medicare después de ",
+          "texto": "🔄 ¿Estás atrapado con un plan de Medicare para siempre?\n\n¡Para nada! Aquí cuándo puedes cambiar:\n\nSI TIENES MEDICARE ADVANTAGE:\n→ AEP (15 oct - 7 dic): Cambias efectivo 1 de enero\n→ OEP (1 ene - 31 mar): Un cambio por año\n→ SEP: Si tienes un evento de vida calificante\n\nSI TIENES MEDICARE + MEDI-CAL (Dual):\n→ Puedes cambiar CADA MES del año\n→ Sin esperar períodos especiales\n→ El cambio aplica el primer día del mes siguiente\n\n¿Cuándo tiene sentido cambiar?\n✔ Tu médico favorito ya no está en tu red\n✔ Tus medicamentos subieron de precio\n✔ Encontraste un plan con mejores beneficios\n✔ Tu situación de salud cambió\n✔ Te mudaste a otro condado\n\nMucha gente cree que está \"atrapada\" en un plan malo — y no es así.\n\n¿No estás contento con tu plan actual?\nEscríbeme \"CAMBIO\" y vemos tus opciones.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com"
+        },
+        {
+          "titulo": "[Planes] ¿Cuál es mejor: SCAN, Anthem, Humana o LA Care?",
+          "texto": "🤔 La pregunta más frecuente: ¿Cuál plan es mejor?\n\nLa respuesta honesta de una agente que trabaja con TODOS ellos:\n\nNo hay un plan universalmente mejor.\nHay un plan mejor PARA TI.\n\nLo que diferencia a SCAN, Anthem, Humana, LA Care, Molina, Health Net, Alignment y UHC en SoCal:\n\n📍 Red de médicos — cada plan tiene diferentes doctores\n💊 Formulario de medicamentos — cada plan cubre diferentes medicamentos\n🏥 Hospitales en red — algunos cubren mejor ciertos sistemas hospitalarios\n💰 Beneficios extras — dental, visión, OTC, transporte varían enormemente\n📌 Disponibilidad por ZIP code — no todos los planes están en todos los condados\n\nSoy agente independiente. Trabajo con TODOS esos carriers. No tengo favorito — tengo el que es correcto para cada cliente.\n\n¿Quieres una comparación de planes disponibles en TU código postal?\nEscríbeme \"COMPARAR\" con tu ZIP y te envío el análisis gratis.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Beneficios varían por plan y área geográfica."
+        },
+        {
+          "titulo": "[Planes] ¿Qué son los beneficios OTC, transporte y alimentos",
+          "texto": "🛒 ¿Tu plan de Medicare te puede dar dinero para el supermercado?\n\nHay un mundo de beneficios extra en los planes Medicare Advantage que mucha gente nunca activa porque no sabe que los tiene.\n\nBENEFICIO OTC (Over-the-Counter):\n→ Tarjeta prepagada para vitaminas, higiene y productos de salud\n→ Algunos planes: $25 a $150 por mes\n→ Se usa en CVS, Walgreens, Walmart\n\nTRANSPORTE MÉDICO:\n→ Viajes al médico, farmacia, laboratorio\n→ Algunos planes: 20-48 viajes al año\n→ Sin costo para ti\n\nBENEFICIO DE ALIMENTOS:\n→ Para personas con condiciones crónicas\n→ Tarjeta para alimentos saludables aprobados\n→ Algunos planes: hasta $50-$150 al mes\n\nMEMBRESÍA DE GIMNASIO:\n→ SilverSneakers incluido\n→ Acceso a miles de gimnasios sin costo adicional\n\n¿Ya activaste todos los beneficios de tu plan actual?\nMuchas personas los tienen y nunca los han usado.\n\nEscríbeme \"BENEFICIOS\" y reviso si estás aprovechando todo lo que te corresponde.\n\nIsabel Fuentes | Medicare Agent CA | NPN: [TU NPN]\n📞 [TU TELÉFONO] | withisabelfuentes.com\n*Beneficios varían por plan y área geográfica."
+        },
+        {
+          "titulo": "[Planes] ¿Por qué trabajar con una agente independiente?",
+          "texto": "🤝 ¿Por qué trabajar con una agente de Medicare independiente como yo?\n\nEntiendo la pregunta. Puedes ir directo a los sitios de las aseguradoras. Puedes llamar a Medicare. Puedes buscar en Google.\n\nPero aquí está lo que solo una agente independiente puede hacer por ti:\n\n1. COMPARO TODOS LOS PLANES — No tengo uno favorito. Trabajo con SCAN, Anthem, Humana, LA Care, Molina, Health Net, Alignment y UHC. Te muestro el mejor para TI.\n\n2. CONOZCO TU COMUNIDAD — Hablo español. Entiendo las necesidades de nuestra comunidad en el sur de California. No soy un call center en otro estado.\n\n3. MI SERVICIO ES GRATIS — Los planes me compensan directamente. Tú no pagas ni un centavo más por tenerme de tu lado.\n\n4. ESTOY CONTIGO DESPUÉS — Si tienes un problema con tu plan, me llamas a mí. No esperas en una línea de 45 minutos.\n\n5. CONOZCO LAS REGLAS — Sé cuándo puedes cambiar, qué períodos aplican para ti y cómo evitar errores costosos.\n\n¿Has tenido malas experiencias con agentes de seguros antes?\nCuéntame en los comentarios — entiendo la desconfianza, y me la he ganado persona a persona.\n\nSoy Isabel Fuentes.\n📞 [TU TELÉFONO] | withisabelfuentes.com | NPN: [TU NPN]"
+        }
+      ]
     }
   ]
 }
