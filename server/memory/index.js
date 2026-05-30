@@ -17,6 +17,7 @@ const FILES = {
   agents: resolve(DATA_DIR, 'agents.json'),
   sessions: resolve(DATA_DIR, 'sessions.json'),
   audit: resolve(DATA_DIR, 'audit.json'),
+  reflections: resolve(DATA_DIR, 'reflections.json'),
 };
 
 const MAX_TURNS = 40; // historial de conversacion (patron #12)
@@ -133,4 +134,21 @@ export function audit({ action, specialist, agentId, input, outputSummary }) {
 
 export function getAudit(n = 50) {
   return read(FILES.audit, []).slice(-n).reverse();
+}
+
+// --- REFLEXIONES (historial de la reflexion nocturna / patron #15) ---
+export function addReflection(report) {
+  const all = read(FILES.reflections, []);
+  all.push(report);
+  write(FILES.reflections, all.slice(-60)); // ~2 meses
+  return report;
+}
+
+export function getReflections(n = 14) {
+  return read(FILES.reflections, []).slice(-n).reverse();
+}
+
+export function lastReflection() {
+  const all = read(FILES.reflections, []);
+  return all[all.length - 1] || null;
 }

@@ -79,8 +79,11 @@ server/
     medical-groups.json   # grupos médicos / IPAs (semilla, ampliable)
     doctors.json          # doctores conocidos y su IPA
     plans.json            # planes y qué grupos aceptan
+  intel/
+    signals.js        # Patrón #16: señales con severidad (threshold/pattern/state/calendar)
+    reflection.js     # Patrón #15: reflexión nocturna de 4 pasos
   memory/
-    index.js          # agentes, sesiones, audit log (#6/#12)
+    index.js          # agentes, sesiones, audit log, reflexiones (#6/#12/#15)
     entities.js       # Patrón #11: personas (miembros/leads) + alias + salience + gaps
     wiki.js           # Patrón #9/#10: temporada actual + wiki de hechos largo plazo
     extract.js        # Patrón #13: captura por defecto (Haiku + fallback determinista)
@@ -122,6 +125,26 @@ Endpoints nuevos: `GET /api/memory/entities?q=`, `GET /api/memory/entity?id=`,
 `GET /api/memory/gaps`, `GET|POST /api/memory/season`, `GET /api/memory/wiki`,
 `POST /api/memory/fact`.
 
+### Fase 4 — Inteligencia
+
+- **#15 Reflexión nocturna (4 pasos)** (`intel/reflection.js`): extract (resumen del
+  día), entities, **consolidate** (funde duplicados + marca contradicciones), compute
+  signals. Corre bajo demanda (`POST /api/intel/reflect`) o por cron (Fase 5). Los
+  pasos de consolidación y señales son deterministas — la reflexión siempre aporta
+  aunque no haya key.
+- **#16 Señales con severidad** (`intel/signals.js`): tipos `threshold` / `pattern` /
+  `state` / `calendar`, cada una `alto` / `aviso` / `info`. Ejemplos: AEP en curso,
+  "Full Dual sin SOA" (alto), demasiados huecos abiertos, un tipo de ticket repetido
+  hoy. Se inyectan en el prompt de los modos operativos.
+- **Consolidación segura (PHI):** los duplicados con **substring exacto** se funden
+  solos; los **dudosos** (apodo + apellido, ej. "Mari" vs "María Hernández") NO se
+  funden — se reportan en `merge-candidates` para que un humano confirme. Fundir mal
+  los datos de dos miembros distintos es peor que no fundir.
+
+Endpoints nuevos: `GET /api/intel/signals`, `POST /api/intel/signals/refresh`,
+`POST /api/intel/reflect`, `GET /api/intel/reflections`,
+`GET /api/memory/merge-candidates`, `POST /api/memory/merge`.
+
 > **Connecture sigue siendo la fuente oficial para cotizar.** El KB es para
 > orientar; cuando un dato pudo cambiar, SAMIA manda a verificar.
 
@@ -141,7 +164,6 @@ Endpoints nuevos: `GET /api/memory/entities?q=`, `GET /api/memory/entity?id=`,
 
 ## Próximas fases sugeridas
 
-- **Fase 4 — Inteligencia:** reflexión nocturna (consolidar memoria) + señales con severidad.
-- **Fase 5 — Autonomía:** briefing matutino, task tick, commitment tracker.
+- **Fase 5 — Autonomía:** briefing matutino, task tick, commitment tracker (cron jobs).
 - **Fase 7 — Seguridad:** confirmation gate + review hooks (clave en Medicare/CMS).
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).

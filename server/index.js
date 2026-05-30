@@ -18,6 +18,8 @@ import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
 import * as wiki from './memory/wiki.js';
 import { captureTurn, memoryContext } from './memory/capture.js';
+import { getSignals, refreshSignals, signalsContext } from './intel/signals.js';
+import { runReflection, getReflections } from './intel/reflection.js';
 import { serveStatic } from './static.js';
 
 const json = (res, code, obj) => {
@@ -57,6 +59,12 @@ function buildSystem(specId, userText, agentId, passthroughContext) {
   // Capa de memoria estratificada (patron #14): temporada -> wiki -> personas -> gaps.
   const memCtx = memoryContext(userText);
   if (memCtx) parts.push(memCtx);
+
+  // Señales activas (patron #16) — solo en modos operativos (no en role-play).
+  if (spec.lookups) {
+    const sig = signalsContext();
+    if (sig) parts.push(sig);
+  }
 
   if (passthroughContext) {
     parts.push(String(passthroughContext).slice(0, 60000));
@@ -165,6 +173,24 @@ const server = createServer(async (req, res) => {
     return e ? json(res, 200, { entity: e }) : json(res, 404, { error: 'no encontrada' });
   }
   if (path === '/api/memory/gaps' && req.method === 'GET') return json(res, 200, { gaps: entities.rankedGaps(20) });
+
+  // --- INTELIGENCIA (Fase 4) ---
+  if (path === '/api/intel/signals' && req.method === 'GET') return json(res, 200, getSignals());
+  if (path === '/api/intel/signals/refresh' && req.method === 'POST') return json(res, 200, { signals: refreshSignals() });
+  if (path === '/api/intel/reflections' && req.method === 'GET') return json(res, 200, { reflections: getReflections(Number(url.searchParams.get('n')) || 14) });
+  if (path === '/api/intel/reflect' && req.method === 'POST') {
+    const report = await runReflection();
+    return json(res, 200, { report });
+  }
+  // Candidatos de fusion dudosos + confirmacion humana (confirmation gate).
+  if (path === '/api/memory/merge-candidates' && req.method === 'GET')
+    return json(res, 200, { candidates: entities.duplicateCandidates() });
+  if (path === '/api/memory/merge' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    if (!body.into || !body.from) return json(res, 400, { error: 'into y from requeridos' });
+    const e = entities.mergeEntities(body.into, body.from);
+    return e ? json(res, 200, { entity: e }) : json(res, 404, { error: 'entidad no encontrada' });
+  }
   if (path === '/api/memory/season' && req.method === 'GET') return json(res, 200, { season: wiki.getSeason() });
   if (path === '/api/memory/wiki' && req.method === 'GET') return json(res, 200, { facts: wiki.getFacts() });
   if (path === '/api/memory/season' && req.method === 'POST') {
