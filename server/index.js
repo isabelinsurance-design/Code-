@@ -15,6 +15,9 @@ import { KNOWLEDGE, buildKbContext, lookupDoctor, lookupMedicalGroup, lookupPlan
 import { SPECIALISTS, resolveSpecialist, specialistList } from './specialists.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
+import * as entities from './memory/entities.js';
+import * as wiki from './memory/wiki.js';
+import { captureTurn, memoryContext } from './memory/capture.js';
 import { serveStatic } from './static.js';
 
 const json = (res, code, obj) => {
@@ -50,6 +53,11 @@ function readBody(req, limit = 1_000_000) {
 function buildSystem(specId, userText, agentId, passthroughContext) {
   const spec = SPECIALISTS[specId];
   const parts = [CONSTITUCION];
+
+  // Capa de memoria estratificada (patron #14): temporada -> wiki -> personas -> gaps.
+  const memCtx = memoryContext(userText);
+  if (memCtx) parts.push(memCtx);
+
   if (passthroughContext) {
     parts.push(String(passthroughContext).slice(0, 60000));
   } else {
@@ -115,6 +123,11 @@ async function handleChat(req, res) {
     if (agentId) mem.captureTurn(agentId, { specialist: specId, userText });
     mem.audit({ action: 'chat', specialist: specId, agentId, input: userText, outputSummary: text });
 
+    // CAPTURA POR DEFECTO (#13): guarda personas/datos del turno sin pedir permiso.
+    // No bloquea la respuesta ni la rompe si falla. EXCEPCION: en 'practica' los
+    // prospectos son FICTICIOS (role-play de ventas) — no contaminar la memoria real.
+    if (specId !== 'practica') captureTurn({ userText, assistantText: text }).catch(() => {});
+
     return json(res, 200, { reply: text, content, specialist: specId, usage });
   } catch (e) {
     mem.audit({ action: 'chat_error', specialist: specId, agentId, input: userText, outputSummary: e.message });
@@ -143,6 +156,26 @@ const server = createServer(async (req, res) => {
 
   if (path === '/api/health') return json(res, 200, { ok: true, service: 'samia', kb: kbStats() });
   if (path === '/api/specialists') return json(res, 200, { specialists: specialistList() });
+
+  // --- MEMORIA (Fase 3) ---
+  if (path === '/api/memory/entities' && req.method === 'GET')
+    return json(res, 200, { entities: entities.listEntities({ q: url.searchParams.get('q') || '' }) });
+  if (path === '/api/memory/entity' && req.method === 'GET') {
+    const e = entities.getEntity(url.searchParams.get('id'));
+    return e ? json(res, 200, { entity: e }) : json(res, 404, { error: 'no encontrada' });
+  }
+  if (path === '/api/memory/gaps' && req.method === 'GET') return json(res, 200, { gaps: entities.rankedGaps(20) });
+  if (path === '/api/memory/season' && req.method === 'GET') return json(res, 200, { season: wiki.getSeason() });
+  if (path === '/api/memory/wiki' && req.method === 'GET') return json(res, 200, { facts: wiki.getFacts() });
+  if (path === '/api/memory/season' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    return json(res, 200, { season: wiki.setSeason(body.text || '') });
+  }
+  if (path === '/api/memory/fact' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    wiki.addFact(body.fact || '');
+    return json(res, 200, { ok: true, facts: wiki.getFacts() });
+  }
   if (path === '/api/kb/lookup' && req.method === 'GET') return handleLookup(res, url);
   if (path === '/api/audit' && req.method === 'GET')
     return json(res, 200, { audit: mem.getAudit(Number(url.searchParams.get('n')) || 50) });

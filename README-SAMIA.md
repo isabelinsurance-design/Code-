@@ -80,8 +80,12 @@ server/
     doctors.json          # doctores conocidos y su IPA
     plans.json            # planes y qué grupos aceptan
   memory/
-    index.js          # Patrón #6/#11/#12/#13: agentes, sesiones, audit log
-data/                 # runtime (memoria/sesiones/audit) — ignorado por git
+    index.js          # agentes, sesiones, audit log (#6/#12)
+    entities.js       # Patrón #11: personas (miembros/leads) + alias + salience + gaps
+    wiki.js           # Patrón #9/#10: temporada actual + wiki de hechos largo plazo
+    extract.js        # Patrón #13: captura por defecto (Haiku + fallback determinista)
+    capture.js        # aplica la captura + arma el contexto de memoria estratificado (#14)
+data/                 # runtime (memoria/sesiones/audit/entidades/wiki) — ignorado por git
 ```
 
 ---
@@ -100,6 +104,24 @@ data/                 # runtime (memoria/sesiones/audit) — ignorado por git
   historial de sesión (~40 turnos).
 - **#18 Web search:** disponible en el backend para la superficie "Asesor".
 
+### Fase 3 — Memoria por capas
+
+- **#9 Temporada actual** y **#10 Wiki largo plazo** (`wiki.js`): en qué está
+  enfocado el equipo + hechos que no caducan.
+- **#11 Entidades por persona** (`entities.js`): cada miembro/lead acumula nombre
+  canónico + **alias** ("Mari" = "María Hernández"), atributos tipados (plan, grupo
+  médico, doctor, Medi-Cal, condiciones, teléfono), notas, **salience** y **gaps**.
+- **#13 Captura por defecto** (`extract.js`): tras cada turno SAMIA guarda sola lo
+  que podría perderse. Usa Haiku si hay key; si no, un extractor determinista
+  conservador. **No corre en modo `practica`** (los prospectos ahí son ficticios).
+- **#14 Contexto estratificado**: el prompt de cada turno ahora incluye
+  temporada → wiki → personas relevantes → known unknowns → conocimiento → KB del turno.
+- **#17 Known unknowns**: `entities.js` rankea los gaps de todas las personas.
+
+Endpoints nuevos: `GET /api/memory/entities?q=`, `GET /api/memory/entity?id=`,
+`GET /api/memory/gaps`, `GET|POST /api/memory/season`, `GET /api/memory/wiki`,
+`POST /api/memory/fact`.
+
 > **Connecture sigue siendo la fuente oficial para cotizar.** El KB es para
 > orientar; cuando un dato pudo cambiar, SAMIA manda a verificar.
 
@@ -109,15 +131,17 @@ data/                 # runtime (memoria/sesiones/audit) — ignorado por git
 
 - El **round-trip real con el modelo** se probó solo hasta la llamada a Anthropic:
   falta correr con una `ANTHROPIC_API_KEY` real para verificarlo de punta a punta.
-- La memoria es **ligera**: persiste turnos y temas por agente, pero la extracción
-  de hechos salientes con Haiku es de la **Fase 4** (reflexión nocturna).
+- La **captura con Haiku** (extract.js, motor LLM) se probó hasta la llamada; falta
+  verificarla con una key real. El motor **determinista** sí está verificado.
+- Aún no hay UI para ver/editar la memoria (eso llega con el dashboard, Fase 10);
+  por ahora se inspecciona vía los endpoints `/api/memory/*`.
 - El conocimiento de la superficie "Asesor" todavía se arma en el navegador y se
   manda como `context`; falta moverlo del todo al servidor.
 - `data/` es local. Aún no hay backups (Patrón #27) ni hosting (Railway).
 
 ## Próximas fases sugeridas
 
-- **Fase 3 — Memoria por capas:** entidades = clientes/leads; captura por defecto real.
+- **Fase 4 — Inteligencia:** reflexión nocturna (consolidar memoria) + señales con severidad.
 - **Fase 5 — Autonomía:** briefing matutino, task tick, commitment tracker.
 - **Fase 7 — Seguridad:** confirmation gate + review hooks (clave en Medicare/CMS).
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).

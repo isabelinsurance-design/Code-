@@ -78,10 +78,19 @@ export function entitiesMentioned(text) {
       return nn.length > 2 && t.includes(nn);
     });
 
+  // Doctores: tambien por apellido (los agentes escriben "Dr. Oregel", no el nombre
+  // completo). El apellido es la ultima palabra del nombre sin titulo.
+  const doctorHit = (d) => {
+    const bare = d.name.replace(/^(Dr|Dra)\.?\s+/i, '');
+    const last = bare.split(/\s+/).pop();
+    return hit(d.name, [bare, last]);
+  };
+
   return {
-    plans: PLANS.filter((p) => hit(p.name, [p.carrier])),
+    // Planes: SOLO por nombre completo (no por carrier — "SCAN" matchearia todos).
+    plans: PLANS.filter((p) => hit(p.name)),
     groups: MEDICAL_GROUPS.filter((g) => hit(g.name, g.aka)),
-    doctors: DOCTORS.filter((d) => hit(d.name, [d.name.replace(/^(Dr|Dra)\.?\s+/i, '')])),
+    doctors: DOCTORS.filter(doctorHit),
   };
 }
 
