@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Facebook Live #1 — Isabel Fuentes Medicare</title>
+<style>
+  :root {
+    --bg: #F7F3EC;
+    --surface: #FAF8F4;
+    --white: #FFFFFF;
+    --border: #E8E0D0;
+    --border-dark: #D4C9B5;
+    --gold: #C9A96E;
+    --gold-light: #F0E6D0;
+    --gold-dark: #A07840;
+    --teal: #4A7B9D;
+    --teal-light: #EBF3F8;
+    --red: #C0392B;
+    --red-light: #FDEDEB;
+    --green: #2E7D55;
+    --green-light: #EAF5EE;
+    --text: #2C2416;
+    --text-mid: #5C4A30;
+    --text-muted: #8C7A60;
+    --tag-bg: #F5EFE3;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); font-family: system-ui, -apple-system, sans-serif; color: var(--text); min-height: 100vh; }
+
+  /* HEADER */
+  .header { background: var(--white); border-bottom: 1px solid var(--border); padding: 16px 20px; }
+  .header-inner { max-width: 860px; margin: 0 auto; display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 12px; }
+  .header-badge-row { display: flex; gap: 8px; margin-bottom: 8px; flex-wrap: wrap; }
+  .header h1 { font-size: 19px; font-weight: 800; color: var(--text); line-height: 1.25; margin-bottom: 4px; }
+  .header p { font-size: 13px; color: var(--text-muted); }
+  .live-badge { background: var(--red-light); border: 1px solid rgba(192,57,43,.2); border-radius: 10px; padding: 10px 14px; text-align: center; min-width: 100px; }
+  .live-badge .icon { font-size: 22px; }
+  .live-badge .label { font-size: 11px; font-weight: 700; color: var(--red); margin-top: 2px; }
+  .live-badge .sub { font-size: 10px; color: var(--text-muted); }
+
+  /* TAGS */
+  .tag { display: inline-block; border-radius: 6px; padding: 3px 10px; font-size: 11px; font-weight: 700; letter-spacing: .4px; white-space: nowrap; border-width: 1px; border-style: solid; }
+  .tag-sm { padding: 2px 8px; font-size: 10px; }
+  .tag-teal { background: var(--teal-light); color: var(--teal); border-color: rgba(74,123,157,.25); }
+  .tag-gold { background: var(--gold-light); color: var(--gold-dark); border-color: rgba(201,169,110,.25); }
+  .tag-red { background: var(--red-light); color: var(--red); border-color: rgba(192,57,43,.25); }
+  .tag-green { background: var(--green-light); color: var(--green); border-color: rgba(46,125,85,.25); }
+  .tag-mid { background: var(--tag-bg); color: var(--text-mid); border-color: var(--border); }
+
+  /* TABS NAV */
+  .tabs-nav { background: var(--white); border-bottom: 1px solid var(--border); overflow-x: auto; }
+  .tabs-nav-inner { max-width: 860px; margin: 0 auto; display: flex; padding: 0 16px; }
+  .tab-btn { background: none; border: none; border-bottom: 2px solid transparent; padding: 12px 14px; cursor: pointer; color: var(--text-muted); font-weight: 400; font-size: 13px; white-space: nowrap; display: flex; align-items: center; gap: 6px; transition: all .15s; font-family: inherit; }
+  .tab-btn.active { border-bottom-color: var(--gold); color: var(--gold-dark); font-weight: 700; }
+  .tab-btn:hover:not(.active) { color: var(--text); }
+
+  /* CONTENT */
+  .content { max-width: 860px; margin: 0 auto; padding: 24px 16px; }
+  .tab-panel { display: none; }
+  .tab-panel.active { display: block; }
+
+  /* ALERT BOXES */
+  .alert { border-radius: 12px; padding: 13px 16px; margin-bottom: 20px; font-size: 13px; line-height: 1.65; }
+  .alert-teal { background: var(--teal-light); border: 1px solid rgba(74,123,157,.2); }
+  .alert-red { background: var(--red-light); border: 1px solid rgba(192,57,43,.2); }
+  .alert-green { background: var(--green-light); border: 1px solid rgba(46,125,85,.2); }
+
+  /* CARDS */
+  .card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+  .card-header { padding: 12px 16px; border-bottom-width: 1px; border-bottom-style: solid; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .card-header .left { display: flex; align-items: center; gap: 10px; }
+  .card-header .icon-big { font-size: 22px; }
+  .card-header .dia { font-weight: 800; font-size: 15px; }
+  .card-header .tipo { font-size: 12px; color: var(--text-mid); }
+  .card-body { padding: 16px; display: flex; flex-direction: column; gap: 12px; }
+
+  /* COPY BOX */
+  .copy-box { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; }
+  .copy-box-header { display: flex; justify-content: space-between; align-items: center; padding: 8px 14px; border-bottom: 1px solid var(--border); }
+  .copy-box-header .copy-label { font-size: 11px; color: var(--text-muted); font-weight: 700; letter-spacing: .3px; }
+  .copy-btn { background: var(--teal); color: #fff; border: none; border-radius: 6px; padding: 4px 14px; font-size: 11px; font-weight: 700; cursor: pointer; transition: background .2s; font-family: inherit; }
+  .copy-btn.copied { background: var(--green); }
+  .copy-box pre { margin: 0; padding: 12px 14px; font-size: 12.5px; line-height: 1.8; color: var(--text); white-space: pre-wrap; word-break: break-word; font-family: ui-monospace, monospace; }
+
+  /* STORY BOX */
+  .story-box { border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; border-left-width: 3px; border-left-style: solid; }
+  .tip-box { background: var(--green-light); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; line-height: 1.6; display: flex; gap: 8px; }
+
+  /* GUION TIMELINE */
+  .timeline { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+  .timeline-label { font-size: 12px; font-weight: 700; color: var(--text-muted); margin-bottom: 12px; }
+  .timeline-bar { display: flex; gap: 0; overflow-x: auto; padding-bottom: 4px; }
+  .timeline-seg { flex: 1; min-width: 70px; text-align: center; }
+  .timeline-seg .bar-line { height: 6px; }
+  .timeline-seg .bar-time { font-size: 10px; font-weight: 700; margin-top: 5px; }
+
+  /* ACCORDION */
+  .accordion { border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 10px; }
+  .accordion-btn { width: 100%; background: var(--white); border: none; padding: 13px 16px; cursor: pointer; display: flex; justify-content: space-between; align-items: center; text-align: left; transition: background .15s; font-family: inherit; }
+  .accordion-btn:hover { background: var(--surface); }
+  .accordion-btn.open { background: var(--surface); }
+  .accordion-btn .acc-title { font-weight: 700; font-size: 14px; color: var(--text); margin-bottom: 6px; }
+  .accordion-btn .acc-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .accordion-btn .acc-arrow { font-size: 16px; color: var(--text-muted); flex-shrink: 0; margin-left: 12px; transition: transform .2s; }
+  .accordion-btn.open .acc-arrow { transform: rotate(180deg); }
+  .accordion-body { display: none; border-top: 1px solid var(--border); padding: 16px; background: var(--surface); }
+  .accordion-body.open { display: block; }
+  .nota-box { margin-top: 10px; background: var(--gold-light); border-radius: 8px; padding: 10px 14px; font-size: 12.5px; color: var(--text); border-left: 3px solid var(--gold); line-height: 1.6; }
+
+  /* REELS */
+  .reel-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+  .reel-header { padding: 12px 16px; border-bottom-width: 1px; border-bottom-style: solid; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; }
+  .reel-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 800; font-size: 14px; flex-shrink: 0; }
+  .reel-body { padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+  .hook-box { border-radius: 8px; padding: 10px 14px; font-size: 13px; line-height: 1.55; border-left-width: 3px; border-left-style: solid; }
+
+  /* CHECKLIST */
+  .progress-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; padding: 14px 16px; margin-bottom: 20px; }
+  .progress-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-title { font-weight: 700; font-size: 13px; }
+  .progress-pct { font-weight: 800; font-size: 16px; }
+  .progress-bar-bg { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; border-radius: 4px; transition: width .3s ease; background: var(--teal); }
+  .progress-sub { font-size: 12px; color: var(--text-muted); margin-top: 6px; }
+
+  .check-card { background: var(--white); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 14px; }
+  .check-cat-header { padding: 12px 16px; border-bottom-width: 1px; border-bottom-style: solid; display: flex; justify-content: space-between; align-items: center; }
+  .check-cat-title { font-weight: 700; font-size: 13px; }
+  .check-cat-count { font-size: 12px; font-weight: 600; }
+  .check-item { display: flex; gap: 12px; align-items: flex-start; padding: 9px 16px; cursor: pointer; border-bottom: 1px solid var(--border); transition: background .15s; }
+  .check-item:last-child { border-bottom: none; }
+  .check-item:hover { background: var(--surface); }
+  .check-item.done { background: var(--green-light); }
+  .check-box { width: 18px; height: 18px; border-radius: 4px; border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; transition: all .15s; }
+  .check-box.checked { background: var(--green); border-color: var(--green); }
+  .check-box .check-tick { color: #fff; font-size: 11px; font-weight: 800; display: none; }
+  .check-box.checked .check-tick { display: block; }
+  .check-text { flex: 1; font-size: 13px; line-height: 1.5; }
+  .check-item.done .check-text { text-decoration: line-through; color: var(--text-muted); }
+
+  /* POST LIVE */
+  .post-card { background: var(--white); border: 1px solid var(--border); border-radius: 14px; overflow: hidden; margin-bottom: 12px; }
+  .post-header { background: var(--surface); border-bottom: 1px solid var(--border); padding: 11px 16px; display: flex; gap: 10px; align-items: center; }
+  .post-body { padding: 16px; }
+
+  /* FOOTER */
+  .footer { max-width: 860px; margin: 0 auto; padding: 0 16px 32px; }
+  .footer-inner { border-top: 1px solid var(--border); padding-top: 20px; text-align: center; }
+  .footer p { color: var(--text-muted); font-size: 11px; margin-bottom: 4px; }
+
+  /* UTILITY */
+  .flex-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  strong.colored { }
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-inner">
+    <div>
+      <div class="header-badge-row">
+        <span class="tag tag-red">🔴 FACEBOOK LIVE #1</span>
+        <span class="tag tag-teal">MÓDULO INDEPENDIENTE</span>
+      </div>
+      <h1>Las 5 Preguntas Más Comunes sobre Medicare</h1>
+      <p>Isabel Fuentes · Medicare Agent CA · withisabelfuentes.com · Duración: 20–30 min · En Español</p>
+    </div>
+    <div class="live-badge">
+      <div class="icon">🔴</div>
+      <div class="label">EN VIVO</div>
+      <div class="sub">Jueves 6 PM</div>
+    </div>
+  </div>
+</div>
+
+<!-- TABS NAV -->
+<div class="tabs-nav">
+  <div class="tabs-nav-inner">
+    <button class="tab-btn active" onclick="switchTab('promo', this)">📣 Promoción 3 Días</button>
+    <button class="tab-btn" onclick="switchTab('guion', this)">🎙️ Guión Completo</button>
+    <button class="tab-btn" onclick="switchTab('reels', this)">✂️ 5 Reels Post-Live</button>
+    <button class="tab-btn" onclick="switchTab('postlive', this)">📲 Contenido Post-Live</button>
+    <button class="tab-btn" onclick="switchTab('checklist', this)">✅ Checklist</button>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div class="content">
+
+  <!-- ── TAB: PROMO ────────────────────────────────────────────── -->
+  <div id="tab-promo" class="tab-panel active">
+    <div class="alert alert-teal">
+      <strong style="color:var(--teal)">Estrategia de promoción:</strong> El 70% de la audiencia de un Live llega gracias a la promoción previa, no al Live mismo. 3 días de calentamiento = 3× más asistentes en vivo.
+    </div>
+
+    <!-- DÍA -3 -->
+    <div class="card">
+      <div class="card-header" style="background:var(--teal-light); border-bottom-color:rgba(74,123,157,.2)">
+        <div class="left">
+          <span class="icon-big">📢</span>
+          <div>
+            <div class="dia" style="color:var(--teal)">DÍA -3 — Lunes</div>
+            <div class="tipo">Post + Story</div>
+          </div>
+        </div>
+        <span class="tag tag-teal">Plantar la semilla — anunciar y crear expectativa</span>
+      </div>
+      <div class="card-body">
+        <div class="copy-box">
+          <div class="copy-box-header">
+            <span class="copy-label">📋 Copy del Post</span>
+            <button class="copy-btn" onclick="copyText(this, 'copy-promo1')">Copiar</button>
+          </div>
+          <pre id="copy-promo1">📣 ¡Anuncio importante!
+
+Este jueves a las [HORA] PM estaré EN VIVO aquí en Facebook respondiendo las 5 preguntas más comunes sobre Medicare — todo en ESPAÑOL.
+
+Completamente gratis. Sin compromiso. Desde la comodidad de tu casa.
+
+¿Tienes una pregunta sobre Medicare que nadie te ha podido responder bien? Escríbela en los comentarios 👇 y la respondo en el live.
+
+Activa la 🔔 campanita para no perderte nada.
+
+¡Te espero este jueves! — Isabel 💙
+
+Isabel Fuentes | Licensed Medicare Agent CA | NPN: [XXXXX]
+📞 [NÚMERO] | withisabelfuentes.com</pre>
+        </div>
+        <div class="story-box" style="background:var(--teal-light); border-left-color:var(--teal)">
+          <strong style="color:var(--teal)">📱 Story/Reel:</strong> Cuenta regresiva 3 días · Tu foto con texto '¡ESTE JUEVES EN VIVO!' · Fondo dorado · Hora visible grande
+        </div>
+        <div class="tip-box">
+          <span>💡</span><span><strong style="color:var(--green)">Tip:</strong> Fija el post en la parte superior de tu página de Facebook para máxima visibilidad.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DÍA -2 -->
+    <div class="card">
+      <div class="card-header" style="background:var(--gold-light); border-bottom-color:rgba(201,169,110,.2)">
+        <div class="left">
+          <span class="icon-big">⏰</span>
+          <div>
+            <div class="dia" style="color:var(--gold-dark)">DÍA -2 — Martes</div>
+            <div class="tipo">Story + Encuesta</div>
+          </div>
+        </div>
+        <span class="tag tag-gold">Calentar audiencia — crear anticipación</span>
+      </div>
+      <div class="card-body">
+        <div class="copy-box">
+          <div class="copy-box-header">
+            <span class="copy-label">📋 Copy del Post</span>
+            <button class="copy-btn" onclick="copyText(this, 'copy-promo2')">Copiar</button>
+          </div>
+          <pre id="copy-promo2">⏰ ¡Faltan 2 días para nuestro Live sobre Medicare en Español!
+
+¿Cuál de estas preguntas QUIERES que responda el jueves?
+
+1️⃣ ¿Cuándo me tengo que inscribir?
+2️⃣ ¿Medicare cubre dental y visión?
+3️⃣ ¿Puedo quedarme con mi médico?
+4️⃣ ¿Hay ayuda para pagar los costos?
+5️⃣ ¿Puedo cambiar mi plan si no me gusta?
+
+Comenta el número de TU pregunta 👇
+
+(Spoiler: voy a responder TODAS el jueves 😉)
+
+— Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]</pre>
+        </div>
+        <div class="story-box" style="background:var(--gold-light); border-left-color:var(--gold)">
+          <strong style="color:var(--gold-dark)">📱 Story/Reel:</strong> Encuesta interactiva con las 5 opciones · Cuenta regresiva '48 horas' · Sticker de encuesta de Facebook
+        </div>
+        <div class="tip-box">
+          <span>💡</span><span><strong style="color:var(--green)">Tip:</strong> Responde cada comentario con el número de la pregunta — esto dispara el algoritmo de Facebook antes del Live.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DÍA -1 -->
+    <div class="card">
+      <div class="card-header" style="background:var(--red-light); border-bottom-color:rgba(192,57,43,.2)">
+        <div class="left">
+          <span class="icon-big">🔥</span>
+          <div>
+            <div class="dia" style="color:var(--red)">DÍA -1 — Miércoles</div>
+            <div class="tipo">Reel 30 seg + Story</div>
+          </div>
+        </div>
+        <span class="tag tag-red">Urgencia máxima — mañana es el día</span>
+      </div>
+      <div class="card-body">
+        <div class="copy-box">
+          <div class="copy-box-header">
+            <span class="copy-label">📋 Copy del Post</span>
+            <button class="copy-btn" onclick="copyText(this, 'copy-promo3')">Copiar</button>
+          </div>
+          <pre id="copy-promo3">🔴 ¡MAÑANA EN VIVO! — Las 5 Preguntas Más Comunes sobre Medicare
+
+Mañana [HORA] PM aquí en Facebook.
+
+Si tienes 60+ años y:
+→ No sabes exactamente qué cubre Medicare
+→ Pagas mucho y no sabes si hay opciones mejores
+→ Cumples 65 pronto y no sabes por dónde empezar
+
+Este live es para TI.
+
+En 30 minutos resuelves dudas que pueden ahorrarte miles de dólares.
+
+GRATIS. EN ESPAÑOL. SIN COMPROMISO.
+
+¿Quién confirma que va a estar? ¡Comenta PRESENTE! 🙋‍♀️
+
+— Isabel Fuentes | NPN: [XXXXX] | withisabelfuentes.com</pre>
+        </div>
+        <div class="story-box" style="background:var(--red-light); border-left-color:var(--red)">
+          <strong style="color:var(--red)">📱 Story/Reel:</strong> Reel corto de 30 seg · Tú a cámara diciendo '¡Mañana en vivo!' · Cuenta regresiva '24 horas' · Stories cada 3 horas ese día
+        </div>
+        <div class="tip-box">
+          <span>💡</span><span><strong style="color:var(--green)">Tip:</strong> El día antes es el más importante. Publica el reel tuyo hablando a cámara — la cara humana convierte mejor que cualquier imagen.</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- DÍA 0 -->
+    <div class="card">
+      <div class="card-header" style="background:var(--red-light); border-bottom-color:rgba(192,57,43,.2)">
+        <div class="left">
+          <span class="icon-big">🔴</span>
+          <div>
+            <div class="dia" style="color:var(--red)">DÍA 0 — Jueves · Día del Live</div>
+            <div class="tipo">Post mañana + Story + 🔴 LIVE</div>
+          </div>
+        </div>
+        <span class="tag tag-red">Máxima asistencia — recordatorios escalonados</span>
+      </div>
+      <div class="card-body">
+        <div class="copy-box">
+          <div class="copy-box-header">
+            <span class="copy-label">📋 Copy del Post (8 AM)</span>
+            <button class="copy-btn" onclick="copyText(this, 'copy-promo4')">Copiar</button>
+          </div>
+          <pre id="copy-promo4">🔴 ¡HOY ES EL DÍA! Live sobre Medicare en Español — [HORA] PM
+
+Hoy a las [HORA] PM estaré aquí en Facebook EN VIVO respondiendo las 5 preguntas más comunes sobre Medicare.
+
+Si llevas tiempo con dudas sobre:
+✅ Cuándo inscribirte
+✅ Qué cubre y qué no
+✅ Cómo mantener a tu médico
+✅ Si calificas para ayuda con los costos
+✅ Si puedes cambiar tu plan
+
+¡HOY te lo explico TODO, gratis y en español!
+
+Activa la 🔔 y nos vemos a las [HORA] PM.
+
+Comparte con alguien que necesite escuchar esto ❤️
+
+Isabel Fuentes | NPN: [XXXXX] | withisabelfuentes.com</pre>
+        </div>
+        <div class="story-box" style="background:var(--red-light); border-left-color:var(--red)">
+          <strong style="color:var(--red)">📱 Stories del día:</strong> Mañana: '¡HOY A LAS [HORA]!' · 1 hora antes: Cuenta regresiva · Al conectarte: '¡ESTAMOS EN VIVO!' + comparte el Live en Story
+        </div>
+        <div class="tip-box">
+          <span>💡</span><span><strong style="color:var(--green)">Tip:</strong> Publica el post a las 8 AM. Recordatorio en Story 1 hora antes. Al conectarte al Live, compártelo inmediatamente en tu Story.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: GUIÓN ────────────────────────────────────────────── -->
+  <div id="tab-guion" class="tab-panel">
+    <div class="alert alert-red">
+      <strong style="color:var(--red)">🔴 Regla CMS para Facebook Lives:</strong> Un Live sobre Medicare es un "Evento Educativo". <strong>No puedes hacer inscripciones durante el Live.</strong> Al final, invita a contacto privado (DM o teléfono). Esto es ley federal.
+    </div>
+
+    <div class="timeline">
+      <div class="timeline-label">ESTRUCTURA DEL LIVE — 30 MINUTOS</div>
+      <div class="timeline-bar">
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--teal); border-radius:4px 0 0 4px;"></div>
+          <div class="bar-time" style="color:var(--teal)">0–3 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--gold);"></div>
+          <div class="bar-time" style="color:var(--gold-dark)">3–8 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--red);"></div>
+          <div class="bar-time" style="color:var(--red)">8–13 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--green);"></div>
+          <div class="bar-time" style="color:var(--green)">13–18 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--teal);"></div>
+          <div class="bar-time" style="color:var(--teal)">18–22 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--gold);"></div>
+          <div class="bar-time" style="color:var(--gold-dark)">22–26 min</div>
+        </div>
+        <div class="timeline-seg">
+          <div class="bar-line" style="background:var(--red); border-radius:0 4px 4px 0;"></div>
+          <div class="bar-time" style="color:var(--red)">26–30 min</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Intro -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Apertura e Introducción</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-teal">0–3 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-intro')">Copiar</button></div>
+          <pre id="sc-intro">[Conéctate. Espera 60 segundos antes de hablar para que llegue más gente]
+
+"¡Buenas tardes a todos! Bienvenidos. Soy Isabel Fuentes, agente licenciada de Medicare aquí en California.
+
+Estoy muy contenta de verlos hoy. Si me están viendo en repetición más tarde — ¡bienvenidos también! Este live va a quedar grabado para que lo puedan ver cuando quieran.
+
+Hoy vamos a hablar de las 5 preguntas que MÁS me hacen las personas de nuestra comunidad sobre Medicare. Preguntas reales, que quizás tú también tienes y nunca has encontrado una respuesta clara.
+
+Antes de empezar — si están viendo esto en vivo, escriban en los comentarios de dónde nos ven. ¿Los Ángeles? ¿Orange County? ¿Inland Empire? ¿Otra ciudad? ¡Quiero saber quién está aquí con nosotros! 👋
+
+[Pausa. Lee algunos comentarios en voz alta y saluda por nombre]
+
+Perfecto. Vamos con la primera pregunta."</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> Tono cálido, como platicando con amigas. Muestra tu personalidad desde el primer segundo.</div>
+      </div>
+    </div>
+
+    <!-- P1 -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Pregunta #1 — ¿Cuándo me tengo que inscribir?</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-gold">3–8 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-p1')">Copiar</button></div>
+          <pre id="sc-p1">"La pregunta número uno que me hacen. Y tiene una respuesta MUY importante porque si te equivocas en el tiempo... puede costarte dinero por el RESTO DE TU VIDA.
+
+Escuchen bien:
+
+Cuando cumples 65 años tienes lo que se llama el 'Período Inicial de Inscripción' — son 7 meses en total. Empieza 3 meses ANTES de tu cumpleaños de 65 y termina 3 meses DESPUÉS.
+
+[Levanta 3 dedos] 3 meses antes.
+[Señala el dedo central] Tu mes de cumpleaños.
+[Levanta 3 dedos del otro lado] 3 meses después.
+
+Si no te inscribes en ese tiempo y no tienes cobertura de un trabajo activo... te pueden cobrar una penalidad en la Parte B que dura de por vida.
+
+PERO — si todavía trabajas y tienes seguro de un empleador con empresa grande — las reglas son diferentes. No tienes que inscribirte todavía.
+
+Por eso siempre digo: no copies la situación de tu vecino o tu amigo. Cada caso es diferente.
+
+[Pausa] ¿Alguien tiene preguntas sobre esto? Escriban en los comentarios...
+
+[Lee y responde 1-2 comentarios]
+
+Bien. Siguiente pregunta."</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> Usa tus manos para el visual de los 7 meses. La gente recuerda mejor lo que VEN, no solo lo que oyen.</div>
+      </div>
+    </div>
+
+    <!-- P2 -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Pregunta #2 — ¿Medicare cubre todo?</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-red">8–13 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-p2')">Copiar</button></div>
+          <pre id="sc-p2">"Ay, esta pregunta... [ríe naturalmente] Muchos llegan pensando que Medicare cubre todo y después se llevan una sorpresa.
+
+La realidad es esta: Medicare Original — la Parte A y la Parte B — cubre aproximadamente el 80% de los gastos médicos aprobados. El otro 20%... es tuyo.
+
+Y Medicare Original NO cubre:
+[Cuenta con los dedos]
+- Dental de rutina — limpiezas, empastes, coronas
+- Visión — no paga por lentes ni exámenes de la vista de rutina
+- Audífonos
+- Medicamentos recetados — eso es la Parte D, que es separada
+
+Por eso existen opciones para complementar. Dos principalmente:
+
+Opción 1: Medicare Advantage — Un plan privado que REEMPLAZA a Medicare Original y muchas veces incluye dental, visión, medicamentos, y más. En California hay planes con $0 de prima al mes.
+
+Opción 2: Medigap más Parte D — Complementa Medicare Original para cubrir ese 20% que Medicare no paga, con más libertad para elegir médicos.
+
+¿Cuál es mejor para ti? Depende de tu salud, tus medicamentos, tus doctores... Por eso no existe una respuesta única para todos.
+
+[Pausa para comentarios — lee 1-2]"</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> El movimiento de contar con los dedos es muy visual en video. Úsalo siempre que listes puntos.</div>
+      </div>
+    </div>
+
+    <!-- P3 -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Pregunta #3 — ¿Puedo quedarme con mi médico?</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-green">13–18 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-p3')">Copiar</button></div>
+          <pre id="sc-p3">"Esta me la hacen especialmente mis clientes que llevan años con su doctor. Y lo entiendo completamente.
+
+La relación con tu médico es sagrada. Llevas años con él, te conoce, conoce tu historial... No voy a pedirte que cambies eso.
+
+Así que escuchen bien, porque esto es muy importante:
+
+Lo PRIMERO que hacemos cuando te sientas conmigo es verificar si tu médico está en la red del plan.
+
+[Enfatiza con el dedo]
+Eso es lo PRIMERO. No lo segundo. LO PRIMERO.
+
+Nunca te inscribo en un plan sin verificar tus médicos antes. ¡Jamás! 🙅‍♀️
+
+Ahora — si quieres la máxima libertad para ver CUALQUIER médico sin referidos ni redes... Medicare Supplement, que se llama Medigap, te da eso. Puedes ir a cualquier médico en el país que acepte Medicare.
+
+Si estás bien con una red de doctores específica pero quieres más beneficios adicionales... Medicare Advantage puede ser mejor y más económico.
+
+Mi consejo: Nunca, nunca te inscribas en un plan sin verificar a tu médico.
+
+Y si alguien te quiere vender un plan sin preguntarte primero quién es tu doctor — esa es una señal de alarma. 🚩
+
+[Pausa para comentarios]"</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> El '¡Jamás!' con el gesto de la mano es el momento más memorable del live. Ese clip se convierte en el Reel #3.</div>
+      </div>
+    </div>
+
+    <!-- P4 -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Pregunta #4 — ¿Hay ayuda para pagar los costos?</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-teal">18–22 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-p4')">Copiar</button></div>
+          <pre id="sc-p4">"Esta es mi pregunta favorita. ¿Por qué? Porque hay mucha gente en nuestra comunidad hispana que califica para ayuda EXTRA y no lo sabe.
+
+Déjenme decirles tres programas que muchos desconocen:
+
+Número 1: 'Extra Help' — también llamado Low Income Subsidy o LIS. Si tus ingresos son limitados, el gobierno federal puede ayudarte a pagar tus medicamentos. Copagos bajos, sin donut hole, primas reducidas.
+
+Número 2: Medicare Savings Program — California tiene este programa donde el estado puede PAGAR tu prima de Medicare Parte B por ti. Eso son más de $170 al mes que el estado paga POR TI directamente.
+
+Número 3 — y este es el más poderoso: Si tienes Medicare Y Medi-Cal al mismo tiempo — eres lo que se llama 'Dual Eligible.' Tienes acceso a planes especiales con beneficios extraordinarios: $0 de copagos, $0 de prima, transporte a tus citas, y tarjetas OTC para compras en farmacia.
+
+¿Cómo saber si calificas para alguno de estos programas?
+
+Llámame. En 15 minutos te digo si hay dinero disponible para ti. Y si no calificas, también te lo digo con honestidad — porque eso es lo que hace un buen agente.
+
+[Pausa para comentarios — aquí viene la avalancha. Está bien detenerse más tiempo y responder]"</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> Este es el momento con más engagement de todo el Live. Pausa ampliamente y lee comentarios en voz alta. El impacto económico para tu audiencia es el más alto.</div>
+      </div>
+    </div>
+
+    <!-- P5 -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Pregunta #5 — ¿Puedo cambiar de plan?</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-gold">22–26 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-p5')">Copiar</button></div>
+          <pre id="sc-p5">"¡Muy buena pregunta! Y muy importante para las personas que ya tienen Medicare y no están contentas con su plan.
+
+La respuesta corta: Sí, puedes cambiar. Pero hay momentos específicos del año para hacerlo sin problema.
+
+El período más importante se llama AEP — Annual Enrollment Period. Es del 15 de octubre al 7 de diciembre de cada año. En esas semanas puedes cambiar tu plan Medicare Advantage o tu cobertura de medicamentos.
+
+También existe el OEP — Open Enrollment Period — del 1 de enero al 31 de marzo. Ahí puedes hacer UN cambio de Medicare Advantage.
+
+Y hay períodos especiales — los SEPs — si cambias de casa, pierdes tu cobertura de trabajo, o tienes otras situaciones especiales de vida.
+
+[Pausa] Ahora un consejo muy valioso:
+
+Aunque NO sea temporada de cambios, yo puedo revisar tu plan contigo AHORA y decirte si estás en el mejor plan para tu situación. Y si encontramos algo mejor, te preparo todo para que el cambio sea rápido cuando llegue el momento.
+
+No esperes a que algo salga mal para revisar tu plan.
+
+[Pausa para comentarios]"</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> Termina con la oferta de revisión — abre la puerta a la consulta sin presión.</div>
+      </div>
+    </div>
+
+    <!-- Cierre -->
+    <div class="accordion">
+      <button class="accordion-btn" onclick="toggleAcc(this)">
+        <div>
+          <div class="acc-title">Cierre y CTA Final</div>
+          <div class="acc-tags"><span class="tag tag-sm tag-red">26–30 min</span></div>
+        </div>
+        <span class="acc-arrow">▼</span>
+      </button>
+      <div class="accordion-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">🎙️ Script completo</span><button class="copy-btn" onclick="copyText(this,'sc-cierre')">Copiar</button></div>
+          <pre id="sc-cierre">"Bueno, llegamos al final de nuestras 5 preguntas más comunes sobre Medicare. Espero que esto haya sido muy útil para todos.
+
+[Tono cálido y directo a cámara]
+
+Antes de irme, quiero recordarles algo importante:
+
+Mi servicio es completamente GRATIS para ustedes. Las compañías de seguro me pagan a mí directamente — ustedes no pagan ni un centavo extra por trabajar conmigo. Mi trabajo es encontrar el mejor plan para TI.
+
+Tengo una propuesta para todos los que están viendo esto ahora:
+
+Si escriben la palabra MEDICARE en los comentarios ahora mismo, les envío un mensaje directo con los próximos pasos para su situación específica.
+
+Si prefieren hablar directamente:
+📞 Llámenme al [NÚMERO]
+🌐 Visiten withisabelfuentes.com
+📩 O envíenme un mensaje directo aquí en Facebook
+
+El próximo live será el [FECHA]. El tema va a ser: '[PRÓXIMO TEMA]'. Activen la campanita para no perdérselo.
+
+Gracias a todos los que se quedaron hasta el final. Los quiero mucho. Cuídense, cuídense la salud, y recuerden:
+
+Ustedes tienen derechos. Tienen beneficios. Y yo estoy aquí para ayudarlos a aprovecharlos al máximo.
+
+¡Hasta pronto! — Isabel 💙✨"</pre>
+        </div>
+        <div class="nota-box"><strong style="color:var(--gold-dark)">📌 Nota de producción:</strong> El CTA de escribir 'MEDICARE' en comentarios activa el algoritmo de Facebook. Es más poderoso que pedir que te llamen directamente en el live.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: REELS ────────────────────────────────────────────── -->
+  <div id="tab-reels" class="tab-panel">
+    <div class="alert alert-teal">
+      <strong style="color:var(--teal)">Regla de oro para Reels del Live:</strong> Agrega subtítulos en español a TODOS los clips. El 85% de los videos en Facebook se ven SIN sonido. Sin subtítulos, pierdes la mayoría de tu audiencia.
+    </div>
+
+    <!-- Reel 1 -->
+    <div class="reel-card">
+      <div class="reel-header" style="background:var(--teal-light); border-bottom-color:rgba(74,123,157,.2)">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="reel-num" style="background:var(--teal)">1</div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:var(--text)">La regla de los 7 meses</div>
+            <div style="font-size:12px; color:var(--text-mid)">¿Cuándo inscribirse a Medicare?</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <span class="tag tag-sm tag-teal">45–60 seg</span>
+          <span class="tag tag-sm tag-mid">3–6 min del Live</span>
+        </div>
+      </div>
+      <div class="reel-body">
+        <div class="hook-box" style="background:var(--teal-light); border-left-color:var(--teal)">
+          <strong style="color:var(--teal)">🎣 Hook de apertura:</strong> "Si cumples 65 este año — esto es urgente."
+        </div>
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Caption del Reel</span><button class="copy-btn" onclick="copyText(this,'r1')">Copiar</button></div>
+          <pre id="r1">⚠️ Si cumples 65 este año, esto es URGENTE.
+
+Tienes SOLO 7 meses para inscribirte a Medicare sin penalidad de por vida.
+
+📅 3 meses antes de tu cumpleaños
+🎂 Tu mes de cumpleaños
+📅 3 meses después
+
+No esperes. Cuéntame tu situación en los comentarios y te digo exactamente cuándo aplica para ti 👇
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+*Los plazos pueden variar según tu situación. Consulta gratis disponible.*</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reel 2 -->
+    <div class="reel-card">
+      <div class="reel-header" style="background:var(--red-light); border-bottom-color:rgba(192,57,43,.2)">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="reel-num" style="background:var(--red)">2</div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:var(--text)">Lo que Medicare NO cubre</div>
+            <div style="font-size:12px; color:var(--text-mid)">¡Sorpresa! Muchos no lo saben</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <span class="tag tag-sm tag-red">45–60 seg</span>
+          <span class="tag tag-sm tag-mid">8–11 min del Live</span>
+        </div>
+      </div>
+      <div class="reel-body">
+        <div class="hook-box" style="background:var(--red-light); border-left-color:var(--red)">
+          <strong style="color:var(--red)">🎣 Hook de apertura:</strong> "Medicare no cubre esto — y muchos no lo saben."
+        </div>
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Caption del Reel</span><button class="copy-btn" onclick="copyText(this,'r2')">Copiar</button></div>
+          <pre id="r2">😱 Medicare NO cubre esto:
+
+❌ Dental de rutina
+❌ Lentes / Visión
+❌ Audífonos
+❌ Medicamentos (Parte D es separada)
+
+Pero los planes Medicare Advantage SÍ pueden incluir todos estos beneficios — y en California hay planes con $0 de prima.
+
+¿Tienes estos beneficios en tu plan actual? Escríbeme y revisamos juntos 👇
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+*Beneficios varían por plan y área geográfica. Disponible en planes seleccionados.*</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reel 3 -->
+    <div class="reel-card">
+      <div class="reel-header" style="background:var(--green-light); border-bottom-color:rgba(46,125,85,.2)">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="reel-num" style="background:var(--green)">3</div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:var(--text)">Lo primero que hago antes de cambiar tu plan</div>
+            <div style="font-size:12px; color:var(--text-mid)">Tu médico primero — siempre</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <span class="tag tag-sm tag-green">30–45 seg</span>
+          <span class="tag tag-sm tag-mid">13–15 min del Live</span>
+        </div>
+      </div>
+      <div class="reel-body">
+        <div class="hook-box" style="background:var(--green-light); border-left-color:var(--green)">
+          <strong style="color:var(--green)">🎣 Hook de apertura:</strong> "Si un agente no te pregunta por tu médico primero — es mala señal."
+        </div>
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Caption del Reel</span><button class="copy-btn" onclick="copyText(this,'r3')">Copiar</button></div>
+          <pre id="r3">Tu médico va PRIMERO. Siempre. 🩺
+
+Nunca te inscribo en un plan sin verificar que tu doctor esté en la red.
+
+Si un agente te quiere vender un plan sin preguntarte quién es tu médico — esa es una 🚩 señal de alarma.
+
+¿Quieres que verifique si tu médico está cubierto? Escríbeme el nombre en los comentarios o por DM. Es gratis.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reel 4 -->
+    <div class="reel-card">
+      <div class="reel-header" style="background:var(--gold-light); border-bottom-color:rgba(201,169,110,.2)">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="reel-num" style="background:var(--gold)">4</div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:var(--text)">¿Sabías que el gobierno puede pagar tu Medicare?</div>
+            <div style="font-size:12px; color:var(--text-mid)">3 programas que muy pocos conocen</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <span class="tag tag-sm tag-gold">45–60 seg</span>
+          <span class="tag tag-sm tag-mid">18–20 min del Live</span>
+        </div>
+      </div>
+      <div class="reel-body">
+        <div class="hook-box" style="background:var(--gold-light); border-left-color:var(--gold)">
+          <strong style="color:var(--gold-dark)">🎣 Hook de apertura:</strong> "¿Sabías que California puede pagar tu prima de Medicare por ti?"
+        </div>
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Caption del Reel</span><button class="copy-btn" onclick="copyText(this,'r4')">Copiar</button></div>
+          <pre id="r4">💡 3 programas que muchos hispanos NO conocen:
+
+1️⃣ Extra Help — El gobierno paga parte de tus medicamentos
+2️⃣ Medicare Savings Program — California puede pagar tu prima de $170/mes
+3️⃣ Dual Eligible — Si tienes Medicare + Medi-Cal: $0 copagos, $0 prima y más
+
+¿Calificas para alguno? Escríbeme AYUDA en los comentarios y te digo en 15 minutos 👇
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+*Elegibilidad depende de ingresos y situación individual. Consulta gratuita disponible.*</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reel 5 -->
+    <div class="reel-card">
+      <div class="reel-header" style="background:var(--red-light); border-bottom-color:rgba(192,57,43,.2)">
+        <div style="display:flex; align-items:center; gap:10px">
+          <div class="reel-num" style="background:var(--red)">5</div>
+          <div>
+            <div style="font-weight:700; font-size:14px; color:var(--text)">El error más costoso con Medicare</div>
+            <div style="font-size:12px; color:var(--text-mid)">No revisar tu plan cada octubre</div>
+          </div>
+        </div>
+        <div style="display:flex; gap:6px; flex-wrap:wrap">
+          <span class="tag tag-sm tag-red">30–45 seg</span>
+          <span class="tag tag-sm tag-mid">22–24 min del Live</span>
+        </div>
+      </div>
+      <div class="reel-body">
+        <div class="hook-box" style="background:var(--red-light); border-left-color:var(--red)">
+          <strong style="color:var(--red)">🎣 Hook de apertura:</strong> "El error que más le cuesta dinero a la gente con Medicare."
+        </div>
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Caption del Reel</span><button class="copy-btn" onclick="copyText(this,'r5')">Copiar</button></div>
+          <pre id="r5">📅 El error más costoso que comete la gente con Medicare:
+
+No revisar su plan cada octubre.
+
+Los planes cambian precios, coberturas y redes de médicos cada año. Un plan excelente este año puede ser el peor el próximo.
+
+AEP: 15 oct – 7 dic es tu ventana para cambiar.
+Pero puedes llamarme AHORA para revisar tu plan antes.
+
+No esperes a que algo salga mal. ¿Cuándo fue la última vez que revisaste tu plan? 👇
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: POST-LIVE ────────────────────────────────────────── -->
+  <div id="tab-postlive" class="tab-panel">
+    <div class="alert alert-green">
+      <strong style="color:var(--green)">El Live no termina cuando apagas la cámara.</strong> El contenido post-live puede generar más leads que el Live mismo. Responde TODOS los comentarios en las primeras 2 horas — es cuando el algoritmo más favorece el post.
+    </div>
+
+    <div class="post-card">
+      <div class="post-header">
+        <span style="font-size:18px">📝</span>
+        <div>
+          <span style="font-weight:700; font-size:13px; color:var(--text)">Viernes (día después del Live)</span>
+          <span style="font-size:12px; color:var(--text-muted); margin-left:8px">Post resumen + Link grabación</span>
+        </div>
+      </div>
+      <div class="post-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Copy del Post</span><button class="copy-btn" onclick="copyText(this,'pl1')">Copiar</button></div>
+          <pre id="pl1">¡Gracias a todos los que estuvieron en el Live de ayer! 💙
+
+Fue una conversación increíble. Respondimos las 5 preguntas más comunes sobre Medicare y me alegra ver cuántas personas de nuestra comunidad quieren entender mejor sus beneficios.
+
+Si te perdiste el live, aquí está la grabación completa 👇
+[LINK A LA GRABACIÓN]
+
+Respondimos:
+✅ ¿Cuándo es el momento correcto para inscribirse?
+✅ ¿Qué cubre y qué NO cubre Medicare?
+✅ ¿Cómo proteger tu relación con tu médico?
+✅ ¿Hay programas de ayuda para pagar los costos?
+✅ ¿Cuándo y cómo puedes cambiar de plan?
+
+¿Tienes más preguntas después de ver el live? Escríbeme aquí o al [NÚMERO]. Consulta siempre gratis 💛
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+withisabelfuentes.com</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card">
+      <div class="post-header">
+        <span style="font-size:18px">🎬</span>
+        <div>
+          <span style="font-weight:700; font-size:13px; color:var(--text)">Sábado</span>
+          <span style="font-size:12px; color:var(--text-muted); margin-left:8px">Reel Clip #1 del Live</span>
+        </div>
+      </div>
+      <div class="post-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Copy del Post</span><button class="copy-btn" onclick="copyText(this,'pl2')">Copiar</button></div>
+          <pre id="pl2">¿Sabes exactamente cuándo tienes que inscribirte a Medicare?
+
+Te explico la regla de los 7 meses en 60 segundos 👇
+
+[Clip #1 del Live]
+
+¿Cumples 65 pronto? Escríbeme tu fecha de cumpleaños y te digo exactamente cuándo actuar.
+
+📞 [NÚMERO] | withisabelfuentes.com
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card">
+      <div class="post-header">
+        <span style="font-size:18px">💛</span>
+        <div>
+          <span style="font-weight:700; font-size:13px; color:var(--text)">Domingo</span>
+          <span style="font-size:12px; color:var(--text-muted); margin-left:8px">Agradecimiento + Comunidad</span>
+        </div>
+      </div>
+      <div class="post-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Copy del Post</span><button class="copy-btn" onclick="copyText(this,'pl3')">Copiar</button></div>
+          <pre id="pl3">Este fin de semana me llenó el corazón. 💛
+
+Ver a tantas personas de nuestra comunidad queriendo entender sus beneficios de Medicare me recuerda exactamente por qué hago este trabajo.
+
+Gracias a todos los que estuvieron en el Live, los que hicieron preguntas, los que compartieron...
+
+Si tienes familia o amigos llegando a los 65, comparte esta página con ellos. Que nadie de nuestra comunidad pierda beneficios por falta de información.
+
+¡Nos vemos en el próximo Live! Fecha: [FECHA] 🗓️
+
+— Isabel 💙
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]</pre>
+        </div>
+      </div>
+    </div>
+
+    <div class="post-card">
+      <div class="post-header">
+        <span style="font-size:18px">🎬</span>
+        <div>
+          <span style="font-weight:700; font-size:13px; color:var(--text)">Lunes siguiente</span>
+          <span style="font-size:12px; color:var(--text-muted); margin-left:8px">Reel Clip #2 + Seguimiento</span>
+        </div>
+      </div>
+      <div class="post-body">
+        <div class="copy-box">
+          <div class="copy-box-header"><span class="copy-label">📋 Copy del Post</span><button class="copy-btn" onclick="copyText(this,'pl4')">Copiar</button></div>
+          <pre id="pl4">¿Medicare cubre dental y visión? La respuesta te va a sorprender 😮
+
+[Clip #2 del Live]
+
+En California hay planes Medicare Advantage que incluyen dental, visión, audífonos y más — y muchos con $0 de prima mensual.
+
+¿Quieres saber qué planes están disponibles en TU código postal? Escríbeme OPCIONES en los comentarios 👇
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+*Beneficios varían por plan y área geográfica.*</pre>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── TAB: CHECKLIST ────────────────────────────────────────── -->
+  <div id="tab-checklist" class="tab-panel">
+
+    <div class="progress-card">
+      <div class="progress-top">
+        <span class="progress-title">Progreso del checklist</span>
+        <span class="progress-pct" id="pct-display" style="color:var(--teal)">0%</span>
+      </div>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill" style="width:0%"></div>
+      </div>
+      <div class="progress-sub" id="progress-sub">0 de 35 completados</div>
+    </div>
+
+    <!-- Antes del Live -->
+    <div class="check-card">
+      <div class="check-cat-header" style="background:var(--teal-light); border-bottom-color:rgba(74,123,157,.2)">
+        <span class="check-cat-title" style="color:var(--teal)">ANTES DEL LIVE</span>
+        <span class="check-cat-count" id="count-0" style="color:var(--teal)">0/12</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Post de anuncio publicado 3 días antes (Lunes)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Story diaria de promoción publicada los 3 días previos</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Reel de 30 seg grabado y publicado el día anterior</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Post de recordatorio publicado la mañana del Live (8 AM)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Story publicada 1 hora antes del Live</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Iluminación verificada (luz natural de frente o ring light)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Audio limpio (auriculares o micrófono externo)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Fondo profesional o pared limpia sin distracciones</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Guión impreso o en pantalla secundaria como referencia</span><span class="tag tag-sm tag-teal">MEDIA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Teléfono y notificaciones silenciados (excepto Facebook)</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Conexión a internet estable (WiFi, no datos móviles)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,0)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">NPN visible en pantalla o mencionado en la intro</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+    </div>
+
+    <!-- Durante -->
+    <div class="check-card">
+      <div class="check-cat-header" style="background:var(--gold-light); border-bottom-color:rgba(201,169,110,.2)">
+        <span class="check-cat-title" style="color:var(--gold-dark)">DURANTE EL LIVE</span>
+        <span class="check-cat-count" id="count-1" style="color:var(--gold-dark)">0/8</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Esperar 60 segundos antes de empezar a hablar</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Saludar a participantes por nombre desde los comentarios</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Pausar después de cada pregunta para leer comentarios</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">NO hacer inscripciones durante el Live (Regla CMS)</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Invitar a DM o teléfono para consultas privadas</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Pedir que escriban 'MEDICARE' en comentarios para el CTA</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Compartir el Live en tu Story en cuanto empiece</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,1)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Mencionar fecha y tema del próximo Live al final</span><span class="tag tag-sm tag-teal">MEDIA</span></div>
+    </div>
+
+    <!-- Después -->
+    <div class="check-card">
+      <div class="check-cat-header" style="background:var(--green-light); border-bottom-color:rgba(46,125,85,.2)">
+        <span class="check-cat-title" style="color:var(--green)">DESPUÉS DEL LIVE</span>
+        <span class="check-cat-count" id="count-2" style="color:var(--green)">0/9</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Responder TODOS los comentarios del Live en las primeras 2 horas</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Enviar DM a todos los que comentaron 'MEDICARE'</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Guardar la grabación del Live en tu dispositivo</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Publicar post de agradecimiento + link a grabación (Viernes)</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Cortar los 5 Reels del Live (usar CapCut o similar)</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Agregar subtítulos en español a TODOS los Reels</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Programar los 5 Reels para la semana siguiente</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Anotar las preguntas más frecuentes para el próximo Live</span><span class="tag tag-sm tag-teal">MEDIA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,2)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Definir fecha y tema del próximo Live</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+    </div>
+
+    <!-- Compliance -->
+    <div class="check-card">
+      <div class="check-cat-header" style="background:var(--red-light); border-bottom-color:rgba(192,57,43,.2)">
+        <span class="check-cat-title" style="color:var(--red)">COMPLIANCE CMS</span>
+        <span class="check-cat-count" id="count-3" style="color:var(--red)">0/6</span>
+      </div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Live es un "Evento Educativo" CMS — no hacer inscripciones en vivo</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">No mencionar planes específicos por nombre durante el Live educativo</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">No prometer montos de beneficios específicos sin disclaimer</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">NPN visible o mencionado en los materiales del Live</span><span class="tag tag-sm tag-red">CRÍTICO</span></div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Capturas del Live guardadas si usas testimoniales de clientes</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+      <div class="check-item" onclick="toggleCheck(this,3)"><div class="check-box"><span class="check-tick">✓</span></div><span class="check-text">Disclaimer incluido en todos los posts de Reels con beneficios</span><span class="tag tag-sm tag-gold">ALTA</span></div>
+    </div>
+
+    <!-- Disclaimer box -->
+    <div class="alert alert-red">
+      <strong style="color:var(--red)">DISCLAIMER UNIVERSAL — Usar en todos los Reels con beneficios</strong>
+    </div>
+    <div class="copy-box" style="margin-bottom:0">
+      <div class="copy-box-header"><span class="copy-label">Disclaimer CMS</span><button class="copy-btn" onclick="copyText(this,'disclaimer')">Copiar</button></div>
+      <pre id="disclaimer">*Beneficios varían por plan y área geográfica. Disponible en planes seleccionados. Isabel Fuentes es agente independiente licenciada en California, NPN: [XXXXX]. No afiliada con Medicare ni ningún programa federal. withisabelfuentes.com</pre>
+    </div>
+
+  </div><!-- /tab-checklist -->
+
+</div><!-- /content -->
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-inner">
+    <p>Isabel Fuentes · Licensed Medicare Agent CA · withisabelfuentes.com · NPN: [XXXXX]</p>
+    <p>Facebook Live #1 — Sistema Independiente · Mayo 2026 · Para integrar al Sistema Viral Principal</p>
+  </div>
+</div>
+
+<script>
+  // ── TABS ──────────────────────────────────────────────────────
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  // ── ACCORDION ─────────────────────────────────────────────────
+  function toggleAcc(btn) {
+    const body = btn.nextElementSibling;
+    const isOpen = btn.classList.contains('open');
+    btn.classList.toggle('open', !isOpen);
+    body.classList.toggle('open', !isOpen);
+  }
+
+  // ── COPY ──────────────────────────────────────────────────────
+  function copyText(btn, id) {
+    const text = document.getElementById(id).textContent;
+    navigator.clipboard.writeText(text).then(() => {
+      btn.textContent = '✓ Copiado';
+      btn.classList.add('copied');
+      setTimeout(() => { btn.textContent = 'Copiar'; btn.classList.remove('copied'); }, 2000);
+    });
+  }
+
+  // ── CHECKLIST ─────────────────────────────────────────────────
+  const TOTALS = [12, 8, 9, 6];
+  const counts = [0, 0, 0, 0];
+
+  function updateProgress() {
+    const total = TOTALS.reduce((a, b) => a + b, 0);
+    const done = counts.reduce((a, b) => a + b, 0);
+    const pct = Math.round((done / total) * 100);
+    document.getElementById('progress-fill').style.width = pct + '%';
+    document.getElementById('progress-fill').style.background = pct === 100 ? 'var(--green)' : 'var(--teal)';
+    document.getElementById('pct-display').textContent = pct + '%';
+    document.getElementById('pct-display').style.color = pct === 100 ? 'var(--green)' : 'var(--teal)';
+    document.getElementById('progress-sub').textContent = done + ' de ' + total + ' completados';
+  }
+
+  function toggleCheck(item, catIndex) {
+    const box = item.querySelector('.check-box');
+    const isDone = item.classList.contains('done');
+    item.classList.toggle('done', !isDone);
+    box.classList.toggle('checked', !isDone);
+    counts[catIndex] += isDone ? -1 : 1;
+    document.getElementById('count-' + catIndex).textContent = counts[catIndex] + '/' + TOTALS[catIndex];
+    updateProgress();
+  }
+
+  updateProgress();
+</script>
+</body>
+</html>

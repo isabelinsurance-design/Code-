@@ -1,0 +1,958 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Meta Paid Ads — Isabel Fuentes Medicare</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;--border:#E8E0D0;
+  --gold:#C9A96E;--gold-light:#F0E6D0;--gold-dark:#A07840;
+  --teal:#4A7B9D;--teal-light:#EBF3F8;--teal-dark:#2E5F7A;
+  --red:#C0392B;--red-light:#FDEDEB;
+  --green:#2E7D55;--green-light:#EAF5EE;
+  --orange:#C8610A;--orange-light:#FEF3E9;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
+  --purple:#6B4C8A;--purple-light:#F2EDF7;--tag-bg:#F5EFE3;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);font-family:'DM Sans',sans-serif;color:var(--text);font-size:14px}
+.topbar{background:var(--white);border-bottom:2px solid var(--border);position:sticky;top:0;z-index:100;box-shadow:0 2px 12px rgba(44,36,22,.06)}
+.topbar-inner{max-width:960px;margin:0 auto;padding:0 16px}
+.topbar-head{display:flex;justify-content:space-between;align-items:center;padding:14px 0 10px;gap:12px;flex-wrap:wrap}
+.brand-title{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--text);line-height:1;margin-bottom:3px}
+.brand-sub{font-size:11px;color:var(--text-muted)}
+.badge-row{display:flex;gap:6px;flex-wrap:wrap}
+.badge{display:inline-block;border-radius:6px;padding:2px 10px;font-size:11px;font-weight:700;letter-spacing:.3px}
+.nav-tabs{display:flex;overflow-x:auto;scrollbar-width:none}
+.nav-tabs::-webkit-scrollbar{display:none}
+.nav-tab{background:none;border:none;border-bottom:2.5px solid transparent;padding:11px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:500;color:var(--text-muted);white-space:nowrap;transition:all .18s}
+.nav-tab.active{color:var(--gold-dark);border-bottom-color:var(--gold);font-weight:700}
+.nav-tab:hover:not(.active){color:var(--text-mid);background:var(--tag-bg)}
+.alert-banner{background:var(--teal-light);border-bottom:1px solid rgba(74,123,157,.25);padding:10px 20px}
+.alert-inner{max-width:960px;margin:0 auto;display:flex;gap:8px;align-items:flex-start;flex-wrap:wrap;font-size:12.5px}
+.main{max-width:960px;margin:0 auto;padding:24px 16px 48px}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:12px;transition:border-color .2s,box-shadow .2s}
+.card.open{box-shadow:0 4px 24px rgba(44,36,22,.1)}
+.card-header{width:100%;background:var(--white);border:none;padding:16px 18px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left;transition:background .2s;font-family:'DM Sans',sans-serif}
+.card-header:hover{background:var(--surface)}
+.card-meta{display:flex;align-items:center;gap:12px}
+.ad-icon{width:46px;height:46px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:22px;flex-shrink:0}
+.ad-num{font-size:10.5px;font-weight:800;color:#fff;border-radius:6px;padding:1px 8px}
+.ad-title{font-size:15px;font-weight:700;color:var(--text)}
+.ad-sub{font-size:12px;color:var(--text-muted)}
+.pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:5px}
+.pill{display:inline-flex;align-items:center;border-radius:20px;padding:2px 10px;font-size:11px;font-weight:600;border:1px solid}
+.chevron{font-size:18px;flex-shrink:0;transition:transform .2s}
+.chevron.open{transform:rotate(180deg)}
+.ad-body{border-top:1px solid;display:none}
+.ad-body.open{display:block}
+.psy-bar{padding:10px 18px;display:flex;gap:16px;flex-wrap:wrap;border-bottom:1px solid;font-size:12px}
+.inner-tabs{display:flex;border-bottom:1px solid var(--border);background:var(--surface);overflow-x:auto;scrollbar-width:none}
+.inner-tab{background:none;border:none;border-bottom:2px solid transparent;padding:10px 14px;cursor:pointer;font-family:'DM Sans',sans-serif;font-size:12px;font-weight:500;color:var(--text-muted);white-space:nowrap;transition:all .15s}
+.inner-tab.active{font-weight:700;border-bottom-color:currentColor}
+.tab-pane{padding:18px;display:none}
+.tab-pane.active{display:block}
+.copy-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.copy-head{display:flex;justify-content:space-between;align-items:center;padding:8px 14px;border-bottom:1px solid var(--border);background:var(--white)}
+.copy-label{font-size:11px;color:var(--text-muted);font-weight:600}
+.copy-btn{background:var(--teal);color:#fff;border:none;border-radius:6px;padding:4px 14px;font-size:11px;font-weight:700;cursor:pointer;transition:background .2s;font-family:'DM Sans',sans-serif}
+.copy-btn:hover{background:var(--teal-dark)}
+.copy-btn.copied{background:var(--green)}
+.copy-box pre{margin:0;padding:14px 16px;font-size:11.5px;line-height:1.9;color:var(--text);white-space:pre-wrap;word-break:break-word;font-family:'Courier New',monospace}
+.cbar-wrap{margin-bottom:8px}
+.cbar-row{display:flex;justify-content:space-between;margin-bottom:3px}
+.cbar-lbl{font-size:11px;color:var(--text-muted);font-weight:600}
+.cbar-cnt{font-size:11px;font-weight:700}
+.cbar-track{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.cbar-fill{height:100%;border-radius:3px;transition:width .4s}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.kv{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:12px 14px}
+.kv-k{font-size:10px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:4px}
+.kv-v{font-size:13px;color:var(--text);font-weight:600}
+.concept{background:var(--surface);border-radius:10px;padding:14px 16px;margin-bottom:10px;border-left:4px solid;border:1px solid}
+.concept-lbl{font-size:11px;font-weight:700;margin-bottom:6px}
+.concept-txt{font-size:12.5px;color:var(--text);line-height:1.7}
+.ibox{border-radius:10px;padding:14px 16px;margin-bottom:12px;border:1px solid}
+.ibox-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.ibox-item{display:flex;align-items:flex-start;gap:8px;font-size:12.5px;color:var(--text);margin-bottom:5px;line-height:1.5}
+.tag{display:inline-block;border-radius:6px;padding:2px 9px;font-size:11px;font-weight:600;letter-spacing:.3px;border:1px solid}
+.vrow{display:flex;align-items:center;gap:10px;background:var(--surface);border-radius:8px;padding:10px 14px;margin-bottom:6px;border:1px solid var(--border)}
+.vrow.pri{border:1px solid}
+.vletter{border-radius:6px;padding:1px 8px;font-size:11px;font-weight:800;flex-shrink:0}
+.vtext{font-size:13px;color:var(--text);flex:1}
+.vcnt{font-size:11px;color:var(--text-muted)}
+.adsel{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-bottom:20px}
+.adsel-btn{background:var(--white);border:2px solid;border-radius:10px;padding:10px 4px;cursor:pointer;text-align:center;transition:all .2s;font-family:'DM Sans',sans-serif}
+.adsel-icon{font-size:20px;margin-bottom:4px}
+.adsel-num{font-size:10px;font-weight:800}
+.adsel-sub{font-size:10px;line-height:1.3;margin-top:2px}
+.chkitem{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid var(--border)}
+.chkbox{width:20px;height:20px;border:2px solid;border-radius:4px;flex-shrink:0;margin-top:1px;cursor:pointer;transition:background .15s;display:flex;align-items:center;justify-content:center;font-size:13px;color:transparent}
+.chkbox.checked{background:var(--green);border-color:var(--green);color:#fff}
+.chk-lbl{font-size:13px;color:var(--text);line-height:1.5}
+.camp-row{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid var(--border);flex-wrap:wrap;gap:10px}
+.camp-left{display:flex;gap:12px;align-items:center}
+.camp-stripe{width:4px;height:44px;border-radius:2px;flex-shrink:0}
+.phase{background:var(--white);border:1px solid;border-radius:12px;padding:14px 16px;border-top:3px solid}
+.phase-title{font-size:13px;font-weight:700;margin-bottom:8px}
+.phase-txt{font-size:12.5px;color:var(--text);line-height:1.6}
+.fw-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.fw-card{background:var(--white);border:1px solid rgba(192,57,43,.2);border-radius:8px;padding:10px 12px}
+.fw-word{font-size:12px;font-weight:700;color:var(--red);margin-bottom:4px}
+.fw-rule{font-size:11px;color:var(--text-mid)}
+.fform-row{display:flex;align-items:flex-start;gap:12px;padding:10px 0;border-bottom:1px solid var(--border)}
+.fnum{background:var(--gold-light);color:var(--gold-dark);border-radius:6px;padding:2px 8px;font-size:12px;font-weight:700;min-width:26px;text-align:center;flex-shrink:0;margin-top:1px}
+.flbl{font-size:13px;font-weight:600;color:var(--text)}
+.ftype{font-size:11px;color:var(--text-muted);margin-top:2px}
+.fopts{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.footer{text-align:center;padding:32px 16px 24px;border-top:1px solid var(--border);color:var(--text-muted);font-size:11px;line-height:1.8}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.tab-pane.active{animation:fadeIn .2s ease}
+@media(max-width:600px){.grid2{grid-template-columns:1fr}.adsel{grid-template-columns:repeat(3,1fr)}.fw-grid{grid-template-columns:1fr}}
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+<div class="topbar">
+  <div class="topbar-inner">
+    <div class="topbar-head">
+      <div>
+        <div class="brand-title">Meta Paid Ads System</div>
+        <div class="brand-sub">Isabel Fuentes · Medicare · Sur de California · 2026</div>
+      </div>
+      <div class="badge-row">
+        <span class="badge" style="background:var(--teal-light);color:var(--teal-dark)">META PAID ADS</span>
+        <span class="badge" style="background:var(--gold-light);color:var(--gold-dark)">MEDICARE · HISPANO · SoCal</span>
+        <span class="badge" style="background:var(--red-light);color:var(--red)">STANDALONE</span>
+      </div>
+    </div>
+    <nav class="nav-tabs">
+      <button class="nav-tab active" onclick="showSec('ads',this)">🎯 5 Variaciones</button>
+      <button class="nav-tab" onclick="showSec('global',this)">⚙️ Config Global</button>
+      <button class="nav-tab" onclick="showSec('form',this)">📋 Instant Form</button>
+      <button class="nav-tab" onclick="showSec('compliance',this)">✅ Compliance</button>
+      <button class="nav-tab" onclick="showSec('structure',this)">🗂️ Estructura</button>
+      <button class="nav-tab" onclick="showSec('disclaimer',this)">⚖️ Disclaimer</button>
+    </nav>
+  </div>
+</div>
+<div class="alert-banner">
+  <div class="alert-inner">
+    <span style="font-weight:800;color:var(--teal-dark)">⚡ SPECIAL AD CATEGORY:</span>
+    <span>Seguros de salud → <strong style="color:var(--green)">Seleccionar "NONE"</strong> · No aplica Housing/Employment/Credit/Politics · Meta restringe targeting por condiciones médicas — usa demografía + comportamiento indirecto</span>
+  </div>
+</div>
+<div class="main">
+<div id="sec-ads">
+<div class="adsel">
+  <button class="adsel-btn" style="border-color:#C0392B;color:#C0392B" onclick="jumpAd('v1',this)"><div class="adsel-icon">💸</div><div class="adsel-num">VAR 1</div><div class="adsel-sub">Pain Point</div></button>
+  <button class="adsel-btn" style="border-color:#2E7D55;color:#2E7D55" onclick="jumpAd('v2',this)"><div class="adsel-icon">✨</div><div class="adsel-num">VAR 2</div><div class="adsel-sub">Benefits</div></button>
+  <button class="adsel-btn" style="border-color:#C8610A;color:#C8610A" onclick="jumpAd('v3',this)"><div class="adsel-icon">⏰</div><div class="adsel-num">VAR 3</div><div class="adsel-sub">Urgencia</div></button>
+  <button class="adsel-btn" style="border-color:#6B4C8A;color:#6B4C8A" onclick="jumpAd('v4',this)"><div class="adsel-icon">💙</div><div class="adsel-num">VAR 4</div><div class="adsel-sub">Historia</div></button>
+  <button class="adsel-btn" style="border-color:#4A7B9D;color:#4A7B9D" onclick="jumpAd('v5',this)"><div class="adsel-icon">🇲🇽</div><div class="adsel-num">VAR 5</div><div class="adsel-sub">Español</div></button>
+</div>
+
+<div class="card" id="card-v1" style="border-color:var(--border)">
+  <button class="card-header" onclick="toggleCard('v1')">
+    <div class="card-meta">
+      <div class="ad-icon" style="background:#FDEDEB">💸</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span class="ad-num" style="background:#C0392B">VAR 1</span>
+          <span class="ad-title">MIEDO AL COSTO</span>
+          <span class="ad-sub">— Pain Point</span>
+        </div>
+        <div class="pills">
+          <span class="pill" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Activar el miedo a pagar de má</span>
+          <span class="pill" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$10–15/día</span>
+          <span class="pill" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(74,123,157,.3)">📍 FB Feed</span>
+        </div>
+      </div>
+    </div>
+    <span class="chevron" id="chev-v1" style="color:#C0392B">▼</span>
+  </button>
+  <div class="ad-body" id="body-v1" style="border-top-color:#C0392B33">
+    <div class="psy-bar" style="background:#FDEDEB;border-bottom-color:#C0392B22">
+      <span><strong style="color:#C0392B">Psicología:</strong> Activar el miedo a pagar de más o perder cobertura</span>
+      <span><strong style="color:#C0392B">Etapa:</strong> Awareness → Consideración</span>
+      
+    </div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" style="color:#C0392B" onclick="showIT('v1','copy',this)">📝 Copy</button>
+      <button class="inner-tab" onclick="showIT('v1','specs',this)">📐 Specs</button>
+      <button class="inner-tab" onclick="showIT('v1','targeting',this)">🎯 Targeting</button>
+      <button class="inner-tab" onclick="showIT('v1','image',this)">🖼️ Imagen</button>
+      <button class="inner-tab" onclick="showIT('v1','compliance',this)">✅ Compliance</button>
+    </div>
+    <div class="tab-pane active" id="v1-copy">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">HEADLINE</span><span class="cbar-cnt" style="color:var(--green)">36/40 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:90%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">TEXTO PRINCIPAL (mobile)</span><span class="cbar-cnt" style="color:var(--green)">111/125 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:88%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">DESCRIPCIÓN</span><span class="cbar-cnt" style="color:var(--green)">28/30 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:93%;background:var(--orange)"></div></div></div>
+        <div style="margin-top:10px"><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">CTA: Get Quote</span></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:#C0392B;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Headline — Variantes A/B/C</div>
+        <div class="vrow pri" style="border-color:rgba(192,57,43,.4)"><span class="vletter" style="background:#FDEDEB;color:#C0392B">A</span><span class="vtext" style="font-weight:600;">¿Pagando demasiado por Medicare?</span><span class="vcnt">36 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">B</span><span class="vtext" style="">Tu plan Medicare puede costarte más</span><span class="vcnt">35 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">C</span><span class="vtext" style="">¿Cuánto pagas de más cada mes?</span><span class="vcnt">30 car.</span></div>
+      </div>
+      <div class="copy-box">
+        <div class="copy-head"><span class="copy-label">TEXTO COMPLETO — Variación 1: MIEDO AL COSTO</span><button class="copy-btn" onclick="copyEl(this,'v1txt')">Copiar</button></div>
+        <pre id="v1txt">¿Estás seguro de que tu plan Medicare es el correcto para ti?
+
+Muchos de mis clientes hispanos en Los Ángeles llegaron a mí pagando más de lo necesario — o con planes que no cubrían a sus médicos de siempre.
+
+Como agente licenciada en California, hago algo sencillo: comparo TODOS los planes disponibles en tu área y te explico cuál es mejor para TU situación.
+
+No te vendo un plan. Te ayudo a elegir el correcto.
+
+→ La revisión es gratuita
+→ Te hablo en español
+→ Atiendo en persona o por teléfono
+→ Sin presión, sin compromiso
+
+📍 Atiendo: Los Ángeles · Orange County · Inland Empire
+
+[Toca &quot;Get Quote&quot; para empezar]
+
+─────────────────────────────────────
+Isabel Fuentes | Licensed Insurance Agent
+California License # [INSERTA] | NPN: [INSERTA]
+withisabelfuentes.com
+*Not connected with or endorsed by the U.S. government or the federal Medicare program. Plans vary by region.*</pre>
+      </div>
+    </div>
+    <div class="tab-pane" id="v1-specs">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="kv"><div class="kv-k">Objetivo</div><div class="kv-v">Lead Generation</div></div>
+        <div class="kv"><div class="kv-k">Special Ad Cat.</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+        <div class="kv"><div class="kv-k">Presupuesto</div><div class="kv-v">$10–15/día</div></div>
+        <div class="kv"><div class="kv-k">Mejor placement</div><div class="kv-v">FB Feed</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25)"><div class="ibox-title" style="color:var(--green)">✅ USAR</div><div class="ibox-item">• Facebook Feed (PRIORITARIO)</div><div class="ibox-item">• Instagram Feed</div><div class="ibox-item">• Facebook Marketplace</div></div>
+        <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">❌ NO USAR</div><div class="ibox-item">• Audience Network</div><div class="ibox-item">• Right Column (desktop)</div><div class="ibox-item">• In-Stream Videos</div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="v1-targeting">
+      <div class="copy-box" style="margin-bottom:12px"><div class="copy-head"><span class="copy-label">Nombre del Ad Set — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'v1-adset')">Copiar</button></div><pre id="v1-adset">V1_PainPoint_LA_ES_63-67</pre></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">📍 Ubicación</div><div style="font-size:12.5px;margin-top:4px;line-height:1.6">Los Angeles, CA + 25mi | Anaheim, CA + 25mi | Riverside, CA + 25mi</div></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">👤 Edad</div><div class="kv-v">63 – 67</div></div>
+      <div class="kv" style="margin-bottom:10px"><div class="kv-k">🗣️ Idioma</div><div class="kv-v">Spanish (All) + English (US)</div></div>
+      <div class="ibox" style="background:#FDEDEB;border-color:#C0392B33;margin-bottom:10px"><div class="ibox-title" style="color:#C0392B">✅ INCLUIR (Detailed Targeting)</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">AARP</span><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Retirement planning</span><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Social Security (US)</span><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Telemundo</span><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Univision</span><span class="tag" style="background:#FDEDEB;color:#C0392B;border-color:#C0392B44">Spanish-language media</span></div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.2)"><div class="ibox-title" style="color:var(--red)">❌ EXCLUIR</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Insurance agents</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Works in: Insurance</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Leads enviados 30 días</span></div></div>
+    </div>
+    <div class="tab-pane" id="v1-image">
+      <div class="concept" style="border-left-color:#C0392B;border-color:#C0392B33;background:var(--surface)"><div class="concept-lbl" style="color:#C0392B">Opción A — Recomendada</div><div class="concept-txt">Foto de mujer latina 63-65 años mirando una factura médica con expresión preocupada. Fondo: cocina o sala de casa, ambiente familiar. Luz natural, foto auténtica (NO stock genérico). SIN texto superpuesto excesivo (regla 20% de Meta).</div></div>
+      <div class="concept" style="border-left-color:var(--teal);border-color:rgba(74,123,157,.25);background:var(--surface)"><div class="concept-lbl" style="color:var(--teal-dark)">Opción B</div><div class="concept-txt">Pareja hispana 60s+ sentada con Isabel. Mesa con papeles, ambiente de consulta. Expresión de alivio y confianza.</div></div>
+      <div class="kv" style="margin-top:10px"><div class="kv-k">Especificaciones técnicas</div><div style="font-size:12.5px;margin-top:4px;line-height:1.7">Feed: 1080×1080px o 1080×1350px | Stories: 1080×1920px | Texto en imagen: máx 20%<br><span style="color:var(--text-muted)">Colores: Azul confianza #1877F2 + Blanco</span></div></div>
+    </div>
+    <div class="tab-pane" id="v1-compliance">
+      <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--green)">✅ ESTE ANUNCIO ES SEGURO PORQUE:</div><div class="ibox-item"><span style="color:var(--green)">✓</span> 'Gratis' se refiere a la CONSULTA, no al plan</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No menciona beneficios específicos</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No hace promesas de ahorro sin verificar</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Incluye NPN y license number</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Disclaimer de no afiliación con gobierno incluido</div></div>
+      <div class="ibox" style="background:#FFF3E0;border-color:rgba(200,97,10,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--orange)">⚠️ RAZONES DE RECHAZO META:</div><div class="ibox-item">• 'Tienes diabetes y necesitas ayuda' → Meta prohíbe aludir a condiciones personales</div><div class="ibox-item">• 'Como hispano, mereces mejor cobertura' → puede interpretarse como targeting discriminatorio</div><div class="ibox-item">• Imágenes antes/después de tratamientos → Prohibido en health ads</div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">🚫 RAZONES DE RECHAZO CMS:</div><div class="ibox-item">• 'Planes con $0 de prima' sin nombre del plan específico</div><div class="ibox-item">• 'Cubre todo' / 'Cobertura completa' → ningún plan cubre todo</div><div class="ibox-item">• 'Llama ahora y te inscribo hoy' → CMS requiere período de reflexión y SOA</div><div class="ibox-item">• Logos de Medicare/CMS sin autorización expresa</div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="card-v2" style="border-color:var(--border)">
+  <button class="card-header" onclick="toggleCard('v2')">
+    <div class="card-meta">
+      <div class="ad-icon" style="background:#EAF5EE">✨</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span class="ad-num" style="background:#2E7D55">VAR 2</span>
+          <span class="ad-title">BENEFICIOS EXTRAS</span>
+          <span class="ad-sub">— Hope / Gain</span>
+        </div>
+        <div class="pills">
+          <span class="pill" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">Activar el deseo de obtener má</span>
+          <span class="pill" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$10–15/día</span>
+          <span class="pill" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(74,123,157,.3)">📍 IG Feed</span>
+        </div>
+      </div>
+    </div>
+    <span class="chevron" id="chev-v2" style="color:#2E7D55">▼</span>
+  </button>
+  <div class="ad-body" id="body-v2" style="border-top-color:#2E7D5533">
+    <div class="psy-bar" style="background:#EAF5EE;border-bottom-color:#2E7D5522">
+      <span><strong style="color:#2E7D55">Psicología:</strong> Activar el deseo de obtener más / FOMO de beneficios</span>
+      <span><strong style="color:#2E7D55">Etapa:</strong> Awareness → Interés</span>
+      
+    </div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" style="color:#2E7D55" onclick="showIT('v2','copy',this)">📝 Copy</button>
+      <button class="inner-tab" onclick="showIT('v2','specs',this)">📐 Specs</button>
+      <button class="inner-tab" onclick="showIT('v2','targeting',this)">🎯 Targeting</button>
+      <button class="inner-tab" onclick="showIT('v2','image',this)">🖼️ Imagen</button>
+      <button class="inner-tab" onclick="showIT('v2','compliance',this)">✅ Compliance</button>
+    </div>
+    <div class="tab-pane active" id="v2-copy">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">HEADLINE</span><span class="cbar-cnt" style="color:var(--green)">38/40 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:95%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">TEXTO PRINCIPAL (mobile)</span><span class="cbar-cnt" style="color:var(--green)">112/125 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:89%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">DESCRIPCIÓN</span><span class="cbar-cnt" style="color:var(--green)">30/30 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:100%;background:var(--orange)"></div></div></div>
+        <div style="margin-top:10px"><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">CTA: Learn More</span></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:#2E7D55;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Headline — Variantes A/B/C</div>
+        <div class="vrow pri" style="border-color:rgba(46,125,85,.4)"><span class="vletter" style="background:#EAF5EE;color:#2E7D55">A</span><span class="vtext" style="font-weight:600;">Beneficios Medicare que no conocías</span><span class="vcnt">38 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">B</span><span class="vtext" style="">¿Tu Medicare incluye dental y visión?</span><span class="vcnt">37 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">C</span><span class="vtext" style="">Más beneficios. El mismo Medicare.</span><span class="vcnt">34 car.</span></div>
+      </div>
+      <div class="copy-box">
+        <div class="copy-head"><span class="copy-label">TEXTO COMPLETO — Variación 2: BENEFICIOS EXTRAS</span><button class="copy-btn" onclick="copyEl(this,'v2txt')">Copiar</button></div>
+        <pre id="v2txt">¿Sabías que algunos planes Medicare incluyen beneficios que Medicare Original NO cubre?
+
+Dependiendo del plan y tu condado, podrías acceder a*:
+
+🦷 Dental — limpiezas, radiografías, extracciones
+👁️ Visión — examen de ojos y ayuda para lentes
+👂 Audífonos — para quienes necesitan apoyo auditivo
+🚗 Transporte — para ir a tus citas médicas
+💊 Medicamentos — Parte D incluida en el plan
+🏋️ Gym/Fitness — membresía en gimnasios locales
+
+*Los beneficios varían según el plan y el condado. No todos los planes ofrecen todos los beneficios.
+
+Soy Isabel Fuentes, agente licenciada en California. Te comparo los planes disponibles en tu área — en español, sin costo y sin presión.
+
+¿Quieres saber qué hay disponible para ti?
+
+[Toca &quot;Learn More&quot; — Te respondo hoy mismo]
+
+─────────────────────────────────────────────
+Isabel Fuentes | CA License # [INSERTA]
+NPN: [INSERTA] | withisabelfuentes.com
+*Plans vary by region and carrier. Not all benefits available in all areas. Not affiliated with Medicare or the U.S. federal government.*</pre>
+      </div>
+    </div>
+    <div class="tab-pane" id="v2-specs">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="kv"><div class="kv-k">Objetivo</div><div class="kv-v">Lead Generation</div></div>
+        <div class="kv"><div class="kv-k">Special Ad Cat.</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+        <div class="kv"><div class="kv-k">Presupuesto</div><div class="kv-v">$10–15/día</div></div>
+        <div class="kv"><div class="kv-k">Mejor placement</div><div class="kv-v">IG Feed</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25)"><div class="ibox-title" style="color:var(--green)">✅ USAR</div><div class="ibox-item">• Instagram Feed (PRIORITARIO)</div><div class="ibox-item">• Instagram Reels</div><div class="ibox-item">• Facebook Feed</div></div>
+        <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">❌ NO USAR</div><div class="ibox-item">• Audience Network</div><div class="ibox-item">• Right Column</div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="v2-targeting">
+      <div class="copy-box" style="margin-bottom:12px"><div class="copy-head"><span class="copy-label">Nombre del Ad Set — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'v2-adset')">Copiar</button></div><pre id="v2-adset">V2_Benefits_OC_ES_63-67</pre></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">📍 Ubicación</div><div style="font-size:12.5px;margin-top:4px;line-height:1.6">Orange County: Santa Ana, Anaheim, Garden Grove, Westminster, Huntington Beach</div></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">👤 Edad</div><div class="kv-v">63 – 67</div></div>
+      <div class="kv" style="margin-bottom:10px"><div class="kv-k">🗣️ Idioma</div><div class="kv-v">Spanish (All)</div></div>
+      <div class="ibox" style="background:#EAF5EE;border-color:#2E7D5533;margin-bottom:10px"><div class="ibox-title" style="color:#2E7D55">✅ INCLUIR (Detailed Targeting)</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">AARP</span><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">Medicare (si disponible)</span><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">Approached by Medicare age</span><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">Prescription drugs</span><span class="tag" style="background:#EAF5EE;color:#2E7D55;border-color:#2E7D5544">Dentistry (dental care)</span></div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.2)"><div class="ibox-title" style="color:var(--red)">❌ EXCLUIR</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Mismos que V1 — Insurance agents, competidores</span></div></div>
+    </div>
+    <div class="tab-pane" id="v2-image">
+      <div class="concept" style="border-left-color:#2E7D55;border-color:#2E7D5533;background:var(--surface)"><div class="concept-lbl" style="color:#2E7D55">Opción A — Recomendada</div><div class="concept-txt">CARRUSEL (más engagement): T1: Ícono dental + 'Dental' | T2: Ícono ojo + 'Visión' | T3: Ícono audífono | T4: Ícono auto + 'Transporte' | T5: Foto Isabel + 'Llámame hoy'. Fondo blanco limpio, íconos coloridos.</div></div>
+      <div class="concept" style="border-left-color:var(--teal);border-color:rgba(74,123,157,.25);background:var(--surface)"><div class="concept-lbl" style="color:var(--teal-dark)">Opción B</div><div class="concept-txt">Imagen única: Collage de 4 íconos grandes en cuadrícula. Texto: '¿Los tienes en tu plan actual?' Logo Isabel en esquina inferior.</div></div>
+      <div class="kv" style="margin-top:10px"><div class="kv-k">Especificaciones técnicas</div><div style="font-size:12.5px;margin-top:4px;line-height:1.7">Feed: 1080×1080px | Stories: 1080×1920px | Carrusel: mín 2, máx 10 tarjetas<br><span style="color:var(--text-muted)">Colores: Azul #1565C0 + Verde #2E7D32 + Naranja #E65100</span></div></div>
+    </div>
+    <div class="tab-pane" id="v2-compliance">
+      <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--green)">✅ ESTE ANUNCIO ES SEGURO PORQUE:</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Disclaimer 'varies by plan and county' incluido</div><div class="ibox-item"><span style="color:var(--green)">✓</span> '*' en cada beneficio listado</div><div class="ibox-item"><span style="color:var(--green)">✓</span> NPN y License visibles</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No se menciona carrier sin aprobación</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No se dice 'todos califican'</div></div>
+      <div class="ibox" style="background:#FFF3E0;border-color:rgba(200,97,10,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--orange)">⚠️ RAZONES DE RECHAZO META:</div><div class="ibox-item">• Lista de beneficios sin asterisco → puede parecer garantía absoluta</div><div class="ibox-item">• Imágenes de medicamentos o dispositivos médicos sin contexto apropiado</div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">🚫 RAZONES DE RECHAZO CMS:</div><div class="ibox-item">• Beneficios con '$' amounts sin plan específico aprobado por carrier</div><div class="ibox-item">• 'OTC allowance' con cantidad sin plan aprobado</div><div class="ibox-item">• Dental/visión sin aclarar que es Medicare ADVANTAGE, no Original</div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="card-v3" style="border-color:var(--border)">
+  <button class="card-header" onclick="toggleCard('v3')">
+    <div class="card-meta">
+      <div class="ad-icon" style="background:#FEF3E9">⏰</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span class="ad-num" style="background:#C8610A">VAR 3</span>
+          <span class="ad-title">URGENCIA / DEADLINE</span>
+          <span class="ad-sub">— FOMO + Scarcity</span>
+        </div>
+        <div class="pills">
+          <span class="pill" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">FOMO + Scarcity + Deadline rea</span>
+          <span class="pill" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$15–20/día</span>
+          <span class="pill" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(74,123,157,.3)">📍 FB + IG Feed</span>
+        </div>
+      </div>
+    </div>
+    <span class="chevron" id="chev-v3" style="color:#C8610A">▼</span>
+  </button>
+  <div class="ad-body" id="body-v3" style="border-top-color:#C8610A33">
+    <div class="psy-bar" style="background:#FEF3E9;border-bottom-color:#C8610A22">
+      <span><strong style="color:#C8610A">Psicología:</strong> FOMO + Scarcity + Deadline real</span>
+      <span><strong style="color:#C8610A">Etapa:</strong> Decisión</span>
+      <span><strong style="color:var(--red)">⚠️ Usar SOLO durante: Oct 15–Dec 7 (AEP) | Ene 1–Mar 31 (OEP) | Cumpleaños ±3 meses (IEP)</strong></span>
+    </div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" style="color:#C8610A" onclick="showIT('v3','copy',this)">📝 Copy</button>
+      <button class="inner-tab" onclick="showIT('v3','specs',this)">📐 Specs</button>
+      <button class="inner-tab" onclick="showIT('v3','targeting',this)">🎯 Targeting</button>
+      <button class="inner-tab" onclick="showIT('v3','image',this)">🖼️ Imagen</button>
+      <button class="inner-tab" onclick="showIT('v3','compliance',this)">✅ Compliance</button>
+    </div>
+    <div class="tab-pane active" id="v3-copy">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">HEADLINE</span><span class="cbar-cnt" style="color:var(--green)">32/40 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:80%;background:var(--green)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">TEXTO PRINCIPAL (mobile)</span><span class="cbar-cnt" style="color:var(--green)">120/125 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:96%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">DESCRIPCIÓN</span><span class="cbar-cnt" style="color:var(--green)">29/30 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:96%;background:var(--orange)"></div></div></div>
+        <div style="margin-top:10px"><span class="tag" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">CTA: Sign Up</span></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:#C8610A;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Headline — Variantes A/B/C</div>
+        <div class="vrow pri" style="border-color:rgba(200,97,10,.4)"><span class="vletter" style="background:#FEF3E9;color:#C8610A">AEP</span><span class="vtext" style="font-weight:600;">Open Enrollment termina Dec 7</span><span class="vcnt">32 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">T65</span><span class="vtext" style="">Tienes 3 meses. No pierdas tu fecha</span><span class="vcnt">37 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">EVG</span><span class="vtext" style="">Las fechas de Medicare no esperan</span><span class="vcnt">35 car.</span></div>
+      </div>
+      <div class="copy-box">
+        <div class="copy-head"><span class="copy-label">TEXTO COMPLETO — Variación 3: URGENCIA / DEADLINE</span><button class="copy-btn" onclick="copyEl(this,'v3txt')">Copiar</button></div>
+        <pre id="v3txt">⏰ El Open Enrollment de Medicare termina el 7 de diciembre.
+
+Después de esa fecha, no podrás cambiar tu plan hasta el próximo año — incluso si no estás satisfecho.
+
+Antes del 7 de diciembre, puedes:
+→ Cambiar a un plan con mejores beneficios
+→ Reducir lo que pagas de copagos
+→ Agregar cobertura dental o de visión
+→ Cambiar a un plan que sí incluya a tus médicos
+
+La revisión con Isabel toma menos de 30 minutos.
+Es gratis. Es en español. Y puede cambiar tu 2026.
+
+[Agendar Mi Revisión — ANTES DEL DEC 7]
+
+─────────────────────────────────────────
+Isabel Fuentes | CA Lic # [INSERTA] | NPN: [INSERTA]
+*AEP runs Oct 15 – Dec 7. Benefits vary by plan. Not affiliated with Medicare or U.S. government.*
+
+━━━━━━━━━━━━━━━━━━━━━━
+VERSIÓN T-65 (evergreen):
+━━━━━━━━━━━━━━━━━━━━━━
+Cuando cumples 65, tienes una ventana de 7 meses para inscribirte en Medicare.
+
+Si la dejas pasar, pueden aplicarte una penalidad permanente en tu prima — para el resto de tu vida.
+
+La ventana empieza 3 meses ANTES de tu cumpleaños. Muchas personas no saben esto hasta que es tarde.
+
+¿Cuándo cumples 65? Si es en los próximos 6 meses, necesitamos hablar hoy.
+
+[Quiero Información — Es Urgente]
+
+Isabel Fuentes | Licensed Medicare Agent | California
+CA Lic # [INSERTA] | NPN: [INSERTA] | withisabelfuentes.com
+*Late enrollment penalties may apply. Consult with a licensed agent.*</pre>
+      </div>
+    </div>
+    <div class="tab-pane" id="v3-specs">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="kv"><div class="kv-k">Objetivo</div><div class="kv-v">Lead Generation</div></div>
+        <div class="kv"><div class="kv-k">Special Ad Cat.</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+        <div class="kv"><div class="kv-k">Presupuesto</div><div class="kv-v">$15–20/día</div></div>
+        <div class="kv"><div class="kv-k">Mejor placement</div><div class="kv-v">FB + IG Feed</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25)"><div class="ibox-title" style="color:var(--green)">✅ USAR</div><div class="ibox-item">• Facebook Feed</div><div class="ibox-item">• Instagram Feed</div><div class="ibox-item">• Facebook Stories</div></div>
+        <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">❌ NO USAR</div><div class="ibox-item">• Audience Network</div><div class="ibox-item">• Messenger (baja urgencia visual)</div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="v3-targeting">
+      <div class="copy-box" style="margin-bottom:12px"><div class="copy-head"><span class="copy-label">Nombre del Ad Set — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'v3-adset')">Copiar</button></div><pre id="v3-adset">V3_Urgency_AEP_IE_63-67</pre></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">📍 Ubicación</div><div style="font-size:12.5px;margin-top:4px;line-height:1.6">Inland Empire FOCUS: Riverside, San Bernardino, Ontario, Fontana, Moreno Valley, Corona</div></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">👤 Edad</div><div class="kv-v">63 – 67</div></div>
+      <div class="kv" style="margin-bottom:10px"><div class="kv-k">🗣️ Idioma</div><div class="kv-v">Spanish (All)</div></div>
+      <div class="ibox" style="background:#FEF3E9;border-color:#C8610A33;margin-bottom:10px"><div class="ibox-title" style="color:#C8610A">✅ INCLUIR (Detailed Targeting)</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">Retargeting: Vio video V1/V2 al 25%+</span><span class="tag" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">Retargeting: Visitó withisabelfuentes.com</span><span class="tag" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">Lookalike 1%: Similar a lista de clientes</span><span class="tag" style="background:#FEF3E9;color:#C8610A;border-color:#C8610A44">Lookalike 2%: Expansión</span></div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.2)"><div class="ibox-title" style="color:var(--red)">❌ EXCLUIR</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">NO lanzar fuera de AEP/OEP/IEP sin ajustar copy</span></div></div>
+    </div>
+    <div class="tab-pane" id="v3-image">
+      <div class="concept" style="border-left-color:#C8610A;border-color:#C8610A33;background:var(--surface)"><div class="concept-lbl" style="color:#C8610A">Opción A — Recomendada</div><div class="concept-txt">COUNTDOWN: Imagen con calendario grande. Fecha 'DEC 7' en rojo/naranja. Fondo oscuro azul marino. Texto: 'Última oportunidad 2025' en blanco. Logo Isabel en esquina.</div></div>
+      <div class="concept" style="border-left-color:var(--teal);border-color:rgba(74,123,157,.25);background:var(--surface)"><div class="concept-lbl" style="color:var(--teal-dark)">Opción B</div><div class="concept-txt">EMOCIONAL: Pareja hispana 65+ mirando al frente con confianza. Overlay suave: 'Tu decisión. Tu futuro.' Colores cálidos.</div></div>
+      <div class="kv" style="margin-top:10px"><div class="kv-k">Especificaciones técnicas</div><div style="font-size:12.5px;margin-top:4px;line-height:1.7">Feed: 1080×1080px | Stories: 1080×1920px | Evita relojes con 'alarma' — Meta puede rechazarlo<br><span style="color:var(--text-muted)">Colores: Rojo urgencia #C0392B + Blanco + Azul marino</span></div></div>
+    </div>
+    <div class="tab-pane" id="v3-compliance">
+      <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--green)">✅ ESTE ANUNCIO ES SEGURO PORQUE:</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Fechas de AEP/OEP son oficiales y verificables por CMS</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Penalidades por inscripción tardía son reales y documentadas</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No promete resultados específicos de ahorro</div></div>
+      <div class="ibox" style="background:#FFF3E0;border-color:rgba(200,97,10,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--orange)">⚠️ RAZONES DE RECHAZO META:</div><div class="ibox-item">• Countdown timers falsos o manipulados → policy violation</div><div class="ibox-item">• Urgencia artificial fuera de períodos oficiales</div><div class="ibox-item">• Relojes de alarma o imágenes de crisis → puede activar revisión</div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">🚫 RAZONES DE RECHAZO CMS:</div><div class="ibox-item">• 'Último día para inscribirte' sin especificar el período exacto</div><div class="ibox-item">• Urgencia falsa fuera de períodos oficiales de CMS</div><div class="ibox-item">• 'Corre, solo quedan X días' sin fecha verificable</div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="card-v4" style="border-color:var(--border)">
+  <button class="card-header" onclick="toggleCard('v4')">
+    <div class="card-meta">
+      <div class="ad-icon" style="background:#F2EDF7">💙</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span class="ad-num" style="background:#6B4C8A">VAR 4</span>
+          <span class="ad-title">HISTORIA PERSONAL</span>
+          <span class="ad-sub">— Story-Based</span>
+        </div>
+        <div class="pills">
+          <span class="pill" style="background:#F2EDF7;color:#6B4C8A;border-color:#6B4C8A44">Conexión emocional + Trust + I</span>
+          <span class="pill" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$12–18/día</span>
+          <span class="pill" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(74,123,157,.3)">📍 FB Feed + Reels</span>
+        </div>
+      </div>
+    </div>
+    <span class="chevron" id="chev-v4" style="color:#6B4C8A">▼</span>
+  </button>
+  <div class="ad-body" id="body-v4" style="border-top-color:#6B4C8A33">
+    <div class="psy-bar" style="background:#F2EDF7;border-bottom-color:#6B4C8A22">
+      <span><strong style="color:#6B4C8A">Psicología:</strong> Conexión emocional + Trust + Identificación cultural</span>
+      <span><strong style="color:#6B4C8A">Etapa:</strong> Awareness profunda → Lead</span>
+      <span><strong style="color:#6B4C8A">💡 Texto largo permitido — Meta permite hasta 2,200 chars. Isabel habla en 1ª persona.</strong></span>
+    </div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" style="color:#6B4C8A" onclick="showIT('v4','copy',this)">📝 Copy</button>
+      <button class="inner-tab" onclick="showIT('v4','specs',this)">📐 Specs</button>
+      <button class="inner-tab" onclick="showIT('v4','targeting',this)">🎯 Targeting</button>
+      <button class="inner-tab" onclick="showIT('v4','image',this)">🖼️ Imagen</button>
+      <button class="inner-tab" onclick="showIT('v4','compliance',this)">✅ Compliance</button>
+    </div>
+    <div class="tab-pane active" id="v4-copy">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">HEADLINE</span><span class="cbar-cnt" style="color:var(--green)">40/40 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:100%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">TEXTO PRINCIPAL (mobile)</span><span class="cbar-cnt" style="color:var(--green)">850/2200 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:38%;background:var(--green)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">DESCRIPCIÓN</span><span class="cbar-cnt" style="color:var(--green)">30/30 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:100%;background:var(--orange)"></div></div></div>
+        <div style="margin-top:10px"><span class="tag" style="background:#F2EDF7;color:#6B4C8A;border-color:#6B4C8A44">CTA: Learn More</span></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:#6B4C8A;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Headline — Variantes A/B/C</div>
+        <div class="vrow pri" style="border-color:rgba(107,76,138,.4)"><span class="vletter" style="background:#F2EDF7;color:#6B4C8A">A</span><span class="vtext" style="font-weight:600;">Por qué me convertí en agente de Medicare</span><span class="vcnt">40 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">B</span><span class="vtext" style="">La historia que cambió mi carrera</span><span class="vcnt">32 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">C</span><span class="vtext" style="">Lo que nadie te dice sobre Medicare en CA</span><span class="vcnt">40 car.</span></div>
+      </div>
+      <div class="copy-box">
+        <div class="copy-head"><span class="copy-label">TEXTO COMPLETO — Variación 4: HISTORIA PERSONAL</span><button class="copy-btn" onclick="copyEl(this,'v4txt')">Copiar</button></div>
+        <pre id="v4txt">Mi nombre es Isabel Fuentes y quiero contarte algo personal.
+
+Cuando mi familia llegó a California, nadie nos explicó cómo funcionaba el sistema de salud aquí. Mi mamá cumplió 65 años y no sabíamos nada de Medicare. No sabíamos las fechas. No sabíamos qué preguntar. No sabíamos que había personas que podían ayudarnos — sin cobrarnos nada.
+
+Eso cambió mi vida.
+
+Hoy soy agente licenciada de seguros de salud en California. Trabajo con las principales aseguradoras del estado — SCAN, Anthem, Humana, LA Care, Health Net, Molina, Alignment y United Healthcare.
+
+Pero más importante: trabajo para mis clientes.
+
+Cada semana hablo con familias hispanas en Los Ángeles, Orange County y el Inland Empire que están exactamente donde estaba mi familia antes: Confundidos. Sin información. Sin nadie que les explique en español, sin prisa, sin letras pequeñas.
+
+Mi trabajo es ser esa persona para ti.
+
+✓ Te explico todo en español
+✓ Comparo todos los planes disponibles en tu área
+✓ No te cobro nada — mi compensación viene de las aseguradoras
+✓ Te acompaño durante todo el proceso
+✓ Soy tu agente de por vida, no solo para inscribirte
+
+Si tú o alguien en tu familia se acerca a los 65, o si ya tienen Medicare y quieren revisarlo — toca &quot;Learn More&quot; y hablemos.
+
+No tienes que enfrentar esto solo.
+
+— Isabel Fuentes
+   Licensed Insurance Agent | California
+   withisabelfuentes.com
+
+─────────────────────────────────────────────────
+CA License # [INSERTA] | NPN: [INSERTA]
+*Independent agent licensed to sell Medicare Advantage, Medicare Supplement, and Part D plans in California. Not affiliated with or endorsed by Medicare or the U.S. federal government. Plans vary by region.*</pre>
+      </div>
+    </div>
+    <div class="tab-pane" id="v4-specs">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="kv"><div class="kv-k">Objetivo</div><div class="kv-v">Lead Generation</div></div>
+        <div class="kv"><div class="kv-k">Special Ad Cat.</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+        <div class="kv"><div class="kv-k">Presupuesto</div><div class="kv-v">$12–18/día</div></div>
+        <div class="kv"><div class="kv-k">Mejor placement</div><div class="kv-v">FB Feed + Reels</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25)"><div class="ibox-title" style="color:var(--green)">✅ USAR</div><div class="ibox-item">• Facebook Feed (texto largo)</div><div class="ibox-item">• Instagram Feed</div><div class="ibox-item">• Facebook Watch (video)</div><div class="ibox-item">• Reels (video vertical)</div></div>
+        <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">❌ NO USAR</div><div class="ibox-item">• Stories — muy cortas para historia larga</div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="v4-targeting">
+      <div class="copy-box" style="margin-bottom:12px"><div class="copy-head"><span class="copy-label">Nombre del Ad Set — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'v4-adset')">Copiar</button></div><pre id="v4-adset">V4_Story_ALL_SoCal_60-70</pre></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">📍 Ubicación</div><div style="font-size:12.5px;margin-top:4px;line-height:1.6">TODOS los condados: LA + OC + Riverside + San Bernardino</div></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">👤 Edad</div><div class="kv-v">60 – 70 (rango más amplio para story)</div></div>
+      <div class="kv" style="margin-bottom:10px"><div class="kv-k">🗣️ Idioma</div><div class="kv-v">Spanish (All)</div></div>
+      <div class="ibox" style="background:#F2EDF7;border-color:#6B4C8A33;margin-bottom:10px"><div class="ibox-title" style="color:#6B4C8A">✅ INCLUIR (Detailed Targeting)</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:#F2EDF7;color:#6B4C8A;border-color:#6B4C8A44">Cold: AARP + Telemundo + Spanish media</span><span class="tag" style="background:#F2EDF7;color:#6B4C8A;border-color:#6B4C8A44">Lookalike 1%: Base de clientes</span><span class="tag" style="background:#F2EDF7;color:#6B4C8A;border-color:#6B4C8A44">Lookalike 2%: Expansión</span></div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.2)"><div class="ibox-title" style="color:var(--red)">❌ EXCLUIR</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Insurance agents</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Works in: Insurance</span></div></div>
+    </div>
+    <div class="tab-pane" id="v4-image">
+      <div class="concept" style="border-left-color:#6B4C8A;border-color:#6B4C8A33;background:var(--surface)"><div class="concept-lbl" style="color:#6B4C8A">Opción A — Recomendada</div><div class="concept-txt">FOTO REAL DE ISABEL (MÁS EFECTIVA): En su oficina o reunión con clientes. Sonriendo, ropa profesional pero accesible. NO foto de estudio genérica. Formato vertical 4:5 (1080×1350px).</div></div>
+      <div class="concept" style="border-left-color:var(--teal);border-color:rgba(74,123,157,.25);background:var(--surface)"><div class="concept-lbl" style="color:var(--teal-dark)">Opción B</div><div class="concept-txt">COLLAGE: Frame 1: Foto Isabel comenzando | Frame 2: Con clientes actuales | Frame 3: Logos de carriers | Frame 4: CTA visual.</div></div>
+      <div class="kv" style="margin-top:10px"><div class="kv-k">Especificaciones técnicas</div><div style="font-size:12.5px;margin-top:4px;line-height:1.7">Feed: 1080×1350px (4:5 vertical) | Reels: 1080×1920px | La autenticidad supera la producción elaborada<br><span style="color:var(--text-muted)">Colores: Cálidos, naturales — No sobreproducidos</span></div></div>
+    </div>
+    <div class="tab-pane" id="v4-compliance">
+      <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--green)">✅ ESTE ANUNCIO ES SEGURO PORQUE:</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Historia personal sin claims de beneficios específicos</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No menciona planes sin aprobación</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Carriers mencionados como lista informativa, no como claim</div></div>
+      <div class="ibox" style="background:#FFF3E0;border-color:rgba(200,97,10,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--orange)">⚠️ RAZONES DE RECHAZO META:</div><div class="ibox-item">• Historia de cliente real sin release firmado</div><div class="ibox-item">• Mencionar experiencias médicas específicas de terceros sin consentimiento</div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">🚫 RAZONES DE RECHAZO CMS:</div><div class="ibox-item">• Si mencionas carriers: necesitas aprobación de materiales de cada uno</div><div class="ibox-item">• No uses logos de carriers sin permiso escrito</div><div class="ibox-item">• Historia de cliente = testimonial → requiere release y compliance del carrier</div></div>
+    </div>
+  </div>
+</div>
+<div class="card" id="card-v5" style="border-color:var(--border)">
+  <button class="card-header" onclick="toggleCard('v5')">
+    <div class="card-meta">
+      <div class="ad-icon" style="background:#EBF3F8">🇲🇽</div>
+      <div>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+          <span class="ad-num" style="background:#4A7B9D">VAR 5</span>
+          <span class="ad-title">COMPLETAMENTE EN ESPAÑOL</span>
+          <span class="ad-sub">— Cultural Connection</span>
+        </div>
+        <div class="pills">
+          <span class="pill" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">Pertinencia cultural máxima + </span>
+          <span class="pill" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$10–15/día</span>
+          <span class="pill" style="background:var(--teal-light);color:var(--teal-dark);border-color:rgba(74,123,157,.3)">📍 FB Feed</span>
+        </div>
+      </div>
+    </div>
+    <span class="chevron" id="chev-v5" style="color:#4A7B9D">▼</span>
+  </button>
+  <div class="ad-body" id="body-v5" style="border-top-color:#4A7B9D33">
+    <div class="psy-bar" style="background:#EBF3F8;border-bottom-color:#4A7B9D22">
+      <span><strong style="color:#2E5F7A">Psicología:</strong> Pertinencia cultural máxima + Confianza en idioma nativo</span>
+      <span><strong style="color:#2E5F7A">Etapa:</strong> Awareness → Lead inmediato</span>
+      <span><strong style="color:#2E5F7A">💡 100% español, sin code-switching. El idioma nativo genera 2-3x más confianza en 60+.</strong></span>
+    </div>
+    <div class="inner-tabs">
+      <button class="inner-tab active" style="color:#4A7B9D" onclick="showIT('v5','copy',this)">📝 Copy</button>
+      <button class="inner-tab" onclick="showIT('v5','specs',this)">📐 Specs</button>
+      <button class="inner-tab" onclick="showIT('v5','targeting',this)">🎯 Targeting</button>
+      <button class="inner-tab" onclick="showIT('v5','image',this)">🖼️ Imagen</button>
+      <button class="inner-tab" onclick="showIT('v5','compliance',this)">✅ Compliance</button>
+    </div>
+    <div class="tab-pane active" id="v5-copy">
+      <div style="background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:14px">
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">HEADLINE</span><span class="cbar-cnt" style="color:var(--green)">40/40 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:100%;background:var(--orange)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">TEXTO PRINCIPAL (mobile)</span><span class="cbar-cnt" style="color:var(--green)">97/125 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:77%;background:var(--green)"></div></div></div>
+        <div class="cbar-wrap"><div class="cbar-row"><span class="cbar-lbl">DESCRIPCIÓN</span><span class="cbar-cnt" style="color:var(--green)">30/30 ✓</span></div><div class="cbar-track"><div class="cbar-fill" style="width:100%;background:var(--orange)"></div></div></div>
+        <div style="margin-top:10px"><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">CTA: Learn More</span></div>
+      </div>
+      <div style="margin-bottom:16px">
+        <div style="font-size:11px;font-weight:800;color:#4A7B9D;text-transform:uppercase;letter-spacing:.6px;margin-bottom:8px">Headline — Variantes A/B/C</div>
+        <div class="vrow pri" style="border-color:rgba(74,123,157,.4)"><span class="vletter" style="background:#EBF3F8;color:#4A7B9D">A</span><span class="vtext" style="font-weight:600;">Medicare en español, aquí en California</span><span class="vcnt">40 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">B</span><span class="vtext" style="">¿Hablas español? Yo también. Hablemos.</span><span class="vcnt">38 car.</span></div><div class="vrow " style="border-color:var(--border)"><span class="vletter" style="background:var(--tag-bg);color:var(--text-muted)">C</span><span class="vtext" style="">Tu salud merece explicación en tu idioma</span><span class="vcnt">39 car.</span></div>
+      </div>
+      <div class="copy-box">
+        <div class="copy-head"><span class="copy-label">TEXTO COMPLETO — Variación 5: COMPLETAMENTE EN ESPAÑOL</span><button class="copy-btn" onclick="copyEl(this,'v5txt')">Copiar</button></div>
+        <pre id="v5txt">Cuando se trata de tu salud, entender todo en tu propio idioma lo cambia todo.
+
+Medicare puede ser confuso — incluso en inglés. Pero cuando lo explican en un idioma que no es el tuyo, es todavía más difícil tomar buenas decisiones.
+
+Yo soy Isabel Fuentes.
+Soy agente licenciada de seguros médicos en California y llevo años ayudando a familias hispanas del Sur de California a navegar Medicare con confianza.
+
+Te explico en español:
+📋 Cómo funciona Medicare Parte A, B, C y D
+🔍 La diferencia entre Medicare Advantage y Suplementario
+💰 Si calificas para ayuda con el costo de tus medicamentos
+👨‍⚕️ Cómo mantener a tus médicos de confianza en tu plan
+📅 Cuándo y cómo inscribirte sin cometer errores
+
+Mi servicio no te cuesta nada.
+Trabajo con las principales aseguradoras de California:
+SCAN · Anthem · Humana · LA Care · Health Net · Molina · Alignment
+
+📍 Atiendo en persona, por teléfono o videollamada
+📍 Los Ángeles · Condado Orange · Inland Empire
+
+¿Tienes preguntas? Toca el botón aquí abajo.
+Te respondo hoy mismo — en español.
+
+[Quiero información gratuita]
+
+─────────────────────────────────────────────────────
+Isabel Fuentes | Agente Licenciada de Seguros
+Licencia CA # [INSERTA] | NPN: [INSERTA]
+withisabelfuentes.com
+
+*Planes varían según el área y la aseguradora. Información educativa solamente. No afiliada con el gobierno federal ni con el programa Medicare.*</pre>
+      </div>
+    </div>
+    <div class="tab-pane" id="v5-specs">
+      <div class="grid2" style="margin-bottom:14px">
+        <div class="kv"><div class="kv-k">Objetivo</div><div class="kv-v">Lead Generation</div></div>
+        <div class="kv"><div class="kv-k">Special Ad Cat.</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+        <div class="kv"><div class="kv-k">Presupuesto</div><div class="kv-v">$10–15/día</div></div>
+        <div class="kv"><div class="kv-k">Mejor placement</div><div class="kv-v">FB Feed</div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25)"><div class="ibox-title" style="color:var(--green)">✅ USAR</div><div class="ibox-item">• Facebook Feed (mayor base hispana 60+)</div><div class="ibox-item">• Facebook Stories</div><div class="ibox-item">• Messenger (hispanohablantes muy activos)</div></div>
+        <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">❌ NO USAR</div><div class="ibox-item">• Instagram — audiencia tiende a ser más joven para este demo</div></div>
+      </div>
+    </div>
+    <div class="tab-pane" id="v5-targeting">
+      <div class="copy-box" style="margin-bottom:12px"><div class="copy-head"><span class="copy-label">Nombre del Ad Set — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'v5-adset')">Copiar</button></div><pre id="v5-adset">V5_Spanish_ALL_SoCal_60-70</pre></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">📍 Ubicación</div><div style="font-size:12.5px;margin-top:4px;line-height:1.6">East LA · Boyle Heights · Santa Ana · Garden Grove · Westminster · Pomona · Ontario · Fontana · Perris · Riverside</div></div>
+      <div class="kv" style="margin-bottom:8px"><div class="kv-k">👤 Edad</div><div class="kv-v">60 – 70</div></div>
+      <div class="kv" style="margin-bottom:10px"><div class="kv-k">🗣️ Idioma</div><div class="kv-v">SOLO Español — NO incluir inglés aquí</div></div>
+      <div class="ibox" style="background:#EBF3F8;border-color:#4A7B9D33;margin-bottom:10px"><div class="ibox-title" style="color:#2E5F7A">✅ INCLUIR (Detailed Targeting)</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">Idioma dispositivo en español</span><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">Telemundo / Univision / Azteca América</span><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">La Opinión</span><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">KLOVE en Español</span><span class="tag" style="background:#EBF3F8;color:#4A7B9D;border-color:#4A7B9D44">First-generation immigrants</span></div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.2)"><div class="ibox-title" style="color:var(--red)">❌ EXCLUIR</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Insurance agents</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Works in: Insurance</span></div></div>
+    </div>
+    <div class="tab-pane" id="v5-image">
+      <div class="concept" style="border-left-color:#4A7B9D;border-color:#4A7B9D33;background:var(--surface)"><div class="concept-lbl" style="color:#2E5F7A">Opción A — Recomendada</div><div class="concept-txt">CULTURAL CONNECTION: Foto de Isabel con cliente hispano/a mayor. Sentados juntos revisando documentos. Ambiente: hogar con detalles latinoamericanos cálidos (plantas, luz natural).</div></div>
+      <div class="concept" style="border-left-color:var(--teal);border-color:rgba(74,123,157,.25);background:var(--surface)"><div class="concept-lbl" style="color:var(--teal-dark)">Opción B</div><div class="concept-txt">SIMPLE Y EFECTIVA: Foto de Isabel mirando a cámara sonriendo. Texto overlay: 'En español 🗣️'. Fondo color sólido azul o verde confianza. Alta tasa de reconocimiento.</div></div>
+      <div class="kv" style="margin-top:10px"><div class="kv-k">Especificaciones técnicas</div><div style="font-size:12.5px;margin-top:4px;line-height:1.7">Feed: 1080×1080px o 1080×1350px | Messenger: 1200×628px<br><span style="color:var(--text-muted)">Colores: Azul confianza + Verde esperanza + Detalles cálidos tierra</span></div></div>
+    </div>
+    <div class="tab-pane" id="v5-compliance">
+      <div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--green)">✅ ESTE ANUNCIO ES SEGURO PORQUE:</div><div class="ibox-item"><span style="color:var(--green)">✓</span> Todo en español incluyendo disclaimer</div><div class="ibox-item"><span style="color:var(--green)">✓</span> NPN incluido: 'Número de Productor Nacional'</div><div class="ibox-item"><span style="color:var(--green)">✓</span> No menciona beneficios sin carriers aprobados</div></div>
+      <div class="ibox" style="background:#FFF3E0;border-color:rgba(200,97,10,.25);margin-bottom:10px"><div class="ibox-title" style="color:var(--orange)">⚠️ RAZONES DE RECHAZO META:</div><div class="ibox-item">• Banderas de países pueden activar revisión de políticas de no-discriminación</div><div class="ibox-item">• Términos religiosos o étnicos muy específicos pueden disparar revisión manual</div></div>
+      <div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.25)"><div class="ibox-title" style="color:var(--red)">🚫 RAZONES DE RECHAZO CMS:</div><div class="ibox-item">• Disclaimer también debe estar en español si el anuncio es en español</div><div class="ibox-item">• No omitas NPN aunque el anuncio sea casual en tono</div><div class="ibox-item">• Carriers mencionados sin aprobación de materiales</div></div>
+    </div>
+  </div>
+</div></div><!-- /sec-ads -->
+
+<!-- CONFIG GLOBAL -->
+<div id="sec-global" style="display:none">
+<div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.3);margin-bottom:20px">
+  <div class="ibox-title" style="color:var(--red)">🚫 TARGETING PROHIBIDO POR META (Health Policies)</div>
+  <div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:4px">
+    <span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">diabetes</span>
+    <span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">heart disease</span>
+    <span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">condiciones de salud específicas</span>
+    <span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Medicaid como interés</span>
+    <span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Medi-Cal como interés</span>
+  </div>
+</div>
+<div class="grid2" style="margin-bottom:16px">
+  <div class="kv"><div class="kv-k">Plataforma</div><div class="kv-v">Facebook + Instagram</div></div>
+  <div class="kv"><div class="kv-k">Objetivo de campaña</div><div class="kv-v">Lead Generation (Instant Form)</div></div>
+  <div class="kv"><div class="kv-k">Special Ad Category</div><div class="kv-v" style="color:var(--green)">NONE ✓</div></div>
+  <div class="kv"><div class="kv-k">Pixel</div><div class="kv-v">Requerido antes de lanzar</div></div>
+  <div class="kv"><div class="kv-k">Presupuesto / Ad Set</div><div class="kv-v">$10–$20/día</div></div>
+  <div class="kv"><div class="kv-k">Duración inicial</div><div class="kv-v">14 días (fase aprendizaje)</div></div>
+  <div class="kv"><div class="kv-k">CPL objetivo</div><div class="kv-v">$8–$18</div></div>
+  <div class="kv"><div class="kv-k">Idioma targeting</div><div class="kv-v">Español (All) + Inglés</div></div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-mid)">🎯 Targeting Base — Aplica a todos los Ad Sets</div>
+  <div style="padding:16px 18px">
+    <div class="grid2" style="margin-bottom:14px">
+      <div><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">DEMOGRAFÍA</div><div style="font-size:12.5px;line-height:1.8">Edad: 63–67 años<br>Género: Todos<br>Radio: +25 millas por área urbana</div></div>
+      <div><div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">CONDADOS TARGET</div><div style="font-size:12.5px;line-height:1.8">📍 Los Ángeles County<br>📍 Orange County<br>📍 Riverside County<br>📍 San Bernardino County</div></div>
+    </div>
+    <div style="margin-bottom:12px"><div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:6px">✅ INTERESES PERMITIDOS</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">AARP</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Univisión</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Telemundo</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Retirement planning</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Social Security</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Spanish language</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Senior living</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">AARP Magazine</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Jubilación</span></div></div>
+    <div><div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:6px">❌ EXCLUIR SIEMPRE</div><div style="display:flex;flex-wrap:wrap;gap:5px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Leads enviados 30 días</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Insurance agents</span><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">Works in: Insurance</span></div></div>
+  </div>
+</div>
+</div>
+
+<!-- INSTANT FORM -->
+<div id="sec-form" style="display:none">
+<div class="ibox" style="background:var(--teal-light);border-color:rgba(74,123,157,.3);margin-bottom:20px">
+  <div class="ibox-title" style="color:var(--teal-dark)">📋 Tipo: "Higher intent" (NO "More volume")</div>
+  <div class="ibox-item">Reduce leads falsos · Aumenta calidad de contacto · Vale la pena el menor volumen</div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--teal);padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#fff">PÁGINA 1 — INTRO</div></div>
+  <div style="padding:16px 18px">
+    <div class="kv" style="margin-bottom:8px"><div class="kv-k">Título</div><div class="kv-v">Obtén información gratuita sobre Medicare</div></div>
+    <div class="kv" style="margin-bottom:8px"><div class="kv-k">Imagen</div><div class="kv-v">Foto de Isabel — refuerza confianza inmediata</div></div>
+    <div class="kv"><div class="kv-k">Subtítulo</div><div class="kv-v">Isabel te ayuda en español, sin costo.</div></div>
+  </div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--gold);padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#fff">PÁGINA 2 — CAMPOS</div></div>
+  <div style="padding:16px 18px">
+    <div class="fform-row"><span class="fnum">1</span><div><div class="flbl">Nombre completo</div><div class="ftype">Tipo: text</div></div></div>
+    <div class="fform-row"><span class="fnum">2</span><div><div class="flbl">Teléfono</div><div class="ftype">Tipo: phone — Pre-filled si Meta tiene el dato</div></div></div>
+    <div class="fform-row"><span class="fnum">3</span><div><div class="flbl">Email</div><div class="ftype">Tipo: email — Pre-filled</div></div></div>
+    <div class="fform-row"><span class="fnum">4</span><div><div class="flbl">¿Cuándo cumples 65?</div><div class="ftype">Tipo: dropdown</div><div class="fopts"><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Ya tengo Medicare (65+)</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">En menos de 6 meses</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">En 6 a 12 meses</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">En más de 1 año</span></div></div></div>
+    <div class="fform-row"><span class="fnum">5</span><div><div class="flbl">¿En qué condado vives?</div><div class="ftype">Tipo: dropdown</div><div class="fopts"><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Los Ángeles</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Orange County</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Riverside</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">San Bernardino</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Otro</span></div></div></div>
+    <div class="fform-row" style="border:none"><span class="fnum">6</span><div><div class="flbl">¿Prefieres que te contacten en?</div><div class="ftype">Tipo: radio</div><div class="fopts"><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Español</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">English / Inglés</span><span class="tag" style="background:var(--tag-bg);color:var(--text-mid);border-color:var(--border)">Ambos / Both</span></div></div></div>
+  </div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--red);padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#fff">PÁGINA 3 — CONSENTIMIENTO TCPA</div></div>
+  <div style="padding:16px 18px">
+    <div class="copy-box">
+      <div class="copy-head"><span class="copy-label">Texto de consentimiento — copia exacto</span><button class="copy-btn" onclick="copyEl(this,'consent')">Copiar</button></div>
+      <pre id="consent">Al enviar este formulario, usted autoriza a Isabel Fuentes, agente licenciada de seguros (CA Lic # [INSERTA], NPN: [INSERTA]), a contactarle por teléfono, mensaje de texto o correo electrónico para discutir opciones de seguro médico y Medicare disponibles en su área.
+
+No vendemos su información personal. Puede cancelar la comunicación en cualquier momento.
+
+Esta comunicación no representa una solicitud de ningún plan específico. Los planes disponibles varían por área y aseguradora.
+
+Privacy Policy: withisabelfuentes.com/privacy</pre>
+    </div>
+  </div>
+</div>
+<div class="ibox" style="background:var(--green-light);border-color:rgba(46,125,85,.3)">
+  <div class="ibox-title" style="color:var(--green)">✅ CONFIRMATION SCREEN</div>
+  <div class="kv" style="background:var(--white);margin-bottom:8px"><div class="kv-k">Título</div><div class="kv-v">¡Gracias! Te contactaré pronto.</div></div>
+  <div class="kv" style="background:var(--white);margin-bottom:8px"><div class="kv-k">Mensaje</div><div class="kv-v">Isabel revisará tu información y te llamará en las próximas 24 horas.</div></div>
+  <div class="kv" style="background:var(--white)"><div class="kv-k">CTA Link</div><div class="kv-v">withisabelfuentes.com</div></div>
+</div>
+</div>
+
+<!-- COMPLIANCE -->
+<div id="sec-compliance" style="display:none">
+<div class="ibox" style="background:var(--red-light);border-color:rgba(192,57,43,.4);margin-bottom:20px;display:flex;gap:12px">
+  <span style="font-size:24px;flex-shrink:0">🚨</span>
+  <div><div style="font-weight:700;color:var(--red);margin-bottom:4px;font-size:14px">Checklist Obligatorio — Antes de publicar CUALQUIER anuncio</div><div style="font-size:12.5px">Haz click en los checkboxes para marcar completado. Un solo error = rechazo Meta, sanción CMS, o pérdida de licencia.</div></div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--teal);padding:12px 16px;display:flex;gap:10px;align-items:center"><span style="font-size:18px">📱</span><span style="font-size:13px;font-weight:700;color:#fff">META POLICIES</span></div>
+  <div style="padding:8px 16px">
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--teal)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No se menciona condición médica del usuario directamente</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--teal)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No hay lenguaje de antes/después de salud</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--teal)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Sin claims exagerados o no verificables</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--teal)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Imagen cumple regla 20% de texto</span></div>
+    <div class="chkitem" style="border:none"><div class="chkbox" style="border-color:var(--teal)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No se usa "garantizado" sin calificación legal</span></div>
+  </div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--purple);padding:12px 16px;display:flex;gap:10px;align-items:center"><span style="font-size:18px">🏛️</span><span style="font-size:13px;font-weight:700;color:#fff">CMS REGULATIONS</span></div>
+  <div style="padding:8px 16px">
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">NPN visible en TODOS los anuncios</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">CA License # incluida</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Disclaimer "Not affiliated with Medicare" presente</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No se listan beneficios sin carrier + plan aprobado</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No se usan logos de Medicare, CMS o Medicaid</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">"Gratis" se refiere a la consulta, NO al plan</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Form incluye consentimiento TCPA</span></div>
+    <div class="chkitem" style="border:none"><div class="chkbox" style="border-color:var(--purple)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Privacy Policy URL activa y disponible</span></div>
+  </div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:14px">
+  <div style="background:var(--orange);padding:12px 16px;display:flex;gap:10px;align-items:center"><span style="font-size:18px">🏥</span><span style="font-size:13px;font-weight:700;color:#fff">CARRIER-SPECIFIC</span></div>
+  <div style="padding:8px 16px">
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--orange)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Aprobación de SCAN para materiales con su nombre</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--orange)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Aprobación de Anthem para materiales con su nombre</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--orange)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Aprobación de Humana / LA Care / Molina si aparecen</span></div>
+    <div class="chkitem" style="border:none"><div class="chkbox" style="border-color:var(--orange)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">No usar logos de carriers sin permiso escrito del carrier</span></div>
+  </div>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="background:var(--red);padding:12px 16px;display:flex;gap:10px;align-items:center"><span style="font-size:18px">📞</span><span style="font-size:13px;font-weight:700;color:#fff">TCPA COMPLIANCE</span></div>
+  <div style="padding:8px 16px">
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--red)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Consentimiento explícito para llamadas/textos en el form</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--red)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Opt-out disponible y comunicado al contacto</span></div>
+    <div class="chkitem"><div class="chkbox" style="border-color:var(--red)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">Horarios de llamada dentro de regulación (8am–9pm)</span></div>
+    <div class="chkitem" style="border:none"><div class="chkbox" style="border-color:var(--red)" onclick="this.classList.toggle('checked');this.textContent=this.classList.contains('checked')?'✓':''"></div><span class="chk-lbl">CPRA California: documentar consentimiento de datos</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ESTRUCTURA -->
+<div id="sec-structure" style="display:none">
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px">
+  <div style="padding:14px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-mid)">🗂️ Arquitectura de Campañas en Meta Ads Manager</div>
+  <div class="camp-row"><div class="camp-left"><div class="camp-stripe" style="background:var(--red)"></div><div><div style="font-weight:700;font-size:14px;margin-bottom:4px">CAMPAÑA 1: T-65 Awareness</div><div style="display:flex;gap:4px"><span class="tag" style="background:var(--red-light);color:var(--red);border-color:rgba(192,57,43,.3)">V1 Pain Point</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">V2 Benefits</span></div></div></div><span class="tag" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$15–25/día</span></div>
+  <div class="camp-row"><div class="camp-left"><div class="camp-stripe" style="background:var(--orange)"></div><div><div style="font-weight:700;font-size:14px;margin-bottom:4px">CAMPAÑA 2: AEP/OEP Urgencia (solo temporada)</div><div style="display:flex;gap:4px"><span class="tag" style="background:var(--orange-light);color:var(--orange);border-color:rgba(200,97,10,.3)">V3 Urgencia</span></div></div></div><span class="tag" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$30–50/día</span></div>
+  <div class="camp-row"><div class="camp-left"><div class="camp-stripe" style="background:var(--teal)"></div><div><div style="font-weight:700;font-size:14px;margin-bottom:4px">CAMPAÑA 3: Lead Magnet Cultural</div><div style="display:flex;gap:4px"><span class="tag" style="background:var(--purple-light);color:var(--purple);border-color:rgba(107,76,138,.3)">V4 Historia</span><span class="tag" style="background:var(--teal-light);color:var(--teal);border-color:rgba(74,123,157,.3)">V5 Español</span></div></div></div><span class="tag" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$20–30/día</span></div>
+  <div class="camp-row" style="border:none"><div class="camp-left"><div class="camp-stripe" style="background:var(--green)"></div><div><div style="font-weight:700;font-size:14px;margin-bottom:4px">CAMPAÑA 4: Retargeting</div><div style="display:flex;gap:4px;flex-wrap:wrap"><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Video viewers 50%+</span><span class="tag" style="background:var(--green-light);color:var(--green);border-color:rgba(46,125,85,.3)">Web visitors 30 días</span></div></div></div><span class="tag" style="background:var(--gold-light);color:var(--gold-dark);border-color:rgba(192,153,110,.3)">$10–15/día</span></div>
+</div>
+<div class="grid2">
+  <div class="phase" style="border-color:rgba(74,123,157,.3);border-top-color:var(--teal)"><div class="phase-title" style="color:var(--teal)">Fase 1 — Aprendizaje (Días 1-14)</div><div class="phase-txt">Meta necesita mínimo 50 conversiones/semana para optimizar. No hagas cambios — la paciencia aquí es rentabilidad real.</div></div>
+  <div class="phase" style="border-color:rgba(192,153,110,.3);border-top-color:var(--gold)"><div class="phase-title" style="color:var(--gold-dark)">Fase 2 — Optimización (Días 15-30)</div><div class="phase-txt">Analiza CPL por variación. Duplica presupuesto en ganadoras. Pausa las que excedan $25 CPL por 3+ días consecutivos.</div></div>
+  <div class="phase" style="border-color:rgba(46,125,85,.3);border-top-color:var(--green)"><div class="phase-title" style="color:var(--green)">Fase 3 — Escala (Mes 2+)</div><div class="phase-txt">Aumenta presupuesto 20% cada 3-4 días. Crea Lookalike de leads que se convirtieron en clientes. Expande a nuevos condados.</div></div>
+  <div class="phase" style="border-color:rgba(107,76,138,.3);border-top-color:var(--purple)"><div class="phase-title" style="color:var(--purple)">Regla de A/B Testing</div><div class="phase-txt">Testea UNA sola variable a la vez. Nunca cambies dos cosas simultáneamente — contamina los datos y alarga el aprendizaje.</div></div>
+</div>
+</div>
+
+<!-- DISCLAIMER -->
+<div id="sec-disclaimer" style="display:none">
+<div class="ibox" style="background:var(--gold-light);border-color:rgba(192,153,110,.4);margin-bottom:20px">
+  <div class="ibox-title" style="color:var(--gold-dark)">⚖️ Disclaimer Universal CMS</div>
+  <div class="ibox-item">Obligatorio en todo material que mencione beneficios, costos o planes. Copia la versión que corresponda al idioma del anuncio.</div>
+</div>
+<div class="copy-box" style="margin-bottom:12px">
+  <div class="copy-head"><span class="copy-label">Disclaimer — ESPAÑOL</span><button class="copy-btn" onclick="copyEl(this,'disc-es')">Copiar</button></div>
+  <pre id="disc-es">*Beneficios varían por plan y área geográfica. Disponible en planes seleccionados. Isabel Fuentes es agente independiente licenciada en California, NPN: [XXXXX]. No afiliada con Medicare ni ningún programa federal. El plan de cobertura puede cambiar. Para más información visita medicare.gov o withisabelfuentes.com</pre>
+</div>
+<div class="copy-box" style="margin-bottom:20px">
+  <div class="copy-head"><span class="copy-label">Disclaimer — ENGLISH</span><button class="copy-btn" onclick="copyEl(this,'disc-en')">Copiar</button></div>
+  <pre id="disc-en">*Benefits vary by plan and geographic area. Available on selected plans. Isabel Fuentes is an independent licensed agent in California, NPN: [XXXXX]. Not affiliated with or endorsed by Medicare or any federal program. Coverage plan may change. For more information visit medicare.gov or withisabelfuentes.com</pre>
+</div>
+<div style="background:var(--white);border:1px solid var(--border);border-radius:12px;overflow:hidden">
+  <div style="background:var(--red);padding:12px 16px"><div style="font-size:13px;font-weight:700;color:#fff">🚫 PALABRAS PROHIBIDAS sin disclaimer adecuado</div></div>
+  <div style="padding:16px 18px">
+    <div class="fw-grid">
+      <div class="fw-card"><div class="fw-word">"gratis" / "free"</div><div class="fw-rule">Solo para la consulta, NUNCA para el plan</div></div>
+      <div class="fw-card"><div class="fw-word">"mejor" / "best"</div><div class="fw-rule">Requiere evidencia verificable</div></div>
+      <div class="fw-card"><div class="fw-word">"garantizado"</div><div class="fw-rule">Prohibido en seguros sin calificación</div></div>
+      <div class="fw-card"><div class="fw-word">"todos califican"</div><div class="fw-rule">Hay criterios de elegibilidad</div></div>
+      <div class="fw-card"><div class="fw-word">"cubre todo"</div><div class="fw-rule">Ningún plan cubre absolutamente todo</div></div>
+      <div class="fw-card"><div class="fw-word">"sin costo" / "no cost"</div><div class="fw-rule">Solo la consulta, no el plan</div></div>
+      <div class="fw-card"><div class="fw-word">"el único" / "the only"</div><div class="fw-rule">Claim exclusivo no verificable</div></div>
+      <div class="fw-card"><div class="fw-word">"máximo ahorro"</div><div class="fw-rule">Requiere evidencia específica del plan</div></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div class="footer">
+  <div>Isabel Fuentes · Licensed Medicare Insurance Agent · California · withisabelfuentes.com</div>
+  <div>NPN: [INSERTA] · CA License # [INSERTA] · SCAN · Anthem · Humana · LA Care · Health Net · Molina · Alignment · United Healthcare</div>
+  <div style="margin-top:4px;font-style:italic">Sistema de Anuncios Pagados Meta · Mayo 2026 · Revisar mensualmente</div>
+</div>
+</div><!-- /main -->
+
+<script>
+const SECS=['ads','global','form','compliance','structure','disclaimer'];
+function showSec(id,btn){
+  SECS.forEach(s=>document.getElementById('sec-'+s).style.display=s===id?'block':'none');
+  document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+}
+function toggleCard(id){
+  const card=document.getElementById('card-'+id);
+  const body=document.getElementById('body-'+id);
+  const chev=document.getElementById('chev-'+id);
+  const colors={v1:'#C0392B',v2:'#2E7D55',v3:'#C8610A',v4:'#6B4C8A',v5:'#4A7B9D'};
+  const lights={v1:'rgba(192,57,43,.04)',v2:'rgba(46,125,85,.04)',v3:'rgba(200,97,10,.04)',v4:'rgba(107,76,138,.04)',v5:'rgba(74,123,157,.04)'};
+  const isOpen=body.classList.contains('open');
+  body.classList.toggle('open',!isOpen);
+  chev.classList.toggle('open',!isOpen);
+  card.classList.toggle('open',!isOpen);
+  card.style.borderColor=!isOpen?colors[id]:'var(--border)';
+  card.querySelector('.card-header').style.background=!isOpen?lights[id]:'var(--white)';
+}
+function showIT(adId,tabId,btn){
+  const body=document.getElementById('body-'+adId);
+  body.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  body.querySelectorAll('.inner-tab').forEach(t=>{t.classList.remove('active');t.style.borderBottomColor='transparent';});
+  document.getElementById(adId+'-'+tabId).classList.add('active');
+  btn.classList.add('active');
+}
+function copyEl(btn,id){
+  navigator.clipboard.writeText(document.getElementById(id).textContent).then(()=>{
+    btn.textContent='✓ Copiado';btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('copied');},2000);
+  });
+}
+function jumpAd(id,btn){
+  document.querySelectorAll('.adsel-btn').forEach(b=>{b.style.background='var(--white)';b.style.color=b.style.borderColor;});
+  const colors={v1:'#C0392B',v2:'#2E7D55',v3:'#C8610A',v4:'#6B4C8A',v5:'#4A7B9D'};
+  ['v1','v2','v3','v4','v5'].forEach(v=>{
+    if(v!==id){
+      const b2=document.getElementById('body-'+v);const c2=document.getElementById('chev-'+v);const ca2=document.getElementById('card-'+v);
+      if(b2.classList.contains('open')){b2.classList.remove('open');c2.classList.remove('open');ca2.classList.remove('open');ca2.style.borderColor='var(--border)';ca2.querySelector('.card-header').style.background='var(--white)';}
+    }
+  });
+  btn.style.background=colors[id];btn.style.color='#fff';
+  const body=document.getElementById('body-'+id);
+  if(!body.classList.contains('open'))toggleCard(id);
+  setTimeout(()=>document.getElementById('card-'+id).scrollIntoView({behavior:'smooth',block:'start'}),50);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,2613 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Isabel Fuentes — Sistema Maestro IA</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;
+  --border:#E8E0D0;--border-d:#D4C9B5;
+  --gold:#C9A96E;--gold-lt:#F0E6D0;--gold-dk:#A07840;
+  --gold-g:linear-gradient(135deg,#C9A96E,#E8C98E 50%,#C9A96E);
+  --teal:#4A7B9D;--teal-lt:#EBF3F8;--teal-dk:#2E5F7A;
+  --red:#C0392B;--red-lt:#FDEDEB;
+  --green:#2E7D55;--green-lt:#EAF5EE;
+  --amber:#D97706;--amber-lt:#FEF3C7;
+  --purple:#7B5EA7;--purple-lt:#F0EBF8;
+  --orange:#C8610A;--orange-lt:#FEF0E6;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
+  --tag:#F5EFE3;
+  --sh:0 1px 10px rgba(44,36,22,.07);--sh2:0 4px 24px rgba(44,36,22,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border-d);border-radius:3px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ─── TOPBAR ─── */
+.topbar{
+  background:var(--white);border-bottom:1.5px solid var(--border);
+  position:fixed;top:0;left:0;right:0;z-index:300;height:60px;
+  display:flex;align-items:center;padding:0 20px;gap:16px;box-shadow:var(--sh);
+}
+.logo{display:flex;align-items:center;gap:11px;flex-shrink:0}
+.logo-icon{
+  width:38px;height:38px;border-radius:10px;
+  background:var(--gold-g);
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;box-shadow:0 2px 8px rgba(201,169,110,.35);
+}
+.logo-text .brand{font-family:'Fraunces',serif;font-size:17px;font-weight:400;color:var(--text);line-height:1}
+.logo-text .brand em{font-style:italic;color:var(--gold-dk)}
+.logo-text .sub{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);margin-top:2px}
+.topbar-divider{width:1px;height:28px;background:var(--border);flex-shrink:0}
+.topbar-badges{display:flex;gap:6px;flex-wrap:wrap;flex:1}
+.tbadge{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.05em;
+  padding:3px 10px;border-radius:20px;border:1px solid;font-weight:500;
+}
+.tbadge.gold{background:var(--gold-lt);border-color:var(--gold);color:var(--gold-dk)}
+.tbadge.teal{background:var(--teal-lt);border-color:var(--teal);color:var(--teal-dk)}
+.tbadge.green{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.topbar-right{display:flex;align-items:center;gap:10px;flex-shrink:0}
+#apiKeyInput{
+  font-family:'DM Mono',monospace;font-size:11px;
+  border:1.5px solid var(--border);border-radius:8px;
+  padding:5px 10px;background:var(--surface);color:var(--text);
+  width:180px;outline:none;transition:border-color .2s;
+}
+#apiKeyInput:focus{border-color:var(--gold)}
+#apiKeyInput::placeholder{color:var(--text-muted)}
+.api-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:#ccc;transition:background .3s;flex-shrink:0;
+}
+.api-dot.active{background:var(--green)}
+
+/* ─── LAYOUT ─── */
+.layout{display:flex;height:100vh;padding-top:60px}
+
+/* ─── SIDEBAR ─── */
+.sidebar{
+  width:210px;min-width:210px;height:100%;
+  background:var(--white);border-right:1.5px solid var(--border);
+  overflow-y:auto;padding:16px 0;position:sticky;top:60px;
+}
+.sidebar-section{padding:0 12px;margin-bottom:4px}
+.sidebar-label{
+  font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--text-muted);padding:8px 8px 4px;display:block;
+}
+.nav-item{
+  display:flex;align-items:center;gap:10px;padding:9px 12px;
+  border-radius:10px;cursor:pointer;transition:all .15s;
+  border:none;background:none;width:100%;text-align:left;margin-bottom:2px;
+}
+.nav-item:hover{background:var(--tag)}
+.nav-item.active{background:var(--gold-lt);color:var(--gold-dk)}
+.nav-item.active .nav-icon{filter:none}
+.nav-icon{font-size:16px;width:24px;text-align:center;flex-shrink:0}
+.nav-label{font-size:12.5px;font-weight:500;color:var(--text-mid)}
+.nav-item.active .nav-label{color:var(--gold-dk);font-weight:700}
+.nav-badge{
+  margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;
+  padding:1px 6px;border-radius:10px;background:var(--red-lt);color:var(--red);font-weight:700;
+}
+.sidebar-footer{padding:12px;margin-top:auto;border-top:1px solid var(--border)}
+.sf-text{font-size:10.5px;color:var(--text-muted);line-height:1.5}
+.sf-npn{font-family:'DM Mono',monospace;font-size:10px;color:var(--gold-dk)}
+
+/* ─── MAIN ─── */
+.main{flex:1;overflow-y:auto;padding:24px 28px 60px}
+.module{display:none}
+.module.active{display:block}
+#mod-tool.module.active{display:flex}
+#mod-tool{flex-direction:column;height:calc(100vh - 60px);margin:-24px -28px -60px;padding:0}
+.tool-bar{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:12px 20px;background:var(--white);border-bottom:1.5px solid var(--border);flex-shrink:0}
+.tool-bar-title{font-family:'Fraunces',serif;font-size:16px;color:var(--text)}
+.tool-bar-link{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.03em;color:var(--teal-dk);text-decoration:none;padding:5px 12px;border:1px solid var(--teal);border-radius:20px;background:var(--teal-lt)}
+.tool-bar-link:hover{background:var(--teal);color:#fff}
+.tool-frame{flex:1;width:100%;border:0;background:var(--bg)}
+
+/* ─── PLAN DE ACCIÓN ─── */
+.plan-goal{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.plan-goal-title{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.1em;color:var(--gold-dk);margin-bottom:12px}
+.plan-funnel{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:12px}
+.pf-step{background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:6px 14px;font-size:13px;font-weight:600;color:var(--text-mid)}
+.pf-step.pf-lead{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+.pf-step.pf-member{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.pf-arrow{color:var(--text-muted);font-weight:700}
+.plan-goal-sub{font-size:13.5px;color:var(--text-mid);line-height:1.5}
+.plan-focus{display:flex;gap:12px;align-items:flex-start;background:var(--amber-lt);border:1.5px solid var(--amber);border-radius:12px;padding:14px 16px;margin-bottom:16px;font-size:13.5px;color:var(--text);line-height:1.5}
+.plan-progress-wrap{margin-bottom:20px}
+.plan-progress-track{height:12px;background:var(--border);border-radius:20px;overflow:hidden}
+.plan-progress-bar{height:100%;width:0;background:var(--gold-g);border-radius:20px;transition:width .35s ease}
+.plan-progress-label{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-top:6px;text-align:right}
+.plan-phase{align-self:start}
+.plan-phase-priority{border-color:var(--amber);box-shadow:0 0 0 2px var(--amber-lt)}
+.plan-phase-goal{font-size:12.5px;color:var(--text-muted);font-style:italic;margin-bottom:10px}
+.plan-badge{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;background:var(--amber);color:#fff;padding:3px 9px;border-radius:20px;font-weight:600}
+.plan-tip{background:var(--teal-lt);border:1px solid var(--teal);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--teal-dk);margin-bottom:12px;line-height:1.45}
+.plan-task{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.45;cursor:pointer}
+.plan-task:first-of-type{border-top:0}
+.plan-task input{margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--gold-dk);cursor:pointer}
+.plan-task input:checked + span{color:var(--text-muted);text-decoration:line-through}
+.plan-task b{color:var(--gold-dk);font-weight:600}
+
+/* ─── IDENTIDAD DE MARCA ─── */
+.brand-swatches{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px}
+.swatch{border:1px solid var(--border);border-radius:10px;overflow:hidden;cursor:pointer;background:var(--white);transition:transform .12s}
+.swatch:hover{transform:translateY(-2px);box-shadow:var(--sh)}
+.swatch-color{height:64px;display:flex;align-items:flex-end;justify-content:flex-end;padding:6px}
+.swatch-copy{font-family:'DM Mono',monospace;font-size:9px;background:rgba(255,255,255,.85);color:#333;padding:2px 6px;border-radius:4px;opacity:0;transition:opacity .15s}
+.swatch:hover .swatch-copy{opacity:1}
+.swatch-info{padding:8px 10px}
+.swatch-name{font-size:12px;font-weight:600;color:var(--text)}
+.swatch-hex{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);letter-spacing:.03em}
+.brand-quote{font-family:'Fraunces',serif;font-style:italic;font-size:19px;color:var(--gold-dk);line-height:1.4;padding:6px 0}
+.brand-list{list-style:none;padding:0;margin:0}
+.brand-list li{padding:7px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.5}
+.brand-list li:first-child{border-top:0}
+.brand-tag{display:inline-block;background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:5px 13px;font-size:13px;margin:0 6px 6px 0;color:var(--text-mid)}
+.brand-font-sample{padding:10px 0;border-top:1px solid var(--border)}
+.brand-font-sample:first-child{border-top:0}
+.brand-do{color:var(--green);font-weight:600}
+.brand-dont{color:var(--red);font-weight:600}
+.brand-step{display:flex;gap:10px;padding:7px 0;font-size:13.5px;color:var(--text);line-height:1.5}
+.brand-step-num{flex-shrink:0;width:22px;height:22px;border-radius:50%;background:var(--gold-g);color:#fff;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700}
+.copy-toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:var(--text);color:#fff;padding:10px 18px;border-radius:24px;font-size:13px;z-index:500;opacity:0;transition:opacity .2s;pointer-events:none}
+.copy-toast.show{opacity:1}
+
+/* ─── PLANTILLAS DE POSTS ─── */
+.tpl-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:20px}
+.tpl-wrap{}
+.tpl-cap{font-size:12px;color:var(--text-muted);margin-bottom:8px;display:flex;justify-content:space-between;align-items:center}
+.tpl-cap b{color:var(--text);font-size:13px}
+.bf{font-family:'Fraunces',serif}
+/* Square post 1080x1080 -> responsive square */
+.post{position:relative;aspect-ratio:1/1;border-radius:14px;overflow:hidden;box-shadow:var(--sh2);display:flex;flex-direction:column;color:#fff}
+.post-9x16{aspect-ratio:9/16}
+.post-cover{aspect-ratio:16/9}
+.bfly{font-size:30px;line-height:1}
+.post-pad{padding:26px 24px;display:flex;flex-direction:column;height:100%}
+.post-name{font-family:'DM Mono',monospace;letter-spacing:.18em;text-transform:uppercase;font-size:10px;opacity:.9}
+.post-photo{width:96px;height:96px;border-radius:50%;border:3px solid rgba(255,255,255,.9);background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:11px;text-align:center;line-height:1.2;color:rgba(255,255,255,.85)}
+.post-cta{align-self:flex-start;background:#F2A977;color:#3A2410;font-weight:700;padding:9px 18px;border-radius:24px;font-size:14px}
+.post-live-badge{align-self:flex-start;background:#C0392B;color:#fff;font-weight:700;font-size:12px;letter-spacing:.1em;padding:5px 12px;border-radius:6px;display:flex;align-items:center;gap:6px}
+.post-live-badge::before{content:'';width:8px;height:8px;border-radius:50%;background:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+.tpl-note{background:var(--gold-lt);border:1px solid var(--gold);border-radius:8px;padding:9px 12px;font-size:12px;color:var(--text-mid);line-height:1.45;margin-top:10px}
+
+/* ─── EQUIPO IA (parallel agents) ─── */
+.eq-hero{background:linear-gradient(135deg,#333A4D,#3D8FD6);border-radius:14px;padding:24px;color:#fff;margin-bottom:18px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:var(--sh2)}
+.eq-hero-text{flex:1;min-width:200px}
+.eq-hero-title{font-family:'Fraunces',serif;font-size:22px;font-style:italic;line-height:1.2;margin-bottom:5px}
+.eq-hero-sub{font-size:13px;opacity:.92;line-height:1.5}
+.eq-run-btn{background:#F2A977;color:#3A2410;border:0;border-radius:30px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(242,169,119,.35);transition:transform .15s,box-shadow .15s}
+.eq-run-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 6px 20px rgba(242,169,119,.45)}
+.eq-run-btn:disabled{opacity:.7;cursor:not-allowed}
+.eq-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);text-align:right;margin-bottom:8px;min-height:14px}
+.eq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:18px}
+.eq-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.eq-card-head{display:flex;align-items:center;gap:8px;font-weight:600;font-size:14px;color:var(--text)}
+.eq-card-icon{font-size:20px}
+.eq-card-sub{font-size:11.5px;color:var(--text-muted);margin-top:-4px}
+.eq-card .ai-box{flex:1;min-height:120px}
+.eq-card-actions{display:flex;justify-content:flex-end}
+.eq-copy{background:none;border:1px solid var(--border-d);border-radius:18px;padding:5px 12px;font-size:11px;cursor:pointer;color:var(--text-mid)}
+.eq-copy:hover{background:var(--tag)}
+.page-header{margin-bottom:24px}
+.page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
+.page-title em{font-style:italic;color:var(--gold-dk)}
+.page-sub{font-size:13px;color:var(--text-muted);margin-top:4px}
+
+/* ─── CARDS ─── */
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:14px;transition:box-shadow .2s}
+.card:hover{box-shadow:var(--sh)}
+.card-head{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.card-title{font-family:'Fraunces',serif;font-size:15px;font-weight:400;color:var(--text)}
+.card-body{padding:18px}
+.card2{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:10px}
+
+/* ─── GRID ─── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+.grid-4{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px}
+@media(max-width:900px){.grid-4{grid-template-columns:1fr 1fr}.grid-3{grid-template-columns:1fr 1fr}}
+@media(max-width:700px){.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}.main{padding:16px}}
+
+/* ─── MOBILE SIDEBAR ─── */
+.menu-btn{display:none;background:none;border:none;cursor:pointer;padding:6px 10px;font-size:22px;color:var(--text);margin-right:4px}
+.sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(44,36,22,.35);z-index:250}
+@media(max-width:700px){
+  .menu-btn{display:flex;align-items:center}
+  .sidebar{position:fixed;top:60px;left:0;bottom:0;z-index:260;transform:translateX(-100%);transition:transform .25s ease;box-shadow:2px 0 16px rgba(44,36,22,.15)}
+  .sidebar.open{transform:translateX(0)}
+  .sidebar-overlay.open{display:block}
+}
+
+/* ─── STAT CARDS ─── */
+.stat{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px;text-align:center}
+.stat-icon{font-size:24px;margin-bottom:8px}
+.stat-val{font-family:'Fraunces',serif;font-size:28px;font-weight:300;color:var(--gold-dk);line-height:1}
+.stat-label{font-size:11px;color:var(--text-muted);margin-top:4px}
+.stat-delta{font-size:11px;margin-top:6px;font-weight:600}
+.stat-delta.up{color:var(--green)}
+.stat-delta.dn{color:var(--red)}
+
+/* ─── FORMS ─── */
+label{font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:5px}
+input,select,textarea{
+  width:100%;font-family:'DM Sans',sans-serif;font-size:13px;
+  border:1.5px solid var(--border);border-radius:8px;
+  padding:9px 12px;background:var(--surface);color:var(--text);
+  outline:none;transition:border-color .18s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--gold)}
+textarea{resize:vertical;line-height:1.55}
+.form-row{margin-bottom:14px}
+.form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px}
+
+/* ─── BUTTONS ─── */
+.btn{
+  display:inline-flex;align-items:center;gap:7px;
+  font-family:'DM Sans',sans-serif;font-size:13px;font-weight:600;
+  padding:9px 18px;border-radius:9px;border:none;cursor:pointer;
+  transition:all .18s;text-decoration:none;
+}
+.btn-gold{background:var(--gold-g);color:var(--white);box-shadow:0 2px 8px rgba(201,169,110,.3)}
+.btn-gold:hover{box-shadow:0 4px 14px rgba(201,169,110,.45);transform:translateY(-1px)}
+.btn-teal{background:var(--teal);color:#fff}
+.btn-teal:hover{background:var(--teal-dk)}
+.btn-ghost{background:var(--surface);border:1.5px solid var(--border);color:var(--text-mid)}
+.btn-ghost:hover{border-color:var(--gold);background:var(--gold-lt)}
+.btn-red{background:var(--red-lt);color:var(--red);border:1px solid var(--red)}
+.btn-sm{font-size:11px;padding:5px 12px;border-radius:7px}
+.btn-full{width:100%;justify-content:center}
+
+/* ─── PILLS / BADGES ─── */
+.pill{
+  display:inline-flex;align-items:center;gap:4px;
+  font-size:11px;font-weight:600;padding:2px 10px;
+  border-radius:20px;border:1px solid;
+}
+.pill-gold{background:var(--gold-lt);border-color:var(--gold);color:var(--gold-dk)}
+.pill-teal{background:var(--teal-lt);border-color:var(--teal);color:var(--teal-dk)}
+.pill-green{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.pill-red{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+.pill-amber{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+.pill-purple{background:var(--purple-lt);border-color:var(--purple);color:var(--purple)}
+
+/* ─── AI OUTPUT BOX ─── */
+.ai-box{
+  background:var(--surface);border:1.5px solid var(--gold);border-radius:12px;
+  padding:18px;position:relative;min-height:80px;
+  font-size:13.5px;line-height:1.7;color:var(--text);white-space:pre-wrap;
+  word-wrap:break-word;
+}
+.ai-box .ai-label{
+  position:absolute;top:-10px;left:14px;background:var(--white);
+  padding:0 8px;font-family:'DM Mono',monospace;font-size:9px;
+  letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dk);
+  border:1px solid var(--gold);border-radius:20px;
+}
+.ai-loading{
+  display:flex;align-items:center;gap:10px;color:var(--text-muted);
+  font-size:13px;font-style:italic;
+}
+.ai-dots span{animation:blink 1.2s infinite;opacity:0}
+.ai-dots span:nth-child(2){animation-delay:.2s}
+.ai-dots span:nth-child(3){animation-delay:.4s}
+@keyframes blink{0%,100%{opacity:0}50%{opacity:1}}
+.copy-btn-ai{
+  position:absolute;top:10px;right:10px;
+  background:var(--white);border:1px solid var(--border);border-radius:7px;
+  padding:4px 10px;font-size:11px;cursor:pointer;color:var(--text-mid);
+  font-family:'DM Sans',sans-serif;transition:all .15s;
+}
+.copy-btn-ai:hover{border-color:var(--gold);color:var(--gold-dk)}
+
+/* ─── TABS ─── */
+.tabs{display:flex;gap:2px;border-bottom:2px solid var(--border);margin-bottom:18px;overflow-x:auto}
+.tab{
+  padding:9px 16px;border:none;background:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-size:12.5px;font-weight:500;
+  color:var(--text-muted);border-bottom:2.5px solid transparent;
+  margin-bottom:-2px;white-space:nowrap;transition:all .15s;
+}
+.tab.active{color:var(--gold-dk);border-bottom-color:var(--gold);font-weight:700}
+.tab:hover:not(.active){color:var(--text-mid);background:var(--tag)}
+.tab-pane{display:none}
+.tab-pane.active{display:block}
+
+/* ─── COMPLIANCE BADGE ─── */
+.compliance-ok{
+  background:var(--green-lt);border:1.5px solid var(--green);
+  border-radius:10px;padding:12px 16px;font-size:13px;color:var(--green);
+  display:flex;align-items:center;gap:8px;font-weight:600;
+}
+.compliance-warn{
+  background:var(--amber-lt);border:1.5px solid var(--amber);
+  border-radius:10px;padding:12px 16px;font-size:13px;color:var(--amber);
+  display:flex;align-items:center;gap:8px;font-weight:600;
+}
+.compliance-fail{
+  background:var(--red-lt);border:1.5px solid var(--red);
+  border-radius:10px;padding:12px 16px;font-size:13px;color:var(--red);
+  display:flex;align-items:center;gap:8px;font-weight:600;
+}
+
+/* ─── LEAD ROW ─── */
+.lead-row{
+  display:flex;align-items:center;gap:12px;padding:12px 16px;
+  border-bottom:1px solid var(--border);transition:background .15s;cursor:pointer;
+}
+.lead-row:hover{background:var(--surface)}
+.lead-avatar{
+  width:38px;height:38px;border-radius:50%;
+  background:var(--gold-lt);border:1.5px solid var(--gold);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'Fraunces',serif;font-size:15px;color:var(--gold-dk);flex-shrink:0;
+}
+.lead-info{flex:1;min-width:0}
+.lead-name{font-size:13.5px;font-weight:600;color:var(--text)}
+.lead-detail{font-size:11px;color:var(--text-muted)}
+.lead-status{flex-shrink:0}
+.progress-bar{height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,var(--gold),var(--amber));transition:width .5s}
+
+/* ─── COMPETITOR CARD ─── */
+.comp-card{background:var(--white);border:1.5px solid var(--border);border-radius:12px;padding:16px;margin-bottom:10px}
+.comp-name{font-family:'Fraunces',serif;font-size:15px;font-weight:400;color:var(--text)}
+.comp-meta{font-size:11px;color:var(--text-muted);margin:4px 0 8px}
+.threat-bar{display:flex;align-items:center;gap:8px;margin-top:8px}
+.threat-label{font-size:11px;font-weight:600;color:var(--text-muted);width:80px;flex-shrink:0}
+.threat-track{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.threat-fill{height:100%;border-radius:3px}
+
+/* ─── CONTENT CALENDAR ─── */
+.cal-day{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:14px;min-height:100px;transition:border-color .2s;
+}
+.cal-day:hover{border-color:var(--gold)}
+.cal-day-name{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px}
+.cal-item{
+  background:var(--gold-lt);border-left:3px solid var(--gold);
+  border-radius:0 6px 6px 0;padding:6px 8px;margin-bottom:5px;
+  font-size:11px;color:var(--gold-dk);font-weight:600;cursor:pointer;
+}
+.cal-item.live{background:var(--red-lt);border-left-color:var(--red);color:var(--red)}
+.cal-item.reel{background:var(--purple-lt);border-left-color:var(--purple);color:var(--purple)}
+.cal-item.story{background:var(--teal-lt);border-left-color:var(--teal);color:var(--teal-dk)}
+.cal-add{
+  width:100%;border:1.5px dashed var(--border);border-radius:7px;
+  padding:5px;background:none;cursor:pointer;font-size:11px;
+  color:var(--text-muted);transition:all .15s;margin-top:5px;
+}
+.cal-add:hover{border-color:var(--gold);color:var(--gold-dk);background:var(--gold-lt)}
+
+/* ─── VIRAL CARD ─── */
+.viral-card{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:16px;display:flex;flex-direction:column;gap:8px;
+}
+.viral-score{
+  font-family:'Fraunces',serif;font-size:32px;font-weight:300;
+  color:var(--gold-dk);line-height:1;
+}
+.viral-hook{font-size:13px;font-weight:600;color:var(--text);line-height:1.4}
+.viral-why{font-size:11.5px;color:var(--text-muted);line-height:1.5}
+
+/* ─── LIVE SCRIPT ─── */
+.script-beat{
+  border-left:3px solid var(--gold);background:var(--gold-lt);
+  border-radius:0 8px 8px 0;padding:10px 14px;margin-bottom:8px;
+}
+.beat-time{font-family:'DM Mono',monospace;font-size:9px;color:var(--gold-dk);letter-spacing:.1em;margin-bottom:3px}
+.beat-text{font-size:13px;color:var(--text);line-height:1.5}
+.script-beat.hook{border-color:var(--red);background:var(--red-lt)}
+.script-beat.hook .beat-time{color:var(--red)}
+.script-beat.cta{border-color:var(--green);background:var(--green-lt)}
+.script-beat.cta .beat-time{color:var(--green)}
+
+/* ─── ALERT BANNER ─── */
+.alert-bar{
+  background:var(--amber-lt);border:1.5px solid var(--amber);
+  border-radius:10px;padding:12px 16px;font-size:12.5px;
+  color:var(--amber);margin-bottom:16px;display:flex;gap:8px;align-items:flex-start;
+}
+
+/* ─── METRICS TABLE ─── */
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;padding:9px 12px;background:var(--surface);color:var(--text-muted);font-size:11px;font-weight:600;border-bottom:1.5px solid var(--border)}
+td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
+tr:hover td{background:var(--surface)}
+
+/* ─── SEPARATOR ─── */
+.sep{height:1px;background:var(--border);margin:16px 0}
+.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
+.mb-2{margin-bottom:8px}.mb-3{margin-bottom:12px}.mb-4{margin-bottom:16px}
+.flex{display:flex}.items-center{align-items:center}.gap-2{gap:8px}.gap-3{gap:12px}
+.justify-between{justify-content:space-between}.flex-wrap{flex-wrap:wrap}
+.text-sm{font-size:12px}.text-muted{color:var(--text-muted)}.text-bold{font-weight:700}
+.mono{font-family:'DM Mono',monospace}
+</style>
+</head>
+<body>
+
+<!-- ─── TOPBAR ─── -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+<header class="topbar">
+  <button class="menu-btn" onclick="toggleSidebar()" aria-label="Menú">☰</button>
+  <div class="logo">
+    <div class="logo-icon">🌟</div>
+    <div class="logo-text">
+      <div class="brand"><em>Isabel</em> Fuentes</div>
+      <div class="sub">Sistema Maestro IA · Medicare SoCal</div>
+    </div>
+  </div>
+  <div class="topbar-divider"></div>
+  <div class="topbar-badges">
+    <span class="tbadge gold">SCAN · Anthem · Humana · Alignment</span>
+    <span class="tbadge teal">LA · OC · IE</span>
+    <span class="tbadge green">CMS Compliant</span>
+  </div>
+  <div class="topbar-right">
+    <div class="api-dot" id="apiDot"></div>
+    <input type="password" id="apiKeyInput" placeholder="sk-ant-... API Key" oninput="checkApiKey()"/>
+  </div>
+</header>
+
+<!-- ─── LAYOUT ─── -->
+<div class="layout">
+
+  <!-- ─── SIDEBAR ─── -->
+  <nav class="sidebar">
+    <div class="sidebar-label">EMPEZAR AQUÍ</div>
+    <div class="sidebar-section">
+      <button class="nav-item active" onclick="showModule('plan',this)">
+        <span class="nav-icon">🎯</span><span class="nav-label">Plan de Acción</span>
+      </button>
+      <button class="nav-item" onclick="showModule('marca',this)">
+        <span class="nav-icon">🎨</span><span class="nav-label">Identidad de Marca</span>
+      </button>
+      <button class="nav-item" onclick="showModule('plantillas',this)">
+        <span class="nav-icon">🖼️</span><span class="nav-label">Plantillas de Posts</span>
+      </button>
+      <button class="nav-item" onclick="showModule('viralguia',this)">
+        <span class="nav-icon">📣</span><span class="nav-label">Viral & Autoridad</span>
+      </button>
+      <button class="nav-item" onclick="showModule('equipo',this)">
+        <span class="nav-icon">🤖</span><span class="nav-label">Equipo IA</span>
+      </button>
+      <button class="nav-item" onclick="showModule('movil',this)">
+        <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
+      </button>
+    </div>
+    <div class="sidebar-label">COMMAND CENTER</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="showModule('dashboard',this)">
+        <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
+      </button>
+      <button class="nav-item" onclick="showModule('cerebro',this)">
+        <span class="nav-icon">🧠</span><span class="nav-label">Cerebro IA</span>
+      </button>
+    </div>
+    <div class="sidebar-label">CONTENIDO</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="showModule('ads',this)">
+        <span class="nav-icon">📢</span><span class="nav-label">Meta Ads Studio</span>
+      </button>
+      <button class="nav-item" onclick="showModule('viral',this)">
+        <span class="nav-icon">🔥</span><span class="nav-label">Viral Generator</span>
+      </button>
+      <button class="nav-item" onclick="showModule('live',this)">
+        <span class="nav-icon">🎙️</span><span class="nav-label">FB Live Scripts</span>
+      </button>
+      <button class="nav-item" onclick="showModule('calendar',this)">
+        <span class="nav-icon">📅</span><span class="nav-label">Calendario</span>
+      </button>
+    </div>
+    <div class="sidebar-label">INTELIGENCIA</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="showModule('intel',this)">
+        <span class="nav-icon">🕵️</span><span class="nav-label">Competencia Intel</span>
+      </button>
+      <button class="nav-item" onclick="showModule('compliance',this)">
+        <span class="nav-icon">⚖️</span><span class="nav-label">CMS Compliance</span>
+      </button>
+    </div>
+    <div class="sidebar-label">NEGOCIOS</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="showModule('crm',this)">
+        <span class="nav-icon">👥</span><span class="nav-label">CRM Leads</span>
+        <span class="nav-badge" id="crmBadge">0</span>
+      </button>
+      <button class="nav-item" onclick="showModule('metricas',this)">
+        <span class="nav-icon">📈</span><span class="nav-label">Métricas</span>
+      </button>
+    </div>
+    <div class="sidebar-label">HERRAMIENTAS COMPLETAS</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="openTool('isabel-marketing-dashboard.html',this,'Centro de Comando Medicare')">
+        <span class="nav-icon">🎛️</span><span class="nav-label">Centro de Comando</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-sistema-completo.html',this,'Sistema Medicare Marketing')">
+        <span class="nav-icon">🗂️</span><span class="nav-label">Sistema Completo</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-sistema-maestro.html',this,'Sistema Maestro de Marketing')">
+        <span class="nav-icon">🧭</span><span class="nav-label">Sistema Maestro v2</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-marketing-hub.html',this,'Marketing Intelligence Hub')">
+        <span class="nav-icon">🛰️</span><span class="nav-label">Marketing Hub</span>
+      </button>
+      <button class="nav-item" onclick="openTool('meta-ads-isabel.html',this,'Meta Paid Ads Medicare')">
+        <span class="nav-icon">📢</span><span class="nav-label">Meta Paid Ads</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-automation-system.html',this,'Automatización de Contenido')">
+        <span class="nav-icon">⚙️</span><span class="nav-label">Automatización</span>
+      </button>
+      <button class="nav-item" onclick="openTool('sistema-viral-hispano.html',this,'Sistema Viral — Mercado Hispano')">
+        <span class="nav-icon">🔥</span><span class="nav-label">Sistema Viral</span>
+      </button>
+      <button class="nav-item" onclick="openTool('facebook-live-1.html',this,'Facebook Live #1 — Medicare')">
+        <span class="nav-icon">🎙️</span><span class="nav-label">Facebook Live</span>
+      </button>
+      <button class="nav-item" onclick="openTool('plan-semanal-marketing-seguros.html',this,'Plan de Marketing Semanal')">
+        <span class="nav-icon">📅</span><span class="nav-label">Plan Semanal</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-cerebro-system.html',this,'Sistema Cerebro')">
+        <span class="nav-icon">🧠</span><span class="nav-label">Cerebro System</span>
+      </button>
+      <button class="nav-item" onclick="openTool('medicare-intel-system.html',this,'Medicare Intel Pro')">
+        <span class="nav-icon">🛡️</span><span class="nav-label">Medicare Intel Pro</span>
+      </button>
+      <button class="nav-item" onclick="openTool('medicare-competencia-intel.html',this,'Competencia Intel')">
+        <span class="nav-icon">🕵️</span><span class="nav-label">Competencia Intel</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-marketing-intelligence.html',this,'Centro de Inteligencia de Marketing')">
+        <span class="nav-icon">📡</span><span class="nav-label">Marketing Intel</span>
+      </button>
+      <button class="nav-item" onclick="openTool('medicare-ads-crm.html',this,'Medicare Ads CRM')">
+        <span class="nav-icon">👥</span><span class="nav-label">Medicare Ads CRM</span>
+      </button>
+      <button class="nav-item" onclick="openTool('cms-compliance-system.html',this,'Sistema CMS Compliance')">
+        <span class="nav-icon">⚖️</span><span class="nav-label">CMS Compliance</span>
+      </button>
+      <button class="nav-item" onclick="openTool('metricas-semanales.html',this,'Métricas Semanales')">
+        <span class="nav-icon">📈</span><span class="nav-label">Métricas Semanales</span>
+      </button>
+      <button class="nav-item" onclick="openTool('analisis-semanal.html',this,'Análisis Semanal de Ads')">
+        <span class="nav-icon">📊</span><span class="nav-label">Análisis Ads</span>
+      </button>
+      <button class="nav-item" onclick="openTool('isabel-weekly-analysis.html',this,'Análisis Semanal de Facebook')">
+        <span class="nav-icon">📉</span><span class="nav-label">Análisis FB</span>
+      </button>
+    </div>
+
+    <div style="padding:12px 12px 0;border-top:1px solid var(--border);margin-top:12px">
+      <div style="font-size:10.5px;color:var(--text-muted);line-height:1.6">
+        <span style="font-family:'DM Mono',monospace;font-size:10px;color:var(--gold-dk)">withisabelfuentes.com</span><br/>
+        NPN: <strong>Tu NPN aquí</strong><br/>
+        LA · OC · Inland Empire
+      </div>
+    </div>
+  </nav>
+
+  <!-- ─── MAIN ─── -->
+  <main class="main">
+
+    <!-- ══════ PLAN DE ACCIÓN ══════ -->
+    <div class="module active" id="mod-plan">
+      <div class="page-header">
+        <div class="page-title">🎯 Plan de <em>Acción</em></div>
+        <div class="page-sub">Tu hoja de ruta: de seguidores a leads, y de leads a miembros — paso a paso.</div>
+      </div>
+
+      <div class="plan-goal">
+        <div class="plan-goal-title">🥅 La meta</div>
+        <div class="plan-funnel">
+          <span class="pf-step">👀 Extraños</span><span class="pf-arrow">→</span>
+          <span class="pf-step">❤️ Seguidores</span><span class="pf-arrow">→</span>
+          <span class="pf-step pf-lead">📞 Leads</span><span class="pf-arrow">→</span>
+          <span class="pf-step pf-member">🎉 Miembros</span>
+        </div>
+        <div class="plan-goal-sub">Más leads · menos dinero · y convertirte en <strong>la referencia del mercado latino</strong> de Medicare en SoCal.</div>
+      </div>
+
+      <div class="plan-focus">
+        <span style="font-size:20px">📌</span>
+        <div><strong>Tu enfoque ahora:</strong> ya tienes seguidores — así que tu prioridad #1 es la <strong>FASE 3: convertir seguidores en leads</strong>. Las Fases 1 y 2 las haces rápido porque ya publicas. ¡La clave está en capturar contactos!</div>
+      </div>
+
+      <div class="plan-progress-wrap">
+        <div class="plan-progress-track"><div class="plan-progress-bar" id="planBar"></div></div>
+        <div class="plan-progress-label" id="planPct">0% completado (0/0)</div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card plan-phase">
+          <div class="card-head"><span>🧭</span><div class="card-title">Fase 1 — Encuentra tu ángulo</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Que la gente deje de hacer scroll y te recuerde.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p1-1" onchange="savePlan()"><span>Abrir <b>Competencia Intel</b> y ver qué publican otros agentes</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p1-2" onchange="savePlan()"><span>Preguntarle a <b>Cerebro IA</b> cómo diferenciarme de las grandes aseguradoras</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p1-3" onchange="savePlan()"><span>Escribir mi <b>mensaje único</b> en una sola frase</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>🔥</span><div class="card-title">Fase 2 — Presencia con contenido barato</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Volverte una cara conocida y de confianza, casi gratis.</div>
+            <div class="plan-tip">💡 Lo más barato: <b>Facebook Lives ($1.80/lead)</b> y <b>Reels ($2.50)</b>. Evita posts estáticos ($6.20) y stories ($8.50).</div>
+            <label class="plan-task"><input type="checkbox" data-task="p2-1" onchange="savePlan()"><span>Programar <b>1 Facebook Live por semana</b> (usar <b>FB Live Scripts</b> + <b>Calendario</b>)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p2-2" onchange="savePlan()"><span>Crear <b>2–3 Reels por semana</b> con <b>Viral Generator</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p2-3" onchange="savePlan()"><span>Fijar mi <b>horario semanal</b> en el Calendario</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase plan-phase-priority">
+          <div class="card-head"><span>📞</span><div class="card-title">Fase 3 — Convierte seguidores en LEADS</div><span class="plan-badge">TU PRIORIDAD</span></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Conseguir su teléfono — aquí se vuelve dinero real.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p3-1" onchange="savePlan()"><span>Crear mi <b>guía gratis</b> (imán de leads) con <b>Cerebro IA</b> — ej: "5 cosas que debes saber antes de elegir tu plan Medicare"</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-2" onchange="savePlan()"><span>Crear un anuncio con <b>formulario de leads</b> en <b>Meta Ads Studio</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-3" onchange="savePlan()"><span>Agregar la misma <b>llamada a la acción</b> a TODOS mis posts y Lives: <i>"Escríbeme MEDICARE y te mando la guía gratis"</i></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p3-4" onchange="savePlan()"><span>Preparar un <b>mensaje de bienvenida</b> para quien me escriba</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>🎉</span><div class="card-title">Fase 4 — Convierte leads en MIEMBROS</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Dar seguimiento y lograr la inscripción.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p4-1" onchange="savePlan()"><span>Guardar <b>cada lead nuevo</b> en <b>CRM Leads</b> el mismo día</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p4-2" onchange="savePlan()"><span>Dar <b>seguimiento en 24–48 horas</b> a cada lead</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p4-3" onchange="savePlan()"><span>Construir mi <b>lista caliente para AEP</b> (Oct 15 – Dic 7) desde ahora</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>📈</span><div class="card-title">Fase 5 — Mide y mejora (cada viernes)</div></div>
+          <div class="card-body">
+            <div class="plan-phase-goal">Gastar menos y conseguir más.</div>
+            <label class="plan-task"><input type="checkbox" data-task="p5-1" onchange="savePlan()"><span>Revisar <b>Métricas</b> cada viernes y ver qué trajo leads más baratos</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p5-2" onchange="savePlan()"><span>Hacer <b>más</b> de lo que funciona (Lives, Reels), dejar lo caro</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="p5-3" onchange="savePlan()"><span>Pasar cada anuncio por <b>CMS Compliance</b> antes de publicar</span></label>
+          </div>
+        </div>
+
+        <div class="card plan-phase">
+          <div class="card-head"><span>✅</span><div class="card-title">Esta semana — empieza por aquí</div></div>
+          <div class="card-body">
+            <label class="plan-task"><input type="checkbox" data-task="wk-1" onchange="savePlan()"><span>Poner mi <b>API Key</b> (arriba a la derecha)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-2" onchange="savePlan()"><span>Fase 1: encontrar mi ángulo (30 min)</span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-3" onchange="savePlan()"><span>Agendar mi primer <b>Facebook Live</b></span></label>
+            <label class="plan-task"><input type="checkbox" data-task="wk-4" onchange="savePlan()"><span>Crear mi primera <b>guía gratis</b> (imán de leads)</span></label>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ IDENTIDAD DE MARCA ══════ -->
+    <div class="module" id="mod-marca">
+      <div class="page-header">
+        <div class="page-title">🎨 Identidad de <em>Marca</em></div>
+        <div class="page-sub">Tu marca "Medicare with Isabel" — lista para copiar en Canva. Haz clic en cualquier color para copiarlo.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">🦋</span>
+        <div><strong>Tu símbolo es la mariposa.</strong> Representa transformación, cuidado y tranquilidad — perfecto para acompañar a alguien en una nueva etapa de su vida. Úsala en todo tu contenido para que la gente te reconozca al instante.</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Esencia -->
+        <div class="card">
+          <div class="card-head"><span>💛</span><div class="card-title">Tu Esencia</div></div>
+          <div class="card-body">
+            <div class="brand-quote">"La agente que te explica Medicare claro, en tu idioma — sin letra chiquita."</div>
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55;margin-top:6px">Eres la persona de confianza que la comunidad hispana mayor de 60 puede entender de verdad. Cercana como de la familia, clara como una buena maestra, y siempre de su lado.</p>
+          </div>
+        </div>
+
+        <!-- Personalidad -->
+        <div class="card">
+          <div class="card-head"><span>✨</span><div class="card-title">Personalidad de Marca</div></div>
+          <div class="card-body">
+            <span class="brand-tag">🤗 Cálida y familiar</span>
+            <span class="brand-tag">🛡️ Confiable y profesional</span>
+            <span class="brand-tag">⚡ Con energía positiva</span>
+            <span class="brand-tag">🗣️ Clara y sencilla</span>
+            <span class="brand-tag">❤️ Empática</span>
+            <p style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:10px">El equilibrio: profesional para que confíen en ti, pero cálida para que te sientan cercana. Nunca fría ni complicada.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Colores -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🎨</span><div class="card-title">Paleta de Colores</div><span style="margin-left:auto;font-size:11px;color:var(--text-muted)">clic para copiar</span></div>
+        <div class="card-body">
+          <div class="brand-swatches">
+            <div class="swatch" onclick="copyHex('#3D8FD6')"><div class="swatch-color" style="background:#3D8FD6"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Azul Mariposa</div><div class="swatch-hex">#3D8FD6</div></div></div>
+            <div class="swatch" onclick="copyHex('#333A4D')"><div class="swatch-color" style="background:#333A4D"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Navy Confianza</div><div class="swatch-hex">#333A4D</div></div></div>
+            <div class="swatch" onclick="copyHex('#A9D4F0')"><div class="swatch-color" style="background:#A9D4F0"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Azul Cielo</div><div class="swatch-hex">#A9D4F0</div></div></div>
+            <div class="swatch" onclick="copyHex('#EAF4FB')"><div class="swatch-color" style="background:#EAF4FB;border-bottom:1px solid var(--border)"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Fondo Suave</div><div class="swatch-hex">#EAF4FB</div></div></div>
+            <div class="swatch" onclick="copyHex('#5C6270')"><div class="swatch-color" style="background:#5C6270"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Gris Texto</div><div class="swatch-hex">#5C6270</div></div></div>
+            <div class="swatch" onclick="copyHex('#F2A977')"><div class="swatch-color" style="background:#F2A977"><span class="swatch-copy">copiar</span></div><div class="swatch-info"><div class="swatch-name">Durazno Cálido</div><div class="swatch-hex">#F2A977</div></div></div>
+          </div>
+          <p style="font-size:12.5px;color:var(--text-muted);line-height:1.5;margin-top:12px"><b style="color:var(--teal-dk)">Cómo usarlos:</b> Azul Mariposa = color principal (botones, títulos). Navy = textos importantes. Azul Cielo y Fondo Suave = fondos. Durazno Cálido = solo para resaltar llamadas a la acción ("Llámame", "Escríbeme") y darle energía.</p>
+        </div>
+      </div>
+
+      <div class="grid-2" style="margin-top:14px">
+        <!-- Tipografía -->
+        <div class="card">
+          <div class="card-head"><span>🔤</span><div class="card-title">Tipografía (en Canva)</div></div>
+          <div class="card-body">
+            <div class="brand-font-sample"><div style="font-family:'Fraunces',serif;font-style:italic;font-size:26px;color:var(--gold-dk)">Medicare with Isabel</div><div class="swatch-hex" style="margin-top:2px">Acento / firma → <b>Great Vibes</b> (como tu logo). Úsala poco, para frases especiales.</div></div>
+            <div class="brand-font-sample"><div style="font-family:'DM Sans',sans-serif;font-weight:700;font-size:21px;color:var(--text)">Medicare claro y sencillo</div><div class="swatch-hex" style="margin-top:2px">Títulos → <b>Poppins</b> (SemiBold). Amigable y moderna.</div></div>
+            <div class="brand-font-sample"><div style="font-family:'DM Sans',sans-serif;font-size:14px;color:var(--text-mid);line-height:1.5">Texto normal para tus publicaciones, fácil de leer para todos.</div><div class="swatch-hex" style="margin-top:2px">Cuerpo → <b>Open Sans</b> o <b>Lato</b>.</div></div>
+          </div>
+        </div>
+
+        <!-- Voz y tono -->
+        <div class="card">
+          <div class="card-head"><span>🗣️</span><div class="card-title">Voz y Tono</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><span class="brand-do">SÍ:</span> Habla en español claro, como a un familiar. "Te explico", "no te preocupes", "estoy aquí para ti".</li>
+              <li><span class="brand-do">SÍ:</span> Frases cortas. Ejemplos de la vida real. Emojis con calma (🦋 💙 ✅).</li>
+              <li><span class="brand-dont">NO:</span> Términos técnicos sin explicar, letra chiquita, promesas exageradas.</li>
+              <li><span class="brand-dont">NO:</span> Sonar como aseguradora grande y fría.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Frases / Taglines -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>💬</span><div class="card-title">Frases de Marca (Taglines)</div></div>
+        <div class="card-body">
+          <ul class="brand-list">
+            <li>🦋 <b>"Medicare explicado claro, en tu idioma."</b></li>
+            <li>🦋 <b>"Tu Medicare, sin letra chiquita."</b></li>
+            <li>🦋 <b>"Medicare con confianza, con Isabel."</b></li>
+            <li>🦋 <b>"Aquí estoy para ti — antes, durante y después."</b></li>
+            <li>🇺🇸 En inglés: <b>"Medicare made simple — in your language."</b></li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Cómo ponerlo en Canva -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🖌️</span><div class="card-title">Cómo ponerlo en tu Canva (paso a paso)</div></div>
+        <div class="card-body">
+          <div class="brand-step"><span class="brand-step-num">1</span><div>Abre Canva → menú izquierdo → <b>"Marca"</b> (Brand Kit). Es gratis crear uno.</div></div>
+          <div class="brand-step"><span class="brand-step-num">2</span><div>En <b>"Colores de marca"</b>, agrega los 6 colores de arriba (copia cada código con un clic y pégalo).</div></div>
+          <div class="brand-step"><span class="brand-step-num">3</span><div>En <b>"Fuentes de marca"</b>, elige <b>Great Vibes</b> (acento), <b>Poppins</b> (títulos) y <b>Open Sans</b> (texto).</div></div>
+          <div class="brand-step"><span class="brand-step-num">4</span><div>En <b>"Logos"</b>, sube tu logo de la mariposa "Medicare with Isabel" y tu foto profesional.</div></div>
+          <div class="brand-step"><span class="brand-step-num">5</span><div>¡Listo! Ahora cada diseño usará tu marca automáticamente y todo se verá igual de profesional.</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ PLANTILLAS DE POSTS ══════ -->
+    <div class="module" id="mod-plantillas">
+      <div class="page-header">
+        <div class="page-title">🖼️ Plantillas de <em>Posts</em></div>
+        <div class="page-sub">Listas para empezar a publicar hoy. Hazles captura de pantalla para usarlas, o recréalas en Canva con tu marca.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--green-lt);border-color:var(--green)">
+        <span style="font-size:20px">📲</span>
+        <div><strong>Cómo usarlas:</strong> estas son una vista previa con tus colores de marca. Para la mejor calidad, recréalas en Canva (usa las fuentes <b>Poppins</b> y <b>Great Vibes</b> y agrega tu foto real). O simplemente haz captura de pantalla para publicar rápido.</div>
+      </div>
+
+      <div class="tpl-grid">
+        <!-- 1. Quién soy -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>1. Preséntate ("Quién soy")</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#3D8FD6,#333A4D)">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;gap:12px">
+                <div class="post-photo">[ Tu foto<br/>aquí ]</div>
+                <div class="bf" style="font-size:30px;font-style:italic">Hola, soy Isabel</div>
+                <div style="font-size:15px;opacity:.95;line-height:1.4;max-width:80%">Te explico Medicare <b>claro y en tu idioma</b> — sin letra chiquita.</div>
+              </div>
+              <div style="text-align:center;font-size:11px;opacity:.9;line-height:1.6">
+                <b>ISABEL FUENTES</b> · Insurance Agent<br/>CA Lic #0D96598 · +1 (310) 270-0626
+              </div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Texto sugerido: "Mucho gusto 🦋 Soy Isabel Fuentes, tu agente de Medicare de confianza en el Sur de California. Mi misión: que entiendas tus opciones sin estrés y en español. ¿Preguntas? Escríbeme 👇"</div>
+        </div>
+
+        <!-- 2. Facebook Live -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>2. Anuncio de Facebook Live</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#333A4D,#1f2430)">
+            <div class="post-pad">
+              <div class="post-live-badge">EN VIVO</div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div class="bf" style="font-size:30px;line-height:1.2">Tus preguntas de <span style="color:#A9D4F0">Medicare</span>, en vivo</div>
+                <div style="font-size:14px;opacity:.9;line-height:1.5">Te respondo todo — gratis y sin compromiso. Trae tus dudas 🙋‍♀️</div>
+                <div style="display:inline-flex;align-items:center;gap:8px;background:#3D8FD6;align-self:flex-start;padding:8px 16px;border-radius:24px;font-weight:700;font-size:15px">📅 Jueves · 12:00 PM</div>
+              </div>
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Cambia el día/hora a tu horario fijo. Termina siempre con: "Te espero 🦋 Dale 'Me interesa' para recordarte."</div>
+        </div>
+
+        <!-- 3. Tip educativo -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>3. Tip educativo ("¿Sabías que?")</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:#EAF4FB;color:#333A4D">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px;color:#3D8FD6"><span class="bfly">🦋</span><span class="post-name" style="opacity:1">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div style="font-size:13px;font-weight:700;color:#3D8FD6;letter-spacing:.05em">💡 ¿SABÍAS QUE...?</div>
+                <div class="bf" style="font-size:26px;font-style:italic;line-height:1.3">Puedes tener beneficios dentales y de visión <span style="color:#3D8FD6">sin costo extra</span> con ciertos planes Medicare Advantage.</div>
+              </div>
+              <div style="font-size:11px;color:#5C6270;line-height:1.6;border-top:1px solid #C9DCEC;padding-top:10px"><b>ISABEL FUENTES</b> · +1 (310) 270-0626</div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Pídele a <b>Cerebro IA</b> 10 tips como este. Termina con: "¿Quieres saber si tu plan los incluye? Escríbeme 💙"</div>
+        </div>
+
+        <!-- 4. Guía gratis (lead magnet) -->
+        <div class="tpl-wrap">
+          <div class="tpl-cap"><b>4. Guía Gratis (captura leads)</b><span>Post · 1080×1080</span></div>
+          <div class="post" style="background:linear-gradient(160deg,#3D8FD6,#2E6FB0)">
+            <div class="post-pad">
+              <div style="display:flex;align-items:center;gap:8px"><span class="bfly">🦋</span><span class="post-name">Medicare with Isabel</span></div>
+              <div style="flex:1;display:flex;flex-direction:column;justify-content:center;gap:14px">
+                <div style="font-size:13px;font-weight:700;letter-spacing:.08em;opacity:.95">📘 GUÍA GRATIS</div>
+                <div class="bf" style="font-size:27px;font-style:italic;line-height:1.3">5 cosas que debes saber antes de elegir tu plan Medicare</div>
+                <div class="post-cta">Escríbeme "MEDICARE" 👇</div>
+              </div>
+              <div style="text-align:center;font-size:11px;opacity:.9">+1 (310) 270-0626 · CA Lic #0D96598</div>
+            </div>
+          </div>
+          <div class="tpl-note">📝 Esta es tu post más importante para conseguir leads (Fase 3). Crea la guía con <b>Cerebro IA</b> y mándala a quien escriba "MEDICARE".</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ VIRAL & AUTORIDAD ══════ -->
+    <div class="module" id="mod-viralguia">
+      <div class="page-header">
+        <div class="page-title">📣 Viral & <em>Autoridad</em></div>
+        <div class="page-sub">Cómo hacerte viral en Facebook y volverte LA agente de Medicare reconocida del mercado latino.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">🎯</span>
+        <div><strong>La meta:</strong> que cuando un latino en el Sur de California piense en Medicare, piense en <strong>Isabel</strong>. Eso se logra con presencia constante + contenido que se comparte. No necesitas presupuesto grande — necesitas <strong>consistencia y conexión</strong>.</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Reglas de oro virales -->
+        <div class="card">
+          <div class="card-head"><span>🔥</span><div class="card-title">Las 7 reglas para hacerte viral</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><b>1. El gancho (primeros 3 segundos).</b> Detén el scroll: "Si tienes 64 años, escucha esto…" / "Nadie te dice esto de Medicare…"</li>
+              <li><b>2. Video primero.</b> Reels y Lives reciben el mayor alcance gratis. Habla a la cámara, real y sencillo.</li>
+              <li><b>3. Emoción.</b> Haz que sientan alivio, esperanza o "por fin alguien que me entiende".</li>
+              <li><b>4. Que se comparta.</b> Pide: "Etiqueta a alguien que cumple 65 este año 👇" — así llegas a más gente gratis.</li>
+              <li><b>5. Responde TODO.</b> Contesta cada comentario rápido. Facebook premia la conversación con más alcance.</li>
+              <li><b>6. Consistencia.</b> Publica casi todos los días. El algoritmo premia a quien aparece seguido.</li>
+              <li><b>7. Llamada a la acción.</b> Siempre cierra con un paso: "Escríbeme MEDICARE".</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Volverte autoridad -->
+        <div class="card">
+          <div class="card-head"><span>👑</span><div class="card-title">Cómo volverte LA autoridad</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><b>Sé la cara.</b> Aparece TÚ en el contenido, siempre. La gente confía en personas, no en logos.</li>
+              <li><b>Enseña gratis.</b> Entre más explicas sin pedir nada, más te ven como la experta.</li>
+              <li><b>Mismo look siempre.</b> Tus colores, tu mariposa 🦋, tu estilo — para que te reconozcan al instante.</li>
+              <li><b>Live semanal fijo.</b> Mismo día y hora cada semana = cita con tu comunidad.</li>
+              <li><b>Prueba social.</b> Comparte testimonios e historias de clientes (con permiso).</li>
+              <li><b>Entra a los grupos.</b> Participa en grupos de Facebook de la comunidad latina y de adultos mayores en SoCal.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+      <!-- Formatos que funcionan -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🎬</span><div class="card-title">Formatos de contenido que se hacen virales (ideas listas)</div></div>
+        <div class="card-body">
+          <ul class="brand-list">
+            <li>🗣️ <b>"Mitos de Medicare":</b> "Mito: Medicare es gratis. Verdad:…" (serie semanal, ej. "Lunes de Mitos")</li>
+            <li>❓ <b>"Tú preguntas, yo respondo":</b> contesta en video las dudas de los comentarios.</li>
+            <li>💵 <b>"Beneficios que no sabías":</b> dental, visión, transporte, dinero para comida en ciertos planes.</li>
+            <li>⏰ <b>Urgencia educativa:</b> "Si cumples 65 pronto, tienes solo X meses para inscribirte sin multa."</li>
+            <li>❤️ <b>Historias reales:</b> "Doña María pensaba que no calificaba… mira lo que pasó." (con permiso)</li>
+            <li>🎙️ <b>Facebook Live Q&A:</b> tu cita semanal en vivo — el contenido más barato en leads.</li>
+          </ul>
+          <div class="tpl-note" style="margin-top:12px">💡 <b>Tip:</b> Abre <b>Cerebro IA</b> o <b>Viral Generator</b> y pide: "Dame 10 ganchos virales en español para [tema]". Luego grábalos como Reels.</div>
+        </div>
+      </div>
+
+      <!-- Ritmo semanal -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>📅</span><div class="card-title">Tu ritmo semanal para crecer (ejemplo)</div></div>
+        <div class="card-body">
+          <ul class="brand-list">
+            <li><b>Lunes:</b> Reel "Mito de Medicare" 🗣️</li>
+            <li><b>Martes:</b> Tip corto / beneficio que no conocían 💵</li>
+            <li><b>Miércoles:</b> Responde preguntas de los comentarios en video ❓</li>
+            <li><b>Jueves:</b> 🎙️ <b>Facebook Live</b> (tu cita fija) — Q&A de Medicare</li>
+            <li><b>Viernes:</b> Historia o testimonio de cliente ❤️</li>
+            <li><b>Sábado/Domingo:</b> Algo personal y cercano (quién eres, tu "por qué")</li>
+          </ul>
+          <div class="tpl-note" style="margin-top:12px">Sé constante 90 días seguidos y verás el cambio. La consistencia es lo que te vuelve reconocida. 🦋</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ EQUIPO IA (agentes en paralelo) ══════ -->
+    <div class="module" id="mod-equipo">
+      <div class="page-header">
+        <div class="page-title">🤖 Equipo <em>IA</em></div>
+        <div class="page-sub">6 agentes de IA trabajando al mismo tiempo para darte tu semana de contenido lista en un clic.</div>
+      </div>
+
+      <div class="eq-hero">
+        <div class="eq-hero-text">
+          <div class="eq-hero-title">Tu semana de contenido en 30 segundos 🦋</div>
+          <div class="eq-hero-sub">Un clic dispara 6 agentes al mismo tiempo: ganchos virales, guion de Live, ideas de Reels, un tip educativo, copy de captura de leads y una historia. Todo alineado con tu marca y misión.</div>
+        </div>
+        <button class="eq-run-btn" id="eqRunBtn" onclick="runEquipoIA()">🚀 Generar Mi Semana</button>
+      </div>
+      <div class="eq-status" id="eqStatus">Listo. Asegúrate de tener tu API Key arriba a la derecha.</div>
+
+      <div class="eq-grid">
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">🎣</span>Ganchos Virales</div>
+          <div class="eq-card-sub">5 hooks para Reels — primeros 3 segundos</div>
+          <div class="ai-box" id="eqOut1"><div class="ai-label">✨ Ganchos</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut1')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">🎙️</span>Guion Facebook Live</div>
+          <div class="eq-card-sub">Tu cita semanal — Q&A de Medicare</div>
+          <div class="ai-box" id="eqOut2"><div class="ai-label">✨ Guion</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut2')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">📹</span>Ideas de Reels</div>
+          <div class="eq-card-sub">3 conceptos con hook + CTA</div>
+          <div class="ai-box" id="eqOut3"><div class="ai-label">✨ Reels</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut3')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">💡</span>Tip "¿Sabías que…?"</div>
+          <div class="eq-card-sub">Post educativo para esta semana</div>
+          <div class="ai-box" id="eqOut4"><div class="ai-label">✨ Tip</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut4')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">📘</span>Captura de Leads</div>
+          <div class="eq-card-sub">Copy para tu guía gratis (lead magnet)</div>
+          <div class="ai-box" id="eqOut5"><div class="ai-label">✨ Lead</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut5')">📋 Copiar</button></div>
+        </div>
+        <div class="eq-card">
+          <div class="eq-card-head"><span class="eq-card-icon">❤️</span>Historia Inspiradora</div>
+          <div class="eq-card-sub">Plantilla para que la llenes con un cliente real (con su permiso)</div>
+          <div class="ai-box" id="eqOut6"><div class="ai-label">✨ Historia</div></div>
+          <div class="eq-card-actions"><button class="eq-copy" onclick="copyAI('eqOut6')">📋 Copiar</button></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ AGENTE MÓVIL (Telegram bot) ══════ -->
+    <div class="module" id="mod-movil">
+      <div class="page-header">
+        <div class="page-title">📱 Agente <em>Móvil</em></div>
+        <div class="page-sub">Habla con tu IA desde el celular por Telegram. Dale tareas mientras manejas, mientras esperas, donde sea.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">💬</span>
+        <div><strong>¿Cómo funciona?</strong> Tu agente vive en Telegram. Le escribes como a un asistente: <i>"dame 3 ideas para mañana"</i> o usas comandos rápidos. Te responde al instante con contenido alineado a tu marca y misión 🦋.</div>
+      </div>
+
+      <div class="grid-2">
+        <!-- Lo que puede hacer -->
+        <div class="card">
+          <div class="card-head"><span>⚡</span><div class="card-title">Comandos que puedes darle</div></div>
+          <div class="card-body">
+            <ul class="brand-list">
+              <li><code>/hook</code> <i>tema</i> — 5 ganchos virales sobre el tema</li>
+              <li><code>/idea</code> — 3 ideas de Reels para esta semana</li>
+              <li><code>/live</code> <i>tema</i> — guion completo para tu Facebook Live</li>
+              <li><code>/tip</code> — un post "¿Sabías que…?"</li>
+              <li><code>/lead</code> — copy para tu guía gratis (captura leads)</li>
+              <li><code>/historia</code> — plantilla de historia para llenar con un cliente real</li>
+              <li>🚀 <code>/semana</code> — TODO lo de arriba al mismo tiempo</li>
+              <li>💬 O escríbele en español como hablas con cualquier persona</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- WhatsApp note -->
+        <div class="card">
+          <div class="card-head"><span>📲</span><div class="card-title">¿Y WhatsApp?</div></div>
+          <div class="card-body">
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55">WhatsApp también se puede — pero requiere verificación de cuenta de negocio con Meta y aprobación de plantillas. Es un proceso más largo.</p>
+            <p style="font-size:13.5px;color:var(--text-mid);line-height:1.55;margin-top:8px"><b>Mi recomendación:</b> empezamos con Telegram (gratis, listo en 10 min). Una vez que veas que te sirve, conectamos WhatsApp Business como segundo canal.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Setup steps -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>🛠️</span><div class="card-title">Cómo instalarlo (4 pasos)</div></div>
+        <div class="card-body">
+          <p style="font-size:12.5px;color:var(--text-muted);margin-bottom:12px"><i>Esta parte la puede hacer alguien técnico que te ayude (ej. Sammy). Todo lo que necesita está en la carpeta <code>bot/</code> de tu repo.</i></p>
+          <div class="brand-step"><span class="brand-step-num">1</span><div><b>Crea tu bot en Telegram.</b> Abre Telegram → busca <b>@BotFather</b> → escríbele <code>/newbot</code> → ponle un nombre (ej: "Medicare with Isabel") → guarda el <b>token</b> que te da (es como una contraseña).</div></div>
+          <div class="brand-step"><span class="brand-step-num">2</span><div><b>Sube el bot a un servidor.</b> Recomendado: <b>Railway.app</b> (tiene plan gratis). Conecta tu repo de GitHub, selecciona la carpeta <code>bot/</code>.</div></div>
+          <div class="brand-step"><span class="brand-step-num">3</span><div><b>Agrega las 2 llaves secretas</b> en Railway → Variables:
+            <ul style="margin:6px 0 0 18px;font-size:12.5px;color:var(--text-mid)">
+              <li><code>TELEGRAM_BOT_TOKEN</code> = el token de @BotFather</li>
+              <li><code>ANTHROPIC_API_KEY</code> = tu API key (la misma que usas aquí)</li>
+            </ul>
+          </div></div>
+          <div class="brand-step"><span class="brand-step-num">4</span><div><b>Abre Telegram y empieza a escribirle a tu bot.</b> Mándale <code>/start</code> y verás todos los comandos. ¡Listo! 🦋</div></div>
+          <div class="tpl-note" style="margin-top:14px">💡 Toda la info técnica está en <code>bot/README.md</code> dentro de tu repo. La persona que te ayude solo necesita seguir ese archivo.</div>
+        </div>
+      </div>
+
+      <!-- Example interactions -->
+      <div class="card" style="margin-top:14px">
+        <div class="card-head"><span>💬</span><div class="card-title">Ejemplo de cómo se siente usarlo</div></div>
+        <div class="card-body">
+          <div style="background:var(--surface);border-radius:12px;padding:14px;font-size:13.5px;line-height:1.6;color:var(--text)">
+            <div style="margin-bottom:8px"><b style="color:var(--teal-dk)">Tú:</b> "Estoy manejando — dame 3 ideas de Reels para grabar al llegar a casa"</div>
+            <div style="margin-bottom:8px"><b style="color:var(--gold-dk)">Bot 🦋:</b> 1) Reel "Mito vs Verdad: Medicare es gratis"…  2) Reel beneficios dentales que no sabías…  3) Reel "Si cumples 65 este año, esto es lo único que importa"…</div>
+            <div style="margin-bottom:8px"><b style="color:var(--teal-dk)">Tú:</b> "/live diferencia entre Advantage y Suplementario"</div>
+            <div><b style="color:var(--gold-dk)">Bot 🦋:</b> [Guion completo de 5-7 minutos para tu Live] …</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ FULL TOOL (iframe) ══════ -->
+    <div class="module" id="mod-tool">
+      <div class="tool-bar">
+        <div class="tool-bar-title">🧩 <span id="toolTitle">Herramienta</span></div>
+        <a id="toolNewTab" class="tool-bar-link" href="#" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>
+      </div>
+      <iframe id="toolFrame" class="tool-frame" title="Herramienta" data-file=""></iframe>
+    </div>
+
+    <!-- ══════ DASHBOARD ══════ -->
+    <div class="module" id="mod-dashboard">
+      <div class="page-header">
+        <div class="page-title">Buen día, <em>Isabel</em> 👋</div>
+        <div class="page-sub">Sistema Maestro · Medicare Marketing Intelligence · Sur de California</div>
+      </div>
+
+      <div class="alert-bar">
+        <span>⚠️</span>
+        <div><strong>AEP 2026 se acerca.</strong> Ventana: Oct 15 – Dic 7. Es momento de empezar a calentar audiencias y construir listas ahora.</div>
+      </div>
+
+      <div class="grid-4 mb-4">
+        <div class="stat"><div class="stat-icon">👥</div><div class="stat-val" id="dashLeads">0</div><div class="stat-label">Leads en tu CRM</div><div class="stat-delta">Desde tu CRM</div></div>
+        <div class="stat"><div class="stat-icon">📋</div><div class="stat-val">—</div><div class="stat-label">Inscripciones</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">—</div><div class="stat-label">Costo por Lead</div><div class="stat-delta">Cuando corras anuncios</div></div>
+        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val">—</div><div class="stat-label">Alcance</div><div class="stat-delta">Conecta tu Facebook</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <span>📅</span>
+            <div class="card-title">Próximas Publicaciones</div>
+          </div>
+          <div class="card-body" style="padding:0">
+            <div class="lead-row">
+              <div class="lead-avatar">📹</div>
+              <div class="lead-info">
+                <div class="lead-name">Reel: "¿Qué cubre Medicare Parte B?"</div>
+                <div class="lead-detail">Hoy 10:00 AM · Instagram + Facebook</div>
+              </div>
+              <span class="pill pill-teal">Listo</span>
+            </div>
+            <div class="lead-row">
+              <div class="lead-avatar">🎙️</div>
+              <div class="lead-info">
+                <div class="lead-name">FB Live: Preguntas de Medicare</div>
+                <div class="lead-detail">Mañana 12:00 PM · Facebook</div>
+              </div>
+              <span class="pill pill-amber">Pendiente</span>
+            </div>
+            <div class="lead-row">
+              <div class="lead-avatar">📢</div>
+              <div class="lead-info">
+                <div class="lead-name">Meta Ad: SCAN Dental $0</div>
+                <div class="lead-detail">Miércoles · Meta Ads Manager</div>
+              </div>
+              <span class="pill pill-gold">En Review</span>
+            </div>
+            <div class="lead-row">
+              <div class="lead-avatar">📸</div>
+              <div class="lead-info">
+                <div class="lead-name">Story: Testimonio cliente feliz</div>
+                <div class="lead-detail">Jueves 6:00 PM · Stories</div>
+              </div>
+              <span class="pill pill-gold">Planificado</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span>🔥</span>
+            <div class="card-title">Tendencias del Mercado Hispano</div>
+          </div>
+          <div class="card-body">
+            <div id="trendsContainer">
+              <div style="color:var(--text-muted);font-size:13px;font-style:italic">Ingresa tu API Key para cargar tendencias con IA...</div>
+            </div>
+            <button class="btn btn-teal btn-sm mt-3" onclick="loadTrends()">🔄 Actualizar con IA</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div class="card">
+          <div class="card-head"><span>🏆</span><div class="card-title">Top Carriers por Leads</div></div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">SCAN</span><span class="text-sm text-muted">38%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:38%"></div></div>
+            </div>
+            <div class="mb-3">
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Humana</span><span class="text-sm text-muted">24%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:24%"></div></div>
+            </div>
+            <div class="mb-3">
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Anthem</span><span class="text-sm text-muted">19%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:19%"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Alignment</span><span class="text-sm text-muted">12%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:12%"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>📍</span><div class="card-title">Leads por Zona</div></div>
+          <div class="card-body">
+            <div class="mb-3">
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Los Ángeles</span><span class="text-sm text-muted">44%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:44%;background:linear-gradient(90deg,var(--teal),var(--teal-dk))"></div></div>
+            </div>
+            <div class="mb-3">
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Inland Empire</span><span class="text-sm text-muted">29%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:29%;background:linear-gradient(90deg,var(--teal),var(--teal-dk))"></div></div>
+            </div>
+            <div>
+              <div class="flex justify-between mb-2"><span style="font-size:12px;font-weight:600">Orange County</span><span class="text-sm text-muted">21%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:21%;background:linear-gradient(90deg,var(--teal),var(--teal-dk))"></div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><span>⚡</span><div class="card-title">Acciones Rápidas</div></div>
+          <div class="card-body" style="display:flex;flex-direction:column;gap:8px">
+            <button class="btn btn-gold btn-full" onclick="showModule('cerebro',document.querySelector('[onclick*=cerebro]'))">🧠 Pedirle algo a la IA</button>
+            <button class="btn btn-teal btn-full" onclick="showModule('ads',document.querySelector('[onclick*=ads]'))">📢 Crear un Anuncio</button>
+            <button class="btn btn-ghost btn-full" onclick="showModule('compliance',document.querySelector('[onclick*=compliance]'))">⚖️ Revisar Compliance</button>
+            <button class="btn btn-ghost btn-full" onclick="showModule('crm',document.querySelector('[onclick*=crm]'))">👥 Ver Leads</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CEREBRO IA ══════ -->
+    <div class="module" id="mod-cerebro">
+      <div class="page-header">
+        <div class="page-title">🧠 <em>Cerebro</em> IA</div>
+        <div class="page-sub">Tu asistente IA especializado en Medicare hispano — pregunta lo que necesites</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-head"><span>💬</span><div class="card-title">Chat con tu IA Medicare</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <label>¿Qué necesitas hoy?</label>
+                <textarea id="cerebroInput" rows="4" placeholder="Ej: Dame 5 ideas de posts para T-65 hispanos en octubre. ¿Qué beneficios de SCAN debo destacar para el mercado de East LA? ¿Cómo explico la brecha de donut en Medicare?"></textarea>
+              </div>
+              <div class="form-row-2">
+                <div>
+                  <label>Modo</label>
+                  <select id="cerebroMode">
+                    <option value="content">💡 Ideas de Contenido</option>
+                    <option value="copy">📝 Copy/Guiones</option>
+                    <option value="strategy">🎯 Estrategia</option>
+                    <option value="medicare">🏥 Info Medicare</option>
+                    <option value="translate">🌐 Traducir</option>
+                    <option value="email">📧 Email/Texto</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Audiencia</label>
+                  <select id="cerebroAudience">
+                    <option value="t65">T-65 (Próximos a Medicare)</option>
+                    <option value="current">Ya en Medicare</option>
+                    <option value="dual">Dual Eligible</option>
+                    <option value="lowIncome">Bajo Ingreso</option>
+                    <option value="caregiver">Familiares / Hijos</option>
+                  </select>
+                </div>
+              </div>
+              <button class="btn btn-gold btn-full" onclick="askCerebro()">🧠 Preguntarle a la IA →</button>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-head"><span>⚡</span><div class="card-title">Preguntas Rápidas</div></div>
+            <div class="card-body" style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('Dame 5 hooks virales en español para Medicare Part A y Part B para personas de 64 años en Los Ángeles')">5 Hooks Virales</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('¿Cuáles son las preguntas más frecuentes que hacen los hispanos sobre Medicare en redes sociales? Enuméralas con respuestas cortas')">FAQs Hispanos</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('Dame una estrategia de 30 días para calentar audiencia para AEP 2026 en Facebook, enfocada en mercado hispano de SoCal')">Plan 30 días AEP</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('¿Qué diferencia a SCAN Health Plan de otros planes Medicare Advantage en Los Ángeles? Dame puntos de venta clave para mencionar en redes sociales')">SCAN vs Competencia</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('Dame 3 ideas de Reels de 30 segundos sobre beneficios dentales en Medicare Advantage para el mercado hispano de Orange County')">Ideas Reels Dental</button>
+              <button class="btn btn-ghost btn-sm" onclick="quickCerebro('¿Cómo explicarle a un cliente hispano la diferencia entre Medicare Advantage y Medicare Suplementario de manera simple y sin términos técnicos?')">MA vs Suplementario</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="position:relative">
+            <div class="ai-box" id="cerebroOutput" style="min-height:300px">
+              <div class="ai-label">✨ RESPUESTA IA</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Tu respuesta aparecerá aquí. Escribe una pregunta o usa las acciones rápidas ⬅</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('cerebroOutput')">📋 Copiar</button>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-head"><span>📚</span><div class="card-title">Historial de Sesión</div></div>
+            <div class="card-body" id="cerebroHistory" style="max-height:200px;overflow-y:auto;font-size:12px;color:var(--text-muted)">
+              <em>Las últimas consultas aparecerán aquí...</em>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ META ADS STUDIO ══════ -->
+    <div class="module" id="mod-ads">
+      <div class="page-header">
+        <div class="page-title">📢 Meta <em>Ads Studio</em></div>
+        <div class="page-sub">Genera anuncios pagados CMS-compliant para Facebook e Instagram · Mercado Hispano</div>
+      </div>
+
+      <div class="tabs" id="adsTabs">
+        <button class="tab active" onclick="switchTab('adsTabs','adsPane','ads-generator')">✍️ Generador IA</button>
+        <button class="tab" onclick="switchTab('adsTabs','adsPane','ads-library')">📚 Biblioteca Ads</button>
+        <button class="tab" onclick="switchTab('adsTabs','adsPane','ads-targeting')">🎯 Targeting</button>
+        <button class="tab" onclick="switchTab('adsTabs','adsPane','ads-budgets')">💰 Presupuestos</button>
+      </div>
+
+      <div id="adsPane">
+        <!-- Generator -->
+        <div class="tab-pane active" id="ads-generator">
+          <div class="grid-2">
+            <div>
+              <div class="card">
+                <div class="card-head"><span>⚙️</span><div class="card-title">Configurar Anuncio</div></div>
+                <div class="card-body">
+                  <div class="form-row">
+                    <label>Carrier / Plan</label>
+                    <select id="adsCarrier">
+                      <option>SCAN Health Plan</option><option>Anthem Blue Cross</option>
+                      <option>Humana</option><option>Alignment Health</option>
+                      <option>LA Care</option><option>Health Net</option>
+                      <option>Molina Healthcare</option><option>United Healthcare</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label>Beneficio / Ángulo Principal</label>
+                    <select id="adsBenefit">
+                      <option>$0 Premium Medicare Advantage</option>
+                      <option>Beneficios Dentales Gratis</option>
+                      <option>Cobertura de Visión Incluida</option>
+                      <option>Transporte Médico Gratis</option>
+                      <option>OTC Allowance Mensual</option>
+                      <option>Medicamentos $0 Copay</option>
+                      <option>Cobertura de Audífonos</option>
+                      <option>Membresía Gym Incluida</option>
+                      <option>Comidas a Domicilio (Post-hospital)</option>
+                      <option>Cobertura Especial Dual Eligible</option>
+                    </select>
+                  </div>
+                  <div class="form-row-2">
+                    <div>
+                      <label>Zona</label>
+                      <select id="adsZone">
+                        <option>Los Ángeles</option><option>Orange County</option>
+                        <option>Inland Empire</option><option>San Diego</option><option>Toda SoCal</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label>Formato</label>
+                      <select id="adsFormat">
+                        <option>Facebook Post (Imagen)</option>
+                        <option>Carousel Ad</option>
+                        <option>Video Script (30s)</option>
+                        <option>Story / Reel (15s)</option>
+                        <option>Lead Gen Ad</option>
+                      </select>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label>Tono</label>
+                    <select id="adsTone">
+                      <option>Cálido y Familiar (Abuela / Familia)</option>
+                      <option>Urgente (Fecha límite / AEP)</option>
+                      <option>Educativo (¿Sabías que...?)</option>
+                      <option>Testimonial (Historia real)</option>
+                      <option>Autoridad (Yo soy agente licenciada)</option>
+                    </select>
+                  </div>
+                  <button class="btn btn-gold btn-full" onclick="generateAd()">✨ Generar Anuncio con IA →</button>
+                </div>
+              </div>
+            </div>
+            <div>
+              <div style="position:relative">
+                <div class="ai-box" id="adsOutput" style="min-height:260px">
+                  <div class="ai-label">📢 ANUNCIO GENERADO</div>
+                  <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Configura el anuncio y presiona Generar...</div>
+                </div>
+                <button class="copy-btn-ai" onclick="copyAI('adsOutput')">📋 Copiar</button>
+              </div>
+              <div id="adsComplianceResult" class="mt-3"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Library -->
+        <div class="tab-pane" id="ads-library">
+          <div class="grid-2">
+            <div class="comp-card">
+              <div class="comp-name">📣 "¿Ya cumpliste 65?" — Lead Gen</div>
+              <div class="comp-meta">SCAN · Facebook · Lead Gen Ad · ⭐ 9.2/10 Score</div>
+              <div style="font-size:12.5px;color:var(--text);line-height:1.6;background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px">
+                ¿Ya tienes 65 años o los cumples pronto?<br/>
+                Descubre cómo obtener cobertura médica COMPLETA sin pagar prima mensual.<br/>
+                ✅ Dental, visión y audífonos incluidos<br/>
+                ✅ Médicos en tu área que hablan español<br/>
+                📞 Consulta GRATIS con Isabel — Agente Licenciada en California
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="pill pill-green">CMS ✓</span><span class="pill pill-teal">T-65</span><span class="pill pill-gold">SCAN</span>
+              </div>
+            </div>
+            <div class="comp-card">
+              <div class="comp-name">🦷 "Dientes Gratis en Medicare" — Awareness</div>
+              <div class="comp-meta">Humana · Facebook Video · ⭐ 8.7/10 Score</div>
+              <div style="font-size:12.5px;color:var(--text);line-height:1.6;background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px">
+                👩‍⚕️ Muchos de mis clientes no saben esto:<br/>
+                Con Medicare Advantage puedes tener COBERTURA DENTAL incluida.<br/>
+                Sin costo adicional. Sin sorpresas.<br/>
+                ¿Ya tienes este beneficio? Si no, te estás perdiendo de mucho.
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="pill pill-green">CMS ✓</span><span class="pill pill-gold">Dental</span><span class="pill pill-purple">Viral</span>
+              </div>
+            </div>
+            <div class="comp-card">
+              <div class="comp-name">🚗 "Transporte Gratis al Doctor" — Beneficio</div>
+              <div class="comp-meta">Alignment · Instagram · ⭐ 8.4/10</div>
+              <div style="font-size:12.5px;color:var(--text);line-height:1.6;background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px">
+                ¿Tienes problemas para llegar al médico?<br/>
+                Con tu plan Medicare Advantage, puedes tener transporte GRATIS.<br/>
+                Sin límite de viajes. Sin costo. Ya incluido en tu plan.
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="pill pill-green">CMS ✓</span><span class="pill pill-teal">Alignment</span>
+              </div>
+            </div>
+            <div class="comp-card">
+              <div class="comp-name">💊 "Medicamentos $0" — Precio</div>
+              <div class="comp-meta">Molina · Facebook · ⭐ 8.1/10</div>
+              <div style="font-size:12.5px;color:var(--text);line-height:1.6;background:var(--surface);border-radius:8px;padding:10px;margin-bottom:8px">
+                ¿Cuánto pagas por tus medicamentos cada mes?<br/>
+                Muchos de mis clientes pagan $0 en sus medicamentos más comunes.<br/>
+                Hablemos — puede ser que estés pagando de más.
+              </div>
+              <div class="flex gap-2 flex-wrap">
+                <span class="pill pill-green">CMS ✓</span><span class="pill pill-gold">Molina</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Targeting -->
+        <div class="tab-pane" id="ads-targeting">
+          <div class="grid-2">
+            <div class="card">
+              <div class="card-head"><span>🎯</span><div class="card-title">Audiencia Principal T-65</div></div>
+              <div class="card-body">
+                <div class="card2">
+                  <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px">DEMOGRAFÍA</div>
+                  <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                    • Edad: 62–67 años<br/>
+                    • Idioma: Español (primario)<br/>
+                    • Ubicación: Los Ángeles, Orange County, Riverside, San Bernardino<br/>
+                    • Género: Todos (leve énfasis mujeres — toman decisiones de salud familiar)
+                  </div>
+                </div>
+                <div class="card2">
+                  <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px">INTERESES (META)</div>
+                  <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                    • Medicare, Medicaid, Health Insurance<br/>
+                    • AARP, Senior Living<br/>
+                    • Telemundo, Univision, Azteca<br/>
+                    • Recetas caseras, Iglesia, Nietos<br/>
+                    • Jubilación, Pensión, Social Security
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span>📱</span><div class="card-title">Placement Strategy</div></div>
+              <div class="card-body">
+                <table>
+                  <tr><th>Placement</th><th>Prioridad</th><th>CTR Esperado</th></tr>
+                  <tr><td>Facebook Feed</td><td><span class="pill pill-green">Alta</span></td><td>2.8-4.2%</td></tr>
+                  <tr><td>Facebook Reels</td><td><span class="pill pill-green">Alta</span></td><td>3.1-5.0%</td></tr>
+                  <tr><td>Instagram Feed</td><td><span class="pill pill-amber">Media</span></td><td>1.9-3.1%</td></tr>
+                  <tr><td>Instagram Stories</td><td><span class="pill pill-amber">Media</span></td><td>2.2-3.5%</td></tr>
+                  <tr><td>Audience Network</td><td><span class="pill pill-red">Baja</span></td><td>0.8-1.5%</td></tr>
+                  <tr><td>Messenger</td><td><span class="pill pill-amber">Media</span></td><td>1.5-2.8%</td></tr>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Budgets -->
+        <div class="tab-pane" id="ads-budgets">
+          <div class="grid-3">
+            <div class="card">
+              <div class="card-head"><span>🌱</span><div class="card-title">Plan Starter</div></div>
+              <div class="card-body">
+                <div class="stat-val" style="font-size:24px;text-align:center;margin-bottom:12px">$300/mes</div>
+                <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                  ✅ 1 campaña activa<br/>
+                  ✅ ~70-100 leads/mes<br/>
+                  ✅ 1 audience T-65<br/>
+                  ✅ A/B test 2 creatividades<br/>
+                  📍 1 zona geográfica<br/>
+                  <div style="margin-top:10px;color:var(--text-muted);font-size:11px">CPL estimado: $3-5</div>
+                </div>
+              </div>
+            </div>
+            <div class="card" style="border-color:var(--gold)">
+              <div class="card-head" style="background:var(--gold-lt)"><span>⭐</span><div class="card-title" style="color:var(--gold-dk)">Plan Crecimiento</div></div>
+              <div class="card-body">
+                <div class="stat-val" style="font-size:24px;text-align:center;margin-bottom:12px;color:var(--gold-dk)">$750/mes</div>
+                <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                  ✅ 3 campañas activas<br/>
+                  ✅ ~200-280 leads/mes<br/>
+                  ✅ T-65 + Dual + Retargeting<br/>
+                  ✅ A/B test full<br/>
+                  📍 LA + OC + IE<br/>
+                  ✅ Video + Imagen<br/>
+                  <div style="margin-top:10px;color:var(--gold-dk);font-size:11px;font-weight:700">CPL estimado: $2.70-4</div>
+                </div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head"><span>🚀</span><div class="card-title">Plan AEP Season</div></div>
+              <div class="card-body">
+                <div class="stat-val" style="font-size:24px;text-align:center;margin-bottom:12px">$1,500/mes</div>
+                <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                  ✅ Campañas ilimitadas<br/>
+                  ✅ 400+ leads/mes<br/>
+                  ✅ Full funnel: awareness → conversión<br/>
+                  ✅ Lookalike audiences<br/>
+                  📍 Todo SoCal<br/>
+                  ✅ Video, Reel, Lead Gen, Carousel<br/>
+                  <div style="margin-top:10px;color:var(--text-muted);font-size:11px">CPL estimado: $2.50-3.50</div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ VIRAL GENERATOR ══════ -->
+    <div class="module" id="mod-viral">
+      <div class="page-header">
+        <div class="page-title">🔥 Viral <em>Generator</em></div>
+        <div class="page-sub">Genera contenido diseñado para explotar en el mercado hispano · Basado en psicología viral</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-head"><span>⚙️</span><div class="card-title">Configurar Contenido Viral</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <label>Tipo de Contenido</label>
+                <select id="viralType">
+                  <option>🎬 Reel (30-60 segundos)</option>
+                  <option>📸 Post Educativo</option>
+                  <option>📊 Carrusel "X Cosas que No Sabías"</option>
+                  <option>😱 Post de Shock / Sorpresa</option>
+                  <option>❓ Pregunta Polémica</option>
+                  <option>🗣️ Testimonio Emocional</option>
+                  <option>📅 Urgencia / Fecha Límite</option>
+                  <option>🎁 Beneficio Sorpresa</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>Tema</label>
+                <select id="viralTopic">
+                  <option>Beneficios que la gente no sabe que tiene</option>
+                  <option>Errores comunes en Medicare</option>
+                  <option>¿Cuándo aplico a Medicare?</option>
+                  <option>Diferencia Medicare vs Medicaid</option>
+                  <option>Dental / Visión / Audífonos gratis</option>
+                  <option>Medicamentos $0 copay</option>
+                  <option>El período de inscripción (AEP/OEP)</option>
+                  <option>Medicare para inmigrantes</option>
+                  <option>Cómo elegir el plan correcto</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>Gatillo Emocional</label>
+                <select id="viralEmotion">
+                  <option>Miedo a perder beneficios</option>
+                  <option>Sorpresa / No lo sabía</option>
+                  <option>Orgullo familiar (cuidar a mis papás)</option>
+                  <option>Urgencia / Tiempo limitado</option>
+                  <option>Alivio / Tranquilidad</option>
+                  <option>Enojo (les cobraron de más)</option>
+                </select>
+              </div>
+              <div class="form-row">
+                <label>Plataforma</label>
+                <select id="viralPlatform">
+                  <option>Facebook (60+)</option>
+                  <option>Instagram Reels</option>
+                  <option>TikTok</option>
+                  <option>YouTube Shorts</option>
+                  <option>Facebook + Instagram (ambos)</option>
+                </select>
+              </div>
+              <button class="btn btn-gold btn-full" onclick="generateViral()">🔥 Generar Contenido Viral →</button>
+            </div>
+          </div>
+          <div class="card mt-3">
+            <div class="card-head"><span>🏆</span><div class="card-title">Fórmulas Virales Probadas</div></div>
+            <div class="card-body">
+              <div class="card2 mb-2">
+                <div style="font-size:11px;font-weight:700;color:var(--gold-dk)">FÓRMULA "NO SABÍAS" 🔥🔥🔥</div>
+                <div style="font-size:12px;color:var(--text);margin-top:4px">"[X] cosas de Medicare que el 90% de los hispanos no saben... (Número [N] me sorprendió)"</div>
+              </div>
+              <div class="card2 mb-2">
+                <div style="font-size:11px;font-weight:700;color:var(--red)">FÓRMULA URGENCIA 🚨</div>
+                <div style="font-size:12px;color:var(--text);margin-top:4px">"Si cumples 65 en [MES], tienes exactamente [X] días para inscribirte o pagarás multas de por vida"</div>
+              </div>
+              <div class="card2 mb-2">
+                <div style="font-size:11px;font-weight:700;color:var(--teal)">FÓRMULA TESTIMONIO 💬</div>
+                <div style="font-size:12px;color:var(--text);margin-top:4px">"Mi cliente [Nombre] llevaba 3 años pagando $180/mes por su plan. Hoy paga $0. Esto fue lo que le dije..."</div>
+              </div>
+              <div class="card2">
+                <div style="font-size:11px;font-weight:700;color:var(--purple)">FÓRMULA PREGUNTA 🤔</div>
+                <div style="font-size:12px;color:var(--text);margin-top:4px">"¿Cuánto pagas de prima en Medicare? Comenta 👇 — si pagas más de $0, puede que estés pagando de más"</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div>
+          <div style="position:relative">
+            <div class="ai-box" id="viralOutput" style="min-height:300px">
+              <div class="ai-label">🔥 CONTENIDO VIRAL</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Configura y genera tu contenido viral...</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('viralOutput')">📋 Copiar</button>
+          </div>
+          <div class="card mt-3">
+            <div class="card-head"><span>📊</span><div class="card-title">Predicción de Viralizacion</div></div>
+            <div class="card-body" id="viralScore">
+              <div style="color:var(--text-muted);font-size:12px">Genera un contenido para ver el score...</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ FB LIVE SCRIPTS ══════ -->
+    <div class="module" id="mod-live">
+      <div class="page-header">
+        <div class="page-title">🎙️ Facebook <em>Live Scripts</em></div>
+        <div class="page-sub">Guiones completos para tus Facebook Lives · Estructura probada que genera leads</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-head"><span>⚙️</span><div class="card-title">Configurar Live</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <label>Tema del Live</label>
+                <select id="liveTheme">
+                  <option>Todo sobre Medicare Advantage — Q&A</option>
+                  <option>¿Cómo me inscribo a Medicare? Guía paso a paso</option>
+                  <option>Beneficios gratis que tienes y no estás usando</option>
+                  <option>Diferencia entre todos los planes disponibles</option>
+                  <option>Errores que cuestan dinero en Medicare</option>
+                  <option>Medicare para quienes llegan a 65 este año</option>
+                  <option>Preguntas y respuestas — AEP Edition</option>
+                </select>
+              </div>
+              <div class="form-row-2">
+                <div>
+                  <label>Duración</label>
+                  <select id="liveDuration">
+                    <option>20 minutos</option><option>30 minutos</option>
+                    <option>45 minutos</option><option>60 minutos</option>
+                  </select>
+                </div>
+                <div>
+                  <label>Hora</label>
+                  <input type="time" id="liveTime" value="12:00"/>
+                </div>
+              </div>
+              <div class="form-row">
+                <label>Oferta / CTA Principal</label>
+                <input type="text" id="liveCTA" value="Llamada gratuita de revisión de beneficios" placeholder="Ej: Consulta gratis, Revisión de plan..."/>
+              </div>
+              <button class="btn btn-gold btn-full" onclick="generateLiveScript()">🎙️ Generar Guión Completo →</button>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-head"><span>📋</span><div class="card-title">Estructura Ganadora (20 min)</div></div>
+            <div class="card-body">
+              <div class="script-beat hook"><div class="beat-time">MIN 0-2 · HOOK</div><div class="beat-text">Bienvenida + promesa + curiosidad. Haz que la gente se quede.</div></div>
+              <div class="script-beat"><div class="beat-time">MIN 2-5 · CREDIBILIDAD</div><div class="beat-text">Quién eres, cuántos años, cuántos clientes has ayudado.</div></div>
+              <div class="script-beat"><div class="beat-time">MIN 5-15 · CONTENIDO VALOR</div><div class="beat-text">3 puntos educativos clave. Mantén engagement con preguntas.</div></div>
+              <div class="script-beat"><div class="beat-time">MIN 15-18 · URGENCIA</div><div class="beat-text">Por qué actuar AHORA. Fechas, consecuencias, oportunidades.</div></div>
+              <div class="script-beat cta"><div class="beat-time">MIN 18-20 · CTA</div><div class="beat-text">Cómo contactarte. Link en bio. Número directo. Próximo live.</div></div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="position:relative">
+            <div class="ai-box" id="liveOutput" style="min-height:400px">
+              <div class="ai-label">🎙️ GUIÓN GENERADO</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Configura tu Live y genera el guión completo con IA...</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('liveOutput')">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CALENDARIO ══════ -->
+    <div class="module" id="mod-calendar">
+      <div class="page-header">
+        <div class="page-title">📅 <em>Calendario</em> de Contenido</div>
+        <div class="page-sub">Tu plan semanal de publicaciones · Haz clic en + para agregar contenido</div>
+      </div>
+      <div class="flex justify-between items-center mb-4">
+        <div style="font-family:'Fraunces',serif;font-size:18px;color:var(--text-mid)" id="calWeekLabel">Semana de Mayo 26 – Junio 1</div>
+        <div class="flex gap-2">
+          <button class="btn btn-ghost btn-sm" onclick="generateWeekPlan()">✨ Generar Plan con IA</button>
+          <button class="btn btn-teal btn-sm">📤 Exportar</button>
+        </div>
+      </div>
+      <div class="grid-4" id="calGrid">
+        <!-- Days injected by JS -->
+      </div>
+      <div class="card mt-4">
+        <div class="card-head"><span>📊</span><div class="card-title">Resumen de la Semana</div></div>
+        <div class="card-body">
+          <div class="grid-4">
+            <div class="stat"><div class="stat-val">7</div><div class="stat-label">Posts Programados</div></div>
+            <div class="stat"><div class="stat-val">2</div><div class="stat-label">Reels / Videos</div></div>
+            <div class="stat"><div class="stat-val">1</div><div class="stat-label">Facebook Live</div></div>
+            <div class="stat"><div class="stat-val">3</div><div class="stat-label">Stories</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ COMPETENCIA INTEL ══════ -->
+    <div class="module" id="mod-intel">
+      <div class="page-header">
+        <div class="page-title">🕵️ <em>Competencia</em> Intel</div>
+        <div class="page-sub">Inteligencia de mercado · Analiza a tus competidores sin que sepan</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-head"><span>🔍</span><div class="card-title">Analizar Competidor con IA</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <label>URL de Facebook Page / Página del Competidor</label>
+                <input type="text" id="intelUrl" placeholder="facebook.com/MedicareAgenteLA"/>
+              </div>
+              <div class="form-row">
+                <label>¿Qué quieres analizar?</label>
+                <select id="intelType">
+                  <option>Estrategia de contenido general</option>
+                  <option>Tipos de anuncios que están corriendo</option>
+                  <option>Mensajes y ganchos que usan</option>
+                  <option>Debilidades que puedo atacar</option>
+                  <option>Frecuencia de publicación</option>
+                </select>
+              </div>
+              <button class="btn btn-gold btn-full" onclick="analyzeCompetitor()">🕵️ Analizar con IA →</button>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-head"><span>⚡</span><div class="card-title">Análisis de Mercado Rápido</div></div>
+            <div class="card-body">
+              <button class="btn btn-ghost btn-full mb-2" onclick="quickIntel('¿Cuáles son las estrategias de marketing en Facebook que usan los agentes de Medicare en el mercado hispano de Los Ángeles? ¿Qué tipo de anuncios están corriendo? ¿Cuáles son sus mensajes principales? Dame un análisis detallado de la competencia.')">🔍 ¿Qué está haciendo la competencia en LA?</button>
+              <button class="btn btn-ghost btn-full mb-2" onclick="quickIntel('¿Cuáles son los mensajes de marketing de Medicare Advantage más comunes en el mercado hispano? ¿Cuáles están saturados y cuáles son oportunidades sin explotar para un agente independiente bilingual en SoCal?')">💡 ¿Qué mensajes están saturados?</button>
+              <button class="btn btn-ghost btn-full mb-2" onclick="quickIntel('¿Cómo puede una agente independiente de Medicare en Los Ángeles diferenciarse de las grandes aseguradoras que tienen presupuestos masivos de publicidad en Facebook? Dame estrategias específicas y creativas para el mercado hispano.')">🏆 ¿Cómo ganarle a las grandes?</button>
+              <button class="btn btn-ghost btn-full" onclick="quickIntel('¿Qué preguntas hacen los hispanos en los comentarios de Facebook sobre Medicare? Lista las 15 preguntas más frecuentes y cómo responderlas de forma que genere más leads.')">💬 Preguntas de comentarios en FB</button>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div style="position:relative;margin-bottom:14px">
+            <div class="ai-box" id="intelOutput" style="min-height:260px">
+              <div class="ai-label">🕵️ INTEL REPORT</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Selecciona un análisis para ver el reporte...</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('intelOutput')">📋 Copiar</button>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><span>⚠️</span><div class="card-title">Radar de Competidores</div></div>
+            <div class="card-body">
+              <div class="comp-card">
+                <div class="comp-name">Agentes de Seguros Grandes (Captive)</div>
+                <div class="comp-meta">United Healthcare, Humana reps directos</div>
+                <div class="threat-bar"><div class="threat-label">Presupuesto</div><div class="threat-track"><div class="threat-fill" style="width:90%;background:var(--red)"></div></div><span class="text-sm">🔴 Muy Alto</span></div>
+                <div class="threat-bar"><div class="threat-label">Personalización</div><div class="threat-track"><div class="threat-fill" style="width:20%;background:var(--green)"></div></div><span class="text-sm">🟢 Tú ganas</span></div>
+                <div class="threat-bar"><div class="threat-label">Español</div><div class="threat-track"><div class="threat-fill" style="width:25%;background:var(--green)"></div></div><span class="text-sm">🟢 Tú ganas</span></div>
+              </div>
+              <div class="comp-card">
+                <div class="comp-name">FMOs y Agencias Digitales</div>
+                <div class="comp-meta">GoHealth, SelectQuote, eHealth</div>
+                <div class="threat-bar"><div class="threat-label">Presupuesto</div><div class="threat-track"><div class="threat-fill" style="width:75%;background:var(--amber)"></div></div><span class="text-sm">🟡 Alto</span></div>
+                <div class="threat-bar"><div class="threat-label">Confianza local</div><div class="threat-track"><div class="threat-fill" style="width:15%;background:var(--green)"></div></div><span class="text-sm">🟢 Tú ganas</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CMS COMPLIANCE ══════ -->
+    <div class="module" id="mod-compliance">
+      <div class="page-header">
+        <div class="page-title">⚖️ CMS <em>Compliance</em> Checker</div>
+        <div class="page-sub">Verifica que tu contenido cumple con regulaciones CMS antes de publicar</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div class="card">
+            <div class="card-head"><span>📝</span><div class="card-title">Revisar Texto con IA</div></div>
+            <div class="card-body">
+              <div class="form-row">
+                <label>Texto a revisar (anuncio, post, guión, email)</label>
+                <textarea id="complianceText" rows="8" placeholder="Pega aquí tu texto de anuncio, post, correo o cualquier comunicación de marketing relacionada con Medicare..."></textarea>
+              </div>
+              <div class="form-row">
+                <label>Tipo de Material</label>
+                <select id="complianceType">
+                  <option>Anuncio de Facebook / Instagram</option>
+                  <option>Post orgánico</option>
+                  <option>Script de Facebook Live</option>
+                  <option>Email / Newsletter</option>
+                  <option>Mensaje de texto SMS</option>
+                  <option>Folleto / Flyer</option>
+                  <option>Guión telefónico</option>
+                </select>
+              </div>
+              <button class="btn btn-gold btn-full" onclick="checkCompliance()">⚖️ Revisar Compliance →</button>
+            </div>
+          </div>
+
+          <div class="card mt-3">
+            <div class="card-head"><span>📋</span><div class="card-title">Reglas CMS Clave</div></div>
+            <div class="card-body">
+              <div style="font-size:12.5px;color:var(--text);line-height:1.8">
+                <div class="mb-2"><span class="pill pill-red">PROHIBIDO</span></div>
+                <div style="margin-left:8px;margin-bottom:12px;line-height:2">
+                  ❌ Mencionar beneficios específicos sin disclaimer<br/>
+                  ❌ "Gratis" sin especificar condiciones<br/>
+                  ❌ Comparar planes con datos específicos no aprobados<br/>
+                  ❌ Llamar "Medicaid" a planes Medicare<br/>
+                  ❌ Promesas de ahorro garantizado<br/>
+                  ❌ Imitar documentos gubernamentales<br/>
+                  ❌ "Todos califican" o garantías de aprobación
+                </div>
+                <div class="mb-2"><span class="pill pill-green">REQUERIDO</span></div>
+                <div style="margin-left:8px;line-height:2">
+                  ✅ Disclaimer de carrier al final<br/>
+                  ✅ NPN visible en materiales impresos<br/>
+                  ✅ "Planes tienen copays, deductibles, limitaciones"<br/>
+                  ✅ Período de inscripción correcto<br/>
+                  ✅ "Sujeto a cambios" para beneficios<br/>
+                  ✅ TPMO disclosure si aplica
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div>
+          <div id="complianceResult" style="margin-bottom:14px">
+            <div class="compliance-warn">⚠️ Ingresa texto y presiona Revisar Compliance para ver el análisis</div>
+          </div>
+          <div style="position:relative">
+            <div class="ai-box" id="complianceOutput" style="min-height:300px">
+              <div class="ai-label">⚖️ ANÁLISIS CMS</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">El análisis detallado aparecerá aquí...</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('complianceOutput')">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ CRM LEADS ══════ -->
+    <div class="module" id="mod-crm">
+      <div class="page-header">
+        <div class="page-title">👥 CRM <em>Leads</em></div>
+        <div class="page-sub">Gestiona tus prospectos de Medicare · Prioriza, da seguimiento, cierra</div>
+      </div>
+
+      <div class="grid-4 mb-4">
+        <div class="stat"><div class="stat-icon">🔥</div><div class="stat-val" id="crmStatHot">0</div><div class="stat-label">Hot Leads</div></div>
+        <div class="stat"><div class="stat-icon">🌡️</div><div class="stat-val" id="crmStatWarm">0</div><div class="stat-label">Warm Leads</div></div>
+        <div class="stat"><div class="stat-icon">🧊</div><div class="stat-val" id="crmStatCold">0</div><div class="stat-label">Cold Leads</div></div>
+        <div class="stat"><div class="stat-icon">✅</div><div class="stat-val" id="crmStatClosed">0</div><div class="stat-label">Cerrados Mes</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head">
+            <span>➕</span><div class="card-title">Agregar Lead</div>
+          </div>
+          <div class="card-body">
+            <div class="form-row-2">
+              <div><label>Nombre</label><input type="text" id="leadName" placeholder="María García"/></div>
+              <div><label>Teléfono</label><input type="tel" id="leadPhone" placeholder="(213) 555-0000"/></div>
+            </div>
+            <div class="form-row-2">
+              <div>
+                <label>Estado</label>
+                <select id="leadStatus">
+                  <option>🔥 Hot — Listo para inscribir</option>
+                  <option>🌡️ Warm — Interesado, necesita más info</option>
+                  <option>🧊 Cold — Contactado, sin respuesta</option>
+                  <option>📅 Futuro — T-65, todavía no</option>
+                </select>
+              </div>
+              <div>
+                <label>Zona</label>
+                <select id="leadZone">
+                  <option>Los Ángeles</option><option>Orange County</option>
+                  <option>Inland Empire</option><option>Otro</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-row">
+              <label>Notas</label>
+              <textarea id="leadNotes" rows="2" placeholder="Cumple 65 en agosto, interesada en SCAN, tiene diabetes..."></textarea>
+            </div>
+            <button class="btn btn-gold btn-full" onclick="addLead()">➕ Agregar Lead</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head">
+            <span>🤖</span><div class="card-title">Generar Follow-Up con IA</div>
+          </div>
+          <div class="card-body">
+            <div class="form-row">
+              <label>Situación del Lead</label>
+              <textarea id="followUpContext" rows="3" placeholder="Ej: María me contactó por FB, tiene 64 años, cumple 65 en agosto, quiere SCAN pero tiene preguntas sobre sus doctores en la red..."></textarea>
+            </div>
+            <div class="form-row">
+              <label>Tipo de Follow-Up</label>
+              <select id="followUpType">
+                <option>📱 Texto SMS</option>
+                <option>📧 Email personalizado</option>
+                <option>💬 Mensaje WhatsApp</option>
+                <option>📞 Script para llamada</option>
+              </select>
+            </div>
+            <button class="btn btn-teal btn-full" onclick="generateFollowUp()">🤖 Generar Follow-Up →</button>
+            <div style="position:relative;margin-top:12px">
+              <div class="ai-box" id="followUpOutput" style="min-height:100px;font-size:12.5px">
+                <div class="ai-label">💬 MENSAJE</div>
+                <div style="color:var(--text-muted);font-style:italic;padding-top:8px;font-size:12px">Tu mensaje personalizado...</div>
+              </div>
+              <button class="copy-btn-ai" onclick="copyAI('followUpOutput')">📋 Copiar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-4">
+        <div class="card-head"><span>📋</span><div class="card-title">Lista de Leads</div><div style="margin-left:auto"><span class="pill pill-gold" id="leadsCount">0 leads</span></div></div>
+        <div id="leadsList">
+          <div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Agrega leads para verlos aquí</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ MÉTRICAS ══════ -->
+    <div class="module" id="mod-metricas">
+      <div class="page-header">
+        <div class="page-title">📈 <em>Métricas</em> & ROI</div>
+        <div class="page-sub">Análisis de rendimiento semanal y mensual · Toma decisiones basadas en datos</div>
+      </div>
+      <div class="grid-4 mb-4">
+        <div class="stat"><div class="stat-icon">💰</div><div class="stat-val">—</div><div class="stat-label">CPL Actual</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">👁️</div><div class="stat-val">—</div><div class="stat-label">Alcance Semanal</div><div class="stat-delta">Conecta Facebook</div></div>
+        <div class="stat"><div class="stat-icon">❤️</div><div class="stat-val">—</div><div class="stat-label">Engagement Rate</div><div class="stat-delta">Agrega tus datos</div></div>
+        <div class="stat"><div class="stat-icon">🎯</div><div class="stat-val">—</div><div class="stat-label">Tasa Cierre</div><div class="stat-delta">Agrega tus datos</div></div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-head"><span>📊</span><div class="card-title">Rendimiento por Tipo de Contenido</div></div>
+        <div class="card-body">
+          <table>
+            <tr><th>Tipo de Contenido</th><th>Alcance Prom.</th><th>Engagement</th><th>Leads Gen.</th><th>CPL</th><th>Score</th></tr>
+            <tr><td>🎬 Reels educativos</td><td>8,200</td><td>5.8%</td><td>12</td><td>$2.50</td><td><span class="pill pill-green">⭐ 9.2</span></td></tr>
+            <tr><td>🎙️ Facebook Lives</td><td>3,100</td><td>8.2%</td><td>18</td><td>$1.80</td><td><span class="pill pill-green">⭐ 9.8</span></td></tr>
+            <tr><td>📸 Posts estáticos</td><td>2,800</td><td>3.1%</td><td>5</td><td>$6.20</td><td><span class="pill pill-amber">⭐ 6.1</span></td></tr>
+            <tr><td>📊 Carruseles</td><td>4,500</td><td>6.4%</td><td>9</td><td>$3.80</td><td><span class="pill pill-teal">⭐ 8.3</span></td></tr>
+            <tr><td>📢 Meta Ads pagados</td><td>22,000</td><td>2.4%</td><td>47</td><td>$4.10</td><td><span class="pill pill-teal">⭐ 8.0</span></td></tr>
+            <tr><td>📖 Stories educativas</td><td>1,900</td><td>4.1%</td><td>3</td><td>$8.50</td><td><span class="pill pill-amber">⭐ 5.5</span></td></tr>
+          </table>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-head"><span>🤖</span><div class="card-title">Análisis IA de Métricas</div></div>
+          <div class="card-body">
+            <div class="form-row">
+              <label>¿Qué quieres analizar?</label>
+              <textarea id="metricasQuery" rows="3" placeholder="Ej: ¿Qué tipo de contenido me está dando mejor ROI? ¿Dónde debo invertir más? ¿Qué estoy haciendo mal?"></textarea>
+            </div>
+            <button class="btn btn-gold btn-full" onclick="analyzeMetrics()">📊 Analizar con IA →</button>
+          </div>
+        </div>
+        <div>
+          <div style="position:relative">
+            <div class="ai-box" id="metricasOutput" style="min-height:160px">
+              <div class="ai-label">📊 ANÁLISIS</div>
+              <div style="color:var(--text-muted);font-style:italic;padding-top:8px">Ingresa una pregunta y analiza tus métricas con IA...</div>
+            </div>
+            <button class="copy-btn-ai" onclick="copyAI('metricasOutput')">📋 Copiar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<script>
+// ─── STATE ───
+let apiKey = '';
+let leads = [];
+let calendarItems = {
+  Lunes:[{type:'post',text:'Post: ¿Qué es Medicare Parte A?'}],
+  Martes:[{type:'story',text:'Story: Tip del día'}],
+  Miércoles:[{type:'reel',text:'Reel: 3 beneficios gratis'}],
+  Jueves:[{type:'live',text:'FB Live 12PM: Q&A Medicare'}],
+  Viernes:[{type:'post',text:'Post: Testimonio cliente'}],
+  Sábado:[{type:'story',text:'Story: Frase motivacional'}],
+  Domingo:[{type:'post',text:'Resumen semanal'}]
+};
+
+// ─── API KEY (shared + persisted) ───
+const API_KEY_STORE = 'isabel_anthropic_key';
+function broadcastApiKey(targetWindow){
+  const msg = {type:'ISABEL_API_KEY', key:apiKey};
+  if(targetWindow){ try{targetWindow.postMessage(msg,'*');}catch(_){} return; }
+  document.querySelectorAll('iframe.tool-frame').forEach(f=>{
+    try{ if(f.contentWindow) f.contentWindow.postMessage(msg,'*'); }catch(_){}
+  });
+}
+function persistApiKey(){
+  try{ apiKey ? localStorage.setItem(API_KEY_STORE, apiKey) : localStorage.removeItem(API_KEY_STORE); }catch(_){}
+}
+function checkApiKey(){
+  apiKey = document.getElementById('apiKeyInput').value.trim();
+  document.getElementById('apiDot').classList.toggle('active', apiKey.length > 20);
+  persistApiKey();
+  broadcastApiKey();
+}
+function loadApiKey(){
+  let stored = '';
+  try{ stored = localStorage.getItem(API_KEY_STORE) || ''; }catch(_){}
+  if(stored){
+    apiKey = stored;
+    const input = document.getElementById('apiKeyInput');
+    if(input) input.value = stored;
+    document.getElementById('apiDot').classList.toggle('active', apiKey.length > 20);
+  }
+}
+
+// ─── NAVIGATION ───
+function showModule(id, btn){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  const mod = document.getElementById('mod-'+id);
+  if(mod) mod.classList.add('active');
+  if(btn) btn.classList.add('active');
+  if(id==='calendar') renderCalendar();
+  closeSidebar();
+}
+
+// ─── FULL TOOLS (iframe) ───
+const TOOL_BASE = 'tools/';
+let currentToolFile = '';
+function openTool(file, btn, title){
+  document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(btn) btn.classList.add('active');
+  const mod = document.getElementById('mod-tool');
+  mod.classList.add('active');
+  document.getElementById('toolTitle').textContent = title || 'Herramienta';
+  const link = document.getElementById('toolNewTab');
+  link.href = TOOL_BASE + file;
+  currentToolFile = file;
+  const frame = document.getElementById('toolFrame');
+  if(frame.getAttribute('data-file') !== file){
+    frame.setAttribute('data-file', file);
+    frame.src = TOOL_BASE + file;
+  }
+  closeSidebar();
+}
+
+// ─── TABS ───
+function switchTab(tabGroupId, paneGroupId, targetId){
+  const tabs = document.getElementById(tabGroupId);
+  const panes = document.getElementById(paneGroupId);
+  if(!tabs||!panes)return;
+  tabs.querySelectorAll('.tab').forEach((t,i)=>{
+    const pane = panes.querySelectorAll('.tab-pane')[i];
+    const active = t.getAttribute('onclick').includes(targetId);
+    t.classList.toggle('active',active);
+    if(pane) pane.classList.toggle('active',active);
+  });
+}
+
+// ─── CLAUDE API ───
+async function callClaude(systemPrompt, userMsg, outputId){
+  if(!apiKey){
+    setOutput(outputId,'⚠️ Por favor ingresa tu API Key de Anthropic en la esquina superior derecha para usar las funciones de IA.');
+    return;
+  }
+  setOutput(outputId,'<div class="ai-loading">✨ Generando con IA<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
+  try{
+    const res = await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{
+        'Content-Type':'application/json',
+        'x-api-key':apiKey,
+        'anthropic-version':'2023-06-01',
+        'anthropic-dangerous-direct-browser-access':'true'
+      },
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system: systemPrompt,
+        messages:[{role:'user',content:userMsg}]
+      })
+    });
+    const data = await res.json();
+    if(data.error) throw new Error(data.error.message);
+    const text = data.content.map(b=>b.text||'').join('');
+    setOutput(outputId, text);
+    return text;
+  }catch(e){
+    setOutput(outputId,'❌ Error: '+e.message);
+  }
+}
+
+function setOutput(id, html){
+  const el = document.getElementById(id);
+  if(!el)return;
+  const label = el.querySelector('.ai-label');
+  el.innerHTML = (label?label.outerHTML:'') + '<div style="padding-top:8px">'+html+'</div>';
+}
+
+// ─── COPY ───
+function copyAI(id){
+  const el = document.getElementById(id);
+  const text = el ? el.innerText.replace(/✨ RESPUESTA IA|📢 ANUNCIO GENERADO|🔥 CONTENIDO VIRAL|🎙️ GUIÓN GENERADO|🕵️ INTEL REPORT|⚖️ ANÁLISIS CMS|💬 MENSAJE|📊 ANÁLISIS/g,'').trim() : '';
+  navigator.clipboard.writeText(text).then(()=>{
+    const btn = el.parentElement.querySelector('.copy-btn-ai');
+    if(btn){btn.textContent='✅ Copiado!';setTimeout(()=>btn.textContent='📋 Copiar',2000);}
+  });
+}
+
+// ─── CEREBRO ───
+const ISABEL_SYSTEM = `Eres el asistente IA de Isabel Fuentes, agente licenciada de Medicare en California.
+Isabel es bilingüe (inglés/español), trabaja con SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina y United Healthcare.
+Su mercado es el sur de California (Los Ángeles, Orange County, Inland Empire), especializada en el mercado hispano mayor de 60 años.
+Website: withisabelfuentes.com
+
+MISIÓN (tenla siempre presente):
+Ayudar a Isabel a (1) hacerse VIRAL en Facebook con contenido orgánico (Reels y Lives sobre todo),
+(2) convertir esa atención en LEADS baratos y luego en MIEMBROS inscritos, y
+(3) convertirse en LA agente/broker de Medicare más reconocida del mercado latino en el Sur de California.
+Cada idea que des debe acercarla a esa meta: contenido que detiene el scroll, genera comentarios y se comparte.
+
+Siempre:
+- Da respuestas prácticas, accionables y específicas para el mercado hispano
+- Prioriza formatos que se vuelven virales y son baratos: Reels, Facebook Lives, videos cortos hablando a cámara
+- Empieza con un GANCHO fuerte en los primeros 3 segundos y termina con una llamada a la acción clara
+- Usa tono cálido, familiar, en español cuando sea apropiado
+- Incluye emojis estratégicamente (no excesivos)
+- Recuerda las reglas CMS: no promesas absolutas, no garantías, incluir disclaimers cuando sea necesario
+- Si generas copy de marketing, siempre nota si necesita disclaimer de carrier`;
+
+async function askCerebro(){
+  const input = document.getElementById('cerebroInput').value.trim();
+  const mode = document.getElementById('cerebroMode').value;
+  const audience = document.getElementById('cerebroAudience').value;
+  if(!input)return;
+  const prompt = `Modo: ${mode} | Audiencia objetivo: ${audience}\n\n${input}`;
+  await callClaude(ISABEL_SYSTEM, prompt, 'cerebroOutput');
+  // Add to history
+  const hist = document.getElementById('cerebroHistory');
+  const item = document.createElement('div');
+  item.style.cssText='padding:6px 0;border-bottom:1px solid var(--border);';
+  item.innerHTML='<span style="color:var(--gold-dk)">→</span> '+input.substring(0,80)+'...';
+  hist.insertBefore(item, hist.firstChild);
+  if(hist.children.length>1 && hist.querySelector('em')) hist.querySelector('em').remove();
+}
+
+async function quickCerebro(q){
+  document.getElementById('cerebroInput').value = q;
+  await askCerebro();
+}
+
+async function loadTrends(){
+  const prompt = `Dame las 5 tendencias más relevantes ahora mismo en el mercado hispano de Medicare en California:
+- ¿Qué preguntas está haciendo la gente en Facebook sobre Medicare?
+- ¿Qué temas están generando más comentarios y shares?
+- ¿Qué beneficios están buscando los hispanos de 60-70 años?
+Format: Lista con emoji, título corto en negritas y 1 línea de explicación. Sé específico y práctico.`;
+  const result = await callClaude(ISABEL_SYSTEM, prompt, 'trendsContainer');
+}
+
+// ─── META ADS ───
+async function generateAd(){
+  const carrier = document.getElementById('adsCarrier').value;
+  const benefit = document.getElementById('adsBenefit').value;
+  const zone = document.getElementById('adsZone').value;
+  const format = document.getElementById('adsFormat').value;
+  const tone = document.getElementById('adsTone').value;
+  
+  const prompt = `Genera un anuncio de Meta/Facebook para Medicare con estas especificaciones:
+- Carrier: ${carrier}
+- Beneficio principal: ${benefit}
+- Zona geográfica: ${zone}, California
+- Formato: ${format}
+- Tono: ${tone}
+- Audiencia: Hispanohablantes 60-70 años
+
+Incluye:
+1. HOOK (primera línea que detenga el scroll)
+2. CUERPO (desarrollo del mensaje, 3-4 líneas)
+3. CTA (llamada a la acción clara)
+4. HEADLINE (título del anuncio en Meta Ads Manager)
+5. DESCRIPCIÓN (para Meta Ads)
+6. NOTA CMS (si necesita disclaimer)
+
+Escribe en español con tono cálido y auténtico. El anuncio debe sentirse como lo dice una agente local, no una corporación.`;
+
+  await callClaude(ISABEL_SYSTEM, prompt, 'adsOutput');
+  
+  // Show compliance note
+  const compResult = document.getElementById('adsComplianceResult');
+  compResult.innerHTML = '<div class="compliance-warn">⚠️ Revisa el disclaimer de carrier antes de publicar. Ve a CMS Compliance para validación completa.</div>';
+}
+
+// ─── VIRAL ───
+async function generateViral(){
+  const type = document.getElementById('viralType').value;
+  const topic = document.getElementById('viralTopic').value;
+  const emotion = document.getElementById('viralEmotion').value;
+  const platform = document.getElementById('viralPlatform').value;
+  
+  const prompt = `Genera contenido viral de Medicare para el mercado hispano:
+- Tipo: ${type}
+- Tema: ${topic}
+- Gatillo emocional: ${emotion}
+- Plataforma: ${platform}
+- Audiencia: Hispanos 60-70 años, Los Ángeles / SoCal
+
+Requisitos de viralización:
+✓ Hook irresistible en las primeras 3 palabras
+✓ Información que la gente quiere compartir con su familia
+✓ Incluir un elemento de sorpresa o dato inesperado
+✓ CTA que genere comentarios ("Etiqueta a alguien que necesita saber esto")
+✓ Emojis estratégicos para mayor alcance
+
+Estructura: Hook → Desarrollo → Giro/Sorpresa → CTA viral
+Escribe en español natural de Los Ángeles (no formal).`;
+
+  await callClaude(ISABEL_SYSTEM, prompt, 'viralOutput');
+  
+  // Show score
+  document.getElementById('viralScore').innerHTML = `
+    <div class="grid-3">
+      <div style="text-align:center"><div class="viral-score">8.7</div><div style="font-size:11px;color:var(--text-muted)">Score Viral</div></div>
+      <div style="text-align:center"><div class="viral-score" style="font-size:20px;color:var(--teal)">Hispano</div><div style="font-size:11px;color:var(--text-muted)">Mercado</div></div>
+      <div style="text-align:center"><div class="viral-score" style="font-size:20px;color:var(--green)">Alto</div><div style="font-size:11px;color:var(--text-muted)">Potencial</div></div>
+    </div>`;
+}
+
+// ─── LIVE SCRIPTS ───
+async function generateLiveScript(){
+  const theme = document.getElementById('liveTheme').value;
+  const duration = document.getElementById('liveDuration').value;
+  const time = document.getElementById('liveTime').value;
+  const cta = document.getElementById('liveCTA').value;
+  
+  const prompt = `Genera un guión COMPLETO para un Facebook Live de Medicare:
+- Tema: ${theme}
+- Duración: ${duration}
+- Hora: ${time}
+- CTA principal: ${cta}
+- Agente: Isabel Fuentes, Licensed Medicare Agent, California
+- Audiencia: Hispanos 60-70 años
+
+Estructura el guión con:
+⏱️ MARCAS DE TIEMPO EXACTAS
+🎯 Qué decir EXACTAMENTE en cada momento
+💬 Preguntas para hacer a la audiencia (engagement)
+📊 Puntos de contenido educativo
+🚨 Momento de urgencia (por qué actuar HOY)
+📞 CTA final con instrucciones exactas de cómo contactar
+
+El guión debe sentirse como una conversación natural entre amigas, no como una presentación corporativa. Usa ejemplos reales de clientes (ficticios pero verosímiles). Escribe en español.`;
+
+  await callClaude(ISABEL_SYSTEM, prompt, 'liveOutput');
+}
+
+// ─── CALENDAR ───
+function renderCalendar(){
+  const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const grid = document.getElementById('calGrid');
+  grid.innerHTML = days.map(day=>`
+    <div class="cal-day">
+      <div class="cal-day-name">${day}</div>
+      ${(calendarItems[day]||[]).map(item=>`
+        <div class="cal-item ${item.type}">${item.text}</div>
+      `).join('')}
+      <button class="cal-add" onclick="addCalItem('${day}')">+ Agregar</button>
+    </div>
+  `).join('');
+}
+
+function addCalItem(day){
+  const text = prompt(`Nuevo item para ${day}:`);
+  if(!text)return;
+  const type = prompt('Tipo (post/reel/live/story):') || 'post';
+  if(!calendarItems[day]) calendarItems[day]=[];
+  calendarItems[day].push({type,text});
+  renderCalendar();
+}
+
+async function generateWeekPlan(){
+  const prompt = `Genera un plan semanal de contenido completo para Isabel Fuentes, agente de Medicare en Los Ángeles.
+Para cada día (Lunes a Domingo) sugiere:
+- Tipo de contenido (Post, Reel, Story, Live)
+- Tema específico relacionado con Medicare
+- Mejor hora de publicación para el mercado hispano
+- Hashtags recomendados (5-7)
+
+Enfoque en: mercado hispano, Sur de California, temporada actual.
+Formato: Por día, conciso, práctico.`;
+  await callClaude(ISABEL_SYSTEM, prompt, 'mod-calendar');
+}
+
+// ─── INTEL ───
+async function analyzeCompetitor(){
+  const url = document.getElementById('intelUrl').value;
+  const type = document.getElementById('intelType').value;
+  const prompt = `Analiza la estrategia de marketing de Medicare en Facebook para esta referencia: ${url||'[Competidor típico en LA]'}
+Tipo de análisis: ${type}
+
+Dame un reporte de inteligencia competitiva que incluya:
+1. Qué tipo de contenido está funcionando mejor
+2. Mensajes y hooks que usan frecuentemente
+3. Debilidades que Isabel puede explotar
+4. Oportunidades de diferenciación para una agente bilingüe independiente
+5. Recomendaciones específicas de counter-estrategia
+
+Sé específico y estratégico. Este análisis es para ayudar a Isabel a superar a la competencia.`;
+  await callClaude(ISABEL_SYSTEM, prompt, 'intelOutput');
+}
+
+async function quickIntel(q){
+  document.getElementById('intelUrl').value = '';
+  const prompt = q;
+  await callClaude(ISABEL_SYSTEM, prompt, 'intelOutput');
+}
+
+// ─── COMPLIANCE ───
+async function checkCompliance(){
+  const text = document.getElementById('complianceText').value.trim();
+  const type = document.getElementById('complianceType').value;
+  if(!text){
+    alert('Por favor ingresa el texto a revisar');
+    return;
+  }
+  
+  const prompt = `Eres un experto en regulaciones CMS (Centers for Medicare & Medicaid Services) para marketing de Medicare.
+Analiza este material de marketing de tipo "${type}" y determina si cumple con las regulaciones CMS:
+
+TEXTO A REVISAR:
+${text}
+
+Proporciona:
+1. VEREDICTO: ✅ APROBADO / ⚠️ NECESITA CAMBIOS / ❌ RECHAZADO
+2. SCORE DE COMPLIANCE: (0-100)
+3. PROBLEMAS ENCONTRADOS: (si hay)
+4. CAMBIOS REQUERIDOS: (específicos)
+5. VERSIÓN CORREGIDA: (si necesita cambios, da el texto corregido)
+6. DISCLAIMERS FALTANTES: (si aplica)
+
+Sé específico y cita las reglas CMS cuando sea relevante.`;
+
+  const result = await callClaude(ISABEL_SYSTEM, prompt, 'complianceOutput');
+  
+  // Show result banner
+  const banner = document.getElementById('complianceResult');
+  if(result && result.includes('✅ APROBADO')){
+    banner.innerHTML = '<div class="compliance-ok">✅ Material parece cumplir con CMS — revisa el análisis detallado abajo</div>';
+  } else if(result && result.includes('❌ RECHAZADO')){
+    banner.innerHTML = '<div class="compliance-fail">❌ Material necesita cambios importantes antes de publicar</div>';
+  } else {
+    banner.innerHTML = '<div class="compliance-warn">⚠️ Material necesita algunos ajustes — revisa el análisis</div>';
+  }
+}
+
+// ─── CRM ───
+function addLead(){
+  const name = document.getElementById('leadName').value.trim();
+  const phone = document.getElementById('leadPhone').value.trim();
+  const status = document.getElementById('leadStatus').value;
+  const zone = document.getElementById('leadZone').value;
+  const notes = document.getElementById('leadNotes').value.trim();
+  if(!name){alert('Ingresa el nombre del lead');return;}
+  
+  leads.push({id:Date.now(),name,phone,status,zone,notes,date:new Date().toLocaleDateString('es-MX')});
+  saveLeads();
+  renderLeads();
+  // Clear form
+  ['leadName','leadPhone','leadNotes'].forEach(id=>document.getElementById(id).value='');
+
+  // Update stats
+  updateCRMStats();
+}
+
+// ─── CRM persistence (leads stay saved in your browser) ───
+const LEADS_STORE = 'isabel_crm_leads';
+function saveLeads(){
+  try{ localStorage.setItem(LEADS_STORE, JSON.stringify(leads)); }catch(_){}
+}
+function loadLeads(){
+  try{ const raw = localStorage.getItem(LEADS_STORE); if(raw) leads = JSON.parse(raw)||[]; }catch(_){ leads = []; }
+  renderLeads();
+  updateCRMStats();
+}
+
+function renderLeads(){
+  const list = document.getElementById('leadsList');
+  if(leads.length===0){
+    list.innerHTML='<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px">Agrega leads para verlos aquí</div>';
+    document.getElementById('leadsCount').textContent='0 leads';
+    return;
+  }
+  document.getElementById('leadsCount').textContent = leads.length+' leads';
+  document.getElementById('crmBadge').textContent = leads.filter(l=>l.status.includes('Hot')).length;
+  list.innerHTML = leads.slice().reverse().map(l=>`
+    <div class="lead-row" onclick="selectLead(${l.id})">
+      <div class="lead-avatar">${l.name.charAt(0)}</div>
+      <div class="lead-info">
+        <div class="lead-name">${l.name}</div>
+        <div class="lead-detail">${l.phone||'Sin teléfono'} · ${l.zone} · ${l.date}</div>
+        ${l.notes?'<div class="lead-detail" style="margin-top:2px;font-style:italic">"'+l.notes.substring(0,60)+'"</div>':''}
+      </div>
+      <div class="lead-status">
+        <span class="pill ${l.status.includes('Hot')?'pill-red':l.status.includes('Warm')?'pill-amber':l.status.includes('Futuro')?'pill-teal':'pill-gold'}">${l.status.split('—')[0].trim()}</span>
+        <div style="margin-top:4px;font-size:10px;text-align:right">
+          <button onclick="event.stopPropagation();removeLead(${l.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px">🗑️</button>
+        </div>
+      </div>
+    </div>
+  `).join('');
+}
+
+function selectLead(id){
+  const lead = leads.find(l=>l.id===id);
+  if(!lead)return;
+  document.getElementById('followUpContext').value = `${lead.name}, ${lead.zone}. ${lead.notes||''}`;
+}
+
+function removeLead(id){
+  leads = leads.filter(l=>l.id!==id);
+  saveLeads();
+  renderLeads();
+  updateCRMStats();
+}
+
+function updateCRMStats(){
+  document.getElementById('crmStatHot').textContent = leads.filter(l=>l.status.includes('Hot')).length;
+  document.getElementById('crmStatWarm').textContent = leads.filter(l=>l.status.includes('Warm')).length;
+  document.getElementById('crmStatCold').textContent = leads.filter(l=>l.status.includes('Cold')).length;
+  const dash = document.getElementById('dashLeads');
+  if(dash) dash.textContent = leads.length;
+}
+
+async function generateFollowUp(){
+  const context = document.getElementById('followUpContext').value.trim();
+  const type = document.getElementById('followUpType').value;
+  const prompt = `Genera un ${type} de seguimiento personalizado para este lead de Medicare:
+Contexto: ${context||'Lead interesado en Medicare Advantage en Los Ángeles'}
+Agente: Isabel Fuentes | withisabelfuentes.com | California Licensed Medicare Agent
+Escribe en español natural, cálido y personal. Máximo 150 palabras para SMS/WhatsApp, 300 para email.
+Incluye: apertura personal, propuesta de valor, CTA claro (llamar/responder/agendar).`;
+  await callClaude(ISABEL_SYSTEM, prompt, 'followUpOutput');
+}
+
+// ─── METRICS ───
+async function analyzeMetrics(){
+  const query = document.getElementById('metricasQuery').value.trim();
+  const realLeads = leads.length;
+  const metricsContext = `Situación real de Isabel Fuentes (no inventes datos que no estén aquí):
+- Leads guardados en su CRM ahora mismo: ${realLeads}
+- Isabel está construyendo su sistema; aún NO tiene métricas históricas detalladas (CPL, alcance, engagement) registradas.
+- Mercado: hispano, mayor de 60, en LA / Orange County / Inland Empire.
+
+Benchmarks GENERALES de la industria (referencia, NO son los resultados de Isabel):
+- CPL típico de Medicare: $5-8
+- Tipos de contenido más económicos suelen ser los Facebook Lives y Reels; los posts estáticos y stories suelen costar más por lead.
+- Engagement rate promedio del sector: ~3%`;
+
+  const prompt = `${metricsContext}\n\nPregunta del análisis: ${query||'Estoy empezando a usar mi sistema y quiero generar leads de forma económica. ¿Por dónde empiezo y qué debo medir?'}\n\nSé honesto: si no hay datos suficientes, ayúdame a definir qué medir y cómo empezar, sin inventar cifras.`;
+  await callClaude(ISABEL_SYSTEM, prompt, 'metricasOutput');
+}
+
+// ─── PLAN DE ACCIÓN (progreso guardado) ───
+const PLAN_STORE = 'isabel_plan_progress';
+function savePlan(){
+  const state = {};
+  document.querySelectorAll('#mod-plan input[type=checkbox]').forEach(cb=>{ state[cb.dataset.task]=cb.checked; });
+  try{ localStorage.setItem(PLAN_STORE, JSON.stringify(state)); }catch(_){}
+  updatePlanProgress();
+}
+function loadPlan(){
+  let state = {};
+  try{ state = JSON.parse(localStorage.getItem(PLAN_STORE)||'{}'); }catch(_){ state = {}; }
+  document.querySelectorAll('#mod-plan input[type=checkbox]').forEach(cb=>{ if(state[cb.dataset.task]) cb.checked = true; });
+  updatePlanProgress();
+}
+function updatePlanProgress(){
+  const all = document.querySelectorAll('#mod-plan input[type=checkbox]');
+  const done = document.querySelectorAll('#mod-plan input[type=checkbox]:checked');
+  const pct = all.length ? Math.round(done.length/all.length*100) : 0;
+  const bar = document.getElementById('planBar'); if(bar) bar.style.width = pct+'%';
+  const lbl = document.getElementById('planPct'); if(lbl) lbl.textContent = pct+'% completado ('+done.length+'/'+all.length+')';
+}
+
+// ─── EQUIPO IA: 6 agentes en paralelo ───
+async function runEquipoIA(){
+  if(!apiKey){
+    document.getElementById('eqStatus').textContent = '⚠️ Pon tu API Key arriba a la derecha y vuelve a intentar.';
+    return;
+  }
+  const btn = document.getElementById('eqRunBtn');
+  const status = document.getElementById('eqStatus');
+  btn.disabled = true;
+  const t0 = Date.now();
+  const agents = [
+    {id:'eqOut1', name:'Ganchos', prompt:'Dame 5 GANCHOS virales para Reels de Facebook, en español cálido del Sur de California, para el mercado hispano 60+. Cada gancho de 1 frase, capta la atención en los primeros 3 segundos. Numéralos 1-5 y agrega 1 línea de por qué funciona.'},
+    {id:'eqOut2', name:'Live', prompt:'Escribe un GUION de Facebook Live de 5-7 minutos para mi cita semanal de Q&A de Medicare en español. Estructura: gancho inicial (3 seg), bienvenida cálida, 3 puntos clave del tema "Diferencia entre Medicare Advantage y Medicare Suplementario", invitación a comentar dudas, y cierre con CTA "Escríbeme MEDICARE y te mando mi guía gratis". Tono cercano, sin jerga.'},
+    {id:'eqOut3', name:'Reels', prompt:'Dame 3 IDEAS de Reels para esta semana enfocados en hacerme viral en el mercado latino de Medicare en SoCal. Para cada uno: (1) tema, (2) gancho de 3 segundos, (3) guion corto de 30-45 seg, (4) CTA al final, (5) por qué se compartiría.'},
+    {id:'eqOut4', name:'Tip', prompt:'Escribe un post de Facebook "¿Sabías que…?" en español para mi audiencia latina 60+ sobre UN beneficio poco conocido de Medicare Advantage (ejemplo: beneficios dentales, transporte, dinero para comida). Formato: gancho fuerte + dato sorprendente + explicación clara en 2-3 líneas + CTA "Escríbeme y te explico si tu plan lo incluye 💙". Que sea fácil de compartir.'},
+    {id:'eqOut5', name:'Lead', prompt:'Escribe el COPY de un post de Facebook para ofrecer mi guía gratis "5 cosas que debes saber antes de elegir tu plan Medicare". Tono cálido, español sencillo. Incluye: hook que detenga el scroll, 3 razones para descargarla, CTA clara ("Escríbeme MEDICARE y te la mando gratis"), y emojis 🦋 estratégicos. Que invite a etiquetar a alguien que cumple 65.'},
+    {id:'eqOut6', name:'Historia', prompt:'Dame una PLANTILLA de historia inspiradora para Facebook (en español, mercado hispano SoCal) que Isabel pueda completar con detalles de un cliente real (con su permiso). Estructura: situación inicial del cliente (confusión/miedo), el momento del cambio, el resultado positivo, la lección. Deja espacios marcados con [corchetes] donde Isabel debe agregar detalles reales. Recuerda: NO inventes nombres ni testimonios falsos.'}
+  ];
+  agents.forEach(a => setOutput(a.id,'<div class="ai-loading">✨ Generando<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>'));
+  let done = 0;
+  status.textContent = '🚀 6 agentes trabajando en paralelo… 0/6';
+  await Promise.all(agents.map(a =>
+    callClaude(ISABEL_SYSTEM, a.prompt, a.id).then(()=>{
+      done++;
+      status.textContent = `🚀 6 agentes trabajando en paralelo… ${done}/6`;
+    }).catch(e => setOutput(a.id, '❌ Error: '+e.message))
+  ));
+  const secs = ((Date.now()-t0)/1000).toFixed(1);
+  status.textContent = `✅ Listo en ${secs}s. Copia lo que te sirva y a publicar 🦋`;
+  btn.disabled = false;
+}
+
+// ─── BRAND: copy hex ───
+function copyHex(hex){
+  navigator.clipboard.writeText(hex).then(()=>{
+    let t = document.getElementById('copyToast');
+    if(!t){ t = document.createElement('div'); t.id='copyToast'; t.className='copy-toast'; document.body.appendChild(t); }
+    t.textContent = '✅ Copiado: '+hex;
+    t.classList.add('show');
+    clearTimeout(window.__toastTimer);
+    window.__toastTimer = setTimeout(()=>t.classList.remove('show'), 1800);
+  });
+}
+
+// ─── MOBILE SIDEBAR ───
+function toggleSidebar(){
+  document.querySelector('.sidebar').classList.toggle('open');
+  document.getElementById('sidebarOverlay').classList.toggle('open');
+}
+function closeSidebar(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('sidebarOverlay').classList.remove('open');
+}
+
+// ─── INIT ───
+renderCalendar();
+loadApiKey();
+loadLeads();
+loadPlan();
+
+// Reply to tools requesting the shared key (e.g. on iframe load)
+window.addEventListener('message', function(e){
+  if(e && e.data && e.data.type === 'ISABEL_REQUEST_KEY'){
+    broadcastApiKey(e.source);
+  }
+});
+</script>
+</body>
+</html>
