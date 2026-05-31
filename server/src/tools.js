@@ -1028,6 +1028,42 @@ MODOS:
 
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
+  // ───────── ATHENA SE PROPONE MEJORAS A SÍ MISMA ─────────
+  {
+    name: 'proponer_mejora',
+    description: `Cuando te das cuenta que necesitas una capacidad que NO tienes (un tool nuevo, un comportamiento mejor, fix a un bug propio) — NO te la guardes. Llama esto. Dispara: (1) guarda spec estructurado en data/improvements.json, (2) crea GitHub issue con label "athena-propuesta", (3) email a Isabel con el spec. Yo (Claude Code en otro lado) leo el issue y abro PR. CUÁNDO USAR:
+- "Quisiera tener un tool para X pero no existe" → propón.
+- Patrón repetitivo que las skills no resuelven porque pide lógica nueva.
+- Bug en tu propio loop (te llamas a ti misma en círculo, una tool devuelve algo mal).
+- Una integración que mejoraría tu trabajo (ej: parser de PDFs de carriers, scraper de tarifa SCAN, etc.).
+
+NO uses para cosas que sí podés hacer con tools existentes — para eso es skill_proponer.
+Sé CONCRETA: "tool nuevo enviar_fax(numero, doc) usando Twilio fax API" mejor que "mejor manejo de fax".`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Resumen 1-línea de la mejora. Ej: "Tool nuevo: leer PDF de Summary of Benefits de carrier"' },
+        contexto: { type: 'string', description: 'Qué pasó AHORA que disparó esta propuesta. Ej: "Isabel me pasó un PDF de SCAN y no pude extraer copagos automáticamente"' },
+        problema: { type: 'string', description: 'El problema actual con detalle. Qué NO puedes hacer hoy.' },
+        propuesta: { type: 'string', description: 'Solución concreta: qué tool / función / cambio. Inputs, outputs, comportamiento esperado.' },
+        prioridad: { type: 'string', enum: ['baja', 'media', 'alta'], description: 'alta = bloquea trabajo recurrente. media = mejoraría flow. baja = nice to have.' },
+        tool_sugerido: { type: 'string', description: 'Nombre del tool que propones, si aplica. Ej: "leer_pdf_carrier"' },
+        archivos_afectados: { type: 'array', items: { type: 'string' }, description: 'Archivos del repo que probablemente se tocarían. Ej: ["server/src/tools.js", "server/src/pdf_carrier.js"]' },
+        disparador: { type: 'string', description: 'Qué evento / mensaje / patrón te disparó esto. Útil para que Claude Code entienda el contexto al implementar.' },
+      },
+      required: ['titulo', 'problema', 'propuesta'],
+    },
+  },
+  {
+    name: 'mis_mejoras_propuestas',
+    description: 'Lista las mejoras que vos (Athena) propusiste. Filtra por status (pendiente/aprobada/descartada/implementada). Útil para no proponer dos veces lo mismo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['pendiente', 'aprobada', 'descartada', 'implementada'] },
+      },
+    },
+  },
   {
     name: 'medicare_pack_seed',
     description: 'Crea 6 skills draft del workflow Medicare (AEP outreach, intake, check-in 12m, renovación, chase SOA, brief comparar planes). Idempotente: si ya existen, las salta. Isabel debe aprobar cada una antes de poder invocarlas.',
@@ -2294,6 +2330,26 @@ async function dispatchTool(name, input) {
       const t = buildTriageProposal();
       if (!t) return 'No estás sobrecargada — no hay nada que triagear ahorita.';
       return t.mensaje;
+    }
+    case 'proponer_mejora': {
+      const { proposeImprovement } = await import('./improvements.js');
+      const r = await proposeImprovement(input);
+      if (!r.ok) return `No se pudo proponer: ${r.error}`;
+      const parts = [`Mejora guardada (${r.mejora.id}, prioridad ${r.mejora.prioridad}).`];
+      if (r.github?.ok) parts.push(`GitHub issue #${r.github.number}: ${r.github.url}`);
+      else if (r.github?.error) parts.push(`GitHub: NO se creó issue (${r.github.error})`);
+      if (r.email?.ok) parts.push(`Email enviado a Isabel.`);
+      else if (r.email?.error) parts.push(`Email: falló (${r.email.error})`);
+      return parts.join(' ');
+    }
+    case 'mis_mejoras_propuestas': {
+      const { listImprovements } = await import('./improvements.js');
+      const items = listImprovements({ status: input.status || null });
+      if (!items.length) return 'No hay mejoras propuestas con ese filtro.';
+      return items.slice(-10).map((e) => {
+        const dias = Math.floor((Date.now() - new Date(e.creado).getTime()) / 86_400_000);
+        return `[${e.status}] [${e.prioridad}] ${e.titulo} (${dias}d${e.github_number ? ` — #${e.github_number}` : ''})`;
+      }).join('\n');
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

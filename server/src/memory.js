@@ -15,6 +15,7 @@ import { buildFocusInline } from './focus_blocks.js';
 import { buildTrustInline } from './trust_score.js';
 import { buildRoutinesInline } from './routines.js';
 import { buildLegalInline } from './legal.js';
+import { buildImprovementsInline } from './improvements.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -300,6 +301,11 @@ export function buildWikiContext() {
   try {
     const l = buildLegalInline();
     if (l) parts.push(l);
+  } catch { /* ignore */ }
+  // Mejoras propuestas (inline) — para que Athena no proponga dos veces lo mismo
+  try {
+    const m = buildImprovementsInline();
+    if (m) parts.push(m);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

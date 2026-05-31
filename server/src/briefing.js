@@ -113,6 +113,16 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     }
   } catch { /* ignore */ }
 
+  // Mejoras al código que Athena propuso (esperando que Isabel apruebe/descarte)
+  let improvementsHint = '';
+  try {
+    const { buildImprovementsBriefingBlock } = await import('./improvements.js');
+    const block = buildImprovementsBriefingBlock();
+    if (block) {
+      improvementsHint = `\n\nMEJORAS AL CÓDIGO QUE YO (ATHENA) PROPUSE (esperando review de Isabel):\n${block}\n\nMencionaselas UNA línea al final con el número de issue. Si Isabel dice "aprueba la X" o "descarta la Y" usá mis_mejoras_propuestas y mejora_status para marcar — Claude Code recoge del GitHub.`;
+    }
+  } catch { /* ignore */ }
+
   // Phase 12: si anoche auto-propusiste alguna skill nueva, menciónala
   // en el briefing para que Isabel la apruebe o descarte conscientemente.
   let autoSkillHint = '';
@@ -148,7 +158,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${improvementsHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
