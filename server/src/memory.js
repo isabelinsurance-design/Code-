@@ -6,6 +6,7 @@ import { buildSkillsContext } from './skills.js';
 import { buildSayDoInline } from './saydo.js';
 import { buildAarInline } from './aar.js';
 import { buildTeamInline, buildTeamBriefingBlock } from './team.js';
+import { buildHabitsInline } from './habits.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -247,6 +248,12 @@ export function buildWikiContext() {
   try {
     const teamCtx = buildTeamInline();
     if (teamCtx) parts.push(`EQUIPO (sus pendientes): ${teamCtx}`);
+  } catch { /* ignore */ }
+  // Hábitos personales: peso vs meta, agua/proteína hoy, workouts semana.
+  // Para que Athena pueda hablarte con verdad, no con vibes.
+  try {
+    const habitsCtx = buildHabitsInline();
+    if (habitsCtx) parts.push(`HÁBITOS HOY: ${habitsCtx}`);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

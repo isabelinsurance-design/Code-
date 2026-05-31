@@ -764,6 +764,38 @@ export const toolDefinitions = [
     input_schema: { type: 'object', properties: {}, required: [] },
   },
 
+  // ───────── HÁBITOS — el lado personal/salud ─────────
+  {
+    name: 'registrar_habito',
+    description: 'Registra un hábito de Isabel: peso (lbs), agua (oz, cumulativo), proteína (g, cumulativo), workout (sesión + tipo), sueño (hrs), ánimo (1-10), energía (1-10). ÚSALA cada vez que Isabel mencione un dato: "pesé 174 esta mañana", "tomé un Premier Protein", "hice 45 min Tonal", "dormí 6 horas", "me siento como 4 hoy". Captura por defecto — no preguntes permiso. Carmen/Rivera/Sofía leen estos datos cuando las consultas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tipo: { type: 'string', description: 'peso | agua | proteina | workout | sueno | animo | energia' },
+        valor: { type: 'number', description: 'El número (lbs, oz, g, hrs, escala 1-10, o 1 para workout).' },
+        nota: { type: 'string', description: 'Contexto opcional (ej. "Tonal upper body", "Premier Protein").' },
+      },
+      required: ['tipo', 'valor'],
+    },
+  },
+  {
+    name: 'mis_habitos',
+    description: 'Resumen completo de hábitos: peso vs meta 168, agua vs 80, proteína vs 110, workouts semana vs 4, sueño promedio, rachas activas. ÚSALA cuando Isabel pregunte "¿cómo voy?" / "¿cómo van mis hábitos?" o como parte del morning brief.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'historial_habito',
+    description: 'Devuelve histórico de un hábito específico en los últimos N días. Con datos y stats (promedio, min, max, último). Útil cuando Isabel pregunte "¿cómo va mi peso esta semana?" o "¿cuánto dormí esta semana?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tipo: { type: 'string', description: 'peso | agua | proteina | workout | sueno | animo | energia' },
+        dias: { type: 'integer', description: 'Default 7.' },
+      },
+      required: ['tipo'],
+    },
+  },
+
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -1099,7 +1131,11 @@ async function dispatchTool(name, input) {
       }
       // María Medicare es la única coach con acceso a LUNA. Se inyectan
       // dinámicamente las 14 tools luna_* solo cuando es ella la consultada.
+      // Carmen/Rivera/Sofía reciben datos REALES de hábitos (peso, agua,
+      // proteína, workouts, sueño) — sin esto coachean a ciegas.
       const { LUNA_TOOL_DEFINITIONS, runLunaTool } = await import('./luna_tools.js');
+      const { buildHabitsForCoach } = await import('./habits.js');
+      const HEALTH_COACHES = new Set(['carmen', 'rivera', 'sofia']);
       const wiki = buildWikiContext();
       const results = await Promise.all(
         consultas.map(async (c) => {
@@ -1116,8 +1152,14 @@ async function dispatchTool(name, input) {
             opts.tools = LUNA_TOOL_DEFINITIONS;
             opts.toolDispatcher = runLunaTool;
           }
+          // Health coaches reciben los datos REALES de hábitos en el wiki.
+          let wikiAumentado = wiki;
+          if (HEALTH_COACHES.has(c.especialista)) {
+            const habits = buildHabitsForCoach(c.especialista);
+            if (habits) wikiAumentado = wiki + habits;
+          }
           try {
-            const answer = await askSpecialist(spec, c.tarea, wiki, opts);
+            const answer = await askSpecialist(spec, c.tarea, wikiAumentado, opts);
             return `${spec.name} dice:\n${answer}`;
           } catch (err) {
             return `[${spec.name} — error: ${err.message}]`;
@@ -1691,6 +1733,44 @@ async function dispatchTool(name, input) {
       const { buildEodSummary } = await import('./team_eod.js');
       const s = buildEodSummary();
       return s ? s.summary : 'Nadie del equipo ha reportado EOD hoy todavía.';
+    }
+
+    // ─── HÁBITOS ───
+    case 'registrar_habito': {
+      const { logHabit } = await import('./habits.js');
+      const r = logHabit({
+        tipo: input.tipo,
+        valor: input.valor,
+        nota: input.nota || '',
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `✓ ${r.entry.tipo}: ${r.entry.valor}${r.entry.unidad}${r.entry.nota ? ` (${r.entry.nota})` : ''}${r.entry.reemplazado ? ' [reemplazado el de hoy]' : ''}`;
+    }
+    case 'mis_habitos': {
+      const { buildHabitsBriefingBlock } = await import('./habits.js');
+      const block = buildHabitsBriefingBlock();
+      return block || 'Sin hábitos registrados todavía. Empieza con uno: peso, agua, proteína, workout, sueño.';
+    }
+    case 'historial_habito': {
+      const { statsForType, HABIT_TYPES } = await import('./habits.js');
+      const tipo = input.tipo;
+      if (!HABIT_TYPES[tipo]) return `Tipo desconocido. Usa: ${Object.keys(HABIT_TYPES).join(', ')}`;
+      const dias = parseInt(input.dias, 10) || 7;
+      const s = statsForType(tipo, dias);
+      if (!s) return `Sin datos de ${tipo} en los últimos ${dias} días.`;
+      const cfg = HABIT_TYPES[tipo];
+      const lines = [
+        `${tipo} en últimos ${dias}d (meta ${cfg.meta}${cfg.unidad}):`,
+        `  Días con data: ${s.dias_con_data}`,
+        `  Promedio: ${s.promedio}${cfg.unidad}`,
+        `  Min/Max: ${s.minimo} / ${s.maximo}`,
+        `  Último: ${s.ultimo}${cfg.unidad}`,
+      ];
+      if (s.days.length >= 3) {
+        const trend = s.days[s.days.length - 1].valor - s.days[0].valor;
+        lines.push(`  Tendencia: ${trend > 0 ? '+' : ''}${Math.round(trend * 10) / 10}`);
+      }
+      return lines.join('\n');
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();
