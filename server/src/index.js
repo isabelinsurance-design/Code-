@@ -325,13 +325,35 @@ scheduleCron('eod_nudge', process.env.EOD_NUDGE_CRON || '0 18 * * 1-5', async ()
 });
 
 const port = process.env.PORT || 3000;
-const httpServer = app.listen(port, () => {
+const httpServer = app.listen(port, async () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
   // Arranca el listener de Gmail IDLE (event-driven inbox). Si las
   // credenciales no están, no hace nada. Si la conexión cae, se
   // reconecta con backoff. NO bloquea el arranque del server.
   if (inboxIdleEnabled) {
     startInboxIdle().catch((err) => console.error('[idle] arranque falló:', err.message));
+  }
+  // MCP boot: descubre tools de Zapier / Notion / etc. si están
+  // configuradas. Las cachea en globalThis para que directora las
+  // vea en cada llamada Anthropic sin tener que re-fetch.
+  try {
+    const { initToolsFromMcp } = await import('./tools.js');
+    const r = await initToolsFromMcp();
+    if (r.servers > 0) {
+      console.log(`[mcp] ${r.servers} server(s) conectados, ${r.tools} tool(s) descubiertas.`);
+    }
+  } catch (err) {
+    console.warn('[mcp] init falló (no bloquea Athena):', err.message);
+  }
+});
+// MCP refresh: cada hora actualiza el cache de tools descubiertas.
+// Si Zapier agrega/quita apps habilitadas, Athena las ve en máx 1h.
+scheduleCron('mcp_refresh', '13 * * * *', async () => {
+  try {
+    const { refreshMcpToolsCache } = await import('./tools.js');
+    await refreshMcpToolsCache();
+  } catch (err) {
+    console.warn('[mcp_refresh] error:', err.message);
   }
 });
 // Atacha el endpoint WebSocket /voice/relay al mismo HTTP server.

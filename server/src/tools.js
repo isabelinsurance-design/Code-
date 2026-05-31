@@ -67,6 +67,10 @@ import {
 
 // Definiciones de las herramientas que Athena puede usar.
 // Cada una tiene un esquema (qué inputs acepta) que Claude lee.
+//
+// Tools MCP (Zapier/Notion/etc.) se agregan dinámicamente al boot
+// via getDynamicToolDefinitions() — directora.js llama esa función
+// en vez del array directo para incluirlas.
 export const toolDefinitions = [
   {
     name: 'consultar_especialistas',
@@ -1152,7 +1156,50 @@ REGLAS:
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
 // Toda llamada queda registrada en el activity log (audit trail).
+// Devuelve toolDefinitions + tools MCP descubiertas. Lo llama directora.js
+// en cada llamada a Anthropic — tools MCP son descubiertas al boot via
+// initMcpClients() y refrescadas cada hora por cron mcp_refresh.
+export function getDynamicToolDefinitions() {
+  // require-style import — solo importamos cuando se llama, para que
+  // tests/scripts simples no requieran inicializar MCP.
+  try {
+    // dynamic import sync via cached: usamos un wrapper para evitar await
+    const mcp = globalThis.__mcpToolsCache || [];
+    return [...toolDefinitions, ...mcp];
+  } catch {
+    return toolDefinitions;
+  }
+}
+
+// Carga inicial de MCP — llamado al boot por index.js.
+// Cachea el resultado en global para que getDynamicToolDefinitions sea sync.
+export async function initToolsFromMcp() {
+  const { initMcpClients, getMcpToolDefinitions } = await import('./mcp_client.js');
+  const r = await initMcpClients();
+  globalThis.__mcpToolsCache = getMcpToolDefinitions();
+  return r;
+}
+
+export async function refreshMcpToolsCache() {
+  const { refreshMcpClients, getMcpToolDefinitions } = await import('./mcp_client.js');
+  await refreshMcpClients();
+  globalThis.__mcpToolsCache = getMcpToolDefinitions();
+}
+
 export async function runTool(name, input) {
+  // MCP tools tienen prefijo mcp_<alias>_ — dispatch separado.
+  if (typeof name === 'string' && name.startsWith('mcp_')) {
+    const { runMcpTool } = await import('./mcp_client.js');
+    const result = await runMcpTool(name, input);
+    try {
+      logActivity({
+        tool: name,
+        input_summary: JSON.stringify(input).slice(0, 200),
+        result_summary: typeof result === 'string' ? result.slice(0, 200) : String(result).slice(0, 200),
+      });
+    } catch { /* ignore */ }
+    return result;
+  }
   const result = await dispatchTool(name, input);
   try {
     logActivity({

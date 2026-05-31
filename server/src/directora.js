@@ -1,6 +1,6 @@
 import { anthropic } from './claude.js';
 import { DIRECTORA } from './agents.js';
-import { toolDefinitions, runTool } from './tools.js';
+import { getDynamicToolDefinitions, runTool } from './tools.js';
 import { buildWikiContext } from './memory.js';
 import { detectPromises, recordPromise } from './saydo.js';
 
@@ -57,7 +57,7 @@ export async function runDirectora(messages, opts = {}) {
       thinking: { type: 'adaptive' },
       output_config: { effort: 'medium' },
       system,
-      tools: toolDefinitions,
+      tools: getDynamicToolDefinitions(),
       messages,
     });
 
