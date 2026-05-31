@@ -226,10 +226,19 @@ agentId?}`).
   por ahora se inspecciona vía los endpoints `/api/memory/*`.
 - El conocimiento de la superficie "Asesor" todavía se arma en el navegador y se
   manda como `context`; falta moverlo del todo al servidor.
-- `data/` es local. Aún no hay backups (Patrón #27) ni hosting (Railway).
+- `data/` es local. Aún no hay backups automáticos (Patrón #27); con un volumen
+  persistente la memoria ya sobrevive a redeploys (ver `DEPLOY.md`).
+
+## Despliegue (always-on)
+
+Para que el scheduler de la Fase 5 dispare de verdad (briefing 06:30, reflexión
+02:00, etc.) hay que correr SAMIA en un host *always-on* — un sandbox efímero no
+sirve. El repo ya trae la config: `railway.json`, `nixpacks.toml`, `Procfile`,
+`DATA_DIR` overridable para el volumen, y `npm start` que funciona con o sin `.env`.
+**Guía paso a paso en [`DEPLOY.md`](DEPLOY.md)** (Railway: variables, dominio, volumen
+persistente en `/data`, `TZ` para hora de California).
 
 ## Próximas fases sugeridas
 
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).
-- **Despliegue always-on** (Railway): requisito para que el scheduler de la Fase 5
-  dispare de verdad (hoy la maquinaria está lista pero el sandbox es efímero).
+- **Backups (#27):** snapshot programado de `data/` (mejora sobre el volumen).

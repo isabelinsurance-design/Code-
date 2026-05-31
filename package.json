@@ -5,11 +5,11 @@
   "type": "module",
   "description": "SAMIA — Asistente del equipo de Medicare de Isabel Fuentes. Backend (Fase 1: Fundacion).",
   "engines": {
-    "node": ">=22"
+    "node": ">=22.9"
   },
   "scripts": {
-    "start": "node --env-file=.env server/index.js",
+    "start": "node --env-file-if-exists=.env server/index.js",
     "start:noenv": "node server/index.js",
-    "dev": "node --watch --env-file=.env server/index.js"
+    "dev": "node --watch --env-file-if-exists=.env server/index.js"
   }
 }

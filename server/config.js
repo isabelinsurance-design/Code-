@@ -26,4 +26,9 @@ import { fileURLToPath } from 'node:url';
 import { dirname, resolve } from 'node:path';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 export const REPO_ROOT = resolve(__dirname, '..');
-export const DATA_DIR = resolve(REPO_ROOT, 'data');
+// DATA_DIR es overridable por entorno para apuntar a un volumen persistente en
+// produccion (ej. Railway monta un volumen en /data -> DATA_DIR=/data). Sin
+// override, usa ./data del repo (bien para local; EFIMERO en la nube sin volumen).
+export const DATA_DIR = process.env.DATA_DIR
+  ? resolve(process.env.DATA_DIR)
+  : resolve(REPO_ROOT, 'data');
