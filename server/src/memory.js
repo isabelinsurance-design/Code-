@@ -7,6 +7,9 @@ import { buildSayDoInline } from './saydo.js';
 import { buildAarInline } from './aar.js';
 import { buildTeamInline, buildTeamBriefingBlock } from './team.js';
 import { buildHabitsInline } from './habits.js';
+import { buildFinanzasInline } from './finanzas.js';
+import { buildJournalInline } from './journal.js';
+import { buildGoalsInline } from './goals.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -254,6 +257,19 @@ export function buildWikiContext() {
   try {
     const habitsCtx = buildHabitsInline();
     if (habitsCtx) parts.push(`HÁBITOS HOY: ${habitsCtx}`);
+  } catch { /* ignore */ }
+  // Finanzas / journal / metas — inline para Athena tenga peripheral vision
+  try {
+    const fin = buildFinanzasInline();
+    if (fin) parts.push(`FINANZAS: ${fin}`);
+  } catch { /* ignore */ }
+  try {
+    const j = buildJournalInline();
+    if (j) parts.push(`JOURNAL: ${j}`);
+  } catch { /* ignore */ }
+  try {
+    const g = buildGoalsInline();
+    if (g) parts.push(`METAS: ${g}`);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

@@ -796,6 +796,110 @@ export const toolDefinitions = [
     },
   },
 
+  // ───────── FINANZAS (Elena CFO) ─────────
+  {
+    name: 'registrar_gasto',
+    description: 'Registra un gasto de Isabel con categoría y monto. Categorías: oficina, marketing, salarios, personal, gas, comida, salud, gym, tax, otro. ÚSALA cada vez que Isabel mencione un gasto: "pagué $80 en Sprouts", "le dí $300 a Skarleth", "renovación del software $120". Captura por defecto. Elena CFO ve estos datos cuando la consultas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        monto: { type: 'number', description: 'Dólares.' },
+        categoria: { type: 'string', description: 'oficina | marketing | salarios | personal | gas | comida | salud | gym | tax | otro' },
+        concepto: { type: 'string', description: 'Qué fue.' },
+      },
+      required: ['monto'],
+    },
+  },
+  {
+    name: 'registrar_ingreso',
+    description: 'Registra un ingreso de Isabel. Categorías: comision, salario, bonus, otro. ÚSALA cuando mencione "me llegó la comisión de SCAN $X", "me pagaron el bonus de AEP". Las comisiones reales del CRM viven en LUNA — esta tool es para ingresos que Isabel reporta verbalmente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        monto: { type: 'number' },
+        categoria: { type: 'string', description: 'comision | salario | bonus | otro' },
+        concepto: { type: 'string' },
+      },
+      required: ['monto'],
+    },
+  },
+  {
+    name: 'mis_finanzas',
+    description: 'Resumen del mes en curso: ingresos, gastos, neto, top categorías de gasto. ÚSALA cuando Isabel pregunte "¿cómo voy de dinero?" o como parte del weekly review.',
+    input_schema: {
+      type: 'object',
+      properties: { mes: { type: 'string', description: 'YYYY-MM. Default mes actual.' } },
+      required: [],
+    },
+  },
+
+  // ───────── JOURNAL (Alma Mindset) ─────────
+  {
+    name: 'journal_entrada',
+    description: 'Registra una entrada de journal — captura emocional de Isabel. Puede ser libre ("hoy estoy frustrada con Skarleth porque..."), o estructurada con gratitud y frustración. ÚSALA cuando Isabel exprese estado emocional, agradezca algo, esté procesando algo. Athena detecta emociones (estrés, alegría, frustración, etc.) y Alma los lee para coachear con patrón.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        texto: { type: 'string', description: 'La entrada principal.' },
+        tipo: { type: 'string', description: 'journal | gratitud | win | frustracion. Default journal.' },
+        gratitud: { type: 'string', description: 'Algo que agradece (opcional).' },
+        frustracion: { type: 'string', description: 'Algo que la frustra (opcional).' },
+      },
+      required: ['texto'],
+    },
+  },
+  {
+    name: 'mis_patrones_emocionales',
+    description: 'Cuenta menciones de emociones (estrés, alegría, frustración, tristeza, miedo, paz) en últimos N días. ÚSALA cuando Isabel pregunte "¿cómo he estado emocionalmente?" o cuando Alma quiera ver el patrón antes de aconsejar.',
+    input_schema: {
+      type: 'object',
+      properties: { dias: { type: 'integer', description: 'Default 14.' } },
+      required: [],
+    },
+  },
+
+  // ───────── GOALS (Victoria Vision) ─────────
+  {
+    name: 'registrar_meta',
+    description: 'Registra una meta/OKR de Isabel. Distinto a tasks (esta semana) y season (este mes) — esto es largo plazo, cuantitativo. Ej: "AEP 2026: 40 enrollments". ÚSALA cuando Isabel diga "mi meta es X", "para diciembre quiero Y", "este año me propongo Z".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Qué quiere lograr.' },
+        target: { type: 'number', description: 'Número objetivo (si aplica).' },
+        unidad: { type: 'string', description: 'enrollments / lbs / $ / horas / etc.' },
+        vence: { type: 'string', description: 'Fecha límite ISO (YYYY-MM-DD).' },
+        area: { type: 'string', description: 'personal | trabajo | salud | finanzas | otro' },
+        notas: { type: 'string' },
+      },
+      required: ['nombre', 'vence'],
+    },
+  },
+  {
+    name: 'actualizar_meta',
+    description: 'Actualiza el progreso de una meta. Auto-completa si llegó al target. Para cuando Isabel diga "ya llevo 22 enrollments" o reporte avance.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'g_...' },
+        progreso: { type: 'number' },
+        nota: { type: 'string' },
+      },
+      required: ['id', 'progreso'],
+    },
+  },
+  {
+    name: 'mis_metas',
+    description: 'Lista metas activas con % de avance, días restantes, proyección. Detecta cuáles están "off track" (avance % menor al % de tiempo transcurrido por más de 10). Victoria lo usa para confrontar con dato real.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        area: { type: 'string', description: 'Opcional: filtrar por área.' },
+      },
+      required: [],
+    },
+  },
+
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -1135,6 +1239,9 @@ async function dispatchTool(name, input) {
       // proteína, workouts, sueño) — sin esto coachean a ciegas.
       const { LUNA_TOOL_DEFINITIONS, runLunaTool } = await import('./luna_tools.js');
       const { buildHabitsForCoach } = await import('./habits.js');
+      const { buildFinanzasForCoach } = await import('./finanzas.js');
+      const { buildJournalForCoach } = await import('./journal.js');
+      const { buildGoalsForCoach } = await import('./goals.js');
       const HEALTH_COACHES = new Set(['carmen', 'rivera', 'sofia']);
       const wiki = buildWikiContext();
       const results = await Promise.all(
@@ -1152,11 +1259,26 @@ async function dispatchTool(name, input) {
             opts.tools = LUNA_TOOL_DEFINITIONS;
             opts.toolDispatcher = runLunaTool;
           }
-          // Health coaches reciben los datos REALES de hábitos en el wiki.
+          // Cada coach recibe los datos relevantes a su dominio.
           let wikiAumentado = wiki;
           if (HEALTH_COACHES.has(c.especialista)) {
             const habits = buildHabitsForCoach(c.especialista);
-            if (habits) wikiAumentado = wiki + habits;
+            if (habits) wikiAumentado += habits;
+          }
+          if (c.especialista === 'elena') {
+            const f = buildFinanzasForCoach();
+            if (f) wikiAumentado += f;
+          }
+          if (c.especialista === 'alma') {
+            const j = buildJournalForCoach();
+            if (j) wikiAumentado += j;
+            // Alma también lee hábitos para correlacionar sueño con ánimo
+            const h = buildHabitsForCoach('alma');
+            if (h) wikiAumentado += h;
+          }
+          if (c.especialista === 'victoria') {
+            const g = buildGoalsForCoach();
+            if (g) wikiAumentado += g;
           }
           try {
             const answer = await askSpecialist(spec, c.tarea, wikiAumentado, opts);
@@ -1771,6 +1893,92 @@ async function dispatchTool(name, input) {
         lines.push(`  Tendencia: ${trend > 0 ? '+' : ''}${Math.round(trend * 10) / 10}`);
       }
       return lines.join('\n');
+    }
+
+    // ─── FINANZAS ───
+    case 'registrar_gasto': {
+      const { registrarGasto } = await import('./finanzas.js');
+      const r = registrarGasto({ monto: input.monto, categoria: input.categoria || 'otro', concepto: input.concepto || '' });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `💸 Gasto registrado [${r.entry.id}]: $${r.entry.monto} ${r.entry.categoria}${r.entry.concepto ? ` (${r.entry.concepto})` : ''}`;
+    }
+    case 'registrar_ingreso': {
+      const { registrarIngreso } = await import('./finanzas.js');
+      const r = registrarIngreso({ monto: input.monto, categoria: input.categoria || 'comision', concepto: input.concepto || '' });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `💰 Ingreso registrado [${r.entry.id}]: $${r.entry.monto} ${r.entry.categoria}${r.entry.concepto ? ` (${r.entry.concepto})` : ''}`;
+    }
+    case 'mis_finanzas': {
+      const { statsMes } = await import('./finanzas.js');
+      const s = statsMes(input.mes || null);
+      if (!s.n_transacciones) return `Sin transacciones registradas en ${s.mes}.`;
+      const lines = [
+        `💰 Finanzas mes ${s.mes}:`,
+        `  Ingresos: $${s.total_ingresos}`,
+        `  Gastos: $${s.total_gastos}`,
+        `  Neto: $${s.neto}`,
+      ];
+      const top = Object.entries(s.gastos_por_categoria).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      if (top.length) lines.push(`  Top gastos: ${top.map(([k, v]) => `${k} $${v}`).join(' · ')}`);
+      return lines.join('\n');
+    }
+
+    // ─── JOURNAL ───
+    case 'journal_entrada': {
+      const { registrarEntrada } = await import('./journal.js');
+      const r = registrarEntrada({
+        texto: input.texto,
+        tipo: input.tipo || 'journal',
+        gratitud: input.gratitud || null,
+        frustracion: input.frustracion || null,
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `📓 Journal [${r.entry.id}] ${r.entry.tipo}. ${r.entry.emociones.length ? `Detecté: ${r.entry.emociones.join(', ')}` : 'Tono neutral.'}`;
+    }
+    case 'mis_patrones_emocionales': {
+      const { emocionesPattern } = await import('./journal.js');
+      const p = emocionesPattern({ dias: parseInt(input.dias, 10) || 14 });
+      if (!p.n_entradas) return `Sin entradas en los últimos ${p.dias_analizados} días.`;
+      const summary = Object.entries(p.counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ×${v}`).join(' · ') || 'sin emociones marcadas';
+      return `Patrones (${p.dias_analizados}d, ${p.n_entradas} entradas):\n${summary}`;
+    }
+
+    // ─── GOALS ───
+    case 'registrar_meta': {
+      const { registrarMeta } = await import('./goals.js');
+      const r = registrarMeta({
+        nombre: input.nombre,
+        target: input.target !== undefined ? Number(input.target) : null,
+        unidad: input.unidad || '',
+        vence: input.vence,
+        area: input.area || 'personal',
+        notas: input.notas || '',
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `🎯 Meta registrada [${r.entry.id}]: ${r.entry.nombre}${r.entry.target !== null ? ` (target ${r.entry.target}${r.entry.unidad})` : ''} · vence ${r.entry.vence.slice(0, 10)}`;
+    }
+    case 'actualizar_meta': {
+      const { actualizarProgreso } = await import('./goals.js');
+      const r = actualizarProgreso({ id: input.id, progreso: input.progreso, nota: input.nota || '' });
+      if (!r) return `No encontré meta ${input.id}.`;
+      return `Meta [${r.id}] actualizada a ${r.progreso}${r.unidad}${r.status === 'completada' ? ' 🎉 COMPLETADA' : ''}`;
+    }
+    case 'mis_metas': {
+      const { listMetas, proyeccion } = await import('./goals.js');
+      const metas = listMetas({ status: 'activa', area: input.area || null });
+      if (!metas.length) return 'Sin metas activas. Cuando quieras registra una con registrar_meta.';
+      const lines = [];
+      for (const m of metas) {
+        const p = proyeccion(m);
+        let line = `[${m.id}] ${m.nombre}`;
+        if (m.target !== null) line += ` — ${m.progreso}/${m.target}${m.unidad}`;
+        if (p) {
+          line += ` · ${p.pct_avance}% avance (${p.pct_tiempo_transcurrido}% tiempo) · ${p.dias_restantes}d`;
+          if (!p.en_track) line += ` · ⚠️ OFF TRACK`;
+        }
+        lines.push(line);
+      }
+      return `${metas.length} metas activas:\n${lines.join('\n')}`;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();
