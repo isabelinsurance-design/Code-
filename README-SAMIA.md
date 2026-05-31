@@ -85,6 +85,9 @@ server/
     commitments.js    # Patrón #19: commitment tracker (promesas con fecha + vencidas)
     briefing.js       # Patrón #20: briefing matutino priorizado
     scheduler.js      # Patrón #21: scheduler en-proceso (reflexión/briefing/repaso/tick)
+  security/
+    compliance.js     # Patrón #7/#33: review hook (reglas de marketing CMS + PII)
+    gate.js           # Patrón #5/#26: confirmation gate (override auditado + rewrite)
   memory/
     index.js          # agentes, sesiones, audit log, reflexiones (#6/#12/#15)
     entities.js       # Patrón #11: personas (miembros/leads) + alias + salience + gaps
@@ -171,6 +174,30 @@ Endpoints nuevos: `GET /api/intel/signals`, `POST /api/intel/signals/refresh`,
 Endpoints nuevos: `GET|POST /api/intel/briefing`, `GET|POST /api/intel/commitments`,
 `GET /api/intel/scheduler`, `POST /api/intel/run-jobs`.
 
+### Fase 7 — Seguridad / Cumplimiento
+
+Convierte los **no-negociables de la constitución** en un **guardrail automático**.
+
+- **#7/#33 Review hook de cumplimiento** (`security/compliance.js`): escanea un draft
+  dirigido al miembro (script, carta, mensaje) contra las reglas de marketing de CMS
+  — superlativos ("el mejor plan"), respaldo del gobierno ("de parte de Medicare"),
+  presión/urgencia, garantías de aceptación, beneficios no confirmados, "gratis" sin
+  matiz, saltarse el SOA, datos de pago en venta, selección por salud. Cada hallazgo
+  trae **severidad** (`block`/`warn`/`info`) y un **arreglo**. **Determinista** — un
+  guardrail que depende de la red no es un guardrail.
+- **#5/#26 Confirmation gate** (`security/gate.js`): no deja pasar contenido riesgoso
+  en silencio. `pass` → limpio; `review` → un agente con licencia aprueba con
+  `acknowledged`; `block` → prohibido, requiere **override explícito que queda
+  AUDITADO** con responsable. Reescritura *compliant* opcional (LLM) que convierte "no
+  digas esto" en "di esto".
+- **Aviso de PII en el chat**: si el agente pega un SSN/MBI/tarjeta, la respuesta trae
+  un `compliance.piiAdvisory` recordando mantenerlo en sistemas seguros. No bloquea.
+- El hook corre sobre **drafts del agente** (lo que enviará al miembro), no sobre el
+  coaching de SAMIA — así "no le digas 'gratis'" no se auto-marca.
+
+Endpoints nuevos: `POST /api/security/review` (body: `{text, acknowledged?, rewrite?,
+agentId?}`).
+
 > **Connecture sigue siendo la fuente oficial para cotizar.** El KB es para
 > orientar; cuando un dato pudo cambiar, SAMIA manda a verificar.
 
@@ -190,7 +217,8 @@ Endpoints nuevos: `GET|POST /api/intel/briefing`, `GET|POST /api/intel/commitmen
 
 ## Próximas fases sugeridas
 
-- **Fase 7 — Seguridad:** confirmation gate + review hooks (clave en Medicare/CMS).
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).
+- **Fase 10 — Dashboard:** UI para ver/editar memoria, señales, compromisos y
+  revisar drafts contra el guardrail de cumplimiento.
 - **Despliegue always-on** (Railway): requisito para que el scheduler de la Fase 5
   dispare de verdad (hoy la maquinaria está lista pero el sandbox es efímero).

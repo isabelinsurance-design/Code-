@@ -23,6 +23,8 @@ import { runReflection, getReflections } from './intel/reflection.js';
 import * as commitments from './intel/commitments.js';
 import { buildBriefing, generateBriefing, getLatestBriefing } from './intel/briefing.js';
 import { startScheduler, schedulerStatus, tick } from './intel/scheduler.js';
+import { review as complianceReview, scanPII } from './security/compliance.js';
+import { evaluate as gateEvaluate, rewrite as complianceRewrite } from './security/gate.js';
 import { serveStatic } from './static.js';
 
 const json = (res, code, obj) => {
@@ -144,7 +146,12 @@ async function handleChat(req, res) {
       commitments.captureCommitments(userText); // promesas con fecha (#19)
     }
 
-    return json(res, 200, { reply: text, content, specialist: specId, usage });
+    // Aviso ligero de PII (#7): si el agente pego un SSN/MBI/tarjeta, recordar
+    // mantenerlo en sistemas seguros. No bloquea; solo avisa.
+    const pii = scanPII(userText);
+    const compliance = pii.length ? { piiAdvisory: pii } : undefined;
+
+    return json(res, 200, { reply: text, content, specialist: specId, usage, compliance });
   } catch (e) {
     mem.audit({ action: 'chat_error', specialist: specId, agentId, input: userText, outputSummary: e.message });
     const code = e.code === 'NO_API_KEY' ? 503 : 502;
@@ -217,6 +224,20 @@ const server = createServer(async (req, res) => {
     }
     if (body.text) return json(res, 200, { commitment: commitments.addCommitment(body) });
     return json(res, 400, { error: 'text (nuevo) o id+status (actualizar) requeridos' });
+  }
+  // --- SEGURIDAD / CUMPLIMIENTO (Fase 7) ---
+  // Revisa un draft dirigido al miembro. Pasa por el confirmation gate; opcional
+  // reescritura compliant (?rewrite=1 o body.rewrite).
+  if (path === '/api/security/review' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    if (!body.text) return json(res, 400, { error: 'text requerido' });
+    const decision = gateEvaluate({ text: body.text, acknowledged: !!body.acknowledged, agentId: body.agentId || null });
+    let rewrite = null;
+    if (body.rewrite && !decision.pass && decision.level !== 'ok') {
+      const r = await complianceRewrite(body.text);
+      rewrite = r.rewrite;
+    }
+    return json(res, 200, { ...decision, rewrite });
   }
   if (path === '/api/intel/scheduler' && req.method === 'GET') return json(res, 200, schedulerStatus());
   if (path === '/api/intel/run-jobs' && req.method === 'POST') {
