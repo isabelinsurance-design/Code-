@@ -32,7 +32,12 @@ function verifySession(cookie) {
   const [body, sig] = cookie.split('.');
   if (!body || !sig) return null;
   const expected = crypto.createHmac('sha256', getSecret()).update(body).digest('base64url');
-  if (!crypto.timingSafeEqual(Buffer.from(sig), Buffer.from(expected))) return null;
+  const sigBuf = Buffer.from(sig);
+  const expBuf = Buffer.from(expected);
+  // timingSafeEqual lanza si los buffers difieren en longitud — un cookie
+  // manipulado o truncado tronaría requireAuth con 500 en vez de 401.
+  if (sigBuf.length !== expBuf.length) return null;
+  if (!crypto.timingSafeEqual(sigBuf, expBuf)) return null;
   try {
     const payload = JSON.parse(Buffer.from(body, 'base64url').toString('utf8'));
     if (payload.exp && Date.now() > payload.exp) return null;
@@ -339,19 +344,20 @@ export function registerApi(app) {
   });
   app.get('/api/season', requireAuth, async (_req, res) => {
     const { getSeason } = await import('./memory.js');
-    res.json({ texto: getSeason() });
+    res.json(getSeason()); // ya viene como { texto, actualizado }
   });
   app.put('/api/season', requireAuth, async (req, res) => {
     const { setSeason } = await import('./memory.js');
-    res.json({ texto: setSeason((req.body || {}).texto || '') });
+    res.json(setSeason((req.body || {}).texto || ''));
   });
 
-  // Activity (audit)
+  // Activity (audit) — logActivity hace unshift, así que index 0 es lo más
+  // reciente. Toma los primeros N, no los últimos.
   app.get('/api/activity', requireAuth, async (req, res) => {
     const { getActivity } = await import('./memory.js');
     const all = getActivity();
     const limit = Math.min(200, parseInt(req.query.limit || '50', 10));
-    res.json(all.slice(-limit).reverse());
+    res.json(all.slice(0, limit));
   });
 
   // Brand pipeline
@@ -463,11 +469,15 @@ export function registerApi(app) {
     }
     try {
       if (coach === 'directora') {
-        // Conversación con history persistente (igual que WhatsApp)
+        // DECISIÓN DE DISEÑO: web y WhatsApp comparten el MISMO history.
+        // Esto es intencional — "una Athena, dos puertas". Si Isabel
+        // mencionó algo por WA en la mañana, la versión web también lo
+        // sabe. La marca [via web app] le dice a Athena de qué canal
+        // viene esta vuelta para que pueda calibrar tono / formato.
         const { runDirectora } = await import('./directora.js');
         const { getHistory, saveHistory } = await import('./memory.js');
         const history = getHistory();
-        history.push({ role: 'user', content: message });
+        history.push({ role: 'user', content: `[via web app] ${message}` });
         const { reply, messages: updated } = await runDirectora(history);
         saveHistory(updated);
         return res.json({ coach, reply });
