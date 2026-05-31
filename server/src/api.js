@@ -284,6 +284,36 @@ export function registerApi(app) {
     res.json(retireSkill(req.params.slug));
   });
 
+  // ---- Web Push ----
+  app.get('/api/push/key', requireAuth, async (_req, res) => {
+    const { getPublicKey, pushEnabled } = await import('./push.js');
+    res.json({ enabled: pushEnabled(), publicKey: getPublicKey() });
+  });
+
+  app.post('/api/push/subscribe', requireAuth, async (req, res) => {
+    const { subscribe } = await import('./push.js');
+    const { subscription, ua } = req.body || {};
+    const r = subscribe(subscription, { ua: String(ua || '').slice(0, 200) });
+    res.json(r);
+  });
+
+  app.post('/api/push/unsubscribe', requireAuth, async (req, res) => {
+    const { unsubscribe } = await import('./push.js');
+    const { endpoint } = req.body || {};
+    res.json(unsubscribe(endpoint));
+  });
+
+  app.post('/api/push/test', requireAuth, async (_req, res) => {
+    const { sendToAll } = await import('./push.js');
+    const r = await sendToAll({
+      title: 'Athena',
+      body: 'Test desde la app — push notifications funcionan ✓',
+      url: '/app/hoy',
+      tag: 'test',
+    });
+    res.json(r);
+  });
+
   // ---- Chat con coaches (one-shot, sin tools) ----
   // Endpoint single-turn: manda mensaje, recibe respuesta del coach pedido.
   // Para Athena (directora) usa runDirectora con history acumulado.

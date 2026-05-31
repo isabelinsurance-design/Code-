@@ -174,6 +174,16 @@ Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que
     }
   }
   console.log(`[briefing] Enviado a Isabel (${cards.length} card${cards.length > 1 ? 's' : ''}).`);
+  // Push al PWA — title con la primera línea de la card 1, body con preview
+  try {
+    const { sendToAll, pushEnabled } = await import('./push.js');
+    if (pushEnabled()) {
+      const first = (cards[0] || '').split('\n').filter(Boolean);
+      const title = first[0]?.slice(0, 80) || 'Briefing matutino';
+      const body = first.slice(1).join(' ').slice(0, 140) || `Tu briefing de ${fecha}`;
+      await sendToAll({ title, body, url: '/app/hoy', tag: 'briefing' });
+    }
+  } catch (e) { console.warn('[push] briefing ping falló:', e.message); }
 }
 
 // Divide la respuesta en cards por el divisor ═════.

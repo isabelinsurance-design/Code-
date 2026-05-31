@@ -81,7 +81,19 @@ async function runProactive(syntheticUserMessage, prefix = '') {
   messages.push({ role: 'user', content: syntheticUserMessage });
   const { reply, messages: updated } = await runDirectora(messages);
   saveHistory(updated);
-  await sendMessage(to, prefix ? `${prefix} ${reply}` : reply);
+  const finalText = prefix ? `${prefix} ${reply}` : reply;
+  await sendMessage(to, finalText);
+  // También ping al PWA si está suscrito — notif nativa en iPhone.
+  try {
+    const { sendToAll, pushEnabled } = await import('./push.js');
+    if (pushEnabled()) {
+      // primer renglón como título; resto como body, máx 140 chars
+      const lines = finalText.split('\n').filter(Boolean);
+      const title = lines[0]?.slice(0, 80) || 'Athena';
+      const body = lines.slice(1).join(' ').slice(0, 140);
+      await sendToAll({ title, body, url: '/app/hoy', tag: 'proactive' });
+    }
+  } catch (e) { console.warn('[push] proactive ping falló:', e.message); }
   return reply;
 }
 

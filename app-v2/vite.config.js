@@ -8,7 +8,14 @@ export default defineConfig({
     react(),
     VitePWA({
       registerType: 'autoUpdate',
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
+      injectManifest: {
+        // No precacheamos sourcemaps ni el SW mismo
+        globPatterns: ['**/*.{js,css,html,svg,png,ico,webmanifest}'],
+      },
       manifest: {
         name: 'Athena',
         short_name: 'Athena',
@@ -24,10 +31,6 @@ export default defineConfig({
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: 'icon-512-maskable.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-      },
-      workbox: {
-        // No cachear el API — siempre fresco.
-        navigateFallbackDenylist: [/^\/api\//],
       },
     }),
   ],

@@ -76,6 +76,12 @@ export const api = {
   // Actividad (audit log)
   activity: (limit = 50) => request(`/activity?limit=${limit}`),
 
+  // Web Push (notifications nativas en iPhone/Android)
+  pushKey: () => request('/push/key'),
+  pushSubscribe: (subscription, ua) => request('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription, ua }) }),
+  pushUnsubscribe: (endpoint) => request('/push/unsubscribe', { method: 'POST', body: JSON.stringify({ endpoint }) }),
+  pushTest: () => request('/push/test', { method: 'POST' }),
+
   // Chat con coaches (envía mensaje, recibe reply)
   chatCoaches: () => request('/chat/coaches'),
   chat: (coach, message) => request('/chat', { method: 'POST', body: JSON.stringify({ coach, message }) }),

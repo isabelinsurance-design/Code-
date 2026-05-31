@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
+import PushSettings from '../components/PushSettings.jsx';
 
 export default function Hoy() {
   const [state, setState] = useState(null);
@@ -18,6 +19,8 @@ export default function Hoy() {
         <h2 className="font-serif text-3xl text-lino-800">Hoy</h2>
         <p className="text-ink-3 text-sm">{state.fecha}</p>
       </header>
+
+      <PushSettings />
 
       {state.trust && (
         <section className="card">
