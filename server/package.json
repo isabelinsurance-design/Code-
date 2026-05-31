@@ -7,7 +7,9 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "node --watch src/index.js",
-    "briefing": "node src/briefing.js"
+    "briefing": "node src/briefing.js",
+    "build:app": "cd ../app-v2 && npm install --no-audit --no-fund && npm run build",
+    "postinstall": "npm run build:app || echo 'app build skipped (run npm install + build manually in app-v2/)'"
   },
   "engines": {
     "node": ">=20"

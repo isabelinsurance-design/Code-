@@ -1,0 +1,26 @@
+# Node
+node_modules/
+npm-debug.log*
+yarn-error.log*
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Runtime data (gitignored — backed up to R2)
+server/data/
+server/backups/
+server/audio/
+
+# Build output (regenerated on deploy)
+server/public/app/
+
+# Editor / OS
+.DS_Store
+.vscode/
+.idea/
+*.swp
+
+# Logs
+*.log

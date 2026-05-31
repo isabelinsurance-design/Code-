@@ -24,6 +24,12 @@ import { startInboxIdle, inboxIdleEnabled } from './inbox_idle.js';
 import { buildIncomingTwiml, handleVoiceStatus, attachVoiceRelay } from './voice.js';
 import { runSlash } from './slash.js';
 import { dashboardEnabled, dashboardAuth, renderDashboardHtml, buildDashboardState } from './dashboard.js';
+import { registerApi } from './api.js';
+import { existsSync } from 'node:fs';
+import { join, dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __dirname_idx = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 // Si estamos detrás de un proxy (Railway/Render/Fly), confiamos en
@@ -38,6 +44,22 @@ app.get('/health', (_req, res) => res.json({ ok: true, time: new Date().toISOStr
 // Sirve los MP3 generados por TTS para que Twilio los pueda jalar.
 // Carpeta efímera — los archivos se borran después de 24h.
 app.use('/audio', express.static(AUDIO_DIR, { maxAge: '6h', extensions: ['mp3'] }));
+
+// ---- API REST + Web app (PWA) ----
+// El API maneja auth con cookie firmada (APP_PASSWORD + APP_SECRET).
+// El app React se sirve estático en /app/ después del build de Vite.
+registerApi(app);
+const APP_DIR = join(__dirname_idx, '..', 'public', 'app');
+if (existsSync(APP_DIR)) {
+  app.use('/app', express.static(APP_DIR, { index: 'index.html', maxAge: '5m' }));
+  // SPA fallback: cualquier ruta bajo /app/* sin archivo → index.html
+  app.get(/^\/app(\/.*)?$/, (_req, res) => {
+    res.sendFile(join(APP_DIR, 'index.html'));
+  });
+  console.log(`[app] React app servido desde ${APP_DIR} en /app`);
+} else {
+  console.log('[app] /app aún no construido (corre "npm run build" en app-v2/)');
+}
 
 // ---- Webhooks de voz (Twilio Programmable Voice + ConversationRelay) ----
 // /voice/incoming devuelve TwiML que conecta la llamada a nuestro WS.
