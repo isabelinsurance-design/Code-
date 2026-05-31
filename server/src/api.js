@@ -284,9 +284,47 @@ export function registerApi(app) {
     res.json(retireSkill(req.params.slug));
   });
 
-  // Chat con coaches — placeholder, lo cableamos en la próxima iteración
-  app.post('/api/chat', requireAuth, async (_req, res) => {
-    res.status(501).json({ error: 'chat endpoint pendiente' });
+  // ---- Chat con coaches (one-shot, sin tools) ----
+  // Endpoint single-turn: manda mensaje, recibe respuesta del coach pedido.
+  // Para Athena (directora) usa runDirectora con history acumulado.
+  app.get('/api/chat/coaches', requireAuth, async (_req, res) => {
+    const { SPECIALISTS, DIRECTORA } = await import('./agents.js');
+    const coaches = [
+      { id: 'directora', name: DIRECTORA.name, role: DIRECTORA.role || 'Chief of Staff' },
+      ...Object.values(SPECIALISTS).map((s) => ({ id: s.id, name: s.name, role: s.role || '' })),
+    ];
+    res.json(coaches);
+  });
+
+  app.post('/api/chat', requireAuth, async (req, res) => {
+    const { coach = 'directora', message = '' } = req.body || {};
+    if (!message || !message.trim()) {
+      return res.status(400).json({ error: 'message vacío' });
+    }
+    try {
+      if (coach === 'directora') {
+        // Conversación con history persistente (igual que WhatsApp)
+        const { runDirectora } = await import('./directora.js');
+        const { getHistory, saveHistory } = await import('./memory.js');
+        const history = getHistory();
+        history.push({ role: 'user', content: message });
+        const { reply, messages: updated } = await runDirectora(history);
+        saveHistory(updated);
+        return res.json({ coach, reply });
+      }
+      // Specialists: single-turn sin history (rápido y cacheable)
+      const { askSpecialist } = await import('./claude.js');
+      const { SPECIALISTS } = await import('./agents.js');
+      const { buildWikiContext } = await import('./memory.js');
+      const spec = SPECIALISTS[coach];
+      if (!spec) return res.status(404).json({ error: 'coach desconocido' });
+      const wiki = buildWikiContext();
+      const reply = await askSpecialist(spec, message, wiki, {});
+      return res.json({ coach, reply });
+    } catch (e) {
+      console.error('[api/chat]', e);
+      res.status(500).json({ error: e.message });
+    }
   });
 
   console.log('[api] endpoints REST montados en /api/*');

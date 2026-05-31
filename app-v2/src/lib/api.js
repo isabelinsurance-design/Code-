@@ -77,5 +77,6 @@ export const api = {
   activity: (limit = 50) => request(`/activity?limit=${limit}`),
 
   // Chat con coaches (envía mensaje, recibe reply)
+  chatCoaches: () => request('/chat/coaches'),
   chat: (coach, message) => request('/chat', { method: 'POST', body: JSON.stringify({ coach, message }) }),
 };
