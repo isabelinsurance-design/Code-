@@ -35,6 +35,14 @@ export const api = {
   taskComplete: (id) => request(`/tasks/${id}/complete`, { method: 'POST' }),
   taskCancel: (id) => request(`/tasks/${id}/cancel`, { method: 'POST' }),
 
+  // Calendar (Google)
+  calendarStatus: () => request('/calendar/status'),
+  calendarUpcoming: (hours = 168, limit = 25) => request(`/calendar/upcoming?hours=${hours}&limit=${limit}`),
+  calendarCreate: (data) => request('/calendar/event', { method: 'POST', body: JSON.stringify(data) }),
+  calendarUpdate: (id, patch) => request(`/calendar/event/${id}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  calendarDelete: (id) => request(`/calendar/event/${id}`, { method: 'DELETE' }),
+  calendarFreeSlots: (params) => request('/calendar/freeslots', { method: 'POST', body: JSON.stringify(params) }),
+
   // Commitments — promesas que otros te deben
   commitments: (status, persona) => {
     const qs = new URLSearchParams();

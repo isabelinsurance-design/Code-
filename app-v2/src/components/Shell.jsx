@@ -5,6 +5,7 @@ const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
   { to: '/chat', label: 'Chat', icon: '✦' },
   { to: '/brand', label: 'Brand', icon: '◈' },
+  { to: '/calendar', label: 'Agenda', icon: '◷' },
   { to: '/configura', label: 'Configura', icon: '⚙' },
   { to: '/aprueba', label: 'Aprueba', icon: '✓' },
   { to: '/tareas', label: 'Tareas', icon: '✎' },

@@ -230,6 +230,60 @@ export function registerApi(app) {
     res.json(marcarCumplida(req.params.id, (req.body || {}).evidencia || ''));
   });
 
+  // Calendar (Google Calendar - WRITE habilitado)
+  app.get('/api/calendar/status', requireAuth, async (_req, res) => {
+    const { calendarConfigured } = await import('./calendar.js');
+    res.json({ configured: calendarConfigured() });
+  });
+  app.get('/api/calendar/upcoming', requireAuth, async (req, res) => {
+    try {
+      const { listUpcomingEvents } = await import('./calendar.js');
+      const events = await listUpcomingEvents({
+        withinHours: parseInt(req.query.hours || '168', 10), // default 7 días
+        limit: parseInt(req.query.limit || '25', 10),
+      });
+      res.json(events);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+  app.post('/api/calendar/event', requireAuth, async (req, res) => {
+    try {
+      const { createEvent } = await import('./calendar.js');
+      const e = await createEvent(req.body || {});
+      res.json(e);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  app.patch('/api/calendar/event/:id', requireAuth, async (req, res) => {
+    try {
+      const { updateEvent } = await import('./calendar.js');
+      const e = await updateEvent(req.params.id, req.body || {});
+      res.json(e);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  app.delete('/api/calendar/event/:id', requireAuth, async (req, res) => {
+    try {
+      const { deleteEvent } = await import('./calendar.js');
+      await deleteEvent(req.params.id);
+      res.json({ ok: true });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+  app.post('/api/calendar/freeslots', requireAuth, async (req, res) => {
+    try {
+      const { findFreeSlots } = await import('./calendar.js');
+      const slots = await findFreeSlots(req.body || {});
+      res.json(slots);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   // Commitments — promesas que otros te deben
   app.get('/api/commitments', requireAuth, async (req, res) => {
     const { listCommitments } = await import('./commitments.js');
