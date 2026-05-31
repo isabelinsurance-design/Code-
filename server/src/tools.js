@@ -746,6 +746,23 @@ export const toolDefinitions = [
       required: [],
     },
   },
+  {
+    name: 'equipo_reporte_eod',
+    description: 'Registra el reporte EOD (End-of-Day, 3pm) de un miembro del equipo. Texto libre con los números del día. Athena lo parsea (llamadas / citas / apps / pólizas / problemas) y lo guarda. A las 9pm en evening check-in te muestra el agregado. NO le repitas a Isabel — esto SOLO lo llama el equipo (vía /eod por WhatsApp) o Athena cuando alguien le manda el reporte conversacionalmente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Quién reporta (Sami / Skarleth / Arlette / Samia).' },
+        texto: { type: 'string', description: 'Texto del reporte. Athena parsea los números automático.' },
+      },
+      required: ['persona', 'texto'],
+    },
+  },
+  {
+    name: 'equipo_reportes_hoy',
+    description: 'Lee los reportes EOD del equipo HOY agregados — totales (llamadas, citas, apps), problemas flageados, quién faltó por reportar. ÚSALA en evening check-in para tener números honestos, NO inventes.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
 
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
@@ -1662,6 +1679,18 @@ async function dispatchTool(name, input) {
       }
       await sendSaturdayBrief();
       return 'Saturday brief enviado a Isabel por WhatsApp (cards separadas).';
+    }
+    case 'equipo_reporte_eod': {
+      const { submitEodReport } = await import('./team_eod.js');
+      const r = submitEodReport({ persona: input.persona, texto: input.texto });
+      if (!r.ok) return `Error: ${r.error}`;
+      const nums = Object.entries(r.entry.numeros).filter(([k, v]) => k !== '_problema' && typeof v === 'number').map(([k, v]) => `${k}=${v}`).join(' · ') || 'sin números detectados';
+      return `EOD registrado [${r.entry.id}] ${r.entry.persona}${r.entry.reemplazado ? ' (reemplazo del anterior de hoy)' : ''}. Parsed: ${nums}${r.entry.numeros._problema ? ' · 🚨 flageó problema' : ''}.`;
+    }
+    case 'equipo_reportes_hoy': {
+      const { buildEodSummary } = await import('./team_eod.js');
+      const s = buildEodSummary();
+      return s ? s.summary : 'Nadie del equipo ha reportado EOD hoy todavía.';
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

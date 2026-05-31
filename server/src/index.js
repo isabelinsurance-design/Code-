@@ -285,6 +285,21 @@ if (inboxCleanupEnabled()) {
 // dónde meter foco.
 const { sendSaturdayBrief } = await import('./saturday_brief.js');
 scheduleCron('saturday_brief', process.env.SATURDAY_BRIEF_CRON || '0 21 * * 5', sendSaturdayBrief);
+// EOD nudge: 6pm chequea quién del equipo NO ha reportado y le pide
+// a Sami que les recuerde. Solo días entre semana.
+scheduleCron('eod_nudge', process.env.EOD_NUDGE_CRON || '0 18 * * 1-5', async () => {
+  const { checkMissingReports } = await import('./team_eod.js');
+  const { sendMessage } = await import('./whatsapp.js');
+  const r = checkMissingReports();
+  if (!r.shouldNudgeSami) return;
+  const samiPhone = process.env.SAMI_WHATSAPP;
+  if (!samiPhone) {
+    console.log(`[eod_nudge] sin SAMI_WHATSAPP. Faltan: ${r.missing.join(', ')}`);
+    return;
+  }
+  await sendMessage(samiPhone, `🕐 Recordatorio EOD: faltan reportes de ${r.missing.join(', ')}. Por favor recuérdales mandar /eod antes de irse.`);
+  console.log(`[eod_nudge] nudge mandado a Sami sobre: ${r.missing.join(', ')}`);
+});
 
 const port = process.env.PORT || 3000;
 const httpServer = app.listen(port, () => {

@@ -68,6 +68,7 @@ export async function runSlash(text, from) {
       case 'luna': return { ok: true, reply: await runLuna(args) };
       case 'revisar': return { ok: true, reply: await runRevisar(from, args) };
       case 'sabado': return { ok: true, reply: await runSabado() };
+      case 'eod': return { ok: true, reply: await runEod(from, args) };
       case 'auditar': return { ok: true, reply: 'Auditor local retirado — el CRM real vive en LUNA. Para auditoría estructural del equipo, usa LUNA directamente.' };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
@@ -275,6 +276,40 @@ function inferPersona(from) {
 async function runSabado() {
   const { buildSaturdayBrief } = await import('./saturday_brief.js');
   return buildSaturdayBrief();
+}
+
+async function runEod(from, args) {
+  if (!args || args.length < 5) {
+    return `Uso: /eod <tu nombre> <reporte del día>
+
+Ejemplo:
+  /eod Skarleth hoy 18 llamadas, 3 citas agendadas, 2 hot leads convertidos, sin problemas.
+
+Athena lo guarda y a las 9pm Isabel ve el agregado. Si hay algo que Isabel deba atender, ponlo claro con la palabra "problema" o "escala".`;
+  }
+  // Primer token = persona (si está mapeado). Resto = reporte.
+  const tokens = args.trim().split(/\s+/);
+  const firstWord = tokens[0].toLowerCase().replace(/[^a-záéíóúñ]/gi, '');
+  const KNOWN = { sami:'Sami', sammy:'Sami', samia:'Samia', skarleth:'Skarleth', skarl:'Skarleth', scarleth:'Skarleth', arlette:'Arlette' };
+  let persona;
+  let texto;
+  if (KNOWN[firstWord]) {
+    persona = KNOWN[firstWord];
+    texto = tokens.slice(1).join(' ');
+  } else {
+    // Fallback: inferir por número (Sami) o pedir
+    const isabel = process.env.ISABEL_WHATSAPP || '';
+    const sami = process.env.SAMI_WHATSAPP || '';
+    if (from === sami) persona = 'Sami';
+    else if (from === isabel) persona = 'Isabel';
+    else return 'No reconocí quién eres. Empieza el comando con tu nombre: /eod Skarleth <reporte>';
+    texto = args;
+  }
+  const { submitEodReport } = await import('./team_eod.js');
+  const r = submitEodReport({ persona, texto });
+  if (!r.ok) return `Error: ${r.error}`;
+  const nums = Object.entries(r.entry.numeros).filter(([k, v]) => k !== '_problema' && typeof v === 'number').map(([k, v]) => `${k}=${v}`).join(' · ') || 'sin números detectados';
+  return `✓ EOD registrado para ${r.entry.persona}.\nDetecté: ${nums}${r.entry.numeros._problema ? '\n🚨 Flageé problema — Isabel lo verá en su check-in 9pm.' : ''}\n\nGracias. Si necesitas corregir, manda /eod de nuevo y reemplaza.`;
 }
 
 async function runRevisar(from, args) {

@@ -95,14 +95,25 @@ export async function sendEveningCheckin() {
     const { dailyStatsBlurb } = await import('./stats.js');
     statsBlurb = dailyStatsBlurb();
   } catch { /* ignore */ }
+  // EOD del equipo — si reportaron, Athena los menciona honestos.
+  let eodBlock = '';
+  try {
+    const { buildEodSummary } = await import('./team_eod.js');
+    const s = buildEodSummary();
+    if (s) {
+      eodBlock = `\n\nEQUIPO HOY (REPORTES REALES, NO INVENTES):\n${s.summary}\n\nSi hay problemas flageados arriba (🚨), MENCIÓNALOS a Isabel claramente — eso requiere su atención mañana o esta noche.`;
+    }
+  } catch { /* ignore */ }
   await runProactive(
     `[CIERRE DE DÍA AUTOMÁTICO — ${fecha}]
 
 DATOS DEL DÍA (úsalos para que los wins sean honestos, NO inventes):
-${statsBlurb}
+${statsBlurb}${eodBlock}
 
 INSTRUCCIONES:
 - Salúdame brevemente y reconóceme algún dato concreto de los stats si hay (ej. "tocaste 4 clientes hoy, eso es disciplina").
+- Si el equipo reportó EOD, dame el resumen agregado en UNA frase corta (ej. "3/4 reportaron, total 47 llamadas, 1 problema con Sami que Carlos quedó confundido por la SOA").
+- Si hay PROBLEMAS flageados por el equipo, dilo claro al inicio — eso pesa más que los wins.
 - Pregúntame 3 wins de hoy + 1 cosa para mañana.
 - Tono: corto, cálido, sin presión. Sin listas — frases continuas.
 - Si te respondo con wins, guárdalos con recordar (prefijo "Win: ") y la cosa de mañana como "Para mañana: ".
