@@ -70,7 +70,11 @@ import {
 export const toolDefinitions = [
   {
     name: 'consultar_especialistas',
-    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel EN PARALELO. Pasa un array \`consultas\` con una entrada por coach que quieras consultar. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — es ~3x más rápido y te permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=maria, dinero=elena, estrés/mindset=alma, metas/visión=victoria.`,
+    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel. Pasa un array \`consultas\` con una entrada por coach. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — más rápido + permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=maria, dinero=elena, estrés/mindset=alma, metas/visión=victoria.
+
+MODOS:
+- mode='parallel' (default): cada coach contesta en paralelo, aislada. Más rápido + barato. Bueno para preguntas que tocan dominios independientes.
+- mode='huddle': team huddle de 2 rondas. Ronda 1 igual que parallel. Ronda 2 cada coach VE las respuestas de las otras y refina su consejo en contexto del grupo. Mejor cuando los dominios INTERACTÚAN (ej. estrés ↔ peso ↔ sueño, dinero ↔ ansiedad, metas ↔ salud). 2x tokens / 2x latencia. Úsalo cuando la pregunta tiene mensaje cruzado real, NO para temas independientes.`,
     input_schema: {
       type: 'object',
       properties: {
@@ -88,6 +92,7 @@ export const toolDefinitions = [
             required: ['especialista', 'tarea'],
           },
         },
+        mode: { type: 'string', description: 'parallel (default) | huddle. Usa huddle para preguntas cross-domain donde las coaches deben dialogar.' },
       },
       required: ['consultas'],
     },
@@ -1282,13 +1287,42 @@ async function dispatchTool(name, input) {
           }
           try {
             const answer = await askSpecialist(spec, c.tarea, wikiAumentado, opts);
-            return `${spec.name} dice:\n${answer}`;
+            return { name: spec.name, id: c.especialista, answer, wiki: wikiAumentado, spec, opts, tarea: c.tarea };
           } catch (err) {
-            return `[${spec.name} — error: ${err.message}]`;
+            return { name: spec.name, id: c.especialista, answer: `[error: ${err.message}]`, error: true };
           }
         })
       );
-      return results.join('\n\n---\n\n');
+
+      // ─── HUDDLE MODE: ronda 2 — cada coach ve a las otras y refina ───
+      const mode = input.mode === 'huddle' && consultas.length >= 2 ? 'huddle' : 'parallel';
+      if (mode === 'huddle') {
+        const otrosFor = (currentId) => results
+          .filter((r) => r.id !== currentId && !r.error)
+          .map((r) => `${r.name} dijo:\n"${r.answer}"`)
+          .join('\n\n');
+        const refined = await Promise.all(
+          results.map(async (r) => {
+            if (r.error) return r;
+            const otrosTexto = otrosFor(r.id);
+            if (!otrosTexto) return r;
+            const huddleTarea = `${r.tarea}\n\n--- TEAM HUDDLE — lo que respondieron las OTRAS coaches ---\n${otrosTexto}\n\nAhora REFINA tu consejo en contexto del grupo. ¿Alguna trae algo que cambie tu vista? ¿Algún punto que necesites empujar o complementar? Mantén tu autoridad de dominio (no invadas el suyo) pero reconoce el cruce. Máximo 150 palabras. NO repitas tu respuesta anterior — DELTA solamente.`;
+            try {
+              const refined = await askSpecialist(r.spec, huddleTarea, r.wiki, r.opts);
+              return { ...r, refined };
+            } catch (err) {
+              return r;
+            }
+          })
+        );
+        const out = refined.map((r) => {
+          if (r.error || !r.refined) return `${r.name} dice:\n${r.answer}`;
+          return `${r.name} (ronda 1):\n${r.answer}\n\n${r.name} (ronda 2 — refinada en huddle):\n${r.refined}`;
+        });
+        return `[Team huddle — 2 rondas]\n\n${out.join('\n\n---\n\n')}`;
+      }
+
+      return results.map((r) => `${r.name} dice:\n${r.answer}`).join('\n\n---\n\n');
     }
     case 'mensaje_a_sami': {
       const to = process.env.SAMI_WHATSAPP;
