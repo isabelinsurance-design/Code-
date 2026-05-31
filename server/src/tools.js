@@ -1072,6 +1072,100 @@ MODOS:
     input_schema: { type: 'object', properties: {} },
   },
 
+  // ───────── BRAND & CONTENT PIPELINE (YouTube/IG) ─────────
+  {
+    name: 'brand_idea_add',
+    description: `Agrega una idea de contenido al backlog. CUÁNDO USAR: Isabel suelta una idea ("podría hacer un video de cómo elegí mi plan Medicare"), Marisol propone hooks en una consulta, o tú detectas que algo que pasó hoy es material ("la historia del cliente de hoy es perfecta para Reel"). Sé específica con el hook — eso es lo que la diferencia de listicles.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Frase corta del tema. Ej: "Por qué cambié de plan Medicare a los 65"' },
+        hook: { type: 'string', description: 'La primera línea del video / caption. Lo que para el scroll.' },
+        notas: { type: 'string', description: 'Detalle adicional, puntos a cubrir, fuentes.' },
+        plataforma: { type: 'string', enum: ['youtube', 'instagram_reel', 'instagram_carrusel', 'instagram_post', 'tiktok', 'blog', 'short'] },
+        formato: { type: 'string', enum: ['educativo', 'storytelling', 'testimonio', 'q_and_a', 'detrás_escenas', 'tendencia', 'lista', 'tutorial'] },
+        tema: { type: 'string', description: 'Categoría: "Medicare", "Latina founder", "menopausia", "vida en LA", etc.' },
+      },
+      required: ['titulo'],
+    },
+  },
+  {
+    name: 'brand_ideas_lista',
+    description: 'Lista las ideas del backlog. Filtra por tema, plataforma, estado (default idea).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tema: { type: 'string' },
+        plataforma: { type: 'string', enum: ['youtube', 'instagram_reel', 'instagram_carrusel', 'instagram_post', 'tiktok', 'blog', 'short'] },
+        estado: { type: 'string', enum: ['idea', 'aprobada', 'grabando', 'editando', 'lista_publicar', 'publicada', 'archivada'] },
+      },
+    },
+  },
+  {
+    name: 'brand_calendar_add',
+    description: 'Agrega un item al calendario de publicación. Implica que la idea está aprobada y tiene fecha asignada. Si idea_id viene, marca la idea como aprobada automáticamente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        plataforma: { type: 'string', enum: ['youtube', 'instagram_reel', 'instagram_carrusel', 'instagram_post', 'tiktok', 'blog', 'short'] },
+        fecha: { type: 'string', description: 'ISO date — cuándo se publica.' },
+        hook: { type: 'string' },
+        idea_id: { type: 'string', description: 'ID de la idea original si vino del backlog.' },
+        notas: { type: 'string' },
+      },
+      required: ['titulo', 'plataforma', 'fecha'],
+    },
+  },
+  {
+    name: 'brand_proximas',
+    description: 'Lista las próximas publicaciones agendadas. Útil para que Isabel sepa qué viene esta semana / próxima.',
+    input_schema: { type: 'object', properties: { dias: { type: 'number' } } },
+  },
+  {
+    name: 'brand_estado_update',
+    description: 'Cambia el estado de un item del calendario (grabando, editando, lista_publicar, etc.).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        estado: { type: 'string', enum: ['idea', 'aprobada', 'grabando', 'editando', 'lista_publicar', 'publicada', 'archivada'] },
+      },
+      required: ['id', 'estado'],
+    },
+  },
+  {
+    name: 'brand_post_registrar',
+    description: 'Registra que Isabel publicó algo. Si vino del calendario, lo marca como publicado. Las métricas iniciales pueden venir vacías — se actualizan después.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string' },
+        plataforma: { type: 'string', enum: ['youtube', 'instagram_reel', 'instagram_carrusel', 'instagram_post', 'tiktok', 'blog', 'short'] },
+        fecha_publicacion: { type: 'string' },
+        url: { type: 'string' },
+        calendar_id: { type: 'string' },
+        metricas: {
+          type: 'object',
+          properties: {
+            vistas: { type: 'number' },
+            likes: { type: 'number' },
+            comentarios: { type: 'number' },
+            saves: { type: 'number' },
+            compartidos: { type: 'number' },
+            seguidores_nuevos: { type: 'number' },
+          },
+        },
+      },
+      required: ['titulo', 'plataforma'],
+    },
+  },
+  {
+    name: 'brand_metricas',
+    description: 'Devuelve las métricas agregadas de los últimos 30 días. Útil cuando Isabel pregunta "¿cómo va mi canal?" o cuando Marisol consulta antes de proponer cambios.',
+    input_schema: { type: 'object', properties: {} },
+  },
+
   // ───────── ATHENA SE PROPONE MEJORAS A SÍ MISMA ─────────
   {
     name: 'proponer_mejora',
@@ -1528,6 +1622,11 @@ async function dispatchTool(name, input) {
           if (c.especialista === 'victoria') {
             const g = buildGoalsForCoach();
             if (g) wikiAumentado += g;
+          }
+          if (c.especialista === 'marisol') {
+            const { buildBrandForMarisol } = await import('./brand.js');
+            const b = buildBrandForMarisol();
+            if (b) wikiAumentado += b;
           }
           try {
             const answer = await askSpecialist(spec, c.tarea, wikiAumentado, opts);
@@ -2407,6 +2506,57 @@ async function dispatchTool(name, input) {
       if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
       if (!parts.length) return 'Nada que sembrar.';
       return parts.join(' · ');
+    }
+    case 'brand_idea_add': {
+      const { ideaAdd } = await import('./brand.js');
+      const r = ideaAdd(input);
+      return r.ok ? `Idea guardada (${r.idea.id}): "${r.idea.titulo}"` : `No se pudo: ${r.error}`;
+    }
+    case 'brand_ideas_lista': {
+      const { ideasList } = await import('./brand.js');
+      const list = ideasList(input);
+      if (!list.length) return 'Backlog vacío con ese filtro.';
+      return list.slice(0, 20).map((i) =>
+        `[${i.tema || '-'}/${i.plataforma || '?'}] ${i.titulo}${i.hook ? ` · hook: "${i.hook}"` : ''} (★${i.salience}, ${i.id})`
+      ).join('\n');
+    }
+    case 'brand_calendar_add': {
+      const { calendarAdd } = await import('./brand.js');
+      const r = calendarAdd(input);
+      return r.ok ? `Agendado ${r.item.id} para ${new Date(r.item.fecha).toLocaleDateString('es-MX')} (${r.item.plataforma})` : `No se pudo: ${r.error}`;
+    }
+    case 'brand_proximas': {
+      const { calendarProximas } = await import('./brand.js');
+      const list = calendarProximas(input);
+      if (!list.length) return 'Nada agendado en ese rango.';
+      return list.map((c) =>
+        `${new Date(c.fecha).toLocaleDateString('es-MX', { weekday: 'short', day: 'numeric', month: 'short' })} · ${c.plataforma} · ${c.titulo} [${c.estado}] (${c.id})`
+      ).join('\n');
+    }
+    case 'brand_estado_update': {
+      const { calendarUpdateEstado } = await import('./brand.js');
+      const r = calendarUpdateEstado(input.id, input.estado);
+      return r ? `Estado actualizado: "${r.titulo}" → ${r.estado}` : 'No encontré ese item.';
+    }
+    case 'brand_post_registrar': {
+      const { postRegistrar } = await import('./brand.js');
+      const r = postRegistrar(input);
+      return r.ok ? `Post registrado (${r.post.id}): "${r.post.titulo}" en ${r.post.plataforma}` : `No se pudo: ${r.error}`;
+    }
+    case 'brand_metricas': {
+      const { statsLast30Days } = await import('./brand.js');
+      const s = statsLast30Days();
+      if (!s) return 'Sin posts en los últimos 30 días — no hay métricas aún.';
+      const lines = [
+        `Posts: ${s.total_posts} · Vistas total: ${s.vistas_total} (prom ${s.vistas_promedio}/post)`,
+        `Seguidores nuevos: +${s.seguidores_nuevos} · Engagement prom: ${s.engagement_promedio}`,
+        `Por plataforma: ${Object.entries(s.por_plataforma).map(([k, v]) => `${k}:${v}`).join(' · ')}`,
+      ];
+      if (s.top.length) {
+        lines.push('Top:');
+        for (const t of s.top) lines.push(`  · ${t.titulo} (${t.plataforma}) — ${t.vistas} vistas`);
+      }
+      return lines.join('\n');
     }
     case 'proponer_mejora': {
       const { proposeImprovement } = await import('./improvements.js');

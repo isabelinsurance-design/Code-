@@ -270,6 +270,52 @@ export function registerApi(app) {
     res.json(all.slice(-limit).reverse());
   });
 
+  // Brand pipeline
+  app.get('/api/brand/ideas', requireAuth, async (req, res) => {
+    const { ideasList } = await import('./brand.js');
+    res.json(ideasList({ estado: req.query.estado || 'idea', tema: req.query.tema || null, plataforma: req.query.plataforma || null }));
+  });
+  app.post('/api/brand/ideas', requireAuth, async (req, res) => {
+    const { ideaAdd } = await import('./brand.js');
+    res.json(ideaAdd(req.body || {}));
+  });
+  app.post('/api/brand/ideas/:id/bump', requireAuth, async (req, res) => {
+    const { ideaBump } = await import('./brand.js');
+    res.json(ideaBump(req.params.id));
+  });
+  app.post('/api/brand/ideas/:id/archivar', requireAuth, async (req, res) => {
+    const { ideaArchivar } = await import('./brand.js');
+    res.json(ideaArchivar(req.params.id));
+  });
+  app.get('/api/brand/calendar', requireAuth, async (req, res) => {
+    const { calendarProximas } = await import('./brand.js');
+    res.json(calendarProximas({ dias: parseInt(req.query.dias || '14', 10) }));
+  });
+  app.post('/api/brand/calendar', requireAuth, async (req, res) => {
+    const { calendarAdd } = await import('./brand.js');
+    res.json(calendarAdd(req.body || {}));
+  });
+  app.post('/api/brand/calendar/:id/estado', requireAuth, async (req, res) => {
+    const { calendarUpdateEstado } = await import('./brand.js');
+    res.json(calendarUpdateEstado(req.params.id, (req.body || {}).estado));
+  });
+  app.get('/api/brand/posts', requireAuth, async (req, res) => {
+    const { postsList } = await import('./brand.js');
+    res.json(postsList({ desde: req.query.desde || null, plataforma: req.query.plataforma || null }));
+  });
+  app.post('/api/brand/posts', requireAuth, async (req, res) => {
+    const { postRegistrar } = await import('./brand.js');
+    res.json(postRegistrar(req.body || {}));
+  });
+  app.post('/api/brand/posts/:id/metricas', requireAuth, async (req, res) => {
+    const { postUpdateMetricas } = await import('./brand.js');
+    res.json(postUpdateMetricas(req.params.id, req.body || {}));
+  });
+  app.get('/api/brand/stats', requireAuth, async (_req, res) => {
+    const { statsLast30Days } = await import('./brand.js');
+    res.json(statsLast30Days() || { total_posts: 0 });
+  });
+
   // Skills
   app.get('/api/skills', requireAuth, async (_req, res) => {
     const { listSkills } = await import('./skills.js');

@@ -6,6 +6,7 @@ import Hoy from './pages/Hoy.jsx';
 import Chat from './pages/Chat.jsx';
 import Configura from './pages/Configura.jsx';
 import Aprueba from './pages/Aprueba.jsx';
+import Brand from './pages/Brand.jsx';
 import Tareas from './pages/Tareas.jsx';
 import Wiki from './pages/Wiki.jsx';
 import Actividad from './pages/Actividad.jsx';
@@ -39,6 +40,7 @@ export default function App() {
           <Route path="/chat/:coach" element={<Chat />} />
           <Route path="/configura" element={<Configura />} />
           <Route path="/aprueba" element={<Aprueba />} />
+          <Route path="/brand" element={<Brand />} />
           <Route path="/tareas" element={<Tareas />} />
           <Route path="/wiki" element={<Wiki />} />
           <Route path="/actividad" element={<Actividad />} />

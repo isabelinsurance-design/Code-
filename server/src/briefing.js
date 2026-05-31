@@ -113,6 +113,16 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     }
   } catch { /* ignore */ }
 
+  // Brand pipeline — qué se publica en próximas 72h
+  let brandHint = '';
+  try {
+    const { buildBrandBriefingBlock } = await import('./brand.js');
+    const block = buildBrandBriefingBlock();
+    if (block) {
+      brandHint = `\n\nBRAND — PRÓXIMAS 72H:\n${block}\n\nSi hay algo en estado "grabando" o "editando" hoy, recuérdaselo. Si nada está agendado y la última semana también fue blank, menciónaselo a Marisol vía consulta (la cadencia de YouTube se rompió).`;
+    }
+  } catch { /* ignore */ }
+
   // Mejoras al código que Athena propuso (esperando que Isabel apruebe/descarte)
   let improvementsHint = '';
   try {
@@ -158,7 +168,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${improvementsHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${brandHint}${improvementsHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);

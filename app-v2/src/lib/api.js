@@ -76,6 +76,25 @@ export const api = {
   // Actividad (audit log)
   activity: (limit = 50) => request(`/activity?limit=${limit}`),
 
+  // Brand pipeline (YouTube/IG/TikTok)
+  brandIdeas: (filters = {}) => {
+    const qs = new URLSearchParams(filters).toString();
+    return request(`/brand/ideas${qs ? `?${qs}` : ''}`);
+  },
+  brandIdeaCreate: (data) => request('/brand/ideas', { method: 'POST', body: JSON.stringify(data) }),
+  brandIdeaBump: (id) => request(`/brand/ideas/${id}/bump`, { method: 'POST' }),
+  brandIdeaArchive: (id) => request(`/brand/ideas/${id}/archivar`, { method: 'POST' }),
+  brandCalendar: (dias = 14) => request(`/brand/calendar?dias=${dias}`),
+  brandCalendarCreate: (data) => request('/brand/calendar', { method: 'POST', body: JSON.stringify(data) }),
+  brandCalendarEstado: (id, estado) => request(`/brand/calendar/${id}/estado`, { method: 'POST', body: JSON.stringify({ estado }) }),
+  brandPosts: (filters = {}) => {
+    const qs = new URLSearchParams(filters).toString();
+    return request(`/brand/posts${qs ? `?${qs}` : ''}`);
+  },
+  brandPostCreate: (data) => request('/brand/posts', { method: 'POST', body: JSON.stringify(data) }),
+  brandPostMetricas: (id, metricas) => request(`/brand/posts/${id}/metricas`, { method: 'POST', body: JSON.stringify(metricas) }),
+  brandStats: () => request('/brand/stats'),
+
   // Web Push (notifications nativas en iPhone/Android)
   pushKey: () => request('/push/key'),
   pushSubscribe: (subscription, ua) => request('/push/subscribe', { method: 'POST', body: JSON.stringify({ subscription, ua }) }),
