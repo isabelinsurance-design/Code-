@@ -216,7 +216,9 @@ export function getStaleEntities({ days = 14, types = ['family', 'friend'], minS
   const stale = [];
   for (const e of rows) {
     if (!types.includes(e.type)) continue;
-    if ((e.salience || 0) < minSalience) continue;
+    // Salience vive en las notas, no a nivel entity. Tomamos el max.
+    const maxSalience = (e.notas || []).reduce((m, n) => Math.max(m, n.salience || 0), 0);
+    if (maxSalience < minSalience) continue;
     const lastNoteTs = e.notas?.[0]?.ts ? new Date(e.notas[0].ts).getTime() : (e.creado ? new Date(e.creado).getTime() : 0);
     if (lastNoteTs && lastNoteTs < cutoff) {
       const diasAtras = Math.floor((Date.now() - lastNoteTs) / 86_400_000);
@@ -224,9 +226,9 @@ export function getStaleEntities({ days = 14, types = ['family', 'friend'], minS
         id: e.id,
         canonical_name: e.canonical_name,
         type: e.type,
-        salience: e.salience,
+        salience: maxSalience,
         dias_sin_interaccion: diasAtras,
-        ultima_nota: e.notas?.[0]?.nota?.slice(0, 100) || null,
+        ultima_nota: (e.notas?.[0]?.texto || e.notas?.[0]?.nota)?.slice(0, 100) || null,
       });
     }
   }
