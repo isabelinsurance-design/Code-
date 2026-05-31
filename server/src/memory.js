@@ -11,6 +11,10 @@ import { buildFinanzasInline } from './finanzas.js';
 import { buildJournalInline } from './journal.js';
 import { buildGoalsInline } from './goals.js';
 import { buildOverloadInline } from './overload.js';
+import { buildFocusInline } from './focus_blocks.js';
+import { buildTrustInline } from './trust_score.js';
+import { buildRoutinesInline } from './routines.js';
+import { buildLegalInline } from './legal.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -276,6 +280,26 @@ export function buildWikiContext() {
   try {
     const ov = buildOverloadInline();
     if (ov) parts.push(ov);
+  } catch { /* ignore */ }
+  // Focus block (si está en uno) — Athena debe respetarlo
+  try {
+    const f = buildFocusInline();
+    if (f) parts.push(f);
+  } catch { /* ignore */ }
+  // Trust score (inline corto)
+  try {
+    const t = buildTrustInline();
+    if (t) parts.push(t);
+  } catch { /* ignore */ }
+  // Rutinas hoy (inline)
+  try {
+    const r = buildRoutinesInline();
+    if (r) parts.push(r);
+  } catch { /* ignore */ }
+  // Legal urgente (inline)
+  try {
+    const l = buildLegalInline();
+    if (l) parts.push(l);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

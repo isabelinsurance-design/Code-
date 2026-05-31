@@ -49,6 +49,19 @@ export function canSendProactive({ force = false } = {}) {
   if (isQuietHour(hour)) {
     return { ok: false, reason: `quiet hours (${hour}:00 en ${TZ()})` };
   }
+  // Focus blocks bloquean proactivo incluso con force (excepto briefing crítico)
+  try {
+    // Sync require workaround: ESM no permite require, pero podemos check con
+    // globalThis cache si focus_blocks.js lo expone. Mejor: import dinámico
+    // con cache via globalThis para no romper sync nature de canSendProactive.
+    const fb = globalThis.__focusBlocksCheck;
+    if (typeof fb === 'function') {
+      const block = fb();
+      if (block && !force) {
+        return { ok: false, reason: `focus block activo: "${block.titulo}" (${block.modo}) hasta ${block.fin_hhmm}` };
+      }
+    }
+  } catch { /* ignore */ }
   if (force) return { ok: true, dayKey };
   const count = getProactiveCount(dayKey);
   if (count >= DAILY_CAP) {

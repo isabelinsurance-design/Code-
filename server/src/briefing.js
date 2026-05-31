@@ -73,6 +73,46 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     }
   } catch { /* ignore */ }
 
+  // Trust score: la lectura de "puedes soltarte hoy" o "necesitas estar"
+  let trustHint = '';
+  try {
+    const { buildTrustBriefingBlock } = await import('./trust_score.js');
+    const block = buildTrustBriefingBlock();
+    if (block) {
+      trustHint = `\n\nTRUST SCORE DE HOY (tu lectura compuesta de si el negocio se está manejando solo):\n${block}\n\nÚSALO para CALIBRAR el tono. Si veredicto = autopilot → tono ligero, "tu día es tuyo". Si = revisa puntos → enfócate en los 2-3 concretos. Si = necesita Isabel → tono serio, pídele presencia. Menciona el score Y el veredicto en Card 1.`;
+    }
+  } catch { /* ignore */ }
+
+  // Focus blocks de hoy — tiempo que Isabel se protegió (lectura, piano, gym)
+  let focusHint = '';
+  try {
+    const { buildFocusBriefingBlock } = await import('./focus_blocks.js');
+    const block = buildFocusBriefingBlock();
+    if (block) {
+      focusHint = `\n\nBLOQUES PROTEGIDOS DE HOY (tiempo que ella se reservó — NO le sumes carga ni propongas reuniones encima):\n${block}\n\nMenciónaselos UNA línea en Card 1 o 4 como recordatorio de que respetas ese tiempo.`;
+    }
+  } catch { /* ignore */ }
+
+  // Rutinas del día (morning ritual, meal prep, etc.)
+  let routinesHint = '';
+  try {
+    const { buildRoutinesBriefingBlock } = await import('./routines.js');
+    const block = buildRoutinesBriefingBlock();
+    if (block) {
+      routinesHint = `\n\nRUTINAS DE HOY (lo que toca por recurrencia):\n${block}\n\nSi alguna lleva 0 pasos y su hora_inicio se acerca, ofrécete a pingearla con el primer paso cuando llegue.`;
+    }
+  } catch { /* ignore */ }
+
+  // Legal calendar — obligaciones regulatorias (license, AHIP, taxes, etc.)
+  let legalHint = '';
+  try {
+    const { buildLegalBriefingBlock } = await import('./legal.js');
+    const block = buildLegalBriefingBlock();
+    if (block) {
+      legalHint = `\n\nLEGAL — OBLIGACIONES REGULATORIAS PRÓXIMAS:\n${block}\n\nSi hay VENCIDAS o ≤7 días, INCLUYE una card específica con la más crítica y propone acción concreta (renew license / book CE / pagar tax). Esto es paz mental real para Isabel — no la dejes descubrirlo tarde.`;
+    }
+  } catch { /* ignore */ }
+
   // Phase 12: si anoche auto-propusiste alguna skill nueva, menciónala
   // en el briefing para que Isabel la apruebe o descarte conscientemente.
   let autoSkillHint = '';
@@ -108,7 +148,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);

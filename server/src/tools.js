@@ -909,6 +909,111 @@ MODOS:
     },
   },
 
+  // ───────── FOCUS BLOCKS — tiempo protegido para joy ─────────
+  {
+    name: 'crear_bloque_foco',
+    description: 'Crea un focus block donde Athena se calla y defiere lo no-urgente. Modos: silencio (cero proactivo), lectura (mínimo, responde corto si pides), recording (silencio total), piano, gym. Días de semana en array 0-6 (0=domingo). Útil para reservar piano lunes-miércoles 7-9pm, recording sábados 10am-12pm, lectura domingos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Ej: "Piano", "Lectura", "YouTube recording".' },
+        inicio_hhmm: { type: 'string', description: 'Hora inicio HH:MM (24h).' },
+        fin_hhmm: { type: 'string', description: 'Hora fin HH:MM (24h).' },
+        dias_semana: { type: 'array', items: { type: 'integer' }, description: 'Días [0-6]. Default todos.' },
+        modo: { type: 'string', description: 'silencio | lectura | recording | piano | gym' },
+        notas: { type: 'string' },
+      },
+      required: ['titulo', 'inicio_hhmm', 'fin_hhmm'],
+    },
+  },
+  {
+    name: 'mis_bloques_foco',
+    description: 'Lista los focus blocks activos. Athena los respeta automáticamente — no manda proactivo durante ellos.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+
+  // ───────── TRUST SCORE — puedes soltarte hoy ─────────
+  {
+    name: 'mi_confianza',
+    description: 'Trust score 0-100 con desglose por área (business, autopilot, tu salud, pipeline, safety). Veredicto: autopilot (≥80) / revisa puntos (50-79) / necesita Isabel (<50). ÚSALA cada mañana para decirle a Isabel si puede soltarse hoy o si necesita estar presente.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+
+  // ───────── RUTINAS ─────────
+  {
+    name: 'crear_rutina',
+    description: 'Registra una rutina multi-paso recurrente (morning ritual, meal prep semanal, recording day, etc.). Pasos = array de strings. Recurrencia: diaria | L-V | lunes | martes | ... | sabado | mensual_dia_1 | mensual_dia_15 | libre.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string' },
+        pasos: { type: 'array', items: { type: 'string' } },
+        recurrencia: { type: 'string' },
+        hora_inicio: { type: 'string', description: 'HH:MM opcional.' },
+      },
+      required: ['nombre', 'pasos', 'recurrencia'],
+    },
+  },
+  {
+    name: 'mis_rutinas',
+    description: 'Lista rutinas activas — todas o solo las que tocan hoy. Útil cuando Isabel diga "¿qué rutinas tengo hoy?" o cuando armes el briefing matutino.',
+    input_schema: {
+      type: 'object',
+      properties: { hoy_solo: { type: 'boolean', description: 'true = solo las de hoy.' } },
+      required: [],
+    },
+  },
+  {
+    name: 'rutina_paso_completado',
+    description: 'Registra que Isabel completó (o saltó) un paso de una rutina. Acción: completado | saltado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        rutina_id: { type: 'string' },
+        paso_idx: { type: 'integer', description: 'Índice 0-based del paso.' },
+        accion: { type: 'string', description: 'completado | saltado.' },
+        nota: { type: 'string' },
+      },
+      required: ['rutina_id', 'paso_idx'],
+    },
+  },
+
+  // ───────── LEGAL CALENDAR — paz mental regulatoria ─────────
+  {
+    name: 'registrar_obligacion_legal',
+    description: 'Registra una obligación legal con fecha. Tipos: license | ahip | carrier_cert | ce | business_filing | tax | insurance | otro. Recurrencia opcional: anual | semestral | trimestral | bianual. Athena vigila y surface en briefing a 60/30/7 días vista. Si hay recurrencia, se auto-renueva al marcarla cumplida.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tipo: { type: 'string' },
+        descripcion: { type: 'string', description: 'Ej: "CA Medicare broker license renewal".' },
+        vence: { type: 'string', description: 'Fecha YYYY-MM-DD.' },
+        recurrencia: { type: 'string', description: 'anual | semestral | trimestral | bianual | null.' },
+        autoridad: { type: 'string', description: 'CDI / AHIP / IRS / etc.' },
+        monto: { type: 'number' },
+        notas: { type: 'string' },
+      },
+      required: ['descripcion', 'vence'],
+    },
+  },
+  {
+    name: 'cumpli_obligacion',
+    description: 'Marca obligación legal cumplida + auto-renueva si tenía recurrencia. ÚSALA cuando Isabel diga "ya renové la licencia" / "ya pagué los impuestos".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'lg_*' },
+        evidencia: { type: 'string' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'mi_calendario_legal',
+    description: 'Lista obligaciones legales con alertas por ventana (vencidas, ≤7d, ≤30d, ≤60d). Útil para tu paz mental — saber qué tienes encima sin que se te olvide.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+
   // ───────── OVERLOAD DETECTOR — Athena se da cuenta antes que tú ─────────
   {
     name: 'mi_carga',
@@ -2072,6 +2177,103 @@ async function dispatchTool(name, input) {
         lines.push(line);
       }
       return `${metas.length} metas activas:\n${lines.join('\n')}`;
+    }
+
+    // ─── FOCUS BLOCKS ───
+    case 'crear_bloque_foco': {
+      const { crearBloque } = await import('./focus_blocks.js');
+      const r = crearBloque({
+        titulo: input.titulo,
+        inicio_hhmm: input.inicio_hhmm,
+        fin_hhmm: input.fin_hhmm,
+        dias_semana: input.dias_semana || null,
+        modo: input.modo || 'silencio',
+        notas: input.notas || '',
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      const dias = r.bloque.dias_semana.length === 7 ? 'todos los días' : `días [${r.bloque.dias_semana.join(',')}]`;
+      return `🛡️ Bloque "${r.bloque.titulo}" creado [${r.bloque.id}]: ${r.bloque.inicio_hhmm}-${r.bloque.fin_hhmm} ${dias} · modo ${r.bloque.modo}`;
+    }
+    case 'mis_bloques_foco': {
+      const { listarBloques, bloqueActual } = await import('./focus_blocks.js');
+      const blocks = listarBloques();
+      const current = bloqueActual();
+      if (!blocks.length) return 'No tienes focus blocks activos. Crea uno con crear_bloque_foco.';
+      const lines = blocks.map((b) => {
+        const dias = b.dias_semana.length === 7 ? 'diario' : b.dias_semana.join(',');
+        const flag = current?.id === b.id ? ' ◀ AHORA' : '';
+        return `  · ${b.titulo} (${b.modo}) — ${b.inicio_hhmm}-${b.fin_hhmm} ${dias}${flag}`;
+      });
+      return `${blocks.length} focus block(s):\n${lines.join('\n')}`;
+    }
+
+    // ─── TRUST SCORE ───
+    case 'mi_confianza': {
+      const { buildTrustBriefingBlock } = await import('./trust_score.js');
+      return buildTrustBriefingBlock();
+    }
+
+    // ─── RUTINAS ───
+    case 'crear_rutina': {
+      const { crearRutina } = await import('./routines.js');
+      const r = crearRutina({
+        nombre: input.nombre,
+        pasos: input.pasos,
+        recurrencia: input.recurrencia,
+        hora_inicio: input.hora_inicio || null,
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `🔁 Rutina "${r.rutina.nombre}" creada [${r.rutina.id}]: ${r.rutina.pasos.length} pasos · ${r.rutina.recurrencia}${r.rutina.hora_inicio ? ` · ${r.rutina.hora_inicio}` : ''}`;
+    }
+    case 'mis_rutinas': {
+      const { listarRutinas, rutinasDeHoy, progresoHoy } = await import('./routines.js');
+      const list = input.hoy_solo ? rutinasDeHoy() : listarRutinas();
+      if (!list.length) return input.hoy_solo ? 'Sin rutinas para hoy.' : 'Sin rutinas activas.';
+      const lines = list.map((r) => {
+        const done = progresoHoy(r.id).filter((c) => c.accion === 'completado').length;
+        return `[${r.id}] ${r.nombre} (${r.recurrencia}${r.hora_inicio ? ` ${r.hora_inicio}` : ''}) — ${done}/${r.pasos.length} hoy\n  pasos: ${r.pasos.join(' → ')}`;
+      });
+      return lines.join('\n\n');
+    }
+    case 'rutina_paso_completado': {
+      const { registrarPaso } = await import('./routines.js');
+      const r = registrarPaso({
+        rutina_id: input.rutina_id,
+        paso_idx: parseInt(input.paso_idx, 10),
+        accion: input.accion || 'completado',
+        nota: input.nota || '',
+      });
+      return r ? `✓ Paso ${r.paso_idx} ${r.accion} en ${r.rutina_id}` : 'Error al registrar.';
+    }
+
+    // ─── LEGAL ───
+    case 'registrar_obligacion_legal': {
+      const { registrarObligacion } = await import('./legal.js');
+      const r = registrarObligacion({
+        tipo: input.tipo || 'otro',
+        descripcion: input.descripcion,
+        vence: input.vence,
+        recurrencia: input.recurrencia || null,
+        autoridad: input.autoridad || '',
+        monto: input.monto !== undefined ? Number(input.monto) : null,
+        notas: input.notas || '',
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      const o = r.obligacion;
+      return `⚖️ Registrada [${o.id}]: ${o.descripcion} · vence ${o.vence.slice(0, 10)}${o.recurrencia ? ` · ${o.recurrencia}` : ''}${o.monto ? ` · $${o.monto}` : ''}`;
+    }
+    case 'cumpli_obligacion': {
+      const { marcarCumplida } = await import('./legal.js');
+      const r = marcarCumplida(input.id, input.evidencia || '');
+      return r ? `✓ Cumplida [${r.id}]: ${r.descripcion}${r.recurrencia ? ' · próxima ya generada' : ''}` : `No encontré ${input.id}.`;
+    }
+    case 'mi_calendario_legal': {
+      const { buildLegalBriefingBlock, alertasActivas } = await import('./legal.js');
+      const block = buildLegalBriefingBlock();
+      if (block) return block;
+      const a = alertasActivas();
+      if (a['60'].length) return `Sin urgencias. ${a['60'].length} obligaciones en ventana 60d.`;
+      return 'Sin obligaciones legales registradas. Para registrar usa registrar_obligacion_legal.';
     }
 
     // ─── OVERLOAD ───
