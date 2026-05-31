@@ -198,6 +198,19 @@ Convierte los **no-negociables de la constitución** en un **guardrail automáti
 Endpoints nuevos: `POST /api/security/review` (body: `{text, acknowledged?, rewrite?,
 agentId?}`).
 
+### Fase 10 — Dashboard
+
+- **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,
+  vanilla JS, misma estética de marca) que hace visible y usable todo lo construido.
+  Seis secciones: **Briefing** (regenerable), **Señales** (con severidad/tipo y
+  recomputar), **Compromisos** (marcar hechos), **Memoria** (personas, huecos, y
+  **confirmar fusión** de duplicados dudosos), **Cumplimiento** (pega un draft → revisa
+  contra el guardrail, ve hallazgos+arreglos, pide reescritura, aprueba override) y
+  **Sistema** (estado del scheduler + correr trabajos). Badges en el nav muestran
+  señales `alto`, compromisos vencidos y duplicados por confirmar.
+- Enlazado desde el header de `samia.html` ("Panel"). Llama a los endpoints de las
+  fases 3–7; no agrega backend nuevo.
+
 > **Connecture sigue siendo la fuente oficial para cotizar.** El KB es para
 > orientar; cuando un dato pudo cambiar, SAMIA manda a verificar.
 
@@ -218,7 +231,5 @@ agentId?}`).
 ## Próximas fases sugeridas
 
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).
-- **Fase 10 — Dashboard:** UI para ver/editar memoria, señales, compromisos y
-  revisar drafts contra el guardrail de cumplimiento.
 - **Despliegue always-on** (Railway): requisito para que el scheduler de la Fase 5
   dispare de verdad (hoy la maquinaria está lista pero el sandbox es efímero).
