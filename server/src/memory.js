@@ -16,6 +16,7 @@ import { buildTrustInline } from './trust_score.js';
 import { buildRoutinesInline } from './routines.js';
 import { buildLegalInline } from './legal.js';
 import { buildImprovementsInline } from './improvements.js';
+import { buildResearchInline } from './research.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -306,6 +307,11 @@ export function buildWikiContext() {
   try {
     const m = buildImprovementsInline();
     if (m) parts.push(m);
+  } catch { /* ignore */ }
+  // Research digest — cuántos temas activos
+  try {
+    const r = buildResearchInline();
+    if (r) parts.push(r);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

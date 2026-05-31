@@ -5,7 +5,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
-import { sendEveningCheckin, sendWeeklyReview, nightlyReflection } from './proactive.js';
+import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest } from './proactive.js';
 import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
 import { transcribeWhatsAppAudio } from './transcribe.js';
@@ -231,6 +231,9 @@ function scheduleCron(label, expr, fn) {
 scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', sendMorningBriefing);
 scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
 scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
+// Research digest: mediodía — Athena rota tus temas, hace web_search,
+// te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
+scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
 // Triage corre antes del briefing para que Athena tenga lista la
 // clasificación + borradores en cola cuando salude a Isabel.

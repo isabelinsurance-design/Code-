@@ -1028,6 +1028,50 @@ MODOS:
 
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
+  // ───────── RESEARCH — digest diario que le ahorra a Isabel scroll ─────────
+  {
+    name: 'crear_tema_research',
+    description: `Crea un tema que Athena va a investigar diariamente (al mediodía) y resumir para Isabel. Cada tema tiene 1-5 queries que Athena rota entre días. CUÁNDO USAR: Isabel dice "quiero estar al día con X" / "investígame Y todos los días" / "tráeme contenido sobre Z". Ej: "Medicare news" con queries ["CMS Final Rule brokers", "SCAN Anthem Humana news"].`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre corto del tema. Ej: "Medicare News", "Brand Building", "Recetas Latinas".' },
+        queries: { type: 'array', items: { type: 'string' }, description: '1-5 queries de búsqueda. Athena rotará entre ellas día con día.' },
+        fuente_hint: { type: 'string', description: 'Hint de qué fuentes priorizar / qué evitar. Ej: "YouTube y blogs especializados, no listicles".' },
+        max_items: { type: 'number', description: 'Items máx por tema en el digest. Default 2.' },
+      },
+      required: ['nombre', 'queries'],
+    },
+  },
+  {
+    name: 'mis_temas_research',
+    description: 'Lista los temas de research configurados. Útil para que Isabel vea qué le estás investigando y decida cambios.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'pausar_tema_research',
+    description: 'Pausa (o reactiva) un tema. NO lo borra — solo lo saca del digest diario.',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string', description: 'ID del tema (rt_xxx).' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'eliminar_tema_research',
+    description: 'Elimina un tema permanentemente del digest. Úsalo si Isabel dice "quita el tema X" / "ya no me interesa".',
+    input_schema: {
+      type: 'object',
+      properties: { id: { type: 'string' } },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'seed_temas_research',
+    description: 'Crea 3 temas default relevantes para Isabel (Medicare News / Brand & Content Latina / Insurance Industry). Idempotente — si ya existen, los salta. ÚSALO cuando Isabel diga "configúrame el research" / "arranca con lo básico".',
+    input_schema: { type: 'object', properties: {} },
+  },
+
   // ───────── ATHENA SE PROPONE MEJORAS A SÍ MISMA ─────────
   {
     name: 'proponer_mejora',
@@ -2330,6 +2374,39 @@ async function dispatchTool(name, input) {
       const t = buildTriageProposal();
       if (!t) return 'No estás sobrecargada — no hay nada que triagear ahorita.';
       return t.mensaje;
+    }
+    case 'crear_tema_research': {
+      const { crearTema } = await import('./research.js');
+      const r = crearTema(input);
+      if (!r.ok) return `No se pudo: ${r.error}`;
+      return `Tema "${r.tema.nombre}" creado (${r.tema.id}). Athena lo investiga mañana al mediodía.`;
+    }
+    case 'mis_temas_research': {
+      const { listarTemas } = await import('./research.js');
+      const todos = listarTemas({ activos_solo: false });
+      if (!todos.length) return 'No hay temas de research configurados. Pídeme "seed_temas_research" para arrancar con los defaults.';
+      return todos.map((t) => `[${t.activo ? 'ON' : 'OFF'}] ${t.id} · ${t.nombre} (${t.queries.length} queries, max ${t.max_items})`).join('\n');
+    }
+    case 'pausar_tema_research': {
+      const { pausarTema } = await import('./research.js');
+      const t = pausarTema(input.id);
+      if (!t) return 'No encontré ese tema.';
+      return `Tema "${t.nombre}" ahora está ${t.activo ? 'ACTIVO' : 'PAUSADO'}.`;
+    }
+    case 'eliminar_tema_research': {
+      const { eliminarTema } = await import('./research.js');
+      const t = eliminarTema(input.id);
+      if (!t) return 'No encontré ese tema.';
+      return `Tema "${t.nombre}" eliminado.`;
+    }
+    case 'seed_temas_research': {
+      const { seedDefaultTopics } = await import('./research.js');
+      const r = seedDefaultTopics();
+      const parts = [];
+      if (r.created.length) parts.push(`Creados: ${r.created.join(', ')}`);
+      if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
+      if (!parts.length) return 'Nada que sembrar.';
+      return parts.join(' · ');
     }
     case 'proponer_mejora': {
       const { proposeImprovement } = await import('./improvements.js');

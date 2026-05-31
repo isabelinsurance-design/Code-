@@ -137,6 +137,47 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
   console.log('[evening] check-in enviado.');
 }
 
+// ---- Research digest (mediodía) ----
+// Athena rotó cada tema activo de research.js, hizo web_search, y
+// sintetiza top 2 items por tema. Le ahorra a Isabel ~2h/día de
+// scroll. NO browser de IG terceros (Meta no lo permite vía API).
+export async function sendResearchDigest() {
+  const gate = canSendProactive({ force: false });
+  if (!gate.ok) {
+    console.log(`[research] saltado: ${gate.reason}`);
+    return;
+  }
+  const { listarTemas, buildResearchTopicsBlock } = await import('./research.js');
+  const temas = listarTemas();
+  if (!temas.length) {
+    console.log('[research] no hay temas activos — saltado.');
+    return;
+  }
+  bumpProactiveCount(gate.dayKey);
+
+  const block = buildResearchTopicsBlock();
+  const msg = `[RESEARCH DIGEST AUTOMÁTICO — MEDIODÍA]
+
+Tu trabajo: armar un digest CORTO de contenido relevante para Isabel — le ahorras horas de scroll.
+
+${block}
+
+INSTRUCCIONES:
+1. Para CADA tema arriba, llama web_search UNA vez con la query que creas más alta-señal hoy (rota entre las queries del tema entre días — no siempre la misma). Si el tema tiene "fuente_hint", úsalo para filtrar / interpretar resultados.
+2. De los resultados, escoge los TOP max_items del tema (max 2-3). Cada item: 1 línea sobre QUÉ es + por qué importa a ELLA (no resumen genérico — conexión con su vida: agente Medicare, Latina founder 53, mom, building YouTube/brand) + link.
+3. Si un tema NO da resultados útiles hoy, SÁLTALO entero (no rellenes con basura).
+
+FORMATO — VISUAL CARDS separadas por divisor exacto "═════":
+  Card 1: 1-2 líneas intro ("aquí tu digest del [día], 7 min de lectura")
+  Card 2..N: una card por tema con items útiles
+  Card final: 1 pregunta "¿algo de aquí quieres que profundice?"
+
+Sé seca, útil, sin floreos. Spanglish. NO leas todos los temas si no hay nada bueno — mejor mandar 2 cards útiles que 5 mediocres. Si TODO el digest sale flojo, manda solo Card 1 diciendo "hoy nada relevante, te ahorré el scroll" y ya.`;
+
+  await runProactive(msg);
+  console.log(`[research] digest enviado (${temas.length} temas).`);
+}
+
 // ---- Revisión semanal (Domingo 6pm) ----
 // Pulls toda la data semanal — habits + finanzas + journal + goals +
 // team + iniciativas + overload — para que Athena haga un review
