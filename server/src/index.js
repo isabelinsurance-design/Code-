@@ -280,6 +280,11 @@ if (inboxCleanupEnabled()) {
 } else {
   console.log('[cron] inbox_sweep: Gmail no configurado — desactivado.');
 }
+// Saturday brief: viernes 9pm Athena compila la semana del equipo y
+// se lo manda a Isabel para que sábado morning abra LUNA sabiendo
+// dónde meter foco.
+const { sendSaturdayBrief } = await import('./saturday_brief.js');
+scheduleCron('saturday_brief', process.env.SATURDAY_BRIEF_CRON || '0 21 * * 5', sendSaturdayBrief);
 
 const port = process.env.PORT || 3000;
 const httpServer = app.listen(port, () => {

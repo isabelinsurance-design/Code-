@@ -67,6 +67,7 @@ export async function runSlash(text, from) {
       case 'huecos': return { ok: true, reply: await runHuecos(args) };
       case 'luna': return { ok: true, reply: await runLuna(args) };
       case 'revisar': return { ok: true, reply: await runRevisar(from, args) };
+      case 'sabado': return { ok: true, reply: await runSabado() };
       case 'auditar': return { ok: true, reply: 'Auditor local retirado — el CRM real vive en LUNA. Para auditoría estructural del equipo, usa LUNA directamente.' };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
@@ -269,6 +270,11 @@ function inferPersona(from) {
   if (from === isabel) return 'Isabel';
   if (from === sami) return 'Sami';
   return 'Equipo';
+}
+
+async function runSabado() {
+  const { buildSaturdayBrief } = await import('./saturday_brief.js');
+  return buildSaturdayBrief();
 }
 
 async function runRevisar(from, args) {

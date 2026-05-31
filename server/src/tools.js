@@ -735,6 +735,17 @@ export const toolDefinitions = [
       required: ['id', 'status'],
     },
   },
+  {
+    name: 'armar_brief_sabado',
+    description: 'Compila el Saturday brief — stats por empleada esta semana, proyectos parkeados, iniciativas pendientes/aprobadas/implementadas, AAR learnings, say-do tuyo, y 3 preguntas para Isabel. Lo manda como cards por WhatsApp. Útil para invocar fuera del cron Friday 9pm (ej. "mándame el brief ahora").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        solo_preview: { type: 'boolean', description: 'Si true, devuelve el texto sin mandarlo. Default false.' },
+      },
+      required: [],
+    },
+  },
 
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
@@ -1643,6 +1654,14 @@ async function dispatchTool(name, input) {
       return r
         ? `Iniciativa [${r.id}] de ${r.persona} ahora: ${r.status}`
         : `No encontré iniciativa ${input.id}.`;
+    }
+    case 'armar_brief_sabado': {
+      const { buildSaturdayBrief, sendSaturdayBrief } = await import('./saturday_brief.js');
+      if (input.solo_preview) {
+        return buildSaturdayBrief();
+      }
+      await sendSaturdayBrief();
+      return 'Saturday brief enviado a Isabel por WhatsApp (cards separadas).';
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();
