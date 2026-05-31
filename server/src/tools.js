@@ -623,6 +623,68 @@ export const toolDefinitions = [
     },
   },
 
+  // ───────── EQUIPO — accountability del team de Isabel ─────────
+  {
+    name: 'equipo_compromete',
+    description: 'Registra un compromiso de un MIEMBRO DEL EQUIPO de Isabel (Sami, Skarleth, Arlette, Samia, etc.). ÚSALA SIEMPRE cuando Isabel diga "que X haga Y", "cuando llegue X recuérdale Z", "X dijo que iba a hacer W". Esto le QUITA a Isabel el peso de andar recordándoles ella misma. Después podrás verificar / marcar cumplido / escalar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Nombre de la empleada (Sami / Skarleth / Arlette / Samia, o cualquier otra).' },
+        descripcion: { type: 'string', description: 'Qué tiene que hacer, en una línea concreta.' },
+        vence_en_horas: { type: 'integer', description: 'Cuántas horas para que se cumpla. Default 24. "Cuando llegue" = 12. "Esta semana" = 120.' },
+        contexto: { type: 'string', description: 'Por qué — útil para cuando preguntemos status días después.' },
+        recordarle_cuando: { type: 'string', description: 'Si Isabel especifica "cuando llegue al trabajo", "en la mañana", anótalo. Texto libre.' },
+      },
+      required: ['persona', 'descripcion'],
+    },
+  },
+  {
+    name: 'equipo_pendientes',
+    description: 'Lista compromisos pendientes del equipo. Filtra por persona si quieres. ÚSALA al inicio de la mañana para saber qué le falta a cada una, o cuando Isabel pregunte "¿qué le tocaba hacer a Skarleth?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Opcional. Filtra a solo esta persona.' },
+        status: { type: 'string', description: 'pendiente (default) | cumplida | fallida | cancelada.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'equipo_cumplido',
+    description: 'Marca un compromiso del equipo como CUMPLIDO. ÚSALA cuando Isabel confirme "ya lo hizo", "Skarleth ya llamó", "Samia mandó el fax". Si tienes evidencia (ej. ticket en LUNA, email enviado), inclúyela.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del compromiso (tc_*).' },
+        evidencia: { type: 'string', description: 'Opcional. Qué confirma que se cumplió.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'equipo_fallido',
+    description: 'Marca un compromiso como FALLIDO (vencido sin cumplir, o Isabel decidió escalar). ÚSALA cuando es claro que no se va a cumplir o se decidió otra cosa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string' },
+        razon: { type: 'string', description: 'Por qué falló.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'equipo_stats',
+    description: 'Stats del equipo: por persona, % cumplido en los últimos N días. ÚSALA cuando Isabel pregunte "¿cómo me está respondiendo el equipo?" o "¿quién me está fallando?". El número dice quién es confiable.',
+    input_schema: {
+      type: 'object',
+      properties: { dias: { type: 'integer', description: 'Ventana de días. Default 7.' } },
+      required: [],
+    },
+  },
+
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -1417,6 +1479,70 @@ async function dispatchTool(name, input) {
       return removed
         ? `Quitado ${input.remitente} de supresión. Sus emails futuros vuelven a llegar a INBOX.`
         : `${input.remitente} no estaba en la lista de supresión.`;
+    }
+
+    // ─── EQUIPO ───
+    case 'equipo_compromete': {
+      const { recordTeamCommitment } = await import('./team.js');
+      const r = recordTeamCommitment({
+        persona: input.persona,
+        descripcion: input.descripcion,
+        vence_en_horas: parseInt(input.vence_en_horas, 10) || 24,
+        contexto: input.contexto || '',
+        recordarle_cuando: input.recordarle_cuando || null,
+      });
+      if (!r.ok) return `No pude registrar: ${r.error}`;
+      const c = r.commitment;
+      return `Compromiso registrado [${c.id}]: ${c.persona} → ${c.descripcion} (vence ${c.vence.slice(0, 16)}).${c.recordarle_cuando ? ` Recordarle ${c.recordarle_cuando}.` : ''}`;
+    }
+    case 'equipo_pendientes': {
+      const { listTeamCommitments } = await import('./team.js');
+      const list = listTeamCommitments({
+        persona: input.persona || null,
+        status: input.status || 'pendiente',
+      });
+      if (!list.length) return input.persona ? `Sin pendientes para ${input.persona}.` : 'Sin pendientes del equipo. ✓';
+      const grouped = {};
+      for (const c of list) {
+        if (!grouped[c.persona]) grouped[c.persona] = [];
+        grouped[c.persona].push(c);
+      }
+      const lines = [];
+      for (const [persona, items] of Object.entries(grouped)) {
+        lines.push(`\n${persona}:`);
+        for (const c of items) {
+          const overdue = new Date(c.vence).getTime() < Date.now();
+          lines.push(`  ${overdue ? '🔴' : '⏳'} [${c.id}] ${c.descripcion}${overdue ? ' (VENCIDA)' : ''}`);
+        }
+      }
+      return `${list.length} compromiso(s) pendientes:${lines.join('')}`;
+    }
+    case 'equipo_cumplido': {
+      const { markFulfilled } = await import('./team.js');
+      const r = markFulfilled(input.id, input.evidencia || '');
+      return r
+        ? `✓ Cumplido [${r.id}] ${r.persona}: ${r.descripcion.slice(0, 80)}`
+        : `No encontré compromiso ${input.id}.`;
+    }
+    case 'equipo_fallido': {
+      const { markFailed } = await import('./team.js');
+      const r = markFailed(input.id, input.razon || '');
+      return r
+        ? `✗ Fallida [${r.id}] ${r.persona}: ${r.descripcion.slice(0, 80)} — ${r.razon}`
+        : `No encontré compromiso ${input.id}.`;
+    }
+    case 'equipo_stats': {
+      const { statsByPerson } = await import('./team.js');
+      const days = parseInt(input.dias, 10) || 7;
+      const s = statsByPerson({ sinceDays: days });
+      const names = Object.keys(s);
+      if (!names.length) return `Sin actividad del equipo en los últimos ${days} días.`;
+      const lines = names.map((p) => {
+        const x = s[p];
+        const ratio = x.ratio == null ? '—' : `${Math.round(x.ratio * 100)}%`;
+        return `${p}: ${x.cumplidas}/${x.cumplidas + x.fallidas} cumplido (${ratio}) · ${x.pendientes} pendientes`;
+      });
+      return `Stats equipo (últimos ${days}d):\n${lines.join('\n')}`;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

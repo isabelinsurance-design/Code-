@@ -5,6 +5,7 @@ import { redactPII } from './security.js';
 import { buildSkillsContext } from './skills.js';
 import { buildSayDoInline } from './saydo.js';
 import { buildAarInline } from './aar.js';
+import { buildTeamInline, buildTeamBriefingBlock } from './team.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -240,6 +241,12 @@ export function buildWikiContext() {
   try {
     const aarCtx = buildAarInline();
     if (aarCtx) parts.push(`AARs: ${aarCtx}`);
+  } catch { /* ignore */ }
+  // Equipo inline: qué tiene pendiente cada empleada — para que NO sea
+  // Isabel quien tenga que andarles recordando.
+  try {
+    const teamCtx = buildTeamInline();
+    if (teamCtx) parts.push(`EQUIPO (sus pendientes): ${teamCtx}`);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

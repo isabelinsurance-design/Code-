@@ -51,6 +51,18 @@ export async function sendMorningBriefing() {
 
 CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Llama web_search con UNA query enfocada (ej: "Medicare news SCAN Humana Anthem ${new Date().getFullYear()} ${new Date().toLocaleString('en-US',{month:'short'})}" o "CMS Final Rule 2027 brokers"). Trae 1-2 datos accionables (cambio de tarifa, plan nuevo, regla nueva) — no un resumen genérico. Si web_search no devuelve nada relevante, salta el digest.` : '';
 
+  // Equipo: si hay compromisos del equipo vencidos o por vencer hoy,
+  // pasa el block al prompt para que Athena se lo presente a Isabel.
+  // Es el peso de 2h/día que Isabel ya no carga.
+  let teamHint = '';
+  try {
+    const { buildTeamBriefingBlock } = await import('./team.js');
+    const teamBlock = buildTeamBriefingBlock();
+    if (teamBlock) {
+      teamHint = `\n\nEQUIPO HOY (CRÍTICO — esto es lo que ANTES Isabel andaba recordándoles ella misma; ahora lo cargas tú):\n${teamBlock}\n\nIncluye UNA card específica del equipo en el briefing, mencionando POR NOMBRE quién tiene qué pendiente. Si hay vencidos, ofrécete a recordárselo (mensaje_a_sami o ticket en LUNA vía Maria). Isabel YA NO debería andar repitiendo cosas a su equipo.`;
+    }
+  } catch { /* ignore */ }
+
   // Phase 12: si anoche auto-propusiste alguna skill nueva, menciónala
   // en el briefing para que Isabel la apruebe o descarte conscientemente.
   let autoSkillHint = '';
@@ -86,7 +98,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
