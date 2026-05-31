@@ -2,18 +2,29 @@ import { anthropic } from './claude.js';
 import { DIRECTORA } from './agents.js';
 import { toolDefinitions, runTool } from './tools.js';
 import { buildWikiContext } from './memory.js';
+import { detectPromises, recordPromise } from './saydo.js';
 
 // Corre a Athena sobre un historial de conversación.
 // Maneja el "loop de herramientas": si Claude pide usar una
 // herramienta, la ejecutamos, le devolvemos el resultado, y
 // seguimos hasta que tenga una respuesta final para Isabel.
 //
+// Circuit breakers (patrón Agent SDK):
+//   - maxRounds — máximo de vueltas de tool_use (default 6)
+//   - maxToolCalls — máximo total de tool calls sumando todas las vueltas
+//     (default 12). Protege contra "100 web_search en una vuelta".
+//   - duplicateGuard — si Athena emite la misma tool con los mismos args
+//     en 2 vueltas consecutivas, abortamos. Catch típico de loop infinito.
+//
 // Recibe y devuelve el array de mensajes para que index.js lo guarde.
-// opts.maxRounds: máximo de vueltas de tool_use (default 6).
 // opts.persistHistory: si false, el caller NO debería guardar el
 // resultado a disco (lo usamos en task ticks y reflexión interna).
 export async function runDirectora(messages, opts = {}) {
   const maxRounds = opts.maxRounds || 6;
+  const maxToolCalls = opts.maxToolCalls || 12;
+  let totalToolCalls = 0;
+  let lastToolSignature = null;
+  let consecutiveDupes = 0;
   const wiki = buildWikiContext();
   const system = [
     {
@@ -59,6 +70,19 @@ export async function runDirectora(messages, opts = {}) {
         .map((b) => b.text)
         .join('\n')
         .trim();
+      // Say-do: detecta promesas en la respuesta final y las trackea.
+      // Si Athena dijo "te traigo el resumen al rato", queda registrada
+      // para que el weekly review mida cumplimiento.
+      try {
+        const promises = detectPromises(text);
+        for (const p of promises) {
+          recordPromise({
+            descripcion: p.descripcion,
+            vence_en_horas: p.vence_en_horas_estimadas,
+            contexto: text.slice(0, 150),
+          });
+        }
+      } catch { /* nunca tumba la respuesta */ }
       return { reply: text || 'Lista, Isabel.', messages };
     }
 
@@ -68,6 +92,42 @@ export async function runDirectora(messages, opts = {}) {
     // Las built-in tools de Anthropic (ej. web_search) se ejecutan del lado
     // del servidor y NO aparecen aquí, así que las saltamos automáticamente.
     const toolUses = res.content.filter((b) => b.type === 'tool_use');
+
+    // ─── Circuit breaker: total tool call budget ───
+    totalToolCalls += toolUses.length;
+    if (totalToolCalls > maxToolCalls) {
+      console.warn(`[directora] circuit breaker: ${totalToolCalls}/${maxToolCalls} tool calls, aborting`);
+      return {
+        reply: `Me quedé atorada en un loop de herramientas (${totalToolCalls} llamadas). Te paso lo que tengo y pregúntame más específico si necesitas algo concreto.`,
+        messages,
+        circuit_breaker: 'max_tool_calls',
+      };
+    }
+
+    // ─── Circuit breaker: duplicate consecutive tool call detector ───
+    // Si la misma tool con args idénticos se llama 2 vueltas seguidas,
+    // estamos en loop. Las built-ins (web_search) son exception — pueden
+    // repetir queries en una conversación larga legítimamente.
+    const signature = toolUses
+      .filter((tu) => tu.type === 'tool_use')
+      .map((tu) => `${tu.name}::${JSON.stringify(tu.input)}`)
+      .sort()
+      .join('|');
+    if (signature && signature === lastToolSignature) {
+      consecutiveDupes++;
+      if (consecutiveDupes >= 2) {
+        console.warn(`[directora] circuit breaker: duplicate tool calls 3 rounds in a row, aborting`);
+        return {
+          reply: 'Detecté que estoy repitiendo la misma consulta sin avanzar. Mejor pregúntame de forma diferente o pásame más contexto.',
+          messages,
+          circuit_breaker: 'duplicate_tool_calls',
+        };
+      }
+    } else {
+      consecutiveDupes = 0;
+    }
+    lastToolSignature = signature;
+
     const results = await Promise.all(
       toolUses.map(async (tu) => {
         let content;
@@ -85,5 +145,6 @@ export async function runDirectora(messages, opts = {}) {
   return {
     reply: 'Estoy procesando varias cosas a la vez — dame un momento y pregúntame de nuevo, Isabel.',
     messages,
+    circuit_breaker: 'max_rounds',
   };
 }

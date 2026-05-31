@@ -513,6 +513,65 @@ export const toolDefinitions = [
     description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
+
+  // ───────── ATHENA SAY-DO (tu propia confiabilidad) ─────────
+  {
+    name: 'cumplido_yo',
+    description: 'Marca como CUMPLIDA una promesa TUYA (Athena) a Isabel. ÚSALA cuando termines algo que prometiste antes ("te traigo el resumen" → cuando lo traes). El sistema detecta automáticamente cuando prometes algo y lo trackea; tu trabajo es cerrarlo cuando lo cumples para mantener tu say-do ratio alto. Si no recuerdas el id exacto, pasa la descripcion y matchea por texto.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la promesa (sd_*). Si no lo tienes, usa descripcion.' },
+        descripcion: { type: 'string', description: 'Texto de la promesa para matchear (alternativa si no tienes id).' },
+        resultado: { type: 'string', description: 'Qué entregaste / qué pasó.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'mis_promesas',
+    description: 'Lista tus promesas pendientes (cosas que dijiste que ibas a hacer y no has cerrado). ÚSALA al inicio de cada conversación con Isabel para no dejar nada suelto, y cuando ella te pregunte "¿qué me ibas a traer?".',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+
+  // ───────── AAR (After-Action Review — sistema que aprende) ─────────
+  {
+    name: 'aar_abrir',
+    description: 'Abre un After-Action Review cuando tomas una decisión SIGNIFICATIVA. Guarda la INTENCIÓN para evaluarla después contra el resultado real. Tipos válidos: outreach, delegation, consult, meeting, commitment, briefing, recommendation, call. NO abras AAR para acciones triviales — solo cuando vale la pena medir si funcionó. Después cierra con aar_cerrar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        type: { type: 'string', description: 'outreach | delegation | consult | meeting | commitment | briefing | recommendation | call' },
+        intended: { type: 'string', description: 'Qué esperabas lograr.' },
+        target: { type: 'string', description: 'A quién o sobre qué (cliente, persona, tema).' },
+        context: { type: 'string', description: 'Contexto corto que ayude a evaluar después.' },
+      },
+      required: ['type', 'intended'],
+    },
+  },
+  {
+    name: 'aar_cerrar',
+    description: 'Cierra un AAR abierto. Anota qué pasó realmente, el gap con lo esperado, y el aprendizaje. Estos learnings se acumulan en tu contexto para que no repitas errores. ÚSALA cuando puedas evaluar el resultado (puede ser el mismo turno o días después).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del AAR (aar_*).' },
+        actual: { type: 'string', description: 'Qué pasó realmente.' },
+        gap: { type: 'string', description: 'Diferencia con lo esperado.' },
+        learning: { type: 'string', description: 'Qué hacer distinto la próxima vez (max 1 línea).' },
+      },
+      required: ['id', 'actual'],
+    },
+  },
+  {
+    name: 'aars_recientes',
+    description: 'Lista los AARs recientes (abiertos + cerrados con learning). Útil cuando vas a tomar una decisión similar a una anterior — para aplicar lo aprendido.',
+    input_schema: {
+      type: 'object',
+      properties: { limite: { type: 'integer', description: 'Cuántos. Default 10.' } },
+      required: [],
+    },
+  },
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -1116,6 +1175,70 @@ async function dispatchTool(name, input) {
       const byPrio = ['alto', 'aviso', 'info'];
       const sorted = signals.slice().sort((a, b) => byPrio.indexOf(a.severidad) - byPrio.indexOf(b.severidad));
       return `Señales (computadas ${ts?.slice(0, 16) || '?'}):\n` + sorted.map((s) => `[${s.severidad}] ${s.mensaje}`).join('\n');
+    }
+
+    // ─── Say-Do (Athena propio) ───
+    case 'cumplido_yo': {
+      const { listActive, fulfillPromise } = await import('./saydo.js');
+      let id = input.id;
+      if (!id && input.descripcion) {
+        const q = String(input.descripcion).toLowerCase();
+        const match = listActive().find((p) => p.descripcion.toLowerCase().includes(q.slice(0, 30)));
+        id = match?.id;
+      }
+      if (!id) return 'No encontré una promesa pendiente que coincida. Usa mis_promesas para ver la lista.';
+      const r = fulfillPromise(id, input.resultado || '');
+      return r ? `Cumplida ✓ [${r.id}]: ${r.descripcion}` : `No pude marcar cumplida (id ${id} no existe).`;
+    }
+    case 'mis_promesas': {
+      const { listActive, listOverdue } = await import('./saydo.js');
+      const all = listActive();
+      if (!all.length) return 'Sin promesas pendientes — buen trabajo cerrando el loop.';
+      const overdue = listOverdue();
+      const lines = all.slice(0, 15).map((p) => {
+        const isOverdue = overdue.find((o) => o.id === p.id);
+        const tag = isOverdue ? '🔴 vencida' : `vence ${p.vence_en.slice(0, 16)}`;
+        return `  • [${p.id}] ${p.descripcion} — ${tag}`;
+      });
+      return `${all.length} promesa(s) pendientes:\n${lines.join('\n')}`;
+    }
+
+    // ─── AAR ───
+    case 'aar_abrir': {
+      const { openDecision } = await import('./aar.js');
+      const r = openDecision({
+        type: input.type,
+        intended: input.intended,
+        target: input.target || '',
+        context: input.context || '',
+      });
+      if (!r) return `Tipo "${input.type}" no es válido (usa: outreach/delegation/consult/meeting/commitment/briefing/recommendation/call) o falta intended.`;
+      return `AAR abierto [${r.id}] tipo=${r.type} target=${r.target || '—'}\nCiérralo después con aar_cerrar pasando id=${r.id}.`;
+    }
+    case 'aar_cerrar': {
+      const { closeDecision } = await import('./aar.js');
+      const r = closeDecision({
+        id: input.id,
+        actual: input.actual,
+        gap: input.gap || '',
+        learning: input.learning || '',
+      });
+      return r
+        ? `AAR cerrado [${r.id}]. ${r.learning ? `Learning guardado: "${r.learning}"` : 'Sin learning explícito.'}`
+        : `No pude cerrar el AAR ${input.id} (no existe o falta actual).`;
+    }
+    case 'aars_recientes': {
+      const { listRecent } = await import('./aar.js');
+      const limit = parseInt(input.limite, 10) || 10;
+      const list = listRecent({ limit });
+      if (!list.length) return 'Sin AARs todavía.';
+      return list.map((d) => {
+        const status = d.status === 'cerrada' ? '✓' : '⏳';
+        const body = d.status === 'cerrada'
+          ? `intended="${d.intended.slice(0, 60)}" → actual="${d.actual.slice(0, 60)}" — learning: ${d.learning || '(sin)'}`
+          : `intended="${d.intended.slice(0, 60)}" (sin cerrar)`;
+        return `${status} [${d.id}] ${d.type}/${d.target || '—'} · ${body}`;
+      }).join('\n');
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

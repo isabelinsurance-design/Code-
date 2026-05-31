@@ -34,6 +34,15 @@ const FORBIDDEN_PHRASES = [
   'fíjate', // expresión muy mexicana específica, depende de contexto
 ];
 
+// CMS / TPMO marketing forbidden absolute claims — usar SIN evidencia
+// concreta es agente-killer. Si Athena los emite a un cliente Medicare,
+// CMS audit los puede usar para revocar la licencia de Isabel.
+const CMS_FORBIDDEN_CLAIMS = /\b(?:el\s+mejor\s+plan|the\s+best\s+plan|cheapest|el\s+más\s+barato|garantizad[oa]\s+(?:ahorro|cobertura)|guaranteed\s+(?:savings|coverage)|100\s*%\s+(?:cubierto|covered|free)|gratis\s+(?:totalmente|completo)|absolutely\s+free|sin\s+costo\s+(?:ninguno|alguno))\b/i;
+
+// Disclaimer CMS requerido en material promocional dirigido a Medicare-eligibles:
+// "Not connected with or endorsed by the U.S. government or the federal Medicare program."
+const CMS_DISCLAIMER_FRAGMENTS = /(no\s+(?:est[áa])?\s+(?:afiliad[oa]|conectad[oa])\s+(?:con|al)\s+(?:gobierno|medicare)|not\s+(?:connected|affiliated)\s+with\s+.*(?:government|medicare)|agente\s+independiente\s+licenciad[oa])/i;
+
 const MEDICAL_KEYWORDS = /\b(dosis|tómate|recetar|recet[ae]|diagnos|síntoma|toma\s+(?:dos|tres|cuatro|este|esta|esa|ese)|deberías\s+tomar)\b/i;
 const FINANCIAL_KEYWORDS = /\b(invertir|inversión|rendimiento|garantizad[oa]\s+\d|\d+%\s+de\s+(?:retorno|rendimiento))\b/i;
 const PLAN_DETAIL_KEYWORDS = /\b(premium|deductible|copay|formulary|red de doctores|MOOP|MAPD|PDP)\b/i;
@@ -113,7 +122,31 @@ export async function reviewOutbound({ toolName, input }) {
     }
   }
 
-  // 5. Longitud — emails kilométricos son red flag
+  // 5. CMS absolute claims — "el mejor plan", "garantizado", "100% gratis"
+  if (CMS_FORBIDDEN_CLAIMS.test(text)) {
+    flags.push({
+      severidad: 'alto',
+      kind: 'cms_absolute_claim',
+      nota: 'Mensaje contiene claim absoluto prohibido por CMS (best/cheapest/guaranteed/100% gratis sin evidencia verificable).',
+      sugerencia: 'Reformula con lenguaje específico ("puede convenirte porque…", "una opción a evaluar es…"). Sin superlatives sin data.',
+    });
+  }
+
+  // 6. Disclaimer CMS — si el mensaje habla de planes específicos a un cliente
+  // Y va por email (material promocional escrito), debe incluir el disclaimer
+  // de no afiliación con el gobierno o nota de agente independiente licenciada.
+  if (toolName === 'enviar_email' && PLAN_DETAIL_KEYWORDS.test(text) && text.length > 200) {
+    if (!CMS_DISCLAIMER_FRAGMENTS.test(text)) {
+      flags.push({
+        severidad: 'aviso',
+        kind: 'cms_disclaimer_missing',
+        nota: 'Email con detalles de plan SIN disclaimer CMS de no-afiliación / agente independiente.',
+        sugerencia: 'Agrega: "Isabel Fuentes es agente licenciada independiente. No está afiliada al gobierno federal ni al programa Medicare."',
+      });
+    }
+  }
+
+  // 7. Longitud — emails kilométricos son red flag
   if (toolName === 'enviar_email' && text.length > 1500) {
     flags.push({
       severidad: 'info',

@@ -3,6 +3,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { redactPII } from './security.js';
 import { buildSkillsContext } from './skills.js';
+import { buildSayDoInline } from './saydo.js';
+import { buildAarInline } from './aar.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -229,6 +231,16 @@ export function buildWikiContext() {
   if (gapsCtx) parts.push(gapsCtx);
   const skillsCtx = (() => { try { return buildSkillsContext(); } catch { return ''; } })();
   if (skillsCtx) parts.push(skillsCtx);
+  // Say-do inline: cómo va Athena cumpliendo sus propias promesas.
+  try {
+    const sdCtx = buildSayDoInline();
+    if (sdCtx) parts.push(`TU SAY-DO RATIO (Athena, propio): ${sdCtx}`);
+  } catch { /* ignore */ }
+  // AAR inline: aprendizajes recientes para evitar repetir errores.
+  try {
+    const aarCtx = buildAarInline();
+    if (aarCtx) parts.push(`AARs: ${aarCtx}`);
+  } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {
       if (p.type === 'email') return `- [${p.id}] EMAIL a ${p.para} · asunto: "${p.asunto}"`;
