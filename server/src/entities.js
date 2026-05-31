@@ -207,6 +207,43 @@ export function entityCard(e) {
 // Snapshot corto para el contexto de Athena: las N personas más
 // recientes con UNA línea de la nota más alta. Mantiene el contexto
 // barato pero le da a Athena memoria operativa de "quién está activo".
+// ─── Cadence: detectar personas con quien Isabel no ha interactuado en N días
+// Solo aplica a family/friend (alta salience por default). Útil para CoS:
+// "no has hablado con Alex en 14 días" surface en briefing matutino.
+export function getStaleEntities({ days = 14, types = ['family', 'friend'], minSalience = 6 } = {}) {
+  const rows = load();
+  const cutoff = Date.now() - days * 86_400_000;
+  const stale = [];
+  for (const e of rows) {
+    if (!types.includes(e.type)) continue;
+    if ((e.salience || 0) < minSalience) continue;
+    const lastNoteTs = e.notas?.[0]?.ts ? new Date(e.notas[0].ts).getTime() : (e.creado ? new Date(e.creado).getTime() : 0);
+    if (lastNoteTs && lastNoteTs < cutoff) {
+      const diasAtras = Math.floor((Date.now() - lastNoteTs) / 86_400_000);
+      stale.push({
+        id: e.id,
+        canonical_name: e.canonical_name,
+        type: e.type,
+        salience: e.salience,
+        dias_sin_interaccion: diasAtras,
+        ultima_nota: e.notas?.[0]?.nota?.slice(0, 100) || null,
+      });
+    }
+  }
+  return stale.sort((a, b) => b.salience - a.salience || b.dias_sin_interaccion - a.dias_sin_interaccion);
+}
+
+// Block para briefing matutino: lista personas que se están enfriando
+export function buildCadenceBlock() {
+  const stale = getStaleEntities({ days: 14, types: ['family', 'friend'], minSalience: 6 });
+  if (!stale.length) return null;
+  const lines = ['👥 RELACIONES — quienes no has tocado en 14+ días'];
+  for (const s of stale.slice(0, 5)) {
+    lines.push(`  · ${s.canonical_name} (${s.type}) — ${s.dias_sin_interaccion}d sin contacto${s.ultima_nota ? `\n    última nota: "${s.ultima_nota}"` : ''}`);
+  }
+  return lines.join('\n');
+}
+
 export function buildEntitiesContext({ limit = 12 } = {}) {
   const rows = load();
   if (!rows.length) return '';

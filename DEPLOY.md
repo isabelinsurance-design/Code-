@@ -96,6 +96,7 @@ Railway es hosting diseñado para procesos persistentes como Athena:
 | Backups automáticos a R2 | `BACKUP_S3_ENDPOINT/BUCKET/REGION/ACCESS_KEY_ID/SECRET_ACCESS_KEY` |
 | Instagram read-only | `IG_ACCESS_TOKEN` + `IG_USER_ID` |
 | Nextiva SMS visibility | `NEXTIVA_API_KEY` + `NEXTIVA_ACCOUNT_ID` |
+| **MCP / Zapier (8,000+ apps)** | `MCP_ENABLED=true` + `MCP_ZAPIER_URL` + `MCP_ZAPIER_TOKEN` (más detalle en Paso 5.7) |
 
 Cada feature es un toggle de env var. Athena detecta qué está configurado y prende lo que tiene.
 
@@ -302,6 +303,52 @@ DASHBOARD_PASSWORD=ELIJAN-UN-PASSWORD
 **5.7.** Railway detecta el cambio y redespliega automáticamente. Esperen 1-2 min. **Deployments tab** → último deploy debe pasar a verde "Active" otra vez.
 
 ✅ **Al final de este paso:** Athena está corriendo con todas las credenciales.
+
+---
+
+## PASO 5.7 — Conectar Zapier MCP (opcional, ~15 min — abre 8,000+ apps)
+
+Esto le da a Athena acceso a OpenTable, Calendly, Drive, Notion, Stripe, y miles más. Sin esto Athena no puede reservar mesas ni interactuar con apps externas. **Sáltatelo si Sami quiere deployar primero el core y agregar MCP después.**
+
+**5.7.1.** Abre **https://zapier.com** → Sign Up (free tier funciona para empezar).
+
+**5.7.2.** Una vez logueada, busca en el menú: **MCP** (o ve directo a https://mcp.zapier.com/).
+
+**5.7.3.** Click **"Create new MCP server"** → ponle nombre (ej. "Athena"). Te genera:
+- Un **URL** (se ve como `https://mcp.zapier.com/api/mcp/s/<id>/messages`)
+- Un **token** (bearer auth)
+- **COPIA AMBOS** a tu app de notas.
+
+**5.7.4.** En Zapier → tu MCP server → **"Add tools"** → habilita las apps que quieras. Empieza con estas (puedes agregar más después):
+- OpenTable (reservaciones)
+- Calendly (agendar)
+- Google Drive (subir docs)
+- Google Sheets
+- Notion (notas)
+- Gmail (alternativa a IMAP)
+- 1-800-Flowers / Postable (envíos físicos)
+
+Cada app que prendes aparece como tool nueva en Athena en máximo 1 hora (cron `mcp_refresh`).
+
+**5.7.5.** En Railway → Variables → agrega estas 3:
+
+```bash
+MCP_ENABLED=true
+MCP_ZAPIER_URL=https://mcp.zapier.com/api/mcp/s/<TU-ID>/messages
+MCP_ZAPIER_TOKEN=<TU-TOKEN>
+```
+
+**5.7.6.** Railway redespliega solo. Revisa los logs del deploy — debe aparecer algo como:
+```
+[mcp] zapier: 7 tools descubiertas.
+[mcp] 1 server(s) conectados, 7 tool(s) descubiertas.
+```
+
+**5.7.7.** Prueba desde WhatsApp:
+> *Tú:* "Athena, busca una mesa en OpenTable para 4 personas el viernes 7pm cerca de Van Nuys."
+> *Athena:* (debería usar la tool mcp_zapier_*opentable* y darte opciones)
+
+✅ **Al final de este paso:** Athena conectada a 8,000+ apps potenciales via Zapier.
 
 ---
 

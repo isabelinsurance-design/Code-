@@ -285,6 +285,26 @@ if (inboxCleanupEnabled()) {
 // dónde meter foco.
 const { sendSaturdayBrief } = await import('./saturday_brief.js');
 scheduleCron('saturday_brief', process.env.SATURDAY_BRIEF_CRON || '0 21 * * 5', sendSaturdayBrief);
+// Say-do follow-through: cada 30 min Athena revisa SUS promesas
+// que están por vencer o vencidas. Si hay alguna sin cumplir,
+// trigger Athena con mensaje sintético "tengo promesas vencidas,
+// cierralas o avisa a Isabel". Esto cierra el loop say-do:
+// no solo promete — cumple.
+scheduleCron('saydo_followup', '*/30 7-21 * * *', async () => {
+  const { listOverdue, listActive } = await import('./saydo.js');
+  const overdue = listOverdue();
+  const cerca = listActive().filter((p) => {
+    const v = new Date(p.vence).getTime();
+    return v > Date.now() && v < Date.now() + 30 * 60_000;
+  });
+  if (!overdue.length && !cerca.length) return;
+  // Solo log — Athena puede leerlas del contexto base en su próximo turno.
+  // El cron NO manda mensaje proactivo porque iría sobre el cap diario.
+  // En el próximo turno conversacional Athena las verá en su contexto y
+  // las cerrará / actualizará por iniciativa.
+  console.log(`[saydo_followup] ${overdue.length} vencidas + ${cerca.length} próximas a vencer`);
+});
+
 // Overload detection: cada 3 horas durante horario laboral, Athena
 // chequea si Isabel está sobrecargada. Si score ≥ 4, le manda
 // PROACTIVAMENTE el triage con propuestas. Respeta quiet hours +

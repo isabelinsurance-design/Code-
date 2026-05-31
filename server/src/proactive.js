@@ -125,6 +125,9 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
 }
 
 // ---- Revisión semanal (Domingo 6pm) ----
+// Pulls toda la data semanal — habits + finanzas + journal + goals +
+// team + iniciativas + overload — para que Athena haga un review
+// honesto, no genérico.
 export async function sendWeeklyReview() {
   const gate = canSendProactive({ force: true });
   if (!gate.ok) {
@@ -132,10 +135,71 @@ export async function sendWeeklyReview() {
     return;
   }
   bumpProactiveCount(gate.dayKey);
+
+  let dataBlock = '';
+  try {
+    const blocks = [];
+    const { buildHabitsBriefingBlock } = await import('./habits.js');
+    const h = buildHabitsBriefingBlock();
+    if (h) blocks.push(h);
+    const { statsMes } = await import('./finanzas.js');
+    const f = statsMes();
+    if (f.n_transacciones) {
+      blocks.push(`💰 FINANZAS MES (${f.mes}): ingresos $${f.total_ingresos} · gastos $${f.total_gastos} · neto $${f.neto}`);
+    }
+    const { emocionesPattern } = await import('./journal.js');
+    const e = emocionesPattern({ dias: 7 });
+    if (e.n_entradas) {
+      const top = Object.entries(e.counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ×${v}`).join(' · ');
+      blocks.push(`📓 JOURNAL 7d: ${e.n_entradas} entradas · ${top}`);
+    }
+    const { listMetas, proyeccion } = await import('./goals.js');
+    const metas = listMetas({ status: 'activa' });
+    if (metas.length) {
+      const lines = metas.map((m) => {
+        const p = proyeccion(m);
+        return `  · ${m.nombre} — ${m.progreso}${m.target !== null ? `/${m.target}` : ''}${m.unidad}${p ? ` · ${p.pct_avance}%${p.en_track ? '' : ' ⚠️OFF TRACK'}` : ''}`;
+      }).join('\n');
+      blocks.push(`🎯 METAS:\n${lines}`);
+    }
+    const { statsByPerson } = await import('./team.js');
+    const teamStats = statsByPerson({ sinceDays: 7 });
+    const teamNames = Object.keys(teamStats);
+    if (teamNames.length) {
+      const teamLines = teamNames.map((p) => {
+        const x = teamStats[p];
+        const ratio = x.cumplidas + x.fallidas > 0 ? `${Math.round(100 * x.cumplidas / (x.cumplidas + x.fallidas))}%` : '—';
+        return `  · ${p}: ${x.cumplidas}/${x.cumplidas + x.fallidas} (${ratio}) · ${x.pendientes} abiertos`;
+      }).join('\n');
+      blocks.push(`📊 EQUIPO 7d:\n${teamLines}`);
+    }
+    const { listInitiatives } = await import('./team_review.js');
+    const inis = listInitiatives({ sinceDays: 7, status: 'propuesta' });
+    if (inis.length) {
+      blocks.push(`💡 INICIATIVAS PENDIENTES: ${inis.length} (esperan tu aprobación)`);
+    }
+    const { computeOverload } = await import('./overload.js');
+    const o = computeOverload();
+    if (o.score > 0) {
+      blocks.push(`🚨 SOBRECARGA: score ${o.score} · ${o.señales.length} señales`);
+    }
+    if (blocks.length) dataBlock = '\n\nDATOS HONESTOS DE LA SEMANA (úsalos, NO inventes):\n' + blocks.join('\n\n');
+  } catch (err) { console.warn('[weekly] data:', err.message); }
+
   await runProactive(
-    `[REVISIÓN SEMANAL AUTOMÁTICA] Es domingo. Genera una revisión semanal corta basada en tu memoria + lo que conversamos esta semana: (1) 3 wins concretos de la semana, (2) 1 patrón que notaste en mí, (3) 1 pregunta para la semana que viene. Termina con "¿Cuáles son tus 3 prioridades para la semana que entra?". Esto se manda solo, no esperes input.`,
+    `[REVISIÓN SEMANAL AUTOMÁTICA — DOMINGO] Genera tu revisión semanal usando los datos honestos abajo.${dataBlock}
+
+INSTRUCCIONES:
+- Salúdala con cariño dominical, no formal.
+- Inclúye SECCIONES separadas por divisor "═════" para que se manden como cards:
+  Card 1: Saludo + tono según overload/journal (si estuvo cargada, reconoce el costo)
+  Card 2: 3 wins concretos (datos reales — usa habits/team/finanzas/goals, NO inventes)
+  Card 3: UN patrón que notaste (puede ser bueno o problemático — sé honesta)
+  Card 4: Pregunta semilla para la semana que viene + las 3 prioridades
+- Si overload score > 4: empieza por reconocer la carga, no le sumes presión.
+- Tono Spanglish, cálido, sin lecciones.`,
   );
-  console.log('[weekly] revisión enviada.');
+  console.log('[weekly] revisión enviada (con datos honestos).');
 }
 
 // ---- Reflexión nocturna (2am — NO se manda a Isabel) ----
