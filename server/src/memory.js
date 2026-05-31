@@ -10,6 +10,7 @@ import { buildHabitsInline } from './habits.js';
 import { buildFinanzasInline } from './finanzas.js';
 import { buildJournalInline } from './journal.js';
 import { buildGoalsInline } from './goals.js';
+import { buildOverloadInline } from './overload.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -270,6 +271,11 @@ export function buildWikiContext() {
   try {
     const g = buildGoalsInline();
     if (g) parts.push(`METAS: ${g}`);
+  } catch { /* ignore */ }
+  // Overload: si está cargada de verdad, Athena lo ve y NO suma carga
+  try {
+    const ov = buildOverloadInline();
+    if (ov) parts.push(ov);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

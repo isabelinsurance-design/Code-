@@ -285,6 +285,29 @@ if (inboxCleanupEnabled()) {
 // dónde meter foco.
 const { sendSaturdayBrief } = await import('./saturday_brief.js');
 scheduleCron('saturday_brief', process.env.SATURDAY_BRIEF_CRON || '0 21 * * 5', sendSaturdayBrief);
+// Overload detection: cada 3 horas durante horario laboral, Athena
+// chequea si Isabel está sobrecargada. Si score ≥ 4, le manda
+// PROACTIVAMENTE el triage con propuestas. Respeta quiet hours +
+// daily cap. No la satura — solo cuando hay señal real.
+scheduleCron('overload_check', process.env.OVERLOAD_CRON || '0 10,13,16 * * 1-5', async () => {
+  const { buildTriageProposal } = await import('./overload.js');
+  const { canSendProactive } = await import('./proactive.js');
+  const { sendMessage } = await import('./whatsapp.js');
+  const { bumpProactiveCount, logActivity } = await import('./memory.js');
+  const to = process.env.ISABEL_WHATSAPP;
+  if (!to) return;
+  const t = buildTriageProposal();
+  if (!t) return;
+  const gate = canSendProactive();
+  if (!gate.ok) {
+    console.log(`[overload] detected pero saltado: ${gate.reason}`);
+    return;
+  }
+  await sendMessage(to, t.mensaje);
+  bumpProactiveCount(gate.dayKey);
+  logActivity({ tool: 'overload_proactive_triage', input_summary: `score=${t.overload.score}`, result_summary: `${t.proposals.length} propuestas` });
+  console.log(`[overload] triage proactivo mandado (score ${t.overload.score})`);
+});
 // EOD nudge: 6pm chequea quién del equipo NO ha reportado y le pide
 // a Sami que les recuerde. Solo días entre semana.
 scheduleCron('eod_nudge', process.env.EOD_NUDGE_CRON || '0 18 * * 1-5', async () => {

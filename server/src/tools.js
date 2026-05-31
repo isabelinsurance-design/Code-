@@ -905,6 +905,18 @@ MODOS:
     },
   },
 
+  // ───────── OVERLOAD DETECTOR — Athena se da cuenta antes que tú ─────────
+  {
+    name: 'mi_carga',
+    description: 'Devuelve el estado de sobrecarga de Isabel ahora: score (suma de señales 0-10), señales activas (tareas vencidas, borradores acumulados, estrés journal, sueño bajo, metas off-track, equipo vencidos). ÚSALA cuando quieras saber CÓMO ESTÁ ELLA antes de pedirle más cosas. Si score ≥ 4, está sobrecargada — propón triage en vez de agregar carga.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'triagear_carga',
+    description: 'Genera triage proactivo cuando Isabel está sobrecargada. Devuelve 3-5 propuestas específicas para aliviarla: borradores a descartar, tareas a reagendar, equipo a presionar (lo hace Athena, no Isabel), compromisos a chase auto, sueño/estrés a proteger. Cada propuesta es accionable — Isabel responde "1 y 3" o "todo" o "nada" y Athena ejecuta. ÚSALA cuando mi_carga devuelva overloaded=true, NO le sumes carga.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -2013,6 +2025,26 @@ async function dispatchTool(name, input) {
         lines.push(line);
       }
       return `${metas.length} metas activas:\n${lines.join('\n')}`;
+    }
+
+    // ─── OVERLOAD ───
+    case 'mi_carga': {
+      const { computeOverload } = await import('./overload.js');
+      const o = computeOverload();
+      const lines = [`Score sobrecarga: ${o.score} (umbral 4) · severidad: ${o.severidad}`];
+      if (o.overloaded) {
+        lines.push('🚨 SOBRECARGADA — propón triage, NO sumes carga.');
+      } else {
+        lines.push('Carga manejable — puedes seguir agregando con cuidado.');
+      }
+      if (o.señales.length) lines.push(`\nSeñales:\n${o.señales.map((s) => `  · ${s}`).join('\n')}`);
+      return lines.join('\n');
+    }
+    case 'triagear_carga': {
+      const { buildTriageProposal } = await import('./overload.js');
+      const t = buildTriageProposal();
+      if (!t) return 'No estás sobrecargada — no hay nada que triagear ahorita.';
+      return t.mensaje;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();
