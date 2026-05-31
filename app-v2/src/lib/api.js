@@ -35,6 +35,20 @@ export const api = {
   taskComplete: (id) => request(`/tasks/${id}/complete`, { method: 'POST' }),
   taskCancel: (id) => request(`/tasks/${id}/cancel`, { method: 'POST' }),
 
+  // Commitments — promesas que otros te deben
+  commitments: (status, persona) => {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (persona) qs.set('persona', persona);
+    const s = qs.toString();
+    return request(`/commitments${s ? `?${s}` : ''}`);
+  },
+  commitmentCreate: (data) => request('/commitments', { method: 'POST', body: JSON.stringify(data) }),
+  commitmentComplete: (id, evidencia) => request(`/commitments/${id}/complete`, { method: 'POST', body: JSON.stringify({ evidencia }) }),
+  commitmentFail: (id, razon) => request(`/commitments/${id}/fail`, { method: 'POST', body: JSON.stringify({ razon }) }),
+  commitmentCancel: (id) => request(`/commitments/${id}/cancel`, { method: 'POST' }),
+  commitmentNote: (id, texto) => request(`/commitments/${id}/note`, { method: 'POST', body: JSON.stringify({ texto }) }),
+
   // Rutinas
   routines: () => request('/routines'),
   routineCreate: (data) => request('/routines', { method: 'POST', body: JSON.stringify(data) }),

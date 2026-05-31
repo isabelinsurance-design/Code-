@@ -230,6 +230,36 @@ export function registerApi(app) {
     res.json(marcarCumplida(req.params.id, (req.body || {}).evidencia || ''));
   });
 
+  // Commitments — promesas que otros te deben
+  app.get('/api/commitments', requireAuth, async (req, res) => {
+    const { listCommitments } = await import('./commitments.js');
+    res.json(listCommitments({ status: req.query.status || null, persona: req.query.persona || null }));
+  });
+  app.post('/api/commitments', requireAuth, async (req, res) => {
+    try {
+      const { createCommitment } = await import('./commitments.js');
+      res.json({ ok: true, commitment: createCommitment(req.body || {}) });
+    } catch (e) {
+      res.status(400).json({ ok: false, error: e.message });
+    }
+  });
+  app.post('/api/commitments/:id/complete', requireAuth, async (req, res) => {
+    const { completeCommitment } = await import('./commitments.js');
+    res.json(completeCommitment(req.params.id, (req.body || {}).evidencia || ''));
+  });
+  app.post('/api/commitments/:id/fail', requireAuth, async (req, res) => {
+    const { failCommitment } = await import('./commitments.js');
+    res.json(failCommitment(req.params.id, (req.body || {}).razon || ''));
+  });
+  app.post('/api/commitments/:id/cancel', requireAuth, async (req, res) => {
+    const { cancelCommitment } = await import('./commitments.js');
+    res.json(cancelCommitment(req.params.id));
+  });
+  app.post('/api/commitments/:id/note', requireAuth, async (req, res) => {
+    const { noteCommitment } = await import('./commitments.js');
+    res.json(noteCommitment(req.params.id, (req.body || {}).texto || ''));
+  });
+
   // Tasks
   app.get('/api/tasks', requireAuth, async (req, res) => {
     const { listTasks } = await import('./tasks.js');
