@@ -78,13 +78,41 @@ TERCERO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los co
 
 CUARTO, pregúntame mis Top 3 de hoy.
 
+FORMATO — VISUAL CARDS (importante):
+Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exacto "═════". Cada card es UN tema, máx 4 líneas:
+  Card 1: Saludo + estado (1-3 líneas, lectura de cómo estoy o cómo viene el día)
+  Card 2: Señales destacadas (1-3 señales prioritarias)
+  Card 3: El gap más doloroso + propuesta para cerrarlo HOY
+  Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
+Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
+
 Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
   saveHistory(updated);
-  await sendMessage(to, reply);
-  console.log('[briefing] Enviado a Isabel.');
+  // Visual cards: separar el reply en 3-4 mensajes WhatsApp.
+  // Si el split no encuentra el divisor (Athena ignoró el format),
+  // cae a 1 solo mensaje — fallback graceful.
+  const cards = splitCards(reply);
+  for (let i = 0; i < cards.length; i++) {
+    await sendMessage(to, cards[i]);
+    if (i < cards.length - 1) {
+      await new Promise((r) => setTimeout(r, 1500)); // 1.5s entre cards
+    }
+  }
+  console.log(`[briefing] Enviado a Isabel (${cards.length} card${cards.length > 1 ? 's' : ''}).`);
+}
+
+// Divide la respuesta en cards por el divisor ═════.
+// Limpia espacios, descarta cards vacías, fallback a 1 si no hay split.
+function splitCards(text) {
+  if (!text) return [];
+  const parts = text
+    .split(/═{4,}/g)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  return parts.length ? parts : [text.trim()];
 }
 
 // Permite correrlo directo: `node src/briefing.js`

@@ -19,6 +19,10 @@ import { google } from 'googleapis';
 import { sendMessage } from './whatsapp.js';
 import { canSendProactive } from './proactive.js';
 import { bumpProactiveCount, logActivity } from './memory.js';
+import { findEntity, getEntity } from './entities.js';
+import { listCommitments } from './commitments.js';
+import { listRecent as listRecentAars } from './aar.js';
+import { anthropic } from './claude.js';
 
 const TZ = () => process.env.TIMEZONE || 'America/Los_Angeles';
 
@@ -217,16 +221,107 @@ function toLite(ev, withDetails = false) {
   return out;
 }
 
-// ---- Pre-meeting brief: 15 min antes de cada cita, Athena le manda
-//      un brief corto a Isabel. ----
-// Memoria efímera de qué ya recordamos en esta ejecución (en RAM,
-// se reinicia con el server — está bien, los eventos también).
+// ============================================================
+//  Pre-meeting briefing book — patrón Staff Secretary
+//  ──────────────────────────────────────────────────
+//  15 min antes de cada cita, Athena no solo te recuerda — te
+//  arma un brief de 4-5 líneas con:
+//  - el evento (qué, cuándo, dónde)
+//  - quiénes son los asistentes (lookup en entidades)
+//  - context que importa: compromisos pendientes con ellos,
+//    learnings de AARs previos, notas relevantes
+//  - una sugerencia táctica para abrir la conversación
+//
+//  El context se ensambla deterministicamente; la síntesis
+//  final pasa por Sonnet (1 call, ~500 tokens output) para
+//  darle el tono Spanglish cálido. Si Sonnet no está disponible
+//  o no hay contexto que valga la pena, cae al brief simple.
+// ============================================================
 const _remindedRecently = new Map(); // eventId → ts
 
 function isFresh(id) {
   const t = _remindedRecently.get(id);
   if (!t) return true;
   return Date.now() - t > 30 * 60_000; // 30 min de cooldown
+}
+
+// Para cada asistente, busca entidad + compromisos + AARs.
+// Devuelve null si no hay nada notable que decir.
+function assembleAttendeeContext(asistenteName) {
+  const ctx = { name: asistenteName, entity: null, commitments: [], aars: [] };
+  try {
+    const ents = findEntity(asistenteName);
+    if (ents?.length) {
+      const top = ents[0];
+      ctx.entity = {
+        canonical_name: top.canonical_name,
+        notas_recientes: (top.notas || []).slice(-3),
+        salience: top.salience,
+      };
+    }
+  } catch { /* ignore */ }
+  try {
+    const commits = listCommitments({ status: 'pendiente' }) || [];
+    const norm = (s) => String(s || '').toLowerCase();
+    const target = norm(asistenteName);
+    ctx.commitments = commits.filter((c) =>
+      norm(c.persona).includes(target.slice(0, 12)) || target.includes(norm(c.persona).slice(0, 12))
+    ).slice(0, 3);
+  } catch { /* ignore */ }
+  try {
+    const aars = listRecentAars({ limit: 20 }) || [];
+    const norm = (s) => String(s || '').toLowerCase();
+    const target = norm(asistenteName).slice(0, 12);
+    ctx.aars = aars.filter((a) =>
+      (a.target && norm(a.target).includes(target)) ||
+      (a.intended && norm(a.intended).includes(target))
+    ).slice(0, 2);
+  } catch { /* ignore */ }
+  const hasSignal = ctx.entity || ctx.commitments.length || ctx.aars.length;
+  return hasSignal ? ctx : null;
+}
+
+async function synthesizeBrief(ev, attendeeContexts) {
+  const ctxLines = [];
+  ctxLines.push(`EVENTO: ${ev.titulo} en ${ev.inicio_local}${ev.ubicacion ? ` (${ev.ubicacion})` : ''}`);
+  for (const ac of attendeeContexts) {
+    ctxLines.push(`\n— ${ac.name} —`);
+    if (ac.entity) {
+      ctxLines.push(`Notas: ${ac.entity.notas_recientes.map((n) => n.nota || n.texto || '').join(' | ').slice(0, 200)}`);
+    }
+    if (ac.commitments.length) {
+      ctxLines.push(`Compromisos pendientes: ${ac.commitments.map((c) => c.descripcion).join(' | ').slice(0, 200)}`);
+    }
+    if (ac.aars.length) {
+      ctxLines.push(`AAR previo: ${ac.aars.map((a) => a.learning || a.intended || '').filter(Boolean).join(' | ').slice(0, 200)}`);
+    }
+  }
+  const raw = ctxLines.join('\n');
+
+  try {
+    const r = await anthropic.messages.create({
+      model: 'claude-sonnet-4-6',
+      max_tokens: 350,
+      messages: [{
+        role: 'user',
+        content: `Eres Athena, chief of staff de Isabel Fuentes. Spanglish cálido, directo. En 15 minutos arranca este evento. Arma un briefing MUY CORTO (máx 5 líneas) que la prepare. Estructura:
+
+Línea 1: Qué + cuándo (ya lo sabe — recordatorio breve).
+Línea 2-3: El contexto humano que importa (de los compromisos y notas previas).
+Línea 4: UNA sugerencia táctica concreta (cómo abrir, qué evitar, qué traer).
+Línea 5 (opcional): Si hay un compromiso suyo pendiente con esa persona, sé directa.
+
+NO repitas todo lo que te paso — síntesis, no copia. NO uses bullets — frases cortas.
+
+Contexto:
+${raw}`,
+      }],
+    });
+    return (r.content?.[0]?.text || '').trim();
+  } catch (err) {
+    console.warn('[cal] synth fallback:', err.message);
+    return null;
+  }
 }
 
 export async function checkUpcomingMeetingsTick() {
@@ -242,7 +337,6 @@ export async function checkUpcomingMeetingsTick() {
     if (!e.inicio) return false;
     const startMs = new Date(e.inicio).getTime();
     const minsAway = (startMs - now) / 60_000;
-    // Avisamos cuando faltan entre 10 y 20 minutos (margen para el tick).
     return minsAway > 10 && minsAway < 20 && isFresh(e.id);
   });
 
@@ -252,11 +346,24 @@ export async function checkUpcomingMeetingsTick() {
       console.log(`[cal] no avisar de "${ev.titulo}": ${gate.reason}`);
       break;
     }
-    const lines = [];
-    lines.push(`En ~15 min: ${ev.titulo} (${ev.inicio_local}).`);
-    if (ev.ubicacion) lines.push(`Lugar: ${ev.ubicacion}`);
-    if (ev.asistentes.length) lines.push(`Con: ${ev.asistentes.join(', ')}`);
-    const brief = lines.join('\n');
+
+    // Reunir contexto por asistente.
+    const attendeeContexts = (ev.asistentes || [])
+      .map(assembleAttendeeContext)
+      .filter(Boolean);
+
+    let brief;
+    if (attendeeContexts.length && process.env.ANTHROPIC_API_KEY) {
+      brief = await synthesizeBrief(ev, attendeeContexts);
+    }
+    if (!brief) {
+      // Fallback: brief simple cuando no hay context o Sonnet falló.
+      const lines = [`En ~15 min: ${ev.titulo} (${ev.inicio_local}).`];
+      if (ev.ubicacion) lines.push(`Lugar: ${ev.ubicacion}`);
+      if (ev.asistentes.length) lines.push(`Con: ${ev.asistentes.join(', ')}`);
+      brief = lines.join('\n');
+    }
+
     await sendMessage(to, brief);
     _remindedRecently.set(ev.id, now);
     bumpProactiveCount(gate.dayKey);

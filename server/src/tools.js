@@ -818,7 +818,68 @@ export async function runTool(name, input) {
   } catch {
     /* el log nunca debe tumbar la herramienta */
   }
+  // Auto-AAR: para tools de "decisión significativa" abrimos un AAR
+  // automáticamente. Athena no tiene que llamar aar_abrir cada vez.
+  // El AAR queda abierto para que la directora lo cierre con
+  // aar_cerrar cuando sepa el resultado real (puede ser días después).
+  try {
+    await maybeOpenAutoAar(name, input, result);
+  } catch { /* nunca tumba la tool */ }
   return result;
+}
+
+// Mapa de tools que merecen AAR automático.
+// El tipo + intended se derivan del input.
+const AUTO_AAR_MAP = {
+  enviar_email: (input) => ({
+    type: 'outreach',
+    intended: `Mandar email a ${input.para || '?'} sobre "${input.asunto || '?'}"`,
+    target: String(input.para || '').slice(0, 80),
+  }),
+  enviar_sms: (input) => ({
+    type: 'outreach',
+    intended: `SMS a ${input.para || '?'}: ${String(input.mensaje || '').slice(0, 80)}`,
+    target: String(input.para || '').slice(0, 80),
+  }),
+  mensaje_a_sami: (input) => ({
+    type: 'delegation',
+    intended: `Delegar a Sami: ${String(input.mensaje || '').slice(0, 100)}`,
+    target: 'Sami',
+  }),
+  llamar_cliente: (input) => ({
+    type: 'call',
+    intended: `Llamar a ${input.para || '?'} para ${String(input.motivo || '').slice(0, 80)}`,
+    target: String(input.para || '').slice(0, 80),
+  }),
+  crear_cita: (input) => ({
+    type: 'meeting',
+    intended: `Agendar ${input.titulo || '?'} para ${input.inicio || '?'}`,
+    target: (input.asistentes || []).join(', ').slice(0, 80),
+  }),
+  consultar_especialistas: (input) => ({
+    type: 'consult',
+    intended: `Consultar ${(input.consultas || []).map((c) => c.especialista).join('+')} sobre "${String(input.consultas?.[0]?.tarea || '').slice(0, 80)}"`,
+    target: (input.consultas || []).map((c) => c.especialista).join('+'),
+  }),
+};
+
+async function maybeOpenAutoAar(name, input, result) {
+  const fn = AUTO_AAR_MAP[name];
+  if (!fn) return;
+  // Si el resultado dice "error" o "no pude" / "no pude crear", no abre AAR.
+  const resStr = typeof result === 'string' ? result.toLowerCase() : '';
+  if (resStr.startsWith('error') || resStr.includes('no pude')) return;
+  const decision = fn(input);
+  if (!decision?.intended) return;
+  try {
+    const { openDecision } = await import('./aar.js');
+    openDecision({
+      type: decision.type,
+      intended: decision.intended,
+      target: decision.target || '',
+      context: `auto-tool: ${name}`,
+    });
+  } catch { /* ignore */ }
 }
 
 function summarizeInput(name, input) {
