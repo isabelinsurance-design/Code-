@@ -572,6 +572,57 @@ export const toolDefinitions = [
       required: [],
     },
   },
+
+  // ───────── INBOX CLEANUP — limpia el ruido del Gmail ─────────
+  {
+    name: 'inbox_remitentes_ruidosos',
+    description: 'Escanea el Gmail de Isabel (últimos N días) y devuelve los remitentes que MÁS le mandan emails — newsletters, promos, retail, spam. ÚSALA cuando Isabel diga "limpia mi inbox", "qué me llega tanto", "estoy harta de los correos". NO hace nada destructivo — solo lista. Cada entry incluye email, nombre, count, y si ya está suprimido.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dias: { type: 'integer', description: 'Ventana de días. Default 30.' },
+        limite: { type: 'integer', description: 'Cuántos top remitentes devolver. Default 25.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'inbox_dar_baja',
+    description: 'Para UN remitente: (1) intenta unsubscribe real vía List-Unsubscribe header si el email lo trae (manda mailto: vacío "unsubscribe"), (2) lo agrega a una lista de supresión persistente, (3) el cron horario mueve todos sus emails al Trash. La supresión es la garantía; el unsubscribe es bonus. Funciona aunque el remitente no tenga header de baja.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        remitente: { type: 'string', description: 'Email del remitente (ej. promotions@target.com).' },
+      },
+      required: ['remitente'],
+    },
+  },
+  {
+    name: 'inbox_dar_baja_bulk',
+    description: 'Como inbox_dar_baja pero para varios remitentes a la vez. Resumido. Usar después de presentarle a Isabel la lista de inbox_remitentes_ruidosos y que ella confirme cuáles matar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        remitentes: { type: 'array', items: { type: 'string' }, description: 'Lista de emails de remitentes.' },
+      },
+      required: ['remitentes'],
+    },
+  },
+  {
+    name: 'inbox_supresion_lista',
+    description: 'Devuelve la lista actual de remitentes suprimidos (los que el cron horario auto-trashea).',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'inbox_quitar_supresion',
+    description: 'Quita un remitente de la lista de supresión. Próxima sweep ya no toca sus emails. Para cuando Isabel diga "ya quiero ver de nuevo a X".',
+    input_schema: {
+      type: 'object',
+      properties: { remitente: { type: 'string' } },
+      required: ['remitente'],
+    },
+  },
+
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
   {
@@ -1300,6 +1351,72 @@ async function dispatchTool(name, input) {
           : `intended="${d.intended.slice(0, 60)}" (sin cerrar)`;
         return `${status} [${d.id}] ${d.type}/${d.target || '—'} · ${body}`;
       }).join('\n');
+    }
+
+    // ─── INBOX CLEANUP ───
+    case 'inbox_remitentes_ruidosos': {
+      const m = await import('./inbox_cleanup.js');
+      if (!m.inboxCleanupEnabled()) return 'Gmail no está configurado en este servidor.';
+      const r = await m.scanNoisySenders({
+        days: parseInt(input.dias, 10) || 30,
+        limit: parseInt(input.limite, 10) || 25,
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      if (!r.senders.length) return 'INBOX limpio — ningún remitente repite en esa ventana.';
+      const lines = r.senders.map((s, i) => {
+        const flag = s.already_suppressed ? ' 🚫YA' : '';
+        return `${i + 1}. [${s.count}× en ${input.dias || 30}d] ${s.name ? s.name + ' · ' : ''}${s.email}${flag}\n   último asunto: "${(s.last_subject || '').slice(0, 70)}"`;
+      });
+      return `Top ${r.senders.length} remitentes de tu INBOX:\n${lines.join('\n')}\n\nDi cuáles quieres matar y los proceso con inbox_dar_baja_bulk.`;
+    }
+    case 'inbox_dar_baja': {
+      const m = await import('./inbox_cleanup.js');
+      if (!m.inboxCleanupEnabled()) return 'Gmail no está configurado.';
+      const r = await m.attemptUnsubscribe(input.remitente);
+      m.addToSuppress(input.remitente, {
+        via_unsubscribe: r.ok,
+        note: r.status || r.error || '',
+      });
+      const lines = [];
+      if (r.ok && r.status === 'mailto_sent') {
+        lines.push(`✓ Unsubscribe mailto enviado a ${r.mailto}`);
+      } else if (r.status === 'url_only') {
+        lines.push(`⚠️ Solo tienen URL https para baja: ${r.urls?.[0] || '?'} (sin browser no clickeo).`);
+      } else if (r.status === 'no_unsubscribe_header') {
+        lines.push(`⚠️ Sin List-Unsubscribe header (sender low-effort).`);
+      }
+      lines.push(`✓ Agregado a supresión — próxima sweep horaria los trashea automático.`);
+      return lines.join('\n');
+    }
+    case 'inbox_dar_baja_bulk': {
+      const m = await import('./inbox_cleanup.js');
+      if (!m.inboxCleanupEnabled()) return 'Gmail no está configurado.';
+      const remitentes = Array.isArray(input.remitentes) ? input.remitentes : [];
+      if (!remitentes.length) return 'Pasa al menos un remitente en remitentes.';
+      let unsubSent = 0, urlOnly = 0, noHeader = 0, suppressed = 0;
+      for (const e of remitentes) {
+        const r = await m.attemptUnsubscribe(e);
+        m.addToSuppress(e, { via_unsubscribe: r.ok, note: r.status || r.error || '' });
+        suppressed++;
+        if (r.ok && r.status === 'mailto_sent') unsubSent++;
+        else if (r.status === 'url_only') urlOnly++;
+        else if (r.status === 'no_unsubscribe_header') noHeader++;
+      }
+      const sweep = await m.sweepSuppressed();
+      return `Procesados ${remitentes.length} remitentes:\n  ✓ ${unsubSent} unsubscribe mailto enviado\n  ⚠️ ${urlOnly} solo URL (sin clickear sin browser)\n  ⚠️ ${noHeader} sin header de baja\n  ✓ ${suppressed} agregados a supresión\n  🗑 ${sweep.moved} emails movidos a Trash inmediatamente`;
+    }
+    case 'inbox_supresion_lista': {
+      const m = await import('./inbox_cleanup.js');
+      const list = m.getSuppressList();
+      if (!list.length) return 'Lista de supresión vacía.';
+      return `${list.length} remitentes suprimidos:\n${list.map((s) => `  • ${s.email}${s.via_unsubscribe ? ' (unsuscrito)' : ''} · desde ${s.added_at.slice(0, 10)}`).join('\n')}`;
+    }
+    case 'inbox_quitar_supresion': {
+      const m = await import('./inbox_cleanup.js');
+      const removed = m.removeFromSuppress(input.remitente);
+      return removed
+        ? `Quitado ${input.remitente} de supresión. Sus emails futuros vuelven a llegar a INBOX.`
+        : `${input.remitente} no estaba en la lista de supresión.`;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();

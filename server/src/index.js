@@ -269,6 +269,17 @@ if (calendarConfigured()) {
 } else {
   console.log('[cron] cal: Google Calendar no configurado — pre-meeting briefs desactivados.');
 }
+// Inbox cleanup sweep: cada hora mueve al Trash emails de remitentes
+// que Isabel suprimió. Solo se activa si Gmail está configurado.
+const { inboxCleanupEnabled, sweepSuppressed } = await import('./inbox_cleanup.js');
+if (inboxCleanupEnabled()) {
+  scheduleCron('inbox_sweep', '7 * * * *', async () => {
+    const r = await sweepSuppressed();
+    if (r.moved) console.log(`[inbox_sweep] movió ${r.moved} emails al Trash (${r.suppressed_count} senders activos).`);
+  });
+} else {
+  console.log('[cron] inbox_sweep: Gmail no configurado — desactivado.');
+}
 
 const port = process.env.PORT || 3000;
 const httpServer = app.listen(port, () => {

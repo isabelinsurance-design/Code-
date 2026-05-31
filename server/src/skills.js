@@ -479,6 +479,31 @@ const MEDICARE_PACK = [
 6. comprometer_entrega(persona="[nombre cliente]", descripcion="firmar SOA", canal="email", vence_en_dias=3) — para que el chase futuro corra solo.`,
   },
   {
+    nombre: 'Inbox cleanup',
+    descripcion: 'Limpia el ruido del Gmail de Isabel. Escanea, le presenta los top remitentes ruidosos, espera su confirmación, y para los aprobados intenta unsubscribe real + agrega a supresión persistente. Para usar cada 1-3 meses.',
+    trigger: 'cuando Isabel diga "limpia mi inbox" / "estoy harta de los correos" / "qué me llega tanto"',
+    inputs_schema: [
+      { nombre: 'dias', descripcion: 'Ventana de scan en días. Default 30.', requerido: false },
+    ],
+    cuerpo: `# Inbox cleanup — limpia el ruido del Gmail
+
+## Pasos
+
+1. inbox_remitentes_ruidosos(dias={dias}, limite=25) — escanea y trae los top 25 remitentes que más han llenado el inbox.
+2. Preséntale la lista a Isabel en formato corto: "Top 5 que más te llenan: 1) Bath & Body Works (18×), 2) Sephora (12×), 3) Nordstrom (9×), etc." NO le pegues los 25 — agrupa los primeros 10 y resume el resto.
+3. Pregúntale: "¿cuáles quieres matar? Puedes decir números (1, 3, 5), 'todos los retail', 'todos menos 4 y 7', o 'todos'."
+4. Cuando confirme, llama inbox_dar_baja_bulk(remitentes=[...]) con los emails específicos. NO inventes — usa los emails exactos de paso 1.
+5. Reporta el resultado: cuántos unsuscritos directos, cuántos solo URL (no clickeables), cuántos a supresión, cuántos emails movidos a Trash al momento.
+6. Recuérdale que el cron horario seguirá moviendo emails futuros de esos senders al Trash.
+7. Si Isabel quiere revivir un sender después, puede decir "vuelve a dejar pasar X" → inbox_quitar_supresion.
+
+## Notas
+
+- Esta skill NO toca emails personales, de cliente Medicare, ni de Sami. Solo procesa lo que Isabel apruebe explícitamente.
+- El unsubscribe real funciona ~60% de las veces (los que tienen mailto en List-Unsubscribe header). El otro 40% son solo URL https que no podemos clickear sin browser. Pero la supresión + sweep cubre el efecto al 100%.
+- Si Isabel dice "todos los retail" o categorías similares, aplica criterio: matchea por nombre de marca / vocabulario obvio. Si dudas, pregúntale.`,
+  },
+  {
     nombre: 'Brief comparar planes',
     descripcion: 'Miembro quiere comparar 2-3 planes Medicare. Arma side-by-side con premium / deductible / MOOP / cobertura de SUS medicamentos.',
     trigger: 'cuando Isabel diga "compárame [plan A] vs [plan B] para X"',
