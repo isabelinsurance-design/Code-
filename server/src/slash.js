@@ -19,6 +19,7 @@ const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
   'compromisos', 'skills', 'tareas', 'huecos', 'luna',
+  'revisar',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -65,6 +66,7 @@ export async function runSlash(text, from) {
       case 'auditar': return { ok: true, reply: await runAuditar(args) };
       case 'huecos': return { ok: true, reply: await runHuecos(args) };
       case 'luna': return { ok: true, reply: await runLuna(args) };
+      case 'revisar': return { ok: true, reply: await runRevisar(from, args) };
       case 'auditar': return { ok: true, reply: 'Auditor local retirado — el CRM real vive en LUNA. Para auditoría estructural del equipo, usa LUNA directamente.' };
       case 'seed-medicare-pack': return await runSeedMedicare(); // solo isabel
       case 'envia':
@@ -258,6 +260,30 @@ async function runDescartar() {
   const { clearOutbound } = await import('./memory.js');
   const n = clearOutbound();
   return { ok: true, reply: n ? `Descarté ${n} borrador(es).` : 'No había nada en cola.' };
+}
+
+// Detectar quién manda (Isabel o Sami) según número.
+function inferPersona(from) {
+  const isabel = process.env.ISABEL_WHATSAPP || '';
+  const sami = process.env.SAMI_WHATSAPP || '';
+  if (from === isabel) return 'Isabel';
+  if (from === sami) return 'Sami';
+  return 'Equipo';
+}
+
+async function runRevisar(from, args) {
+  if (!args || args.length < 5) {
+    return 'Uso: /revisar <texto del borrador que vas a mandar>. Athena lo revisa antes de que salga (typos Medicare, claims CMS, tono, disclaimer). Te dice APROBADO / APROBADO CON NOTAS / RECHAZADO.';
+  }
+  const { reviewTeamDraft, formatReviewResult } = await import('./team_review.js');
+  const persona = inferPersona(from);
+  const r = await reviewTeamDraft({
+    persona,
+    contenido: args,
+    destinatario: '',
+    tipo: 'email',
+  });
+  return formatReviewResult(r);
 }
 
 async function runLuna(args) {

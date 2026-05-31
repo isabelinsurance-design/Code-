@@ -684,6 +684,57 @@ export const toolDefinitions = [
       required: [],
     },
   },
+  {
+    name: 'revisar_borrador_equipo',
+    description: 'Revisa un borrador que una empleada (Sami / Skarleth / Arlette / Samia) está por mandar a un cliente. Devuelve veredicto (APROBADO / APROBADO CON NOTAS / RECHAZADO) + lista de errores específicos: typos Medicare (Antem→Anthem), acrónimos en minúsculas (aep→AEP), claims CMS prohibidos (best/cheapest/guaranteed), falta de disclaimer, consejo médico sin warning, etc. Athena se vuelve el filtro intermedio para que Isabel NO tenga que revisar manualmente cada cosa que el equipo manda. Si el borrador contiene teléfonos, los reporta y sugiere verificar contra LUNA via Maria.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Quién lo está mandando (Sami/Skarleth/etc.).' },
+        contenido: { type: 'string', description: 'El texto del borrador.' },
+        destinatario: { type: 'string', description: 'A quién va (email, teléfono o nombre del cliente).' },
+        tipo: { type: 'string', description: 'email | sms | sami (default email).' },
+      },
+      required: ['persona', 'contenido'],
+    },
+  },
+  {
+    name: 'equipo_iniciativa',
+    description: 'Registra una iniciativa / mejora propuesta por un miembro del equipo. Isabel se queja de que el equipo no toma iniciativa — esta tool incentiva el hábito: cada vez que alguien proponga algo (un proceso nuevo, una idea de outreach, una optimización), regístralo aquí. En weekly review domingo, Isabel ve quién propuso qué y decide aprobar / implementar / descartar.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        persona: { type: 'string', description: 'Quién propuso la mejora.' },
+        propuesta: { type: 'string', description: 'Qué propuso. Una línea concreta.' },
+        contexto: { type: 'string', description: 'Por qué surgió la idea (problema que resolvería).' },
+      },
+      required: ['persona', 'propuesta'],
+    },
+  },
+  {
+    name: 'equipo_iniciativas',
+    description: 'Lista iniciativas propuestas por el equipo en los últimos N días. ÚSALA en weekly review o cuando Isabel pregunte "¿qué propuso el equipo esta semana?".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dias: { type: 'integer', description: 'Ventana. Default 14.' },
+        persona: { type: 'string', description: 'Filtra por persona si quieres.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'equipo_iniciativa_status',
+    description: 'Cambia el status de una iniciativa: propuesta → aprobada → implementada → descartada. Cuando Isabel diga "sí, vamos con la idea de Skarleth" lo marcas aprobada.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID de la iniciativa (init_*).' },
+        status: { type: 'string', description: 'propuesta | aprobada | implementada | descartada' },
+      },
+      required: ['id', 'status'],
+    },
+  },
 
   // ───────── KNOWN UNKNOWNS / GAPS ─────────
   // ───────── AUDITOR DEL CRM ─────────
@@ -1543,6 +1594,55 @@ async function dispatchTool(name, input) {
         return `${p}: ${x.cumplidas}/${x.cumplidas + x.fallidas} cumplido (${ratio}) · ${x.pendientes} pendientes`;
       });
       return `Stats equipo (últimos ${days}d):\n${lines.join('\n')}`;
+    }
+
+    // ─── TEAM REVIEW & INICIATIVAS ───
+    case 'revisar_borrador_equipo': {
+      const { reviewTeamDraft, formatReviewResult } = await import('./team_review.js');
+      const r = await reviewTeamDraft({
+        persona: input.persona,
+        contenido: input.contenido,
+        destinatario: input.destinatario || '',
+        tipo: input.tipo || 'email',
+      });
+      return formatReviewResult(r);
+    }
+    case 'equipo_iniciativa': {
+      const { recordInitiative } = await import('./team_review.js');
+      const r = recordInitiative({
+        persona: input.persona,
+        propuesta: input.propuesta,
+        contexto: input.contexto || '',
+      });
+      if (!r.ok) return `Error: ${r.error}`;
+      return `💡 Iniciativa registrada [${r.initiative.id}]: ${r.initiative.persona} → "${r.initiative.propuesta}". Aparecerá en weekly review domingo para que Isabel decida.`;
+    }
+    case 'equipo_iniciativas': {
+      const { listInitiatives } = await import('./team_review.js');
+      const list = listInitiatives({
+        sinceDays: parseInt(input.dias, 10) || 14,
+        persona: input.persona || null,
+      });
+      if (!list.length) return 'Sin iniciativas registradas en esa ventana.';
+      const byP = {};
+      for (const i of list) { (byP[i.persona] ||= []).push(i); }
+      const lines = [];
+      for (const [p, items] of Object.entries(byP)) {
+        lines.push(`\n${p}:`);
+        for (const it of items) {
+          lines.push(`  [${it.id}] (${it.status}) ${it.propuesta.slice(0, 100)}`);
+        }
+      }
+      return `${list.length} iniciativa(s):${lines.join('')}`;
+    }
+    case 'equipo_iniciativa_status': {
+      const { updateInitiativeStatus } = await import('./team_review.js');
+      const valid = ['propuesta', 'aprobada', 'implementada', 'descartada'];
+      if (!valid.includes(input.status)) return `Status inválido. Usa: ${valid.join(' | ')}`;
+      const r = updateInitiativeStatus(input.id, input.status);
+      return r
+        ? `Iniciativa [${r.id}] de ${r.persona} ahora: ${r.status}`
+        : `No encontré iniciativa ${input.id}.`;
     }
     case 'medicare_pack_seed': {
       const r = seedMedicareSkills();
