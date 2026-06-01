@@ -337,15 +337,35 @@ export function buildWikiContext() {
 }
 
 // ---- Historial de la conversación de WhatsApp con Athena ----
+// Renombres de tools que cambiaron de nombre. Cuando un nombre viejo
+// (ej con ñ que ya no permite Anthropic) está en historial como tool_use,
+// hay que migrarlo al nombre nuevo o el API rechaza el request.
+const TOOL_RENAMES = {
+  'señales_de_hoy': 'senales_de_hoy',
+};
+
+function sanitizeToolNames(messages) {
+  if (!Array.isArray(messages)) return messages;
+  for (const m of messages) {
+    if (!m || !Array.isArray(m.content)) continue;
+    for (const block of m.content) {
+      if (block && block.type === 'tool_use' && TOOL_RENAMES[block.name]) {
+        block.name = TOOL_RENAMES[block.name];
+      }
+    }
+  }
+  return messages;
+}
+
 // La API de Anthropic es sin estado: hay que mandarle el historial
 // completo cada vez. Lo guardamos aquí entre mensajes.
 export function getHistory() {
-  return load(HISTORY_FILE, []);
+  return sanitizeToolNames(load(HISTORY_FILE, []));
 }
 
 export function saveHistory(messages) {
   // Guardamos solo los últimos 40 turnos para no crecer sin límite.
-  save(HISTORY_FILE, messages.slice(-40));
+  save(HISTORY_FILE, sanitizeToolNames(messages).slice(-40));
 }
 
 // ---- Audit log: TODA acción de Athena queda registrada ----
