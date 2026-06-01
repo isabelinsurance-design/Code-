@@ -19,6 +19,88 @@ session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
 
+// ═══════════════════════════════════════════════════════
+// CUENTA DE SERVICIO — Athena / Pilar (máquina-a-máquina)
+// ═══════════════════════════════════════════════════════
+// Permite que OTRO sistema (Athena/Pilar en Railway) llame a LUNA sin
+// sesión humana, usando una llave de servicio secreta.
+//
+//   • La llave vive SOLO en el servidor:  env var LUNA_SERVICE_KEY
+//     o constante LUNA_SERVICE_KEY en config.php. Nunca en el código.
+//   • Se manda en el header  X-LUNA-Key: <llave>  (o ?service_key=).
+//   • Permisos LIMITADOS por allowlist explícita (abajo):
+//       LEER todo  +  CREAR solo (leads, tickets, citas, notas, actividad).
+//   • SIN acceso a: cambiar estado, comisiones, editar/cerrar tickets,
+//     borrar, config, memoria, outbound, chat LLM. (No están en la lista.)
+//   • Cada llamada queda en luna_audit_log igual que las humanas.
+//
+// Athena NO recibe rol 'admin', así que aunque alguna acción se colara,
+// los requireAdmin() la seguirían bloqueando (doble candado).
+// ───────────────────────────────────────────────────────
+$IS_SERVICE = false;
+$svcKey = $_SERVER['HTTP_X_LUNA_KEY'] ?? $_GET['service_key'] ?? $_POST['service_key'] ?? '';
+if ($svcKey !== '') {
+    $expectedSvcKey = getenv('LUNA_SERVICE_KEY')
+        ?: (defined('LUNA_SERVICE_KEY') ? LUNA_SERVICE_KEY : '');
+    if ($expectedSvcKey === '' || !hash_equals($expectedSvcKey, (string)$svcKey)) {
+        http_response_code(403);
+        echo json_encode(['ok'=>false,'error'=>'Llave de servicio inválida.']);
+        exit;
+    }
+
+    // Allowlist: SOLO estas acciones puede ejecutar la cuenta de servicio.
+    // Todo lo demás → 403, aunque la llave sea válida.
+    $SERVICE_ALLOWED = [
+        // ── LEER ──────────────────────────────────────────
+        'luna_whoami','luna_pipeline_summary','luna_t65_alerts',
+        'luna_retention_alerts','luna_hot_leads','luna_search_member',
+        'luna_member_detail','luna_pending_soa','luna_open_tickets',
+        'luna_today_appointments','luna_attendance_today',
+        'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
+        'luna_get_all_goals','luna_entity_search','luna_signals_list',
+        'luna_skill_list','luna_gaps_overview',
+        // ── CREAR (solo crear, nunca editar/borrar) ───────
+        'luna_create_member','luna_create_ticket','luna_create_appointment',
+        'luna_add_member_note','luna_log_activity',
+    ];
+    // Lecturas de comisiones: sensibles para un bot de cara al cliente.
+    // OFF por defecto. Para habilitarlas: define LUNA_SERVICE_ALLOW_COMMISSIONS=1
+    // (env var o constante) en config.php.
+    $svcAllowComm = getenv('LUNA_SERVICE_ALLOW_COMMISSIONS')
+        ?: (defined('LUNA_SERVICE_ALLOW_COMMISSIONS') ? LUNA_SERVICE_ALLOW_COMMISSIONS : '');
+    if ($svcAllowComm) {
+        array_push($SERVICE_ALLOWED, 'luna_commissions_summary',
+            'luna_commissions_advanced','luna_commission_calc','luna_carriers_breakdown');
+    }
+
+    $reqAction = $_GET['action'] ?? $_POST['action'] ?? '';
+    if (!in_array($reqAction, $SERVICE_ALLOWED, true)) {
+        http_response_code(403);
+        echo json_encode([
+            'ok'    => false,
+            'error' => 'Acción no permitida para la cuenta de servicio (Athena).',
+            'action'=> $reqAction,
+            'hint'  => 'Athena puede LEER y CREAR (leads/tickets/citas/notas/actividad). No puede editar, cerrar, borrar ni cambiar estado/comisiones.',
+        ]);
+        exit;
+    }
+
+    // Contexto de la cuenta de servicio. El agente_id debe existir como
+    // agente real (FK en miembros/tickets/citas/actividad). Configúralo con
+    // LUNA_SERVICE_AGENT_ID (env var o constante); default 1 = Isabel/admin.
+    $svcAgentId = (int)(getenv('LUNA_SERVICE_AGENT_ID')
+        ?: (defined('LUNA_SERVICE_AGENT_ID') ? LUNA_SERVICE_AGENT_ID : 1));
+    $_SESSION['user'] = [
+        'id'        => $svcAgentId,
+        'username'  => 'athena',
+        'nombre'    => 'Athena (Pilar)',
+        'rol'       => 'service',          // ← NO es 'admin'
+        'iniciales' => 'AP',
+        'color'     => '#7C3AED',
+    ];
+    $IS_SERVICE = true;
+}
+
 if (empty($_SESSION['user'])) {
     http_response_code(401);
     echo json_encode(['ok'=>false,'error'=>'No autorizado. Inicia sesión en el CRM primero.']);
@@ -85,6 +167,10 @@ function lunaAudit(PDO $pdo, ?int $uid, string $action, string $detail) {
             $ready = true;
         }
         $ip = $_SERVER['REMOTE_ADDR'] ?? null;
+        // Marca el origen: si es la cuenta de servicio (Athena/Pilar) lo
+        // anteponemos para poder auditar quién hizo qué.
+        global $IS_SERVICE;
+        if (!empty($IS_SERVICE)) $action = 'ATHENA:' . $action;
         $pdo->prepare("INSERT INTO luna_audit_log (user_id, action, detail, ip) VALUES (?,?,?,?)")
             ->execute([$uid, mb_substr($action,0,60), mb_substr(redactPII($detail),0,2000), $ip]);
     } catch (Exception $e) { /* audit nunca rompe la operación */ }

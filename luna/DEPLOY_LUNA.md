@@ -76,6 +76,39 @@ El backup usa `mysqldump --single-transaction` (seguro en InnoDB), comprime con
 gzip, rota por antigüedad y borra automáticamente un respaldo corrupto (<1KB).
 **Verifica que `mysqldump` esté en el PATH del cron de Bluehost.**
 
+## 🤝 Conexión Athena/Pilar → LUNA (cuenta de servicio)
+Athena (Pilar, en Railway) llama a LUNA **máquina-a-máquina**, sin sesión humana,
+con una **llave de servicio**. Permisos: **LEER todo + CREAR solo**
+(leads, tickets, citas, notas, actividad). NO puede editar, cerrar, borrar,
+cambiar estado ni tocar comisiones.
+
+**1. Define la llave en `config.php` (Bluehost):**
+```php
+define('LUNA_SERVICE_KEY', 'pega-aquí-una-llave-larga-aleatoria');
+// Agente real al que se atribuyen los registros que cree Athena (FK).
+// Crea un agente "Athena" en el CRM y pon su id, o usa el de Isabel.
+define('LUNA_SERVICE_AGENT_ID', 1);
+// (Opcional) Permitir que Athena LEA comisiones. OFF por defecto
+// porque es un bot de cara al cliente. Descomenta para habilitar:
+// define('LUNA_SERVICE_ALLOW_COMMISSIONS', 1);
+```
+Genera la llave con: `php -r "echo bin2hex(random_bytes(32));"`
+
+**2. Cómo llama Athena (desde Railway):**
+```
+POST https://withisabelfuentes.com/luna/luna_api.php?action=luna_create_ticket
+Header:  X-LUNA-Key: <LUNA_SERVICE_KEY>
+Body (form-url-encoded):
+   tipo=PROSPECTO&prioridad=MEDIA&descripcion=Ricardo prospecto T65 desde WhatsApp
+```
+Respuesta: `{"ok":true,"data":{"id":123,"message":"Ticket #123 creado."}}`
+
+**3. Seguridad:**
+- Acción fuera de la allowlist (ej. `luna_update_member_status`) → `403`.
+- Athena tiene rol `service`, no `admin` → los `requireAdmin()` la bloquean (doble candado).
+- Cada llamada queda en `luna_audit_log` con prefijo `ATHENA:` para distinguirla.
+- Para revocar: borra/rota `LUNA_SERVICE_KEY` en `config.php`. No afecta tu login.
+
 ## Capa de confianza + memoria por capas (ya en el código)
 - Audit log con PII redactado (`luna_audit_log`) + `luna_audit_view` (admin).
 - Cola de outbound con aprobación, review-hooks CMS y horas de silencio.
