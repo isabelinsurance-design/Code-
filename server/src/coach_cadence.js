@@ -194,18 +194,20 @@ export function promptInicialPara(coach) {
     carmen: 'Tengo X comida planeada hoy. ¿Te late? ¿Cómo sumo proteína / corto azúcar / mejoro?',
     rivera: 'Hoy toca workout. ¿Qué me recomiendas según cómo me siento + lo de ayer?',
     sofia: '¿Cómo estoy de sueño, hormonas y vitaminas hoy? ¿Algo que ajustar?',
+    paloma: 'Quiero hablar sobre intimidad / deseo / mi cuerpo en esta fase. Sin filtro.',
     alma: 'Check-in emocional. Te cuento cómo va mi semana y me ayudas a procesar.',
     maria: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SOA falta?',
     elena: 'Revisión financiera de la semana. ¿Cómo va vs metas? ¿Qué ajustar?',
+    nora: '¿Qué negociación / deal tengo abierto? Ayúdame con el próximo movimiento.',
     victoria: '¿Cómo voy con mis 3 rocas de la semana? ¿Cuál es la siguiente acción?',
     marisol: 'Plan de contenido próxima semana. Tírame 2-3 piezas del backlog para mover.',
     beatriz: '¿A quién de mi red NO he hablado en 2+ semanas que debería?',
+    lucia: 'Tengo que hablar en público / grabar contenido pronto. Prepárame voz + estructura.',
+    dolores: 'Check-in sobre mis padres / familia mayor. ¿Qué necesito hacer / preguntar?',
     esperanza: 'Intención del mes / momento espiritual. Aterrízame.',
-    rosa: '¿Qué área de casa necesita atención este mes?',
+    rosa: '¿Qué área de casa (organización o decor) necesita atención este mes?',
     luna: 'Skin check. Síntomas / cambios / qué probar.',
     valentina: 'Wardrobe review trimestral. Qué sobra, qué falta.',
-    camila: 'Espacio nuevo / rediseño. Llévame paso a paso.',
-    lucia: 'Tengo que hablar en público pronto. Prepárame.',
     catalina: 'Viaje próximo. Trip planning logístico.',
   };
   return defaults[coach] || `Check-in programado con ${coach}.`;
@@ -274,12 +276,14 @@ export function seedDefaultCadences() {
     { coach: 'elena', cadencia: 'viernes', hora: '17:00' },
     { coach: 'maria', cadencia: 'quincenal' },
     { coach: 'beatriz', cadencia: 'quincenal' },
+    { coach: 'dolores', cadencia: 'quincenal' }, // cuidado padres — check-in regular sin sobrecargar
+    { coach: 'nora', cadencia: 'mensual', dia: 1 }, // negociación — reset mensual de deals abiertos
     { coach: 'esperanza', cadencia: 'mensual', dia: 1 },
-    { coach: 'rosa', cadencia: 'mensual', dia: 1 },
+    { coach: 'rosa', cadencia: 'mensual', dia: 1 }, // ahora cubre organización + decor
     { coach: 'valentina', cadencia: 'trimestral' },
-    { coach: 'camila', cadencia: 'trimestral' },
+    { coach: 'paloma', cadencia: 'bajo_demanda' }, // intimidad — solo cuando ella lo busque
     { coach: 'luna', cadencia: 'bajo_demanda' },
-    { coach: 'lucia', cadencia: 'bajo_demanda' },
+    { coach: 'lucia', cadencia: 'bajo_demanda' }, // voz + public speaking
     { coach: 'catalina', cadencia: 'bajo_demanda' },
   ];
   const created = [];
