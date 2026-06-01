@@ -3,6 +3,7 @@ import { api } from '../../lib/api.js';
 import Section from '../Section.jsx';
 
 const COACHES = [
+  { id: 'vida', name: 'Vida', domain: 'Motivación / behavioral activation' },
   { id: 'carmen', name: 'Chef Carmen', domain: 'Nutrición' },
   { id: 'rivera', name: 'Coach Rivera', domain: 'Fitness / Tonal' },
   { id: 'sofia', name: 'Dra. Sofía', domain: 'Hormonas / sueño / vitaminas' },
@@ -15,6 +16,7 @@ const COACHES = [
   { id: 'marisol', name: 'Brand Marisol', domain: 'Contenido / YouTube' },
   { id: 'beatriz', name: 'Network Beatriz', domain: 'Networking / PR' },
   { id: 'lucia', name: 'Voz Lucía', domain: 'Voz + public speaking' },
+  { id: 'ines', name: 'Maestra Inés', domain: 'Aprender a aprender · currículums' },
   { id: 'dolores', name: 'Cuidadora Dolores', domain: 'Cuidado padres mayores' },
   { id: 'esperanza', name: 'Guía Esperanza', domain: 'Faith / espiritual' },
   { id: 'rosa', name: 'Casa Rosa', domain: 'Organización + decor' },

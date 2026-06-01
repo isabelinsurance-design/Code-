@@ -191,6 +191,7 @@ export function promptInicialPara(coach) {
   if (c?.prompt_inicial) return c.prompt_inicial;
   // Defaults por coach si no se configuró custom
   const defaults = {
+    vida: '¿Qué tienes que hacer hoy y NO quieres? Vamos a romperlo en pedacitos.',
     carmen: 'Tengo X comida planeada hoy. ¿Te late? ¿Cómo sumo proteína / corto azúcar / mejoro?',
     rivera: 'Hoy toca workout. ¿Qué me recomiendas según cómo me siento + lo de ayer?',
     sofia: '¿Cómo estoy de sueño, hormonas y vitaminas hoy? ¿Algo que ajustar?',
@@ -203,6 +204,7 @@ export function promptInicialPara(coach) {
     marisol: 'Plan de contenido próxima semana. Tírame 2-3 piezas del backlog para mover.',
     beatriz: '¿A quién de mi red NO he hablado en 2+ semanas que debería?',
     lucia: 'Tengo que hablar en público / grabar contenido pronto. Prepárame voz + estructura.',
+    ines: 'Quiero aprender X. Diseña conmigo un currículum de 8-12 semanas.',
     dolores: 'Check-in sobre mis padres / familia mayor. ¿Qué necesito hacer / preguntar?',
     esperanza: 'Intención del mes / momento espiritual. Aterrízame.',
     rosa: '¿Qué área de casa (organización o decor) necesita atención este mes?',
@@ -267,13 +269,15 @@ export function seedDefaultCadences() {
   const existing = loadAll();
   const have = new Set(existing.cadences.map((c) => c.coach));
   const seeds = [
-    { coach: 'carmen', cadencia: 'diaria', hora: '08:00' },
+    { coach: 'vida', cadencia: 'diaria', hora: '06:00' }, // primer pensamiento del día — behavioral activation
     { coach: 'sofia', cadencia: 'diaria', hora: '07:00' },
+    { coach: 'carmen', cadencia: 'diaria', hora: '08:00' },
     { coach: 'rivera', cadencia: '3x_semana', hora: '06:30' },
     { coach: 'victoria', cadencia: 'lunes', hora: '07:00' },
     { coach: 'alma', cadencia: 'lunes', hora: '20:00' },
     { coach: 'marisol', cadencia: 'viernes', hora: '21:00' },
     { coach: 'elena', cadencia: 'viernes', hora: '17:00' },
+    { coach: 'ines', cadencia: 'domingo', hora: '18:00' }, // planning semanal de aprendizaje
     { coach: 'maria', cadencia: 'quincenal' },
     { coach: 'beatriz', cadencia: 'quincenal' },
     { coach: 'dolores', cadencia: 'quincenal' }, // cuidado padres — check-in regular sin sobrecargar
