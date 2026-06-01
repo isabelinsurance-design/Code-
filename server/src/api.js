@@ -269,6 +269,26 @@ export function registerApi(app) {
     res.json({ prompt: promptInicialPara(req.params.coach) });
   });
 
+  // Perfect Week template — pattern Elite EA SOP
+  app.get('/api/perfect-week', requireAuth, async (_req, res) => {
+    const { getPerfectWeek } = await import('./perfect_week.js');
+    res.json(getPerfectWeek());
+  });
+  app.put('/api/perfect-week', requireAuth, async (req, res) => {
+    const { updatePerfectWeek } = await import('./perfect_week.js');
+    res.json(updatePerfectWeek(req.body || {}));
+  });
+  app.post('/api/perfect-week/reset', requireAuth, async (_req, res) => {
+    const { resetToDefault } = await import('./perfect_week.js');
+    res.json(resetToDefault());
+  });
+
+  // Closing the loop — EOD report
+  app.get('/api/closing-loop', requireAuth, async (_req, res) => {
+    const { computeClosingLoop } = await import('./closing_loop.js');
+    res.json(computeClosingLoop());
+  });
+
   // Calendar (Google Calendar - WRITE habilitado)
   app.get('/api/calendar/status', requireAuth, async (_req, res) => {
     const { calendarConfigured } = await import('./calendar.js');

@@ -6,6 +6,7 @@ import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
 import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest } from './proactive.js';
+import { sendClosingLoop } from './closing_loop.js';
 import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
 import { transcribeWhatsAppAudio } from './transcribe.js';
@@ -256,6 +257,8 @@ scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWe
 // Research digest: mediodía — Athena rota tus temas, hace web_search,
 // te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);
+// Closing the loop — 6pm-7pm, reporta lo que cerramos hoy (pattern del Elite EA SOP)
+scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', sendClosingLoop);
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
 // Triage corre antes del briefing para que Athena tenga lista la
 // clasificación + borradores en cola cuando salude a Isabel.

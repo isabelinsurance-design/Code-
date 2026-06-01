@@ -101,12 +101,22 @@ export async function createEvent({
 
   const calendarId = process.env.GOOGLE_CALENDAR_ID || 'primary';
 
-  // Guard de conflicto: si ya hay algo agendado en la ventana,
+  // Guard 1: choca contra Perfect Week (tiempo protegido)? Solo warning,
+  // no bloquea — pero el resultado lleva el flag para que Athena le
+  // pregunte a Isabel antes de confirmar.
+  let perfectWeekWarning = null;
+  try {
+    const { validateEvent, describeConflicts } = await import('./perfect_week.js');
+    const pwConflicts = validateEvent({ inicio: start, fin: end });
+    perfectWeekWarning = describeConflicts(pwConflicts);
+  } catch { /* ignore */ }
+
+  // Guard 2: si ya hay algo agendado en la ventana,
   // devolvemos los eventos que chocan en vez de crear duplicado.
   if (evitar_conflicto) {
     const conflicts = await listConflicts(start, end);
     if (conflicts.length > 0) {
-      return { ok: false, reason: 'conflicto', conflictos: conflicts };
+      return { ok: false, reason: 'conflicto', conflictos: conflicts, perfect_week_warning: perfectWeekWarning };
     }
   }
 
@@ -131,9 +141,9 @@ export async function createEvent({
   }
   try {
     const res = await cal.events.insert(params);
-    return { ok: true, event: toLite(res.data, true) };
+    return { ok: true, event: toLite(res.data, true), perfect_week_warning: perfectWeekWarning };
   } catch (err) {
-    return { ok: false, reason: err.message };
+    return { ok: false, reason: err.message, perfect_week_warning: perfectWeekWarning };
   }
 }
 

@@ -1072,6 +1072,30 @@ MODOS:
     input_schema: { type: 'object', properties: {} },
   },
 
+  // ───────── PERFECT WEEK — template de semana ideal (Elite EA SOP) ─────────
+  {
+    name: 'mi_perfect_week',
+    description: 'Devuelve el template "perfect week" de Isabel: cuáles son sus tiempos protegidos (mañanas creativo+workout, lunch, family evenings, weekends) vs ventana preferida de meetings. ÚSALA antes de proponer crear citas o reagendar, para no atravesar tiempo protegido.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'validar_horario_perfect_week',
+    description: 'Verifica si un horario propuesto choca con el perfect week de Isabel. CUÁNDO USAR: antes de confirmar nueva cita / reagenda, especialmente si la hora cae fuera de la ventana ideal de meetings (2-5pm L-V). Devuelve los conflictos encontrados con sus etiquetas y prioridades.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        inicio: { type: 'string', description: 'ISO datetime del inicio propuesto' },
+        fin: { type: 'string', description: 'ISO datetime del fin propuesto' },
+      },
+      required: ['inicio', 'fin'],
+    },
+  },
+  {
+    name: 'closing_loop_hoy',
+    description: 'Devuelve el closing-the-loop de hoy: cuántas acciones cerraste, agrupadas por tipo (emails, citas, llamadas, tareas, notas, etc.). Útil cuando Isabel pregunta "¿qué hiciste hoy?" o cuando armas reporte.',
+    input_schema: { type: 'object', properties: {} },
+  },
+
   // ───────── COACH CADENCE — citas programadas con coaches ─────────
   {
     name: 'configurar_cadencia_coach',
@@ -2561,6 +2585,33 @@ async function dispatchTool(name, input) {
       if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
       if (!parts.length) return 'Nada que sembrar.';
       return parts.join(' · ');
+    }
+    case 'mi_perfect_week': {
+      const { getPerfectWeek } = await import('./perfect_week.js');
+      const t = getPerfectWeek();
+      const dayNames = ['domingo', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sábado'];
+      const byDay = {};
+      for (const s of t.slots) {
+        const k = dayNames[s.dia];
+        if (!byDay[k]) byDay[k] = [];
+        byDay[k].push(`${s.inicio}-${s.fin} [${s.prioridad}] ${s.etiqueta}`);
+      }
+      return Object.entries(byDay).map(([d, slots]) => `${d}: ${slots.join(' · ')}`).join('\n');
+    }
+    case 'validar_horario_perfect_week': {
+      const { validateEvent, describeConflicts } = await import('./perfect_week.js');
+      const inicio = new Date(input.inicio);
+      const fin = new Date(input.fin);
+      const conflicts = validateEvent({ inicio, fin });
+      if (!conflicts.length) return 'Sin conflictos con perfect week — horario verde.';
+      return `Conflictos: ${conflicts.map((c) => `${c.etiqueta} (${c.prioridad})`).join(' · ')}\n→ ${describeConflicts(conflicts)}`;
+    }
+    case 'closing_loop_hoy': {
+      const { computeClosingLoop } = await import('./closing_loop.js');
+      const loop = computeClosingLoop();
+      if (loop.total === 0) return `Hoy (${loop.fecha}): cero acciones cerradas todavía.`;
+      const counts = Object.entries(loop.por_tool).map(([t, arr]) => `${t}:${arr.length}`).join(' · ');
+      return `Hoy (${loop.fecha}): ${loop.total} acciones cerradas.\n${counts}`;
     }
     case 'configurar_cadencia_coach': {
       const { setCadence } = await import('./coach_cadence.js');
