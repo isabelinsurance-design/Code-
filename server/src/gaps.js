@@ -2,7 +2,7 @@
 //  Gaps — "what Athena doesn't know yet but should"
 //  ────────────────────────────────────────────────
 //  Inspirada por gbrain (Garry Tan, YC) — en vez de esperar
-//  a que Isabel pregunte "qué sabes de María", Athena le surface
+//  a que Isabel pregunte "qué sabes de Pilar", Athena le surface
 //  lo que FALTA por saber. Concretamente:
 //
 //   - Por cliente: MBI no verificado, SOA faltante, TCPA sin

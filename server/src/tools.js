@@ -74,7 +74,7 @@ import {
 export const toolDefinitions = [
   {
     name: 'consultar_especialistas',
-    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel. Pasa un array \`consultas\` con una entrada por coach. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — más rápido + permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=maria, dinero=elena, estrés/mindset=alma, metas/visión=victoria.
+    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel. Pasa un array \`consultas\` con una entrada por coach. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — más rápido + permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=pilar, dinero=elena, estrés/mindset=alma, metas/visión=victoria.
 
 MODOS:
 - mode='parallel' (default): cada coach contesta en paralelo, aislada. Más rápido + barato. Bueno para preguntas que tocan dominios independientes.
@@ -88,7 +88,7 @@ MODOS:
           items: {
             type: 'object',
             properties: {
-              especialista: { type: 'string', description: 'El id de la coach (ej. carmen, rivera, maria).' },
+              especialista: { type: 'string', description: 'El id de la coach (ej. carmen, rivera, pilar).' },
               tarea: { type: 'string', description: 'Lo que necesitas de ella, con contexto suficiente. Sé específica.' },
               formato_salida: { type: 'string', description: 'Opcional. Formato esperado, ej. "3 bullets máx", "1 acción concreta", "plan de 4 días".' },
               presupuesto_palabras: { type: 'integer', description: 'Opcional. Máximo de palabras de la respuesta (default 150).' },
@@ -462,7 +462,7 @@ MODOS:
         persona: { type: 'string', description: 'Nombre canónico de la persona (como Isabel la llama más seguido).' },
         nota: { type: 'string', description: 'Lo que pasó / lo que es importante recordar.' },
         tipo: { type: 'string', enum: ['client', 'lead', 'family', 'team', 'vendor', 'broker', 'doctor', 'friend', 'other'], description: 'Default "other". Sube tipo si lo sabes.' },
-        alias: { type: 'string', description: 'Opcional. Otro nombre por el que se le conoce ("Mari" para "Maria Hernández").' },
+        alias: { type: 'string', description: 'Opcional. Otro nombre por el que se le conoce ("Mari" para "Pilar Hernández").' },
         salience: { type: 'integer', description: 'Importancia 0-10. Default 5.' },
         cliente_id: { type: 'string', description: 'Opcional. Vincular a un cliente del CRM.' },
       },
@@ -505,7 +505,7 @@ MODOS:
   },
   {
     name: 'entidad_fusionar',
-    description: 'Fusiona dos entidades en una (caso típico: "Maria" y "Maria Hernández" terminaron como dos por error — keep_id absorbe drop_id como alias). Solo úsalo cuando estés SEGURA que son la misma persona.',
+    description: 'Fusiona dos entidades en una (caso típico: "Pilar" y "Pilar Hernández" terminaron como dos por error — keep_id absorbe drop_id como alias). Solo úsalo cuando estés SEGURA que son la misma persona.',
     input_schema: {
       type: 'object',
       properties: {
@@ -695,7 +695,7 @@ MODOS:
   },
   {
     name: 'revisar_borrador_equipo',
-    description: 'Revisa un borrador que una empleada (Sami / Skarleth / Arlette / Samia) está por mandar a un cliente. Devuelve veredicto (APROBADO / APROBADO CON NOTAS / RECHAZADO) + lista de errores específicos: typos Medicare (Antem→Anthem), acrónimos en minúsculas (aep→AEP), claims CMS prohibidos (best/cheapest/guaranteed), falta de disclaimer, consejo médico sin warning, etc. Athena se vuelve el filtro intermedio para que Isabel NO tenga que revisar manualmente cada cosa que el equipo manda. Si el borrador contiene teléfonos, los reporta y sugiere verificar contra LUNA via Maria.',
+    description: 'Revisa un borrador que una empleada (Sami / Skarleth / Arlette / Samia) está por mandar a un cliente. Devuelve veredicto (APROBADO / APROBADO CON NOTAS / RECHAZADO) + lista de errores específicos: typos Medicare (Antem→Anthem), acrónimos en minúsculas (aep→AEP), claims CMS prohibidos (best/cheapest/guaranteed), falta de disclaimer, consejo médico sin warning, etc. Athena se vuelve el filtro intermedio para que Isabel NO tenga que revisar manualmente cada cosa que el equipo manda. Si el borrador contiene teléfonos, los reporta y sugiere verificar contra LUNA via Pilar.',
     input_schema: {
       type: 'object',
       properties: {
@@ -1099,11 +1099,11 @@ MODOS:
   // ───────── COACH CADENCE — citas programadas con coaches ─────────
   {
     name: 'configurar_cadencia_coach',
-    description: `Programa la cadencia con la que Isabel hace check-in con una coach específica. CUÁNDO USAR: Isabel dice "quiero hablar con Victoria todos los lunes" / "Carmen diaria" / "Maria cada 15 días" / "quita la cadencia de X". Cadencias soportadas: diaria, L-V, 3x_semana (L/X/V), lunes/martes/etc específico, semanal, quincenal, mensual (con día opcional), trimestral, bajo_demanda. Es idempotente — actualiza si ya existe.`,
+    description: `Programa la cadencia con la que Isabel hace check-in con una coach específica. CUÁNDO USAR: Isabel dice "quiero hablar con Victoria todos los lunes" / "Carmen diaria" / "Pilar cada 15 días" / "quita la cadencia de X". Cadencias soportadas: diaria, L-V, 3x_semana (L/X/V), lunes/martes/etc específico, semanal, quincenal, mensual (con día opcional), trimestral, bajo_demanda. Es idempotente — actualiza si ya existe.`,
     input_schema: {
       type: 'object',
       properties: {
-        coach: { type: 'string', description: 'ID del coach: carmen, rivera, sofia, alma, maria, elena, victoria, marisol, beatriz, esperanza, rosa, luna, valentina, camila, lucia, catalina.' },
+        coach: { type: 'string', description: 'ID del coach: carmen, rivera, sofia, alma, pilar, elena, victoria, marisol, beatriz, esperanza, rosa, luna, valentina, camila, lucia, catalina.' },
         cadencia: { type: 'string', enum: ['diaria', 'L-V', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sabado', 'domingo', '3x_semana', 'semanal', 'quincenal', 'mensual', 'trimestral', 'bajo_demanda'] },
         hora: { type: 'string', description: 'Hora sugerida HH:MM (opcional). Ej: "07:00".' },
         dia: { description: 'Para mensual: día del mes 1-31. Para semanal: nombre del día.' },
@@ -1134,7 +1134,7 @@ MODOS:
   },
   {
     name: 'seed_cadencias_coach',
-    description: 'Crea cadencias default razonables para todos los coaches (Carmen diaria, Rivera 3x/sem, Victoria semanal, Maria quincenal, etc). Idempotente.',
+    description: 'Crea cadencias default razonables para todos los coaches (Carmen diaria, Rivera 3x/sem, Victoria semanal, Pilar quincenal, etc). Idempotente.',
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -1655,7 +1655,7 @@ async function dispatchTool(name, input) {
       if (!consultas.length) {
         return 'Pasa al menos una entrada en `consultas` con {especialista, tarea}.';
       }
-      // María Medicare es la única coach con acceso a LUNA. Se inyectan
+      // Pilar Medicare es la única coach con acceso a LUNA. Se inyectan
       // dinámicamente las 14 tools luna_* solo cuando es ella la consultada.
       // Carmen/Rivera/Sofía reciben datos REALES de hábitos (peso, agua,
       // proteína, workouts, sueño) — sin esto coachean a ciegas.
@@ -1676,8 +1676,8 @@ async function dispatchTool(name, input) {
             formato: c.formato_salida,
             presupuesto: c.presupuesto_palabras,
           };
-          // Maria recibe acceso a LUNA. El resto: single-turn sin tools.
-          if (c.especialista === 'maria') {
+          // Pilar recibe acceso a LUNA. El resto: single-turn sin tools.
+          if (c.especialista === 'pilar') {
             opts.tools = LUNA_TOOL_DEFINITIONS;
             opts.toolDispatcher = runLunaTool;
           }

@@ -4,38 +4,25 @@
 //  LUNA es el workspace del equipo (Skarleth, Arlette, Samia)
 //  + el CRM operacional en MySQL. Vive aparte de Athena.
 //  Este módulo le permite a Athena leer/escribir contra la
-//  base de datos REAL de LUNA, así Maria deja de tener su
+//  base de datos REAL de LUNA, así Pilar deja de tener su
 //  propio `data/crm.json` paralelo y todos comparten verdad.
 //
-//  Auth: shared secret en header X-Athena-Key. LUNA tiene
-//  que aceptar este header como bypass de session — patch
-//  necesario en luna_api.php (ver bloque PHP de abajo).
+//  Auth: shared secret en header X-LUNA-Key (definido por el equipo
+//  LUNA). El endpoint ya acepta este header como bypass de session,
+//  no requiere patch — el equipo de LUNA lo construyó del lado PHP.
 //
 //  Variables de entorno:
 //    LUNA_BASE_URL    URL completa al endpoint. Ej:
-//                     https://withisabelfuentes.com/luna_api.php
-//    LUNA_API_KEY     Shared secret. Genera con `openssl rand -hex 32`.
-//                     Mismo valor debe estar en LUNA's env.
+//                     https://withisabelfuentes.com/luna/luna_api.php
+//    LUNA_API_KEY     Shared secret provisto por equipo LUNA.
+//                     Pegar directo en Railway, NUNCA en repo.
 //
 //  Si LUNA_BASE_URL no está, lunaConfigured() devuelve false y
 //  todas las tools devuelven un mensaje claro de "no configurado"
 //  sin romper Athena.
 // ============================================================
-//
-//  ─── PATCH para luna_api.php (al inicio, antes de session_start) ───
-//
-//  $athenaKey = $_SERVER['HTTP_X_ATHENA_KEY'] ?? '';
-//  $expected  = getenv('LUNA_INTERNAL_KEY') ?: '';
-//  if ($athenaKey && $expected && hash_equals($expected, $athenaKey)) {
-//      // Bypass session — tratar como Isabel-admin
-//      $_SESSION['user_id']  = 6;          // ID de Isabel
-//      $_SESSION['rol']      = 'admin';
-//      $_SESSION['nombre']   = 'Isabel (vía Athena)';
-//      $_SESSION['is_athena']= true;
-//  } else {
-//      session_start();
-//  }
-//
+//  El bypass de session lo construyó el equipo LUNA (junio 2026).
+//  Ya no se requiere patch del lado de Athena.
 // ============================================================
 
 import { logActivity } from './memory.js';
@@ -74,7 +61,7 @@ async function lunaFetch(action, { method = 'GET', params = {}, body = null } = 
 
   const init = {
     method,
-    headers: { 'X-Athena-Key': process.env.LUNA_API_KEY },
+    headers: { 'X-LUNA-Key': process.env.LUNA_API_KEY },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   };
 
@@ -98,7 +85,7 @@ async function lunaFetch(action, { method = 'GET', params = {}, body = null } = 
 }
 
 // ============================================================
-//  Lectura — Maria consulta LUNA cuando Isabel pregunta
+//  Lectura — Pilar consulta LUNA cuando Isabel pregunta
 // ============================================================
 
 export async function searchMember(query) {
@@ -152,7 +139,7 @@ export async function carriersBreakdown() {
 }
 
 // ============================================================
-//  Escritura — Isabel dicta, Maria escribe a LUNA en tiempo real
+//  Escritura — Isabel dicta, Pilar escribe a LUNA en tiempo real
 // ============================================================
 
 export async function addMemberNote(memberId, nota) {

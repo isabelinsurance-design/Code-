@@ -9,7 +9,7 @@ const COACHES = [
   { id: 'sofia', name: 'Dra. Sofía', domain: 'Hormonas / sueño / vitaminas' },
   { id: 'paloma', name: 'Intimidad Paloma', domain: 'Deseo / placer / pareja' },
   { id: 'alma', name: 'Mente Alma', domain: 'Mindset / ansiedad' },
-  { id: 'maria', name: 'María Medicare', domain: 'Pipeline clientes' },
+  { id: 'pilar', name: 'Pilar Medicare', domain: 'Pipeline clientes' },
   { id: 'elena', name: 'CFO Elena', domain: 'Finanzas' },
   { id: 'nora', name: 'Negocia Nora', domain: 'Ventas / negociación' },
   { id: 'victoria', name: 'Visión Victoria', domain: 'OKRs / rocas 90d' },

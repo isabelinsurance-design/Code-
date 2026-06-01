@@ -12,7 +12,7 @@
 //    - Te confronta con cariño si estás overspending
 //
 //  Las comisiones del negocio Medicare viven en LUNA. Para
-//  esos números, Elena puede pedirle a Maria que consulte
+//  esos números, Elena puede pedirle a Pilar que consulte
 //  LUNA. Este módulo trackea TODO LO PERSONAL — Sprouts,
 //  gimnasio, gas, eat-out, marketing, tu sueldo, otros
 //  ingresos.

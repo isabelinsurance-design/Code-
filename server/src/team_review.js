@@ -59,7 +59,7 @@ const CARRIER_NAMES = ['Anthem', 'SCAN', 'Humana', 'Alignment Health Plan', 'LA 
 
 // ─── Phone number consistency check ───
 // Si el draft menciona un teléfono, detectarlo y reportarlo
-// para que Athena pueda cross-checkear via Maria con LUNA.
+// para que Athena pueda cross-checkear via Pilar con LUNA.
 function extractPhones(text) {
   // US format: (xxx) xxx-xxxx, xxx-xxx-xxxx, xxx.xxx.xxxx, +1xxxxxxxxxx
   const phones = String(text).match(/(?:\+?1[-\s.]?)?\(?\d{3}\)?[-\s.]?\d{3}[-\s.]?\d{4}/g) || [];
@@ -120,14 +120,14 @@ export async function reviewTeamDraft({ persona, contenido, destinatario = '', t
     }
   }
 
-  // 3. Phones / emails detectados (Athena los puede cross-checkear via Maria→LUNA)
+  // 3. Phones / emails detectados (Athena los puede cross-checkear via Pilar→LUNA)
   const phones = extractPhones(contenido);
   const emails = extractEmails(contenido);
   if (phones.length) {
     flags.push({
       severidad: 'info',
       kind: 'phone_detected',
-      nota: `${phones.length} teléfono(s) detectado(s): ${phones.join(', ')}. Athena puede verificar contra LUNA via Maria si necesitas.`,
+      nota: `${phones.length} teléfono(s) detectado(s): ${phones.join(', ')}. Athena puede verificar contra LUNA via Pilar si necesitas.`,
       datos: phones,
     });
   }

@@ -11,9 +11,9 @@ export const anthropic = new Anthropic({
 // tool_use hasta que la coach decide responder sin más herramientas.
 // El loop tiene un cap defensivo (maxRounds, default 5).
 //
-// La razón de existir del tool loop: que Maria pueda leer/escribir LUNA
+// La razón de existir del tool loop: que Pilar pueda leer/escribir LUNA
 // durante una consulta sin requerir que Athena la directora tenga las
-// tools expuestas a su nivel. Maria es la única "embajadora" a LUNA.
+// tools expuestas a su nivel. Pilar es la única "embajadora" a LUNA.
 export async function askSpecialist(specialist, question, wikiContext = '', opts = {}) {
   const constraints = [];
   if (opts.formato) constraints.push(`Formato pedido: ${opts.formato}.`);

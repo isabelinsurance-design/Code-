@@ -59,7 +59,7 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     const { buildTeamBriefingBlock } = await import('./team.js');
     const teamBlock = buildTeamBriefingBlock();
     if (teamBlock) {
-      teamHint = `\n\nEQUIPO HOY (CRÍTICO — esto es lo que ANTES Isabel andaba recordándoles ella misma; ahora lo cargas tú):\n${teamBlock}\n\nIncluye UNA card específica del equipo en el briefing, mencionando POR NOMBRE quién tiene qué pendiente. Si hay vencidos, ofrécete a recordárselo (mensaje_a_sami o ticket en LUNA vía Maria). Isabel YA NO debería andar repitiendo cosas a su equipo.`;
+      teamHint = `\n\nEQUIPO HOY (CRÍTICO — esto es lo que ANTES Isabel andaba recordándoles ella misma; ahora lo cargas tú):\n${teamBlock}\n\nIncluye UNA card específica del equipo en el briefing, mencionando POR NOMBRE quién tiene qué pendiente. Si hay vencidos, ofrécete a recordárselo (mensaje_a_sami o ticket en LUNA vía Pilar). Isabel YA NO debería andar repitiendo cosas a su equipo.`;
     }
   } catch { /* ignore */ }
 

@@ -16,7 +16,7 @@
 //     a Isabel "esto fue lo que prometió cada una ayer + qué
 //     vence hoy + qué se atrasó".
 //
-//  3. CROSS-CHECK con LUNA: Maria puede verificar si Skarleth
+//  3. CROSS-CHECK con LUNA: Pilar puede verificar si Skarleth
 //     registró actividad relacionada en LUNA → marca cumplido
 //     automático.
 //

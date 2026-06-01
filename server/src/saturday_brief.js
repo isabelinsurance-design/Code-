@@ -14,9 +14,9 @@
 //   5. Say-do propio de Athena de la semana
 //   6. Tres preguntas concretas para abrir el sábado
 //
-//  Lo que NO compila aquí (lo pides el sábado a Maria si
+//  Lo que NO compila aquí (lo pides el sábado a Pilar si
 //  quieres): números de LUNA (pipeline, SOAs, retención).
-//  Eso vive en LUNA y solo Maria lo lee.
+//  Eso vive en LUNA y solo Pilar lo lee.
 // ============================================================
 import { listTeamCommitments, listOverdueTeamCommitments, statsByPerson } from './team.js';
 import { listInitiatives } from './team_review.js';

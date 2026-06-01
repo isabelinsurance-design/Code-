@@ -14,7 +14,7 @@
 //      "draft" en data/skills/.
 //   3. Isabel dice "aprueba la skill AEP outreach" → status
 //      pasa a "active".
-//   4. La próxima vez que Isabel diga "prepara AEP de María",
+//   4. La próxima vez que Isabel diga "prepara AEP de Pilar",
 //      Athena llama skill_invocar("aep_outreach_secuencia",
 //      {cliente_id: "..."}) — Athena ejecuta el cuerpo como
 //      sub-conversación con sus tools normales.
@@ -369,7 +369,7 @@ export function recentAutoDrafts({ hoursBack = 24 } = {}) {
 // ============================================================
 //  Medicare workflow pack (Phase 13)
 //  ──────────────────────────────────
-//  6 skills seed que Isabel aprueba una vez y luego María/Athena
+//  6 skills seed que Isabel aprueba una vez y luego Pilar/Athena
 //  invoca a través del año. Idempotente — si ya existe el skill
 //  (en cualquier estado), no se sobrescribe.
 // ============================================================

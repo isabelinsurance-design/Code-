@@ -35,9 +35,9 @@ Athena does NOT own the Medicare CRM. There are three systems that share data:
 - **LUNA** (separate repo, Bluehost) — the team's workspace. PHP + MySQL. Skarleth, Arlette, Samia, and Isabel use it from a browser. Owns: miembros (clients), pólizas, SOAs, tickets, citas, actividad log, comisiones, metas.
 - **Sistema Maestro IA** (being absorbed into LUNA) — marketing/content tool. Will retire as a standalone.
 
-**Maria Medicare is the ONLY bridge between Athena and LUNA.** Athena's directora does NOT have direct access to LUNA. The 14 `luna_*` tools live in `luna_tools.js` and are injected dynamically when `consultar_especialistas` is called with `especialista='maria'`. Anyone else asking — including Athena herself — gets denied access at the architecture level (the tools simply aren't in their tool set). This enforces the principle "LUNA is a separate system; only Maria knows how to talk to it."
+**Pilar Medicare is the ONLY bridge between Athena and LUNA.** Athena's directora does NOT have direct access to LUNA. The 14 `luna_*` tools live in `luna_tools.js` and are injected dynamically when `consultar_especialistas` is called with `especialista='pilar'`. Anyone else asking — including Athena herself — gets denied access at the architecture level (the tools simply aren't in their tool set). This enforces the principle "LUNA is a separate system; only Pilar knows how to talk to it."
 
-Maria reads/writes LUNA via `luna_api.php` using shared-secret auth (X-Athena-Key header). For Medicare-client operations Athena MUST delegate to Maria via `consultar_especialistas`. Athena no longer has its own CRM — `data/crm.json` is empty/legacy.
+Pilar reads/writes LUNA via `luna_api.php` using shared-secret auth (X-Athena-Key header). For Medicare-client operations Athena MUST delegate to Pilar via `consultar_especialistas`. Athena no longer has its own CRM — `data/crm.json` is empty/legacy.
 
 **Infrastructure exception:** `voice.js` calls `luna_client` directly during phone calls to identify the caller before the conversation starts (latency-sensitive lookup). This is infrastructure, not conversational — the directora does not gain LUNA access through it.
 
@@ -65,7 +65,7 @@ TTS-1 voice replies (OpenAI). Athena replies in voice when Isabel sends voice. I
 Twilio signature validation enforced. Idempotency by `MessageSid` (Twilio retries can't double-fire tools). Rate limit on the webhook. PII redaction in the audit log (phone / email / SSN / MBI). Hourly tar.gz backups with rotation + direct upload to S3-compatible storage (Cloudflare R2). Bumped prompt-cache TTL to 1h (Anthropic dropped the default to 5m in Feb 2026).
 
 ### Phase 6 — entity memory + Medicare compliance + signals + dreaming
-**Entity memory:** every person Isabel mentions becomes a typed entity (`client / lead / family / team / vendor / broker / doctor / friend / other`) with notes + aliases + salience + optional CRM link. Resolves "Maria" / "Maria Hernández" / "Mari" to one record.
+**Entity memory:** every person Isabel mentions becomes a typed entity (`client / lead / family / team / vendor / broker / doctor / friend / other`) with notes + aliases + salience + optional CRM link. Resolves "Pilar" / "Pilar Hernández" / "Mari" to one record.
 
 **Medicare compliance fields** added to every client: SOA status + 10-year retention, MBI verification, TCPA consent, AEP touchpoint log (for the CMS 12-month rule), drug list, provider directory, call recording URL. Derived helpers: `t65Info` (ICEP window auto-computed from DOB), `isAepNow` (Oct 15 – Dec 7 banner), `clientsNeedingAnnualTouch`, `clientsWithMbiPending`, `clientsWithSoaIssue`, `t65Pipeline`.
 
@@ -123,7 +123,7 @@ server/
 │  ├─ agents.js                    The 17 coach personas + ISABEL_FILOSOFIA + ISABEL_BASE
 │  ├─ directora.js                 Athena's main run loop (Opus 4.8 + tools + memory context)
 │  ├─ tools.js                     49 tools — definitions + dispatcher (directora-level)
-│  ├─ luna_tools.js                14 luna_* tools — Maria-only via consultar_especialistas
+│  ├─ luna_tools.js                14 luna_* tools — Pilar-only via consultar_especialistas
 │  ├─ whatsapp.js                  Twilio WhatsApp send (supports media + voice notes out)
 │  ├─ email.js                     Gmail IMAP + SMTP (nodemailer + imapflow)
 │  ├─ transcribe.js                Whisper voice-note transcription
@@ -182,7 +182,7 @@ Each coach has a stable `id` used for routing throughout the app — **never ren
 | `sofia` | Dra. Sofía | Hormones / wellness |
 | `luna` | Beauty Luna | Skin / beauty |
 | `valentina` | Estilo Valentina | Style |
-| `maria` | María Medicare | Medicare / clients |
+| `pilar` | Pilar Medicare | Medicare / clients |
 | `elena` | CFO Elena | Finances |
 | `alma` | Mente Alma | Mindset |
 | `rosa` | Casa Rosa | Home / organizing |
@@ -216,7 +216,7 @@ The block covers:
 
 ---
 
-## The 49 tools at the directora level (plus 14 Maria-only)
+## The 49 tools at the directora level (plus 14 Pilar-only)
 
 ### Memory & priorities
 `recordar`, `olvidar`, `que_recuerdas`, `actualizar_temporada`, `consultar_temporada`, `historial`
@@ -230,8 +230,8 @@ The block covers:
 ### Entities (per-person memory)
 `entidad_anotar`, `entidad_buscar`, `entidad_expediente`, `entidad_vincular_cliente`, `entidad_fusionar`
 
-### Maria-only LUNA tools (no expuestas a la directora)
-Estas 14 tools viven en `luna_tools.js`. Solo Maria las recibe cuando es consultada via `consultar_especialistas`. La directora (Athena) NO las ve en su `toolDefinitions`.
+### Pilar-only LUNA tools (no expuestas a la directora)
+Estas 14 tools viven en `luna_tools.js`. Solo Pilar las recibe cuando es consultada via `consultar_especialistas`. La directora (Athena) NO las ve en su `toolDefinitions`.
 Reads: `luna_buscar_miembro`, `luna_expediente_miembro`, `luna_briefing_completo`, `luna_pipeline_resumen`, `luna_t65_alertas`, `luna_hot_leads`, `luna_compliance_pendiente`, `luna_actividad_reciente`, `luna_carriers_breakdown`
 Writes: `luna_agregar_nota`, `luna_registrar_actividad`, `luna_crear_miembro`, `luna_crear_ticket`, `luna_crear_cita`
 

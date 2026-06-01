@@ -3,7 +3,7 @@
 //  ────────────────────────────────────────────────────────────
 //  Isabel no quiere hablar con cada coach por capricho — quiere
 //  una ESTRUCTURA. Carmen diaria (nutrición), Rivera 3x/sem (gym
-//  days), Victoria semanal (OKRs), Maria cada 15d (pipeline), etc.
+//  days), Victoria semanal (OKRs), Pilar cada 15d (pipeline), etc.
 //
 //  Este módulo:
 //    1. Guarda cadencia por coach (diaria/semanal/mensual/etc).
@@ -197,7 +197,7 @@ export function promptInicialPara(coach) {
     sofia: '¿Cómo estoy de sueño, hormonas y vitaminas hoy? ¿Algo que ajustar?',
     paloma: 'Quiero hablar sobre intimidad / deseo / mi cuerpo en esta fase. Sin filtro.',
     alma: 'Check-in emocional. Te cuento cómo va mi semana y me ayudas a procesar.',
-    maria: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SOA falta?',
+pilar: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SOA falta?',
     elena: 'Revisión financiera de la semana. ¿Cómo va vs metas? ¿Qué ajustar?',
     nora: '¿Qué negociación / deal tengo abierto? Ayúdame con el próximo movimiento.',
     victoria: '¿Cómo voy con mis 3 rocas de la semana? ¿Cuál es la siguiente acción?',
@@ -278,7 +278,7 @@ export function seedDefaultCadences() {
     { coach: 'marisol', cadencia: 'viernes', hora: '21:00' },
     { coach: 'elena', cadencia: 'viernes', hora: '17:00' },
     { coach: 'ines', cadencia: 'domingo', hora: '18:00' }, // planning semanal de aprendizaje
-    { coach: 'maria', cadencia: 'quincenal' },
+    { coach: 'pilar', cadencia: 'quincenal' },
     { coach: 'beatriz', cadencia: 'quincenal' },
     { coach: 'dolores', cadencia: 'quincenal' }, // cuidado padres — check-in regular sin sobrecargar
     { coach: 'nora', cadencia: 'mensual', dia: 1 }, // negociación — reset mensual de deals abiertos

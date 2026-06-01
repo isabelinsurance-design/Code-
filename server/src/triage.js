@@ -59,7 +59,7 @@ ${inventario}
 
 TU TRABAJO:
 1) Clasifica mentalmente cada correo en: cliente_medicare | personal | urgente | newsletter | spam | otro.
-2) Para los de CLIENTE MEDICARE: redacta una respuesta corta y cumplida (consulta a maria en consultar_especialistas si necesitas tono/CMS) y crea el borrador con enviar_email. Quedará en cola para que Isabel diga "envía" cuando lea el briefing.
+2) Para los de CLIENTE MEDICARE: redacta una respuesta corta y cumplida (consulta a pilar en consultar_especialistas si necesitas tono/CMS) y crea el borrador con enviar_email. Quedará en cola para que Isabel diga "envía" cuando lea el briefing.
 3) Para los URGENTES no-cliente: solo márcalos en memoria con recordar(): "Triage: correo urgente de [remitente] sobre [tema], requiere atención de Isabel hoy."
 4) Para newsletters / spam / personal sin urgencia: ignóralos.
 5) Al final, llama recordar() UNA vez con un resumen breve: "Triage de la mañana [fecha]: N correos revisados, X importantes, Y borradores listos, Z urgentes para Isabel."

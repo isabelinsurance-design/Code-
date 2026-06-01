@@ -54,7 +54,7 @@ export default function Calendar() {
             <strong>Google Calendar no configurado todavía.</strong> Para activarlo, Sami necesita poner
             en Railway: <code className="bg-lino-200 px-1 rounded">GOOGLE_CALENDAR_CLIENT_ID</code>, <code className="bg-lino-200 px-1 rounded">GOOGLE_CALENDAR_CLIENT_SECRET</code> y <code className="bg-lino-200 px-1 rounded">GOOGLE_CALENDAR_REFRESH_TOKEN</code>.
             <br /><br />
-            Mientras tanto Athena puede agendar cosas vía Marisol / Maria por WhatsApp, pero no se sincronizan a Google.
+            Mientras tanto Athena puede agendar cosas vía Marisol / Pilar por WhatsApp, pero no se sincronizan a Google.
           </p>
         </div>
       </div>

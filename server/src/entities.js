@@ -6,8 +6,8 @@
 //  se vuelve una entidad con su propia colección de notas, alias
 //  y tipo (client/family/vendor/team/...). Esto cierra el gap
 //  #1 de memoria identificado en el audit de mayo 2026:
-//  preguntar "¿qué sabes de Maria?" devuelve TODO lo que se ha
-//  acumulado sobre Maria, en vez de tres strings sueltos.
+//  preguntar "¿qué sabes de Pilar?" devuelve TODO lo que se ha
+//  acumulado sobre Pilar, en vez de tres strings sueltos.
 //
 //  Si la entidad es un cliente Medicare, se puede vincular al
 //  expediente CRM (linkClient) para que Athena cruce las dos
@@ -151,7 +151,7 @@ export function linkClient(entityId, clienteId) {
   return rows[i];
 }
 
-// Combina dos entidades en una (caso típico: "Maria" y "Maria
+// Combina dos entidades en una (caso típico: "Pilar" y "Pilar
 // Hernandez" terminaron como dos por error — las fusionamos).
 export function mergeEntities(keepId, dropId) {
   if (keepId === dropId) return null;

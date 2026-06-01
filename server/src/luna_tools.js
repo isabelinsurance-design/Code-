@@ -1,13 +1,13 @@
 // ============================================================
-//  LUNA tools — exclusivos de María Medicare
+//  LUNA tools — exclusivos de Pilar Medicare
 //  ──────────────────────────────────────────
 //  Estas 14 tools NO viven en el tool registry global de Athena.
-//  Solo Maria las recibe cuando es consultada via consultar_
+//  Solo Pilar las recibe cuando es consultada via consultar_
 //  especialistas. Athena la directora NO puede llamarlas
-//  directamente — tiene que delegar a Maria.
+//  directamente — tiene que delegar a Pilar.
 //
 //  Filosofía: LUNA es un producto separado. Solo una "embajadora"
-//  desde Athena (Maria) puede hablar con ella.
+//  desde Athena (Pilar) puede hablar con ella.
 //
 //  Excepción documentada: voice.js llama a luna_client directo
 //  para identificar al caller antes de iniciar conversación. Es
@@ -172,7 +172,7 @@ export const LUNA_TOOL_DEFINITIONS = [
   },
 ];
 
-// Dispatcher — Maria llama esto durante la conversación
+// Dispatcher — Pilar llama esto durante la conversación
 export async function runLunaTool(name, input = {}) {
   if (!lunaConfigured()) return 'LUNA no está configurado (LUNA_BASE_URL / LUNA_API_KEY).';
   try {
