@@ -2,15 +2,17 @@ import { useState } from 'react';
 import RoutinesPanel from '../components/configura/RoutinesPanel.jsx';
 import FocusPanel from '../components/configura/FocusPanel.jsx';
 import ResearchPanel from '../components/configura/ResearchPanel.jsx';
+import CoachesPanel from '../components/configura/CoachesPanel.jsx';
 
 const TABS = [
+  { id: 'coaches', label: 'Coaches' },
   { id: 'rutinas', label: 'Rutinas' },
   { id: 'focus', label: 'Focus blocks' },
   { id: 'research', label: 'Research' },
 ];
 
 export default function Configura() {
-  const [tab, setTab] = useState('rutinas');
+  const [tab, setTab] = useState('coaches');
 
   return (
     <div className="space-y-5">
@@ -36,6 +38,7 @@ export default function Configura() {
         ))}
       </div>
 
+      {tab === 'coaches' && <CoachesPanel />}
       {tab === 'rutinas' && <RoutinesPanel />}
       {tab === 'focus' && <FocusPanel />}
       {tab === 'research' && <ResearchPanel />}

@@ -18,6 +18,7 @@ import { buildLegalInline } from './legal.js';
 import { buildImprovementsInline } from './improvements.js';
 import { buildResearchInline } from './research.js';
 import { buildBrandInline } from './brand.js';
+import { buildCoachCadenceInline } from './coach_cadence.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -318,6 +319,11 @@ export function buildWikiContext() {
   try {
     const b = buildBrandInline();
     if (b) parts.push(b);
+  } catch { /* ignore */ }
+  // Coach cadence — check-ins programados de hoy
+  try {
+    const cc = buildCoachCadenceInline();
+    if (cc) parts.push(cc);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

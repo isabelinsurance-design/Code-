@@ -1072,6 +1072,61 @@ MODOS:
     input_schema: { type: 'object', properties: {} },
   },
 
+  // ───────── COACH CADENCE — citas programadas con coaches ─────────
+  {
+    name: 'configurar_cadencia_coach',
+    description: `Programa la cadencia con la que Isabel hace check-in con una coach específica. CUÁNDO USAR: Isabel dice "quiero hablar con Victoria todos los lunes" / "Carmen diaria" / "Maria cada 15 días" / "quita la cadencia de X". Cadencias soportadas: diaria, L-V, 3x_semana (L/X/V), lunes/martes/etc específico, semanal, quincenal, mensual (con día opcional), trimestral, bajo_demanda. Es idempotente — actualiza si ya existe.`,
+    input_schema: {
+      type: 'object',
+      properties: {
+        coach: { type: 'string', description: 'ID del coach: carmen, rivera, sofia, alma, maria, elena, victoria, marisol, beatriz, esperanza, rosa, luna, valentina, camila, lucia, catalina.' },
+        cadencia: { type: 'string', enum: ['diaria', 'L-V', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sabado', 'domingo', '3x_semana', 'semanal', 'quincenal', 'mensual', 'trimestral', 'bajo_demanda'] },
+        hora: { type: 'string', description: 'Hora sugerida HH:MM (opcional). Ej: "07:00".' },
+        dia: { description: 'Para mensual: día del mes 1-31. Para semanal: nombre del día.' },
+        prompt_inicial: { type: 'string', description: 'Pregunta inicial custom con que abre el check-in (opcional — hay defaults).' },
+      },
+      required: ['coach', 'cadencia'],
+    },
+  },
+  {
+    name: 'mis_cadencias_coach',
+    description: 'Lista las cadencias programadas con coaches.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'cadencias_de_hoy',
+    description: 'Devuelve qué coaches "tocan" check-in hoy (según sus cadencias), y si ya se hizo.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'pausar_cadencia_coach',
+    description: 'Pausa (o reactiva) la cadencia con una coach específica. NO la borra.',
+    input_schema: { type: 'object', properties: { coach: { type: 'string' } }, required: ['coach'] },
+  },
+  {
+    name: 'eliminar_cadencia_coach',
+    description: 'Elimina la cadencia con una coach completamente.',
+    input_schema: { type: 'object', properties: { coach: { type: 'string' } }, required: ['coach'] },
+  },
+  {
+    name: 'seed_cadencias_coach',
+    description: 'Crea cadencias default razonables para todos los coaches (Carmen diaria, Rivera 3x/sem, Victoria semanal, Maria quincenal, etc). Idempotente.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'registrar_checkin_coach',
+    description: 'Marca que Isabel hizo (o saltó) el check-in con una coach. accion: completado | saltado | snoozeado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        coach: { type: 'string' },
+        accion: { type: 'string', enum: ['completado', 'saltado', 'snoozeado'] },
+        nota: { type: 'string' },
+      },
+      required: ['coach'],
+    },
+  },
+
   // ───────── BRAND & CONTENT PIPELINE (YouTube/IG) ─────────
   {
     name: 'brand_idea_add',
@@ -2506,6 +2561,46 @@ async function dispatchTool(name, input) {
       if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
       if (!parts.length) return 'Nada que sembrar.';
       return parts.join(' · ');
+    }
+    case 'configurar_cadencia_coach': {
+      const { setCadence } = await import('./coach_cadence.js');
+      const r = setCadence(input);
+      return r.ok ? `Cadencia configurada: ${r.cadencia.coach} ${r.cadencia.cadencia}${r.cadencia.hora ? ` @${r.cadencia.hora}` : ''}` : `Error: ${r.error}`;
+    }
+    case 'mis_cadencias_coach': {
+      const { listCadences } = await import('./coach_cadence.js');
+      const list = listCadences({ activas_solo: false });
+      if (!list.length) return 'Sin cadencias configuradas. Sugerencia: corre seed_cadencias_coach para arrancar con defaults.';
+      return list.map((c) => `${c.pausada ? '[PAUSED]' : ''} ${c.coach} → ${c.cadencia}${c.hora ? ` @${c.hora}` : ''}`).join('\n');
+    }
+    case 'cadencias_de_hoy': {
+      const { cadenciasDeHoy } = await import('./coach_cadence.js');
+      const hoy = cadenciasDeHoy();
+      if (!hoy.length) return 'Hoy no toca ningún check-in programado.';
+      return hoy.map((c) => `${c.ya_hecho ? '✓' : '○'} ${c.coach}${c.hora ? ` (${c.hora})` : ''} — ${c.cadencia}`).join('\n');
+    }
+    case 'pausar_cadencia_coach': {
+      const { pauseCadence } = await import('./coach_cadence.js');
+      const r = pauseCadence(input.coach);
+      if (!r) return 'No encontré esa cadencia.';
+      return `${r.coach}: ${r.pausada ? 'PAUSADA' : 'reactivada'}.`;
+    }
+    case 'eliminar_cadencia_coach': {
+      const { removeCadence } = await import('./coach_cadence.js');
+      return removeCadence(input.coach) ? `Cadencia de ${input.coach} eliminada.` : 'No encontré esa cadencia.';
+    }
+    case 'seed_cadencias_coach': {
+      const { seedDefaultCadences } = await import('./coach_cadence.js');
+      const r = seedDefaultCadences();
+      const parts = [];
+      if (r.created.length) parts.push(`Creadas: ${r.created.join(', ')}`);
+      if (r.skipped.length) parts.push(`Ya existían: ${r.skipped.join(', ')}`);
+      return parts.length ? parts.join(' · ') : 'Nada que sembrar.';
+    }
+    case 'registrar_checkin_coach': {
+      const { registrarCheckIn } = await import('./coach_cadence.js');
+      const r = registrarCheckIn(input);
+      return `Check-in ${r.accion} con ${r.coach} registrado.`;
     }
     case 'brand_idea_add': {
       const { ideaAdd } = await import('./brand.js');

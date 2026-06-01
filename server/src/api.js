@@ -235,6 +235,40 @@ export function registerApi(app) {
     res.json(marcarCumplida(req.params.id, (req.body || {}).evidencia || ''));
   });
 
+  // Coach cadence — citas programadas con coaches
+  app.get('/api/coach-cadence', requireAuth, async (_req, res) => {
+    const { listCadences } = await import('./coach_cadence.js');
+    res.json(listCadences({ activas_solo: false }));
+  });
+  app.get('/api/coach-cadence/today', requireAuth, async (_req, res) => {
+    const { cadenciasDeHoy } = await import('./coach_cadence.js');
+    res.json(cadenciasDeHoy());
+  });
+  app.post('/api/coach-cadence', requireAuth, async (req, res) => {
+    const { setCadence } = await import('./coach_cadence.js');
+    res.json(setCadence(req.body || {}));
+  });
+  app.post('/api/coach-cadence/:coach/pause', requireAuth, async (req, res) => {
+    const { pauseCadence } = await import('./coach_cadence.js');
+    res.json(pauseCadence(req.params.coach));
+  });
+  app.delete('/api/coach-cadence/:coach', requireAuth, async (req, res) => {
+    const { removeCadence } = await import('./coach_cadence.js');
+    res.json({ ok: removeCadence(req.params.coach) });
+  });
+  app.post('/api/coach-cadence/seed', requireAuth, async (_req, res) => {
+    const { seedDefaultCadences } = await import('./coach_cadence.js');
+    res.json(seedDefaultCadences());
+  });
+  app.post('/api/coach-cadence/:coach/check-in', requireAuth, async (req, res) => {
+    const { registrarCheckIn } = await import('./coach_cadence.js');
+    res.json(registrarCheckIn({ coach: req.params.coach, ...(req.body || {}) }));
+  });
+  app.get('/api/coach-cadence/:coach/prompt', requireAuth, async (req, res) => {
+    const { promptInicialPara } = await import('./coach_cadence.js');
+    res.json({ prompt: promptInicialPara(req.params.coach) });
+  });
+
   // Calendar (Google Calendar - WRITE habilitado)
   app.get('/api/calendar/status', requireAuth, async (_req, res) => {
     const { calendarConfigured } = await import('./calendar.js');

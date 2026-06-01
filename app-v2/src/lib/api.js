@@ -98,6 +98,16 @@ export const api = {
   // Actividad (audit log)
   activity: (limit = 50) => request(`/activity?limit=${limit}`),
 
+  // Coach cadence
+  coachCadences: () => request('/coach-cadence'),
+  coachCadencesToday: () => request('/coach-cadence/today'),
+  coachCadenceSet: (data) => request('/coach-cadence', { method: 'POST', body: JSON.stringify(data) }),
+  coachCadencePause: (coach) => request(`/coach-cadence/${coach}/pause`, { method: 'POST' }),
+  coachCadenceRemove: (coach) => request(`/coach-cadence/${coach}`, { method: 'DELETE' }),
+  coachCadenceSeed: () => request('/coach-cadence/seed', { method: 'POST' }),
+  coachCadenceCheckIn: (coach, accion, nota) => request(`/coach-cadence/${coach}/check-in`, { method: 'POST', body: JSON.stringify({ accion, nota }) }),
+  coachCadencePrompt: (coach) => request(`/coach-cadence/${coach}/prompt`),
+
   // Brand pipeline (YouTube/IG/TikTok)
   brandIdeas: (filters = {}) => {
     const qs = new URLSearchParams(filters).toString();

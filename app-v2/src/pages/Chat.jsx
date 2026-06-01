@@ -1,9 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
 
 export default function Chat() {
+  const params = useParams();
   const [coaches, setCoaches] = useState([]);
-  const [coach, setCoach] = useState('directora');
+  const [coach, setCoach] = useState(params.coach || 'directora');
+
+  // Si vienen con /chat/:coach pre-cargamos el prompt sugerido como hint
+  const [inputHint, setInputHint] = useState('');
+  useEffect(() => {
+    if (params.coach && params.coach !== 'directora') {
+      api.coachCadencePrompt(params.coach)
+        .then((r) => setInputHint(r.prompt || ''))
+        .catch(() => {});
+    }
+  }, [params.coach]);
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
@@ -98,7 +110,7 @@ export default function Chat() {
         <textarea
           rows={2}
           className="input flex-1 resize-none"
-          placeholder={coach === 'directora' ? 'Habla con Athena…' : 'Escribe tu pregunta…'}
+          placeholder={inputHint || (coach === 'directora' ? 'Habla con Athena…' : 'Escribe tu pregunta…')}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKey}

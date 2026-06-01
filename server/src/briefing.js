@@ -113,6 +113,16 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     }
   } catch { /* ignore */ }
 
+  // Coach check-ins de hoy (cadencias programadas)
+  let cadenceHintCoaches = '';
+  try {
+    const { buildCoachCadenceBriefingBlock } = await import('./coach_cadence.js');
+    const block = buildCoachCadenceBriefingBlock();
+    if (block) {
+      cadenceHintCoaches = `\n\nCHECK-INS DE COACHES PROGRAMADOS PARA HOY:\n${block}\n\nMenciónaselos UNA línea al final con la pregunta "¿quieres que te abra el chat con [coach] o lo dejamos para más tarde?". NO la presiones — si responde "no", queda registrado como saltado.`;
+    }
+  } catch { /* ignore */ }
+
   // Brand pipeline — qué se publica en próximas 72h
   let brandHint = '';
   try {
@@ -168,7 +178,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${trustHint}${focusHint}${routinesHint}${legalHint}${brandHint}${improvementsHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${cadenceHintCoaches}${trustHint}${focusHint}${routinesHint}${legalHint}${brandHint}${improvementsHint}${autoSkillHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
