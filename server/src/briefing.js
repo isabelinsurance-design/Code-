@@ -162,7 +162,7 @@ NUEVAS SKILLS AUTO-PROPUESTAS (anoche detecté patrones y armé drafts — menci
     role: 'user',
     content: `[BRIEFING AUTOMÁTICO DE LA MAÑANA — ${fecha}] Salúdame con energía y dame tu mejor lectura del día.
 
-PRIMERO consulta señales_de_hoy (yo las computé anoche a las 2am — incluyen umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana" y estados como "5 renovaciones en 30 días"). Trae arriba LAS DOS o TRES más relevantes — no todas. Usa las severidades alto > aviso > info para decidir.
+PRIMERO consulta senales_de_hoy (yo las computé anoche a las 2am — incluyen umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana" y estados como "5 renovaciones en 30 días"). Trae arriba LAS DOS o TRES más relevantes — no todas. Usa las severidades alto > aviso > info para decidir.
 
 SEGUNDO, consulta gaps_overview con solo_severidad="alto" — son cosas QUE NO SÉ todavía pero debería (MBI no verificado, SOA faltante, TCPA sin consentir, sin touchpoint en 12+ meses). Si hay 1-3 huecos altos, méteme UNO como propuesta de "cerralo hoy" — concreto, específico, con la persona y la acción. No me leas la lista — escoge el más doloroso.
 

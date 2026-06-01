@@ -518,7 +518,7 @@ MODOS:
   // ───────── CRM COMPLIANCE MEDICARE ─────────
   // Vistas derivadas de compliance:
   {
-    name: 'señales_de_hoy',
+    name: 'senales_de_hoy',
     description: 'Lee las señales computadas anoche (umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana", estados como "5 renovaciones en 30 días"). Úsalas SIEMPRE en el briefing matutino y cuando Isabel pregunte "¿qué debería saber hoy?".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
@@ -2042,7 +2042,7 @@ async function dispatchTool(name, input) {
       return e ? `Fusionadas. ${e.canonical_name} ahora tiene ${e.notas.length} notas y aliases ${e.aliases.join(', ') || '(ninguno)'}.` : 'No encontré alguna de las dos.';
     }
     // ── compliance Medicare ──
-    case 'señales_de_hoy': {
+    case 'senales_de_hoy': {
       const { signals, ts } = loadSignals();
       if (!signals?.length) return 'Sin señales computadas todavía (la reflexión nocturna corre a las 2am).';
       const byPrio = ['alto', 'aviso', 'info'];
