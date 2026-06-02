@@ -13,6 +13,7 @@ import { PORT, MODELS } from './config.js';
 import { CONSTITUCION } from './constitucion.js';
 import { KNOWLEDGE, buildKbContext, lookupDoctor, lookupMedicalGroup, lookupPlan, searchCases, kbStats } from './kb/index.js';
 import { SPECIALISTS, resolveSpecialist, specialistList, vozBlock } from './specialists.js';
+import { chooseSpecialists, routeDeterministic, SYNTH_SYS, buildSynthUser } from './orchestrator.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
@@ -110,6 +111,12 @@ async function handleChat(req, res) {
   const lastUser = [...messages].reverse().find((m) => m.role === 'user');
   const userText = lastUser ? String(lastUser.content) : '';
 
+  // Modo 'auto': el orquestador elige especialistas y, si la pregunta toca >1
+  // dominio, hace fan-out paralelo + sintesis (patron multi-agente / Athena #5).
+  if (mode === 'auto') {
+    return handleOrchestrate({ res, messages, userText, agentId, agentName, sessionId, context });
+  }
+
   // Tier de modelo: el surface "Asesor" pide opus + web search; el resto, sonnet.
   const wantsOpus = body.model === 'opus' || webSearch;
   const primaryModel = wantsOpus ? MODELS.orchestrator : MODELS.specialist;
@@ -163,6 +170,47 @@ async function handleChat(req, res) {
   }
 }
 
+// Orquestacion con fan-out paralelo. Reusa buildSystem + complete del chat normal.
+async function handleOrchestrate({ res, messages, userText, agentId, agentName, sessionId, context }) {
+  if (agentId) mem.touchAgent(agentId, agentName);
+  const route = await chooseSpecialists(userText, complete);
+  const specialists = route.specialists.length ? route.specialists : ['chat'];
+
+  try {
+    // 1+2. FAN-OUT: cada especialista responde en paralelo, con su propio prompt.
+    const settled = await Promise.allSettled(
+      specialists.map((id) =>
+        complete({ system: buildSystem(id, userText, agentId, context), messages, model: MODELS.specialist }).then((r) => ({ specialist: id, text: r.text }))
+      )
+    );
+    const parts = settled.filter((s) => s.status === 'fulfilled').map((s) => s.value);
+    if (!parts.length) throw settled[0].reason || new Error('fan-out vacio');
+
+    // 3. SINTESIS: si fue >1 dominio, Opus funde en una voz. Si fue 1, esa respuesta.
+    let reply, usage;
+    if (parts.length >= 2) {
+      const out = await complete({ system: SYNTH_SYS, messages: [{ role: 'user', content: buildSynthUser(userText, parts) }], model: MODELS.orchestrator });
+      reply = out.text;
+      usage = out.usage;
+    } else {
+      reply = parts[0].text;
+    }
+
+    if (sessionId) mem.appendTurns(sessionId, [{ role: 'user', content: userText }, { role: 'assistant', content: reply }]);
+    if (agentId) mem.captureTurn(agentId, { specialist: 'auto', userText });
+    mem.audit({ action: 'orchestrate', specialist: parts.map((p) => p.specialist).join('+'), agentId, input: userText, outputSummary: reply });
+    captureTurn({ userText, assistantText: reply }).catch(() => {});
+    commitments.captureCommitments(userText);
+
+    const pii = scanPII(userText);
+    const compliance = pii.length ? { piiAdvisory: pii } : undefined;
+    return json(res, 200, { reply, specialists: parts.map((p) => p.specialist), routedBy: route.reason, parts, usage, compliance });
+  } catch (e) {
+    mem.audit({ action: 'orchestrate_error', specialist: specialists.join('+'), agentId, input: userText, outputSummary: e.message });
+    return json(res, e.code === 'NO_API_KEY' ? 503 : 502, { error: e.message });
+  }
+}
+
 function handleLookup(res, url) {
   const type = url.searchParams.get('type');
   const q = url.searchParams.get('q') || '';
@@ -212,6 +260,11 @@ const server = createServer(async (req, res) => {
   }
 
   // --- AUTONOMIA (Fase 5) ---
+  // Vista del router determinista (sin LLM): que especialistas tocaria una pregunta.
+  if (path === '/api/orchestrate/route' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    return json(res, 200, routeDeterministic(body.text || body.message || ''));
+  }
   if (path === '/api/intel/health' && req.method === 'GET') return json(res, 200, { health: computeHealth() });
   if (path === '/api/intel/briefing' && req.method === 'GET')
     return json(res, 200, { briefing: getLatestBriefing() || buildBriefing() });

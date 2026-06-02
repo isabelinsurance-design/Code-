@@ -229,6 +229,25 @@ y memoria por capas ya estaban).
 
 Endpoint nuevo: `GET /api/intel/health`.
 
+### Fase 11 — Fan-out paralelo (orquestador multi-agente)
+
+Completa el patrón #1 del playbook (multi-agente real, no solo router).
+
+- **`mode:'auto'` en `/api/chat`** (`orchestrator.js`): cuando una pregunta toca >1
+  dominio ("el doctor salió de la red del IPA **y** llegó un bill de $400"), el
+  orquestador (1) **enruta** a los especialistas relevantes, (2) los consulta **en
+  paralelo** (`Promise.allSettled`, cada uno con su system prompt enfocado), y (3)
+  **sintetiza** con Opus en UNA respuesta de SAMIA — aplicando "sintetiza, no recites"
+  y "UNA acción concreta" (Fase 8). Si solo toca 1 dominio, esa respuesta pasa directa
+  sin overhead de síntesis.
+- **Router con fallback determinista**: keywords (testeable sin red) + router LLM
+  (Haiku) cuando hay key. Catálogo extensible (`FANOUT_CATALOG`); hoy `ipa` + `bill`.
+- Degradación honesta: sin key, `mode:'auto'` devuelve 503 y audita `orchestrate_error`
+  con los especialistas que se hubieran consultado.
+
+Endpoints nuevos: `POST /api/chat` con `{mode:'auto'}`, `POST /api/orchestrate/route`
+(vista del router sin LLM).
+
 ### Fase 10 — Dashboard
 
 - **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,
