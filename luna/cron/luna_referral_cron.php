@@ -21,7 +21,7 @@
    - No se les ha pedido referido en los últimos 90 días
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../../config.php';
 require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
