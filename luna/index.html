@@ -606,15 +606,11 @@ ACCESO COMPLETO:
 - Configuración del equipo
 - Historial de pipeline y lecciones aprendidas
 
-CUÁNDO MENCIONAR A LOS SUBAGENTES:
-- Análisis profundos de números → "El Analista puede profundizar con gráficos"
-- Crear contenido largo → "Estudio Creativo está optimizado para esto"
-- Compliance específico → "Compliance puede revisar esto a detalle"
-- Estrategia de venta detallada → "Sales Coach tiene los scripts completos"
-- Retención de cliente específico → "Retención & Servicio maneja Day 1/15/30"
-- Configurar metas, equipo, memoria → "Configuración LUNA"
+ORQUESTACIÓN MULTI-AGENTE (clave): cuando una pregunta cruza 2+ dominios, NO mandes a Isabel a cambiar de pestaña — consulta tú a los especialistas EN PARALELO con la herramienta consult_specialists y luego SINTETIZA una sola respuesta integrada (no pegues sus respuestas por separado; encuentra el punto en común y dale UNA conclusión). Primero trae los datos que necesites con tus tools, y pásaselos a cada especialista en su "tarea".
+Especialistas disponibles: analista (números/pipeline/comisiones), sales_coach (venta consultiva), compliance (reglas CMS), retencion (servicio/Day 1·15·30), estudio (contenido), coach (mentalidad), onboarding (capacitación).
+Ejemplo: "¿Le ofrezco a Ricardo cambiar de plan?" toca venta + compliance + retención → consulta a sales_coach, compliance y retencion a la vez, y das una recomendación unificada.
 
-Pero PRIMERO siempre intenta responder tú. No mandes a Isabel a cambiar de agente sin haberle dado valor primero.
+CUÁNDO BASTA CON MENCIONAR (sin consultar): si la pregunta es claramente de UN solo dominio y muy profunda, puedes sugerir el agente especializado ("el Analista profundiza con más detalle"). Pero PRIMERO intenta responder o consultar tú. No rebotes sin dar valor.
 
 PRINCIPIOS DE COMUNICACIÓN:
 - Cercana pero profesional — eres su mano derecha, no su empleada
@@ -2239,7 +2235,8 @@ const AGENT_TOOLS = {
                   'tickets_all','today_appts','attendance','commissions','carriers','activity',
                   'log','note','create_member','update_status','create_ticket','create_appt',
                   'notif','batch_tickets','all_goals','memory_view','team_config',
-                  'signals','gaps','entities','entity_save','skill_list','audit_struct'],
+                  'signals','gaps','entities','entity_save','skill_list','audit_struct',
+                  'consult_specialists'],
   // ── 🎛️ Centro de Comando ────────────────────────────
   'comando':     ['briefing','health','pipeline','t65','retention','hotleads','search','tickets_all',
                   'attendance','commissions','carriers','activity','batch_tickets',
@@ -2297,6 +2294,24 @@ const TOOL_SCHEMAS = {
   team_config:  {desc:'Configuración actual del equipo definida por Isabel.', props:{}, req:[]},
   memory_view:  {desc:'Toda la memoria de LUNA: metas, notas, historial de pipeline, lecciones.', props:{}, req:[]},
   health:       {desc:'Health Score 0-100 del negocio: ¿rueda solo o necesitas meter mano? Combina pipeline + tickets + SOA + retención, da la banda (autopilot/revisa/necesita) y el foco del día.', props:{}, req:[]},
+  consult_specialists: {
+    desc:'Consulta a 2+ agentes especialistas EN PARALELO y recibe sus respuestas para que TÚ sintetices UNA sola. Úsala cuando la pregunta cruza varios dominios (ej. una decisión que toca ventas + compliance + retención). No mandes a Isabel a cambiar de pestaña: consúltalos tú.',
+    props:{
+      consultas:{
+        type:'array',
+        description:'Una entrada por especialista a consultar (máximo 4).',
+        items:{
+          type:'object',
+          properties:{
+            agente:{type:'string', enum:['analista','sales_coach','compliance','retencion','estudio','coach','onboarding'], description:'id del especialista'},
+            tarea:{type:'string', description:'La pregunta/tarea específica para ESE especialista (dale el contexto y los datos que ya tengas).'}
+          },
+          required:['agente','tarea']
+        }
+      }
+    },
+    req:['consultas']
+  },
   // ── ESCRITURA (crean/cambian datos en el CRM) ──
   log:          {desc:'ESCRIBE: registra una actividad en el CRM.', props:{tipo:{type:'string'},descripcion:{type:'string'},miembro_id:{type:'integer'}}, req:['descripcion']},
   note:         {desc:'ESCRIBE: agrega una nota a un miembro.', props:{miembro_id:{type:'integer'},nota:{type:'string'}}, req:['miembro_id','nota']},
@@ -2325,6 +2340,33 @@ function buildNativeTools(agentId) {
     description: TOOL_SCHEMAS[t].desc,
     input_schema: { type:'object', properties: TOOL_SCHEMAS[t].props, required: TOOL_SCHEMAS[t].req }
   }));
+}
+
+// Llamada "silenciosa" al modelo: un solo turno enfocado, SIN tools y SIN
+// escribir en la UI. La usan los especialistas consultados en paralelo.
+async function quietLLM(systemPrompt, userText) {
+  const res = await fetch(`${CRM_BASE}?action=luna_chat`, {
+    method:'POST',
+    headers:{ 'Content-Type':'application/json' },
+    credentials:'same-origin',
+    body: JSON.stringify({ system:systemPrompt, messages:[{role:'user', content:userText}], max_tokens:1200 })
+  });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const reader = res.body.getReader();
+  const dec = new TextDecoder();
+  let buf = '', text = '';
+  while (true) {
+    const {done, value} = await reader.read();
+    if (done) break;
+    buf += dec.decode(value, {stream:true});
+    const lines = buf.split('\n'); buf = lines.pop() || '';
+    for (const line of lines) {
+      if (!line.startsWith('data: ')) continue;
+      let e; try { e = JSON.parse(line.slice(6)); } catch { continue; }
+      if (e.type === 'content_block_delta' && e.delta?.type === 'text_delta') text += e.delta.text;
+    }
+  }
+  return text.trim();
 }
 
 // ── Tool executor ────────────────────────────
@@ -2393,6 +2435,22 @@ async function callTool(toolName, params = {}) {
         return await (await fetch(CRM_BASE + qs('full_briefing'))).json();
       case 'health':
         return await (await fetch(CRM_BASE + qs('business_health'))).json();
+      case 'consult_specialists': {
+        // Orquestación multi-agente (Athena Sec.5): consulta varios especialistas
+        // EN PARALELO con su propia persona/voz y devuelve sus respuestas para que
+        // LUNA principal sintetice UNA sola. Cada sub-consulta es 1 llamada enfocada.
+        const consultas = Array.isArray(params.consultas) ? params.consultas.slice(0, 4) : [];
+        if (!consultas.length) return {ok:false, error:'Sin consultas para los especialistas.'};
+        const results = await Promise.all(consultas.map(async (c) => {
+          const agent = AGENTS.find(a => a.id === c.agente);
+          if (!agent) return {agente:c.agente, error:'especialista desconocido'};
+          try {
+            const respuesta = await quietLLM(agent.system, String(c.tarea || ''));
+            return {agente:c.agente, nombre:agent.name, respuesta};
+          } catch(e) { return {agente:c.agente, nombre:agent.name, error:e.message}; }
+        }));
+        return {ok:true, data:{consultas:results}};
+      }
       case 'all_goals':
         return await (await fetch(CRM_BASE + qs('get_all_goals'))).json();
       case 'update_goal':

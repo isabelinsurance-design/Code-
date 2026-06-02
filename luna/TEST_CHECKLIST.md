@@ -52,6 +52,11 @@ Si algo dice FALLÓ, el mensaje indica la causa (tabla/columna/permiso).
       (*"a [nombre] prefiere que la llamen en la mañana"*) → LUNA muestra un chip
       "📝 nota guardada en el miembro" y la nota aparece en `notas_miembro` del CRM,
       SIN que tú lo pidieras. (No debe inventar ni guardar si no identifica al miembro.)
+- [ ] **Multi-agente en paralelo** — a **LUNA principal** una pregunta que cruza
+      dominios: *"¿Le ofrezco a [miembro] cambiar de plan? Considera venta, compliance
+      y retención."* → LUNA consulta a varios especialistas a la vez y entrega UNA
+      respuesta integrada (no tres respuestas pegadas). Si un especialista falla, los
+      demás igual responden.
 
 **Señales de falla:**
 - 🔴 "Error HTTP" / sin respuesta → revisa `ANTHROPIC_API_KEY` en `config.php`.
