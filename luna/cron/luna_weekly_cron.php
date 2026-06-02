@@ -12,6 +12,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
   'send_email'    => true,
@@ -240,6 +241,47 @@ function _spanishMonth($n) {
   return ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'][(int)$n - 1];
 }
 
+// ─── ANÁLISIS IA (el "cerebro" del reporte semanal) ─────────
+// Razona sobre los números reales (semana vs semana, comisiones, AEP) y
+// entrega lectura estratégica + acciones. Devuelve texto o null si no hay IA.
+function lunaWeeklyAnalysis($data) {
+  if (!lunaAIEnabled()) return null;
+
+  $system =
+    "Eres LUNA, analista de negocio de Isabel Fuentes, agente de Medicare en el "
+  . "Sur de California. Recibes los KPIs reales de la semana y entregas una lectura "
+  . "estratégica para la dirección. REGLAS: usa SOLO los números que te doy (NUNCA "
+  . "inventes cifras ni nombres); español, tono ejecutivo y claro. Estructura exacta: "
+  . "primero 2-3 viñetas '•' interpretando qué pasó y por qué importa (tendencia vs "
+  . "semana anterior, comisiones, ritmo AEP si aplica, riesgos de compliance); luego "
+  . "una línea en blanco; después '🎯 Próxima semana:' con 3 acciones numeradas, "
+  . "concretas y asignadas (Skarleth = ventas/hot leads, Samia = retención/servicio/"
+  . "SOA, Isabel = T65/cierres/estrategia). Sé específica y accionable, no genérica.";
+
+  $com = $data['comisiones'];
+  $user =
+    "KPIs de la semana del {$data['week_label']}:\n"
+  . json_encode([
+      'enrollments_week'        => $data['enrollments_week'],
+      'enrollments_last_week'   => $data['enrollments_last_week'],
+      'enrollments_month'       => $data['enrollments_month'],
+      'citas_week'              => $data['citas_week'],
+      'citas_last_week'         => $data['citas_last_week'],
+      'tickets_closed_week'     => $data['tickets_closed_week'],
+      'tickets_closed_last_week'=> $data['tickets_closed_last_week'],
+      'tickets_open'            => $data['tickets_open'],
+      'hot_leads_now'           => $data['hot_leads_now'],
+      'hot_leads_frios'         => $data['hot_leads_frios'],
+      'soa_pendiente'           => $data['soa_pendiente'],
+      'comisiones_mes'          => ['total'=>$com['total'],'pagadas'=>$com['pagadas'],'pendientes'=>$com['pendientes']],
+      'aep'                     => $data['aep'],
+      'equipo'                  => array_map(fn($u) => "{$u['nombre']}: {$u['actividades']} actividades, {$u['tickets_resueltos']} tickets", $data['team'] ?? []),
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+  . "\n\nDame la lectura estratégica y las acciones de la próxima semana.";
+
+  return lunaAI($system, $user, 900);
+}
+
 // ─── COMPARE TWO NUMBERS ─────────────────────────────────────
 function _compare($current, $previous) {
   if ($previous === 0) {
@@ -336,30 +378,36 @@ function buildWeeklyText($data, $format = 'text') {
   }
   $out .= $br;
 
-  // ═══ ACCIONES PRÓXIMA SEMANA ═══
-  $out .= "{$b[0]}═══ ACCIONES PRÓXIMA SEMANA ═══{$b[1]}{$br}";
-  $actions = [];
-  if ($data['hot_leads_frios'] > 0) {
-    $actions[] = "Reactivar {$data['hot_leads_frios']} hot leads fríos antes del miércoles";
-  }
-  if ($data['soa_pendiente'] >= 3) {
-    $actions[] = "Cerrar SOAs pendientes — agenda 1 día solo para esto";
-  }
-  if ($cmp_enroll['word'] === 'baja') {
-    $actions[] = "Enrollments cayeron {$cmp_enroll['pct']}% — revisar pipeline con Skarleth el lunes";
-  }
-  if ($data['aep'] && $data['aep']['pct'] < 80) {
-    $actions[] = "AEP pace bajo — más outreach esta semana, especialmente martes y miércoles";
-  }
-  if (empty($actions)) {
-    $actions[] = "Sostener el ritmo actual — todo va bien";
-    $actions[] = "Buen momento para invertir en relaciones con doctores referidores";
-    $actions[] = "Revisar memoria de LUNA y agregar lecciones aprendidas esta semana";
-  }
-  // Cap at 3 actions
-  $actions = array_slice($actions, 0, 3);
-  foreach ($actions as $idx => $a) {
-    $out .= ($idx + 1) . ". {$a}{$br}";
+  // ═══ LECTURA ESTRATÉGICA + ACCIONES ═══
+  // Si la IA está disponible, LUNA razona; si no, fallback determinista.
+  if (!empty($data['ai_analysis'])) {
+    $out .= "{$b[0]}═══ ANÁLISIS DE LUNA ═══{$b[1]}{$br}";
+    $out .= str_replace("\n", $br, $data['ai_analysis']) . $br;
+  } else {
+    $out .= "{$b[0]}═══ ACCIONES PRÓXIMA SEMANA ═══{$b[1]}{$br}";
+    $actions = [];
+    if ($data['hot_leads_frios'] > 0) {
+      $actions[] = "Reactivar {$data['hot_leads_frios']} hot leads fríos antes del miércoles";
+    }
+    if ($data['soa_pendiente'] >= 3) {
+      $actions[] = "Cerrar SOAs pendientes — agenda 1 día solo para esto";
+    }
+    if ($cmp_enroll['word'] === 'baja') {
+      $actions[] = "Enrollments cayeron {$cmp_enroll['pct']}% — revisar pipeline con Skarleth el lunes";
+    }
+    if ($data['aep'] && $data['aep']['pct'] < 80) {
+      $actions[] = "AEP pace bajo — más outreach esta semana, especialmente martes y miércoles";
+    }
+    if (empty($actions)) {
+      $actions[] = "Sostener el ritmo actual — todo va bien";
+      $actions[] = "Buen momento para invertir en relaciones con doctores referidores";
+      $actions[] = "Revisar memoria de LUNA y agregar lecciones aprendidas esta semana";
+    }
+    // Cap at 3 actions
+    $actions = array_slice($actions, 0, 3);
+    foreach ($actions as $idx => $a) {
+      $out .= ($idx + 1) . ". {$a}{$br}";
+    }
   }
 
   $out .= $br . $hr;
@@ -471,6 +519,8 @@ $startTime = microtime(true);
 logWeekly("=== LUNA Weekly Report started ===", $CONFIG);
 
 $data = collectWeeklyData($pdo);
+$data['ai_analysis'] = lunaWeeklyAnalysis($data); // null si no hay key/IA → usa fallback
+logWeekly("AI analysis: " . ($data['ai_analysis'] ? 'OK' : 'skipped/unavailable'), $CONFIG);
 $results = [];
 
 if ($CONFIG['send_email']) {

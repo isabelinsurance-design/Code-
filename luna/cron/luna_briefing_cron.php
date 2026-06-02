@@ -12,6 +12,7 @@
 
 // ─── CONFIG ───────────────────────────────────────────────────
 require_once __DIR__ . '/../../config.php'; // Bluehost DB credentials
+require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
   // Canales activos (true/false)
@@ -162,6 +163,43 @@ function collectBriefingData($pdo) {
   return $data;
 }
 
+// ─── ANÁLISIS IA (el "cerebro" de LUNA) ─────────────────────
+// Toma los números reales del CRM y le pide a Claude un plan del día
+// priorizado y razonado. Devuelve texto en viñetas o null (sin key/falla).
+function lunaBriefingAnalysis($data) {
+  if (!lunaAIEnabled()) return null;
+
+  $system =
+    "Eres LUNA, la jefa de gabinete (chief of staff) de Isabel Fuentes, agente "
+  . "de Medicare en el Sur de California. Cada mañana analizas el tablero del CRM "
+  . "y entregas un plan del día priorizado. REGLAS: usa SOLO los números y nombres "
+  . "que te doy (NUNCA inventes datos); escribe en español, directo y cálido; "
+  . "máximo 6 viñetas que empiecen con '•'; prioriza lo que protege ingresos y "
+  . "cumplimiento (retención que vence hoy, hot leads enfriándose, T65 urgentes, "
+  . "SOA/compliance, tickets ALTA estancados). Asigna responsable cuando aplique: "
+  . "Samia = retención/servicio, Skarleth = ventas/hot leads, Isabel = T65 y cierres. "
+  . "No repitas listas completas; sintetiza y decide. Cierra con UNA línea de enfoque "
+  . "estratégico que empiece con '🎯'. Sin encabezados ni introducción, solo las viñetas.";
+
+  $user =
+    "Tablero de hoy (" . $data['dia_semana'] . ", " . $data['fecha_legible'] . "):\n"
+  . json_encode([
+      'pipeline'        => $data['pipeline'],
+      'enrollments_mes' => $data['enrollments_mes'],
+      'citas_hoy'       => count($data['citas_hoy']),
+      'retencion_hoy'   => array_map(fn($m) => trim("{$m['nombre']} {$m['apellido']} (Day {$m['dias_activo']}" . ($m['carrier'] ? ", {$m['carrier']}" : '') . ")"), $data['retencion_hoy']),
+      'hot_leads_frios' => array_map(fn($h) => "{$h['nombre']} {$h['apellido']} ({$h['dias_sin_contacto']}d sin contacto)", $data['hot_leads_frios']),
+      't65_urgentes'    => array_map(fn($t) => "{$t['nombre']} {$t['apellido']} ({$t['dias_para_65']}d para 65)", $data['t65_urgentes']),
+      'tickets_alta'    => count($data['tickets_alta']),
+      'soa_pendiente'   => $data['soa_pendiente'],
+      'callbacks'       => $data['callbacks'],
+      'apps_proceso'    => $data['apps_proceso'],
+    ], JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+  . "\n\nDame el plan priorizado del día.";
+
+  return lunaAI($system, $user, 700);
+}
+
 // ─── BUILD BRIEFING TEXT (formatos por canal) ───────────────
 function buildBriefingText($data, $format = 'text') {
   $isHTML = $format === 'html';
@@ -269,23 +307,28 @@ function buildBriefingText($data, $format = 'text') {
 
   $out .= $hr;
 
-  // Action prompts
-  $out .= "{$b[0]}🎯 ACCIONES PROPUESTAS{$b[1]}{$br}";
-  $hasActions = false;
-  if (!empty($data['retencion_hoy'])) {
-    $out .= "1. Crear " . count($data['retencion_hoy']) . " tickets de retención (Samia){$br}";
-    $hasActions = true;
-  }
-  if (!empty($data['hot_leads_frios'])) {
-    $out .= "2. Crear tickets de seguimiento hot leads (Skarleth){$br}";
-    $hasActions = true;
-  }
-  if (!empty($data['t65_urgentes'])) {
-    $out .= "3. Contactar T65 urgentes esta semana{$br}";
-    $hasActions = true;
-  }
-  if (!$hasActions) {
-    $out .= "{$i[0]}Sin acciones urgentes hoy. Buen día para enfocarse en outreach.{$i[1]}{$br}";
+  // Action prompts — plan razonado por IA si está disponible; si no, fallback determinista
+  if (!empty($data['ai_analysis'])) {
+    $out .= "{$b[0]}🧠 PLAN DE LUNA{$b[1]}{$br}";
+    $out .= str_replace("\n", $br, $data['ai_analysis']) . $br;
+  } else {
+    $out .= "{$b[0]}🎯 ACCIONES PROPUESTAS{$b[1]}{$br}";
+    $hasActions = false;
+    if (!empty($data['retencion_hoy'])) {
+      $out .= "1. Crear " . count($data['retencion_hoy']) . " tickets de retención (Samia){$br}";
+      $hasActions = true;
+    }
+    if (!empty($data['hot_leads_frios'])) {
+      $out .= "2. Crear tickets de seguimiento hot leads (Skarleth){$br}";
+      $hasActions = true;
+    }
+    if (!empty($data['t65_urgentes'])) {
+      $out .= "3. Contactar T65 urgentes esta semana{$br}";
+      $hasActions = true;
+    }
+    if (!$hasActions) {
+      $out .= "{$i[0]}Sin acciones urgentes hoy. Buen día para enfocarse en outreach.{$i[1]}{$br}";
+    }
   }
 
   $out .= "{$br}{$i[0]}— LUNA · 🌙 abre la plataforma para aprobar acciones{$i[1]}{$br}";
@@ -467,6 +510,8 @@ $startTime = microtime(true);
 logBriefing("=== LUNA Briefing started ===", $CONFIG);
 
 $data = collectBriefingData($pdo);
+$data['ai_analysis'] = lunaBriefingAnalysis($data); // null si no hay key/IA → usa fallback
+logBriefing("AI analysis: " . ($data['ai_analysis'] ? 'OK' : 'skipped/unavailable'), $CONFIG);
 $results = [];
 
 if ($CONFIG['send_email']) {

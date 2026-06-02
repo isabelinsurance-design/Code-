@@ -12,6 +12,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
   'from_name'    => 'Isabel Fuentes · Medicare',
@@ -92,6 +93,31 @@ function emailWrapper($title, $preheader, $body, $config) {
   </body></html>';
 }
 
+// ─── SALUDO DE CUMPLEAÑOS PERSONALIZADO (IA, con fallback) ──
+// Personaliza SOLO el saludo (cálido, sin afirmaciones de cobertura). El
+// resto del email (CTA, firma, disclaimers CMS) sigue siendo determinista.
+function smartBirthdayGreeting($member) {
+  if (!lunaAIEnabled()) return null;
+
+  $system =
+    "Eres Isabel Fuentes, agente licenciada de Medicare en California, escribiendo "
+  . "un saludo de cumpleaños cálido y personal por email a un cliente. REGLAS: español "
+  . "cercano, trato de usted; 2 o 3 párrafos cortos, cada uno envuelto en <p>...</p>; "
+  . "agradece su confianza y su relación. CUMPLIMIENTO CMS (obligatorio): NO menciones "
+  . "precios, primas, beneficios específicos, ni hagas promesas de cobertura; no "
+  . "promociones planes. Puedes nombrar el carrier solo para decir que están para "
+  . "ayudar con su plan. NUNCA inventes datos personales. Devuelve SOLO los <p>, sin "
+  . "encabezado, sin firma y sin el botón de llamada (eso se agrega aparte).";
+
+  $user =
+    "Cliente: {$member['nombre']} {$member['apellido']}\n"
+  . "Carrier: " . ($member['carrier'] ?: 'su plan') . "\n"
+  . "Cumple años hoy" . (!empty($member['edad']) ? " ({$member['edad']} años)" : '') . ".\n\n"
+  . "Escribe el saludo de cumpleaños.";
+
+  return lunaAI($system, $user, 500);
+}
+
 // ════════════════════════════════════════════════════════════
 // MODO 1: CUMPLEAÑOS
 // ════════════════════════════════════════════════════════════
@@ -108,13 +134,24 @@ function runBirthdayCampaign($pdo, $config) {
   ")->fetchAll(PDO::FETCH_ASSOC);
 
   $sent = 0;
+  $aiCount = 0;
   foreach ($members as $m) {
     $nombre = $m['nombre'];
-    $body = "
+
+    // Saludo personalizado por IA; si no hay IA, plantilla determinista de siempre.
+    $greeting = smartBirthdayGreeting($m);
+    if ($greeting === null) {
+      $greeting = "
       <p>Hola <strong>{$nombre}</strong>,</p>
       <p>En el equipo de Medicare with Isabel le deseamos un muy <strong>¡Feliz Cumpleaños! 🎂</strong></p>
       <p>Gracias por permitirnos ser parte de su cuidado de salud. Cuidar de usted es nuestro compromiso.</p>
-      <p>Si tiene alguna pregunta sobre su plan <strong>{$m['carrier']}</strong>, o si hay algo en lo que podamos ayudarle, estamos a sus órdenes.</p>
+      <p>Si tiene alguna pregunta sobre su plan <strong>{$m['carrier']}</strong>, o si hay algo en lo que podamos ayudarle, estamos a sus órdenes.</p>";
+    } else {
+      $aiCount++;
+    }
+
+    // El CTA y la firma se mantienen deterministas (compliance + consistencia).
+    $body = $greeting . "
       <div style='background:#f0f9ff;border-left:4px solid #1a56ff;padding:16px 20px;border-radius:0 8px 8px 0;margin:20px 0;'>
         <strong>¿Sabía que puede revisar sus beneficios en cualquier momento?</strong><br>
         Llámenos al <a href='tel:{$config['agency_phone']}' style='color:#1a56ff;'>{$config['agency_phone']}</a> y con gusto lo ayudamos.
@@ -132,8 +169,8 @@ function runBirthdayCampaign($pdo, $config) {
     if ($ok) $sent++;
   }
 
-  logMarketing("Birthday: sent={$sent}, total_candidates=" . count($members), $config);
-  return ['mode' => 'birthday', 'sent' => $sent, 'candidates' => count($members)];
+  logMarketing("Birthday: sent={$sent}, total_candidates=" . count($members) . ", ai_personalized={$aiCount}", $config);
+  return ['mode' => 'birthday', 'sent' => $sent, 'candidates' => count($members), 'ai_personalized' => $aiCount];
 }
 
 // ════════════════════════════════════════════════════════════
