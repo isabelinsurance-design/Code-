@@ -65,8 +65,18 @@ the main answer — a second Claude call that extracts structured items from
 Isabel's message and auto-saves them to the right layer. The Equipo IA agents
 each have their own voice block (signature phrases + forbidden words). Every AI
 response must close with one concrete action prefixed with `✅ Tu próxima acción:`
-(baked into `ISABEL_SYSTEM`). See `bot/AthenaKnowledgeTransfer*.md` notes for the
-broader playbook (briefings, trust score, signals/gaps) we haven't built yet.
+(baked into `ISABEL_SYSTEM`).
+
+**Trust score + gaps** live on top of Plan de Acción: `computeHealth()` returns
+a 0-100 number from plan progress, lead count + recency, memory depth, and
+pending tareas/compromisos; `computeGaps()` returns up to 6 prioritized
+attention items. Both re-render on every state-changing call
+(`updatePlanProgress`, `updateCRMStats`, `addMemoria`/`removeMemoria`/
+`toggleMemDone`, `checkApiKey`). **Compliance gating**: `callClaude` runs
+`checkCompliance()` on every AI response against `CMS_FLAGS` regexes (no
+absolute superlatives, no guarantees, no negative carrier comparisons, etc.)
+and inserts a `.cms-banner` next to the output if anything matches. Still not
+built: briefings (need server cron), drafts queue with confirmation gate.
 
 ## Hard rules / conventions
 

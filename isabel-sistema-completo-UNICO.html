@@ -221,6 +221,37 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .mem-add input:focus{outline:0;border-color:var(--gold)}
 .mem-add button{background:var(--gold-g);color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;font-size:13px}
 .mem-capture-banner{background:var(--green-lt);border:1px solid var(--green);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.5;display:flex;gap:10px;align-items:flex-start}
+
+/* ─── HEALTH SCORE + GAPS ─── */
+.health-row{display:grid;grid-template-columns:180px 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:600px){.health-row{grid-template-columns:1fr}}
+.health-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:14px;text-align:center;display:flex;flex-direction:column;justify-content:center;transition:border-color .25s}
+.health-card.health-high{border-color:var(--green);background:var(--green-lt)}
+.health-card.health-mid{border-color:var(--amber);background:var(--amber-lt)}
+.health-card.health-low{border-color:var(--red);background:var(--red-lt)}
+.health-label{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+.health-num{font-family:'Fraunces',serif;font-size:46px;font-weight:300;color:var(--gold-dk);line-height:1;margin:6px 0}
+.health-card.health-high .health-num{color:var(--green)}
+.health-card.health-mid .health-num{color:var(--amber)}
+.health-card.health-low .health-num{color:var(--red)}
+.health-num-max{font-size:18px;color:var(--text-muted);font-style:italic;margin-left:2px}
+.health-msg{font-size:11.5px;color:var(--text-mid);line-height:1.4;padding:0 4px}
+.gaps-card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:14px}
+.gaps-title{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:8px}
+.gaps-list{list-style:none;padding:0;margin:0}
+.gap-item{padding:7px 0 7px 22px;border-top:1px solid var(--border);font-size:13px;line-height:1.5;color:var(--text);position:relative}
+.gap-item:first-child{border-top:0}
+.gap-item::before{content:'•';position:absolute;left:6px;top:7px;font-weight:700}
+.gap-item.gap-pri-1::before{color:var(--red)}
+.gap-item.gap-pri-2::before{color:var(--amber)}
+.gap-item.gap-pri-3::before{color:var(--teal)}
+.gap-empty{padding:7px 0;font-size:13px;color:var(--text-muted);font-style:italic}
+
+/* ─── COMPLIANCE BANNER ─── */
+.cms-banner{background:var(--amber-lt);border:1.5px solid var(--amber);border-radius:10px;padding:10px 14px;margin-top:10px;font-size:13px;color:var(--text);line-height:1.45}
+.cms-banner-head{font-weight:700;color:var(--amber);margin-bottom:4px}
+.cms-banner ul{margin:4px 0 0 18px;padding:0}
+.cms-banner li{margin-bottom:2px}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -631,6 +662,18 @@ tr:hover td{background:var(--surface)}
       <div class="page-header">
         <div class="page-title">🎯 Plan de <em>Acción</em></div>
         <div class="page-sub">Tu hoja de ruta: de seguidores a leads, y de leads a miembros — paso a paso.</div>
+      </div>
+
+      <div class="health-row">
+        <div class="health-card" id="healthCard">
+          <div class="health-label">Salud del Negocio</div>
+          <div class="health-num"><span id="healthScore">--</span><span class="health-num-max">/100</span></div>
+          <div class="health-msg" id="healthMsg">Calculando…</div>
+        </div>
+        <div class="gaps-card">
+          <div class="gaps-title">🎯 Lo que necesita tu atención</div>
+          <ul class="gaps-list" id="gapsList"><li class="gap-empty">Calculando…</li></ul>
+        </div>
       </div>
 
       <div class="plan-goal">
@@ -2139,6 +2182,7 @@ function checkApiKey(){
   document.getElementById('apiDot').classList.toggle('active', apiKey.length > 20);
   persistApiKey();
   broadcastApiKey();
+  try { renderHealth(); } catch(_){}
 }
 function loadApiKey(){
   let stored = '';
@@ -2227,6 +2271,7 @@ async function callClaude(systemPrompt, userMsg, outputId){
     if(data.error) throw new Error(data.error.message);
     const text = data.content.map(b=>b.text||'').join('');
     setOutput(outputId, text);
+    try { setComplianceWarning(outputId, checkCompliance(text)); } catch(_){}
     return text;
   }catch(e){
     setOutput(outputId,'❌ Error: '+e.message);
@@ -2578,6 +2623,7 @@ function updateCRMStats(){
   document.getElementById('crmStatCold').textContent = leads.filter(l=>l.status.includes('Cold')).length;
   const dash = document.getElementById('dashLeads');
   if(dash) dash.textContent = leads.length;
+  try { renderHealth(); } catch(_){}
 }
 
 async function generateFollowUp(){
@@ -2629,6 +2675,7 @@ function updatePlanProgress(){
   const pct = all.length ? Math.round(done.length/all.length*100) : 0;
   const bar = document.getElementById('planBar'); if(bar) bar.style.width = pct+'%';
   const lbl = document.getElementById('planPct'); if(lbl) lbl.textContent = pct+'% completado ('+done.length+'/'+all.length+')';
+  try { renderHealth(); } catch(_){}
 }
 
 // ─── EQUIPO IA: 6 agentes en paralelo ───
@@ -2711,14 +2758,16 @@ function addMemoria(k, item){
   item.date = item.date || new Date().toLocaleDateString('es-MX');
   memoria[k].unshift(item);
   saveMemoria(k); renderMemoria(k);
+  try { renderHealth(); } catch(_){}
 }
 function removeMemoria(k, id){
   memoria[k] = memoria[k].filter(it => it.id !== id);
   saveMemoria(k); renderMemoria(k);
+  try { renderHealth(); } catch(_){}
 }
 function toggleMemDone(k, id){
   const it = memoria[k].find(x => x.id === id);
-  if(it){ it.done = !it.done; saveMemoria(k); renderMemoria(k); }
+  if(it){ it.done = !it.done; saveMemoria(k); renderMemoria(k); try { renderHealth(); } catch(_){} }
 }
 function renderMemoria(only){
   const cards = {
@@ -2842,6 +2891,110 @@ function showCaptureToast(n){
   window.__toastTimer = setTimeout(()=>{ t.classList.remove('show'); t.style.background=''; }, 3000);
 }
 
+// ─── HEALTH SCORE + GAPS (Athena pattern) ───
+function computeHealth(){
+  let total = 0;
+  const totalPlan = document.querySelectorAll('#mod-plan input[type=checkbox]').length;
+  const donePlan = document.querySelectorAll('#mod-plan input[type=checkbox]:checked').length;
+  if(totalPlan) total += Math.round((donePlan/totalPlan)*25);
+  if(leads.length > 0) total += 15;
+  if(leads.length > 0){
+    const recent = leads.some(l => (Date.now() - l.id) < 7*24*3600*1000);
+    if(recent) total += 15;
+  }
+  const memTotal = memoria.hechos.length + memoria.personas.length + memoria.tareas.length + memoria.compromisos.length;
+  total += Math.min(10, memTotal * 2);
+  const pendingTareas = memoria.tareas.filter(t => !t.done).length;
+  if(pendingTareas === 0) total += 20;
+  else if(pendingTareas <= 3) total += 12;
+  else total += 5;
+  const pendingComp = memoria.compromisos.filter(c => !c.fulfilled).length;
+  if(pendingComp === 0) total += 15;
+  else if(pendingComp <= 3) total += 9;
+  else total += 3;
+  return Math.min(100, total);
+}
+
+function computeGaps(){
+  const gaps = [];
+  if(!apiKey) gaps.push({pri:1, msg:'Falta tu API Key (arriba a la derecha). Sin ella la IA no funciona.'});
+  const totalPlan = document.querySelectorAll('#mod-plan input[type=checkbox]').length;
+  const donePlan = document.querySelectorAll('#mod-plan input[type=checkbox]:checked').length;
+  if(totalPlan && (donePlan/totalPlan) < 0.3){
+    gaps.push({pri:2, msg:`Tu Plan de Acción está al ${Math.round((donePlan/totalPlan)*100)}%. Marca lo que ya hiciste.`});
+  }
+  if(leads.length === 0){
+    gaps.push({pri:1, msg:'Sin leads en tu CRM. Tu próxima publicación debe pedir contactos ("Escríbeme MEDICARE").'});
+  } else {
+    const daysSinceLast = Math.floor((Date.now() - leads[0].id) / (24*3600*1000));
+    if(daysSinceLast > 7) gaps.push({pri:2, msg:`No has agregado un lead nuevo en ${daysSinceLast} días.`});
+  }
+  const pendingTareas = memoria.tareas.filter(t => !t.done).length;
+  if(pendingTareas >= 5) gaps.push({pri:1, msg:`Tienes ${pendingTareas} tareas pendientes. Limpia lo viejo o márcalas como hechas.`});
+  else if(pendingTareas > 0) gaps.push({pri:3, msg:`${pendingTareas} tarea${pendingTareas>1?'s':''} pendiente${pendingTareas>1?'s':''} en tu Memoria.`});
+  const pendingComp = memoria.compromisos.filter(c => !c.fulfilled).length;
+  if(pendingComp > 0) gaps.push({pri:2, msg:`${pendingComp} compromiso${pendingComp>1?'s':''} sin cumplir — persígue${pendingComp>1?'los':'lo'}.`});
+  const memTotal = memoria.hechos.length + memoria.personas.length + memoria.tareas.length + memoria.compromisos.length;
+  if(memTotal === 0) gaps.push({pri:3, msg:'Tu Memoria está vacía. Háblale a Cerebro IA y se va a ir llenando sola.'});
+  return gaps.sort((a,b) => a.pri - b.pri).slice(0, 6);
+}
+
+function renderHealth(){
+  const card = document.getElementById('healthCard');
+  if(!card) return;
+  const score = computeHealth();
+  document.getElementById('healthScore').textContent = score;
+  const msgEl = document.getElementById('healthMsg');
+  let cls, msg;
+  if(score >= 80){ cls = 'health-high'; msg = 'Estás manejando esto. Mantén el ritmo 🦋'; }
+  else if(score >= 50){ cls = 'health-mid'; msg = 'Hay un par de cosas que necesitan tu atención.'; }
+  else { cls = 'health-low'; msg = 'Hoy necesitas meterle. El plan está pidiendo movimiento.'; }
+  card.className = 'health-card '+cls;
+  msgEl.textContent = msg;
+  const gaps = computeGaps();
+  const list = document.getElementById('gapsList');
+  if(!gaps.length) list.innerHTML = '<li class="gap-empty">Sin gaps detectados. Todo en orden 🦋</li>';
+  else list.innerHTML = gaps.map(g => `<li class="gap-item gap-pri-${g.pri}">${escapeHtml(g.msg)}</li>`).join('');
+}
+
+// ─── COMPLIANCE GATING (CMS red-flag check) ───
+const CMS_FLAGS = [
+  {pat:/lo m[áa]s barato/i, msg:'"Lo más barato" — CMS no permite afirmaciones comparativas de precio.'},
+  {pat:/\b(el|la|este|esta) mejor plan\b/i, msg:'"El mejor plan" — evita superlativos absolutos.'},
+  {pat:/\bte?\s*garantizo\b|garantizad[oa]\b/i, msg:'"Garantizo / garantizado" — no se permiten garantías de cobertura.'},
+  {pat:/100\s*%\s*gratis/i, msg:'"100% gratis" — aclara qué exactamente es gratis (consulta vs prima).'},
+  {pat:/sin costo alguno/i, msg:'"Sin costo alguno" — agrega contexto (sujeto a elegibilidad del plan).'},
+  {pat:/mejor que\s+(humana|scan|anthem|alignment|united|kaiser|aetna|cigna|wellcare|molina|health\s*net|la\s*care)/i, msg:'Comparación negativa con un carrier — CMS prohíbe.'},
+  {pat:/medicare\s+es\s+(totalmente|completamente)?\s*gratis/i, msg:'"Medicare es gratis" — Parte A puede ser gratis, pero hay primas/copagos. Aclara.'},
+  {pat:/oferta?\s+exclusiva/i, msg:'"Oferta exclusiva" — los planes Medicare no son ofertas; son beneficios regulados.'},
+];
+
+function checkCompliance(text){
+  if(!text) return [];
+  const issues = [];
+  for(const f of CMS_FLAGS){
+    if(f.pat.test(text)) issues.push(f.msg);
+  }
+  return issues;
+}
+
+function setComplianceWarning(outputId, issues){
+  const out = document.getElementById(outputId);
+  if(!out) return;
+  let banner = document.getElementById(outputId+'_cms');
+  if(!issues.length){
+    if(banner) banner.remove();
+    return;
+  }
+  if(!banner){
+    banner = document.createElement('div');
+    banner.id = outputId+'_cms';
+    banner.className = 'cms-banner';
+    out.parentElement.insertBefore(banner, out.nextSibling);
+  }
+  banner.innerHTML = '<div class="cms-banner-head">⚠️ Revisión CMS antes de publicar ('+issues.length+')</div><ul>'+issues.map(i=>'<li>'+escapeHtml(i)+'</li>').join('')+'</ul>';
+}
+
 // ─── BRAND: copy hex ───
 function copyHex(hex){
   navigator.clipboard.writeText(hex).then(()=>{
@@ -2870,6 +3023,7 @@ loadApiKey();
 loadLeads();
 loadPlan();
 loadMemoria();
+renderHealth();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
