@@ -48,6 +48,10 @@ Si algo dice FALLÓ, el mensaje indica la causa (tabla/columna/permiso).
 - [ ] **Health Score** — a **LUNA principal** clic en *"¿Cómo está la salud del negocio?"*
       → devuelve un número 0-100, la banda (autopilot/revisa/necesita) y el foco del día.
       (Atajo directo para verificar el cálculo: `luna_api.php?action=luna_business_health`.)
+- [ ] **Capture-by-default** — busca un miembro real y di algo durable de él
+      (*"a [nombre] prefiere que la llamen en la mañana"*) → LUNA muestra un chip
+      "📝 nota guardada en el miembro" y la nota aparece en `notas_miembro` del CRM,
+      SIN que tú lo pidieras. (No debe inventar ni guardar si no identifica al miembro.)
 
 **Señales de falla:**
 - 🔴 "Error HTTP" / sin respuesta → revisa `ANTHROPIC_API_KEY` en `config.php`.

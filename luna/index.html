@@ -535,9 +535,12 @@ MEMORIA POR CAPAS (úsala cuando aplique):
 - SEÑALES: usa la herramienta "signals" para ver alertas ya computadas (hot leads fríos, retención, SOA, T65, AEP). Empieza ahí cuando Isabel pida "qué necesita atención".
 - HUECOS: usa la herramienta "gaps" para ver qué datos faltan en el CRM (activos sin email/teléfono/SOA, leads sin fuente). Útil para sugerir limpieza de datos.
 - ENTIDADES: usa la herramienta "entities" para buscar personas/doctores/clínicas mencionadas.
-- CAPTURA POR DEFECTO: cuando Isabel mencione un hecho durable sobre una persona (preferencia, doctor, relación, promesa) que valga la pena recordar, regístralo SIN preguntar emitiendo al final de tu respuesta:
+- CAPTURA POR DEFECTO (entidades): cuando Isabel mencione un hecho durable sobre una persona (preferencia, doctor, relación, promesa) que valga la pena recordar, regístralo SIN preguntar emitiendo al final de tu respuesta:
   [[ENTITY|Nombre|persona|la nota corta a recordar]]
   (tipo puede ser persona/doctor/clinica/org/lugar). Hazlo solo con hechos reales que Isabel dijo, nunca inventes.
+- CAPTURA POR DEFECTO (miembros): cuando surja un hecho durable de un MIEMBRO específico del CRM (prefiere llamadas en la mañana, le da miedo cambiar de plan, su médico de cabecera es X, habla solo español, cuida a su mamá) y ya sabes su miembro_id (porque lo buscaste o consultaste), guárdalo SIN preguntar emitiendo al final:
+  [[MEMBER_NOTE|miembro_id|la nota corta]]
+  Ej: [[MEMBER_NOTE|123|Prefiere que la llamen después de las 2pm]]. Reglas: solo hechos REALES que se dijeron (nunca inventes), solo si el miembro_id es inequívoco (si dudas de a quién se refiere, primero búscalo con la herramienta search), y una nota por hecho. Se guarda en notas_miembro del CRM.
 
 BÚSQUEDA WEB: algunos agentes tienen acceso a búsqueda web en vivo. Úsala SOLO cuando necesites información actual y verificable (cambios de planes/carriers para el año, reglas CMS recientes, noticias de Medicare). Cita la fuente. Para datos del negocio usa siempre las tools del CRM, no la web.
 
@@ -1670,6 +1673,23 @@ function detectEntitySave(text) {
   const parts = m[1].split('|').map(s => s.trim());
   if (!parts[0]) return null;
   return { name: parts[0], tipo: parts[1] || 'persona', nota: parts[2] || '' };
+}
+
+// [[MEMBER_NOTE|miembro_id|nota]] — CAPTURE-BY-DEFAULT (patrón Athena Sec.3):
+// cuando un agente escucha un hecho durable de un MIEMBRO (preferencia de hora,
+// miedo, médico de cabecera, etc.) lo guarda en notas_miembro SIN preguntar.
+// Requiere el miembro_id (el agente ya lo tiene si buscó/consultó al miembro).
+function detectMemberNote(text) {
+  const out = [];
+  const re = /\[\[MEMBER_NOTE\|([^\]]+)\]\]/g;
+  let m;
+  while ((m = re.exec(text)) !== null) {
+    const parts = m[1].split('|').map(s => s.trim());
+    const id = parseInt(parts[0], 10);
+    const nota = (parts[1] || '').trim();
+    if (id > 0 && nota) out.push({ miembro_id: id, nota });
+  }
+  return out;
 }
 
 function addRememberNote(note) {
@@ -2950,6 +2970,11 @@ async function sendMsg() {
     if (entityData) {
       callTool('entity_save', entityData).catch(()=>{});
     }
+    // Detect [[MEMBER_NOTE|id|nota]] — capture-by-default: guarda hecho durable
+    // del miembro en notas_miembro SIN preguntar (patrón Athena Sec.3).
+    for (const mn of detectMemberNote(accumulated)) {
+      callTool('note', mn).catch(()=>{});
+    }
     // Store session summary when conversation gets meaningful
     storeSessionSummary(a.id, history[a.id]);
     // Try to store monthly snapshot (only once per month per device)
@@ -3138,6 +3163,9 @@ function renderBubble(text, streaming = false) {
   let s = esc(text);
   s = s.replace(/\[\[TOOL:[^\]]+\]\]/g, '<span style="opacity:.4;font-size:10px;font-style:italic">[consultando CRM...]</span>');
   s = s.replace(/\[\[PLAN_START\]\][\s\S]*?\[\[PLAN_END\]\]/g, '');
+  // Capture-by-default: el marcador no se muestra crudo; sale un chip de "guardado".
+  s = s.replace(/\[\[MEMBER_NOTE\|[^\]]+\]\]/g, '<span style="display:inline-block;margin:2px 0;background:rgba(0,135,90,.08);border:1px solid rgba(0,135,90,.2);border-radius:8px;padding:1px 8px;font-size:11px;color:var(--grn);">📝 nota guardada en el miembro</span>');
+  s = s.replace(/\[\[ENTITY\|[^\]]+\]\]/g, '');
   s = s.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
   s = s.replace(/`([^`]+)`/g, '<code style="background:rgba(0,0,0,.07);padding:1px 5px;border-radius:4px;font-size:12px">$1</code>');
   if (streaming) s += '<span class="cursor">▍</span>';
