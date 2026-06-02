@@ -106,7 +106,10 @@ textarea:focus,input:focus{outline:none;border-color:var(--gold)}
     <div class="logo-icon">S</div>
     <div class="logo-txt"><b>SAMIA</b><span>Panel del equipo</span></div>
   </div>
-  <div class="topbar-status"><span class="dot" id="healthDot"></span><span id="healthTxt">conectando…</span></div>
+  <div class="topbar-status">
+    <span class="pill" id="scoreChip" style="display:none;cursor:pointer"></span>
+    <span class="dot" id="healthDot"></span><span id="healthTxt">conectando…</span>
+  </div>
 </div>
 <div class="layout">
   <nav class="nav" id="nav"></nav>
@@ -160,10 +163,30 @@ function head(title, sub){ return `<div class="page-head"><h1>${title}</h1>${sub
 function empty(icon, txt){ return `<div class="empty"><span class="big">${icon}</span>${txt}</div>`; }
 
 // ── BRIEFING ──
+const HEALTH_COLOR = {autopilot:'var(--green)', revisa:'var(--amber)', necesita:'var(--red)'};
 async function renderBriefing(){
-  const {briefing} = await api('/api/intel/briefing');
-  const c = briefing?.counts || {};
+  const [{briefing},{health}] = await Promise.all([api('/api/intel/briefing'), api('/api/intel/health')]);
+  const col = HEALTH_COLOR[health.band]||'var(--text-muted)';
+  const comps = health.components.map(c=>`<div class="kv"><b>${esc(c.name)}</b><span style="min-width:46px">${c.score}/${c.max}</span><span class="muted">${esc(c.note)}</span></div>`).join('');
+  const healthCard = `<div class="card" style="border-color:${col}">
+    <div class="card-body" style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">
+      <div style="text-align:center;min-width:96px">
+        <div style="font-family:'Fraunces',serif;font-size:44px;line-height:1;color:${col}">${health.score}</div>
+        <div class="muted" style="margin-top:2px">de 100</div>
+      </div>
+      <div style="flex:1;min-width:200px">
+        <div style="font-weight:600;font-size:15px;color:${col}">${esc(health.headline)}</div>
+        <div style="margin-top:8px">${comps}</div>
+      </div>
+    </div>
+    <div class="card-body" style="border-top:1px solid var(--border);background:var(--surface)">
+      <div class="muted" style="font-size:11px;letter-spacing:.5px;text-transform:uppercase;margin-bottom:4px">🎯 El foco de hoy</div>
+      <div style="font-weight:600">${esc(health.focus.title)}</div>
+      <div class="sub" style="color:var(--text-muted);font-size:12.5px;margin-top:2px">${esc(health.focus.why)}</div>
+      <div style="margin-top:6px;font-size:13px">→ <b>Ciérralo hoy:</b> ${esc(health.focus.doToday)}</div>
+    </div></div>`;
   $('#main').innerHTML = head('Briefing matutino', briefing?`Generado ${fmtDate(briefing.ts)}`:'')
+    + healthCard
     + `<div class="toolbar"><button class="btn btn-gold btn-sm" id="regen">↻ Regenerar</button></div>`
     + `<div class="card"><div class="card-body"><div class="brief">${esc(briefing?.text||'Sin briefing.')}</div></div></div>`;
   $('#regen').onclick = async (e)=>{ e.target.disabled=true; await api('/api/intel/briefing',{method:'POST'}); go('briefing'); };
@@ -307,6 +330,12 @@ async function boot(){
   try{ const {signals=[]}=await api('/api/intel/signals'); setBadge('senales',signals.filter(s=>s.severity==='alto').length,''); }catch{}
   try{ const {commitments=[]}=await api('/api/intel/commitments'); setBadge('compromisos',commitments.filter(c=>c.status==='overdue').length,''); }catch{}
   try{ const {candidates=[]}=await api('/api/memory/merge-candidates'); setBadge('memoria',candidates.length,'muted'); }catch{}
+  try{
+    const {health}=await api('/api/intel/health');
+    const chip=$('#scoreChip'); const klass={autopilot:'ok',revisa:'warn',necesita:'alto'}[health.band]||'info';
+    chip.className='pill '+klass; chip.textContent='Salud '+health.score; chip.title=health.headline;
+    chip.style.display=''; chip.onclick=()=>go('briefing');
+  }catch{}
 }
 boot();
 </script>

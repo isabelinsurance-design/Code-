@@ -22,6 +22,7 @@ import { getSignals, refreshSignals, signalsContext } from './intel/signals.js';
 import { runReflection, getReflections } from './intel/reflection.js';
 import * as commitments from './intel/commitments.js';
 import { buildBriefing, generateBriefing, getLatestBriefing } from './intel/briefing.js';
+import { computeHealth } from './intel/health.js';
 import { startScheduler, schedulerStatus, tick } from './intel/scheduler.js';
 import { review as complianceReview, scanPII } from './security/compliance.js';
 import { evaluate as gateEvaluate, rewrite as complianceRewrite } from './security/gate.js';
@@ -211,6 +212,7 @@ const server = createServer(async (req, res) => {
   }
 
   // --- AUTONOMIA (Fase 5) ---
+  if (path === '/api/intel/health' && req.method === 'GET') return json(res, 200, { health: computeHealth() });
   if (path === '/api/intel/briefing' && req.method === 'GET')
     return json(res, 200, { briefing: getLatestBriefing() || buildBriefing() });
   if (path === '/api/intel/briefing' && req.method === 'POST')

@@ -10,6 +10,7 @@ import { resolve } from 'node:path';
 import { DATA_DIR } from '../config.js';
 import { getSignals, refreshSignals } from './signals.js';
 import { reviewCommitments } from './commitments.js';
+import { healthLine } from './health.js';
 import { rankedGaps } from '../memory/entities.js';
 import { getSeason } from '../memory/wiki.js';
 import { lastReflection } from '../memory/index.js';
@@ -32,6 +33,7 @@ export function buildBriefing(now = new Date()) {
   const fecha = now.toLocaleDateString('es-MX', { weekday: 'long', day: 'numeric', month: 'long' });
   lines.push(`☀️ Briefing — ${fecha}`);
   if (season) lines.push(`Temporada: ${season}`);
+  lines.push(healthLine(now)); // salud del negocio (Athena #10)
   lines.push('');
 
   if (alto.length) {

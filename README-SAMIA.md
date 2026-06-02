@@ -215,6 +215,20 @@ y memoria por capas ya estaban).
   tema a otro modo. Se inyecta en el system prompt. Así cada modo se siente distinto y
   no se sale de su carril.
 
+### Fase 9 — Salud del negocio (trust score de Athena)
+
+- **Un número 0-100** (`intel/health.js`): "¿el negocio rueda solo hoy, o necesito
+  meter mano?". Determinista, desde la memoria que SAMIA ya tiene. Cinco componentes:
+  seguridad/cumplimiento (30), compromisos (25), datos pendientes (20), carga de
+  señales (15), presión de calendario (10). Bandas: **autopilot ≥80 · revisa 50-79 ·
+  necesita <50**. Como Athena (#11), no da la lista de problemas — da **EL foco más
+  doloroso** con un "ciérralo hoy". Recomputa señales primero, así endpoint y briefing
+  siempre coinciden.
+- Aparece como **primera línea del briefing** y como **tarjeta + chip de score** en el
+  dashboard (sección Briefing y topbar).
+
+Endpoint nuevo: `GET /api/intel/health`.
+
 ### Fase 10 — Dashboard
 
 - **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,
