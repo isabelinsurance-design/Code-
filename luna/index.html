@@ -1956,6 +1956,26 @@ function dismissAlert(ruleKey) {
   renderAlertsBanner();
 }
 
+// Tendencia del Health Score: guarda el score por día en localStorage y calcula
+// el delta contra el último día distinto. Así LUNA recuerda si el negocio va ↑ o ↓.
+function computeHealthTrend(h) {
+  if (!h || typeof h.score !== 'number') return;
+  try {
+    const today = new Date().toISOString().slice(0, 10);
+    let hist = [];
+    try { hist = JSON.parse(localStorage.getItem('luna_health_hist') || '[]'); } catch(e) { hist = []; }
+    if (!Array.isArray(hist)) hist = [];
+    // último registro de un día DISTINTO a hoy
+    const prev = [...hist].reverse().find(e => e && e.d && e.d !== today && typeof e.s === 'number');
+    h._trend = prev ? { delta: h.score - prev.s, prevDate: prev.d } : null;
+    // guardar/actualizar el de hoy
+    hist = hist.filter(e => e && e.d !== today);
+    hist.push({ d: today, s: h.score });
+    if (hist.length > 30) hist = hist.slice(-30);
+    localStorage.setItem('luna_health_hist', JSON.stringify(hist));
+  } catch(e) { /* sin trend si localStorage falla */ }
+}
+
 async function checkAllAlerts(force = false) {
   // Cache: don't check more than once every 5 minutes unless forced
   const now = Date.now();
@@ -2014,7 +2034,7 @@ async function checkAllAlerts(force = false) {
     // Health Score proactivo: lo traemos junto con las alertas para mostrarlo al abrir.
     try {
       const hr = await fetch(`${CRM_BASE}?action=luna_business_health`);
-      if (hr.ok) { const hj = await hr.json(); if (hj.ok && hj.data) businessHealth = hj.data; }
+      if (hr.ok) { const hj = await hr.json(); if (hj.ok && hj.data) { businessHealth = hj.data; computeHealthTrend(businessHealth); } }
     } catch(e) { /* si falla, simplemente no mostramos el score */ }
 
     renderAlertsBanner();
@@ -2056,9 +2076,20 @@ function renderAlertsBanner() {
             : h.band === 'revisa'    ? {c:'#d97706',bg:'rgba(217,119,6,.07)',t:'REVISA'}
             :                          {c:'#dc2626',bg:'rgba(220,38,38,.07)',t:'NECESITA TU MANO'};
     const foco = (h.foco_hoy && h.foco_hoy.nota) ? `<div style="font-size:11px;color:var(--t2);margin-top:4px;">🎯 Foco de hoy: ${esc(h.foco_hoy.nota)}</div>` : '';
+    let trend = '';
+    if (h._trend && h._trend.delta !== 0) {
+      const up = h._trend.delta > 0;
+      const tc = up ? '#00875a' : '#dc2626';
+      trend = `<span title="vs ${esc(h._trend.prevDate)}" style="font-size:10px;font-weight:800;color:${tc};white-space:nowrap;">${up?'▲':'▼'} ${Math.abs(h._trend.delta)}</span>`;
+    } else if (h._trend) {
+      trend = `<span title="vs ${esc(h._trend.prevDate)}" style="font-size:10px;font-weight:700;color:var(--t3);white-space:nowrap;">= igual</span>`;
+    }
     healthCard = `<div style="padding:13px 16px;border-bottom:1px solid var(--border);background:${hb.bg};">
       <div style="display:flex;align-items:center;gap:12px;">
-        <div style="font-size:26px;font-weight:900;color:${hb.c};line-height:1;">${h.score}<span style="font-size:13px;font-weight:700;opacity:.6;">/100</span></div>
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px;">
+          <div style="font-size:26px;font-weight:900;color:${hb.c};line-height:1;">${h.score}<span style="font-size:13px;font-weight:700;opacity:.6;">/100</span></div>
+          ${trend}
+        </div>
         <div style="flex:1;">
           <div style="display:flex;align-items:center;gap:6px;">
             <span style="font-size:9px;font-weight:800;letter-spacing:1px;color:${hb.c};background:${hb.bg};border:1px solid ${hb.c}33;padding:1px 7px;border-radius:10px;">💚 ${hb.t}</span>
