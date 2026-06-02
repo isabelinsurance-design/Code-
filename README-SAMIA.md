@@ -303,6 +303,11 @@ sirve. El repo ya trae la config: `railway.json`, `nixpacks.toml`, `Procfile`,
 **Guía paso a paso en [`DEPLOY.md`](DEPLOY.md)** (Railway: variables, dominio, volumen
 persistente en `/data`, `TZ` para hora de California).
 
+Ya desplegado con una key real, corre el **[`SMOKE-TEST.md`](SMOKE-TEST.md)**: 9 pasos
+con `curl` que validan los caminos que dependen del LLM (chat, captura Haiku, resumen
+de reflexión, reescritura compliant, síntesis del fan-out, skills inyectadas) — lo
+único que el sandbox no puede verificar.
+
 ## Próximas fases sugeridas
 
 - **Fase 9 — Boundaries:** integrar Connecture vía la embajadora `ipa` (si hay API).
