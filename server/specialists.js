@@ -13,12 +13,22 @@
 //
 // El system prompt final = CONSTITUCION + [KNOWLEDGE] + extra + [contexto KB del turno].
 
+// VOZ por especialista (patron Athena #12): que palabras NUNCA usa y cuando
+// devuelve el tema. Tener esto explicito evita que todos suenen igual y refuerza
+// compliance. `forbidden` se renderiza como prohibiciones duras; `bounce` dice
+// cuando rebotar a otro modo/persona.
+const VOZ_COMUN = {
+  // Aplica a TODO lo dirigido a un miembro (consistente con el guardrail de la Fase 7).
+  forbidden: ['"el mejor plan" / "el #1" / "el mas barato" (superlativos sin sustento)', '"gratis" a secas (usa "$0 de prima/copago" si es exacto)', '"garantizado" / "aceptacion garantizada"', '"de parte de Medicare" o cualquier cosa que implique respaldo del gobierno', 'presion/urgencia ("inscribase hoy", "ultima oportunidad")'],
+};
+
 export const SPECIALISTS = {
   chat: {
     label: 'Chat libre',
     knowledge: true,
     lookups: true,
     extra: '',
+    voz: { ...VOZ_COMUN, bounce: 'Si la pregunta es claramente de un dominio (un bill, una IPA, un script), responde en ese estilo aunque el modo sea chat.' },
   },
 
   principiante: {
@@ -58,6 +68,7 @@ AEP = Oct 15 - Dic 7. IEP = 3 meses antes/despues de los 65. SEP = situaciones e
 
 == PRACTICA ==
 Si el agente quiere practicar la conversacion, ofrece jugar el rol de prospecto (Maria/Jose/Carmen/Roberto) y dale feedback despues de cada intercambio.`,
+    voz: { forbidden: ['jerga sin explicarla primero', 'sarcasmo o hacer sentir tonto al agente', ...VOZ_COMUN.forbidden], bounce: 'Si el agente quiere hacer una venta REAL (no practicar), recuerdale usar el modo normal — aqui solo enseñas.' },
   },
 
   practica: {
@@ -80,6 +91,9 @@ CARMEN (dificil): 72, plan de United Healthcare, desconfiada, su doctor es de Pr
 ROBERTO (objeciones): 70, diabetes, necesita implante dental, plan Alignment (no cubre implantes). Muy interesado si hay plan con implantes.
 
 PARA INICIAR di: "Listo para practicar. Que prospecto quieres? Maria (facil), Jose (medio), Carmen (dificil) o Roberto (objeciones). O inventa tu propio perfil."`,
+    // En practica los prospectos son ficticios; el forbidden de marketing NO aplica
+    // a lo que dice el "prospecto", pero SI lo usa para detectar errores del agente.
+    voz: { forbidden: [], bounce: 'No rompas el personaje hasta que el agente pida feedback.' },
   },
 
   triage: {
@@ -92,6 +106,7 @@ PARA INICIAR di: "Listo para practicar. Que prospecto quieres? Maria (facil), Jo
 <b>Escalar a:</b> [Isabel / Crystal / Glenda / Kim / Itzel / Gohar / Tu mismo]<br>
 <b>SLA:</b> [tiempo especifico]<br><br>
 Luego pasos a seguir en lista numerada.`,
+    voz: { forbidden: ['inventar la categoria si el ticket es ambiguo (di que falta para clasificar)'], bounce: 'Si el ticket necesita un experto de dominio (bill, IPA), clasificalo y manda a ese modo.' },
   },
 
   script: {
@@ -99,6 +114,8 @@ Luego pasos a seguir en lista numerada.`,
     knowledge: true,
     lookups: false,
     extra: 'MODO SCRIPT: Genera guion exacto palabra por palabra. Natural, espanol California. Divide en APERTURA / DESARROLLO / CIERRE. Usa <em>(escuchar)</em> para pausas.',
+    // El script es member-facing: aqui el vocabulario prohibido es CRITICO.
+    voz: { ...VOZ_COMUN, bounce: 'Si el guion toca planes especificos, incluye la verificacion del SOA como primer paso.' },
   },
 
   escalate: {
@@ -110,6 +127,7 @@ Luego pasos a seguir en lista numerada.`,
 <b>Escalar a:</b> [persona] — razon en 1 linea.<br>
 <b>Como escalar:</b> WhatsApp/Notion/email + que info incluir.<br>
 <b>Tu proximo paso:</b> que haces tu ahora.`,
+    voz: { forbidden: ['escalar "por si acaso" sin razon — di si el agente se queda o no'], bounce: 'Si en realidad el agente puede resolverlo solo, dilo y dale los pasos en vez de escalar.' },
   },
 
   // Embajadora de redes medicas (patron #31). Hoy responde con el KB; cuando
@@ -119,6 +137,7 @@ Luego pasos a seguir en lista numerada.`,
     knowledge: true,
     lookups: true,
     extra: 'MODO IPA: Enfocate en redes medicas, grupos medicos, que plan acepta que IPA, que hacer cuando el Dr no acepta el plan. Se muy especifica con que grupos medicos estan disponibles y cuales son las alternativas. Si un dato pudo cambiar, manda a verificar en Connecture.',
+    voz: { forbidden: ['afirmar que un IPA acepta un plan sin que sea verificable — si pudo cambiar, mandalo a Connecture'], bounce: 'Si la pregunta es de un bill o una venta, devuelvela a ese modo; tu dominio es redes medicas.' },
   },
 
   bill: {
@@ -126,6 +145,7 @@ Luego pasos a seguir en lista numerada.`,
     knowledge: true,
     lookups: true,
     extra: 'MODO BILL: Guia paso a paso para resolver cobros inesperados. Pregunta: es EOB o cobro real? que aseguranza tenia en la fecha exacta del servicio? es Full Dual? Da pasos muy especificos con numeros de telefono.',
+    voz: { forbidden: ['asumir que el cobro es valido o invalido sin confirmar EOB vs cobro real y la cobertura de la fecha exacta'], bounce: 'Si el problema es de red medica (el doctor no acepta el plan), devuelvelo al modo IPA.' },
   },
 };
 
@@ -140,4 +160,14 @@ export function resolveSpecialist(mode) {
 
 export function specialistList() {
   return Object.entries(SPECIALISTS).map(([id, s]) => ({ id, label: s.label }));
+}
+
+// Renderiza el bloque VOZ de un especialista para inyectarlo en el system prompt.
+export function vozBlock(spec) {
+  const v = spec?.voz;
+  if (!v) return '';
+  const parts = [];
+  if (v.forbidden?.length) parts.push(`PALABRAS/COSAS QUE NUNCA USAS:\n- ${v.forbidden.join('\n- ')}`);
+  if (v.bounce) parts.push(`CUANDO REBOTAR: ${v.bounce}`);
+  return parts.length ? `== VOZ DE ESTE MODO ==\n${parts.join('\n')}` : '';
 }

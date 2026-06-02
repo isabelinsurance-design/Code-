@@ -198,6 +198,23 @@ Convierte los **no-negociables de la constitución** en un **guardrail automáti
 Endpoints nuevos: `POST /api/security/review` (body: `{text, acknowledged?, rewrite?,
 agentId?}`).
 
+### Fase 8 — Voz y juicio (inspirada en Athena)
+
+Cierra los dos patrones "make-or-break" que faltaban del playbook de Athena (capture
+y memoria por capas ya estaban).
+
+- **Principios Norte + 4 hábitos** (`constitucion.js`): la constitución ahora trae 5
+  principios norte (proteger al miembro/agente, Connecture es la verdad, priorizar lo
+  que destraba, no inventar, no repreguntar) y los 4 hábitos que hacen a SAMIA útil de
+  verdad: **nunca inventa** (di "déjame verificar X" + cómo), **sintetiza no recita**,
+  **UNA acción concreta al final** ("Tu próximo paso: …"), **anticipa la siguiente
+  pregunta**.
+- **Voz por modo** (`specialists.js` → `vozBlock`): cada especialista declara
+  **palabras/cosas que NUNCA usa** (superlativos, "gratis", "garantizado", respaldo del
+  gobierno, presión — consistente con el guardrail de la Fase 7) y **cuándo rebotar** el
+  tema a otro modo. Se inyecta en el system prompt. Así cada modo se siente distinto y
+  no se sale de su carril.
+
 ### Fase 10 — Dashboard
 
 - **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,

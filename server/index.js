@@ -12,7 +12,7 @@ import { createServer } from 'node:http';
 import { PORT, MODELS } from './config.js';
 import { CONSTITUCION } from './constitucion.js';
 import { KNOWLEDGE, buildKbContext, lookupDoctor, lookupMedicalGroup, lookupPlan, searchCases, kbStats } from './kb/index.js';
-import { SPECIALISTS, resolveSpecialist, specialistList } from './specialists.js';
+import { SPECIALISTS, resolveSpecialist, specialistList, vozBlock } from './specialists.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
@@ -79,6 +79,9 @@ function buildSystem(specId, userText, agentId, passthroughContext) {
     if (spec.knowledge) parts.push(`CONOCIMIENTO DE DOMINIO:\n${KNOWLEDGE}`);
     if (spec.extra) parts.push(spec.extra);
   }
+  // Voz del modo (patron Athena #12): palabras prohibidas + cuando rebotar.
+  const voz = vozBlock(spec);
+  if (voz) parts.push(voz);
   const amem = mem.agentContext(agentId);
   if (amem) parts.push(amem);
   if (spec.lookups) {
