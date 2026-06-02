@@ -357,15 +357,70 @@ function sanitizeToolNames(messages) {
   return messages;
 }
 
+// Cuando el historial tiene tool_use y tool_result desparejados (porque
+// una ronda se cortó a la mitad, porque renombramos un tool y quedó el
+// result viejo, o porque el corte de los últimos 40 turnos partió un
+// par), el API de Anthropic rechaza el request con:
+//   "unexpected tool_use_id found in tool_result blocks"
+// Esta función deja solo pares completos: tool_result vivos solo si el
+// mensaje anterior (assistant) tiene el tool_use correspondiente, y
+// tool_use vivos solo si el mensaje siguiente (user) tiene el
+// tool_result correspondiente. Mensajes que quedan con content vacío
+// después del filtrado se descartan.
+function dropOrphanToolBlocks(messages) {
+  if (!Array.isArray(messages) || !messages.length) return messages;
+  const useIdsOf = (m) => {
+    const s = new Set();
+    if (!m || !Array.isArray(m.content)) return s;
+    for (const b of m.content) if (b?.type === 'tool_use' && b.id) s.add(b.id);
+    return s;
+  };
+  const resultIdsOf = (m) => {
+    const s = new Set();
+    if (!m || !Array.isArray(m.content)) return s;
+    for (const b of m.content) if (b?.type === 'tool_result' && b.tool_use_id) s.add(b.tool_use_id);
+    return s;
+  };
+  const filtered = messages.map((m, i) => {
+    if (!m || !Array.isArray(m.content)) return m;
+    const prev = messages[i - 1];
+    const next = messages[i + 1];
+    if (m.role === 'user') {
+      const prevUses = prev?.role === 'assistant' ? useIdsOf(prev) : new Set();
+      const content = m.content.filter((b) => {
+        if (b?.type !== 'tool_result') return true;
+        return prevUses.has(b.tool_use_id);
+      });
+      return { ...m, content };
+    }
+    if (m.role === 'assistant') {
+      const nextResults = next?.role === 'user' ? resultIdsOf(next) : new Set();
+      const content = m.content.filter((b) => {
+        if (b?.type !== 'tool_use') return true;
+        return nextResults.has(b.id);
+      });
+      return { ...m, content };
+    }
+    return m;
+  });
+  return filtered.filter((m) => {
+    if (!m) return false;
+    if (Array.isArray(m.content) && m.content.length === 0) return false;
+    return true;
+  });
+}
+
 // La API de Anthropic es sin estado: hay que mandarle el historial
 // completo cada vez. Lo guardamos aquí entre mensajes.
 export function getHistory() {
-  return sanitizeToolNames(load(HISTORY_FILE, []));
+  return dropOrphanToolBlocks(sanitizeToolNames(load(HISTORY_FILE, [])));
 }
 
 export function saveHistory(messages) {
-  // Guardamos solo los últimos 40 turnos para no crecer sin límite.
-  save(HISTORY_FILE, sanitizeToolNames(messages).slice(-40));
+  // Cortamos primero a los últimos 40 turnos, luego renombramos tools y
+  // limpiamos huérfanos (incluyendo los creados por el corte mismo).
+  const trimmed = Array.isArray(messages) ? messages.slice(-40) : messages;
+  save(HISTORY_FILE, dropOrphanToolBlocks(sanitizeToolNames(trimmed)));
 }
 
 // ---- Audit log: TODA acción de Athena queda registrada ----
