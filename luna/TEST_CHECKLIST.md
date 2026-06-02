@@ -45,6 +45,9 @@ Si algo dice FALLÓ, el mensaje indica la causa (tabla/columna/permiso).
       responde con ambos. Esto antes no se podía.
 - [ ] **Candado de seguridad** — al **Centro de Comando**: *"Crea tickets de retención
       para hoy"* → muestra un **PLAN con botón de aprobar**, NO ejecuta solo.
+- [ ] **Health Score** — a **LUNA principal** clic en *"¿Cómo está la salud del negocio?"*
+      → devuelve un número 0-100, la banda (autopilot/revisa/necesita) y el foco del día.
+      (Atajo directo para verificar el cálculo: `luna_api.php?action=luna_business_health`.)
 
 **Señales de falla:**
 - 🔴 "Error HTTP" / sin respuesta → revisa `ANTHROPIC_API_KEY` en `config.php`.

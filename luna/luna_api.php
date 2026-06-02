@@ -58,7 +58,7 @@ if ($svcKey !== '') {
         'luna_today_appointments','luna_attendance_today',
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_get_all_goals','luna_entity_search','luna_signals_list',
-        'luna_skill_list','luna_gaps_overview',
+        'luna_skill_list','luna_gaps_overview','luna_business_health',
         // ── CREAR (solo crear, nunca editar/borrar) ───────
         'luna_create_member','luna_create_ticket','luna_create_appointment',
         'luna_add_member_note','luna_log_activity',
@@ -355,6 +355,89 @@ case 'luna_pipeline_summary':
         'apps_proceso'   => $apps_proceso,
         'efectivos_mes'  => $efectivos_mes,
         'total_miembros' => array_sum($totals),
+    ]);
+    break;
+
+// ── BUSINESS HEALTH SCORE — "¿el negocio rueda solo?" (patrón Athena Sec.10) ──
+// Número 0-100 compuesto por 4 áreas. Cada componente va en su propio try/catch:
+// si una consulta falla (columna/tabla distinta), ese componente se NEUTRALIZA
+// (marca completa) en vez de romper la respuesta o falsear el número.
+case 'luna_business_health':
+    $comp = [];
+    $score = 0;
+
+    // 1) PIPELINE FLOW (30) — ¿hay leads calientes y apps cerrando?
+    $cPipe = 30;
+    try {
+        $hot  = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='HOT LEAD'")->fetchColumn();
+        $apps = (int)$pdo->query("SELECT COUNT(*) FROM miembros WHERE app_fecha IS NOT NULL AND app_estado_cms NOT IN ('RECIBIDO','APROBADO','CONFIRMADO')")->fetchColumn();
+        $cPipe = 30; $nota = 'Pipeline con movimiento.';
+        if ($hot === 0)  { $cPipe -= 15; $nota = 'No hay HOT LEADs — pipeline frío.'; }
+        if ($apps === 0) { $cPipe -= 10; $nota = ($hot===0 ? 'Sin hot leads ni apps en proceso.' : 'Nada en proceso de aplicación.'); }
+        $cPipe = max(0, $cPipe);
+        $comp['pipeline'] = ['score'=>$cPipe,'max'=>30,'hot_leads'=>$hot,'apps_proceso'=>$apps,'nota'=>$nota];
+    } catch (Exception $e) { $cPipe = 30; $comp['pipeline'] = ['score'=>30,'max'=>30,'nota'=>'n/d']; }
+    $score += $cPipe;
+
+    // 2) TICKETS (30) — carga de alta prioridad o vencida
+    $cTick = 30;
+    try {
+        $alta = (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE estado!='CERRADO' AND prioridad='ALTA'")->fetchColumn();
+        $venc = (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE estado!='CERRADO' AND fecha_seguimiento IS NOT NULL AND fecha_seguimiento < CURDATE()")->fetchColumn();
+        $cTick = 30 - min(30, $alta*3 + $venc*3);
+        $comp['tickets'] = ['score'=>$cTick,'max'=>30,'alta_abiertos'=>$alta,'vencidos'=>$venc,
+            'nota'=>($alta+$venc>0 ? "$alta ALTA abiertos, $venc vencidos." : 'Tickets bajo control.')];
+    } catch (Exception $e) { $cTick = 30; $comp['tickets'] = ['score'=>30,'max'=>30,'nota'=>'n/d']; }
+    $score += $cTick;
+
+    // 3) SOA / COMPLIANCE (25) — activos/pendientes/hot sin SOA firmada
+    $cSoa = 25;
+    try {
+        $pend = (int)$pdo->query("
+            SELECT COUNT(*) FROM miembros m
+            WHERE m.estado IN ('ACTIVO','PENDIENTE','HOT LEAD')
+              AND (SELECT COUNT(*) FROM soa s WHERE s.miembro_id=m.id AND s.estado='FIRMADO')=0
+        ")->fetchColumn();
+        $cSoa = 25 - min(25, $pend*4);
+        $comp['compliance'] = ['score'=>$cSoa,'max'=>25,'sin_soa'=>$pend,
+            'nota'=>($pend>0 ? "$pend miembro(s) sin SOA firmada." : 'SOAs al día.')];
+    } catch (Exception $e) { $cSoa = 25; $comp['compliance'] = ['score'=>25,'max'=>25,'nota'=>'n/d']; }
+    $score += $cSoa;
+
+    // 4) RETENCIÓN (15) — llamadas que tocan hoy (Day 7/30/60/90)
+    $cRet = 15;
+    try {
+        $due = (int)$pdo->query("
+            SELECT COUNT(*) FROM miembros
+            WHERE estado='ACTIVO' AND fecha_efectiva IN (
+              DATE_SUB(CURDATE(),INTERVAL 7 DAY), DATE_SUB(CURDATE(),INTERVAL 30 DAY),
+              DATE_SUB(CURDATE(),INTERVAL 60 DAY), DATE_SUB(CURDATE(),INTERVAL 90 DAY))
+        ")->fetchColumn();
+        $cRet = 15 - min(15, $due*3);
+        $comp['retencion'] = ['score'=>$cRet,'max'=>15,'tocan_hoy'=>$due,
+            'nota'=>($due>0 ? "$due llamada(s) de retención tocan hoy." : 'Sin retención pendiente hoy.')];
+    } catch (Exception $e) { $cRet = 15; $comp['retencion'] = ['score'=>15,'max'=>15,'nota'=>'n/d']; }
+    $score += $cRet;
+
+    $score = max(0, min(100, (int)round($score)));
+    if      ($score >= 80) { $band='autopilot'; $msg='El negocio rueda solo. Tu día es tuyo — solo te aviso si surge algo crítico.'; }
+    else if ($score >= 50) { $band='revisa';    $msg='Hay 2-3 cosas concretas que mirar hoy.'; }
+    else                   { $band='necesita';  $msg='Hoy sí necesitas meter mano — hay tensión que solo tú destrabas.'; }
+
+    // El "foco de hoy": el área que más puntos perdió vs su máximo
+    $worst = null; $worstLoss = 0;
+    foreach ($comp as $k=>$c) {
+        $loss = ($c['max'] ?? 0) - ($c['score'] ?? 0);
+        if ($loss > $worstLoss) { $worstLoss = $loss; $worst = ['area'=>$k, 'nota'=>$c['nota'] ?? '']; }
+    }
+
+    ok([
+        'score'       => $score,
+        'band'        => $band,
+        'mensaje'     => $msg,
+        'componentes' => $comp,
+        'foco_hoy'    => $worst,   // dónde meter mano primero (null si todo bien)
+        'fecha'       => date('Y-m-d'),
     ]);
     break;
 
