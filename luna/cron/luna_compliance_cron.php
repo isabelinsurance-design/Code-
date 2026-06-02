@@ -19,7 +19,7 @@
    7. T65 contactados fuera de ventana IEP
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../../config.php';
 
 $CONFIG = [
   'send_email'    => true,

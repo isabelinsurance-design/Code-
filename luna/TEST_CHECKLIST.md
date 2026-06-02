@@ -4,8 +4,8 @@ Sigue esto al subir LUNA a Bluehost. Marca cada paso.
 
 ## 1. Subir archivos
 - [ ] Sube `luna/` a `public_html/luna/` (index.html, luna_api.php, luna_telegram_webhook.php).
-- [ ] Sube los crons. **Ojo con el path de config.php** (ver DEPLOY_LUNA.md):
-      si los dejas en `luna/cron/`, edita `require '/../config.php'` → `'/../../config.php'`.
+- [ ] Sube los crons a `luna/cron/`. El path de config.php ya está correcto
+      (`'/../../config.php'`, dos niveles arriba) — no hay que editarlo.
 
 ## 2. Configurar secretos en `config.php` (raíz, NUNCA en git)
 - [ ] `define('ANTHROPIC_API_KEY', 'sk-ant-...');`  ← sin esto el chat da 500

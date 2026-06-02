@@ -11,7 +11,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 // ─── CONFIG ───────────────────────────────────────────────────
-require_once __DIR__ . '/../config.php'; // Bluehost DB credentials
+require_once __DIR__ . '/../../config.php'; // Bluehost DB credentials
 
 $CONFIG = [
   // Canales activos (true/false)

@@ -15,10 +15,9 @@ public_html/
         ├── luna_referral_cron.php
         └── luna_email_marketing_cron.php
 ```
-> Los crons usan `require_once __DIR__ . '/../config.php'`. Si los pones en
-> `luna/cron/`, ese path sube **dos** niveles — ajusta a `'/../../config.php'`
-> o muévelos a `luna/`. (En el repo van en `cron/` solo para orden; en
-> producción confirma el path antes de programar el cron.)
+> Los crons cargan `require_once __DIR__ . '/../../config.php'` — sube **dos**
+> niveles desde `luna/cron/` hasta la raíz `public_html/` donde vive el config
+> del CRM. Ya quedó corregido en el código: deja los crons en `luna/cron/`.
 
 ## 🔑 API key de Anthropic (CAMBIO IMPORTANTE)
 Antes la key estaba en el HTML (visible para cualquiera). Ahora el browser
@@ -56,10 +55,8 @@ cualquiera que haya visto el código fuente la tiene.
 0 9  * * 3  php .../luna/cron/luna_referral_cron.php       # referidos miércoles
 0 8  * * *  php .../luna/cron/luna_email_marketing_cron.php # cumpleaños/newsletter/AEP
 ```
-> Recuerda el path de `config.php`: los crons hacen `require '/../config.php'`.
-> Si los dejas en `luna/cron/`, ese path sube **dos** niveles y no encontrará
-> el config en `public_html/`. Ajusta a `'/../../config.php'` o mueve los crons
-> a `luna/`. Confirma antes de programar.
+> Los crons ya cargan `require '/../../config.php'` (dos niveles arriba), así
+> que funcionan tal cual desde `luna/cron/`. No hay que ajustar el path.
 
 ## Respaldos (#5) — opciones en config.php
 ```php

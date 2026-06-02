@@ -11,7 +11,7 @@
    CONFIGURA un cron por cada tipo, o uno que detecta cuál aplica.
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../../config.php';
 
 $CONFIG = [
   'from_name'    => 'Isabel Fuentes · Medicare',
