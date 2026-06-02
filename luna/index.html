@@ -1785,6 +1785,7 @@ function getMemoryData() {
 const ALERTS_KEY = 'luna-alerts-dismissed-v1';
 let dismissedAlerts = {};
 let activeAlerts = [];
+let businessHealth = null;   // Health Score del negocio, mostrado proactivamente al abrir
 let alertsLoading = false;
 let alertsLastCheck = 0;
 
@@ -2009,6 +2010,13 @@ async function checkAllAlerts(force = false) {
 
     activeAlerts = results;
     alertsLoading = false;
+
+    // Health Score proactivo: lo traemos junto con las alertas para mostrarlo al abrir.
+    try {
+      const hr = await fetch(`${CRM_BASE}?action=luna_business_health`);
+      if (hr.ok) { const hj = await hr.json(); if (hj.ok && hj.data) businessHealth = hj.data; }
+    } catch(e) { /* si falla, simplemente no mostramos el score */ }
+
     renderAlertsBanner();
 
     const gv = document.getElementById('gridView');
@@ -2037,7 +2045,31 @@ function renderAlertsBanner() {
   const existing = document.getElementById('alerts-banner');
   if (existing) existing.remove();
 
-  if (activeAlerts.length === 0) return;
+  // Mostramos el banner si hay alertas O si tenemos Health Score que mostrar.
+  if (activeAlerts.length === 0 && !businessHealth) return;
+
+  // Tarjeta proactiva de Health Score (patrón Athena Sec.10) — lo primero que ves.
+  let healthCard = '';
+  if (businessHealth && typeof businessHealth.score === 'number') {
+    const h = businessHealth;
+    const hb = h.band === 'autopilot' ? {c:'#00875a',bg:'rgba(0,135,90,.07)',t:'AUTOPILOT'}
+            : h.band === 'revisa'    ? {c:'#d97706',bg:'rgba(217,119,6,.07)',t:'REVISA'}
+            :                          {c:'#dc2626',bg:'rgba(220,38,38,.07)',t:'NECESITA TU MANO'};
+    const foco = (h.foco_hoy && h.foco_hoy.nota) ? `<div style="font-size:11px;color:var(--t2);margin-top:4px;">🎯 Foco de hoy: ${esc(h.foco_hoy.nota)}</div>` : '';
+    healthCard = `<div style="padding:13px 16px;border-bottom:1px solid var(--border);background:${hb.bg};">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="font-size:26px;font-weight:900;color:${hb.c};line-height:1;">${h.score}<span style="font-size:13px;font-weight:700;opacity:.6;">/100</span></div>
+        <div style="flex:1;">
+          <div style="display:flex;align-items:center;gap:6px;">
+            <span style="font-size:9px;font-weight:800;letter-spacing:1px;color:${hb.c};background:${hb.bg};border:1px solid ${hb.c}33;padding:1px 7px;border-radius:10px;">💚 ${hb.t}</span>
+            <span style="font-size:10px;font-weight:600;color:var(--t3);">Salud del negocio</span>
+          </div>
+          <div style="font-size:11px;color:var(--t2);margin-top:4px;">${esc(h.mensaje || '')}</div>
+          ${foco}
+        </div>
+      </div>
+    </div>`;
+  }
 
   const sevColors = {
     critical: { bg:'rgba(220,38,38,.06)', border:'#dc2626', icon:'🔴', label:'CRÍTICO' },
@@ -2056,13 +2088,17 @@ function renderAlertsBanner() {
     box-shadow: var(--sh);
   `;
 
+  const headerTxt = activeAlerts.length > 0
+    ? `LUNA detectó ${activeAlerts.length} situación${activeAlerts.length>1?'es':''} que requiere${activeAlerts.length>1?'n':''} atención`
+    : `LUNA — resumen del día`;
   let html = `<div style="padding:12px 16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center;background:linear-gradient(90deg,rgba(26,86,255,.04),rgba(103,65,217,.04));">
     <div style="display:flex;align-items:center;gap:8px;">
       <span style="font-size:14px;">⚡</span>
-      <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);">LUNA detectó ${activeAlerts.length} situación${activeAlerts.length>1?'es':''} que requiere${activeAlerts.length>1?'n':''} atención</span>
+      <span style="font-size:11px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--blue);">${headerTxt}</span>
     </div>
     <button onclick="checkAllAlerts(true)" style="background:transparent;border:none;color:var(--t3);cursor:pointer;font-size:11px;font-weight:600;">↻ Actualizar</button>
   </div>`;
+  html += healthCard;
 
   activeAlerts.forEach((alert, idx) => {
     const sc = sevColors[alert.severity];
