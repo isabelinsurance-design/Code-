@@ -96,6 +96,18 @@ built: briefings (need server cron), drafts queue with confirmation gate.
 - Fonts (Canva): Great Vibes (script accent), Poppins (headings), Open Sans (body).
 - Positioning: *"La agente que te explica Medicare claro, en tu idioma — sin letra chiquita."*
 
+## Deployment target
+
+This system is **a component for LUNA on Bluehost** (Isabel's larger marketing
+platform), NOT a standalone Railway service. Athena (her personal Chief of
+Staff) is the only thing on Railway; LUNA stays on Bluehost.
+
+The HTML/JS files deploy as static files on Bluehost. The `bot/` Python code
+does NOT fit Bluehost (shared PHP hosting can't run long-polling Python). The
+bot is reference code for one of three paths: (a) absorb into Athena on
+Railway, (b) re-implement as PHP webhook on Bluehost, (c) deploy separately on
+Railway/Replit. See `PARA-LUNA-TEAM.md` for handoff details.
+
 ## Git
 
 - Work on branch `main`. Commit with clear messages and push after completing changes.

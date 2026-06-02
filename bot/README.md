@@ -1,8 +1,16 @@
-# Isabel — Telegram Bot
+# Isabel — Telegram Bot (reference code)
 
 Single-file Telegram bot that wraps Anthropic Claude with the same
 `ISABEL_SYSTEM` prompt as the web app (mission: viral on Facebook → cheap
 leads → recognized Latino Medicare authority in SoCal).
+
+> **⚠️ Heads up for the LUNA team:** the main marketing system lives in LUNA on
+> Bluehost. This bot is **Python** and won't run on Bluehost shared hosting.
+> Use it as a reference for the prompts/commands and decide:
+> (a) absorb into Athena on Railway (recommended — Athena already does
+> conversational AI for Isabel), (b) re-implement as a PHP webhook on Bluehost,
+> or (c) deploy this Python version separately on Railway/Replit/Render. See
+> `../PARA-LUNA-TEAM.md`.
 
 ## Commands
 
