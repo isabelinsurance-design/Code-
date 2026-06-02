@@ -264,6 +264,10 @@ case 'luna_chat':
     $messages = $body['messages'];
     $maxTok   = min(4096, max(256, (int)($body['max_tokens'] ?? 1800)));
     $useWeb   = !empty($body['web_search']);
+    // Tool-calling nativo: el frontend manda las definiciones de tools de LUNA.
+    // El loop agéntico vive en el browser (ejecuta cada tool contra el CRM y
+    // re-alimenta el resultado). Aquí solo las pasamos a Anthropic tal cual.
+    $clientTools = (isset($body['tools']) && is_array($body['tools'])) ? $body['tools'] : [];
 
     // Audit ligero: registramos QUE hubo una consulta IA (sin guardar el contenido/PII).
     logActivity($pdo, $uid, null, 'LUNA_CHAT', $useWeb ? 'Consulta IA vía LUNA (web_search)' : 'Consulta IA vía LUNA');
@@ -275,14 +279,18 @@ case 'luna_chat':
         'stream'     => true,
         'messages'   => $messages,
     ];
+    // Tools = las nativas de LUNA (del frontend) + web search opcional de Anthropic.
+    $tools = [];
+    foreach ($clientTools as $t) { if (is_array($t)) $tools[] = $t; }
     // #20 Web search nativo de Anthropic (solo si el agente lo pide).
     if ($useWeb) {
-        $reqBody['tools'] = [[
+        $tools[] = [
             'type'     => 'web_search_20250305',
             'name'     => 'web_search',
             'max_uses' => 5,
-        ]];
+        ];
     }
+    if ($tools) $reqBody['tools'] = $tools;
     $payload = json_encode($reqBody, JSON_UNESCAPED_UNICODE);
 
     // Cambiamos la respuesta a streaming SSE (sobrescribe el Content-Type JSON de arriba).

@@ -2195,6 +2195,66 @@ const AGENT_TOOLS = {
   'ads':         ['pipeline','carriers','activity','commissions','briefing'],
 };
 
+// ── Tool schemas para tool-calling NATIVO de Anthropic ──
+// Cada tool se expone con su input_schema. El modelo decide cuándo llamarlas
+// (tool_use nativo) y el loop agéntico re-alimenta el resultado. Reemplaza el
+// viejo truco de texto [[TOOL:...]]. Los nombres deben coincidir con callTool().
+const TOOL_SCHEMAS = {
+  pipeline:     {desc:'Conteo de miembros por estado (pipeline).', props:{}, req:[]},
+  t65:          {desc:'Miembros que cumplen 65 pronto.', props:{days:{type:'integer',description:'Días hacia adelante (default 90)'}}, req:[]},
+  retention:    {desc:'Miembros activos que necesitan llamada de retención hoy.', props:{}, req:[]},
+  hotleads:     {desc:'Todos los HOT LEADs.', props:{}, req:[]},
+  search:       {desc:'Busca un miembro por nombre, teléfono o MBI.', props:{q:{type:'string',description:'Término de búsqueda'}}, req:['q']},
+  detail:       {desc:'Detalle completo de un miembro por id.', props:{id:{type:'integer'}}, req:['id']},
+  soa:          {desc:'Miembros activos sin SOA firmado.', props:{}, req:[]},
+  tickets_all:  {desc:'Tickets abiertos del equipo.', props:{priority:{type:'string',enum:['ALTA','MEDIA','BAJA']}}, req:[]},
+  my_tickets:   {desc:'Tickets asignados al usuario logueado.', props:{}, req:[]},
+  today_appts:  {desc:'Citas de hoy.', props:{}, req:[]},
+  attendance:   {desc:'Check-in del equipo hoy (solo admin).', props:{}, req:[]},
+  goals:        {desc:'Metas y progreso del mes del usuario logueado.', props:{}, req:[]},
+  callbacks:    {desc:'Llamadas perdidas pendientes.', props:{}, req:[]},
+  activity:     {desc:'Últimas actividades registradas en el CRM.', props:{limit:{type:'integer'}}, req:[]},
+  commissions:  {desc:'Comisiones del mes (solo Isabel).', props:{mes:{type:'string'},anio:{type:'string'}}, req:[]},
+  carriers:     {desc:'Miembros agrupados por carrier.', props:{}, req:[]},
+  briefing:     {desc:'Datos completos del día: pipeline, citas, hot leads fríos, T65 urgentes, retención, tickets urgentes.', props:{}, req:[]},
+  all_goals:    {desc:'Metas y progreso de todo el equipo este mes (solo admin).', props:{}, req:[]},
+  signals:      {desc:'Señales del negocio ya computadas, ordenadas por severidad.', props:{}, req:[]},
+  gaps:         {desc:'Qué datos faltan en el CRM (activos sin email/teléfono/DOB/carrier/SOA).', props:{}, req:[]},
+  audit_struct: {desc:'Auditoría estructural de integridad de datos (solo admin).', props:{}, req:[]},
+  entities:     {desc:'Busca personas/doctores/clínicas que Isabel ha mencionado.', props:{q:{type:'string'}}, req:[]},
+  skill_list:   {desc:'Playbooks/skills guardados.', props:{approved:{type:'string',description:'"1" para solo aprobados'}}, req:[]},
+  team_config:  {desc:'Configuración actual del equipo definida por Isabel.', props:{}, req:[]},
+  memory_view:  {desc:'Toda la memoria de LUNA: metas, notas, historial de pipeline, lecciones.', props:{}, req:[]},
+  // ── ESCRITURA (crean/cambian datos en el CRM) ──
+  log:          {desc:'ESCRIBE: registra una actividad en el CRM.', props:{tipo:{type:'string'},descripcion:{type:'string'},miembro_id:{type:'integer'}}, req:['descripcion']},
+  note:         {desc:'ESCRIBE: agrega una nota a un miembro.', props:{miembro_id:{type:'integer'},nota:{type:'string'}}, req:['miembro_id','nota']},
+  create_member:{desc:'ESCRIBE: crea un miembro/lead nuevo.', props:{nombre:{type:'string'},apellido:{type:'string'},telefono:{type:'string'},dob:{type:'string',description:'YYYY-MM-DD'},estado:{type:'string'},ciudad:{type:'string'},email:{type:'string'},idioma:{type:'string'}}, req:['nombre','apellido']},
+  update_status:{desc:'ESCRIBE: cambia el estado de un miembro (solo admin).', props:{miembro_id:{type:'integer'},estado:{type:'string'}}, req:['miembro_id','estado']},
+  create_ticket:{desc:'ESCRIBE: crea un ticket.', props:{tipo:{type:'string'},prioridad:{type:'string'},descripcion:{type:'string'},miembro_id:{type:'integer'},asignado_a:{type:'integer'}}, req:['descripcion']},
+  create_appt:  {desc:'ESCRIBE: crea una cita.', props:{miembro_id:{type:'integer'},fecha:{type:'string',description:'YYYY-MM-DD'},hora:{type:'string',description:'HH:MM'},tipo:{type:'string'},modalidad:{type:'string'},notas:{type:'string'}}, req:['miembro_id','fecha','hora']},
+  notif:        {desc:'ESCRIBE: notificación interna a un usuario (solo admin).', props:{user_id:{type:'integer'},tipo:{type:'string'},mensaje:{type:'string'}}, req:['user_id','mensaje']},
+  batch_tickets:{desc:'ESCRIBE: crea tickets para TODAS las alertas de retención de hoy.', props:{assign_to:{type:'integer'}}, req:[]},
+  update_goal:  {desc:'ESCRIBE: actualiza las metas de un agente.', props:{agente_id:{type:'integer'},llamadas_dia:{type:'integer'},citas_mes:{type:'integer'},apps_mes:{type:'integer'},polizas_mes:{type:'integer'}}, req:['agente_id']},
+  entity_save:  {desc:'ESCRIBE: registra/actualiza una entidad mencionada.', props:{name:{type:'string'},tipo:{type:'string'},alias:{type:'string'},nota:{type:'string'},miembro_id:{type:'integer'}}, req:['name']},
+};
+
+// Tools de ESCRITURA — el Centro de Comando NO las recibe nativas (sus
+// escrituras pasan por el flujo de PLAN con aprobación). El resto de agentes
+// sí pueden ejecutarlas directo, igual que antes.
+const WRITE_TOOLS = new Set(['log','note','create_member','update_status','create_ticket',
+  'create_appt','notif','batch_tickets','update_goal','entity_save']);
+
+// Construye el array de tools nativas para un agente, según su allowlist.
+function buildNativeTools(agentId) {
+  let allowed = AGENT_TOOLS[agentId] || [];
+  if (agentId === 'comando') allowed = allowed.filter(t => !WRITE_TOOLS.has(t));
+  return allowed.filter(t => TOOL_SCHEMAS[t]).map(t => ({
+    name: t,
+    description: TOOL_SCHEMAS[t].desc,
+    input_schema: { type:'object', properties: TOOL_SCHEMAS[t].props, required: TOOL_SCHEMAS[t].req }
+  }));
+}
+
 // ── Tool executor ────────────────────────────
 async function callTool(toolName, params = {}) {
   const qs = p => '?' + new URLSearchParams({action:'luna_'+p, ...params}).toString();
@@ -2289,39 +2349,14 @@ async function callTool(toolName, params = {}) {
   }
 }
 
-// ── Detect if Claude wants to call a tool ────
-// Claude outputs: [[TOOL:toolname|param1=val1|param2=val2]]
-// We intercept, execute, and inject the result back.
-const TOOL_REGEX = /\[\[TOOL:([a-z_]+)(\|[^\]]+)?\]\]/g;
-
-function parseToolCall(match, toolName, paramsStr) {
-  const params = {};
-  if (paramsStr) {
-    paramsStr.slice(1).split('|').forEach(p => {
-      const [k,...v] = p.split('=');
-      if (k) params[k.trim()] = v.join('=').trim();
-    });
-  }
-  return {toolName, params};
-}
-
-async function executeToolsInText(text, agentId) {
-  const allowedTools = AGENT_TOOLS[agentId] || [];
-  const toolCalls = [];
-  let m;
-  const re = /\[\[TOOL:([a-z_]+)(\|[^\]]+)?\]\]/g;
-  while ((m = re.exec(text)) !== null) {
-    const {toolName, params} = parseToolCall(m[0], m[1], m[2]);
-    if (allowedTools.includes(toolName)) {
-      toolCalls.push({match: m[0], toolName, params});
-    } else {
-      toolCalls.push({match: m[0], toolName, blocked: true});
-    }
-  }
-  return toolCalls;
-}
+// (El viejo parser de texto [[TOOL:...]] se eliminó: ahora LUNA usa tool-calling
+//  nativo de Anthropic + loop agéntico — ver streamTurn() y buildNativeTools().)
 
 // ── Build tool context string injected into every message ─
+// Con tool-calling nativo el modelo ya recibe los schemas de las tools aparte,
+// así que aquí solo damos el contexto de quién está logueado + la regla de oro
+// (usa tools para datos reales, nunca inventes números). Ya no enseñamos la
+// vieja sintaxis [[TOOL:...]].
 function buildToolContext(agentId) {
   const allowed = AGENT_TOOLS[agentId] || [];
   if (allowed.length === 0) return '';
@@ -2330,59 +2365,12 @@ function buildToolContext(agentId) {
     ? `\n\nUSUARIO ACTIVO: ${currentUser.nombre} (${currentUser.rol === 'admin' ? 'admin/Isabel' : 'agente: ' + currentUser.nombre}) | ID: ${currentUser.id}`
     : '';
 
-  const toolDescriptions = {
-    pipeline:      'pipeline_summary — conteo de miembros por estado',
-    t65:           't65_alerts — miembros que cumplen 65 pronto (params: days=90)',
-    retention:     'retention_alerts — miembros activos que necesitan llamada hoy',
-    hotleads:      'hot_leads — todos los HOT LEADs',
-    search:        'search_member — busca por nombre/teléfono/MBI (params: q=término)',
-    detail:        'member_detail — detalle completo de un miembro (params: id=N)',
-    soa:           'pending_soa — miembros activos sin SOA firmado',
-    tickets_all:   'open_tickets — tickets abiertos del equipo (params: priority=ALTA|MEDIA|BAJA)',
-    my_tickets:    'my_tickets — tickets asignados al usuario logueado',
-    today_appts:   'today_appointments — citas de hoy',
-    attendance:    'attendance_today — check-in del equipo hoy (solo admin)',
-    goals:         'my_goals — metas y progreso del mes del usuario logueado',
-    callbacks:     'pending_callbacks — llamadas perdidas pendientes',
-    activity:      'recent_activity — últimas actividades en el CRM (params: limit=20)',
-    commissions:   'commissions_summary — comisiones del mes (params: mes=N, anio=Y)',
-    carriers:      'carriers_breakdown — miembros por carrier',
-    log:           'log_activity — ESCRIBE: registra en tabla actividad (params: tipo=, descripcion=, miembro_id=)',
-    note:          'add_member_note — ESCRIBE: agrega nota a un miembro (params: miembro_id=, nota=)',
-    create_member: 'create_member — ESCRIBE: crea miembro nuevo (params: nombre=, apellido=, telefono=, dob=YYYY-MM-DD, estado=PROSPECTO, ciudad=, email=)',
-    update_status: 'update_member_status — ESCRIBE: cambia estado miembro — SOLO ADMIN (params: miembro_id=, estado=)',
-    create_ticket: 'create_ticket — ESCRIBE: crea ticket (params: tipo=, prioridad=, descripcion=, miembro_id=)',
-    create_appt:   'create_appointment — ESCRIBE: crea cita (params: miembro_id=, fecha=YYYY-MM-DD, hora=HH:MM, tipo=, modalidad=TELÉFONO)',
-    notif:         'send_internal_notif — ESCRIBE: notificación interna — SOLO ADMIN (params: user_id=, tipo=GENERAL, mensaje=)',
-    batch_tickets: 'batch_retention_tickets — ESCRIBE: crea tickets para TODAS las alertas de retención de hoy (params: assign_to=user_id)',
-    briefing:      'full_briefing — datos completos del día: pipeline, citas, hot leads fríos, T65 urgentes, retención, tickets urgentes',
-    all_goals:     'get_all_goals — metas y progreso del equipo este mes (SOLO ADMIN)',
-    update_goal:   'update_goal — ESCRIBE: actualizar metas de un agente (params: agente_id=, llamadas_dia=, citas_mes=, apps_mes=, polizas_mes=)',
-    callbacks:     'pending_callbacks — llamadas perdidas pendientes',
-    team_config:   'team_config — ver configuración actual del equipo definida por Isabel',
-    memory_view:   'memory_view — ver toda la memoria de LUNA: metas, notas, historial de pipeline, lecciones',
-    signals:       'signals — señales del negocio ya computadas (hot leads fríos, retención, SOA, T65, AEP) ordenadas por severidad',
-    gaps:          'gaps — qué datos FALTAN en el CRM (activos sin email/teléfono/DOB/carrier/SOA, leads sin fuente)',
-    audit_struct:  'audit_struct — auditoría estructural: errores de integridad (duplicados por tel/email/MBI, activos sin póliza, citas/tickets huérfanos, DOB inválidos) — SOLO ADMIN',
-    entities:      'entity_search — busca personas/doctores/clínicas que Isabel ha mencionado (params: q=término)',
-    entity_save:   'entity_upsert — ESCRIBE: registra/actualiza una entidad mencionada (params: name=, tipo=persona|doctor|clinica|org|lugar, alias=, nota=, miembro_id=)',
-    skill_list:    'skill_list — playbooks/skills guardados (params: approved=1 para solo aprobados)',
-  };
-
-  const toolList = allowed.map(t => `  [[TOOL:${t}]] → ${toolDescriptions[t]||t}`).join('\n');
-
   return `${who}
 
-TOOLS DISPONIBLES PARA ESTE AGENTE:
-Para obtener datos reales del CRM, usa la sintaxis exacta: [[TOOL:nombre|param=valor|param2=valor2]]
-Cuando uses una tool, la respuesta real del CRM se inyectará y podrás usarla en tu respuesta.
-IMPORTANTE: Usa tools cuando el usuario pregunta sobre datos reales. NO inventes números.
-
-${toolList}
-
-EJEMPLO: Para ver hot leads → [[TOOL:hotleads]]
-EJEMPLO: Para buscar un miembro → [[TOOL:search|q=Juan García]]
-EJEMPLO: Para crear un miembro → [[TOOL:create_member|nombre=María|apellido=López|telefono=818-555-1234|dob=1960-03-15]]`;
+TIENES HERRAMIENTAS CONECTADAS AL CRM (tool-calling nativo).
+- Úsalas siempre que el usuario pregunte por datos reales. NUNCA inventes números.
+- Puedes encadenar varias herramientas: consulta una, razona con el resultado, y llama otra si lo necesitas, hasta tener todo lo que requieres para responder.
+- Cuando tengas los datos, responde claro y con una acción concreta. No pegues JSON crudo.`;
 }
 
 
@@ -2783,19 +2771,23 @@ async function sendMsg() {
     }
   };
 
-  const streamRequest = async (messages, systemPrompt) => {
-    // La API key vive SOLO en el servidor. El browser llama a luna_api.php?action=luna_chat,
-    // que reenvía a Anthropic con la key y nos devuelve el mismo stream SSE.
+  // Una RONDA de conversación con el modelo (tool-calling nativo de Anthropic).
+  // La API key vive SOLO en el servidor: el browser llama a luna_api.php?action=luna_chat,
+  // que reenvía a Anthropic y nos devuelve el mismo stream SSE.
+  // Devuelve { text, toolUses, stopReason }: el texto se pinta en vivo y las
+  // tools que pidió el modelo (bloques tool_use) se ejecutan en el loop de abajo.
+  const streamTurn = async (messages, systemPrompt, tools) => {
     const res = await fetch(`${CRM_BASE}?action=luna_chat`, {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       credentials:'same-origin',
-      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:1800, web_search: !!a.webSearch })
+      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:2048, web_search: !!a.webSearch, tools: tools || [] })
     });
     if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const reader = res.body.getReader();
     const dec = new TextDecoder();
-    let buf = '', out = '';
+    let buf = '', text = '', stopReason = null;
+    const blocks = {};  // index → bloque (texto o tool_use con su JSON parcial)
     while (true) {
       const {done, value} = await reader.read();
       if (done) break;
@@ -2803,48 +2795,75 @@ async function sendMsg() {
       const lines = buf.split('\n'); buf = lines.pop()||'';
       for (const line of lines) {
         if (!line.startsWith('data: ')) continue;
-        try {
-          const evt = JSON.parse(line.slice(6));
-          if (evt.type==='content_block_delta' && evt.delta?.type==='text_delta') {
-            appendChunk(evt.delta.text); out += evt.delta.text;
-          }
-        } catch {}
+        let evt; try { evt = JSON.parse(line.slice(6)); } catch { continue; }
+        if (evt.type === 'content_block_start') {
+          const cb = evt.content_block || {};
+          blocks[evt.index] = (cb.type === 'tool_use')
+            ? { type:'tool_use', id:cb.id, name:cb.name, json:'' }
+            : { type:'text' };
+        } else if (evt.type === 'content_block_delta') {
+          if (evt.delta?.type === 'text_delta') { text += evt.delta.text; appendChunk(evt.delta.text); }
+          else if (evt.delta?.type === 'input_json_delta') { const b = blocks[evt.index]; if (b) b.json += (evt.delta.partial_json || ''); }
+        } else if (evt.type === 'message_delta') {
+          if (evt.delta?.stop_reason) stopReason = evt.delta.stop_reason;
+        } else if (evt.type === 'error') {
+          throw new Error(evt.error?.message || 'Error del modelo');
+        }
       }
     }
-    return out;
+    const toolUses = Object.values(blocks)
+      .filter(b => b.type === 'tool_use')
+      .map(b => { let input = {}; try { input = b.json ? JSON.parse(b.json) : {}; } catch {} return { id:b.id, name:b.name, input }; });
+    return { text, toolUses, stopReason };
   };
 
   try {
-    // Phase 1 — initial response
-    await streamRequest([...hist, {role:'user', content:msg}], fullSystem);
-    if (!assistantAdded) history[a.id].push({role:'assistant', content:'(sin respuesta)', time:now()});
+    // ── LOOP AGÉNTICO ────────────────────────────────────
+    // El modelo puede pedir tools, recibir el resultado, razonar, y pedir más
+    // tools — hasta MAX_ROUNDS veces — antes de dar la respuesta final.
+    const tools = buildNativeTools(a.id);
+    const convo = [...hist, {role:'user', content:msg}];
+    const baseLen = history[a.id].length;   // historial visible ANTES de responder
+    const MAX_ROUNDS = 6;
+    let finalText = '';
 
-    // Phase 2 — detect & execute tools
-    const toolCalls = await executeToolsInText(accumulated, a.id);
-    if (toolCalls.length > 0) {
-      let toolResultsText = '';
-      let hasData = false;
-      for (const tc of toolCalls) {
-        if (tc.blocked) { toolResultsText += `\n[Tool ${tc.toolName} no disponible para este agente]`; continue; }
-        history[a.id][history[a.id].length-1].content = accumulated + `\n\n_Consultando CRM: ${tc.toolName}..._`;
-        renderChat();
-        const result = await callTool(tc.toolName, tc.params);
-        hasData = true;
-        toolResultsText += `\n[${tc.toolName}]: ${JSON.stringify(result.ok ? result.data : {error: result.error})}`;
+    for (let round = 0; round < MAX_ROUNDS; round++) {
+      const { text, toolUses, stopReason } = await streamTurn(convo, fullSystem, tools);
+      finalText = text;
+
+      // Sin tools pendientes → ya es la respuesta final
+      if (stopReason !== 'tool_use' || toolUses.length === 0) break;
+
+      // 1) Guarda el turno del assistant (texto + bloques tool_use) para el modelo
+      const assistantContent = [];
+      if (text) assistantContent.push({ type:'text', text });
+      for (const tu of toolUses) assistantContent.push({ type:'tool_use', id:tu.id, name:tu.name, input:tu.input });
+      convo.push({ role:'assistant', content: assistantContent });
+
+      // 2) Ejecuta cada tool contra el CRM → arma los tool_result
+      const toolResults = [];
+      for (const tu of toolUses) {
+        const allowed = (AGENT_TOOLS[a.id] || []).includes(tu.name);
+        appendChunk(`\n\n_Consultando CRM: ${tu.name}..._`);
+        let data;
+        if (!allowed) {
+          data = { error:`Tool ${tu.name} no permitida para este agente.` };
+        } else {
+          try { const r = await callTool(tu.name, tu.input || {}); data = (r && r.ok) ? r.data : { error:(r && r.error) || 'sin datos' }; }
+          catch(e) { data = { error: e.message }; }
+        }
+        toolResults.push({ type:'tool_result', tool_use_id: tu.id, content: JSON.stringify(data) });
       }
-      if (hasData) {
-        // Phase 3 — synthesize with real data
-        history[a.id].pop();
-        accumulated = ''; assistantAdded = false;
-        await streamRequest([
-          ...hist,
-          {role:'user', content:msg},
-          {role:'assistant', content:'Voy a consultar el CRM para darte datos reales.'},
-          {role:'user', content:`Datos reales del CRM:\n${toolResultsText}\n\nAhora responde al usuario con estos datos reales. Interprétalos claramente, no pegues el JSON crudo.`}
-        ], fullSystem);
-        if (!assistantAdded) history[a.id].push({role:'assistant', content:'(sin datos)', time:now()});
-      }
+      convo.push({ role:'user', content: toolResults });
+
+      // 3) Burbuja nueva para la siguiente ronda (la final quedará limpia)
+      accumulated = ''; assistantAdded = false;
     }
+
+    // Limpia las burbujas intermedias de tool-calling y deja SOLO la respuesta final
+    history[a.id].length = baseLen;
+    history[a.id].push({ role:'assistant', content: finalText || '(sin respuesta)', time: now(), streaming:false });
+    accumulated = finalText;
 
     const last = history[a.id][history[a.id].length-1];
     if (last) last.streaming = false;
