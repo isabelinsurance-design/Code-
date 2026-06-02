@@ -133,6 +133,7 @@ const SECTIONS = [
   {id:'compromisos', ic:'📌', label:'Compromisos', render:renderCommitments},
   {id:'memoria', ic:'🧠', label:'Memoria', render:renderMemory},
   {id:'cumplimiento', ic:'🛡️', label:'Cumplimiento', render:renderCompliance},
+  {id:'skills', ic:'📘', label:'Skills', render:renderSkills},
   {id:'sistema', ic:'⚙️', label:'Sistema', render:renderSystem},
 ];
 let current = location.hash.slice(1) || 'briefing';
@@ -306,6 +307,42 @@ function renderVerdict(r, text){
   if(ackBtn) ackBtn.onclick = async ()=>{ ackBtn.disabled=true; const r2=await api('/api/security/review',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,acknowledged:true})}); renderVerdict(r2,text); };
 }
 
+// ── SKILLS ──
+async function renderSkills(){
+  const {skills=[]} = await api('/api/skills');
+  const drafts = skills.filter(s=>s.status==='draft');
+  const approved = skills.filter(s=>s.status==='approved');
+  setBadge('skills', drafts.length, 'muted');
+  const draftBlock = drafts.length ? `<div class="card"><div class="card-head"><span class="card-title">📝 Propuestas — requieren tu aprobación</span></div><div class="card-body">`
+    + drafts.map(s=>`<div class="card2" data-sk="${s.id}">
+        <div class="nm">${esc(s.name)} <span class="muted">· ${esc(s.source)}</span></div>
+        <textarea rows="4" data-steps="${s.id}" style="margin-top:8px">${esc(s.steps)}</textarea>
+        <div class="toolbar" style="margin-top:8px">
+          <button class="btn btn-gold btn-sm" data-approve="${s.id}">✓ Aprobar</button>
+          <button class="btn btn-ghost btn-sm" data-reject="${s.id}">Descartar</button>
+        </div></div>`).join('') + `</div></div>` : '';
+  const approvedBlock = approved.length ? `<div class="card"><div class="card-head"><span class="card-title">📘 Aprobadas (invocables)</span></div><div class="card-body" style="padding:6px 18px">`
+    + approved.map(s=>`<div class="row"><div class="grow"><div class="nm">${esc(s.name)} <span class="pill ok">activa</span></div>
+        <div class="sub">triggers: ${(s.trigger||[]).map(esc).join(', ')||'—'} · usada ${s.invocations||0}x</div>
+        <div class="brief" style="font-size:12px;margin-top:6px">${esc(s.steps)}</div></div></div>`).join('') + `</div></div>` : '';
+  $('#main').innerHTML = head('Skills', 'Playbooks que SAMIA propone al detectar un patrón; tú los apruebas y se vuelven invocables.')
+    + `<div class="toolbar"><button class="btn btn-ghost btn-sm" id="newSkill">+ Nueva skill</button></div>`
+    + (drafts.length||approved.length ? draftBlock+approvedBlock : empty('📘','Sin skills aún. Aparecen cuando un tema se repite (o créala a mano).'));
+  $('#main').querySelectorAll('[data-approve]').forEach(b=>b.onclick=async()=>{
+    const id=b.dataset.approve; const steps=$(`[data-steps="${id}"]`).value;
+    b.disabled=true; await api('/api/skills/approve',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,steps})}); go('skills');
+  });
+  $('#main').querySelectorAll('[data-reject]').forEach(b=>b.onclick=async()=>{
+    b.disabled=true; await api('/api/skills/reject',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id:b.dataset.reject})}); go('skills');
+  });
+  $('#newSkill').onclick = async ()=>{
+    const name=prompt('Nombre de la skill:'); if(!name)return;
+    const trigger=(prompt('Palabras que la activan (separadas por coma):')||'').split(',').map(x=>x.trim()).filter(Boolean);
+    const steps=prompt('Pasos del playbook:')||'';
+    await api('/api/skills',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,trigger,steps,source:'manual'})}); go('skills');
+  };
+}
+
 // ── SISTEMA ──
 async function renderSystem(){
   const s = await api('/api/intel/scheduler');
@@ -330,6 +367,7 @@ async function boot(){
   try{ const {signals=[]}=await api('/api/intel/signals'); setBadge('senales',signals.filter(s=>s.severity==='alto').length,''); }catch{}
   try{ const {commitments=[]}=await api('/api/intel/commitments'); setBadge('compromisos',commitments.filter(c=>c.status==='overdue').length,''); }catch{}
   try{ const {candidates=[]}=await api('/api/memory/merge-candidates'); setBadge('memoria',candidates.length,'muted'); }catch{}
+  try{ const {skills=[]}=await api('/api/skills?status=draft'); setBadge('skills',skills.length,'muted'); }catch{}
   try{
     const {health}=await api('/api/intel/health');
     const chip=$('#scoreChip'); const klass={autopilot:'ok',revisa:'warn',necesita:'alto'}[health.band]||'info';

@@ -248,6 +248,21 @@ Completa el patrón #1 del playbook (multi-agente real, no solo router).
 Endpoints nuevos: `POST /api/chat` con `{mode:'auto'}`, `POST /api/orchestrate/route`
 (vista del router sin LLM).
 
+### Fase 12 — Skills (playbooks aprobados)
+
+- **`intel/skills.js`** (patrón Athena #9): cuando un tema se repite, SAMIA **propone**
+  un playbook reusable (draft). Un humano lo **aprueba** (confirmation gate — SAMIA no
+  se auto-aprueba) y se vuelve **invocable**: cuando la pregunta hace match por
+  triggers, el playbook ya validado se **inyecta en el prompt** para responder
+  consistente y sin re-razonar. Cuenta las invocaciones.
+- **Auto-propuesta**: la reflexión nocturna (#15) llama `proposeFromPatterns()` — toma
+  las señales de patrón (Fase 4) y crea drafts para temas recurrentes sin skill.
+- **Dashboard**: sección **Skills** — aprobar/editar/descartar propuestas y ver las
+  activas con su contador de uso; badge de drafts pendientes.
+
+Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
+`POST /api/skills/{approve,reject,invoke}`.
+
 ### Fase 10 — Dashboard
 
 - **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,

@@ -14,6 +14,7 @@ import { CONSTITUCION } from './constitucion.js';
 import { KNOWLEDGE, buildKbContext, lookupDoctor, lookupMedicalGroup, lookupPlan, searchCases, kbStats } from './kb/index.js';
 import { SPECIALISTS, resolveSpecialist, specialistList, vozBlock } from './specialists.js';
 import { chooseSpecialists, routeDeterministic, SYNTH_SYS, buildSynthUser } from './orchestrator.js';
+import * as skills from './intel/skills.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
@@ -84,6 +85,12 @@ function buildSystem(specId, userText, agentId, passthroughContext) {
   // Voz del modo (patron Athena #12): palabras prohibidas + cuando rebotar.
   const voz = vozBlock(spec);
   if (voz) parts.push(voz);
+
+  // Skill aprobada relevante (patron Athena #9): playbook ya validado por el equipo.
+  if (spec.lookups) {
+    const sk = skills.skillsContext(userText);
+    if (sk) parts.push(sk);
+  }
   const amem = mem.agentContext(agentId);
   if (amem) parts.push(amem);
   if (spec.lookups) {
@@ -260,6 +267,30 @@ const server = createServer(async (req, res) => {
   }
 
   // --- AUTONOMIA (Fase 5) ---
+  // --- SKILLS / playbooks aprobados (Fase 12) ---
+  if (path === '/api/skills' && req.method === 'GET')
+    return json(res, 200, { skills: skills.listSkills({ status: url.searchParams.get('status') || undefined }) });
+  if (path === '/api/skills' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const s = skills.proposeSkill({ name: body.name, trigger: body.trigger, steps: body.steps, source: body.source });
+    return s ? json(res, 200, { skill: s }) : json(res, 400, { error: 'name requerido' });
+  }
+  if (path === '/api/skills/approve' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const s = skills.approveSkill(body.id, { steps: body.steps, trigger: body.trigger });
+    return s ? json(res, 200, { skill: s }) : json(res, 404, { error: 'skill no encontrada' });
+  }
+  if (path === '/api/skills/reject' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const s = skills.rejectSkill(body.id);
+    return s ? json(res, 200, { skill: s }) : json(res, 404, { error: 'skill no encontrada' });
+  }
+  if (path === '/api/skills/invoke' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const s = skills.invokeSkill(body.id);
+    return s ? json(res, 200, { skill: s }) : json(res, 404, { error: 'skill aprobada no encontrada' });
+  }
+
   // Vista del router determinista (sin LLM): que especialistas tocaria una pregunta.
   if (path === '/api/orchestrate/route' && req.method === 'POST') {
     const body = await readBody(req).catch(() => ({}));

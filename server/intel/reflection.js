@@ -15,6 +15,7 @@ import { MODELS } from '../config.js';
 import { getAudit, addReflection, getReflections } from '../memory/index.js';
 import { autoMergeDuplicates, duplicateCandidates, listEntities, findContradictions } from '../memory/entities.js';
 import { refreshSignals } from './signals.js';
+import { proposeFromPatterns } from './skills.js';
 
 const nowIso = () => new Date().toISOString();
 
@@ -61,6 +62,9 @@ export async function runReflection(now = new Date()) {
   // 4. SIGNALS
   const signals = refreshSignals(now);
 
+  // 5. SKILLS — propone playbooks para temas recurrentes (aprobacion siempre humana).
+  const proposedSkills = proposeFromPatterns();
+
   const report = {
     ts: nowIso(),
     summary: day.summary,
@@ -72,6 +76,7 @@ export async function runReflection(now = new Date()) {
     contradictions,
     signalCount: signals.length,
     topSignals: signals.slice(0, 5).map((s) => ({ severity: s.severity, title: s.title })),
+    proposedSkills: proposedSkills.map((s) => ({ id: s.id, name: s.name })),
   };
   addReflection(report);
   return report;
