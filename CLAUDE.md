@@ -55,6 +55,18 @@ rebuilt UNICO file to Isabel after changes.
 - `isabel_anthropic_key` — the Anthropic API key (shared across shell + all tools)
 - `isabel_crm_leads` — CRM leads (JSON array)
 - `isabel_plan_progress` — Plan de Acción checkbox state
+- `isabel_memoria_hechos` / `_personas` / `_tareas` / `_compromisos` — layered memory (Athena-style)
+
+### Athena patterns adopted
+The `🧠 Memoria` tab uses **layered memory** (separate stores for facts about
+Isabel, people she mentions, tasks she owns, and commitments others made to her).
+**Capture-by-default**: `askCerebro` fires `captureFromMessage()` in parallel with
+the main answer — a second Claude call that extracts structured items from
+Isabel's message and auto-saves them to the right layer. The Equipo IA agents
+each have their own voice block (signature phrases + forbidden words). Every AI
+response must close with one concrete action prefixed with `✅ Tu próxima acción:`
+(baked into `ISABEL_SYSTEM`). See `bot/AthenaKnowledgeTransfer*.md` notes for the
+broader playbook (briefings, trust score, signals/gaps) we haven't built yet.
 
 ## Hard rules / conventions
 
