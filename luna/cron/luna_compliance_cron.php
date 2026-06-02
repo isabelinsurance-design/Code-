@@ -20,6 +20,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
   'send_email'    => true,
@@ -240,6 +241,42 @@ function runComplianceAudit($pdo, $config) {
   ];
 }
 
+// ─── RESUMEN IA (interpretación de riesgo, no detección) ────
+// Los hallazgos los detectan las reglas SQL (fuente de verdad). La IA solo
+// los INTERPRETA: prioriza qué resolver primero para proteger la licencia
+// de Isabel. No inventa reglas ni hallazgos. Devuelve texto o null.
+function lunaComplianceSummary($audit) {
+  if (!lunaAIEnabled() || empty($audit['findings'])) return null;
+
+  $system =
+    "Eres LUNA, oficial de cumplimiento (compliance) de Isabel Fuentes, agente "
+  . "licenciada de Medicare en California. Recibes los hallazgos REALES de la "
+  . "auditoría mensual y entregas un resumen ejecutivo de riesgo. REGLAS ESTRICTAS: "
+  . "trabaja SOLO con los hallazgos que te doy (NO inventes reglas CMS, números ni "
+  . "nombres; NO minimices un riesgo real); español, tono serio y profesional. "
+  . "Da: (1) una frase sobre el nivel de exposición general este mes; (2) el ORDEN "
+  . "recomendado para resolver, empezando por lo que más expone la licencia ante una "
+  . "auditoría CMS (SOA faltantes y enrollments sin confirmar pesan más); (3) a quién "
+  . "asignar cada bloque (Samia = retención/contacto/SOA, Skarleth = callbacks/ventas, "
+  . "Isabel = carriers/CMS/decisiones). Máximo 8 líneas. Sin encabezados decorativos.";
+
+  $compact = array_map(fn($f) => [
+    'severidad' => $f['severity'],
+    'regla'     => $f['rule'],
+    'titulo'    => $f['title'],
+    'casos'     => count($f['items']),
+  ], $audit['findings']);
+
+  $user =
+    "Auditoría de {$audit['month']}. Resumen: "
+  . "{$audit['summary']['critical']} críticos, {$audit['summary']['high']} altos, "
+  . "{$audit['summary']['medium']} medios.\nHallazgos:\n"
+  . json_encode($compact, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT)
+  . "\n\nDame el resumen de riesgo y el orden de remediación.";
+
+  return lunaAI($system, $user, 700);
+}
+
 // ─── BUILD REPORT TEXT ───────────────────────────────────────
 function buildAuditReport($audit, $format = 'text') {
   $isHTML     = $format === 'html';
@@ -271,6 +308,13 @@ function buildAuditReport($audit, $format = 'text') {
   }
 
   $out .= $hr;
+
+  // Lectura de riesgo de LUNA (IA) — antes del detalle, si está disponible
+  if (!empty($audit['ai_summary'])) {
+    $out .= "{$b[0]}🧠 LECTURA DE LUNA{$b[1]}{$br}";
+    $out .= str_replace("\n", $br, $audit['ai_summary']) . $br;
+    $out .= $hr;
+  }
 
   // Findings
   $sevIcon = ['CRÍTICO'=>'🔴','ALTO'=>'🟠','MEDIO'=>'🟡','BAJO'=>'🟢'];
@@ -376,6 +420,8 @@ $startTime = microtime(true);
 logAudit("=== LUNA Compliance Audit started ===", $CONFIG);
 
 $audit   = runComplianceAudit($pdo, $CONFIG);
+$audit['ai_summary'] = lunaComplianceSummary($audit); // null si limpio/sin key → solo hallazgos
+logAudit("AI summary: " . ($audit['ai_summary'] ? 'OK' : 'skipped/clean/unavailable'), $CONFIG);
 $results = [];
 
 if ($CONFIG['send_email']) {

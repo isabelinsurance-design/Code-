@@ -22,6 +22,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
   'send_email'    => true,
@@ -148,6 +149,37 @@ function generateReferralMessage($member) {
   return "{$apertura}\n\n{$cuerpo}\n\n{$cierre}";
 }
 
+// ─── MENSAJE INTELIGENTE (IA con fallback a la plantilla) ──
+// Redacta un mensaje único y personalizado por miembro con Claude. Si no
+// hay key o la IA falla, cae a generateReferralMessage() (sin romper nada).
+function smartReferralMessage($member) {
+  if (lunaAIEnabled()) {
+    $meses = round((int)$member['dias_activo'] / 30);
+    $isVip = (int)$member['referrals_enrolled'] > 0;
+
+    $system =
+      "Eres Samia, del equipo de la agente de Medicare Isabel Fuentes (Sur de "
+    . "California). Redactas un mensaje breve de WhatsApp/SMS para pedirle, con calidez "
+    . "y SIN presión, a un cliente ACTIVO que refiera a familiares o amigos mayores de "
+    . "65 años. REGLAS: español natural y cercano, trato de usted; máximo 3 frases; "
+    . "menciona el carrier solo si te lo doy; recuérdale que el servicio NO tiene costo "
+    . "para el referido; pide nombre y teléfono. CUMPLIMIENTO CMS: no menciones planes "
+    . "específicos, primas ni beneficios, y no hagas promesas de cobertura. NUNCA "
+    . "inventes datos. Devuelve SOLO el mensaje, sin comillas ni encabezados.";
+
+    $user =
+      "Cliente: {$member['nombre']} {$member['apellido']}\n"
+    . "Carrier: " . ($member['carrier'] ?: 'no especificado') . "\n"
+    . "Meses activo: {$meses}\n"
+    . "¿Refirió antes y se inscribieron?: " . ($isVip ? 'sí, es un referidor estrella' : 'no') . "\n\n"
+    . "Escribe el mensaje para pedirle un referido.";
+
+    $ai = lunaAI($system, $user, 400);
+    if ($ai !== null) return $ai;
+  }
+  return generateReferralMessage($member); // fallback determinista
+}
+
 // ─── TELEGRAM HELPER ───────────────────────────────────────
 function tgSendReferral($token, $chatId, $text, $buttons = []) {
   if (mb_strlen($text) > 4000) $text = mb_substr($text, 0, 3950) . '...';
@@ -244,7 +276,7 @@ function buildReferralEmailReport($candidates, $stats) {
         <div style='font-weight:700;font-size:13px;'>{$m['nombre']} {$m['apellido']}{$vip}</div>
         <div style='font-size:11px;color:#52606d;margin:3px 0;'>{$m['carrier']} · {$meses} meses activo · ☎ {$m['telefono']}</div>
         <div style='font-size:12px;color:#3a3a3c;background:#f5f5f7;padding:10px;border-radius:8px;margin-top:8px;font-style:italic;'>"
-          . nl2br(htmlspecialchars(generateReferralMessage($m))) . '
+          . nl2br(htmlspecialchars($m['mensaje'] ?? generateReferralMessage($m))) . '
         </div>
       </div>';
     }
@@ -268,7 +300,15 @@ $candidates = findCandidates($pdo, $CONFIG);
 $stats      = getReferralStats($pdo);
 $results    = [];
 
-logReferral("Found " . count($candidates) . " candidates", $CONFIG);
+// Redacta el mensaje (IA con fallback) UNA sola vez por candidato → mismo
+// texto en el email a Isabel y en Telegram a Samia, sin doble costo de API.
+$aiUsed = 0;
+foreach ($candidates as $i => $m) {
+  $candidates[$i]['mensaje'] = smartReferralMessage($m);
+  if (lunaAIEnabled()) $aiUsed++;
+}
+
+logReferral("Found " . count($candidates) . " candidates (IA: " . (lunaAIEnabled() ? "on, {$aiUsed} msgs" : 'off, plantilla') . ")", $CONFIG);
 
 // ── Send email report to Isabel ──────────────────────────
 if ($CONFIG['send_email']) {
@@ -310,7 +350,7 @@ if ($CONFIG['send_telegram'] && !empty($CONFIG['telegram_token']) && $CONFIG['te
       $msg = "*{$m['nombre']} {$m['apellido']}{$vip}*\n";
       $msg .= "_{$m['carrier']} · {$meses} meses · {$m['telefono']}_\n\n";
       $msg .= "📝 *Mensaje sugerido:*\n";
-      $msg .= "_" . generateReferralMessage($m) . "_";
+      $msg .= "_" . ($m['mensaje'] ?? generateReferralMessage($m)) . "_";
 
       $buttons = [[
         ['text' => '✅ Mensaje enviado', 'callback_data' => 'referral_sent_' . $m['id']],
