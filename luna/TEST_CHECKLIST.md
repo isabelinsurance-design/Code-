@@ -33,6 +33,35 @@ Si algo dice FALLÓ, el mensaje indica la causa (tabla/columna/permiso).
 - [ ] **Auditoría estructural**: pídele "busca duplicados y errores en la base".
 - [ ] **Búsqueda web**: pregúntale a Compliance algo de reglas CMS 2025 actuales.
 
+## 4b. Probar el MOTOR AGÉNTICO nuevo (tool-calling nativo + loop)
+> Cambió el cerebro del chat: del truco de texto `[[TOOL:]]` (1 sola consulta)
+> a tool-calling nativo de Anthropic con loop real (encadena hasta 6 consultas).
+> La lógica del parser ya pasó 12/12 pruebas simuladas; esto valida en vivo.
+
+- [ ] **Una herramienta** — al **Analista**: *"¿Cómo va mi pipeline?"*
+      → aparece "_Consultando CRM: pipeline..._" y luego datos **reales** (no inventados).
+- [ ] **Encadenar (lo nuevo)** — a **LUNA principal**: *"Busca a [cliente real] y dime
+      sus tickets abiertos"* → hace **2 consultas seguidas** (buscar → tickets) y
+      responde con ambos. Esto antes no se podía.
+- [ ] **Candado de seguridad** — al **Centro de Comando**: *"Crea tickets de retención
+      para hoy"* → muestra un **PLAN con botón de aprobar**, NO ejecuta solo.
+
+**Señales de falla:**
+- 🔴 "Error HTTP" / sin respuesta → revisa `ANTHROPIC_API_KEY` en `config.php`.
+- 🔴 Inventa números sin decir "consultando CRM" → las tools no están llegando.
+- 🔴 El Centro de Comando ejecuta sin pedir aprobación → reportar (no debe pasar).
+
+**Revertir** (si algo falla): `git revert` del commit del motor agéntico → vuelve
+al motor anterior en segundos. Solo afecta `luna_api.php` + `index.html`.
+
+## 4c. Conexión de servicio Athena/Pilar → LUNA (cuando aplique)
+> Solo si ya configuraste la llave de servicio (ver DEPLOY_LUNA.md).
+- [ ] En `config.php`: `LUNA_SERVICE_KEY` + `LUNA_SERVICE_AGENT_ID` definidos.
+- [ ] Prueba un CREATE con la llave (crear ticket) → responde `{"ok":true,...}`.
+- [ ] El ticket **aparece en el CRM normal** donde trabaja el equipo.
+- [ ] Una acción fuera de la allowlist (ej. `luna_update_member_status`) → `403`.
+- [ ] En `luna_audit_log` la acción aparece con prefijo `ATHENA:`.
+
 ## 5. Crons (cuando 1-4 pasen)
 - [ ] Programa los 7 crons (ver DEPLOY_LUNA.md). Corre cada uno manualmente 1 vez
       (`php .../cron/xxx.php`) y revisa su `*_log.txt`.
