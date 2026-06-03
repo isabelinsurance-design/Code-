@@ -12,7 +12,8 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../../config.php';
-require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
+require_once __DIR__ . '/../luna_ai.php';    // cerebro IA (degradación elegante si no hay key)
+require_once __DIR__ . '/../luna_radar.php'; // Radar de tendencias / Chief of Staff
 
 $CONFIG = [
   'send_email'    => true,
@@ -282,6 +283,12 @@ function lunaWeeklyAnalysis($data) {
   return lunaAI($system, $user, 900);
 }
 
+// ─── ESCAPE para texto del modelo en email HTML ──────────────
+function _wkEsc($s, $isHTML) {
+  $s = (string)$s;
+  return $isHTML ? htmlspecialchars($s, ENT_QUOTES, 'UTF-8') : $s;
+}
+
 // ─── COMPARE TWO NUMBERS ─────────────────────────────────────
 function _compare($current, $previous) {
   if ($previous === 0) {
@@ -410,6 +417,32 @@ function buildWeeklyText($data, $format = 'text') {
     }
   }
 
+  // ═══ 📡 RADAR — CHIEF OF STAFF ═══
+  if (!empty($data['radar']) && !empty($data['radar']['items'])) {
+    $rad = $data['radar'];
+    $out .= "{$b[0]}═══ 📡 RADAR — CHIEF OF STAFF ═══{$b[1]}{$br}";
+    if (!empty($rad['resumen'])) {
+      $out .= "{$i[0]}" . _wkEsc($rad['resumen'], $isHTML) . "{$i[1]}{$br}{$br}";
+    }
+    // La lente "mejora" primero y completa (título + acción).
+    $mejora = array_values(array_filter($rad['items'], fn($x) => ($x['categoria'] ?? '') === 'mejora'));
+    $otros  = array_values(array_filter($rad['items'], fn($x) => ($x['categoria'] ?? '') !== 'mejora'));
+    $indent = $isHTML ? '&nbsp;&nbsp;&nbsp;' : '   ';
+    foreach ($mejora as $it) {
+      $out .= "• {$b[0]}" . _wkEsc($it['titulo'] ?? '', $isHTML) . "{$b[1]}{$br}";
+      if (!empty($it['accion'])) $out .= "{$indent}→ " . _wkEsc($it['accion'], $isHTML) . "{$br}";
+    }
+    // El resto del radar, solo titulares por lente.
+    if ($otros) {
+      $out .= $br . "{$i[0]}También en el radar:{$i[1]}{$br}";
+      foreach ($otros as $it) {
+        $cat = strtoupper((string)($it['categoria'] ?? ''));
+        $out .= "• [{$cat}] " . _wkEsc($it['titulo'] ?? '', $isHTML) . "{$br}";
+      }
+    }
+    $out .= "{$br}{$i[0]}Radar completo en withisabelfuentes.com/luna/ → 📡 Radar{$i[1]}{$br}{$br}";
+  }
+
   $out .= $br . $hr;
   $out .= "{$i[0]}— LUNA · Reporte automático · viernes {$data['fecha_legible']}{$i[1]}{$br}";
   $out .= "{$i[0]}withisabelfuentes.com/luna/{$i[1]}";
@@ -521,6 +554,20 @@ logWeekly("=== LUNA Weekly Report started ===", $CONFIG);
 $data = collectWeeklyData($pdo);
 $data['ai_analysis'] = lunaWeeklyAnalysis($data); // null si no hay key/IA → usa fallback
 logWeekly("AI analysis: " . ($data['ai_analysis'] ? 'OK' : 'skipped/unavailable'), $CONFIG);
+
+// 📡 Radar Chief of Staff para el reporte: reusa el último radar semanal de
+// la plataforma si es fresco (≤8 días); si no, genera uno nuevo. Así el email
+// y la vista 📡 Radar muestran lo mismo, sin gastar de más.
+$data['radar'] = null;
+try {
+  $latest = radarLatest($pdo, 'weekly');
+  $fresh  = $latest && !empty($latest['created_at']) && strtotime($latest['created_at']) > strtotime('-8 days');
+  $data['radar'] = $fresh ? $latest : radarRun($pdo, 'weekly');
+} catch (Exception $e) {
+  logWeekly("Radar weekly: error - " . $e->getMessage(), $CONFIG);
+}
+logWeekly("Radar weekly: " . (!empty($data['radar']['items']) ? count($data['radar']['items']) . ' items' : 'none'), $CONFIG);
+
 $results = [];
 
 if ($CONFIG['send_email']) {
