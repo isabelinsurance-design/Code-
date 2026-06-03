@@ -606,6 +606,34 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Coach plans agregados: TODOS los planes vigentes en una vista ----
+  // Útil para que Isabel vea su "stack" completo cross-coach de un vistazo.
+  app.get('/api/coach_plans', requireAuth, async (_req, res) => {
+    try {
+      const { loadCoachPlan } = await import('./coach_plans.js');
+      const { SPECIALISTS } = await import('./agents.js');
+      const { readdirSync, existsSync } = await import('node:fs');
+      const { join, dirname } = await import('node:path');
+      const { fileURLToPath } = await import('node:url');
+      const baseDir = join(dirname(fileURLToPath(import.meta.url)), '..', 'data', 'coach_plans');
+      const ids = existsSync(baseDir)
+        ? readdirSync(baseDir).filter((f) => f.endsWith('.json')).map((f) => f.slice(0, -5))
+        : [];
+      const out = ids.map((id) => {
+        const plan = loadCoachPlan(id);
+        return {
+          coach_id: id,
+          coach_name: SPECIALISTS[id]?.name || id,
+          coach_role: SPECIALISTS[id]?.role || '',
+          ...plan,
+        };
+      }).filter((p) => p.items.length > 0);
+      res.json(out);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ---- Coach plans: plan vigente que cada coach le recomendó a Isabel ----
   // GET   /api/coach_plan/:coach              → plan completo
   // POST  /api/coach_plan/:coach              { text } → agrega item (manual)

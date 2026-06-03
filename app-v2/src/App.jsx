@@ -14,6 +14,7 @@ import Actividad from './pages/Actividad.jsx';
 import Journal from './pages/Journal.jsx';
 import Reading from './pages/Reading.jsx';
 import Rapport from './pages/Rapport.jsx';
+import Plans from './pages/Plans.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -51,6 +52,7 @@ export default function App() {
           <Route path="/journal" element={<Journal />} />
           <Route path="/reading" element={<Reading />} />
           <Route path="/rapport" element={<Rapport />} />
+          <Route path="/plans" element={<Plans />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />
