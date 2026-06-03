@@ -154,4 +154,29 @@ export const api = {
   // Read-only desde la UI; lo escribe la propia coach via tool.
   coachNotes: (coach) => request(`/coach_notes/${encodeURIComponent(coach)}`),
   coachNotesClear: (coach) => request(`/coach_notes/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
+
+  // ---- Journal ----
+  journalList: (dias = 30, tipo = null) => {
+    const qs = new URLSearchParams({ dias });
+    if (tipo) qs.set('tipo', tipo);
+    return request(`/journal?${qs}`);
+  },
+  journalSearch: (q, dias = 90) => request(`/journal/search?q=${encodeURIComponent(q)}&dias=${dias}`),
+  journalDay: (dia = null) => request(`/journal/day${dia ? `?dia=${encodeURIComponent(dia)}` : ''}`),
+  journalPattern: (dias = 14) => request(`/journal/pattern?dias=${dias}`),
+  journalAdd: (data) => request('/journal', { method: 'POST', body: JSON.stringify(data) }),
+
+  // ---- Reading list ----
+  readingList: (status = 'pending', tag = null) => {
+    const qs = new URLSearchParams({ status });
+    if (tag) qs.set('tag', tag);
+    return request(`/reading?${qs}`);
+  },
+  readingAdd: (data) => request('/reading', { method: 'POST', body: JSON.stringify(data) }),
+  readingUpdate: (id, patch) => request(`/reading/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  readingRemove: (id) => request(`/reading/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+
+  // ---- Rapport semanal ----
+  rapport: (limit = 26) => request(`/rapport?limit=${limit}`),
+  rapportAdd: (data) => request('/rapport', { method: 'POST', body: JSON.stringify(data) }),
 };

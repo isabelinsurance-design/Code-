@@ -683,5 +683,120 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Journal: lectura, escritura, search, day, patterns ----
+  app.get('/api/journal', requireAuth, async (req, res) => {
+    try {
+      const { listRecent } = await import('./journal.js');
+      const dias = parseInt(req.query.dias, 10) || 30;
+      const tipo = req.query.tipo || null;
+      res.json(listRecent({ dias, tipo }));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.get('/api/journal/search', requireAuth, async (req, res) => {
+    try {
+      const { searchEntries } = await import('./journal.js');
+      const q = req.query.q || '';
+      const dias = parseInt(req.query.dias, 10) || 90;
+      res.json(searchEntries({ query: q, dias }));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.get('/api/journal/day', requireAuth, async (req, res) => {
+    try {
+      const { entriesForDay } = await import('./journal.js');
+      res.json(entriesForDay(req.query.dia));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.get('/api/journal/pattern', requireAuth, async (req, res) => {
+    try {
+      const { emocionesPattern } = await import('./journal.js');
+      res.json(emocionesPattern({ dias: parseInt(req.query.dias, 10) || 14 }));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.post('/api/journal', requireAuth, async (req, res) => {
+    try {
+      const { registrarEntrada } = await import('./journal.js');
+      const r = registrarEntrada({
+        texto: req.body?.texto,
+        tipo: req.body?.tipo || 'journal',
+        gratitud: req.body?.gratitud || null,
+        frustracion: req.body?.frustracion || null,
+      });
+      if (!r.ok) return res.status(400).json({ error: r.error });
+      res.json(r.entry);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  // ---- Reading list ----
+  app.get('/api/reading', requireAuth, async (req, res) => {
+    try {
+      const { listItems } = await import('./reading_list.js');
+      res.json(listItems({
+        status: req.query.status || 'pending',
+        tag: req.query.tag || null,
+        limit: parseInt(req.query.limit, 10) || 50,
+      }));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.post('/api/reading', requireAuth, async (req, res) => {
+    try {
+      const { addItem } = await import('./reading_list.js');
+      const it = addItem({
+        url: req.body?.url,
+        titulo: req.body?.titulo,
+        notas: req.body?.notas,
+        tags: req.body?.tags,
+      });
+      res.json(it);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.patch('/api/reading/:id', requireAuth, async (req, res) => {
+    try {
+      const { updateItem } = await import('./reading_list.js');
+      const patch = {};
+      ['status', 'titulo', 'notas', 'tags'].forEach((k) => {
+        if (req.body?.[k] !== undefined) patch[k] = req.body[k];
+      });
+      res.json(updateItem(req.params.id, patch));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.delete('/api/reading/:id', requireAuth, async (req, res) => {
+    try {
+      const { removeItem } = await import('./reading_list.js');
+      res.json(removeItem(req.params.id));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  // ---- Rapport semanal ----
+  app.get('/api/rapport', requireAuth, async (req, res) => {
+    try {
+      const { listRapports, rapportTrend } = await import('./rapport.js');
+      res.json({
+        items: listRapports({ limit: parseInt(req.query.limit, 10) || 26 }),
+        trend: rapportTrend(),
+      });
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.post('/api/rapport', requireAuth, async (req, res) => {
+    try {
+      const { registrarRapport } = await import('./rapport.js');
+      const entry = registrarRapport({
+        peso_lbs: req.body?.peso_lbs,
+        medidas: req.body?.medidas,
+        foto_url: req.body?.foto_url,
+        sentires: req.body?.sentires,
+        periodo: req.body?.periodo,
+      });
+      res.json(entry);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
   console.log('[api] endpoints REST montados en /api/*');
 }

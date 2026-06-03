@@ -11,6 +11,9 @@ import Calendar from './pages/Calendar.jsx';
 import Tareas from './pages/Tareas.jsx';
 import Wiki from './pages/Wiki.jsx';
 import Actividad from './pages/Actividad.jsx';
+import Journal from './pages/Journal.jsx';
+import Reading from './pages/Reading.jsx';
+import Rapport from './pages/Rapport.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -45,6 +48,9 @@ export default function App() {
           <Route path="/calendar" element={<Calendar />} />
           <Route path="/tareas" element={<Tareas />} />
           <Route path="/wiki" element={<Wiki />} />
+          <Route path="/journal" element={<Journal />} />
+          <Route path="/reading" element={<Reading />} />
+          <Route path="/rapport" element={<Rapport />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

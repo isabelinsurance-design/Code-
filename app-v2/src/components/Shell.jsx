@@ -4,13 +4,16 @@ import { useAuth } from '../lib/auth.jsx';
 const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
   { to: '/chat', label: 'Chat', icon: '✦' },
+  { to: '/journal', label: 'Journal', icon: '✑' },
+  { to: '/rapport', label: 'Rapport', icon: '◉' },
+  { to: '/reading', label: 'Reading', icon: '☷' },
   { to: '/brand', label: 'Brand', icon: '◈' },
   { to: '/calendar', label: 'Agenda', icon: '◷' },
-  { to: '/configura', label: 'Configura', icon: '⚙' },
   { to: '/aprueba', label: 'Aprueba', icon: '✓' },
   { to: '/tareas', label: 'Tareas', icon: '✎' },
   { to: '/wiki', label: 'Wiki', icon: '☵' },
   { to: '/actividad', label: 'Actividad', icon: '⌖' },
+  { to: '/configura', label: 'Configura', icon: '⚙' },
 ];
 
 export default function Shell({ children }) {
