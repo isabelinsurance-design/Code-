@@ -280,13 +280,42 @@ function normalizeTicketPrioridad(input) {
   return 'MEDIA';
 }
 
+// IDs sospechosos que el modelo suele inventar cuando no buscó al cliente
+// real. Si Pilar manda algo de esta lista, asumimos que es placeholder
+// inventado y NO lo mandamos a LUNA (saldría ticket orfano que el equipo
+// no ve). Mejor null que ID falso.
+const SUSPICIOUS_MEMBER_IDS = new Set([
+  '0', '1', '12', '123', '1234', '12345', '123456', '1234567',
+  '99', '999', '9999',
+  'null', 'undefined', 'placeholder', 'unknown', 'test',
+]);
+
+function sanitizeMiembroId(input) {
+  if (!input) return '';
+  const s = String(input).trim().toLowerCase();
+  if (SUSPICIOUS_MEMBER_IDS.has(s)) {
+    console.warn(`[luna] miembro_id sospechoso "${input}" — descartando para evitar ticket orfano`);
+    return '';
+  }
+  return String(input).trim();
+}
+
 export async function createTicket(data) {
   if (!data?.descripcion) return { ok: false, error: 'Falta descripcion.' };
+  const cleanMiembroId = sanitizeMiembroId(data.miembro_id);
+  // Si pidieron crear ticket CON cliente pero el id era inventado,
+  // devolvemos error claro para que Pilar busque al cliente real.
+  if (data.miembro_id && !cleanMiembroId) {
+    return {
+      ok: false,
+      error: `miembro_id "${data.miembro_id}" parece inventado. Llama luna_buscar_miembro primero con el nombre del cliente y usa el id REAL que te devuelva. Si no es sobre ningún cliente, deja miembro_id vacío.`,
+    };
+  }
   const body = {
     tipo: normalizeTicketTipo(data.tipo),
     prioridad: normalizeTicketPrioridad(data.prioridad),
     descripcion: data.descripcion,
-    miembro_id: data.miembro_id || '',
+    miembro_id: cleanMiembroId,
     asignado_a: data.asignado_a || '',
   };
   const r = await lunaFetch('create_ticket', { method: 'POST', body });

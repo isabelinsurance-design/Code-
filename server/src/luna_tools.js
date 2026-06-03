@@ -142,7 +142,20 @@ export const LUNA_TOOL_DEFINITIONS = [
   },
   {
     name: 'luna_crear_ticket',
-    description: 'ESCRIBE un ticket en LUNA — para delegarle algo a Skarleth, Arlette o Samia. asignado_a: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.',
+    description: `ESCRIBE un ticket en LUNA — para delegarle algo a Skarleth, Arlette o Samia.
+
+🚨 REGLA CRÍTICA — NUNCA inventes miembro_id:
+- Si la tarea es SOBRE un cliente específico, OBLIGATORIAMENTE llama luna_buscar_miembro PRIMERO con el nombre del cliente.
+- Usa el id REAL que devuelve esa búsqueda — NO inventes números (12345, 123, 1, etc.).
+- Si la búsqueda devuelve 0 resultados, NO crees el ticket — pregúntale a Isabel cómo se llama el cliente exacto o si quizá cambió de nombre.
+- Si la búsqueda devuelve VARIOS matches, pregunta cuál es antes de crear.
+- Si el ticket NO es sobre ningún cliente específico (tarea interna del equipo: marketing, entrenamiento, proyecto), DEJA miembro_id vacío. Mejor sin id que con uno inventado.
+
+🚨 REGLA — asignado_a también debe ser real:
+- 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel — esos sí son válidos.
+- Si Isabel dice "para alguien" sin nombre, pregúntale a quién específicamente.
+
+Un ticket orfano (con miembro_id inexistente) NO aparece en el CRM del equipo. Es como no haberlo creado.`,
     input_schema: {
       type: 'object',
       properties: {
@@ -161,9 +174,15 @@ export const LUNA_TOOL_DEFINITIONS = [
           enum: ['ALTA', 'MEDIA', 'BAJA'],
           description: 'Prioridad del ticket. Default MEDIA.',
         },
-        descripcion: { type: 'string', description: 'Qué hay que hacer.' },
-        miembro_id: { type: 'string', description: 'Cliente al que se refiere.' },
-        asignado_a: { type: 'string', description: 'User ID del responsable: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.' },
+        descripcion: { type: 'string', description: 'Qué hay que hacer. Sé específico.' },
+        miembro_id: {
+          type: 'string',
+          description: 'ID del cliente al que se refiere. DEBE venir de luna_buscar_miembro — NUNCA inventes este número. Si la tarea no es sobre ningún cliente específico, deja vacío.',
+        },
+        asignado_a: {
+          type: 'string',
+          description: 'User ID del responsable: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel. Si no sabes a quién, pregunta antes de crear.',
+        },
       },
       required: ['descripcion'],
     },
