@@ -187,6 +187,33 @@ function dbCoerce(PDO $pdo, string $table, string $column, string $value, ?strin
     return $value;
 }
 
+// ── Miembro "catch-all" para tickets sin cliente ─────────
+// El CRM web lista los tickets POR cliente, así que un ticket sin miembro
+// queda invisible en la web. Esta función devuelve el id de un miembro
+// "OTRO/General" donde colgar esos tickets para que SÍ se vean.
+// Prioridad: 1) constante LUNA_DEFAULT_TICKET_MEMBER  2) autodetección por
+// nombre (OTRO/GENERAL/OFICINA/TAREAS). Devuelve null si no hay ninguno.
+function defaultTicketMember(PDO $pdo): ?int {
+    static $resolved = false; static $val = null;
+    if ($resolved) return $val;
+    $resolved = true;
+    $id = (int)(getenv('LUNA_DEFAULT_TICKET_MEMBER')
+        ?: (defined('LUNA_DEFAULT_TICKET_MEMBER') ? LUNA_DEFAULT_TICKET_MEMBER : 0));
+    if ($id > 0) {
+        try {
+            $ck = $pdo->prepare("SELECT id FROM miembros WHERE id=?"); $ck->execute([$id]);
+            if ($ck->fetchColumn()) { $val = $id; return $val; }
+        } catch (Exception $e) { /* sigue a autodetección */ }
+    }
+    try {
+        $r = $pdo->query("SELECT id FROM miembros
+                          WHERE UPPER(nombre) IN ('OTRO','OTROS','GENERAL','OFICINA','TAREAS','TAREA')
+                          ORDER BY id ASC LIMIT 1")->fetchColumn();
+        $val = $r ? (int)$r : null;
+    } catch (Exception $e) { $val = null; }
+    return $val;
+}
+
 // ── Compliance & audit helpers (capa de confianza) ───────
 // Redacta PII antes de guardar en logs: teléfono, email, MBI.
 function redactPII($s) {
@@ -1163,9 +1190,12 @@ case 'luna_create_ticket':
         $ck = $pdo->prepare("SELECT 1 FROM miembros WHERE id=?"); $ck->execute([$mid]);
         if (!$ck->fetchColumn()) err("El miembro_id $mid NO existe en el CRM. No inventes clientes: busca el real con luna_search_member y usa su id. Si la persona aún no es cliente, créala primero en el CRM, o manda clase=tarea (sin cliente).");
     } else {
-        // Tarea o proyecto: sin cliente. Tipo TAREA; el proyecto se marca aparte.
-        $mid = null;
-        if ($tipo === 'OTRO' || $tipo === '') $tipo = 'TAREA';
+        // Sin cliente real (tarea/proyecto/general). El CRM web lista los tickets
+        // POR cliente, así que uno sin miembro queda INVISIBLE en la web. Solución:
+        // colgarlo de un miembro catch-all "OTRO" para que sí se muestre.
+        $mid = defaultTicketMember($pdo);   // null si no hay un miembro "OTRO" configurado
+        if ($tipo === '') $tipo = 'OTRO';
+        if ($clase === 'tarea' && $tipo === 'OTRO') $tipo = 'TAREA';
         if ($clase === 'proyecto' && stripos($desc, 'proyecto') === false) $desc = 'PROYECTO: ' . $desc;
     }
 
@@ -1207,12 +1237,18 @@ case 'luna_create_ticket':
     $stmt->execute([$mid, $uid, $asig, $tipo, $prioridad, $estado, $desc, $fuente]);
     $tid = (int)$pdo->lastInsertId();
     logActivity($pdo, $uid, $mid, 'TICKET', "Ticket #$tid [$clase/$tipo/$prioridad] → resp #$asig" . ($IS_SVC ? ' vía Athena' : ' vía LUNA'));
+    // Aviso si un ticket sin cliente quedó SIN miembro catch-all: el CRM web
+    // (que lista por cliente) probablemente no lo mostrará.
+    $aviso = ($clase !== 'miembro' && !$mid)
+        ? 'OJO: ticket sin cliente y sin miembro "OTRO" configurado → puede no verse en el CRM web. Crea un miembro "OTRO" o define LUNA_DEFAULT_TICKET_MEMBER.'
+        : null;
     ok([
         'id'          => $tid,
         'clase'       => $clase,
         'miembro_id'  => $mid,
         'asignado_a'  => $asig,
         'fuente'      => $fuente,
+        'aviso'       => $aviso,
         'message'     => "Ticket #$tid creado ($clase), asignado a #$asig.",
     ]);
     break;

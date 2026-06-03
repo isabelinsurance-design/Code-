@@ -158,6 +158,14 @@ Reglas que aplica el servidor automáticamente:
   así sabes **quién lo creó** (Athena), **a quién** (`asignado_a`) y **de qué cliente** (`miembro_id`).
 - Respuesta: `{"ok":true,"data":{"id":N,"clase":"...","asignado_a":N,"miembro_id":N,"fuente":"ATHENA"}}`.
 
+> **Tickets SIN cliente (tareas/proyectos/generales):** el CRM web lista los
+> tickets POR cliente, así que uno sin miembro **no se ve en la web** (queda
+> "huérfano"). Solución: crea en el CRM un miembro llamado **"OTRO"** (o
+> "General"); LUNA cuelga ahí los tickets sin cliente para que SÍ aparezcan.
+> El servidor lo autodetecta por nombre (OTRO/GENERAL/OFICINA/TAREAS) o puedes
+> fijarlo: `define('LUNA_DEFAULT_TICKET_MEMBER', 999); // id del miembro "OTRO"`.
+> Si no hay ninguno, la respuesta trae un campo `aviso` advirtiéndolo.
+>
 > Config opcional en `config.php`:
 > `define('LUNA_SERVICE_DEFAULT_ASSIGNEE', 1);  // a quién van los tickets sin responsable`
 > Para FILTRAR por origen en el CRM, conviene que la columna `tickets.fuente` permita
