@@ -65,6 +65,31 @@ $T = [
   't1_body'    => "Isabel took the time to explain everything in Spanish. I finally understood my plan and felt confident about my choices.",
   't2_body'    => 'I had been with the wrong plan for two years before Isabel reviewed my coverage. She found me a better option and saved me money.',
   't3_body'    => "Isabel has been available every time I had a question. She truly cares about her clients.",
+  't4_body'    => "She walked my mother through every option in Spanish and never rushed us. We felt cared for, not sold to.",
+  't5_body'    => "When my pharmacy changed my copay, Isabel sorted it out with one phone call. I didn't have to do anything.",
+  't6_body'    => "Year after year she reviews my plan to make sure it still fits. That kind of follow-up is rare.",
+  // ── GALLERY ──
+  'gallery_label' => 'Real Moments',
+  'gallery_title' => 'Faces &amp; <em>Stories</em>',
+  'gallery_sub'   => 'A look at the people and moments behind the work — real clients, real community.',
+  // ── VIDEO STORIES ──
+  'video_label' => 'Client Stories',
+  'video_title' => 'Hear It <em>From Them</em>',
+  'video_sub'   => 'Short stories from clients about what changed when they finally had someone in their corner.',
+  // ── FAQ ──
+  'faq_label' => 'Questions',
+  'faq_title' => 'Frequently Asked <em>Questions</em>',
+  'faq_sub'   => 'Quick answers to what people ask most. Have another question? Just call or send a message.',
+  'faq_q1' => 'How much do your services cost?',
+  'faq_a1' => 'Nothing. There is no cost to you for my help — licensed agents are compensated by the insurance carriers, not by you. Your premium is the same whether you use an agent or not.',
+  'faq_q2' => 'Do you check my doctors and medications?',
+  'faq_a2' => "Yes. Before we choose a plan, I confirm your doctors are in-network and your prescriptions are covered, so there are no surprises later.",
+  'faq_q3' => 'When can I enroll or change my plan?',
+  'faq_a3' => 'Most changes happen during the Annual Enrollment Period (Oct 15 – Dec 7), but you may qualify for a Special Enrollment Period. I\'ll tell you exactly what applies to your situation.',
+  'faq_q4' => 'Can you help me in Spanish?',
+  'faq_a4' => "Of course — I help you in English or Spanish, whichever you're most comfortable with.",
+  'faq_q5' => 'What happens after I enroll?',
+  'faq_a5' => "I'm here year-round. Call me about a bill, a denied claim, a pharmacy issue, or a ride to the doctor — I don't disappear after you sign up.",
   // ── CONTACT ──
   'contact_label' => 'Get in Touch',
   'contact_title' => "Let's Find Your <em>Perfect Plan</em>",
@@ -150,6 +175,31 @@ $T = [
   't1_body'    => 'Isabel se tomó el tiempo de explicarme todo en español. Por fin entendí mi plan y me sentí seguro con mis decisiones.',
   't2_body'    => 'Estuve con el plan equivocado dos años hasta que Isabel revisó mi cobertura. Me encontró una mejor opción y me ahorró dinero.',
   't3_body'    => 'Isabel siempre ha estado disponible cada vez que tuve una pregunta. Realmente se preocupa por sus clientes.',
+  't4_body'    => 'Le explicó cada opción a mi mamá en español y nunca nos apuró. Nos sentimos cuidados, no presionados.',
+  't5_body'    => 'Cuando mi farmacia cambió mi copago, Isabel lo resolvió con una sola llamada. No tuve que hacer nada.',
+  't6_body'    => 'Año tras año revisa mi plan para asegurarse de que siga siendo el adecuado. Ese seguimiento es raro.',
+  // ── GALLERY ──
+  'gallery_label' => 'Momentos Reales',
+  'gallery_title' => 'Rostros e <em>Historias</em>',
+  'gallery_sub'   => 'Un vistazo a las personas y momentos detrás del trabajo — clientes reales, comunidad real.',
+  // ── VIDEO STORIES ──
+  'video_label' => 'Historias de Clientes',
+  'video_title' => 'Escúchalo <em>de Ellos</em>',
+  'video_sub'   => 'Breves historias de clientes sobre lo que cambió cuando por fin tuvieron a alguien de su lado.',
+  // ── FAQ ──
+  'faq_label' => 'Preguntas',
+  'faq_title' => 'Preguntas <em>Frecuentes</em>',
+  'faq_sub'   => '¿Tienes otra pregunta? Solo llama o envía un mensaje.',
+  'faq_q1' => '¿Cuánto cuestan tus servicios?',
+  'faq_a1' => 'Nada. No hay costo para ti por mi ayuda — a los agentes licenciados nos pagan las aseguradoras, no tú. Tu prima es la misma uses o no un agente.',
+  'faq_q2' => '¿Revisas mis médicos y medicamentos?',
+  'faq_a2' => 'Sí. Antes de elegir un plan, confirmo que tus médicos estén en la red y que tus medicamentos estén cubiertos, para que no haya sorpresas después.',
+  'faq_q3' => '¿Cuándo puedo inscribirme o cambiar mi plan?',
+  'faq_a3' => 'La mayoría de los cambios ocurren durante el Período de Inscripción Anual (15 oct – 7 dic), pero podrías calificar para un Período de Inscripción Especial. Te diré exactamente qué aplica a tu situación.',
+  'faq_q4' => '¿Puedes ayudarme en español?',
+  'faq_a4' => 'Claro — te ayudo en español o inglés, como te sientas más cómodo.',
+  'faq_q5' => '¿Qué pasa después de inscribirme?',
+  'faq_a5' => 'Estoy disponible todo el año. Llámame por una factura, un reclamo negado, un problema de farmacia o transporte al médico — no desaparezco después de que te inscribes.',
   'contact_label' => 'Contáctanos',
   'contact_title' => 'Encontremos Tu <em>Plan Ideal</em>',
   'contact_sub'   => 'Llámanos, envíanos un mensaje o llena el formulario. Estamos felices de ayudarte — sin ningún costo para ti.',
@@ -188,9 +238,14 @@ $t = $T[$lang];
 //   4. OPTIONAL: Fill in SMTP credentials below to send via SMTP instead.
 //      Leave SMTP_PASS as 'YOUR_EMAIL_PASSWORD_HERE' to keep using mail().
 // ─────────────────────────────────────────────────────────────────────────────
-// ⚠️  CONNECTURE: Replace with your personal agent quoting URL from Connecture.
-//    Example: 'https://youragency.connecture.com'
-define('CONNECTURE_URL', 'YOUR_CONNECTURE_QUOTE_URL_HERE');
+// ⚠️  QUOTING LINK — your agent-branded self-quote page.
+//    Most agents use Medicareful, MyMedicareBot, or Sunfire: the client lands on a
+//    page branded to YOU, enters their ZIP / doctors / meds, and you receive the lead.
+//    Paste that personal URL here. Examples:
+//      'https://isabelfuentes.medicareful.com'
+//      'https://your-name.mymedicarebot.com'
+//    Until you set this, the "Get a Quote" buttons safely scroll to the contact form.
+define('QUOTE_URL', 'YOUR_AGENT_QUOTE_URL_HERE');
 
 define('MAIL_TO',   'Connect@withisabelfuentes.com');
 define('MAIL_FROM', 'noreply@withisabelfuentes.com');
@@ -198,6 +253,11 @@ define('SMTP_HOST', 'mail.withisabelfuentes.com');
 define('SMTP_PORT', 587);
 define('SMTP_USER', 'mail@withisabelfuentes.com');
 define('SMTP_PASS', 'YOUR_EMAIL_PASSWORD_HERE'); // <-- leave as-is to use PHP mail()
+
+// Quote buttons point to your self-quote page once configured; otherwise to the form.
+$quoteIsExternal = (QUOTE_URL !== 'YOUR_AGENT_QUOTE_URL_HERE');
+$quoteHref       = $quoteIsExternal ? QUOTE_URL : '#contact';
+$quoteAttrs      = $quoteIsExternal ? ' target="_blank" rel="noopener noreferrer"' : '';
 
 /**
  * Primary mailer. Tries SMTP first (if configured), then falls back to PHP mail().
@@ -514,13 +574,75 @@ footer strong{color:white}
 .fade-in{opacity:0;transform:translateY(24px);animation:fadeIn .7s ease forwards}
 @keyframes fadeIn{to{opacity:1;transform:translateY(0)}}
 .d1{animation-delay:.1s}.d2{animation-delay:.2s}.d3{animation-delay:.3s}.d4{animation-delay:.4s}
+/* Reveal-on-scroll (added via JS IntersectionObserver) */
+.reveal{opacity:0;transform:translateY(28px);transition:opacity .7s ease,transform .7s ease}
+.reveal.in{opacity:1;transform:none}
+
+/* ── TESTIMONIAL SLIDER ── */
+.t-slider{position:relative;max-width:920px;margin:0 auto;overflow:hidden}
+.t-track{display:flex;transition:transform .5s cubic-bezier(.4,0,.2,1)}
+.t-slide{min-width:100%;padding:.5rem;flex-shrink:0}
+@media(min-width:760px){.t-slide{min-width:50%}}
+.t-slider .testimonial-card{height:100%}
+.t-controls{display:flex;align-items:center;justify-content:center;gap:1.25rem;margin-top:2.25rem}
+.t-arrow{width:46px;height:46px;border-radius:50%;border:1.5px solid var(--sky-mid);background:white;color:var(--sky-dark);font-size:1.2rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s;flex-shrink:0}
+.t-arrow:hover{background:var(--sky-dark);color:white;border-color:var(--sky-dark);transform:translateY(-2px)}
+.t-dots{display:flex;gap:.5rem}
+.t-dot{width:9px;height:9px;border-radius:50%;background:var(--sky-mid);border:none;cursor:pointer;padding:0;transition:all .25s}
+.t-dot.active{background:var(--sky-dark);width:26px;border-radius:5px}
+
+/* ── PHOTO GALLERY ── */
+#gallery{background:white}
+.gallery-grid{display:grid;grid-template-columns:repeat(4,1fr);grid-auto-rows:180px;gap:1rem}
+.gallery-item{position:relative;border-radius:16px;overflow:hidden;cursor:pointer;border:1px solid rgba(169,204,227,.3)}
+.gallery-item.wide{grid-column:span 2}
+.gallery-item.tall{grid-row:span 2}
+.gallery-item img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease;display:block}
+.gallery-item:hover img{transform:scale(1.06)}
+.gallery-item .g-cap{position:absolute;left:0;right:0;bottom:0;padding:1rem;font-size:.8rem;font-weight:600;color:white;background:linear-gradient(to top,rgba(26,42,58,.85),transparent);opacity:0;transition:opacity .3s}
+.gallery-item:hover .g-cap{opacity:1}
+.gallery-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;width:100%;height:100%;color:var(--sky-dark);font-size:.76rem;font-weight:600;text-align:center;padding:1rem;background:repeating-linear-gradient(45deg,rgba(169,204,227,.12),rgba(169,204,227,.12) 12px,rgba(169,204,227,.26) 12px,rgba(169,204,227,.26) 24px)}
+.gallery-ph span{font-size:1.5rem;opacity:.6}
+/* Lightbox */
+.lightbox{position:fixed;inset:0;background:rgba(15,28,40,.92);display:none;align-items:center;justify-content:center;z-index:500;padding:5%}
+.lightbox.open{display:flex}
+.lightbox img{max-width:100%;max-height:90vh;border-radius:12px;box-shadow:0 20px 60px rgba(0,0,0,.5)}
+.lightbox-close{position:absolute;top:18px;right:28px;font-size:2.2rem;line-height:1;color:white;cursor:pointer;background:none;border:none}
+
+/* ── VIDEO STORIES ── */
+#stories{background:var(--off-white)}
+.video-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1.5rem}
+.video-card{background:white;border-radius:var(--radius);overflow:hidden;border:1px solid rgba(169,204,227,.3);box-shadow:var(--shadow);transition:all .3s}
+.video-card:hover{transform:translateY(-5px);box-shadow:var(--shadow-hover)}
+.video-frame{position:relative;aspect-ratio:16/9;background:var(--text);cursor:pointer;overflow:hidden}
+.video-frame iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.video-frame img{width:100%;height:100%;object-fit:cover;display:block}
+.video-play{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.video-play::after{content:'▶';color:white;font-size:1.3rem;width:62px;height:62px;border-radius:50%;background:rgba(36,113,163,.9);display:flex;align-items:center;justify-content:center;padding-left:4px;transition:transform .25s}
+.video-frame:hover .video-play::after{transform:scale(1.12)}
+.video-ph{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.4rem;width:100%;height:100%;color:rgba(255,255,255,.7);font-size:.78rem;text-align:center;padding:1rem}
+.video-meta{padding:1.1rem 1.3rem}
+.video-meta h4{font-family:'Cormorant Garamond',serif;font-size:1.18rem;font-weight:600;color:var(--text);margin-bottom:.15rem}
+.video-meta p{font-size:.78rem;color:var(--text-soft)}
+
+/* ── FAQ ── */
+#faq{background:white}
+.faq-list{max-width:780px;margin:0 auto;display:flex;flex-direction:column;gap:.85rem}
+.faq-item{border:1px solid rgba(169,204,227,.4);border-radius:14px;background:var(--off-white);overflow:hidden}
+.faq-q{width:100%;text-align:left;background:none;border:none;padding:1.15rem 1.4rem;font-family:inherit;font-size:1rem;font-weight:600;color:var(--text);cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:1rem}
+.faq-icon{flex-shrink:0;transition:transform .3s;color:var(--sky-dark);font-size:1.4rem;line-height:1}
+.faq-item.open .faq-icon{transform:rotate(45deg)}
+.faq-a{max-height:0;overflow:hidden;transition:max-height .35s ease}
+.faq-a p{padding:0 1.4rem 1.2rem;font-size:.9rem;line-height:1.7;color:var(--text-soft);font-weight:300}
 
 /* ── RESPONSIVE ── */
-// Responsive media query adjustments
+/* Responsive media query adjustments */
 @media(max-width:900px){
   .hero-inner,.about-grid,.contact-wrap{grid-template-columns:1fr;gap:2.5rem}
   .about-img-box{max-height:360px}
   .carriers-track{animation-duration:16s}
+  .gallery-grid{grid-template-columns:repeat(2,1fr)}
+  .video-grid{grid-template-columns:1fr}
 }
 @media(max-width:600px){
   .nav-links{display:none}
@@ -528,6 +650,9 @@ footer strong{color:white}
   .testimonials-grid{grid-template-columns:1fr}
   .hero-isabel{max-width:280px}
   .cms-notice-bar p{font-size:.72rem}
+  .gallery-grid{grid-auto-rows:150px}
+  .gallery-item.wide{grid-column:span 2}
+  .gallery-item.tall{grid-row:span 1}
 }
 </style>
 </head>
@@ -551,6 +676,7 @@ footer strong{color:white}
     <ul class="nav-links">
       <li><a href="#about"><?= $t['nav_about'] ?></a></li>
       <li><a href="#services"><?= $t['nav_services'] ?></a></li>
+      <li><a href="#stories"><?= $lang==='es' ? 'Historias' : 'Stories' ?></a></li>
       <li><a href="#testimonials"><?= $t['nav_reviews'] ?></a></li>
       <li><a href="#contact" class="nav-cta"><?= $t['nav_contact'] ?></a></li>
     </ul>
@@ -574,7 +700,7 @@ footer strong{color:white}
       <p class="hero-sub fade-in d2"><?= $t['hero_sub'] ?></p>
       <div class="hero-actions fade-in d3">
         <a href="tel:+13102700626" class="btn-primary"><?= $t['hero_cta1'] ?></a>
-        <a href="<?= htmlspecialchars(CONNECTURE_URL) ?>" class="btn-secondary" target="_blank" rel="noopener noreferrer"><?= $t['hero_cta3'] ?></a>
+        <a href="<?= htmlspecialchars($quoteHref) ?>" class="btn-secondary"<?= $quoteAttrs ?>><?= $t['hero_cta3'] ?></a>
         <a href="#services" class="btn-secondary"><?= $t['hero_cta2'] ?></a>
       </div>
     </div>
@@ -582,8 +708,8 @@ footer strong{color:white}
       <img src="https://withisabelfuentes.com/wp-content/uploads/2026/04/isabel-transparente.png" alt="Isabel Fuentes, Licensed Medicare Agent" class="hero-isabel"/>
       <div class="hero-stats-float">
         <div class="hero-stats">
-          <div class="stat"><div class="stat-num">10+</div><div class="stat-label"><?= $t['stat1'] ?></div></div>
-          <div class="stat"><div class="stat-num">7+</div><div class="stat-label"><?= $t['stat2'] ?></div></div>
+          <div class="stat"><div class="stat-num" data-count="10" data-suffix="+">0</div><div class="stat-label"><?= $t['stat1'] ?></div></div>
+          <div class="stat"><div class="stat-num" data-count="7" data-suffix="+">0</div><div class="stat-label"><?= $t['stat2'] ?></div></div>
           <div class="stat"><div class="stat-num">✓</div><div class="stat-label"><?= $t['stat3'] ?></div></div>
           <div class="stat"><div class="stat-num">🌐</div><div class="stat-label"><?= $t['stat4'] ?></div></div>
         </div>
@@ -694,6 +820,87 @@ footer strong{color:white}
   </div>
 </section>
 
+<!-- ══════════════════════════════════════════════════════════════════════
+     PHOTO GALLERY — real photos of Isabel, clients, community, office.
+     TO ADD A PHOTO: inside a .gallery-item, replace the <div class="gallery-ph">
+     placeholder with:  <img src="YOUR_PHOTO_URL" alt="..."/>
+     Keep the .wide / .tall classes to vary the layout. Clicking opens a lightbox.
+     ══════════════════════════════════════════════════════════════════════ -->
+<section id="gallery">
+  <div class="section-inner">
+    <div class="section-header reveal" style="text-align:center;max-width:560px;margin-left:auto;margin-right:auto">
+      <div class="section-label"><?= $t['gallery_label'] ?></div>
+      <h2 class="section-title"><?= $t['gallery_title'] ?></h2>
+      <p class="section-sub" style="margin:0 auto"><?= $t['gallery_sub'] ?></p>
+    </div>
+    <?php
+    // [layout-class, EN caption, ES caption, optional image URL ('' = placeholder)]
+    $gallery = [
+      ['wide', 'Enrollment day with a client',   'Día de inscripción con un cliente', ''],
+      ['',     'Community health fair',           'Feria de salud comunitaria',        ''],
+      ['tall', 'Helping at the office',           'Ayudando en la oficina',            ''],
+      ['',     'Spanish-language workshop',       'Taller en español',                 ''],
+      ['wide', 'Client appreciation day',         'Día de agradecimiento al cliente',  ''],
+      ['',     'Q&amp;A at the senior center',    'Preguntas en el centro de ancianos',''],
+    ];
+    ?>
+    <div class="gallery-grid reveal">
+      <?php foreach($gallery as $g): $cap = $lang==='es' ? $g[2] : $g[1]; ?>
+        <div class="gallery-item <?= $g[0] ?>"<?= $g[3] ? ' data-full="'.htmlspecialchars($g[3]).'"' : '' ?>>
+          <?php if($g[3]): ?>
+            <img src="<?= htmlspecialchars($g[3]) ?>" alt="<?= $cap ?>"/>
+            <div class="g-cap"><?= $cap ?></div>
+          <?php else: ?>
+            <div class="gallery-ph"><span>🖼️</span><?= $lang==='es' ? 'Agrega una foto' : 'Add a photo' ?><br><?= $cap ?></div>
+          <?php endif; ?>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
+<!-- ══════════════════════════════════════════════════════════════════════
+     VIDEO STORIES — short client success-story videos.
+     TO ADD A VIDEO: put the YouTube video ID (the part after watch?v=) in the
+     first array slot, e.g. 'dQw4w9WgXcQ'. Leave '' to show a placeholder tile.
+     Videos load only when clicked (keeps the page fast).
+     ══════════════════════════════════════════════════════════════════════ -->
+<section id="stories">
+  <div class="section-inner">
+    <div class="section-header reveal" style="text-align:center;max-width:560px;margin-left:auto;margin-right:auto">
+      <div class="section-label"><?= $t['video_label'] ?></div>
+      <h2 class="section-title"><?= $t['video_title'] ?></h2>
+      <p class="section-sub" style="margin:0 auto"><?= $t['video_sub'] ?></p>
+    </div>
+    <?php
+    // [youtube-id ('' = placeholder), EN title, ES title, location]
+    $videos = [
+      ['', 'Maria found a plan that fit',  'María encontró el plan ideal',      'Los Angeles, CA'],
+      ['', 'Roberto saved on his meds',    'Roberto ahorró en sus medicinas',   'Inglewood, CA'],
+      ['', 'Patricia got year-round help', 'Patricia recibió ayuda todo el año','Compton, CA'],
+    ];
+    ?>
+    <div class="video-grid reveal">
+      <?php foreach($videos as $v): $vtitle = $lang==='es' ? $v[2] : $v[1]; ?>
+        <div class="video-card">
+          <div class="video-frame"<?= $v[0] ? ' data-yt="'.htmlspecialchars($v[0]).'"' : '' ?>>
+            <?php if($v[0]): ?>
+              <img class="video-thumb" src="https://img.youtube.com/vi/<?= htmlspecialchars($v[0]) ?>/hqdefault.jpg" alt="<?= $vtitle ?>"/>
+              <div class="video-play"></div>
+            <?php else: ?>
+              <div class="video-ph">🎬<br><?= $lang==='es' ? 'Agrega un video aquí' : 'Add a video here' ?></div>
+            <?php endif; ?>
+          </div>
+          <div class="video-meta">
+            <h4><?= $vtitle ?></h4>
+            <p>📍 <?= $v[3] ?></p>
+          </div>
+        </div>
+      <?php endforeach; ?>
+    </div>
+  </div>
+</section>
+
 <!-- ── TESTIMONIALS ── -->
 <section id="testimonials">
   <div class="section-inner">
@@ -702,19 +909,57 @@ footer strong{color:white}
       <h2 class="section-title"><?= $t['test_title'] ?></h2>
       <p class="section-sub"><?= $t['test_sub'] ?></p>
     </div>
-    <div class="testimonials-grid">
-      <?php foreach([
-        ['MG','t1_body','Maria G.','Los Angeles, CA'],
-        ['RL','t2_body','Roberto L.','Inglewood, CA'],
-        ['PS','t3_body','Patricia S.','Compton, CA'],
-      ] as $tm): ?>
-        <div class="testimonial-card">
-          <div class="quote-mark">"</div>
-          <p><?= $t[$tm[1]] ?></p>
-          <div class="t-author">
-            <div class="t-avatar"><?= $tm[0] ?></div>
-            <div><div class="t-name"><?= $tm[2] ?></div><div class="t-city"><?= $tm[3] ?></div></div>
+    <?php
+    // [initials, body-key, name, city] — add more rows and the slider adapts.
+    $testimonials = [
+      ['MG','t1_body','Maria G.','Los Angeles, CA'],
+      ['RL','t2_body','Roberto L.','Inglewood, CA'],
+      ['PS','t3_body','Patricia S.','Compton, CA'],
+      ['CM','t4_body','Carlos M.','Long Beach, CA'],
+      ['LT','t5_body','Linda T.','Torrance, CA'],
+      ['GR','t6_body','Gloria R.','Lynwood, CA'],
+    ];
+    ?>
+    <div class="t-slider" id="tSlider">
+      <div class="t-track" id="tTrack">
+        <?php foreach($testimonials as $tm): ?>
+          <div class="t-slide">
+            <div class="testimonial-card">
+              <div class="quote-mark">"</div>
+              <p><?= $t[$tm[1]] ?></p>
+              <div class="t-author">
+                <div class="t-avatar"><?= $tm[0] ?></div>
+                <div><div class="t-name"><?= $tm[2] ?></div><div class="t-city"><?= $tm[3] ?></div></div>
+              </div>
+            </div>
           </div>
+        <?php endforeach; ?>
+      </div>
+    </div>
+    <div class="t-controls">
+      <button class="t-arrow" id="tPrev" aria-label="<?= $lang==='es'?'Anterior':'Previous' ?>">‹</button>
+      <div class="t-dots" id="tDots"></div>
+      <button class="t-arrow" id="tNext" aria-label="<?= $lang==='es'?'Siguiente':'Next' ?>">›</button>
+    </div>
+  </div>
+</section>
+
+<!-- ── FAQ (accordion) ── -->
+<section id="faq">
+  <div class="section-inner">
+    <div class="section-header reveal" style="text-align:center;max-width:560px;margin-left:auto;margin-right:auto">
+      <div class="section-label"><?= $t['faq_label'] ?></div>
+      <h2 class="section-title"><?= $t['faq_title'] ?></h2>
+      <p class="section-sub" style="margin:0 auto"><?= $t['faq_sub'] ?></p>
+    </div>
+    <div class="faq-list reveal">
+      <?php foreach(['1','2','3','4','5'] as $n): ?>
+        <div class="faq-item">
+          <button class="faq-q" type="button" aria-expanded="false">
+            <span><?= $t['faq_q'.$n] ?></span>
+            <span class="faq-icon" aria-hidden="true">+</span>
+          </button>
+          <div class="faq-a"><p><?= $t['faq_a'.$n] ?></p></div>
         </div>
       <?php endforeach; ?>
     </div>
@@ -747,7 +992,7 @@ footer strong{color:white}
 
       <div class="form-box">
         <!-- Connecture quoting link — opens in new tab -->
-        <a href="<?= htmlspecialchars(CONNECTURE_URL) ?>" class="form-submit" target="_blank" rel="noopener noreferrer" style="display:block;text-align:center;text-decoration:none;margin-bottom:1.25rem;">
+        <a href="<?= htmlspecialchars($quoteHref) ?>" class="form-submit"<?= $quoteAttrs ?> style="display:block;text-align:center;text-decoration:none;margin-bottom:1.25rem;">
           📋 <?= $t['hero_cta3'] ?>
         </a>
         <p style="text-align:center;font-size:.78rem;color:var(--text-soft);margin-bottom:1.5rem;">— <?= $lang==='es' ? 'o envíanos un mensaje' : 'or send us a message' ?> —</p>
@@ -829,20 +1074,127 @@ footer strong{color:white}
   </div>
 </footer>
 
+<!-- Lightbox for the photo gallery -->
+<div class="lightbox" id="lightbox" role="dialog" aria-modal="true">
+  <button class="lightbox-close" id="lightboxClose" aria-label="Close">&times;</button>
+  <img id="lightboxImg" src="" alt=""/>
+</div>
+
 <script>
-// Smooth scroll
+// ── Smooth scroll ──
 document.querySelectorAll('a[href^="#"]').forEach(a => a.addEventListener('click', e => {
   const target = document.querySelector(a.getAttribute('href'));
   if (target) { e.preventDefault(); target.scrollIntoView({behavior:'smooth'}); }
 }));
 
-// Scroll-in animations
-document.querySelectorAll('.service-card,.testimonial-card,.about-img-wrap,.about-text').forEach(el => {
-  el.style.cssText += 'opacity:0;transform:translateY(28px);transition:opacity 0.6s ease,transform 0.6s ease';
+// ── Scroll-in animations (cards + .reveal blocks) ──
+const revealObs = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('in'); revealObs.unobserve(e.target); } });
+}, {threshold:0.12});
+document.querySelectorAll('.reveal').forEach(el => revealObs.observe(el));
+document.querySelectorAll('.service-card,.about-img-wrap,.about-text').forEach(el => {
+  el.style.cssText += 'opacity:0;transform:translateY(28px);transition:opacity .6s ease,transform .6s ease';
   new IntersectionObserver((entries) => {
     entries.forEach(e => { if (e.isIntersecting) { e.target.style.opacity='1'; e.target.style.transform='translateY(0)'; } });
   }, {threshold:0.1}).observe(el);
 });
+
+// ── Animated count-up stats ──
+document.querySelectorAll('[data-count]').forEach(el => {
+  const target = +el.dataset.count, suffix = el.dataset.suffix || '';
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (!e.isIntersecting) return;
+      io.unobserve(el);
+      const dur = 1200, start = performance.now();
+      const tick = now => {
+        const p = Math.min((now - start) / dur, 1);
+        el.textContent = Math.round(p * target) + (p === 1 ? suffix : '');
+        if (p < 1) requestAnimationFrame(tick);
+      };
+      requestAnimationFrame(tick);
+    });
+  }, {threshold:0.5});
+  io.observe(el);
+});
+
+// ── Testimonial slider ──
+(function(){
+  const track = document.getElementById('tTrack');
+  if (!track) return;
+  const slides = track.children.length;
+  const dotsWrap = document.getElementById('tDots');
+  let index = 0, autoplay;
+  const perView = () => window.innerWidth >= 760 ? 2 : 1;
+  const maxIndex = () => Math.max(0, slides - perView());
+
+  function build(){
+    dotsWrap.innerHTML = '';
+    for (let i = 0; i <= maxIndex(); i++){
+      const d = document.createElement('button');
+      d.className = 't-dot' + (i === index ? ' active' : '');
+      d.setAttribute('aria-label', 'Slide ' + (i+1));
+      d.addEventListener('click', () => { index = i; render(); reset(); });
+      dotsWrap.appendChild(d);
+    }
+  }
+  function render(){
+    index = Math.min(index, maxIndex());
+    track.style.transform = 'translateX(-' + (index * (100 / perView())) + '%)';
+    [...dotsWrap.children].forEach((d,i) => d.classList.toggle('active', i === index));
+  }
+  function next(){ index = index >= maxIndex() ? 0 : index + 1; render(); }
+  function prev(){ index = index <= 0 ? maxIndex() : index - 1; render(); }
+  function reset(){ clearInterval(autoplay); autoplay = setInterval(next, 5500); }
+
+  document.getElementById('tNext').addEventListener('click', () => { next(); reset(); });
+  document.getElementById('tPrev').addEventListener('click', () => { prev(); reset(); });
+  window.addEventListener('resize', () => { build(); render(); });
+
+  // Touch swipe
+  let x0 = null;
+  track.addEventListener('touchstart', e => x0 = e.touches[0].clientX, {passive:true});
+  track.addEventListener('touchend', e => {
+    if (x0 === null) return;
+    const dx = e.changedTouches[0].clientX - x0;
+    if (Math.abs(dx) > 40) { dx < 0 ? next() : prev(); reset(); }
+    x0 = null;
+  });
+
+  build(); render(); reset();
+})();
+
+// ── FAQ accordion ──
+document.querySelectorAll('.faq-q').forEach(btn => btn.addEventListener('click', () => {
+  const item = btn.parentElement, ans = item.querySelector('.faq-a'), open = item.classList.contains('open');
+  document.querySelectorAll('.faq-item.open').forEach(o => {
+    o.classList.remove('open'); o.querySelector('.faq-a').style.maxHeight = null;
+    o.querySelector('.faq-q').setAttribute('aria-expanded','false');
+  });
+  if (!open){
+    item.classList.add('open'); ans.style.maxHeight = ans.scrollHeight + 'px';
+    btn.setAttribute('aria-expanded','true');
+  }
+}));
+
+// ── Lazy-load video stories on click ──
+document.querySelectorAll('.video-frame[data-yt]').forEach(frame => frame.addEventListener('click', () => {
+  const id = frame.dataset.yt;
+  frame.innerHTML = '<iframe src="https://www.youtube.com/embed/' + id + '?autoplay=1&rel=0" '
+    + 'title="Client story" allow="accelerometer;autoplay;clipboard-write;encrypted-media;gyroscope;picture-in-picture" allowfullscreen></iframe>';
+}));
+
+// ── Gallery lightbox ──
+(function(){
+  const lb = document.getElementById('lightbox'), lbImg = document.getElementById('lightboxImg');
+  document.querySelectorAll('.gallery-item[data-full]').forEach(item => item.addEventListener('click', () => {
+    lbImg.src = item.dataset.full; lb.classList.add('open');
+  }));
+  const close = () => { lb.classList.remove('open'); lbImg.src = ''; };
+  document.getElementById('lightboxClose').addEventListener('click', close);
+  lb.addEventListener('click', e => { if (e.target === lb) close(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') close(); });
+})();
 </script>
 </body>
 </html>
