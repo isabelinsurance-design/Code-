@@ -18,7 +18,7 @@
 //  Status válidos: 'active' | 'paused' | 'done'
 // ───────────────────────────────────────────────────────────────────
 
-import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, readdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -100,6 +100,40 @@ export function clearCoachPlan(coachId) {
   const f = fileFor(coachId);
   if (existsSync(f)) unlinkSync(f);
   return emptyPlan(coachId);
+}
+
+// Lista todos los coach_ids con plan no vacío (escanea el directorio).
+// Útil para Athena y briefings que necesitan mostrar todo lo activo.
+function listCoachesWithPlan() {
+  try {
+    if (!existsSync(PLANS_DIR)) return [];
+    return readdirSync(PLANS_DIR)
+      .filter((f) => f.endsWith('.json'))
+      .map((f) => f.slice(0, -5))
+      .filter((id) => VALID_ID.test(id));
+  } catch {
+    return [];
+  }
+}
+
+// Resumen compacto de TODOS los planes activos (cross-coach) para inyectar
+// en el contexto de Athena. Solo items 'active' para no inflar tokens.
+// Si una coach tiene 0 activos, se omite. Si no hay nada, devuelve ''.
+// `coachNameLookup`: función opcional id → "Nombre legible" (si no, usa id).
+export function buildAllPlansInline(coachNameLookup) {
+  const ids = listCoachesWithPlan();
+  if (!ids.length) return '';
+  const lookup = typeof coachNameLookup === 'function' ? coachNameLookup : (id) => id;
+  const blocks = [];
+  for (const id of ids) {
+    const plan = loadCoachPlan(id);
+    const active = plan.items.filter((i) => i.status === 'active');
+    if (!active.length) continue;
+    const lines = active.map((i) => `  - ${i.text}  (desde ${i.ts_created.slice(0, 10)})`);
+    blocks.push(`${lookup(id)}:\n${lines.join('\n')}`);
+  }
+  if (!blocks.length) return '';
+  return `PLANES VIGENTES DE TUS COACHES (lo que cada una le ha recomendado a Isabel — chequea adherencia cuando aplique, NO repitas lo que ya está aquí):\n${blocks.join('\n\n')}`;
 }
 
 // Formato de texto que se inyecta como contexto al sistema cuando la

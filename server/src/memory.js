@@ -19,6 +19,8 @@ import { buildImprovementsInline } from './improvements.js';
 import { buildResearchInline } from './research.js';
 import { buildBrandInline } from './brand.js';
 import { buildCoachCadenceInline } from './coach_cadence.js';
+import { buildAllPlansInline } from './coach_plans.js';
+import { SPECIALISTS } from './agents.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -324,6 +326,13 @@ export function buildWikiContext() {
   try {
     const cc = buildCoachCadenceInline();
     if (cc) parts.push(cc);
+  } catch { /* ignore */ }
+  // Planes vigentes de cada coach — para que Athena sepa qué le ha
+  // recomendado cada una a Isabel y pueda dar seguimiento / mencionar
+  // adherencia en el briefing matutino.
+  try {
+    const plansBlock = buildAllPlansInline((id) => SPECIALISTS[id]?.name || id);
+    if (plansBlock) parts.push(plansBlock);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

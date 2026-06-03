@@ -1707,6 +1707,15 @@ async function dispatchTool(name, input) {
             const b = buildBrandForMarisol();
             if (b) wikiAumentado += b;
           }
+          // Cada coach ve SU propio plan (Phase C — antes solo lo veía
+          // cuando Isabel le chateaba directo en la PWA; ahora también
+          // cuando Athena la consulta desde WhatsApp). Pilar no aplica
+          // — sus "planes" viven en LUNA como tickets/citas.
+          if (c.especialista !== 'pilar') {
+            const { planAsContext } = await import('./coach_plans.js');
+            const planCtx = planAsContext(c.especialista, spec.name);
+            if (planCtx) wikiAumentado += '\n\n' + planCtx;
+          }
           try {
             const answer = await askSpecialist(spec, c.tarea, wikiAumentado, opts);
             return { name: spec.name, id: c.especialista, answer, wiki: wikiAumentado, spec, opts, tarea: c.tarea };

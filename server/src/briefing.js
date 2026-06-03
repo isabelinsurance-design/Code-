@@ -113,6 +113,19 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     }
   } catch { /* ignore */ }
 
+  // Planes vigentes de coaches — para que Athena pueda preguntar adherencia
+  // en el briefing matutino. Ya viene en wikiContext, pero acá le damos un
+  // empujón explícito para que LO USE en lugar de solo verlo.
+  let plansHint = '';
+  try {
+    const { buildAllPlansInline } = await import('./coach_plans.js');
+    const { SPECIALISTS } = await import('./agents.js');
+    const block = buildAllPlansInline((id) => SPECIALISTS[id]?.name || id);
+    if (block) {
+      plansHint = `\n\nPLANES VIGENTES DE LAS COACHES — léelos y, si alguno tiene más de 5 días sin que Isabel mencione cómo va, INCLUYE UNA línea de adherencia en alguna card. Ejemplo: "Sofía te recomendó D3 hace 3 sem — ¿cómo te has sentido?". Una sola coach por briefing, la más relevante hoy. NO recites el plan completo.`;
+    }
+  } catch { /* ignore */ }
+
   // Coach check-ins de hoy (cadencias programadas)
   let cadenceHintCoaches = '';
   try {
@@ -178,7 +191,7 @@ Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exa
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 
-Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${cadenceHintCoaches}${trustHint}${focusHint}${routinesHint}${legalHint}${brandHint}${improvementsHint}${autoSkillHint}`,
+Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que yo haya dicho nada antes. Si hay alta señal de cansancio/estrés, baja el tono y empieza por ahí en vez de la lista.${aepHint}${teamHint}${cadenceHint}${cadenceHintCoaches}${trustHint}${focusHint}${routinesHint}${legalHint}${brandHint}${improvementsHint}${autoSkillHint}${plansHint}`,
   });
 
   const { reply, messages: updated } = await runDirectora(messages);
