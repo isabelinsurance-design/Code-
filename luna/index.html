@@ -3326,6 +3326,10 @@ loadDismissedAlerts();
 renderGrid();
 initCurrentUser();
 
+// Abrir directo el chat de LUNA al entrar (sin pasar por la cuadrícula).
+// El botón "← Agentes" sigue disponible para ir a los demás agentes.
+openWorkspace('luna_main');
+
 // Memory loads async (CRM fetch), then triggers snapshot + alerts
 (async () => {
   await loadMemory();
