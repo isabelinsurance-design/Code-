@@ -140,6 +140,14 @@ bot is reference code for one of three paths: (a) absorb into Athena on
 Railway, (b) re-implement as PHP webhook on Bluehost, (c) deploy separately on
 Railway/Replit. See `PARA-LUNA-TEAM.md` for handoff details.
 
+## Merge runbook
+
+The step-by-step runbook for absorbing this system into LUNA as an "agent"
+lives in `MERGE-TO-LUNA.md`. Four phases: (1) drop-in static, (2) MySQL data
+sync, (3) PHP cron briefings + weekly Radar, (4) register as agent in LUNA's
+orchestrator. The PHP skeletons referenced by phases 2-3 are in
+`PARA-LUNA-TEAM.md`.
+
 ## Git
 
 - Work on branch `main`. Commit with clear messages and push after completing changes.
