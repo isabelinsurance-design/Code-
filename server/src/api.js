@@ -618,6 +618,26 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Entities: personas que Athena conoce ----
+  app.get('/api/entities', requireAuth, async (req, res) => {
+    try {
+      const { listEntities } = await import('./entities.js');
+      res.json(listEntities({
+        type: req.query.type || null,
+        limit: parseInt(req.query.limit, 10) || 200,
+      }));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.get('/api/entities/:id', requireAuth, async (req, res) => {
+    try {
+      const { getEntity } = await import('./entities.js');
+      const e = getEntity(req.params.id);
+      if (!e) return res.status(404).json({ error: 'entity no existe' });
+      res.json(e);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ---- Insights: signals (nightly), patterns, AAR learnings ----
   app.get('/api/insights', requireAuth, async (_req, res) => {
     try {

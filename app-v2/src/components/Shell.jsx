@@ -9,6 +9,7 @@ const NAV = [
   { to: '/trends', label: 'Trends', icon: '🔥' },
   { to: '/goals', label: 'Metas', icon: '◯' },
   { to: '/insights', label: 'Insights', icon: '✧' },
+  { to: '/entities', label: 'Personas', icon: '👥' },
   { to: '/plans', label: 'Planes', icon: '◎' },
   { to: '/journal', label: 'Journal', icon: '✑' },
   { to: '/rapport', label: 'Rapport', icon: '◉' },

@@ -159,6 +159,14 @@ export const api = {
 
   // Insights: signals nocturnas + patrón emocional + learnings AAR.
   insights: () => request('/insights'),
+
+  // Entities — personas que Athena conoce (clientes/familia/equipo/etc).
+  entitiesList: (type = null) => {
+    const qs = new URLSearchParams();
+    if (type) qs.set('type', type);
+    return request(`/entities${qs.toString() ? `?${qs}` : ''}`);
+  },
+  entityGet: (id) => request(`/entities/${encodeURIComponent(id)}`),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),
