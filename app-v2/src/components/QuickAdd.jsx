@@ -128,7 +128,6 @@ export default function QuickAdd() {
                   autoFocus
                 />
                 <VoiceInput
-                  lang="es-MX"
                   onTranscript={(t, isFinal) => {
                     if (isFinal) setText((prev) => (prev ? prev + ' ' : '') + t);
                   }}
@@ -147,7 +146,6 @@ export default function QuickAdd() {
                   autoFocus
                 />
                 <VoiceInput
-                  lang="es-MX"
                   onTranscript={(t, isFinal) => {
                     if (isFinal) setText((prev) => (prev ? prev + ' ' : '') + t);
                   }}

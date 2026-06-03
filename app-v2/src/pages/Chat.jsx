@@ -328,7 +328,6 @@ export default function Chat() {
         />
         <div className="flex flex-col gap-2">
           <VoiceInput
-            lang="es-MX"
             onTranscript={(text, isFinal) => {
               // Aggrega lo nuevo dictado al input existente.
               // Mientras es interim, REEMPLAZA la última parte (no

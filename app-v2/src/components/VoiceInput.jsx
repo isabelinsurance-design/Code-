@@ -4,23 +4,40 @@ import { useEffect, useRef, useState } from 'react';
 // dependencias de OpenAI/Whisper). Funciona en Safari iOS, Chrome,
 // Edge. Limitación: en Firefox no está soportado todavía.
 //
-// Uso:
-//   <VoiceInput onTranscript={(text) => setInput(text)} />
-// O para appendear a lo que ya hay escrito:
-//   <VoiceInput onTranscript={(text, isFinal) => {
-//     if (isFinal) setInput(prev => prev + ' ' + text);
-//   }} />
+// Spanglish handling: Web Speech API NO auto-detecta idioma. Hay que
+// elegir uno. Soluciones:
+//   1) Toggle ES/EN en la UI (la que implementé acá) — guardamos
+//      la última elección en localStorage. Cambias antes de hablar.
+//   2) (Futuro) backend con Whisper que SÍ detecta idioma automático,
+//      pero requiere OpenAI credit + roundtrip server.
 //
 // Props:
 //   onTranscript(text, isFinal): callback con la transcripción.
-//   lang: idioma ('es-MX' default, también 'es-US', 'en-US', etc).
-//   autoSend: si true, llama onTranscript con isFinal=true y termina.
-//   className: clases extra para el botón.
-export default function VoiceInput({ onTranscript, lang = 'es-MX', className = '' }) {
+//   defaultLang: idioma inicial (sobrescrito por localStorage si existe).
+//   className: clases extra.
+const LANG_OPTIONS = [
+  { code: 'es-MX', label: 'ES', name: 'Español' },
+  { code: 'en-US', label: 'EN', name: 'English' },
+];
+
+export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', className = '' }) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
+  const [lang, setLang] = useState(() => {
+    try {
+      const saved = localStorage.getItem('athena_voice_lang');
+      if (saved && LANG_OPTIONS.find((l) => l.code === saved)) return saved;
+    } catch { /* ignore */ }
+    return defaultLang;
+  });
   const recognitionRef = useRef(null);
+
+  // Persiste la elección del usuario para que no tenga que cambiar
+  // cada vez que abre la PWA.
+  useEffect(() => {
+    try { localStorage.setItem('athena_voice_lang', lang); } catch { /* ignore */ }
+  }, [lang]);
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -100,20 +117,53 @@ export default function VoiceInput({ onTranscript, lang = 'es-MX', className = '
     );
   }
 
+  // Cambia idioma. Si estaba grabando, lo detiene primero (el nuevo
+  // idioma se aplica al siguiente "Hablar" gracias al useEffect que
+  // re-crea el recognition).
+  function switchLang(newLang) {
+    if (newLang === lang) return;
+    if (recording) {
+      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+      setRecording(false);
+    }
+    setLang(newLang);
+  }
+
   return (
     <div className="relative">
-      <button
-        onClick={toggle}
-        className={`px-3 py-2 rounded-lg transition-all ${
-          recording
-            ? 'bg-red text-white animate-pulse'
-            : 'bg-lino-100 text-ink-2 hover:bg-lino-200'
-        } ${className}`}
-        title={recording ? 'Toca para parar' : 'Toca y habla'}
-        aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
-      >
-        {recording ? '⏹ Parar' : '🎤 Hablar'}
-      </button>
+      <div className="flex items-center gap-1">
+        {/* Toggle ES/EN */}
+        <div className="flex bg-lino-100 rounded-lg overflow-hidden text-xs">
+          {LANG_OPTIONS.map((opt) => (
+            <button
+              key={opt.code}
+              onClick={() => switchLang(opt.code)}
+              className={`px-2 py-2 transition-colors ${
+                lang === opt.code
+                  ? 'bg-lino-700 text-white font-medium'
+                  : 'text-ink-3 hover:bg-lino-200'
+              }`}
+              title={opt.name}
+              aria-label={`Cambiar a ${opt.name}`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+        {/* Mic button */}
+        <button
+          onClick={toggle}
+          className={`px-3 py-2 rounded-lg transition-all ${
+            recording
+              ? 'bg-red text-white animate-pulse'
+              : 'bg-lino-100 text-ink-2 hover:bg-lino-200'
+          } ${className}`}
+          title={recording ? 'Toca para parar' : `Toca y habla (${lang === 'es-MX' ? 'Español' : 'English'})`}
+          aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
+        >
+          {recording ? '⏹' : '🎤'}
+        </button>
+      </div>
       {error && (
         <p className="absolute top-full left-0 mt-1 text-xs text-red whitespace-nowrap">
           {error === 'not-allowed' ? 'Permite acceso al micrófono en Settings → Safari' : error}
