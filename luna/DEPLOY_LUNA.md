@@ -56,6 +56,7 @@ cualquiera que haya visto el código fuente la tiene.
 0 8  * * *  php .../luna/cron/luna_email_marketing_cron.php # cumpleaños/newsletter/AEP
 30 6 * * *  php .../luna/cron/luna_radar_cron.php daily     # 📡 radar diario (tendencias)
 0 7  * * 1  php .../luna/cron/luna_radar_cron.php weekly    # 📡 radar semanal + email lunes 7am
+0 8  * * *  php .../luna/cron/luna_task_reminders_cron.php  # ⏰ recordatorios de tareas de la junta
 ```
 > Los crons ya cargan `require '/../../config.php'` (dos niveles arriba), así
 > que funcionan tal cual desde `luna/cron/`. No hay que ajustar el path.
@@ -84,6 +85,14 @@ la junta del sábado (qué, quién, para cuándo). Las tareas quedan con estado
 crean solas). LUNA da seguimiento: lo **pendiente** aparece como sección
 **📌 Pendientes de la junta pasada** en el reporte del viernes y alimenta la
 agenda del sábado, cerrando el ciclo semana a semana.
+
+**⏰ Recordatorios automáticos:** `luna_task_reminders_cron.php` corre cada
+mañana (8am) y avisa por correo a cada responsable las tareas que vencen
+hoy/mañana o ya vencidas, más un resumen para Isabel. Nudge diario hasta que
+se marquen hechas. **Completa los correos del equipo** en `$REMIND['team']`
+dentro del cron (Skarleth, Samia, Arlette…); si falta uno, su tarea aparece
+en el resumen de Isabel marcada "sin correo". También intenta resolver el
+correo desde `usuarios.email` si esa columna existe.
 
 ## Respaldos (#5) — opciones en config.php
 ```php

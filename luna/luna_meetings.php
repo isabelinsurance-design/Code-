@@ -33,8 +33,12 @@ if (!function_exists('meetingEnsureTables')) {
         estado VARCHAR(12) DEFAULT 'pendiente',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
         done_at DATETIME DEFAULT NULL,
+        last_reminded DATE DEFAULT NULL,
         INDEX idx_meeting (meeting_id), INDEX idx_estado (estado)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Para instalaciones previas sin la columna (ignora si ya existe).
+    try { $pdo->exec("ALTER TABLE luna_meeting_actions ADD COLUMN last_reminded DATE DEFAULT NULL"); }
+    catch (Exception $e) { /* la columna ya existe */ }
   }
 }
 
@@ -110,5 +114,33 @@ if (!function_exists('meetingToggleAction')) {
     $st = $pdo->prepare("UPDATE luna_meeting_actions SET estado=?, done_at=? WHERE id=?");
     $st->execute([$estado, $doneAt, $actionId]);
     return $st->rowCount() > 0;
+  }
+}
+
+// Tareas que vencen pronto (o ya vencidas) y que NO se recordaron hoy.
+// Lo usa el cron de recordatorios para avisar a cada responsable.
+if (!function_exists('meetingActionsDue')) {
+  function meetingActionsDue(PDO $pdo, int $withinDays = 1): array {
+    meetingEnsureTables($pdo);
+    $withinDays = max(0, min(30, $withinDays));
+    $st = $pdo->prepare("SELECT a.id, a.accion, a.responsable, a.due_date, m.meeting_date
+                         FROM luna_meeting_actions a
+                         JOIN luna_meetings m ON m.id = a.meeting_id
+                         WHERE a.estado = 'pendiente' AND a.due_date IS NOT NULL
+                           AND a.due_date <= DATE_ADD(CURDATE(), INTERVAL ? DAY)
+                           AND (a.last_reminded IS NULL OR a.last_reminded < CURDATE())
+                         ORDER BY a.due_date ASC, a.id ASC");
+    $st->execute([$withinDays]);
+    return $st->fetchAll(PDO::FETCH_ASSOC);
+  }
+}
+
+// Marca tareas como recordadas hoy (evita avisos duplicados el mismo día).
+if (!function_exists('meetingMarkReminded')) {
+  function meetingMarkReminded(PDO $pdo, array $ids): void {
+    $ids = array_values(array_filter(array_map('intval', $ids)));
+    if (!$ids) return;
+    $in = implode(',', $ids);
+    $pdo->exec("UPDATE luna_meeting_actions SET last_reminded = CURDATE() WHERE id IN ($in)");
   }
 }
