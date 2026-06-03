@@ -72,8 +72,10 @@ elegante (guarda un run marcado y no rompe nada).
 - **Lunes 7am** — el cron `weekly` manda un correo corto SOLO con el radar
   (resumen + hallazgos). Ajusta destinatario en `$RADAR_EMAIL` dentro de
   `luna_radar_cron.php`.
-- **Viernes 5pm** — el reporte semanal (`luna_weekly_cron.php`) reusa ese
-  mismo radar e incluye la sección Chief of Staff junto con los KPIs.
+- **Viernes 5pm** — el reporte semanal (`luna_weekly_cron.php`) genera un
+  radar fresco ese día e incluye la sección Chief of Staff junto con los KPIs.
+  Arriba lleva una **🗓️ Agenda para la junta de equipo (sábado)**: 3-4 puntos
+  accionables sintetizados de los KPIs y el radar (con responsable sugerido).
 
 ## Respaldos (#5) — opciones en config.php
 ```php

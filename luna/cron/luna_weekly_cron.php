@@ -283,6 +283,79 @@ function lunaWeeklyAnalysis($data) {
   return lunaAI($system, $user, 900);
 }
 
+// ─── AGENDA PARA LA JUNTA DE EQUIPO (SÁBADO) ─────────────────
+// 3-4 puntos accionables sintetizando KPIs + radar. IA si hay key;
+// si no, fallback determinista desde alertas/cambios/radar.
+function lunaMeetingAgenda($data) {
+  $radarTop = [];
+  if (!empty($data['radar']['items'])) {
+    foreach ($data['radar']['items'] as $it) {
+      $radarTop[] = '[' . ($it['categoria'] ?? '') . '] ' . ($it['titulo'] ?? '');
+      if (count($radarTop) >= 5) break;
+    }
+  }
+
+  if (lunaAIEnabled()) {
+    $system =
+      "Eres LUNA, Chief of Staff de Isabel Fuentes (agencia de Medicare, Sur de California). "
+      . "Prepara la AGENDA para la junta de equipo del SÁBADO. Devuelve 3-4 puntos NUMERADOS; "
+      . "cada uno: tema corto + en 1 frase qué decidir o discutir y quién lo lleva "
+      . "(Skarleth = ventas/hot leads, Samia = retención/servicio/SOA, Isabel = T65/cierres/"
+      . "estrategia). Prioriza: alertas, cambios fuertes vs la semana pasada y el hallazgo #1 "
+      . "del radar (mejora/Chief of Staff). Usa SOLO los datos dados, NUNCA inventes cifras. "
+      . "Español, conciso y accionable. Formato exacto por línea: "
+      . "'1. Tema — qué discutir (Responsable)'. NO uses asteriscos ni markdown.";
+    $com = $data['comisiones'];
+    $user =
+      "Datos de la semana del {$data['week_label']}:\n"
+      . json_encode([
+          'enrollments_week'      => $data['enrollments_week'],
+          'enrollments_last_week' => $data['enrollments_last_week'],
+          'citas_week'            => $data['citas_week'],
+          'tickets_open'          => $data['tickets_open'],
+          'hot_leads_now'         => $data['hot_leads_now'],
+          'hot_leads_frios'       => $data['hot_leads_frios'],
+          'soa_pendiente'         => $data['soa_pendiente'],
+          'comisiones_pendientes' => $com['pendientes'] ?? 0,
+          'aep'                   => $data['aep'],
+        ], JSON_UNESCAPED_UNICODE)
+      . "\nResumen del radar (Chief of Staff): " . ($data['radar']['resumen'] ?? '—')
+      . "\nHallazgos del radar: " . (implode(' | ', $radarTop) ?: '—')
+      . "\n\nDame la agenda (3-4 puntos) para la junta del sábado.";
+    $out = lunaAI($system, $user, 500);
+    if ($out) return trim($out);
+  }
+
+  // Fallback determinista (sin IA).
+  $pts = [];
+  if ($data['hot_leads_now'] >= 10)
+    $pts[] = "Capacidad de cierre — {$data['hot_leads_now']} hot leads activos: repartir y agendar (Skarleth)";
+  if ($data['hot_leads_frios'] > 0)
+    $pts[] = "Recuperar {$data['hot_leads_frios']} hot leads que se enfriaron esta semana (Skarleth)";
+  if ($data['soa_pendiente'] >= 3)
+    $pts[] = "{$data['soa_pendiente']} SOAs sin firmar — plan para cerrarlos (Samia)";
+  if ($data['aep'] && $data['aep']['pct'] < 80)
+    $pts[] = "AEP por debajo del pace ({$data['aep']['pct']}%) — ajustar outreach (Isabel)";
+  if (!empty($data['radar']['items'])) {
+    foreach ($data['radar']['items'] as $it) {
+      if (($it['categoria'] ?? '') === 'mejora') {
+        $pts[] = "Mejora de la semana: " . ($it['titulo'] ?? '')
+               . (!empty($it['accion']) ? ' — ' . $it['accion'] : '') . " (Isabel)";
+        break;
+      }
+    }
+  }
+  if (empty($pts)) {
+    $pts[] = "Repasar los números de la semana y celebrar lo que funcionó";
+    $pts[] = "Definir el foco de la próxima semana (Isabel)";
+    $pts[] = "Revisar el radar Chief of Staff y elegir 1 acción de mejora";
+  }
+  $pts = array_slice($pts, 0, 4);
+  $txt = '';
+  foreach ($pts as $k => $p) { $txt .= ($k + 1) . ". " . $p . "\n"; }
+  return trim($txt);
+}
+
 // ─── ESCAPE para texto del modelo en email HTML ──────────────
 function _wkEsc($s, $isHTML) {
   $s = (string)$s;
@@ -324,6 +397,14 @@ function buildWeeklyText($data, $format = 'text') {
   $out .= "• {$data['citas_week']} citas completadas{$br}";
   $out .= "• {$data['tickets_closed_week']} tickets cerrados{$br}";
   $out .= "• {$data['tickets_open']} tickets abiertos al cierre{$br}{$br}";
+
+  // ═══ 🗓️ AGENDA — JUNTA DE EQUIPO (SÁBADO) ═══
+  // Va arriba a propósito: es lo que Isabel usa para preparar la junta.
+  if (!empty($data['meeting_agenda'])) {
+    $out .= "{$b[0]}═══ 🗓️ AGENDA — JUNTA DE EQUIPO (SÁBADO) ═══{$b[1]}{$br}";
+    $agenda = $isHTML ? _wkEsc($data['meeting_agenda'], true) : $data['meeting_agenda'];
+    $out .= str_replace("\n", $br, $agenda) . $br . $br;
+  }
 
   // ═══ COMPARACIÓN vs SEMANA ANTERIOR ═══
   $cmp_enroll = _compare($data['enrollments_week'], $data['enrollments_last_week']);
@@ -568,6 +649,10 @@ try {
   logWeekly("Radar weekly: error - " . $e->getMessage(), $CONFIG);
 }
 logWeekly("Radar weekly: " . (!empty($data['radar']['items']) ? count($data['radar']['items']) . ' items' : 'none'), $CONFIG);
+
+// Agenda para la junta del sábado (usa KPIs + radar ya cargados).
+$data['meeting_agenda'] = lunaMeetingAgenda($data);
+logWeekly("Meeting agenda: " . ($data['meeting_agenda'] ? 'OK' : 'none'), $CONFIG);
 
 $results = [];
 
