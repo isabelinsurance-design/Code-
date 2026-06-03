@@ -618,6 +618,29 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Manuales: MANUAL_ATHENA.md + RUNBOOK_SAMI.md desde la raíz del repo ----
+  app.get('/api/docs/:name', requireAuth, async (req, res) => {
+    try {
+      const { readFileSync, existsSync } = await import('node:fs');
+      const { join, dirname } = await import('node:path');
+      const { fileURLToPath } = await import('node:url');
+      const ALLOWED = {
+        manual: 'MANUAL_ATHENA.md',
+        sami: 'RUNBOOK_SAMI.md',
+        pendientes: 'PENDIENTES.md',
+      };
+      const file = ALLOWED[req.params.name];
+      if (!file) return res.status(404).json({ error: 'doc no existe' });
+      const repoRoot = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
+      const path = join(repoRoot, file);
+      if (!existsSync(path)) return res.status(404).json({ error: 'archivo no encontrado' });
+      const content = readFileSync(path, 'utf8');
+      res.json({ name: req.params.name, file, content });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ---- Self-grades: Athena se califica semanalmente ----
   app.get('/api/self_grades', requireAuth, async (req, res) => {
     try {

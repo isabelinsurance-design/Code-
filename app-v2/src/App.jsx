@@ -21,6 +21,7 @@ import Trends from './pages/Trends.jsx';
 import Goals from './pages/Goals.jsx';
 import Insights from './pages/Insights.jsx';
 import Entities from './pages/Entities.jsx';
+import Manual from './pages/Manual.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -65,6 +66,7 @@ export default function App() {
           <Route path="/goals" element={<Goals />} />
           <Route path="/insights" element={<Insights />} />
           <Route path="/entities" element={<Entities />} />
+          <Route path="/manual" element={<Manual />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

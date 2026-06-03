@@ -20,6 +20,7 @@ const NAV = [
   { to: '/tareas', label: 'Tareas', icon: '✎' },
   { to: '/wiki', label: 'Wiki', icon: '☵' },
   { to: '/actividad', label: 'Actividad', icon: '⌖' },
+  { to: '/manual', label: 'Manual', icon: '📖' },
   { to: '/configura', label: 'Configura', icon: '⚙' },
 ];
 

@@ -175,6 +175,9 @@ export const api = {
   selfGrades: (limit = 12) => request(`/self_grades?limit=${limit}`),
   selfGradeRun: () => request('/self_grades/run', { method: 'POST' }),
   selfGradeImplemented: (semana) => request(`/self_grades/${encodeURIComponent(semana)}/implemented`, { method: 'POST' }),
+
+  // Docs vivos del repo: manual de Athena + runbook de Sami + pendientes.
+  doc: (name) => request(`/docs/${encodeURIComponent(name)}`),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),
