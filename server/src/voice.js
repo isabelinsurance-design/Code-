@@ -106,15 +106,21 @@ export function buildIncomingTwiml(req) {
   //   2. Google (default — Polly y otros NO son válidos para
   //      ConversationRelay aunque sí lo sean para TwiML normal).
   //
-  // Voces buenas de Google para Spanglish/Mexicana (en orden de calidad):
-  //   es-US-Studio-B  → Studio premium (más natural, recomendado)
-  //   es-US-Neural2-A → Neural estándar femenina
-  //   es-MX-Neural2-A → Mexicano neural femenina
-  //   es-US-Chirp3-HD-* → HD voices (si disponibles en tu región)
+  // IMPORTANTE: el voice locale DEBE matchear language. es-US-Studio-B
+  // con language=es-MX da error 64101 "Invalid values for tts settings".
+  // Studio voices solo existen para algunos locales (no es-MX).
   //
-  // VOICE_TTS_VOICE en env override la voz default.
+  // Voces buenas para Mexicana (en orden de naturalidad):
+  //   es-MX-Neural2-A  → Neural mexicana femenina (RECOMENDADA, default)
+  //   es-MX-Neural2-B  → Neural mexicana masculina
+  //   es-MX-Wavenet-A  → Wavenet femenina (acento MX)
+  //   es-US-Neural2-A  → Neural US Spanish (requiere language=es-US)
+  //
+  // VOICE_TTS_VOICE en env override sin tocar código. Si cambias voice,
+  // considera también ajustar language vía VOICE_TTS_LANGUAGE para que
+  // matche el locale.
   let ttsProvider = 'Google';
-  let voice = process.env.VOICE_TTS_VOICE || 'es-US-Studio-B';
+  let voice = process.env.VOICE_TTS_VOICE || 'es-MX-Neural2-A';
   if (elevenVoice) {
     ttsProvider = 'ElevenLabs';
     voice = elevenVoice;
