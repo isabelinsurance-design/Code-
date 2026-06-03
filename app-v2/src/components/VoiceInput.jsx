@@ -1,24 +1,24 @@
 import { useEffect, useRef, useState } from 'react';
 
-// Botón de mic que usa Web Speech API nativa del browser (gratis, sin
-// dependencias de OpenAI/Whisper). Funciona en Safari iOS, Chrome,
-// Edge. Limitación: en Firefox no está soportado todavía.
+// Botón de mic que usa Web Speech API nativa del browser.
 //
-// Spanglish handling: Web Speech API NO auto-detecta idioma. Hay que
-// elegir uno. Soluciones:
-//   1) Toggle ES/EN en la UI (la que implementé acá) — guardamos
-//      la última elección en localStorage. Cambias antes de hablar.
-//   2) (Futuro) backend con Whisper que SÍ detecta idioma automático,
-//      pero requiere OpenAI credit + roundtrip server.
+// Manejo de pausas (iOS-friendly):
+//   Safari iOS NO respeta continuous=true confiablemente — termina la
+//   sesión a los pocos segundos aunque le digamos que siga. Estrategia:
+//     1) Mientras user está en "recording mode" (botón rojo activo),
+//        si el recognition termina por su cuenta, lo RESTARTAMOS auto.
+//        Da apariencia de continuous real en iOS.
+//     2) Detección de silencio: si pasan SILENCE_MS sin recibir ningún
+//        resultado (final ni interim), paramos de verdad. Default 5s.
+//     3) El usuario también puede parar manual con el botón ⏹.
 //
-// Props:
-//   onTranscript(text, isFinal): callback con la transcripción.
-//   defaultLang: idioma inicial (sobrescrito por localStorage si existe).
-//   className: clases extra.
+// Spanglish: toggle ES/EN. Web Speech NO auto-detecta idioma.
+
 const LANG_OPTIONS = [
   { code: 'es-MX', label: 'ES', name: 'Español' },
   { code: 'en-US', label: 'EN', name: 'English' },
 ];
+const SILENCE_MS = 5000; // 5 segundos de silencio → para
 
 export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', className = '' }) {
   const [supported, setSupported] = useState(true);
@@ -31,13 +31,33 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
     } catch { /* ignore */ }
     return defaultLang;
   });
+  // Refs para que cambios NO re-creen el recognition.
   const recognitionRef = useRef(null);
+  const recordingRef = useRef(false);
+  const silenceTimerRef = useRef(null);
+  const restartingRef = useRef(false);
 
-  // Persiste la elección del usuario para que no tenga que cambiar
-  // cada vez que abre la PWA.
   useEffect(() => {
     try { localStorage.setItem('athena_voice_lang', lang); } catch { /* ignore */ }
   }, [lang]);
+
+  function resetSilenceTimer() {
+    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
+    silenceTimerRef.current = setTimeout(() => {
+      console.log('[voice] silencio detectado, parando');
+      stopRecording();
+    }, SILENCE_MS);
+  }
+
+  function stopRecording() {
+    recordingRef.current = false;
+    setRecording(false);
+    if (silenceTimerRef.current) {
+      clearTimeout(silenceTimerRef.current);
+      silenceTimerRef.current = null;
+    }
+    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -47,8 +67,8 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
     }
     const rec = new SR();
     rec.lang = lang;
-    rec.continuous = true; // sigue escuchando hasta que tú lo pares
-    rec.interimResults = true; // muestra texto mientras hablas
+    rec.continuous = true;
+    rec.interimResults = true;
     rec.maxAlternatives = 1;
 
     rec.onresult = (event) => {
@@ -62,44 +82,77 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
           interim += transcript;
         }
       }
-      // Mandamos al parent. isFinal=true cuando es texto definitivo.
       if (final) {
         onTranscript(final.trim(), true);
+        resetSilenceTimer();
       } else if (interim) {
-        onTranscript(interim.trim(), false);
+        resetSilenceTimer();
       }
     };
 
     rec.onerror = (event) => {
       const errMsg = event.error || 'voice_error';
-      // "no-speech" pasa cuando el usuario no dice nada — no es realmente error.
-      if (errMsg !== 'no-speech' && errMsg !== 'aborted') {
-        setError(errMsg);
+      if (errMsg === 'no-speech' || errMsg === 'aborted') return;
+      if (errMsg === 'not-allowed') {
+        setError('Permite acceso al mic en Settings → Safari');
+        recordingRef.current = false;
+        setRecording(false);
+        return;
       }
-      setRecording(false);
+      setError(errMsg);
     };
 
     rec.onend = () => {
-      setRecording(false);
+      // iOS Safari termina la sesión a los pocos segundos aunque
+      // continuous=true. Si el usuario sigue queriendo grabar (botón
+      // rojo activo), reiniciamos automáticamente.
+      if (recordingRef.current && !restartingRef.current) {
+        restartingRef.current = true;
+        setTimeout(() => {
+          if (recordingRef.current) {
+            try {
+              rec.start();
+            } catch (err) {
+              console.warn('[voice] restart falló:', err.message);
+              recordingRef.current = false;
+              setRecording(false);
+              setError(err.message);
+            }
+          }
+          restartingRef.current = false;
+        }, 100);
+      } else {
+        setRecording(false);
+      }
     };
 
     recognitionRef.current = rec;
     return () => {
       try { rec.abort(); } catch { /* ignore */ }
+      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
     };
   }, [lang, onTranscript]);
+
+  function switchLang(newLang) {
+    if (newLang === lang) return;
+    if (recordingRef.current) stopRecording();
+    setLang(newLang);
+  }
 
   function toggle() {
     if (!recognitionRef.current) return;
     setError('');
-    if (recording) {
-      try { recognitionRef.current.stop(); } catch { /* ignore */ }
-      setRecording(false);
+    if (recordingRef.current) {
+      stopRecording();
     } else {
       try {
-        recognitionRef.current.start();
+        recordingRef.current = true;
         setRecording(true);
+        recognitionRef.current.start();
+        resetSilenceTimer();
       } catch (err) {
+        recordingRef.current = false;
+        setRecording(false);
         setError(err.message || 'no pude empezar');
       }
     }
@@ -115,18 +168,6 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
         🎤 ✗
       </button>
     );
-  }
-
-  // Cambia idioma. Si estaba grabando, lo detiene primero (el nuevo
-  // idioma se aplica al siguiente "Hablar" gracias al useEffect que
-  // re-crea el recognition).
-  function switchLang(newLang) {
-    if (newLang === lang) return;
-    if (recording) {
-      try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-      setRecording(false);
-    }
-    setLang(newLang);
   }
 
   return (
@@ -158,7 +199,11 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
               ? 'bg-red text-white animate-pulse'
               : 'bg-lino-100 text-ink-2 hover:bg-lino-200'
           } ${className}`}
-          title={recording ? 'Toca para parar' : `Toca y habla (${lang === 'es-MX' ? 'Español' : 'English'})`}
+          title={
+            recording
+              ? 'Hablando… (5s de silencio para. o tócala)'
+              : `Toca y habla (${lang === 'es-MX' ? 'Español' : 'English'})`
+          }
           aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
         >
           {recording ? '⏹' : '🎤'}
@@ -166,7 +211,7 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
       </div>
       {error && (
         <p className="absolute top-full left-0 mt-1 text-xs text-red whitespace-nowrap">
-          {error === 'not-allowed' ? 'Permite acceso al micrófono en Settings → Safari' : error}
+          {error}
         </p>
       )}
     </div>
