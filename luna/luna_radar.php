@@ -72,13 +72,104 @@ if (!function_exists('radarSnapshot')) {
   }
 }
 
+// Roster de agentes (id → nombre) para detectar cuáles NO se están usando.
+// Mantener en sync con AGENTS de index.html.
+if (!function_exists('radarRoster')) {
+  function radarRoster(): array {
+    return [
+      'luna_main'   => 'LUNA',
+      'comando'     => 'Centro de Comando',
+      'analista'    => 'Analista',
+      'estudio'     => 'Estudio Creativo',
+      'compliance'  => 'Compliance',
+      'sales_coach' => 'Sales Coach',
+      'retencion'   => 'Retención & Servicio',
+      'coach'       => 'Coach',
+      'config'      => 'Configuración LUNA',
+      'onboarding'  => 'Onboarding',
+      'ads'         => 'Ads & Métricas',
+    ];
+  }
+}
+
+// Agrega el uso real (audit log) en una ventana de tiempo.
+// $sinceDays = hace cuántos días empieza; $untilDays = hasta hace cuántos
+// días (0 = ahora). Tolera que la tabla no exista todavía.
+if (!function_exists('radarUsageWindow')) {
+  function radarUsageWindow(PDO $pdo, int $sinceDays, int $untilDays = 0): array {
+    $cond = "created_at >= DATE_SUB(NOW(), INTERVAL $sinceDays DAY)";
+    if ($untilDays > 0) $cond .= " AND created_at < DATE_SUB(NOW(), INTERVAL $untilDays DAY)";
+    $out = ['total'=>0,'chats'=>0,'writes'=>0,'denied'=>0,'alerts'=>0,'byAgent'=>[]];
+    $count = function(string $w) use ($pdo, $cond) {
+      try { return (int)$pdo->query("SELECT COUNT(*) FROM luna_audit_log WHERE $w AND $cond")->fetchColumn(); }
+      catch (Exception $e) { return 0; }
+    };
+    $out['total']  = $count("1=1");
+    $out['chats']  = $count("action LIKE '%CHAT%'");
+    $out['writes'] = $count("action LIKE '%WRITE:%'");
+    $out['denied'] = $count("action LIKE '%DENEGADO%'");
+    $out['alerts'] = $count("action LIKE '%ALERTA%'");
+    try {
+      $rows = $pdo->query("SELECT detail FROM luna_audit_log WHERE action='CHAT' AND $cond")->fetchAll(PDO::FETCH_COLUMN);
+      foreach ($rows as $d) {
+        if (preg_match('/^\[([a-zA-Z0-9_\-]+)/', (string)$d, $m)) {
+          $ag = $m[1];
+          $out['byAgent'][$ag] = ($out['byAgent'][$ag] ?? 0) + 1;
+        }
+      }
+    } catch (Exception $e) { /* tabla aún no existe */ }
+    return $out;
+  }
+}
+
+// Bloque de texto con el USO REAL para alimentar la lente "mejora".
+// Daily: últimos 7 días. Weekly: esta semana vs la anterior + auto-evaluación.
+if (!function_exists('radarUsageStats')) {
+  function radarUsageStats(PDO $pdo, string $mode): string {
+    $roster = radarRoster();
+    $fmtAgents = function(array $by) use ($roster) {
+      if (!$by) return 'ninguno registrado';
+      arsort($by);
+      $parts = [];
+      foreach ($by as $id => $n) { $parts[] = ($roster[$id] ?? $id) . "×$n"; }
+      return implode(', ', $parts);
+    };
+    $unused = function(array $by) use ($roster) {
+      $miss = [];
+      foreach ($roster as $id => $name) { if (empty($by[$id])) $miss[] = $name; }
+      return $miss ? implode(', ', $miss) : 'ninguno (se usaron todos)';
+    };
+
+    if ($mode === 'weekly') {
+      $now  = radarUsageWindow($pdo, 7, 0);
+      $prev = radarUsageWindow($pdo, 14, 7);
+      return
+        "=== USO REAL DE LA PLATAFORMA (para tu auto-evaluación de Chief of Staff) ===\n"
+        ."ESTA SEMANA: {$now['total']} eventos · {$now['chats']} consultas IA · {$now['writes']} acciones/escrituras · {$now['denied']} intentos bloqueados · {$now['alerts']} alertas.\n"
+        ."  Agentes usados esta semana: " . $fmtAgents($now['byAgent']) . ".\n"
+        ."  Agentes SIN usar esta semana: " . $unused($now['byAgent']) . ".\n"
+        ."SEMANA ANTERIOR: {$prev['total']} eventos · {$prev['chats']} consultas IA · {$prev['writes']} acciones.\n"
+        ."  Agentes usados la semana pasada: " . $fmtAgents($prev['byAgent']) . ".\n";
+    }
+    // daily
+    $w = radarUsageWindow($pdo, 7, 0);
+    return
+      "=== USO REAL (últimos 7 días) ===\n"
+      ."{$w['total']} eventos · {$w['chats']} consultas IA · {$w['writes']} acciones · {$w['denied']} intentos bloqueados.\n"
+      ."Agentes usados: " . $fmtAgents($w['byAgent']) . ".\n"
+      ."Agentes SIN usar: " . $unused($w['byAgent']) . ".\n";
+  }
+}
+
 // Construye [system, user] según el modo.
 if (!function_exists('radarPrompts')) {
   function radarPrompts(string $mode, PDO $pdo): array {
     $hoy   = date('Y-m-d');
     $snap  = radarSnapshot($pdo);
     $deep  = ($mode === 'weekly');
-    $nItems = $deep ? '9 a 12' : '5 a 7';
+    $nItems = $deep ? '10 a 13' : '6 a 8';
+    $nMejora = $deep ? '4 a 5' : '2 a 3';
+    $usage = radarUsageStats($pdo, $mode);
 
     $system =
       "Eres el Radar de LUNA: el Chief of Staff de \"Medicare with Isabel\", una agencia de "
@@ -92,20 +183,37 @@ if (!function_exists('radarPrompts')) {
       ."de mercadeo de Medicare. Si una táctica viral es riesgosa para CMS, dilo y propón una versión segura.\n\n"
       ."Usa búsqueda web para datos frescos y CITA la fuente (URL) cuando exista. No inventes.";
 
+    // Auto-evaluación: solo en el reporte semanal.
+    $selfGrade = $deep
+      ? "\nEN EL MODO SEMANAL, además, INCLUYE como PRIMER item de 'mejora' una AUTO-EVALUACIÓN: "
+        ."pon en el título una nota tipo \"Semana: B+ (vs la pasada)\" comparando el uso de esta semana "
+        ."contra la anterior (más/menos consultas, agentes nuevos usados o abandonados, acciones), explica "
+        ."en 'porque' cómo te fue, y en 'accion' propón UN SOLO cambio concreto a ti misma (LUNA) para la "
+        ."próxima semana. Sé honesta: si bajó el uso o hay agentes muertos, dilo.\n"
+      : '';
+
     $user =
       "Fecha de hoy: $hoy. Modo: " . ($deep ? 'REPORTE SEMANAL PROFUNDO' : 'ESCANEO DIARIO RÁPIDO') . ".\n"
       . ($snap ? "$snap\n" : '')
-      ."\nInvestiga estos 5 frentes y dame de $nItems hallazgos en total (cubre los 5 frentes):\n"
-      ."1) viral       — contenido/ganchos/formatos que se están volviendo virales y que se puedan adaptar a Medicare (ESP e ING).\n"
-      ."2) social      — qué funciona ESTA " . ($deep ? 'semana' : 'semana') . " en Facebook, Instagram, TikTok y YouTube para llegar a 65+ y a sus hijos.\n"
-      ."3) medicare    — noticias/cambios de Medicare, CMS, carriers o planes que afecten cómo vendemos o retenemos.\n"
-      ."4) competencia — qué están haciendo otras agencias/agentes de Medicare y qué oportunidad podemos tomar.\n"
-      ."5) mejora      — como Chief of Staff: cómo mejorar el negocio Y a LUNA misma. Qué está funcionando y conviene hacer más, qué cambiar, qué automatizar o priorizar.\n"
-      ."\nResponde SOLO con JSON válido (sin markdown, sin ```), con esta forma EXACTA:\n"
+      ."\n$usage\n"
+      ."Dame de $nItems hallazgos en total. PRIORIDAD #1 = la lente 'mejora' (Chief of Staff): dedícale "
+      ."$nMejora items, MÁS que a cualquier otra lente. Cubre las 5 lentes, pero 'mejora' va primero y pesa más.\n\n"
+      ."LENTE PRINCIPAL:\n"
+      ."• mejora      — como Chief of Staff, USANDO los datos de uso real de arriba: di qué agentes/funciones "
+      ."NO se están usando y vale la pena probar (\"no estás usando X, úsalo para Y\"), qué flujo está lento o "
+      ."manual y conviene automatizar, qué está funcionando y hay que hacer más, y qué cambiar o priorizar. "
+      ."Sé específico con nombres de agentes y números.\n"
+      . $selfGrade .
+      "\nLAS OTRAS 4 LENTES (1-2 items c/u):\n"
+      ."• viral       — contenido/ganchos/formatos que se están volviendo virales y se puedan adaptar a Medicare (ESP e ING).\n"
+      ."• social      — qué funciona esta semana en Facebook, Instagram, TikTok y YouTube para llegar a 65+ y a sus hijos.\n"
+      ."• medicare    — noticias/cambios de Medicare, CMS, carriers o planes que afecten cómo vendemos o retenemos.\n"
+      ."• competencia — qué hacen otras agencias/agentes de Medicare y qué oportunidad podemos tomar.\n"
+      ."\nResponde SOLO con JSON válido (sin markdown, sin ```), con esta forma EXACTA, con los items de 'mejora' PRIMERO:\n"
       ."{\n"
-      ."  \"resumen\": \"" . ($deep ? "2-3 frases" : "1 frase") . " con lo más importante de hoy y la jugada principal\",\n"
+      ."  \"resumen\": \"" . ($deep ? "2-3 frases" : "1 frase") . " desde tu rol de Chief of Staff: lo más importante y la jugada principal\",\n"
       ."  \"items\": [\n"
-      ."    {\"categoria\":\"viral|social|medicare|competencia|mejora\", \"titulo\":\"título corto\", \"porque\":\"por qué importa para nosotros\", \"accion\":\"qué hacer, concreto\", \"fuente\":\"https://... o vacío\", \"prioridad\":\"alta|media|baja\"}\n"
+      ."    {\"categoria\":\"mejora|viral|social|medicare|competencia\", \"titulo\":\"título corto\", \"porque\":\"por qué importa para nosotros\", \"accion\":\"qué hacer, concreto\", \"fuente\":\"https://... o vacío\", \"prioridad\":\"alta|media|baja\"}\n"
       ."  ]\n"
       ."}\n"
       ."Escribe en español. Sé concreto y breve en cada campo.";

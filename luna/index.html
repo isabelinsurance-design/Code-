@@ -2990,12 +2990,13 @@ let recursosCat = null;
 ══════════════════════════════════════════ */
 let radarMode = 'daily';
 let radarBusy = false;
+// Orden = orden en que se muestran. La lente "mejora" (Chief of Staff) va PRIMERO.
 const RADAR_CATS = {
+  mejora:      { icon:'🧭', label:'Mejora (Chief of Staff)',  color:'#16a34a' },
   viral:       { icon:'🔥', label:'Viral / Marketing',        color:'#dc2626' },
   social:      { icon:'📱', label:'Redes sociales',           color:'#7c3aed' },
   medicare:    { icon:'🏥', label:'Medicare / CMS',           color:'#1B4A6B' },
   competencia: { icon:'🎯', label:'Competencia e industria',  color:'#d97706' },
-  mejora:      { icon:'🧭', label:'Mejora (Chief of Staff)',  color:'#16a34a' },
 };
 const RADAR_PRIO = { alta:'#dc2626', media:'#d97706', baja:'var(--t3)' };
 
