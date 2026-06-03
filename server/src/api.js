@@ -618,6 +618,14 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Streaks: días/semanas consecutivos por actividad ----
+  app.get('/api/streaks', requireAuth, async (_req, res) => {
+    try {
+      const { allStreaks } = await import('./streaks.js');
+      res.json(allStreaks());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ---- Entities: personas que Athena conoce ----
   app.get('/api/entities', requireAuth, async (req, res) => {
     try {

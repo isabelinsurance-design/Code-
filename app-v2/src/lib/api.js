@@ -167,6 +167,9 @@ export const api = {
     return request(`/entities${qs.toString() ? `?${qs}` : ''}`);
   },
   entityGet: (id) => request(`/entities/${encodeURIComponent(id)}`),
+
+  // Streaks de hábitos (días consecutivos journal/workout/water + semanas rapport).
+  streaks: () => request('/streaks'),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),

@@ -15,6 +15,7 @@ export default function Hoy() {
     journal_week: 0,
     plans_total_active: 0,
   });
+  const [streaks, setStreaks] = useState(null);
   const [err, setErr] = useState('');
 
   useEffect(() => {
@@ -50,6 +51,9 @@ export default function Hoy() {
         next.plans_total_active = (p || []).reduce((acc, c) => acc + c.items.filter((i) => i.status === 'active').length, 0);
       } catch {}
       setStats((s) => ({ ...s, ...next }));
+      try {
+        setStreaks(await api.streaks());
+      } catch {}
     })();
   }, []);
 
@@ -119,6 +123,38 @@ export default function Hoy() {
           <div className="text-xs text-ink-3">global</div>
         </Link>
       </div>
+
+      {streaks && (streaks.journal > 0 || streaks.workout > 0 || streaks.water > 0 || streaks.rapport > 0) && (
+        <section className="card bg-gradient-to-r from-lino-50 to-lino-100">
+          <h3 className="text-xs font-medium text-ink-3 uppercase tracking-wide mb-3">Streaks activos</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+            {streaks.journal > 0 && (
+              <div>
+                <div className="text-3xl font-serif text-lino-800">{streaks.journal}</div>
+                <div className="text-xs text-ink-3">días journal</div>
+              </div>
+            )}
+            {streaks.workout > 0 && (
+              <div>
+                <div className="text-3xl font-serif text-lino-800">{streaks.workout}</div>
+                <div className="text-xs text-ink-3">días workout</div>
+              </div>
+            )}
+            {streaks.water > 0 && (
+              <div>
+                <div className="text-3xl font-serif text-lino-800">{streaks.water}</div>
+                <div className="text-xs text-ink-3">días agua</div>
+              </div>
+            )}
+            {streaks.rapport > 0 && (
+              <div>
+                <div className="text-3xl font-serif text-lino-800">{streaks.rapport}</div>
+                <div className="text-xs text-ink-3">sem rapport</div>
+              </div>
+            )}
+          </div>
+        </section>
+      )}
 
       <PushSettings />
 
