@@ -834,14 +834,16 @@ footer strong{color:white}
       <p class="section-sub" style="margin:0 auto"><?= $t['gallery_sub'] ?></p>
     </div>
     <?php
-    // [layout-class, EN caption, ES caption, optional image URL ('' = placeholder)]
+    // [layout-class, EN caption, ES caption, image URL ('' = placeholder tile)]
+    // NOTE: the URLs below are TEMPORARY demo photos so you can preview the
+    // gallery + lightbox. Replace each with your own photo URL when ready.
     $gallery = [
-      ['wide', 'Enrollment day with a client',   'Día de inscripción con un cliente', ''],
-      ['',     'Community health fair',           'Feria de salud comunitaria',        ''],
-      ['tall', 'Helping at the office',           'Ayudando en la oficina',            ''],
-      ['',     'Spanish-language workshop',       'Taller en español',                 ''],
-      ['wide', 'Client appreciation day',         'Día de agradecimiento al cliente',  ''],
-      ['',     'Q&amp;A at the senior center',    'Preguntas en el centro de ancianos',''],
+      ['wide', 'Enrollment day with a client',   'Día de inscripción con un cliente', 'https://picsum.photos/seed/isabel-enroll/1200/800'],
+      ['',     'Community health fair',           'Feria de salud comunitaria',        'https://picsum.photos/seed/isabel-fair/900/900'],
+      ['tall', 'Helping at the office',           'Ayudando en la oficina',            'https://picsum.photos/seed/isabel-office/800/1200'],
+      ['',     'Spanish-language workshop',       'Taller en español',                 'https://picsum.photos/seed/isabel-workshop/900/900'],
+      ['wide', 'Client appreciation day',         'Día de agradecimiento al cliente',  'https://picsum.photos/seed/isabel-clients/1200/800'],
+      ['',     'Q&amp;A at the senior center',    'Preguntas en el centro de ancianos','https://picsum.photos/seed/isabel-seniors/900/900'],
     ];
     ?>
     <div class="gallery-grid reveal">
