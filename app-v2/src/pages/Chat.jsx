@@ -26,7 +26,63 @@ export default function Chat() {
   const [newPlanText, setNewPlanText] = useState('');
   const [notes, setNotes] = useState(null);
   const [notesOpen, setNotesOpen] = useState(false);
+  // Auto-speak: cuando llega respuesta, se la lee en voz alta usando
+  // el TTS nativo del browser (gratis, instantáneo, no necesita OpenAI).
+  // Default true en iOS Safari porque Isabel quiere conversación de voz.
+  const [autoSpeak, setAutoSpeak] = useState(() => {
+    try {
+      const saved = localStorage.getItem('athena_auto_speak');
+      if (saved !== null) return saved === 'true';
+    } catch { /* ignore */ }
+    return true; // default ON
+  });
   const scrollRef = useRef(null);
+
+  // Persiste preferencia de auto-speak
+  useEffect(() => {
+    try { localStorage.setItem('athena_auto_speak', String(autoSpeak)); } catch { /* ignore */ }
+  }, [autoSpeak]);
+
+  // Función para hablar texto. Usa SpeechSynthesis API nativa del browser.
+  // Strip de markdown defensivo igual que en backend voice.js.
+  function speak(text) {
+    if (!text || !window.speechSynthesis) return;
+    try {
+      window.speechSynthesis.cancel(); // cancela cualquier voz en curso
+      const lang = localStorage.getItem('athena_voice_lang') || 'es-MX';
+      const clean = String(text)
+        .replace(/\*\*([^*]+)\*\*/g, '$1')
+        .replace(/__([^_]+)__/g, '$1')
+        .replace(/\*([^*]+)\*/g, '$1')
+        .replace(/_([^_]+)_/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/^#+\s+/gm, '')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/\*+/g, '')
+        .replace(/\s{2,}/g, ' ')
+        .trim();
+      if (!clean) return;
+      const u = new SpeechSynthesisUtterance(clean);
+      u.lang = lang;
+      u.rate = 1.0;
+      u.pitch = 1.0;
+      // Selecciona voz nativa del SO si está disponible (en iOS Safari
+      // las voces "Premium" / "Enhanced" suenan mucho mejor que default).
+      const voices = window.speechSynthesis.getVoices();
+      const matchingVoices = voices.filter((v) => v.lang.startsWith(lang.split('-')[0]));
+      // Prefer Premium > Enhanced > regular
+      const preferred = matchingVoices.find((v) => /premium|enhanced/i.test(v.name))
+        || matchingVoices[0];
+      if (preferred) u.voice = preferred;
+      window.speechSynthesis.speak(u);
+    } catch (err) {
+      console.warn('[chat] speak falló:', err.message);
+    }
+  }
+
+  function stopSpeaking() {
+    try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+  }
 
   useEffect(() => {
     api.chatCoaches().then(setCoaches).catch((e) => setErr(e.message));
@@ -150,7 +206,10 @@ export default function Chat() {
     setSending(true);
     try {
       const r = await api.chat(coach, text);
-      setMessages((m) => [...m, { role: 'assistant', content: r.reply || '(sin respuesta)' }]);
+      const replyText = r.reply || '(sin respuesta)';
+      setMessages((m) => [...m, { role: 'assistant', content: replyText }]);
+      // Auto-speak la respuesta si está activado.
+      if (autoSpeak) speak(replyText);
       // La coach pudo haber actualizado su plan o expediente vía tools — refrescamos.
       if (coach !== 'directora') {
         reloadPlan(coach);
@@ -178,7 +237,21 @@ export default function Chat() {
           <h2 className="font-serif text-3xl text-lino-800">Chat</h2>
           <p className="text-ink-3 text-sm">Habla con cualquiera de tus coaches.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            onClick={() => {
+              if (autoSpeak) stopSpeaking();
+              setAutoSpeak((v) => !v);
+            }}
+            className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
+              autoSpeak
+                ? 'bg-lino-700 text-white'
+                : 'bg-lino-100 text-ink-3 hover:bg-lino-200'
+            }`}
+            title={autoSpeak ? 'Auto-leer activado — toca para silenciar' : 'Auto-leer apagado — toca para activar'}
+          >
+            {autoSpeak ? '🔊 Lee' : '🔇 Silencio'}
+          </button>
           <select className="input text-sm" value={coach} onChange={(e) => setCoach(e.target.value)}>
             {coaches.map((c) => (
               <option key={c.id} value={c.id}>{c.name}{c.role ? ` — ${c.role}` : ''}</option>
@@ -294,7 +367,7 @@ export default function Chat() {
         )}
         {messages.map((m, i) => (
           <div key={i} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap ${
+            <div className={`max-w-[80%] rounded-2xl px-4 py-2 text-sm whitespace-pre-wrap relative group ${
               m.role === 'user'
                 ? 'bg-lino-600 text-white rounded-br-sm'
                 : m.error
@@ -302,6 +375,17 @@ export default function Chat() {
                 : 'bg-lino-100 text-ink-1 rounded-bl-sm'
             }`}>
               {m.content}
+              {/* Botón 🔊 en mensajes de Athena para re-escuchar */}
+              {m.role === 'assistant' && !m.error && (
+                <button
+                  onClick={() => speak(m.content)}
+                  className="ml-2 text-xs text-ink-3 hover:text-lino-800 inline-block"
+                  title="Escuchar de nuevo"
+                  aria-label="Escuchar de nuevo"
+                >
+                  🔊
+                </button>
+              )}
             </div>
           </div>
         ))}
