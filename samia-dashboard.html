@@ -134,6 +134,7 @@ const SECTIONS = [
   {id:'memoria', ic:'🧠', label:'Memoria', render:renderMemory},
   {id:'cumplimiento', ic:'🛡️', label:'Cumplimiento', render:renderCompliance},
   {id:'skills', ic:'📘', label:'Skills', render:renderSkills},
+  {id:'crecimiento', ic:'🚀', label:'Crecimiento', render:renderGrowth},
   {id:'sistema', ic:'⚙️', label:'Sistema', render:renderSystem},
 ];
 let current = location.hash.slice(1) || 'briefing';
@@ -343,6 +344,47 @@ async function renderSkills(){
   };
 }
 
+// ── CRECIMIENTO ──
+async function renderGrowth(){
+  const {ideas=[], lastRun, topics=[], nextTopic} = await api('/api/growth');
+  const active = ideas.filter(i=>i.status==='new'||i.status==='doing');
+  setBadge('crecimiento', ideas.filter(i=>i.status==='new').length, 'muted');
+  const effPill = e => e==='bajo'?'<span class="pill ok">esfuerzo bajo</span>':e==='alto'?'<span class="pill alert">esfuerzo alto</span>':'<span class="pill">esfuerzo medio</span>';
+  const card = i => `<div class="card2" data-g="${i.id}">
+      <div class="nm">${esc(i.title)} ${i.status==='doing'?'<span class="pill">en curso</span>':''}</div>
+      <div class="sub">${esc(i.topicLabel)} · ${effPill(i.effort)}</div>
+      <div class="brief" style="font-size:13px;margin-top:6px">${esc(i.insight)}</div>
+      <div style="font-size:13px;margin-top:6px"><b>Acción:</b> ${esc(i.action)}</div>
+      ${i.source?`<div class="sub" style="margin-top:4px"><a href="${esc(i.source)}" target="_blank" rel="noopener">fuente ↗</a></div>`:''}
+      <div class="toolbar" style="margin-top:8px">
+        ${i.status==='new'?`<button class="btn btn-gold btn-sm" data-do="${i.id}">▶ Hacerlo</button>`:''}
+        ${i.status==='doing'?`<button class="btn btn-gold btn-sm" data-done="${i.id}">✓ Hecho</button>`:''}
+        <button class="btn btn-ghost btn-sm" data-dismiss="${i.id}">Descartar</button>
+      </div></div>`;
+  const lr = lastRun ? `última investigación: ${fmtDate(lastRun.at)} · tema "${esc(lastRun.topic)}" · ${lastRun.found} idea(s)${lastRun.error?` · ⚠️ ${esc(lastRun.error)}`:''}` : 'aún no se ha investigado';
+  $('#main').innerHTML = head('Crecimiento', 'Cada semana SAMIA investiga (con búsqueda web real) cómo mejorar el negocio y trae ideas accionables con su fuente.')
+    + `<div class="card"><div class="card-body" style="font-size:13px;color:var(--text-mid)">
+        Próximo tema: <b>${esc(topics.find(t=>t.key===nextTopic)?.label||nextTopic)}</b> · corre los lunes 05:00.<br>${lr}
+        <div class="toolbar" style="margin-top:10px">
+          <select id="gTopic" style="font:inherit;padding:6px 8px;border:1px solid var(--border-d);border-radius:8px;background:var(--white)">
+            <option value="">Tema de esta semana</option>${topics.map(t=>`<option value="${t.key}">${esc(t.label)}</option>`).join('')}
+          </select>
+          <button class="btn btn-gold btn-sm" id="gRun">🔎 Investigar ahora</button>
+        </div></div></div>`
+    + (active.length ? active.map(card).join('') : empty('🚀','Sin ideas todavía. Corre una investigación o espera al lunes.'));
+  $('#gRun').onclick = async ()=>{
+    const btn=$('#gRun'); const topic=$('#gTopic').value;
+    btn.disabled=true; btn.textContent='Investigando… (puede tardar)';
+    const r = await api('/api/growth/research',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({topic})});
+    if(!r.ok && r.error) alert('Sin ideas: '+r.error);
+    go('crecimiento');
+  };
+  const setStatus = (id,status)=>api('/api/growth/idea',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})}).then(()=>go('crecimiento'));
+  $('#main').querySelectorAll('[data-do]').forEach(b=>b.onclick=()=>setStatus(b.dataset.do,'doing'));
+  $('#main').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>setStatus(b.dataset.done,'done'));
+  $('#main').querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>setStatus(b.dataset.dismiss,'dismissed'));
+}
+
 // ── SISTEMA ──
 async function renderSystem(){
   const s = await api('/api/intel/scheduler');
@@ -368,6 +410,7 @@ async function boot(){
   try{ const {commitments=[]}=await api('/api/intel/commitments'); setBadge('compromisos',commitments.filter(c=>c.status==='overdue').length,''); }catch{}
   try{ const {candidates=[]}=await api('/api/memory/merge-candidates'); setBadge('memoria',candidates.length,'muted'); }catch{}
   try{ const {skills=[]}=await api('/api/skills?status=draft'); setBadge('skills',skills.length,'muted'); }catch{}
+  try{ const {ideas=[]}=await api('/api/growth?status=new'); setBadge('crecimiento',ideas.length,'muted'); }catch{}
   try{
     const {health}=await api('/api/intel/health');
     const chip=$('#scoreChip'); const klass={autopilot:'ok',revisa:'warn',necesita:'alto'}[health.band]||'info';

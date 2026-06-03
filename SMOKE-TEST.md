@@ -118,6 +118,25 @@ get '/api/skills?status=approved'   # invocations debe haber subido
 
 ---
 
+## 7b. Crecimiento — investigación con búsqueda web  (✦ necesita key + web search)
+
+```bash
+post /api/growth/research '{"topic":"marketing-viral"}'
+```
+**Espera:** `ok:true` y `ideas` con 2-3 objetos, cada uno con `title`, `insight`,
+`action`, `effort` y **`source`** (URL real). Esto confirma que `web_search` está
+habilitado en la cuenta de la API. Si devuelve `ok:false` con
+`reason:"Falta ANTHROPIC_API_KEY…"` → la key no está. Si la key está pero falla la
+búsqueda, revisa que **web search esté activado** en la consola de Anthropic.
+
+```bash
+get /api/growth     # las ideas quedan guardadas; lastRun muestra el último intento
+```
+Luego verifica que la mejor idea sale en el briefing:
+```bash
+post /api/intel/briefing '{}' | grep -i "Idea"
+```
+
 ## 8. Briefing + salud del negocio  (no necesita key, pero valida el conjunto)
 
 ```bash
@@ -156,6 +175,7 @@ Para forzar sin esperar: `post /api/intel/run-jobs '{}'`.
 | 5 | Reescritura compliant (Fase 7) | ✦ sí |
 | 6 | Fan-out + síntesis (Fase 11) | ✦ sí |
 | 7 | Skills inyectadas (Fase 12) | ✦ sí (el ciclo, no) |
+| 7b | Crecimiento — investigación web (Fase 13) | ✦ sí (key + web search) |
 | 8 | Briefing + salud (Fases 5/9) | no |
 | 9 | Scheduler (Fase 5) | no |
 

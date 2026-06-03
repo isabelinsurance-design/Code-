@@ -14,6 +14,7 @@ import { healthLine } from './health.js';
 import { rankedGaps } from '../memory/entities.js';
 import { getSeason } from '../memory/wiki.js';
 import { lastReflection } from '../memory/index.js';
+import { growthBriefLine } from './growth.js';
 
 const FILE = resolve(DATA_DIR, 'briefing.json');
 const nowIso = () => new Date().toISOString();
@@ -61,9 +62,15 @@ export function buildBriefing(now = new Date()) {
     lines.push('');
   }
 
+  const growth = growthBriefLine();
+  if (growth) {
+    lines.push(growth);
+    lines.push('');
+  }
+
   if (refl?.summary) lines.push(`🌙 Anoche: ${refl.summary}`);
 
-  const nothing = !alto.length && !aviso.length && !overdue.length && !due.length && !gaps.length;
+  const nothing = !alto.length && !aviso.length && !overdue.length && !due.length && !gaps.length && !growth;
   if (nothing) lines.push('Nada urgente. Buen dia. 🙂');
 
   const text = lines.join('\n').trim();

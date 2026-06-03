@@ -15,6 +15,7 @@ import { KNOWLEDGE, buildKbContext, lookupDoctor, lookupMedicalGroup, lookupPlan
 import { SPECIALISTS, resolveSpecialist, specialistList, vozBlock } from './specialists.js';
 import { chooseSpecialists, routeDeterministic, SYNTH_SYS, buildSynthUser } from './orchestrator.js';
 import * as skills from './intel/skills.js';
+import * as growth from './intel/growth.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
@@ -291,6 +292,25 @@ const server = createServer(async (req, res) => {
     return s ? json(res, 200, { skill: s }) : json(res, 404, { error: 'skill aprobada no encontrada' });
   }
 
+  // --- CRECIMIENTO / investigacion continua (Fase 13) ---
+  if (path === '/api/growth' && req.method === 'GET')
+    return json(res, 200, {
+      ideas: growth.listIdeas({ status: url.searchParams.get('status') || undefined }),
+      lastRun: growth.lastRun(),
+      topics: growth.TOPICS.map((t) => ({ key: t.key, label: t.label })),
+      nextTopic: growth.topicForWeek().key,
+    });
+  if (path === '/api/growth/research' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const r = await growth.runResearch(new Date(), { topicKey: body.topic });
+    return json(res, r.ok ? 200 : 200, r); // 200 aun sin ideas: el reason explica
+  }
+  if (path === '/api/growth/idea' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const i = growth.setIdeaStatus(body.id, body.status);
+    return i ? json(res, 200, { idea: i }) : json(res, 404, { error: 'idea no encontrada o status invalido' });
+  }
+
   // Vista del router determinista (sin LLM): que especialistas tocaria una pregunta.
   if (path === '/api/orchestrate/route' && req.method === 'POST') {
     const body = await readBody(req).catch(() => ({}));
@@ -361,5 +381,5 @@ server.listen(PORT, () => {
   // Latido de autonomia (#21). Inofensivo si el proceso es efimero; en always-on
   // dispara reflexion 02:00, briefing 06:30, repaso semanal lun 07:00, tick horario.
   startScheduler();
-  console.log('Scheduler activo: reflexion 02:00 · briefing 06:30 · repaso lun 07:00 · tick :00');
+  console.log('Scheduler activo: reflexion 02:00 · briefing 06:30 · investigacion lun 05:00 · repaso lun 07:00 · tick :00');
 });

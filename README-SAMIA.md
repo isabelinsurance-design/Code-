@@ -263,6 +263,26 @@ Endpoints nuevos: `POST /api/chat` con `{mode:'auto'}`, `POST /api/orchestrate/r
 Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
 `POST /api/skills/{approve,reject,invoke}`.
 
+### Fase 13 — Crecimiento (investigación continua)
+
+- **`intel/growth.js`** (patrón Athena #18: buscar antes de inventar): SAMIA no solo
+  opera el negocio, cada semana sale a **investigar cómo mejorarlo**. Usa **búsqueda web
+  real** (`web_search` nativo de la API, server-side) sobre una **agenda rotativa** de 6
+  temas (marketing/viral, generación de prospectos, reglas CMS, planes/beneficios,
+  herramientas, retención) — un tema por semana. Devuelve **2-3 ideas accionables** con
+  insight, acción concreta, esfuerzo y **fuente (URL)**.
+- **Honestidad**: sin key/web NO inventa — registra el intento con la razón y no guarda
+  ideas falsas (mismo principio que el resto de SAMIA).
+- **Ciclo de idea**: new → doing → done | dismissed.
+- **Scheduler**: nuevo job `growth-research` los **lunes 05:00** (antes del briefing, para
+  que la mejor idea salga en él). También on-demand desde el dashboard.
+- **Surface**: línea `💡 Idea (...)` en el briefing matutino + sección **Crecimiento** en
+  el dashboard (correr investigación, elegir tema, marcar hacer/hecho/descartar).
+
+Endpoints nuevos: `GET /api/growth`, `POST /api/growth/research` (`{topic?}`),
+`POST /api/growth/idea` (`{id,status}`). *Los caminos con búsqueda web solo se verifican
+en el deploy con key (ver `SMOKE-TEST.md`).*
+
 ### Fase 10 — Dashboard
 
 - **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,
