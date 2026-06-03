@@ -56,7 +56,8 @@ rebuilt UNICO file to Isabel after changes.
 - `isabel_crm_leads` — CRM leads (JSON array)
 - `isabel_plan_progress` — Plan de Acción checkbox state
 - `isabel_memoria_hechos` / `_personas` / `_tareas` / `_compromisos` — layered memory (Athena-style)
-- `isabel_intel_runs` — market intelligence research history (last 20 runs)
+- `isabel_intel_runs` — Radar run history; each entry includes the structured `snapshot` data used at run time so the next run can self-grade against it
+- `isabel_audit_log` — last 500 user-action events `{ts,event,details}` (debounced 30s per event key) used by `getUsageStats(daysBack)` to feed the Radar's "uso del sistema" snapshot
 
 ### Athena patterns adopted
 The `🧠 Memoria` tab uses **layered memory** (separate stores for facts about
@@ -79,16 +80,24 @@ absolute superlatives, no guarantees, no negative carrier comparisons, etc.)
 and inserts a `.cms-banner` next to the output if anything matches.
 
 **Radar** (`🔭 Radar`): `runIntel()` calls Anthropic with the
-`web_search_20250305` tool enabled (`max_uses: 6`) and a prompt that combines
-**live market intel + internal Chief-of-Staff analysis**. The 5 lenses are:
-(1) competitor bilingual ads, (2) viral Spanish Medicare content, (3) CMS /
-Medicare news, (4) 3 specific opportunities, (5) Chief of Staff analysis —
-this fifth lens reads Isabel's *internal* state (plan %, lead count + recency,
-memoria sizes, pending tareas + compromisos, current gaps, and a summary of
-the previous 2 Radar runs) and tells her what to change structurally.
-`buildSelfStateSnapshot()` produces the internal state string. Each run is
-saved to `isabel_intel_runs` localStorage (last 20). PHP cron version (Mon 6am
-with same 5-lens structure) is in `PARA-LUNA-TEAM.md`.
+`web_search_20250305` tool enabled (`max_uses: 6`). The prompt puts the
+**Chief of Staff section FIRST** with heavy weight, market intel after as
+supporting context.
+
+The COS section is structured: resumen ejecutivo → **self-grade vs last
+week** (comparing against `prev.snapshot`) → ≥5 things working → ≥5 things
+not working → **brechas en uso del sistema** (which tabs / tools Isabel hasn't
+touched, where workflows are slow) → 5 operational changes for this week →
+**1 suggested change to the system itself** → ✅ next action.
+
+State plumbing: `buildSnapshotData()` returns a structured object with plan %,
+leads + recency, memoria layers, gaps, AI calls by feature, unused tabs from
+the last 14 days, and standalone tools used this week. It feeds both
+`buildSelfStateSnapshot()` (the prompt string) and `saveIntelRun(text,
+snapshotData)` (so each saved run carries a structured snapshot the next run
+self-grades against). The audit data comes from `logEvent()` calls wired into
+`showModule`, `openTool`, `callClaude`, `addLead`, `addMemoria`. PHP cron
+version (Mon 6am, same structure) is in `PARA-LUNA-TEAM.md`.
 
 **Multi-coach orchestrator** (`🧭 Pregunta Inteligente`, Athena Section 5): a
 shared `COACHES` roster (id, icon, name, desc, voice) is the canonical source

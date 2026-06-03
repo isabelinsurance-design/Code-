@@ -2312,6 +2312,45 @@ function loadApiKey(){
   }
 }
 
+// ─── AUDIT LOG (lo que Isabel usa, para que el Radar reflexione sobre el uso del sistema) ───
+const AUDIT_STORE = 'isabel_audit_log';
+const AUDIT_MAX = 500;
+const _auditRecent = {};
+function logEvent(event, details){
+  const key = event + ':' + (details || '');
+  const now = Date.now();
+  if(_auditRecent[key] && (now - _auditRecent[key]) < 30000) return;
+  _auditRecent[key] = now;
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem(AUDIT_STORE) || '[]'); } catch(_){}
+  log.unshift({ ts: now, event, details: details || '' });
+  if(log.length > AUDIT_MAX) log = log.slice(0, AUDIT_MAX);
+  try { localStorage.setItem(AUDIT_STORE, JSON.stringify(log)); } catch(_){}
+}
+function getUsageStats(daysBack){
+  daysBack = daysBack || 7;
+  let log = [];
+  try { log = JSON.parse(localStorage.getItem(AUDIT_STORE) || '[]'); } catch(_){}
+  const cutoff = Date.now() - (daysBack * 86400000);
+  const recent = log.filter(e => e.ts >= cutoff);
+  const counts = {};
+  for(const e of recent){
+    const k = e.event + (e.details ? ':' + e.details : '');
+    counts[k] = (counts[k] || 0) + 1;
+  }
+  return { total: recent.length, counts, log: recent };
+}
+
+// Tabs the system has (id → display name)
+const SYSTEM_TABS = {
+  plan:'Plan de Acción', marca:'Identidad de Marca', plantillas:'Plantillas de Posts',
+  viralguia:'Viral & Autoridad', memoria:'Memoria', route:'Pregunta Inteligente',
+  intelmkt:'Radar', equipo:'Equipo IA', movil:'Agente Móvil',
+  dashboard:'Dashboard', cerebro:'Cerebro IA', ads:'Meta Ads Studio',
+  viral:'Viral Generator', live:'FB Live Scripts', calendar:'Calendario',
+  intel:'Competencia Intel', compliance:'CMS Compliance', crm:'CRM Leads', metricas:'Métricas',
+};
+
 // ─── NAVIGATION ───
 function showModule(id, btn){
   document.querySelectorAll('.module').forEach(m=>m.classList.remove('active'));
@@ -2321,6 +2360,7 @@ function showModule(id, btn){
   if(btn) btn.classList.add('active');
   if(id==='calendar') renderCalendar();
   closeSidebar();
+  try { logEvent('view', id); } catch(_){}
 }
 
 // ─── FULL TOOLS (iframe) ───
@@ -2341,6 +2381,7 @@ function openTool(file, btn, title){
     frame.setAttribute('data-file', file);
     frame.src = TOOL_BASE + file;
   }
+  try { logEvent('tool', file); } catch(_){}
   closeSidebar();
 }
 
@@ -2363,6 +2404,7 @@ async function callClaude(systemPrompt, userMsg, outputId){
     setOutput(outputId,'⚠️ Por favor ingresa tu API Key de Anthropic en la esquina superior derecha para usar las funciones de IA.');
     return;
   }
+  try { logEvent('ai', outputId); } catch(_){}
   setOutput(outputId,'<div class="ai-loading">✨ Generando con IA<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
   try{
     const res = await fetch('https://api.anthropic.com/v1/messages',{
@@ -2706,6 +2748,7 @@ function addLead(){
   leads.push({id:Date.now(),name,phone,status,zone,notes,date:new Date().toLocaleDateString('es-MX')});
   saveLeads();
   renderLeads();
+  try { logEvent('crm', 'add'); } catch(_){}
   // Clear form
   ['leadName','leadPhone','leadNotes'].forEach(id=>document.getElementById(id).value='');
 
@@ -2860,25 +2903,56 @@ async function runEquipoIA(){
 // ─── RADAR (web search + Chief of Staff lens) ───
 const INTEL_STORE = 'isabel_intel_runs';
 
-function buildSelfStateSnapshot(){
+function buildSnapshotData(){
   const totalPlan = document.querySelectorAll('#mod-plan input[type=checkbox]').length;
   const donePlan = document.querySelectorAll('#mod-plan input[type=checkbox]:checked').length;
   const planPct = totalPlan ? Math.round(donePlan/totalPlan*100) : 0;
-  const leadsTotal = leads.length;
-  const daysSinceLastLead = leads.length ? Math.floor((Date.now() - leads[0].id) / 86400000) : null;
-  const pendingTareas = memoria.tareas.filter(t => !t.done);
-  const pendingComp = memoria.compromisos.filter(c => !c.fulfilled);
+  const pendingTareas = memoria.tareas.filter(t => !t.done).length;
+  const pendingComp = memoria.compromisos.filter(c => !c.fulfilled).length;
   let score = 0, gaps = [];
   try{ score = computeHealth(); gaps = computeGaps(); }catch(_){}
+  const usage7 = getUsageStats(7);
+  const usage14 = getUsageStats(14);
+  const aiCalls = {};
+  Object.entries(usage7.counts).forEach(([k,v]) => { if(k.startsWith('ai:')) aiCalls[k.slice(3)] = v; });
+  const tabsViewed14 = new Set();
+  Object.keys(usage14.counts).forEach(k => { if(k.startsWith('view:')) tabsViewed14.add(k.slice(5)); });
+  const unused = Object.keys(SYSTEM_TABS).filter(t => !tabsViewed14.has(t)).map(t => SYSTEM_TABS[t]);
+  const toolsUsed = Object.keys(usage7.counts).filter(k => k.startsWith('tool:')).map(k => k.slice(5));
+  return {
+    score, planDone: donePlan, planTotal: totalPlan, planPct,
+    leads: leads.length,
+    daysSinceLastLead: leads.length ? Math.floor((Date.now() - leads[0].id) / 86400000) : null,
+    memHechos: memoria.hechos.length, memPersonas: memoria.personas.length,
+    memTareas: memoria.tareas.length, memTareasPending: pendingTareas,
+    memCompromisos: memoria.compromisos.length, memCompromisosPending: pendingComp,
+    gaps: gaps.map(g => g.msg),
+    usageTotal7: usage7.total, usageTotal14: usage14.total,
+    aiCalls, unusedTabs: unused, toolsUsed,
+  };
+}
+
+function buildSelfStateSnapshot(){
+  const d = buildSnapshotData();
   let prevRuns = [];
   try{ prevRuns = JSON.parse(localStorage.getItem(INTEL_STORE) || '[]'); }catch(_){}
-  const prevSummary = prevRuns.slice(0, 2).map(r => `[${r.date}] ${r.text.slice(0, 400).replace(/\s+/g,' ')}`).join('\n');
-  return `Salud del negocio: ${score}/100
-Plan de Acción: ${donePlan}/${totalPlan} tareas marcadas (${planPct}%)
-Leads en CRM: ${leadsTotal}${daysSinceLastLead !== null ? ' (último hace '+daysSinceLastLead+' días)' : ' (sin leads)'}
-Memoria: ${memoria.hechos.length} hechos · ${memoria.personas.length} personas · ${memoria.tareas.length} tareas (${pendingTareas.length} pendientes) · ${memoria.compromisos.length} compromisos (${pendingComp.length} sin cumplir)
-Gaps detectados ahora mismo: ${gaps.length ? gaps.map(g => g.msg).join(' | ') : 'ninguno'}
-Investigaciones previas del Radar: ${prevRuns.length ? prevRuns.length+' ('+prevRuns[0].date+' la más reciente)' : 'ninguna'}${prevSummary ? '\n\nResumen previas:\n'+prevSummary : ''}`;
+  const prev = prevRuns[0] || null;
+  const aiSummary = Object.keys(d.aiCalls).length ? Object.entries(d.aiCalls).map(([k,v]) => `${k}: ${v}`).join(' · ') : 'ninguna';
+  const previousSnapshot = prev && prev.snapshot ? `\n\n--- SNAPSHOT DE LA RUN ANTERIOR DEL RADAR (${prev.date}) ---
+Salud: ${prev.snapshot.score}/100 · Plan: ${prev.snapshot.planPct}% · Leads: ${prev.snapshot.leads} · Tareas pendientes: ${prev.snapshot.memTareasPending} · Compromisos sin cumplir: ${prev.snapshot.memCompromisosPending} · Uso total 7d: ${prev.snapshot.usageTotal7 || 0}` : '\n\n(No hay run anterior del Radar para comparar — esta es la primera.)';
+  return `--- ESTADO ACTUAL ---
+Salud del negocio: ${d.score}/100
+Plan de Acción: ${d.planDone}/${d.planTotal} tareas marcadas (${d.planPct}%)
+Leads en CRM: ${d.leads}${d.daysSinceLastLead !== null ? ' (último hace '+d.daysSinceLastLead+' días)' : ' (sin leads)'}
+Memoria: ${d.memHechos} hechos · ${d.memPersonas} personas · ${d.memTareas} tareas (${d.memTareasPending} pendientes) · ${d.memCompromisos} compromisos (${d.memCompromisosPending} sin cumplir)
+Gaps detectados ahora mismo: ${d.gaps.length ? d.gaps.join(' | ') : 'ninguno'}
+
+--- USO DEL SISTEMA (últimos 7 días) ---
+Acciones totales registradas: ${d.usageTotal7} (versus ${d.usageTotal14} en 14d)
+Llamadas IA por feature: ${aiSummary}
+Pestañas NO visitadas en 14+ días (oportunidad de uso): ${d.unusedTabs.length ? d.unusedTabs.join(', ') : 'ninguna — usa todo el sistema'}
+Herramientas standalone usadas esta semana: ${d.toolsUsed.length ? d.toolsUsed.join(', ') : 'ninguna'} (hay 18 disponibles)
+Radar previas guardadas: ${prevRuns.length}${previousSnapshot}`;
 }
 
 async function callClaudeWebSearch(systemPrompt, userMsg, maxSearches=6){
@@ -2915,46 +2989,74 @@ async function runIntel(){
   status.textContent = '🔭 Radar activo (mercado + análisis interno, puede tardar 30-60 seg)…';
   setOutput('intelMktOutput','<div class="ai-loading">🔍 Activando radar<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
   const t0 = Date.now();
+  const snapshotData = buildSnapshotData();
   const stateSnapshot = buildSelfStateSnapshot();
-  const prompt = `Eres el RADAR de Isabel Fuentes (agente Medicare hispano SoCal). Actúas en doble rol:
-(A) **analista de mercado** que busca AHORA en la web qué pasa afuera, y
-(B) **Chief of Staff** que mira su propia ejecución y le dice qué cambiar.
+  const prompt = `Eres el RADAR + CHIEF OF STAFF de Isabel Fuentes (agente Medicare hispano SoCal).
+La sección **Chief of Staff es la principal** — va PRIMERO, es la más extensa, y conecta el uso del sistema + ejecución de Isabel con lo que pasa en el mercado.
 
-ESTADO INTERNO DE ISABEL (snapshot del sistema en este momento):
+ESTADO INTERNO DE ISABEL:
 ${stateSnapshot}
 
-Tu reporte debe tener EXACTAMENTE estas 5 secciones, en este orden:
+Tu reporte tiene EXACTAMENTE estas secciones, en este orden:
 
-## 📢 Competidores corriendo anuncios bilingües
-Busca en la web quién está corriendo anuncios de Medicare en Facebook/Instagram dirigidos al mercado hispano/bilingüe en California (Quotely, eHealth, ConnieHealth, GoHealth, agencias locales, agentes virales). Para cada uno: (a) quién, (b) hook principal, (c) qué hace bien.
+## 🧭 ANÁLISIS CHIEF OF STAFF (sección principal — sé extensa y honesta)
 
-## 🔥 Contenido viral en español sobre Medicare
-Busca qué Reels/posts/Lives en español sobre Medicare están funcionando últimamente. Hooks, formatos, ángulos que generan engagement.
+### Resumen ejecutivo
+1-2 frases con el veredicto de la semana.
 
-## 📰 Noticias / cambios recientes
-Cambios CMS, Medicare Advantage 2026, beneficios nuevos, noticias que Isabel pueda usar esta semana.
+### Self-grade vs semana pasada
+Califica esta semana del 0 al 10 (sistema + ejecución). Compara contra el "snapshot de la run anterior" si existe arriba. Explica el delta en 2-3 frases concretas (qué subió, qué bajó). Si es la primera run, dilo y establece el baseline.
 
-## 💡 3 OPORTUNIDADES específicas para Isabel
-Tres oportunidades concretas para atacar esta semana. Para cada una: ángulo, gancho sugerido, por qué funcionaría AHORA.
+### Qué SÍ está funcionando (mínimo 5 items específicos)
+Mira los datos reales del estado interno (plan, leads, memoria, uso del sistema). Reconoce cosas concretas — no genéricas.
 
-## 🧭 ANÁLISIS CHIEF OF STAFF (cómo mejorar la operación)
-Esta es la sección más importante. NO es contenido — son cambios estructurales. Como su Chief of Staff:
-- **Qué está funcionando** en cómo Isabel ejecuta su marketing y su sistema. Sé específica (mira el estado interno).
-- **Qué NO está funcionando** o se está estancando. Sé directa, sin endulzar (ej: "Plan al 15% hace semanas", "0 leads agregados en 12 días", "compromisos sin cumplir acumulándose"). Si todo está bien, dilo.
-- **Si en investigaciones previas mencionamos una oportunidad y no se ejecutó**, llámalo. Cruza las "previas" con el estado actual.
-- **2 cambios concretos que Isabel debe hacer ESTA semana** en su sistema, ritmo o ejecución (no contenido — eso ya está arriba). Ejemplos: "fija el Live del jueves como cita inamovible", "cierra los 3 compromisos pendientes antes del miércoles", "convierte la oportunidad X de la semana pasada en un Reel hoy".
+### Qué NO está funcionando (mínimo 5 items honestos)
+Sé directa, sin endulzar. Ejemplos: "Plan al 15% hace 2 semanas — estancado", "0 leads agregados en 12 días", "3 compromisos sin cumplir acumulándose", "no abriste Memoria esta semana". Cruza con tareas/compromisos pendientes.
 
-Cierra con "✅ Tu próxima acción:" — UNA acción del Chief of Staff (operacional, no de contenido).
+### Brechas en uso del sistema (¡muy importante!)
+Mira la lista de "Pestañas NO visitadas en 14+ días" en el estado interno. Para cada una relevante:
+- **"No estás usando X"** + por qué te ayudaría
+- **"Workflow lento"** — si Isabel hace algo manual repetitivo que el sistema ya puede automatizar
+- **"Costo de oportunidad"** — si una feature le ahorraría tiempo y no la ha tocado
+Mínimo 3 brechas concretas.
+
+### 5 cambios concretos para ESTA semana (operacionales, no de contenido)
+Ajustes a su rutina, ritmo, sistema o ejecución. No qué publicar — cómo trabajar mejor.
+
+### Sugerencia 1: mejora al sistema mismo
+Una mejora estructural al sistema/LUNA que aceleraría las cosas (la pueden recoger Sammy / el equipo técnico). Sé específica: qué cambiarías y por qué.
+
+### ✅ Tu próxima acción del Chief of Staff
+UNA acción operacional concreta para HOY.
+
+---
+
+## 📢 Contexto del mercado (más breve, soporte para lo anterior)
+
+### Competidores corriendo anuncios bilingües ahora
+2-3 ejemplos reales del mercado (Quotely, eHealth, ConnieHealth, agentes virales) — quién, hook, qué hacen bien.
+
+### Contenido viral en español esta semana
+Qué hooks/formatos/ángulos están funcionando ahora mismo.
+
+### Noticias / cambios CMS / Medicare Advantage 2026
+Lo más relevante para usar en contenido.
+
+### 3 oportunidades específicas para Isabel
+Cada una: ángulo, gancho, por qué AHORA. Conéctalas con lo que NO está usando del sistema si aplica.
+
+---
 
 Reglas:
 - Usa búsqueda web para datos reales del mercado. NO inventes nombres, métricas ni ejemplos.
-- Sé honesta y específica. Si Isabel está estancada, dilo. Si está rodando, recónocelo.
-- El análisis Chief of Staff DEBE conectar el mercado (afuera) con su ejecución (adentro).`;
+- Sé honesta y específica. Si Isabel está estancada, dilo; si rodando, recónocelo.
+- El análisis Chief of Staff DEBE cruzar uso del sistema + ejecución + lo que viste afuera.
+- Si en una run previa identificaste una oportunidad y no se ejecutó, llámalo.`;
   try{
     const text = await callClaudeWebSearch(ISABEL_SYSTEM, prompt, 6);
     setOutput('intelMktOutput', text || 'Sin resultado.');
     try{ setComplianceWarning('intelMktOutput', checkCompliance(text)); }catch(_){}
-    saveIntelRun(text);
+    saveIntelRun(text, snapshotData);
     renderIntelHistory();
     const secs = ((Date.now() - t0) / 1000).toFixed(1);
     status.textContent = `✅ Investigación completa en ${secs}s · guardada en historial 🦋`;
@@ -2965,13 +3067,14 @@ Reglas:
   btn.disabled = false;
 }
 
-function saveIntelRun(text){
+function saveIntelRun(text, snapshotData){
   let runs = [];
   try{ runs = JSON.parse(localStorage.getItem(INTEL_STORE) || '[]'); }catch(_){}
   runs.unshift({
     id: Date.now(),
     date: new Date().toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
-    text: (text || '').slice(0, 12000)
+    text: (text || '').slice(0, 12000),
+    snapshot: snapshotData || null
   });
   runs = runs.slice(0, 20);
   try{ localStorage.setItem(INTEL_STORE, JSON.stringify(runs)); }catch(_){}
@@ -3116,6 +3219,7 @@ function addMemoria(k, item){
   memoria[k].unshift(item);
   saveMemoria(k); renderMemoria(k);
   try { renderHealth(); } catch(_){}
+  try { logEvent('mem', k); } catch(_){}
 }
 function removeMemoria(k, id){
   memoria[k] = memoria[k].filter(it => it.id !== id);
