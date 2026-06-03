@@ -221,6 +221,27 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .mem-add input:focus{outline:0;border-color:var(--gold)}
 .mem-add button{background:var(--gold-g);color:#fff;border:0;border-radius:8px;padding:7px 14px;font-weight:600;cursor:pointer;font-size:13px}
 .mem-capture-banner{background:var(--green-lt);border:1px solid var(--green);border-radius:10px;padding:11px 14px;margin-bottom:14px;font-size:13px;color:var(--text);line-height:1.5;display:flex;gap:10px;align-items:flex-start}
+.backup-row{display:flex;justify-content:space-between;align-items:center;gap:14px;background:var(--white);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;flex-wrap:wrap}
+.backup-title{font-weight:600;font-size:13.5px;color:var(--text)}
+.backup-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;line-height:1.4;max-width:520px}
+.backup-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ─── AEP COUNTDOWN ─── */
+.aep-banner{position:relative;background:linear-gradient(135deg,#333A4D,#3D8FD6);color:#fff;border-radius:14px;padding:16px 22px 22px;margin-bottom:14px;box-shadow:var(--sh2);display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;overflow:hidden}
+.aep-banner.aep-urgent{background:linear-gradient(135deg,#7A2A20,#C0392B)}
+.aep-banner.aep-mid{background:linear-gradient(135deg,#A07840,#C9A96E)}
+.aep-banner.aep-far{background:linear-gradient(135deg,#2E5F7A,#4A7B9D)}
+.aep-banner.aep-active{background:linear-gradient(135deg,#C0392B,#F2A977);animation:aepPulse 2.2s infinite}
+.aep-banner.aep-done{background:linear-gradient(135deg,#2E7D55,#74B596);opacity:.85}
+@keyframes aepPulse{0%,100%{box-shadow:0 0 0 0 rgba(242,169,119,.4)}50%{box-shadow:0 0 0 8px rgba(242,169,119,0)}}
+.aep-banner-left{min-width:0}
+.aep-banner-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;opacity:.9;margin-bottom:6px}
+.aep-banner-msg{font-family:'Fraunces',serif;font-size:17px;font-style:italic;line-height:1.3;opacity:.97}
+.aep-banner-num{text-align:right;font-family:'Fraunces',serif;font-size:46px;font-weight:300;line-height:1}
+.aep-banner-num-unit{font-size:13px;font-style:italic;opacity:.85;margin-left:6px;font-weight:400}
+.aep-banner-bar{position:absolute;bottom:0;left:0;right:0;height:4px;background:rgba(255,255,255,.18)}
+.aep-banner-bar-fill{height:100%;background:rgba(255,255,255,.85);transition:width .5s ease;width:0}
+@media(max-width:600px){.aep-banner{grid-template-columns:1fr;text-align:left}.aep-banner-num{text-align:left;font-size:36px}}
 
 /* ─── HEALTH SCORE + GAPS ─── */
 .health-row{display:grid;grid-template-columns:180px 1fr;gap:14px;margin-bottom:14px}
@@ -705,6 +726,15 @@ tr:hover td{background:var(--surface)}
         <div class="page-sub">Tu hoja de ruta: de seguidores a leads, y de leads a miembros — paso a paso.</div>
       </div>
 
+      <div class="aep-banner" id="aepBanner">
+        <div class="aep-banner-left">
+          <div class="aep-banner-label">🦋 AEP 2026</div>
+          <div class="aep-banner-msg" id="aepMsg">Calculando…</div>
+        </div>
+        <div class="aep-banner-num"><span id="aepDays">--</span><span class="aep-banner-num-unit">días</span></div>
+        <div class="aep-banner-bar"><div class="aep-banner-bar-fill" id="aepBarFill"></div></div>
+      </div>
+
       <div class="health-row">
         <div class="health-card" id="healthCard">
           <div class="health-label">Salud del Negocio</div>
@@ -1081,6 +1111,17 @@ tr:hover td{background:var(--surface)}
         <div><strong>Captura automática activa.</strong> Cada vez que le escribes a Cerebro IA, otro agente analiza tu mensaje en paralelo y guarda <i>hechos, personas, tareas y compromisos</i> sin que tengas que pedirle. Cuando capture algo, verás una notificación verde.</div>
       </div>
 
+      <div class="backup-row">
+        <div class="backup-info">
+          <div class="backup-title">💾 Respaldo de tus datos</div>
+          <div class="backup-sub">Tus datos viven en tu navegador. Descarga un respaldo cada cierto tiempo (no incluye tu API Key).</div>
+        </div>
+        <div class="backup-actions">
+          <button class="btn btn-teal btn-sm" onclick="exportAllData()">⬇️ Exportar todo</button>
+          <button class="btn btn-sm" style="border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)" onclick="importDataFromFile()">⬆️ Restaurar</button>
+        </div>
+      </div>
+
       <div class="mem-grid">
         <div class="mem-card">
           <div class="mem-card-head"><span>📌</span><span class="mem-card-title">Hechos sobre Isabel</span><span class="mem-card-count" id="memCountHechos">0</span></div>
@@ -1350,40 +1391,10 @@ tr:hover td{background:var(--surface)}
           <div class="card-head">
             <span>📅</span>
             <div class="card-title">Próximas Publicaciones</div>
+            <div style="margin-left:auto"><button class="btn btn-teal btn-sm" onclick="showModule('calendar',document.querySelector('[onclick*=calendar]'))">Abrir Calendario →</button></div>
           </div>
           <div class="card-body" style="padding:0">
-            <div class="lead-row">
-              <div class="lead-avatar">📹</div>
-              <div class="lead-info">
-                <div class="lead-name">Reel: "¿Qué cubre Medicare Parte B?"</div>
-                <div class="lead-detail">Hoy 10:00 AM · Instagram + Facebook</div>
-              </div>
-              <span class="pill pill-teal">Listo</span>
-            </div>
-            <div class="lead-row">
-              <div class="lead-avatar">🎙️</div>
-              <div class="lead-info">
-                <div class="lead-name">FB Live: Preguntas de Medicare</div>
-                <div class="lead-detail">Mañana 12:00 PM · Facebook</div>
-              </div>
-              <span class="pill pill-amber">Pendiente</span>
-            </div>
-            <div class="lead-row">
-              <div class="lead-avatar">📢</div>
-              <div class="lead-info">
-                <div class="lead-name">Meta Ad: SCAN Dental $0</div>
-                <div class="lead-detail">Miércoles · Meta Ads Manager</div>
-              </div>
-              <span class="pill pill-gold">En Review</span>
-            </div>
-            <div class="lead-row">
-              <div class="lead-avatar">📸</div>
-              <div class="lead-info">
-                <div class="lead-name">Story: Testimonio cliente feliz</div>
-                <div class="lead-detail">Jueves 6:00 PM · Stories</div>
-              </div>
-              <span class="pill pill-gold">Planificado</span>
-            </div>
+            <div id="dashUpcoming"></div>
           </div>
         </div>
 
@@ -2605,6 +2616,7 @@ function addCalItem(day){
   if(!calendarItems[day]) calendarItems[day]=[];
   calendarItems[day].push({type,text});
   renderCalendar();
+  try { renderDashUpcoming(); } catch(_){}
 }
 
 async function generateWeekPlan(){
@@ -3302,6 +3314,130 @@ function renderHealth(){
   else list.innerHTML = gaps.map(g => `<li class="gap-item gap-pri-${g.pri}">${escapeHtml(g.msg)}</li>`).join('');
 }
 
+// ─── AEP COUNTDOWN (Oct 15 - Dec 7, 2026) ───
+function renderAEP(){
+  const banner = document.getElementById('aepBanner');
+  if(!banner) return;
+  const aepStart = new Date('2026-10-15T00:00:00');
+  const aepEnd   = new Date('2026-12-07T23:59:59');
+  const today    = new Date();
+  const daysEl = document.getElementById('aepDays');
+  const msgEl  = document.getElementById('aepMsg');
+  const bar    = document.getElementById('aepBarFill');
+  if(today >= aepStart && today <= aepEnd){
+    const left = Math.ceil((aepEnd - today) / 86400000);
+    daysEl.textContent = left;
+    msgEl.textContent = '🔥 AEP ACTIVO. Cada conversación cuenta — la temporada es ahora.';
+    bar.style.width = '100%';
+    banner.className = 'aep-banner aep-active';
+  } else if(today > aepEnd){
+    const next = new Date('2027-10-15');
+    const left = Math.ceil((next - today) / 86400000);
+    daysEl.textContent = left;
+    msgEl.textContent = '✅ AEP 2026 cerrado. Próximo AEP 2027 — sigue construyendo la lista.';
+    bar.style.width = '5%';
+    banner.className = 'aep-banner aep-done';
+  } else {
+    const days = Math.ceil((aepStart - today) / 86400000);
+    daysEl.textContent = days;
+    let msg, cls;
+    if(days <= 30){ msg = '🚨 Menos de un mes para AEP. Tu lista caliente debe estar lista YA.'; cls = 'aep-urgent'; }
+    else if(days <= 90){ msg = '⏰ A pocos meses de AEP. Cada Live + Reel construye tu lista para Oct 15.'; cls = 'aep-mid'; }
+    else if(days <= 180){ msg = '🌱 Tiempo de construir audiencia y autoridad. AEP llega antes de lo que piensas.'; cls = 'aep-far'; }
+    else { msg = '🦋 Aún hay tiempo, pero la consistencia ahora compone. Empieza a sembrar.'; cls = 'aep-far'; }
+    msgEl.textContent = msg;
+    banner.className = 'aep-banner ' + cls;
+    const window = 180;
+    const consumed = Math.max(0, Math.min(100, ((window - days) / window) * 100));
+    bar.style.width = consumed + '%';
+  }
+}
+
+// ─── DASHBOARD: Próximas Publicaciones (real, from calendar) ───
+function renderDashUpcoming(){
+  const el = document.getElementById('dashUpcoming');
+  if(!el) return;
+  const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+  const todayIdx = (new Date().getDay() + 6) % 7;
+  const upcoming = [];
+  for(let i = 0; i < 7 && upcoming.length < 4; i++){
+    const day = days[(todayIdx + i) % 7];
+    const items = (typeof calendarItems !== 'undefined' && calendarItems[day]) ? calendarItems[day] : [];
+    items.forEach(it => {
+      if(upcoming.length >= 4) return;
+      const icon = it.type === 'live' ? '🎙️' : it.type === 'reel' ? '📹' : it.type === 'story' ? '📸' : '📝';
+      upcoming.push({ day, icon, text: it.text, when: i === 0 ? 'Hoy' : i === 1 ? 'Mañana' : day });
+    });
+  }
+  if(!upcoming.length){
+    el.innerHTML = '<div style="padding:24px;text-align:center;color:var(--text-muted);font-size:13px;font-style:italic">Sin publicaciones programadas. Abre el <b>Calendario</b> y arma tu semana 🦋</div>';
+    return;
+  }
+  el.innerHTML = upcoming.map(u => `
+    <div class="lead-row">
+      <div class="lead-avatar">${u.icon}</div>
+      <div class="lead-info">
+        <div class="lead-name">${escapeHtml(u.text)}</div>
+        <div class="lead-detail">${escapeHtml(u.when)} · ${escapeHtml(u.day)}</div>
+      </div>
+    </div>
+  `).join('');
+}
+
+// ─── BACKUP / EXPORT (all isabel_* localStorage as JSON file) ───
+function exportAllData(){
+  const data = { exportedAt: new Date().toISOString(), version: 1, store: {} };
+  try {
+    for(let i = 0; i < localStorage.length; i++){
+      const k = localStorage.key(i);
+      if(k && k.startsWith('isabel_')){
+        try { data.store[k] = JSON.parse(localStorage.getItem(k)); }
+        catch(_) { data.store[k] = localStorage.getItem(k); }
+      }
+    }
+  } catch(_){}
+  // remove the API key from the backup for safety
+  delete data.store.isabel_anthropic_key;
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  const stamp = new Date().toISOString().slice(0,10);
+  a.download = 'isabel-backup-' + stamp + '.json';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  let t = document.getElementById('copyToast');
+  if(!t){ t = document.createElement('div'); t.id='copyToast'; t.className='copy-toast'; document.body.appendChild(t); }
+  t.style.background = 'var(--green)';
+  t.textContent = '💾 Respaldo descargado · ' + a.download;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ t.classList.remove('show'); t.style.background=''; }, 3000);
+}
+
+async function importDataFromFile(){
+  const inp = document.createElement('input');
+  inp.type = 'file'; inp.accept = 'application/json';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if(!f) return;
+    try {
+      const text = await f.text();
+      const data = JSON.parse(text);
+      if(!data.store) throw new Error('Archivo no tiene la forma esperada');
+      if(!confirm('¿Sobrescribir tus datos actuales con el respaldo? (la API key actual se mantiene)')) return;
+      Object.entries(data.store).forEach(([k,v]) => {
+        if(k === 'isabel_anthropic_key') return;
+        localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
+      });
+      alert('Respaldo restaurado. La página se va a recargar.');
+      location.reload();
+    } catch(e) {
+      alert('No pude leer el archivo: ' + e.message);
+    }
+  };
+  inp.click();
+}
+
 // ─── COMPLIANCE GATING (CMS red-flag check) ───
 const CMS_FLAGS = [
   {pat:/lo m[áa]s barato/i, msg:'"Lo más barato" — CMS no permite afirmaciones comparativas de precio.'},
@@ -3371,6 +3507,8 @@ loadMemoria();
 renderHealth();
 renderRoster();
 renderIntelHistory();
+renderAEP();
+renderDashUpcoming();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
