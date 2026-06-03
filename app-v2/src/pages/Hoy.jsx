@@ -1,17 +1,68 @@
 import { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import PushSettings from '../components/PushSettings.jsx';
 
 export default function Hoy() {
   const [state, setState] = useState(null);
+  const [stats, setStats] = useState({
+    trends_pending: 0,
+    trends_top_score: 0,
+    reading_pending: 0,
+    goals_active: 0,
+    goals_off_track: 0,
+    rapport_latest: null,
+    journal_week: 0,
+    plans_total_active: 0,
+  });
   const [err, setErr] = useState('');
 
   useEffect(() => {
     api.hoyState().then(setState).catch((e) => setErr(e.message));
+
+    // Carga stats en paralelo, ninguna bloquea — cada una tolera falla.
+    (async () => {
+      const next = {};
+      try {
+        const t = await api.trends('pending');
+        next.trends_pending = t.items?.length || 0;
+        next.trends_top_score = t.items?.[0]?.score || 0;
+      } catch {}
+      try {
+        const r = await api.readingList('pending');
+        next.reading_pending = r?.length || 0;
+      } catch {}
+      try {
+        const g = await api.goalsList('activa');
+        next.goals_active = g?.length || 0;
+        next.goals_off_track = (g || []).filter((m) => m.proyeccion && !m.proyeccion.en_track).length;
+      } catch {}
+      try {
+        const rap = await api.rapport(1);
+        next.rapport_latest = rap.trend?.latest || null;
+      } catch {}
+      try {
+        const j = await api.journalList(7);
+        next.journal_week = j?.length || 0;
+      } catch {}
+      try {
+        const p = await api.coachPlansAll();
+        next.plans_total_active = (p || []).reduce((acc, c) => acc + c.items.filter((i) => i.status === 'active').length, 0);
+      } catch {}
+      setStats((s) => ({ ...s, ...next }));
+    })();
   }, []);
 
   if (err) return <p className="text-red">{err}</p>;
   if (!state) return <p className="text-ink-3">Cargando tu día…</p>;
+
+  function daysAgo(iso) {
+    if (!iso) return null;
+    const d = Math.floor((Date.now() - new Date(iso).getTime()) / 86400000);
+    if (d < 1) return 'hoy';
+    if (d === 1) return 'ayer';
+    return `hace ${d}d`;
+  }
 
   return (
     <div className="space-y-5">
@@ -19,6 +70,55 @@ export default function Hoy() {
         <h2 className="font-serif text-3xl text-lino-800">Hoy</h2>
         <p className="text-ink-3 text-sm">{state.fecha}</p>
       </header>
+
+      {/* Dashboard summary — stats clicables a cada sección */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        <Link to="/trends" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Trends</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">{stats.trends_pending}</div>
+          <div className="text-xs text-ink-3">{stats.trends_top_score > 0 ? `top ${stats.trends_top_score}/10` : 'pendientes'}</div>
+        </Link>
+        <Link to="/plans" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Plan activo</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">{stats.plans_total_active}</div>
+          <div className="text-xs text-ink-3">items de coaches</div>
+        </Link>
+        <Link to="/goals" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Metas</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">{stats.goals_active}</div>
+          <div className={`text-xs ${stats.goals_off_track > 0 ? 'text-orange-700' : 'text-ink-3'}`}>
+            {stats.goals_off_track > 0 ? `⚠ ${stats.goals_off_track} off-track` : 'activas'}
+          </div>
+        </Link>
+        <Link to="/reading" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Reading</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">{stats.reading_pending}</div>
+          <div className="text-xs text-ink-3">pendientes</div>
+        </Link>
+        <Link to="/journal" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Journal</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">{stats.journal_week}</div>
+          <div className="text-xs text-ink-3">esta semana</div>
+        </Link>
+        <Link to="/rapport" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Rapport</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">
+            {stats.rapport_latest?.peso_lbs ? stats.rapport_latest.peso_lbs : '—'}
+            {stats.rapport_latest?.peso_lbs && <span className="text-base text-ink-3"> lbs</span>}
+          </div>
+          <div className="text-xs text-ink-3">{daysAgo(stats.rapport_latest?.ts) || 'sin data'}</div>
+        </Link>
+        <Link to="/coaches" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Coaches</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">17</div>
+          <div className="text-xs text-ink-3">disponibles</div>
+        </Link>
+        <Link to="/search" className="card hover:bg-lino-50 transition-colors">
+          <div className="text-xs text-ink-3">Buscar</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1">🔍</div>
+          <div className="text-xs text-ink-3">global</div>
+        </Link>
+      </div>
 
       <PushSettings />
 
