@@ -347,11 +347,14 @@ async function renderSkills(){
 // ── CRECIMIENTO ──
 async function renderGrowth(){
   const {ideas=[], lastRun, topics=[], nextTopic} = await api('/api/growth');
+  const CHIEF='chief-of-staff';
   const active = ideas.filter(i=>i.status==='new'||i.status==='doing');
+  const chiefIdeas = active.filter(i=>i.topic===CHIEF);
+  const extIdeas = active.filter(i=>i.topic!==CHIEF);
   setBadge('crecimiento', ideas.filter(i=>i.status==='new').length, 'muted');
   const effPill = e => e==='bajo'?'<span class="pill ok">esfuerzo bajo</span>':e==='alto'?'<span class="pill alert">esfuerzo alto</span>':'<span class="pill">esfuerzo medio</span>';
-  const card = i => `<div class="card2" data-g="${i.id}">
-      <div class="nm">${esc(i.title)} ${i.status==='doing'?'<span class="pill">en curso</span>':''}</div>
+  const card = i => `<div class="card2" data-g="${i.id}"${i.topic===CHIEF?' style="border-left:3px solid var(--gold)"':''}>
+      <div class="nm">${i.topic===CHIEF?'🧭 ':''}${esc(i.title)} ${i.status==='doing'?'<span class="pill">en curso</span>':''}</div>
       <div class="sub">${esc(i.topicLabel)} · ${effPill(i.effort)}</div>
       <div class="brief" style="font-size:13px;margin-top:6px">${esc(i.insight)}</div>
       <div style="font-size:13px;margin-top:6px"><b>Acción:</b> ${esc(i.action)}</div>
@@ -362,16 +365,18 @@ async function renderGrowth(){
         <button class="btn btn-ghost btn-sm" data-dismiss="${i.id}">Descartar</button>
       </div></div>`;
   const lr = lastRun ? `última investigación: ${fmtDate(lastRun.at)} · tema "${esc(lastRun.topic)}" · ${lastRun.found} idea(s)${lastRun.error?` · ⚠️ ${esc(lastRun.error)}`:''}` : 'aún no se ha investigado';
-  $('#main').innerHTML = head('Crecimiento', 'Cada semana SAMIA investiga (con búsqueda web real) cómo mejorar el negocio y trae ideas accionables con su fuente.')
+  const chiefBlock = chiefIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">🧭 Jefe de gabinete — cómo mejorar SAMIA y el equipo</span></div><div class="card-body">${chiefIdeas.map(card).join('')}</div></div>` : '';
+  const extBlock = extIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">🌎 Ideas del mercado</span></div><div class="card-body">${extIdeas.map(card).join('')}</div></div>` : '';
+  $('#main').innerHTML = head('Crecimiento', 'El Radar de SAMIA: 5 lentes. Cuatro miran el mercado (búsqueda web real), y la quinta —jefe de gabinete— mira hacia adentro: qué funciona y qué cambiar.')
     + `<div class="card"><div class="card-body" style="font-size:13px;color:var(--text-mid)">
-        Próximo tema: <b>${esc(topics.find(t=>t.key===nextTopic)?.label||nextTopic)}</b> · corre los lunes 05:00.<br>${lr}
+        Próximo tema externo: <b>${esc(topics.find(t=>t.key===nextTopic)?.label||nextTopic)}</b> · el Radar corre los lunes 05:00 (lente externa + jefe de gabinete).<br>${lr}
         <div class="toolbar" style="margin-top:10px">
           <select id="gTopic" style="font:inherit;padding:6px 8px;border:1px solid var(--border-d);border-radius:8px;background:var(--white)">
             <option value="">Tema de esta semana</option>${topics.map(t=>`<option value="${t.key}">${esc(t.label)}</option>`).join('')}
           </select>
           <button class="btn btn-gold btn-sm" id="gRun">🔎 Investigar ahora</button>
         </div></div></div>`
-    + (active.length ? active.map(card).join('') : empty('🚀','Sin ideas todavía. Corre una investigación o espera al lunes.'));
+    + (active.length ? chiefBlock+extBlock : empty('🚀','Sin ideas todavía. Corre una investigación o espera al lunes.'));
   $('#gRun').onclick = async ()=>{
     const btn=$('#gRun'); const topic=$('#gTopic').value;
     btn.disabled=true; btn.textContent='Investigando… (puede tardar)';

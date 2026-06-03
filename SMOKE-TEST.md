@@ -132,6 +132,18 @@ búsqueda, revisa que **web search esté activado** en la consola de Anthropic.
 ```bash
 get /api/growth     # las ideas quedan guardadas; lastRun muestra el último intento
 ```
+
+**5a lente — jefe de gabinete (corre SIN web, incluso sin key):**
+```bash
+post /api/growth/research '{"topic":"chief-of-staff"}'
+```
+**Espera:** `ok:true` con 1-3 ideas tipo `🧭` derivadas del estado REAL de SAMIA
+(skills sin uso, compromisos vencidos, overrides…). `llm:true` si la key afinó las
+observaciones; `llm:false` cae a las deterministas (igual válidas, no inventadas).
+```bash
+get /api/growth/chief    # la foto interna cruda (métricas de 7 días)
+```
+
 Luego verifica que la mejor idea sale en el briefing:
 ```bash
 post /api/intel/briefing '{}' | grep -i "Idea"

@@ -263,14 +263,22 @@ Endpoints nuevos: `POST /api/chat` con `{mode:'auto'}`, `POST /api/orchestrate/r
 Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
 `POST /api/skills/{approve,reject,invoke}`.
 
-### Fase 13 — Crecimiento (investigación continua)
+### Fase 13 — Crecimiento / Radar (investigación continua)
 
 - **`intel/growth.js`** (patrón Athena #18: buscar antes de inventar): SAMIA no solo
-  opera el negocio, cada semana sale a **investigar cómo mejorarlo**. Usa **búsqueda web
-  real** (`web_search` nativo de la API, server-side) sobre una **agenda rotativa** de 6
-  temas (marketing/viral, generación de prospectos, reglas CMS, planes/beneficios,
-  herramientas, retención) — un tema por semana. Devuelve **2-3 ideas accionables** con
-  insight, acción concreta, esfuerzo y **fuente (URL)**.
+  opera el negocio, cada semana sale a **investigar cómo mejorarlo**. El Radar tiene
+  **5 lentes**. Cuatro+ miran AFUERA con **búsqueda web real** (`web_search` nativo de la
+  API, server-side) sobre una **agenda rotativa** de 6 temas (marketing/viral, generación
+  de prospectos, reglas CMS, planes/beneficios, herramientas, retención) — un tema por
+  semana. Devuelve **2-3 ideas accionables** con insight, acción, esfuerzo y **fuente (URL)**.
+- **5a lente — Jefe de gabinete (Chief of Staff)** [petición de Isabel]: mira hacia
+  ADENTRO. No usa web — lee los datos PROPIOS de SAMIA (volumen de chats y tendencia,
+  especialista más consultado, compromisos vencidos, skills aprobadas sin uso, drafts
+  pendientes, salud del negocio, overrides de compliance, adopción de ideas) y dice **qué
+  funciona y qué cambiar** para que SAMIA y el equipo mejoren. Como sale de datos REALES
+  (no inventa), **funciona aun sin key**: produce observaciones deterministas y, con key,
+  el LLM las afina/prioriza. Corre en CADA barrido del Radar (`runRadar`), no cada 7
+  semanas. Endpoint de su foto interna: `GET /api/growth/chief`.
 - **Honestidad**: sin key/web NO inventa — registra el intento con la razón y no guarda
   ideas falsas (mismo principio que el resto de SAMIA).
 - **Ciclo de idea**: new → doing → done | dismissed.
@@ -279,9 +287,10 @@ Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
 - **Surface**: línea `💡 Idea (...)` en el briefing matutino + sección **Crecimiento** en
   el dashboard (correr investigación, elegir tema, marcar hacer/hecho/descartar).
 
-Endpoints nuevos: `GET /api/growth`, `POST /api/growth/research` (`{topic?}`),
-`POST /api/growth/idea` (`{id,status}`). *Los caminos con búsqueda web solo se verifican
-en el deploy con key (ver `SMOKE-TEST.md`).*
+Endpoints nuevos: `GET /api/growth`, `GET /api/growth/chief`, `POST /api/growth/research`
+(`{topic?}` — `topic:"chief-of-staff"` corre la lente interna), `POST /api/growth/idea`
+(`{id,status}`). *Los caminos con búsqueda web solo se verifican en el deploy con key
+(ver `SMOKE-TEST.md`); la lente de jefe de gabinete sí corre sin key.*
 
 ### Fase 10 — Dashboard
 

@@ -23,7 +23,7 @@ import { runReflection } from './reflection.js';
 import { generateBriefing } from './briefing.js';
 import { reviewCommitments } from './commitments.js';
 import { refreshSignals } from './signals.js';
-import { runResearch } from './growth.js';
+import { runRadar } from './growth.js';
 
 const FILE = resolve(DATA_DIR, 'scheduler.json');
 const nowIso = () => new Date().toISOString();
@@ -46,8 +46,9 @@ export const JOBS = [
   { name: 'nightly-reflection', schedule: { type: 'daily', hour: 2, minute: 0 }, run: (now) => runReflection(now) },
   { name: 'morning-briefing', schedule: { type: 'daily', hour: 6, minute: 30 }, run: (now) => generateBriefing(now) },
   { name: 'weekly-review', schedule: { type: 'weekly', dow: 1, hour: 7, minute: 0 }, run: (now) => runReflection(now) },
-  // Investigacion de crecimiento: lunes 05:00 (antes del briefing de 06:30, para que la idea salga).
-  { name: 'growth-research', schedule: { type: 'weekly', dow: 1, hour: 5, minute: 0 }, run: (now) => runResearch(now) },
+  // Radar de crecimiento: lunes 05:00 (antes del briefing). Barre la lente externa de la
+  // semana + la lente interna de jefe de gabinete (cómo mejorar SAMIA y el equipo).
+  { name: 'growth-research', schedule: { type: 'weekly', dow: 1, hour: 5, minute: 0 }, run: (now) => runRadar(now) },
   { name: 'task-tick', schedule: { type: 'hourly', minute: 0 }, run: (now) => taskTick(now) },
 ];
 

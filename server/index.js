@@ -297,9 +297,12 @@ const server = createServer(async (req, res) => {
     return json(res, 200, {
       ideas: growth.listIdeas({ status: url.searchParams.get('status') || undefined }),
       lastRun: growth.lastRun(),
-      topics: growth.TOPICS.map((t) => ({ key: t.key, label: t.label })),
+      // 5 lentes: las externas (rotan) + la interna de jefe de gabinete.
+      topics: [...growth.TOPICS.map((t) => ({ key: t.key, label: t.label })), { key: growth.CHIEF.key, label: growth.CHIEF.label, internal: true }],
       nextTopic: growth.topicForWeek().key,
     });
+  if (path === '/api/growth/chief' && req.method === 'GET')
+    return json(res, 200, { snapshot: growth.chiefSnapshot(new Date()) });
   if (path === '/api/growth/research' && req.method === 'POST') {
     const body = await readBody(req).catch(() => ({}));
     const r = await growth.runResearch(new Date(), { topicKey: body.topic });
