@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../lib/api.js';
+import VoiceInput from '../components/VoiceInput.jsx';
 
 export default function Chat() {
   const params = useParams();
@@ -315,19 +316,37 @@ export default function Chat() {
 
       {err && <p className="text-red text-xs">{err}</p>}
 
-      <div className="flex gap-2">
+      <div className="flex gap-2 items-end">
         <textarea
           rows={2}
           className="input flex-1 resize-none"
-          placeholder={inputHint || (coach === 'directora' ? 'Habla con Athena…' : 'Escribe tu pregunta…')}
+          placeholder={inputHint || (coach === 'directora' ? 'Habla con Athena…' : 'Habla o escribe…')}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={onKey}
           disabled={sending}
         />
-        <button onClick={send} disabled={sending || !input.trim()} className="btn-primary">
-          {sending ? '…' : 'Enviar'}
-        </button>
+        <div className="flex flex-col gap-2">
+          <VoiceInput
+            lang="es-MX"
+            onTranscript={(text, isFinal) => {
+              // Aggrega lo nuevo dictado al input existente.
+              // Mientras es interim, REEMPLAZA la última parte (no
+              // duplica). Cuando es final, lo deja fijo y limpia.
+              if (isFinal) {
+                setInput((prev) => (prev ? prev + ' ' : '') + text);
+              } else {
+                // Para visual feedback en tiempo real, podemos
+                // appendear el interim — pero solo si es algo nuevo
+                // distinto del último final. Mantenemos simple por ahora:
+                // solo committeamos en final.
+              }
+            }}
+          />
+          <button onClick={send} disabled={sending || !input.trim()} className="btn-primary">
+            {sending ? '…' : 'Enviar'}
+          </button>
+        </div>
       </div>
     </div>
   );

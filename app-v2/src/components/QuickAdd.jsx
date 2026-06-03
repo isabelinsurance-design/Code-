@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { api } from '../lib/api.js';
+import VoiceInput from './VoiceInput.jsx';
 
 // Floating action button + modal para captura rápida desde cualquier
 // página. Reduce fricción para journal, task, URL, rapport sin tener
@@ -117,14 +118,22 @@ export default function QuickAdd() {
             )}
 
             {mode === 'journal' && (
-              <textarea
-                rows={4}
-                value={text}
-                onChange={(e) => setText(e.target.value)}
-                placeholder="Lo que estás sintiendo, pensando, procesando…"
-                className="input w-full text-sm resize-none"
-                autoFocus
-              />
+              <>
+                <textarea
+                  rows={4}
+                  value={text}
+                  onChange={(e) => setText(e.target.value)}
+                  placeholder="Lo que estás sintiendo, pensando, procesando…"
+                  className="input w-full text-sm resize-none"
+                  autoFocus
+                />
+                <VoiceInput
+                  lang="es-MX"
+                  onTranscript={(t, isFinal) => {
+                    if (isFinal) setText((prev) => (prev ? prev + ' ' : '') + t);
+                  }}
+                />
+              </>
             )}
 
             {mode === 'task' && (
@@ -136,6 +145,12 @@ export default function QuickAdd() {
                   placeholder="Qué necesita hacerse…"
                   className="input w-full text-sm resize-none"
                   autoFocus
+                />
+                <VoiceInput
+                  lang="es-MX"
+                  onTranscript={(t, isFinal) => {
+                    if (isFinal) setText((prev) => (prev ? prev + ' ' : '') + t);
+                  }}
                 />
                 <select value={owner} onChange={(e) => setOwner(e.target.value)} className="input w-full text-sm">
                   <option value="isabel">Para mí (Isabel)</option>
