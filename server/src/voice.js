@@ -101,10 +101,19 @@ export function buildIncomingTwiml(req) {
   //   - transcriptionProvider + speechModel
   // Sin uno se queja con error 64101 "Incomplete value set in TwiML".
   const wsUrl = `wss://${publicHost}/voice/relay`;
-  // TTS: ElevenLabs si configurado, sino Google (default robusto para
-  // español; Polly también funciona pero requiere ttsProvider=Amazon).
-  let ttsProvider = 'Google';
-  let voice = 'es-US-Neural2-A'; // voz femenina Google neural en español
+  // TTS: 3 modos posibles, en orden de prioridad:
+  //   1. ElevenLabs (si ELEVENLABS_VOICE_ID está set) — voz clonada de Isabel
+  //   2. Override manual (VOICE_TTS_PROVIDER + VOICE_TTS_VOICE en env)
+  //   3. Default: Amazon Polly Mia-Neural (femenina, México, súper natural).
+  //      Mucho más cálida y "humana" que Google Neural2.
+  //
+  // Voces buenas para Isabel (Spanglish/Mexicana, naturales):
+  //   Amazon Polly:   Polly.Mia-Neural (MX), Polly.Lupe-Neural (US)
+  //   Google Studio:  es-US-Studio-B (premium quality, sounds human)
+  //   Google Neural:  es-US-Neural2-A, es-MX-Neural2-A
+  //   ElevenLabs:     voice_id de voz clonada
+  let ttsProvider = process.env.VOICE_TTS_PROVIDER || 'Amazon';
+  let voice = process.env.VOICE_TTS_VOICE || 'Polly.Mia-Neural';
   if (elevenVoice) {
     ttsProvider = 'ElevenLabs';
     voice = elevenVoice;
@@ -287,13 +296,40 @@ function buildVoiceSystem(session) {
 
 MODO LLAMADA EN VIVO: estás hablando POR TELÉFONO. Reglas estrictas:
 - Respuestas CORTAS (1-2 frases máximo, ~20-30 palabras).
-- Habla natural, NO leas listas ni markdown. NO digas "bullet point" ni "primero, segundo".
-- Si la pregunta requiere look-up (CRM, calendar, etc.) llama UNA tool máximo por turno y resume en una frase.
+- 🚨 NUNCA uses caracteres de markdown — NUNCA asteriscos (*), guiones bajos (_), numerales (#), corchetes [], backticks (\`), bullets (-), ni nada visual. Todo lo que escribas se LEE EN VOZ ALTA literal. Un asterisco se lee "asterisco asterisco". Habla como si dictaras a una persona.
+- NO leas listas ni números enumerados ("primero", "segundo"). Junta todo en frases naturales con comas y "y".
+- Si la pregunta requiere look-up (CRM, calendar, etc.) llama UNA tool máximo por turno y resume en una frase NATURAL.
 - Si la conversación se pone larga o técnica (planes, comparaciones), proponle a la persona que mejor le mandas detalles por WhatsApp o email, NO trates de leer todo en voz.
 - Si el llamante NO es un cliente conocido, sé profesional pero no des info confidencial. Confírmale que le pasas el mensaje a Isabel.
 - Si el llamante pide hablar con Isabel directamente, di: "Le aviso a Isabel ahora mismo, déjeme su número y el motivo de la llamada" — luego usa mensaje_a_sami con la nota.
 - SOA + Medicare: si la conversación toca planes específicos, antes de discutir DEBES confirmar que tienes SOA firmada. Si NO la tienes, di "Para hablar de planes específicos necesito tener su Scope of Appointment firmada. Le mando el link por WhatsApp ahora mismo."
 - NUNCA des consejos médicos o de inversión.${callerCtx}`;
+}
+
+// Strip de markdown defensivo — incluso si Athena se le escapa un
+// asterisco o backtick, no llega al TTS. Doble red de seguridad.
+function stripMarkdownForVoice(text) {
+  if (!text) return '';
+  return String(text)
+    // **bold** / __bold__ → bold
+    .replace(/\*\*([^*]+)\*\*/g, '$1')
+    .replace(/__([^_]+)__/g, '$1')
+    // *italic* / _italic_ → italic
+    .replace(/\*([^*]+)\*/g, '$1')
+    .replace(/_([^_]+)_/g, '$1')
+    // `code` → code
+    .replace(/`([^`]+)`/g, '$1')
+    // # heading → heading
+    .replace(/^#+\s+/gm, '')
+    // - bullet → ", "
+    .replace(/^[-•]\s+/gm, '')
+    // [text](url) → text
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+    // Asteriscos sueltos al principio o final
+    .replace(/\*+/g, '')
+    // Doble espacio → un espacio
+    .replace(/\s{2,}/g, ' ')
+    .trim();
 }
 
 async function onUserText(session, ws, userText) {
@@ -308,9 +344,13 @@ async function onUserText(session, ws, userText) {
 
   if (session.closed) return;
   session.transcript.push({ role: 'assistant', text: reply });
+  // Strip markdown defensivo — el prompt dice "no asteriscos" pero los
+  // modelos a veces se les escapa. Esto garantiza que el TTS nunca lee
+  // "asterisco asterisco" en voz alta.
+  const cleanReply = stripMarkdownForVoice(reply);
   // ConversationRelay espera { type: 'text', token: '<text>', last: true }
   try {
-    ws.send(JSON.stringify({ type: 'text', token: reply, last: true }));
+    ws.send(JSON.stringify({ type: 'text', token: cleanReply, last: true }));
   } catch (err) {
     console.warn('[voice] no se pudo enviar respuesta:', err.message);
   }
