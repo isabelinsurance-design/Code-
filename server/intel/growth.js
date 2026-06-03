@@ -20,6 +20,7 @@ import { listCommitments, reviewCommitments } from './commitments.js';
 import { listSkills } from './skills.js';
 import { computeHealth } from './health.js';
 import { rankedGaps } from '../memory/entities.js';
+import { specialistList } from '../specialists.js';
 
 const FILE = resolve(DATA_DIR, 'growth.json');
 const nowIso = () => new Date().toISOString();
@@ -184,19 +185,32 @@ export function chiefSnapshot(now = new Date()) {
   const chats7 = chats.filter((a) => (a.ts || '') >= wk);
   const chatsPrev7 = chats.filter((a) => (a.ts || '') >= prevWk && (a.ts || '') < wk);
 
-  // Especialista más consultado en la semana (candidato a training/skill).
+  // USO POR MODO: cuántas veces se usó cada especialista esta semana, sobre el catálogo
+  // completo. Así "Mejora" ve qué NO se está usando ("prueba X") y qué se repite
+  // ("automatízalo"). 'chat' es el modo libre por defecto: no cuenta como "feature a probar".
+  const catalog = specialistList().filter((s) => s.id !== 'chat');
   const bySpec = {};
   for (const a of chats7) bySpec[a.specialist || '—'] = (bySpec[a.specialist || '—'] || 0) + 1;
-  const topSpec = Object.entries(bySpec).sort((a, b) => b[1] - a[1])[0] || null;
-
-  const { overdue, due } = reviewCommitments(now);
-  const allCommit = listCommitments({});
-  const doneCommit = allCommit.filter((c) => c.status === 'done').length;
+  const specsUsed = catalog.filter((s) => bySpec[s.id]).map((s) => ({ id: s.id, label: s.label, n: bySpec[s.id] }));
+  const specsUnused = catalog.filter((s) => !bySpec[s.id]).map((s) => ({ id: s.id, label: s.label }));
+  const topSpec = Object.entries(bySpec).filter(([k]) => k !== '—').sort((a, b) => b[1] - a[1])[0] || null;
 
   const skills = listSkills({});
   const approved = skills.filter((s) => s.status === 'approved');
   const unusedSkills = approved.filter((s) => !s.invocations);
   const draftSkills = skills.filter((s) => s.status === 'draft');
+
+  // FLUJO LENTO/REPETIDO sin automatizar: un modo muy consultado que NO tiene skill
+  // que lo cubra (por id en triggers/nombre). Candidato a "automatízalo".
+  const norm2 = (x) => String(x || '').toLowerCase();
+  const hotSpec = topSpec ? { id: topSpec[0], n: topSpec[1] } : null;
+  const hotCovered = hotSpec
+    ? approved.some((s) => (s.trigger || []).some((t) => norm2(t).includes(hotSpec.id)) || norm2(s.name).includes(hotSpec.id))
+    : true;
+
+  const { overdue, due } = reviewCommitments(now);
+  const allCommit = listCommitments({});
+  const doneCommit = allCommit.filter((c) => c.status === 'done').length;
 
   const health = computeHealth(now);
   const gaps = rankedGaps(100).length;
@@ -210,7 +224,11 @@ export function chiefSnapshot(now = new Date()) {
   return {
     chats7: chats7.length,
     chatsPrev7: chatsPrev7.length,
+    catalogSize: catalog.length,
+    specsUsed,
+    specsUnused,
     topSpec: topSpec ? { name: topSpec[0], n: topSpec[1] } : null,
+    hotUnautomated: hotSpec && !hotCovered && hotSpec.n >= 4 ? hotSpec : null,
     overdue: overdue.length,
     dueToday: due.length,
     commitDone: doneCommit,
@@ -232,6 +250,16 @@ function chiefObservations(s) {
   const out = [];
   const idea = (title, insight, action, effort = 'bajo') => out.push({ title, insight, action, effort });
 
+  // "No estás usando X, pruébalo" — modos del catálogo sin uso esta semana.
+  if (s.specsUnused.length)
+    idea('No estás usando todo SAMIA',
+      `Esta semana no se usó: ${s.specsUnused.map((x) => x.label).slice(0, 4).join(', ')} (${s.specsUnused.length} de ${s.catalogSize} modos sin tocar).`,
+      `Prueba "${s.specsUnused[0].label}" en la próxima sesión; si no aporta, lo sabremos.`);
+  // "Este flujo se repite, automatízalo" — modo muy consultado sin skill que lo cubra.
+  if (s.hotUnautomated)
+    idea('Un flujo se repite — automatízalo',
+      `"${s.hotUnautomated.id}" se consultó ${s.hotUnautomated.n} veces y no hay skill que lo cubra.`,
+      `Crea/aprueba una skill para "${s.hotUnautomated.id}" y deja que SAMIA lo resuelva en automático.`, 'medio');
   if (s.unusedSkills.length)
     idea('Skills aprobadas sin uso',
       `${s.unusedSkills.length} skill(s) aprobada(s) nunca se han invocado: ${s.unusedSkills.slice(0, 3).join(', ')}.`,
@@ -282,19 +310,89 @@ Reglas:
 - Español. Devuelve SOLO un arreglo JSON con 2-3 objetos:
   [{"title":"...","insight":"qué viste en los datos","action":"el paso concreto","effort":"bajo|medio|alto"}]`;
 
+// AUTOEVALUACIÓN — SAMIA se pone nota a sí misma cada semana y propone UN cambio.
+// Mide su PROPIO desempeño/higiene (no la salud del negocio): si la usaron, si cubrió
+// su menú, si sus skills sirven, si dio seguimiento, si fue segura, si sus ideas se
+// accionan. 0-100. Guarda histórico por semana para comparar con la semana pasada.
+
+const clampN = (n, lo, hi) => Math.max(lo, Math.min(hi, Math.round(n)));
+function weekKey(now = new Date()) {
+  const start = new Date(now.getFullYear(), 0, 1);
+  const week = Math.floor((now - start) / (7 * 24 * 3600 * 1000));
+  return `${now.getFullYear()}-W${week}`;
+}
+
+export function selfGrade(now = new Date(), snap = null) {
+  const s = snap || chiefSnapshot(now);
+  const usedCount = s.specsUsed.length;
+  const comps = [
+    { name: 'Uso', max: 25, score: clampN((s.chats7 / 20) * 25, 0, 25),
+      fix: `El equipo te usó poco (${s.chats7} chats). Recuérdales para qué sirves o pregunta qué les falta.` },
+    { name: 'Cobertura del menú', max: 20, score: clampN((usedCount / Math.max(1, s.catalogSize)) * 20, 0, 20),
+      fix: `Solo se usaron ${usedCount} de ${s.catalogSize} modos. Promueve los que faltan${s.specsUnused[0] ? `, empezando por "${s.specsUnused[0].label}"` : ''}.` },
+    { name: 'Skills activas', max: 15, score: s.approvedSkills ? clampN(((s.approvedSkills - s.unusedSkills.length) / s.approvedSkills) * 15, 0, 15) : 15,
+      fix: s.unusedSkills.length ? `Skills aprobadas sin uso: ${s.unusedSkills.slice(0, 3).join(', ')}. Promuévelas o retíralas.` : 'Aprueba alguna propuesta de skill para automatizar lo repetido.' },
+    { name: 'Seguimiento', max: 20, score: clampN(20 - s.overdue * 5, 0, 20),
+      fix: `${s.overdue} compromiso(s) vencido(s). Cierra o reagenda y ajusta el seguimiento.` },
+    { name: 'Seguridad', max: 10, score: clampN(10 - s.overrides7 * 5, 0, 10),
+      fix: `Hubo ${s.overrides7} override(s) de compliance. Revisa cada uno y si hace falta entrenar.` },
+    { name: 'Adopción de ideas', max: 10, score: (s.ideasNew + s.ideasDone + s.ideasDismissed) ? clampN(((s.ideasDone + s.ideasDismissed) / (s.ideasNew + s.ideasDone + s.ideasDismissed)) * 10, 0, 10) : 10,
+      fix: `${s.ideasNew} idea(s) del Radar sin decidir. Prioriza 1-2 o descártalas.` },
+  ];
+  const score = comps.reduce((a, c) => a + c.score, 0);
+  const weakest = comps.slice().sort((a, b) => (a.score / a.max) - (b.score / b.max))[0];
+  return { week: weekKey(now), score, comps, weakest, ts: nowIso() };
+}
+
+// Guarda la nota de la semana (upsert) y devuelve {grade, prev} para comparar.
+function recordGrade(grade) {
+  const d = read();
+  if (!Array.isArray(d.grades)) d.grades = [];
+  const prev = d.grades.filter((g) => g.week !== grade.week).slice(-1)[0] || null;
+  d.grades = d.grades.filter((g) => g.week !== grade.week);
+  d.grades.push({ week: grade.week, score: grade.score, weakest: grade.weakest.name, ts: grade.ts });
+  d.grades = d.grades.slice(-26);
+  write(d);
+  return { grade, prev };
+}
+export function getGrades() {
+  return read().grades || [];
+}
+
+// La idea-autoevaluación: nota, comparación con la semana pasada, y UN cambio concreto.
+function gradeIdea(grade, prev) {
+  let delta;
+  if (prev) {
+    const d = grade.score - prev.score;
+    delta = d === 0 ? `igual que la semana pasada (${prev.score})` : `${d > 0 ? '▲' : '▼'} ${Math.abs(d)} vs la semana pasada (${prev.score} → ${grade.score})`;
+  } else {
+    delta = 'primera semana medida — esta es la línea base';
+  }
+  return {
+    title: `📊 Autoevaluación: ${grade.score}/100`,
+    insight: `${delta}. Lo más flojo: ${grade.weakest.name} (${grade.weakest.score}/${grade.weakest.max}).`,
+    action: `Cambio de esta semana: ${grade.weakest.fix}`,
+    effort: 'medio',
+  };
+}
+
 // Corre la revisión de jefe de gabinete. Determinista de base; LLM la afina si hay key.
+// CoS va PRIMERO y con MÁS PESO: nota propia + hasta 4 observaciones (más que las externas).
 export async function runChiefReview(now = new Date()) {
   const snap = chiefSnapshot(now);
-  let observations = chiefObservations(snap);
+  const grade = selfGrade(now, snap);
+  const { prev } = recordGrade(grade);
+  const selfIdea = gradeIdea(grade, prev); // SIEMPRE primero, siempre determinista
+  let observations = chiefObservations(snap).filter((o) => o.title !== 'Todo en orden');
   let usedLLM = false;
   let error = null;
 
   try {
     const { text } = await complete({
       system: CHIEF_SYS,
-      messages: [{ role: 'user', content: `Estado interno (JSON):\n${JSON.stringify(snap, null, 1)}\n\nObservaciones base:\n${observations.map((o) => `- ${o.title}: ${o.action}`).join('\n')}\n\nDevuelve el arreglo JSON con 2-3 recomendaciones.` }],
+      messages: [{ role: 'user', content: `Estado interno (JSON):\n${JSON.stringify(snap, null, 1)}\n\nAutoevaluación: ${grade.score}/100, más flojo: ${grade.weakest.name}.\n\nObservaciones base:\n${observations.map((o) => `- ${o.title}: ${o.action}`).join('\n')}\n\nDevuelve el arreglo JSON con 3-4 recomendaciones (NO repitas la autoevaluación).` }],
       model: MODELS.specialist,
-      maxTokens: 1200,
+      maxTokens: 1400,
     });
     const parsed = parseJsonLoose(text);
     if (parsed && parsed.length) {
@@ -306,7 +404,8 @@ export async function runChiefReview(now = new Date()) {
     error = e?.code === 'NO_API_KEY' ? null : String(e?.message || e);
   }
 
-  const ideas = observations.slice(0, 3).map((x) => ({
+  // Autoevaluación pinneada al frente + hasta 4 observaciones = hasta 5 (más peso que las externas).
+  const ideas = [selfIdea, ...observations].slice(0, 5).map((x) => ({
     id: 'g_' + Math.random().toString(36).slice(2, 9),
     topic: CHIEF.key,
     topicLabel: CHIEF.label,
@@ -327,7 +426,7 @@ export async function runChiefReview(now = new Date()) {
   d.runs = d.runs.slice(0, 50);
   d.ideas = d.ideas.slice(0, 200);
   write(d);
-  return { ok: true, topic: CHIEF.key, topicLabel: CHIEF.label, ideas, snapshot: snap, llm: usedLLM, error };
+  return { ok: true, topic: CHIEF.key, topicLabel: CHIEF.label, ideas, grade, snapshot: snap, llm: usedLLM, error };
 }
 
 // El barrido completo del Radar: la lente externa de la semana + la lente interna (CoS).
@@ -356,10 +455,10 @@ export function setIdeaStatus(id, status) {
   return idea;
 }
 
-// Una linea para el briefing matutino: la mejor idea nueva pendiente.
+// Una linea para el briefing matutino. La lente de jefe de gabinete va PRIMERO (más peso).
 export function growthBriefLine() {
   const fresh = listIdeas({ status: 'new' });
   if (!fresh.length) return '';
-  const i = fresh[0];
+  const i = fresh.find((x) => x.topic === CHIEF.key) || fresh[0];
   return `💡 Idea (${i.topicLabel}): ${i.title} — ${i.action}`;
 }

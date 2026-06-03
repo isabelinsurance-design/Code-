@@ -302,7 +302,7 @@ const server = createServer(async (req, res) => {
       nextTopic: growth.topicForWeek().key,
     });
   if (path === '/api/growth/chief' && req.method === 'GET')
-    return json(res, 200, { snapshot: growth.chiefSnapshot(new Date()) });
+    return json(res, 200, { snapshot: growth.chiefSnapshot(new Date()), grade: growth.selfGrade(new Date()), grades: growth.getGrades() });
   if (path === '/api/growth/research' && req.method === 'POST') {
     const body = await readBody(req).catch(() => ({}));
     const r = await growth.runResearch(new Date(), { topicKey: body.topic });

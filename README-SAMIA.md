@@ -272,13 +272,20 @@ Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
   de prospectos, reglas CMS, planes/beneficios, herramientas, retención) — un tema por
   semana. Devuelve **2-3 ideas accionables** con insight, acción, esfuerzo y **fuente (URL)**.
 - **5a lente — Jefe de gabinete (Chief of Staff)** [petición de Isabel]: mira hacia
-  ADENTRO. No usa web — lee los datos PROPIOS de SAMIA (volumen de chats y tendencia,
-  especialista más consultado, compromisos vencidos, skills aprobadas sin uso, drafts
-  pendientes, salud del negocio, overrides de compliance, adopción de ideas) y dice **qué
-  funciona y qué cambiar** para que SAMIA y el equipo mejoren. Como sale de datos REALES
-  (no inventa), **funciona aun sin key**: produce observaciones deterministas y, con key,
-  el LLM las afina/prioriza. Corre en CADA barrido del Radar (`runRadar`), no cada 7
-  semanas. Endpoint de su foto interna: `GET /api/growth/chief`.
+  ADENTRO. No usa web — lee los datos PROPIOS de SAMIA y dice **qué funciona y qué cambiar**.
+  Como sale de datos REALES (no inventa), **funciona aun sin key**; con key el LLM afina.
+  Corre en CADA barrido del Radar (`runRadar`), va **primero y con más peso** (hasta 5
+  ítems vs 2-3 de las externas). Tres capacidades:
+  - **Reflexiona sobre su propio uso**: lee el audit log / qué modos se usan. Detecta
+    **"no estás usando X, pruébalo"** (modos del catálogo sin tocar esta semana) y
+    **"este flujo se repite, automatízalo"** (un modo muy consultado sin skill que lo cubra).
+  - **Autoevaluación semanal** (`selfGrade`): se pone una **nota 0-100** sobre su propio
+    desempeño (uso, cobertura del menú, skills activas, seguimiento, seguridad, adopción de
+    ideas), la **compara con la semana pasada** (histórico por semana) y propone **UN cambio
+    concreto** a sí misma (el del componente más flojo). Es la idea pinneada #1.
+  - **Resto de observaciones** internas (skills sin uso, drafts pendientes, overrides,
+    compromisos vencidos, salud en rojo…).
+  - Endpoint: `GET /api/growth/chief` → `{snapshot, grade, grades}` (foto + nota + histórico).
 - **Honestidad**: sin key/web NO inventa — registra el intento con la razón y no guarda
   ideas falsas (mismo principio que el resto de SAMIA).
 - **Ciclo de idea**: new → doing → done | dismissed.

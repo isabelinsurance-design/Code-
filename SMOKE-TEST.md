@@ -141,8 +141,12 @@ post /api/growth/research '{"topic":"chief-of-staff"}'
 (skills sin uso, compromisos vencidos, overrides…). `llm:true` si la key afinó las
 observaciones; `llm:false` cae a las deterministas (igual válidas, no inventadas).
 ```bash
-get /api/growth/chief    # la foto interna cruda (métricas de 7 días)
+get /api/growth/chief    # foto interna + autoevaluación (grade) + histórico (grades)
 ```
+**Espera:** la primera idea CoS es `📊 Autoevaluación: NN/100` con la comparación
+vs la semana pasada y UN cambio concreto; si hubo modos sin usar verás "No estás
+usando X" y, si un modo se repite sin skill, "automatízalo". `grade.comps` trae los
+6 componentes; `grades` el histórico semanal.
 
 Luego verifica que la mejor idea sale en el briefing:
 ```bash

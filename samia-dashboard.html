@@ -347,6 +347,7 @@ async function renderSkills(){
 // ── CRECIMIENTO ──
 async function renderGrowth(){
   const {ideas=[], lastRun, topics=[], nextTopic} = await api('/api/growth');
+  const chief = await api('/api/growth/chief').catch(()=>null);
   const CHIEF='chief-of-staff';
   const active = ideas.filter(i=>i.status==='new'||i.status==='doing');
   const chiefIdeas = active.filter(i=>i.topic===CHIEF);
@@ -365,7 +366,21 @@ async function renderGrowth(){
         <button class="btn btn-ghost btn-sm" data-dismiss="${i.id}">Descartar</button>
       </div></div>`;
   const lr = lastRun ? `última investigación: ${fmtDate(lastRun.at)} · tema "${esc(lastRun.topic)}" · ${lastRun.found} idea(s)${lastRun.error?` · ⚠️ ${esc(lastRun.error)}`:''}` : 'aún no se ha investigado';
-  const chiefBlock = chiefIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">🧭 Jefe de gabinete — cómo mejorar SAMIA y el equipo</span></div><div class="card-body">${chiefIdeas.map(card).join('')}</div></div>` : '';
+  // Banner de autoevaluación: nota de SAMIA a sí misma + tendencia de semanas.
+  let gradeBanner='';
+  if(chief?.grade){
+    const g=chief.grade, hist=(chief.grades||[]).slice(-6);
+    const prev=hist.length>=2?hist[hist.length-2]:null;
+    const delta=prev?(g.score-prev.score):null;
+    const trend=delta==null?'<span class="muted">línea base</span>':delta===0?'<span class="muted">igual que la semana pasada</span>':`<span class="pill ${delta>0?'ok':'alert'}">${delta>0?'▲':'▼'} ${Math.abs(delta)} vs semana pasada</span>`;
+    const spark=hist.map(h=>`<span title="${esc(h.week)}: ${h.score}" style="display:inline-block;width:8px;height:${Math.max(4,Math.round(h.score/100*34))}px;background:var(--gold);border-radius:2px;vertical-align:bottom;margin-right:3px"></span>`).join('');
+    gradeBanner=`<div class="card" style="border-left:3px solid var(--gold)"><div class="card-body" style="display:flex;align-items:center;gap:18px;flex-wrap:wrap">
+        <div><div style="font-family:var(--serif,inherit);font-size:34px;line-height:1">${g.score}<span class="muted" style="font-size:16px">/100</span></div><div class="sub">autoevaluación de SAMIA</div></div>
+        <div>${trend}<div class="sub" style="margin-top:4px">más flojo: <b>${esc(g.weakest.name)}</b> (${g.weakest.score}/${g.weakest.max})</div></div>
+        ${hist.length?`<div style="margin-left:auto;text-align:right"><div style="height:34px">${spark}</div><div class="sub">últimas ${hist.length} semanas</div></div>`:''}
+      </div></div>`;
+  }
+  const chiefBlock = (gradeBanner||chiefIdeas.length) ? gradeBanner+`<div class="card"><div class="card-head"><span class="card-title">🧭 Jefe de gabinete — cómo mejorar SAMIA y el equipo</span></div><div class="card-body">${chiefIdeas.map(card).join('')||'<p class="muted">Sin observaciones internas: todo en orden.</p>'}</div></div>` : '';
   const extBlock = extIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">🌎 Ideas del mercado</span></div><div class="card-body">${extIdeas.map(card).join('')}</div></div>` : '';
   $('#main').innerHTML = head('Crecimiento', 'El Radar de SAMIA: 5 lentes. Cuatro miran el mercado (búsqueda web real), y la quinta —jefe de gabinete— mira hacia adentro: qué funciona y qué cambiar.')
     + `<div class="card"><div class="card-body" style="font-size:13px;color:var(--text-mid)">
