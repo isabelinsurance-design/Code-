@@ -136,4 +136,8 @@ export const api = {
   // Chat con coaches (envía mensaje, recibe reply)
   chatCoaches: () => request('/chat/coaches'),
   chat: (coach, message) => request('/chat', { method: 'POST', body: JSON.stringify({ coach, message }) }),
+  // Hilo persistente de una coach (no aplica a 'directora' — ella usa
+  // el history de WhatsApp). Devuelve { coach, messages: [{ role, content, ts }] }.
+  coachThread: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`),
+  coachThreadClear: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
 };

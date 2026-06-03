@@ -536,18 +536,52 @@ export function registerApi(app) {
         saveHistory(updated);
         return res.json({ coach, reply });
       }
-      // Specialists: single-turn sin history (rápido y cacheable)
-      const { askSpecialist } = await import('./claude.js');
+      // Specialists: hilo persistente por coach. Cada especialista
+      // recuerda lo que ha hablado con Isabel entre sesiones (cargado
+      // de data/coach_threads/<coach>.json). Athena en WhatsApp NO usa
+      // este hilo — sigue con consultas single-turn via consultar_
+      // especialistas.
+      const { askSpecialistThreaded } = await import('./claude.js');
       const { SPECIALISTS } = await import('./agents.js');
       const { buildWikiContext } = await import('./memory.js');
+      const { loadCoachThread, appendCoachTurn, toApiMessages } = await import('./coach_threads.js');
       const spec = SPECIALISTS[coach];
       if (!spec) return res.status(404).json({ error: 'coach desconocido' });
       const wiki = buildWikiContext();
-      const reply = await askSpecialist(spec, message, wiki, {});
+      // Cargamos el hilo, appendeamos el mensaje del usuario, y mandamos
+      // todo a Claude. Si la respuesta viene OK, persistimos ambos turnos.
+      const thread = loadCoachThread(coach);
+      const apiMessages = [...toApiMessages(thread), { role: 'user', content: message }];
+      const reply = await askSpecialistThreaded(spec, apiMessages, wiki);
+      appendCoachTurn(coach, 'user', message);
+      appendCoachTurn(coach, 'assistant', reply);
       return res.json({ coach, reply });
     } catch (e) {
       console.error('[api/chat]', e);
       res.status(500).json({ error: e.message });
+    }
+  });
+
+  // ---- Coach threads: cargar / limpiar el historial de una coach ----
+  // GET devuelve el hilo persistido (para hidratación al abrir la pantalla).
+  // DELETE lo borra (para que Isabel pueda "reset" si quiere empezar de cero).
+  app.get('/api/coach_thread/:coach', requireAuth, async (req, res) => {
+    try {
+      const { loadCoachThread } = await import('./coach_threads.js');
+      const thread = loadCoachThread(req.params.coach);
+      res.json({ coach: req.params.coach, messages: thread });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/coach_thread/:coach', requireAuth, async (req, res) => {
+    try {
+      const { clearCoachThread } = await import('./coach_threads.js');
+      clearCoachThread(req.params.coach);
+      res.json({ ok: true, coach: req.params.coach });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
     }
   });
 

@@ -100,3 +100,22 @@ function extractText(res) {
     .join('\n')
     .trim();
 }
+
+// Variante con hilo persistente: la coach recibe TODA la conversación
+// previa con Isabel + el wiki + el mensaje nuevo, y responde sabiendo
+// el contexto. Usado por la PWA en /api/chat para coaches especialistas.
+// Sin tools — single-call, lectura limpia.
+export async function askSpecialistThreaded(specialist, messages, wikiContext = '') {
+  const systemBlock = {
+    type: 'text',
+    text: specialist.system + (wikiContext ? `\n\nMEMORIA DE ISABEL:\n${wikiContext}` : ''),
+    cache_control: { type: 'ephemeral' },
+  };
+  const res = await anthropic.messages.create({
+    model: specialist.model || 'claude-sonnet-4-6',
+    max_tokens: 800,
+    system: [systemBlock],
+    messages,
+  });
+  return extractText(res);
+}
