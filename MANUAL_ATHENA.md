@@ -15,7 +15,13 @@ Qué hace, cuándo, cómo y por qué.
 
 Detrás de cámaras es un proceso Node.js corriendo en Railway 24/7. Es **el cerebro central** que orquesta 17 coaches especialistas, lee/escribe el CRM (LUNA), maneja calendar/email/SMS, y opera proactiva en horarios fijos.
 
-**Modelo:** Claude Opus 4.8 para Athena (orchestrator), Sonnet 4.6 para los 16 coaches especialistas + llamadas de voz, Haiku 4.5 para clasificaciones baratas (triage email, review tone, summaries de llamada).
+**Modelos (tier híbrido, optimizado para costo):**
+- **Athena tier DEFAULT** — Sonnet 4.6. Se usa para WhatsApp/PWA rutinario (la mayoría de turnos)
+- **Athena tier DEEP** — Opus 4.8. Auto-escalación cuando: (a) Isabel dice "@opus", "@profundo", "piensa profundo", "brainstorm estratégico", "decisión importante"; (b) mensaje >700 chars; (c) callers proactivos críticos (briefing 6:30am, evening 9pm, weekly review, closing loop, rapport ping, trends ping con high-score, self-grade ping, reflexión nocturna)
+- **16 coaches especialistas** + voz + brainstorm tool + trend scout + self-grade — Sonnet 4.6
+- **Haiku 4.5** — clasificaciones baratas (inbox triage tone, post-call summary, outbound review hooks)
+- **Override total via env:** `DIRECTORA_MODEL=...` fuerza ambos tiers al mismo modelo (legacy)
+- **Override granular:** `DIRECTORA_DEFAULT_MODEL` y `DIRECTORA_DEEP_MODEL` por separado
 
 ---
 

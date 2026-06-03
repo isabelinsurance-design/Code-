@@ -4,6 +4,39 @@ import { getDynamicToolDefinitions, runTool } from './tools.js';
 import { buildWikiContext } from './memory.js';
 import { detectPromises, recordPromise } from './saydo.js';
 
+// Decide tier (default Sonnet vs deep Opus) según el contenido del último
+// mensaje del usuario. Esta heurística es deliberadamente CONSERVADORA:
+// escalar a Opus solo si hay señal clara. La mayoría de turnos rutinarios
+// ("qué tengo hoy", "agenda con X") deben quedar en Sonnet.
+function shouldEscalate(messages) {
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user');
+  if (!lastUser) return false;
+  let text = '';
+  if (typeof lastUser.content === 'string') {
+    text = lastUser.content;
+  } else if (Array.isArray(lastUser.content)) {
+    // Mensajes multimodal: agarra todos los bloques text.
+    text = lastUser.content
+      .filter((b) => b.type === 'text' || (typeof b === 'string'))
+      .map((b) => (typeof b === 'string' ? b : b.text || ''))
+      .join(' ');
+  }
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  // 1. Triggers EXPLÍCITOS (Isabel forzando deep mode)
+  if (/@opus|@profund|@deep/i.test(text)) return true;
+  if (/piensa\s+(profundo|bien|despacio)/i.test(lower)) return true;
+  if (/análi[sz]is?\s+(a\s+)?fondo|análi[sz]is?\s+detallad/i.test(lower)) return true;
+  // 2. Brainstorm estratégico (no el casual)
+  if (/brainstorm.{0,40}(profundo|estratégic|importante|aep|negocio)/i.test(lower)) return true;
+  // 3. Decisión / estratégico
+  if (/decisión\s+(importante|estratégica|grande)/i.test(lower)) return true;
+  if (/qué\s+harías\s+tú|qué\s+me\s+recomiendas|estratégic[ao]\b/i.test(lower)) return true;
+  // 4. Mensaje muy largo (>700 chars) suele ser complejo
+  if (text.length > 700) return true;
+  return false;
+}
+
 // Corre a Athena sobre un historial de conversación.
 // Maneja el "loop de herramientas": si Claude pide usar una
 // herramienta, la ejecutamos, le devolvemos el resultado, y
@@ -16,6 +49,11 @@ import { detectPromises, recordPromise } from './saydo.js';
 //   - duplicateGuard — si Athena emite la misma tool con los mismos args
 //     en 2 vueltas consecutivas, abortamos. Catch típico de loop infinito.
 //
+// Selección de modelo (Phase: cost optimization):
+//   - opts.tier='deep'    → fuerza modelDeep (Opus) — para briefings y proactive.
+//   - opts.tier='default' → fuerza model (Sonnet) — explícito para callers que quieren ahorro.
+//   - opts.tier omitido   → auto-decide vía shouldEscalate(messages).
+//
 // Recibe y devuelve el array de mensajes para que index.js lo guarde.
 // opts.persistHistory: si false, el caller NO debería guardar el
 // resultado a disco (lo usamos en task ticks y reflexión interna).
@@ -26,6 +64,11 @@ export async function runDirectora(messages, opts = {}) {
   let lastToolSignature = null;
   let consecutiveDupes = 0;
   const wiki = buildWikiContext();
+  const tier = opts.tier || (shouldEscalate(messages) ? 'deep' : 'default');
+  const modelToUse = tier === 'deep' ? DIRECTORA.modelDeep : DIRECTORA.model;
+  if (tier === 'deep') {
+    console.log(`[directora] tier=deep model=${modelToUse}`);
+  }
   const system = [
     {
       type: 'text',
@@ -59,7 +102,7 @@ export async function runDirectora(messages, opts = {}) {
   // Loop: como máximo `maxRounds` vueltas de herramientas antes de cortar.
   for (let i = 0; i < maxRounds; i++) {
     const res = await anthropic.messages.create({
-      model: DIRECTORA.model,
+      model: modelToUse,
       max_tokens: 1500,
       thinking: { type: 'adaptive' },
       output_config: { effort: 'medium' },

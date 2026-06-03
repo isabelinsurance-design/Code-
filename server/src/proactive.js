@@ -79,7 +79,9 @@ async function runProactive(syntheticUserMessage, prefix = '') {
   }
   const messages = getHistory();
   messages.push({ role: 'user', content: syntheticUserMessage });
-  const { reply, messages: updated } = await runDirectora(messages);
+  // Todos los proactive (evening, weekly, closing_loop, rapport, trends ping,
+  // self_grade ping) son momentos donde la calidad importa — usan Opus.
+  const { reply, messages: updated } = await runDirectora(messages, { tier: 'deep' });
   saveHistory(updated);
   const finalText = prefix ? `${prefix} ${reply}` : reply;
   await sendMessage(to, finalText);
@@ -431,7 +433,8 @@ TRABAJOS QUE TIENES QUE HACER (en este orden):
 
 4) Termina con un resumen de 3-4 líneas de qué guardaste, qué entidades reconociste, y qué consolidaste. Eso es todo. NO le mandes mensaje a Isabel.`,
   });
-  const { reply, messages: updated } = await runDirectora(messages);
+  // Reflexión nocturna shape la memoria de largo plazo — Opus vale la pena.
+  const { reply, messages: updated } = await runDirectora(messages, { tier: 'deep' });
   // Recorte agresivo del historial: nos quedamos con los últimos 5 días.
   saveHistory(updated.slice(-40));
 

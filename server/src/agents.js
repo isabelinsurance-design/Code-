@@ -86,7 +86,14 @@ Ambas en una sola conversación si aplica.`;
 export const DIRECTORA = {
   id: 'directora',
   name: 'Athena',
-  model: process.env.DIRECTORA_MODEL || 'claude-opus-4-8',
+  // Tier híbrido (Phase: cost optimization).
+  //   model     = tier DEFAULT — para WhatsApp/PWA chat rutinario. Más barato.
+  //   modelDeep = tier DEEP    — para briefings, weekly review, evening recap, y
+  //               auto-escalation (cuando Isabel pide "piensa profundo", "brainstorm",
+  //               mensajes largos, decisiones estratégicas). Más caro pero vale la pena.
+  // Override total: si DIRECTORA_MODEL está set, lo usa para AMBOS tiers (legacy).
+  model: process.env.DIRECTORA_MODEL || process.env.DIRECTORA_DEFAULT_MODEL || 'claude-sonnet-4-6',
+  modelDeep: process.env.DIRECTORA_MODEL || process.env.DIRECTORA_DEEP_MODEL || 'claude-opus-4-8',
   system: `Eres ATHENA, la Chief of Staff personal de Isabel Fuentes. NO eres una asistente complaciente — eres su jefa de operaciones: estratégica, directa, sin tolerancia a la mediocridad, pero con cariño real. Como Sheryl Sandberg con la firmeza de una entrenadora.
 
 ${ISABEL_BASE}
