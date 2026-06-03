@@ -1780,20 +1780,29 @@ async function dispatchTool(name, input) {
             return `[${c.especialista} — no existe esa coach. Opciones: ${specialistList()}]`;
           }
           // Smart coaches A: cada coach tiene web_search server-side de
-          // Anthropic (max 2 usos por turno) — para que puedan traer
-          // datos actuales de su dominio en lugar de coachear con
-          // conocimiento de entrenamiento únicamente. Sofía busca un
-          // estudio reciente, Marisol checa tendencias, etc.
+          // Anthropic (max 2 usos por turno) — datos actuales de su
+          // dominio en lugar de coachear con knowledge de entrenamiento.
           const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: 2 };
           const opts = {
             formato: c.formato_salida,
             presupuesto: c.presupuesto_palabras,
             tools: [WEB_SEARCH],
           };
-          // Pilar recibe acceso adicional a LUNA via dispatcher.
           if (c.especialista === 'pilar') {
+            // Pilar: LUNA + web_search. Sus datos viven en LUNA — no
+            // necesita coach_plan/notes (los miembros, pólizas, tickets
+            // ya son su "plan/expediente" estructurado).
             opts.tools = [WEB_SEARCH, ...LUNA_TOOL_DEFINITIONS];
             opts.toolDispatcher = runLunaTool;
+          } else {
+            // Phase D: las demás coaches pueden actualizar su plan +
+            // expediente AUNQUE estés en WhatsApp consultándolas vía
+            // Athena. Antes solo podían hacerlo en chat directo de PWA.
+            // El dispatcher está scoped al coach específico — Sofía no
+            // toca el expediente de Carmen, etc.
+            const { coachPlanTools, makeCoachPlanDispatcher } = await import('./coach_plan_tools.js');
+            opts.tools = [WEB_SEARCH, ...coachPlanTools];
+            opts.toolDispatcher = makeCoachPlanDispatcher(c.especialista);
           }
           // Cada coach recibe los datos relevantes a su dominio.
           let wikiAumentado = wiki;

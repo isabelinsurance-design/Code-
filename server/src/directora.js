@@ -49,6 +49,13 @@ export async function runDirectora(messages, opts = {}) {
     });
   }
 
+  // MCP servers configurados via env MCP_SERVERS — el modelo descubre
+  // sus tools dinámicamente y el connector de Anthropic las dispatchea
+  // server-side (no necesitamos manejarlas en nuestro dispatcher).
+  // Si no hay ninguno configurado, se pasa array vacío y la API lo ignora.
+  const { getMcpServers } = await import('./mcp_servers.js');
+  const mcpServers = getMcpServers();
+
   // Loop: como máximo `maxRounds` vueltas de herramientas antes de cortar.
   for (let i = 0; i < maxRounds; i++) {
     const res = await anthropic.messages.create({
@@ -59,6 +66,7 @@ export async function runDirectora(messages, opts = {}) {
       system,
       tools: getDynamicToolDefinitions(),
       messages,
+      ...(mcpServers.length ? { mcp_servers: mcpServers } : {}),
     });
 
     // Guardamos la respuesta completa (incluye bloques de tool_use).

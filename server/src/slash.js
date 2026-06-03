@@ -19,7 +19,7 @@ const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
   'compromisos', 'skills', 'tareas', 'huecos', 'luna',
-  'revisar',
+  'revisar', 'rapport', 'research', 'chase', 'reading',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -75,6 +75,10 @@ export async function runSlash(text, from) {
       case 'envía': return await runEnvia(args);          // solo isabel — flush drafts
       case 'descartar': return await runDescartar();      // solo isabel
       case 'backup': return await runBackup();            // solo isabel
+      case 'rapport': return { ok: true, reply: await runRapport() };
+      case 'research': return { ok: true, reply: await runResearch() };
+      case 'chase': return { ok: true, reply: await runChase() };
+      case 'reading': return { ok: true, reply: await runReadingList(args) };
       default:
         return { ok: false, reply: `Comando "/${cmd}" no existe. Usa /help para ver la lista.` };
     }
@@ -98,6 +102,10 @@ function buildHelp(role) {
     '/historial [n] — últimas N acciones',
     '/huecos [dias] — huecos libres en el calendario (default 7 días)',
     '/luna [ping] — briefing del CRM real de LUNA (sin args = full briefing)',
+    '/rapport — manda el ping semanal de rapport ahora (peso/medidas/sentires)',
+    '/research — manda el digest de research ahora',
+    '/chase — corre el commitment chase tick ahora',
+    '/reading [pending|leido|archivado] — lista reading list (default pending)',
   ];
   const isabelExtras = [
     '/triage — corre triage de email ahora',
@@ -387,4 +395,33 @@ async function runBackup() {
     ok: r.ok,
     reply: r.ok ? `Snapshot OK: ${r.file}${r.synced ? ` (sync: ${r.synced})` : ''}` : `Backup falló: ${r.reason}`,
   };
+}
+
+async function runRapport() {
+  const { sendWeeklyRapport } = await import('./proactive.js');
+  await sendWeeklyRapport();
+  return 'Rapport semanal enviado ✓';
+}
+
+async function runResearch() {
+  const { sendResearchDigest } = await import('./proactive.js');
+  await sendResearchDigest();
+  return 'Research digest enviado ✓';
+}
+
+async function runChase() {
+  const { commitmentChaseTick } = await import('./commitments.js');
+  await commitmentChaseTick();
+  return 'Chase tick corrido ✓';
+}
+
+async function runReadingList(args) {
+  const { listItems } = await import('./reading_list.js');
+  const status = ['pending', 'leido', 'archivado'].includes(args) ? args : 'pending';
+  const items = listItems({ status, limit: 25 });
+  if (!items.length) return `Reading list (${status}): vacía.`;
+  return items.map((i) => {
+    const label = i.titulo || i.url.slice(0, 70);
+    return `[${i.id}] ${label} (${i.fuente || 'web'})`;
+  }).join('\n');
 }
