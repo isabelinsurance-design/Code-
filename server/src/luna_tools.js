@@ -148,8 +148,13 @@ export const LUNA_TOOL_DEFINITIONS = [
       properties: {
         tipo: {
           type: 'string',
-          enum: ['SEGUIMIENTO', 'LLAMADA', 'CITA', 'SERVICIO', 'RECORDATORIO', 'COMPLIANCE', 'DOCUMENTACION'],
-          description: 'Tipo del ticket — DEBE ser uno de los valores válidos (la columna es ENUM en MySQL). Default SEGUIMIENTO si no aplica otro. SEGUIMIENTO=tarea genérica, LLAMADA=hacer llamada, CITA=agendar/preparar cita, SERVICIO=service request, RECORDATORIO=avisar de algo, COMPLIANCE=SOA/MBI/TCPA/audit, DOCUMENTACION=papeleo.',
+          enum: [
+            'FOLLOW UP', 'QUEJA', 'CAMBIO DE DOCTOR', 'CLIENTE', 'CITA',
+            'APLICACION', 'SERVICIO AL CLIENTE', 'LLAMADA', 'LLAMADA PERDIDA',
+            'CITA DENTAL', 'URGENTE', 'SOPORTE', 'TASK', 'MARKETING',
+            'NEXTIVA', 'ENTRENAMIENTO', 'CRM', 'PROYECTO', 'OTRO',
+          ],
+          description: 'Tipo del ticket — DEBE ser uno de los 19 valores del ENUM en MySQL. Más usados: FOLLOW UP (seguimiento general, default si no hay tipo específico), LLAMADA (hacer llamada), LLAMADA PERDIDA (devolver llamada), CITA (agendar/preparar cita), CITA DENTAL (cita en dentista), APLICACION (proceso de enrollment Medicare), QUEJA (cliente molesto/problema), CAMBIO DE DOCTOR (cambiar doctor primario), URGENTE (cualquier cosa que NO espera), SERVICIO AL CLIENTE (preguntas generales), SOPORTE (problema técnico LUNA/Nextiva), TASK (tarea interna), MARKETING (campañas/contenido), NEXTIVA (cosa del sistema de llamadas), ENTRENAMIENTO (capacitar equipo), CRM (admin LUNA), PROYECTO (iniciativa larga), CLIENTE (info del cliente), OTRO (catch-all si nada aplica).',
         },
         prioridad: {
           type: 'string',

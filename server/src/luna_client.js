@@ -191,43 +191,82 @@ export async function createMember(data) {
   return r;
 }
 
-// Tipos válidos de ticket en LUNA — la columna `tickets.tipo` es ENUM,
-// MySQL trunca + warning si recibe algo distinto. Mantener sincronizado
-// con el schema MySQL. Default fallback: SEGUIMIENTO (cubre la mayoría).
+// Tipos válidos de ticket en LUNA — sincronizado con el ENUM real de
+// tickets.tipo en MySQL (Bluehost). Verificado en phpMyAdmin 3/jun/2026.
+// Si Bluehost cambia el schema, actualizar aquí + en luna_tools.js.
 const TICKET_TIPOS_VALIDOS = new Set([
-  'SEGUIMIENTO',
-  'LLAMADA',
+  'FOLLOW UP',
+  'QUEJA',
+  'CAMBIO DE DOCTOR',
+  'CLIENTE',
   'CITA',
-  'SERVICIO',
-  'RECORDATORIO',
-  'COMPLIANCE',
-  'DOCUMENTACION',
+  'APLICACION',
+  'SERVICIO AL CLIENTE',
+  'LLAMADA',
+  'LLAMADA PERDIDA',
+  'CITA DENTAL',
+  'URGENTE',
+  'SOPORTE',
+  'TASK',
+  'MARKETING',
+  'NEXTIVA',
+  'ENTRENAMIENTO',
+  'CRM',
+  'PROYECTO',
+  'OTRO',
 ]);
 
-// Mapeo defensivo de variantes comunes (inglés, lowercase, sinónimos) →
-// el valor canónico aceptado por LUNA. Si Pilar manda "follow-up" o
-// "seguimiento" o "Follow Up", todo normaliza a SEGUIMIENTO.
+// Mapeo de variantes comunes (inglés, sinónimos, capitalización suelta)
+// al valor canónico ENUM. Cubre lo que Pilar suele inventar cuando no
+// recuerda el valor exacto. Fallback final: OTRO (que existe en ENUM).
 const TICKET_TIPO_ALIAS = {
-  'follow-up': 'SEGUIMIENTO', 'followup': 'SEGUIMIENTO', 'follow up': 'SEGUIMIENTO',
-  'seguimiento': 'SEGUIMIENTO',
-  'call': 'LLAMADA', 'phone': 'LLAMADA', 'phone call': 'LLAMADA', 'telefono': 'LLAMADA',
-  'llamada': 'LLAMADA',
-  'appointment': 'CITA', 'meeting': 'CITA', 'cita': 'CITA',
-  'service': 'SERVICIO', 'servicio': 'SERVICIO',
-  'reminder': 'RECORDATORIO', 'recordatorio': 'RECORDATORIO',
-  'compliance': 'COMPLIANCE', 'soa': 'COMPLIANCE', 'mbi': 'COMPLIANCE',
-  'documentation': 'DOCUMENTACION', 'docs': 'DOCUMENTACION', 'documentacion': 'DOCUMENTACION', 'documentación': 'DOCUMENTACION',
+  // Follow-up variations
+  'followup': 'FOLLOW UP', 'follow-up': 'FOLLOW UP', 'seguimiento': 'FOLLOW UP',
+  // Phone
+  'call': 'LLAMADA', 'phone': 'LLAMADA', 'phone call': 'LLAMADA', 'telefono': 'LLAMADA', 'teléfono': 'LLAMADA',
+  // Missed call
+  'missed call': 'LLAMADA PERDIDA', 'missed': 'LLAMADA PERDIDA',
+  // Appointment
+  'appointment': 'CITA', 'meeting': 'CITA', 'junta': 'CITA',
+  // Doctor change
+  'doctor change': 'CAMBIO DE DOCTOR', 'change doctor': 'CAMBIO DE DOCTOR', 'cambio doctor': 'CAMBIO DE DOCTOR',
+  // Complaints
+  'complaint': 'QUEJA', 'complain': 'QUEJA',
+  // Urgent
+  'urgent': 'URGENTE', 'urgente': 'URGENTE', 'critical': 'URGENTE',
+  // Service
+  'service': 'SERVICIO AL CLIENTE', 'servicio': 'SERVICIO AL CLIENTE', 'customer service': 'SERVICIO AL CLIENTE',
+  // Support
+  'support': 'SOPORTE', 'soporte': 'SOPORTE',
+  // Application
+  'application': 'APLICACION', 'app': 'APLICACION',
+  // Marketing
+  'marketing': 'MARKETING',
+  // Training
+  'training': 'ENTRENAMIENTO', 'entrenamiento': 'ENTRENAMIENTO',
+  // CRM admin
+  'crm': 'CRM',
+  // Project
+  'project': 'PROYECTO', 'proyecto': 'PROYECTO',
+  // Nextiva
+  'nextiva': 'NEXTIVA',
+  // Dental
+  'dental': 'CITA DENTAL', 'cita dental': 'CITA DENTAL',
+  // Compliance / documentation → no hay tipo específico → OTRO
+  'compliance': 'OTRO', 'soa': 'OTRO', 'mbi': 'OTRO', 'tcpa': 'OTRO',
+  'documentation': 'OTRO', 'documentacion': 'OTRO', 'documentación': 'OTRO',
+  'task': 'TASK', 'tarea': 'TASK',
 };
 
 function normalizeTicketTipo(input) {
-  if (!input) return 'SEGUIMIENTO';
+  if (!input) return 'FOLLOW UP'; // default más común
   const up = String(input).trim().toUpperCase();
   if (TICKET_TIPOS_VALIDOS.has(up)) return up;
   const lower = String(input).trim().toLowerCase();
   if (TICKET_TIPO_ALIAS[lower]) return TICKET_TIPO_ALIAS[lower];
-  // Si Pilar mandó algo creativo, default a SEGUIMIENTO (no fail).
-  console.warn(`[luna] tipo de ticket no reconocido "${input}" — usando SEGUIMIENTO`);
-  return 'SEGUIMIENTO';
+  // Si Pilar mandó algo creativo, OTRO existe en el ENUM como catch-all.
+  console.warn(`[luna] tipo de ticket no reconocido "${input}" — usando OTRO`);
+  return 'OTRO';
 }
 
 const TICKET_PRIORIDADES_VALIDAS = new Set(['ALTA', 'MEDIA', 'BAJA']);
