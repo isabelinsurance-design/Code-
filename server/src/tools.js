@@ -866,6 +866,52 @@ MODOS:
       required: [],
     },
   },
+  {
+    name: 'journal_buscar',
+    description: 'Busca entradas pasadas del journal por keyword (substring case-insensitive). ÚSALA cuando Isabel pregunte "¿qué escribí cuando dije X?", "muéstrame mis notas sobre Y", o cuando una coach quiera revisar contexto histórico antes de coachear (ej. Alma busca "ansiedad" para ver el arco). Devuelve hasta 20 entradas más recientes que matcheen.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        query: { type: 'string', description: 'Palabra o frase a buscar.' },
+        dias: { type: 'integer', description: 'Cuántos días atrás escanear. Default 90.' },
+      },
+      required: ['query'],
+    },
+  },
+  {
+    name: 'journal_resumen_dia',
+    description: 'Devuelve TODAS las entradas del journal de un día específico, en orden cronológico. ÚSALA al final del día para el reflective recap, o cuando Isabel pregunte "¿qué pasó ayer?" / "qué escribí el lunes". Sin fecha: hoy.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        dia: { type: 'string', description: 'YYYY-MM-DD. Default: hoy en TZ de Isabel.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'rapport_semanal',
+    description: 'Registra el snapshot semanal del cuerpo + cómo se siente Isabel. Úsala cuando ella te conteste el ping de rapport del viernes (o cuando quiera mandar uno ad-hoc). Todos los campos opcionales — si solo te da peso, está bien. Devuelve confirmación + delta vs semanas anteriores cuando aplica.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        peso_lbs: { type: 'number', description: 'Peso en libras.' },
+        medidas: {
+          type: 'object',
+          description: 'Medidas en pulgadas. Llaves típicas: cintura, cadera, brazo, muslo.',
+        },
+        foto_url: { type: 'string', description: 'URL de foto (si Twilio te la pasó).' },
+        sentires: { type: 'string', description: 'Texto libre — energía, sueño, ánimo, periodo, lo que ella diga.' },
+        periodo: { type: 'string', description: 'Opcional: regular | irregular | no aplica.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'mi_rapport',
+    description: 'Devuelve el rapport más reciente de Isabel + delta de peso vs hace 4 sem y 12 sem. Úsala cuando ella pregunte "cómo voy con el peso", "cuál fue mi última medida", o cuando una coach de salud necesite el snapshot. Sin parámetros.',
+    input_schema: { type: 'object', properties: {} },
+  },
 
   // ───────── GOALS (Victoria Vision) ─────────
   {
@@ -1672,13 +1718,20 @@ async function dispatchTool(name, input) {
           if (!spec) {
             return `[${c.especialista} — no existe esa coach. Opciones: ${specialistList()}]`;
           }
+          // Smart coaches A: cada coach tiene web_search server-side de
+          // Anthropic (max 2 usos por turno) — para que puedan traer
+          // datos actuales de su dominio en lugar de coachear con
+          // conocimiento de entrenamiento únicamente. Sofía busca un
+          // estudio reciente, Marisol checa tendencias, etc.
+          const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: 2 };
           const opts = {
             formato: c.formato_salida,
             presupuesto: c.presupuesto_palabras,
+            tools: [WEB_SEARCH],
           };
-          // Pilar recibe acceso a LUNA. El resto: single-turn sin tools.
+          // Pilar recibe acceso adicional a LUNA via dispatcher.
           if (c.especialista === 'pilar') {
-            opts.tools = LUNA_TOOL_DEFINITIONS;
+            opts.tools = [WEB_SEARCH, ...LUNA_TOOL_DEFINITIONS];
             opts.toolDispatcher = runLunaTool;
           }
           // Cada coach recibe los datos relevantes a su dominio.
@@ -1686,6 +1739,12 @@ async function dispatchTool(name, input) {
           if (HEALTH_COACHES.has(c.especialista)) {
             const habits = buildHabitsForCoach(c.especialista);
             if (habits) wikiAumentado += habits;
+            // Rapport semanal (peso/medidas/sentires) para Sofía/Rivera/Carmen
+            try {
+              const { buildRapportForCoach } = await import('./rapport.js');
+              const rap = buildRapportForCoach();
+              if (rap) wikiAumentado += rap;
+            } catch { /* ignore */ }
           }
           if (c.especialista === 'elena') {
             const f = buildFinanzasForCoach();
@@ -2406,6 +2465,63 @@ async function dispatchTool(name, input) {
       if (!p.n_entradas) return `Sin entradas en los últimos ${p.dias_analizados} días.`;
       const summary = Object.entries(p.counts).sort((a, b) => b[1] - a[1]).map(([k, v]) => `${k} ×${v}`).join(' · ') || 'sin emociones marcadas';
       return `Patrones (${p.dias_analizados}d, ${p.n_entradas} entradas):\n${summary}`;
+    }
+    case 'journal_buscar': {
+      const { searchEntries } = await import('./journal.js');
+      const matches = searchEntries({ query: input.query, dias: parseInt(input.dias, 10) || 90 });
+      if (!matches.length) return `Sin matches para "${input.query}" en últimos ${input.dias || 90} días.`;
+      return `${matches.length} entrada(s) que matchean "${input.query}":\n` +
+        matches.map((e) => `  [${e.dia}] ${e.tipo}: ${(e.texto || '').slice(0, 120)}${e.emociones?.length ? ` (${e.emociones.join(', ')})` : ''}`).join('\n');
+    }
+    case 'journal_resumen_dia': {
+      const { entriesForDay } = await import('./journal.js');
+      const tz = process.env.TIMEZONE || 'America/Los_Angeles';
+      const today = new Date().toLocaleDateString('en-CA', { timeZone: tz });
+      const dia = input.dia || today;
+      const entries = entriesForDay(dia);
+      if (!entries.length) return `No hay entradas de journal el ${dia}.`;
+      const emocSet = new Set();
+      entries.forEach((e) => (e.emociones || []).forEach((em) => emocSet.add(em)));
+      const lines = [`📓 Journal del ${dia} — ${entries.length} entrada(s)${emocSet.size ? ` · emociones: ${[...emocSet].join(', ')}` : ''}:`];
+      for (const e of entries) {
+        const hora = new Date(e.ts).toLocaleTimeString('es-MX', { timeZone: tz, hour: '2-digit', minute: '2-digit' });
+        lines.push(`  [${hora}] ${e.tipo}: ${e.texto}`);
+        if (e.gratitud) lines.push(`     🙏 ${e.gratitud}`);
+        if (e.frustracion) lines.push(`     😤 ${e.frustracion}`);
+      }
+      return lines.join('\n');
+    }
+    case 'rapport_semanal': {
+      const { registrarRapport, rapportTrend } = await import('./rapport.js');
+      const entry = registrarRapport({
+        peso_lbs: input.peso_lbs,
+        medidas: input.medidas,
+        foto_url: input.foto_url,
+        sentires: input.sentires,
+        periodo: input.periodo,
+      });
+      const t = rapportTrend();
+      const parts = [`📸 Rapport semanal guardado [${entry.id}] semana ${entry.semana}.`];
+      if (entry.peso_lbs) parts.push(`Peso: ${entry.peso_lbs} lbs`);
+      if (t && t.delta_4w !== null) parts.push(`Δ4w: ${t.delta_4w > 0 ? '+' : ''}${t.delta_4w} lbs`);
+      if (t && t.delta_12w !== null) parts.push(`Δ12w: ${t.delta_12w > 0 ? '+' : ''}${t.delta_12w} lbs`);
+      return parts.join(' · ');
+    }
+    case 'mi_rapport': {
+      const { rapportTrend } = await import('./rapport.js');
+      const t = rapportTrend();
+      if (!t) return 'No hay rapports registrados todavía. Pídeme tu primero el viernes (o ahora).';
+      const lines = [`📸 Último rapport (semana ${t.latest.semana}):`];
+      if (t.latest.peso_lbs) lines.push(`  Peso: ${t.latest.peso_lbs} lbs`);
+      if (t.latest.medidas) {
+        const m = Object.entries(t.latest.medidas).map(([k, v]) => `${k} ${v}"`).join(' · ');
+        if (m) lines.push(`  Medidas: ${m}`);
+      }
+      if (t.latest.sentires) lines.push(`  Sentires: ${t.latest.sentires}`);
+      if (t.latest.periodo) lines.push(`  Periodo: ${t.latest.periodo}`);
+      if (t.delta_4w !== null) lines.push(`  Δ peso 4 sem: ${t.delta_4w > 0 ? '+' : ''}${t.delta_4w} lbs`);
+      if (t.delta_12w !== null) lines.push(`  Δ peso 12 sem: ${t.delta_12w > 0 ? '+' : ''}${t.delta_12w} lbs`);
+      return lines.join('\n');
     }
 
     // ─── GOALS ───

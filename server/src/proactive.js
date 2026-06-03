@@ -149,6 +149,46 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
   console.log('[evening] check-in enviado.');
 }
 
+// ---- Rapport semanal (viernes 6pm) ----
+// Ping con WhatsApp pidiendo peso/medidas/foto/sentires. Lo que Isabel
+// responda, Athena lo procesa y lo guarda con rapport_semanal. Sin
+// presión — si Isabel solo manda peso y "todo bien", igual queda
+// registrado para el trend.
+export async function sendWeeklyRapport() {
+  const gate = canSendProactive({ force: true });
+  if (!gate.ok) {
+    console.log(`[rapport] saltado: ${gate.reason}`);
+    return;
+  }
+  bumpProactiveCount(gate.dayKey);
+  let trendBlurb = '';
+  try {
+    const { rapportTrend } = await import('./rapport.js');
+    const t = rapportTrend();
+    if (t && t.latest && t.latest.peso_lbs) {
+      const parts = [`Última semana registraste ${t.latest.peso_lbs} lbs`];
+      if (t.delta_4w !== null) parts.push(`(${t.delta_4w > 0 ? '+' : ''}${t.delta_4w} vs hace 4 sem)`);
+      trendBlurb = parts.join(' ') + '.';
+    }
+  } catch { /* ignore */ }
+  await runProactive(
+    `[RAPPORT SEMANAL AUTOMÁTICO — viernes]
+
+${trendBlurb}
+
+INSTRUCCIONES:
+- Salúdame breve y cálida — es viernes, semana cerrando.
+- Pídeme rapport semanal: peso (lbs), medidas si quiero (cintura/cadera/brazo/muslo en pulgadas), foto si quiero mandar, y CÓMO ME SIENTO esta semana (energía, sueño, periodo si aplica, ánimo).
+- NO me presiones — si solo te mando peso y "todo bien", está bien.
+- Cuando te conteste con los datos, llama rapport_semanal con lo que recibí. Si mandé foto, pasa la URL en foto_url (si Twilio te la dio).
+- Si hay delta de peso significativo vs hace 4 sem (más de 2 lbs), coméntalo SIN drama — solo señalalo.
+- Después del registro, ofrécete a consultar Sofía o Rivera si quiero feedback sobre la semana.
+
+Esto se manda solo. Tono: amiga que pregunta por ti, no doctor que checa.`,
+  );
+  console.log('[rapport] semanal enviado.');
+}
+
 // ---- Research digest (mediodía) ----
 // Athena rotó cada tema activo de research.js, hizo web_search, y
 // sintetiza top 2 items por tema. Le ahorra a Isabel ~2h/día de

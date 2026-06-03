@@ -30,13 +30,16 @@ export async function askSpecialist(specialist, question, wikiContext = '', opts
     { role: 'user', content: `${question}\n\n${constraints.join(' ')}` },
   ];
 
-  // Single-turn (sin tools) — comportamiento legacy
-  if (!opts.tools || !opts.toolDispatcher) {
+  // Sin dispatcher — single call. Si hay tools server-side (ej web_search),
+  // se mandan igual: Anthropic los resuelve sin necesidad de un dispatcher
+  // del cliente.
+  if (!opts.toolDispatcher) {
     const res = await anthropic.messages.create({
       model: specialist.model || 'claude-sonnet-4-6',
       max_tokens: 700,
       system: [systemBlock],
       messages: initialMessages,
+      ...(opts.tools && opts.tools.length ? { tools: opts.tools } : {}),
     });
     return extractText(res);
   }
@@ -115,13 +118,15 @@ export async function askSpecialistThreaded(specialist, messages, wikiContext = 
     cache_control: { type: 'ephemeral' },
   };
 
-  // Sin tools — single call (Phase A path)
-  if (!opts.tools || !opts.toolDispatcher) {
+  // Sin dispatcher — single call (Phase A path). Tools server-side se
+  // mandan igual si están definidas.
+  if (!opts.toolDispatcher) {
     const res = await anthropic.messages.create({
       model: specialist.model || 'claude-sonnet-4-6',
       max_tokens: 800,
       system: [systemBlock],
       messages,
+      ...(opts.tools && opts.tools.length ? { tools: opts.tools } : {}),
     });
     return extractText(res);
   }

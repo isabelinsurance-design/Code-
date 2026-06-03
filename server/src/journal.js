@@ -68,6 +68,31 @@ export function listRecent({ dias = 7, tipo = null } = {}) {
     .reverse();
 }
 
+// Busca entradas por substring en texto/gratitud/frustración.
+// Case-insensitive, devuelve hasta 20 más recientes.
+export function searchEntries({ query, dias = 90 } = {}) {
+  const q = String(query || '').toLowerCase().trim();
+  if (!q) return [];
+  const cutoff = Date.now() - dias * 86_400_000;
+  return load()
+    .filter((e) => new Date(e.ts).getTime() >= cutoff)
+    .filter((e) => {
+      const blob = `${e.texto || ''} ${e.gratitud || ''} ${e.frustracion || ''}`.toLowerCase();
+      return blob.includes(q);
+    })
+    .slice(-50)
+    .reverse()
+    .slice(0, 20);
+}
+
+// Todas las entradas de un día (YYYY-MM-DD), en orden cronológico.
+export function entriesForDay(dia) {
+  const key = String(dia || new Date().toISOString().slice(0, 10));
+  return load()
+    .filter((e) => e.dia === key)
+    .sort((a, b) => new Date(a.ts) - new Date(b.ts));
+}
+
 // Cuenta menciones de cada emoción en últimos N días.
 export function emocionesPattern({ dias = 7 } = {}) {
   const recientes = listRecent({ dias });

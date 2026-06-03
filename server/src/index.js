@@ -5,7 +5,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
-import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest } from './proactive.js';
+import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport } from './proactive.js';
 import { sendClosingLoop } from './closing_loop.js';
 import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
@@ -254,6 +254,9 @@ function scheduleCron(label, expr, fn) {
 scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', sendMorningBriefing);
 scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
 scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
+// Rapport semanal: viernes 6pm — peso/medidas/foto/sentires. Le da
+// continuidad real a Sofía y Rivera (trend del cuerpo en vez de adivinar).
+scheduleCron('rapport', process.env.WEEKLY_RAPPORT_CRON  || '0 18 * * 5', sendWeeklyRapport);
 // Research digest: mediodía — Athena rota tus temas, hace web_search,
 // te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);

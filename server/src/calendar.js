@@ -375,6 +375,34 @@ export async function checkUpcomingMeetingsTick() {
     }
 
     await sendMessage(to, brief);
+
+    // Si el evento tiene marker [LLAMA] / [CALL] / 🔔 en el título,
+    // ADEMÁS llamamos por teléfono. Para citas críticas donde un WhatsApp
+    // se puede perder. El número se toma de ISABEL_VOICE_PHONE; si no,
+    // se deriva quitando "whatsapp:" del ISABEL_WHATSAPP.
+    const titleStr = String(ev.titulo || '');
+    const wantsCall = /\[llama\]|\[call\]|🔔/i.test(titleStr);
+    if (wantsCall) {
+      try {
+        const { placeOutboundCall } = await import('./voice.js');
+        const rawPhone =
+          process.env.ISABEL_VOICE_PHONE ||
+          (process.env.ISABEL_WHATSAPP || '').replace(/^whatsapp:/, '');
+        if (rawPhone) {
+          await placeOutboundCall({
+            to: rawPhone,
+            motivo: `Recordatorio de cita marcada como crítica: "${titleStr}" en ~15 min${ev.ubicacion ? ` (${ev.ubicacion})` : ''}. Confirma que viste el WhatsApp con el brief.`,
+            cliente_id: null,
+          });
+          logActivity({ tool: 'pre_meeting_call', input_summary: ev.id, result_summary: titleStr });
+        } else {
+          console.warn('[cal] [LLAMA] marker presente pero no hay ISABEL_VOICE_PHONE ni ISABEL_WHATSAPP — se mandó WA solo.');
+        }
+      } catch (err) {
+        console.warn('[cal] no pude llamar:', err.message);
+      }
+    }
+
     _remindedRecently.set(ev.id, now);
     bumpProactiveCount(gate.dayKey);
     logActivity({ tool: 'pre_meeting_brief', input_summary: ev.id, result_summary: ev.titulo });

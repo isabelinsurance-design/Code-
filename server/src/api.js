@@ -557,12 +557,16 @@ export function registerApi(app) {
       // intermedios de tool_use/tool_result — quedan ephemeral).
       const thread = loadCoachThread(coach);
       const apiMessages = [...toApiMessages(thread), { role: 'user', content: message }];
+      // Coach plan tools + web_search server-side (smart coaches A).
+      // Web_search es server-side: Anthropic lo resuelve, no necesita
+      // pasar por el dispatcher local.
+      const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: 2 };
       const reply = await askSpecialistThreaded(
         spec,
         apiMessages,
         wiki + (planCtx ? '\n\n' + planCtx : ''),
         {
-          tools: coachPlanTools,
+          tools: [...coachPlanTools, WEB_SEARCH],
           toolDispatcher: makeCoachPlanDispatcher(coach),
         },
       );
