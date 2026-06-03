@@ -378,6 +378,18 @@ export function registerApi(app) {
     const { listTasks } = await import('./tasks.js');
     res.json(listTasks({ status: req.query.status || null }));
   });
+  app.post('/api/tasks', requireAuth, async (req, res) => {
+    try {
+      const { createTask } = await import('./tasks.js');
+      const t = createTask({
+        descripcion: req.body?.descripcion,
+        responsable: req.body?.responsable || 'isabel',
+        prioridad: req.body?.prioridad || 'media',
+        vence: req.body?.vence || null,
+      });
+      res.json(t);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
   app.post('/api/tasks/:id/complete', requireAuth, async (req, res) => {
     const { completeTask } = await import('./tasks.js');
     res.json(completeTask(req.params.id));
@@ -604,6 +616,43 @@ export function registerApi(app) {
     } catch (e) {
       res.status(400).json({ error: e.message });
     }
+  });
+
+  // ---- Goals / OKRs ----
+  app.get('/api/goals', requireAuth, async (req, res) => {
+    try {
+      const { listMetas, proyeccion } = await import('./goals.js');
+      const status = req.query.status || 'activa';
+      const area = req.query.area || null;
+      const items = listMetas({ status, area });
+      // Enrich con proyección calculada
+      const enriched = items.map((m) => ({ ...m, proyeccion: proyeccion(m) }));
+      res.json(enriched);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/goals', requireAuth, async (req, res) => {
+    try {
+      const { registrarMeta } = await import('./goals.js');
+      const r = registrarMeta(req.body || {});
+      if (!r.ok) return res.status(400).json({ error: r.error });
+      res.json(r.entry);
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.patch('/api/goals/:id', requireAuth, async (req, res) => {
+    try {
+      const { actualizarProgreso, cambiarStatus } = await import('./goals.js');
+      let result;
+      if (req.body?.progreso !== undefined) {
+        result = actualizarProgreso({ id: req.params.id, progreso: req.body.progreso, nota: req.body.nota || '' });
+      }
+      if (req.body?.status) {
+        result = cambiarStatus(req.params.id, req.body.status);
+      }
+      if (!result) return res.status(404).json({ error: 'goal no encontrado' });
+      res.json(result);
+    } catch (e) { res.status(400).json({ error: e.message }); }
   });
 
   // ---- Trends scout: lista hits trending/viral encontrados ----

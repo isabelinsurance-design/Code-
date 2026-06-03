@@ -1,11 +1,13 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
+import QuickAdd from './QuickAdd.jsx';
 
 const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
   { to: '/search', label: 'Buscar', icon: '🔍' },
   { to: '/coaches', label: 'Coaches', icon: '✦' },
   { to: '/trends', label: 'Trends', icon: '🔥' },
+  { to: '/goals', label: 'Metas', icon: '◯' },
   { to: '/plans', label: 'Planes', icon: '◎' },
   { to: '/journal', label: 'Journal', icon: '✑' },
   { to: '/rapport', label: 'Rapport', icon: '◉' },
@@ -63,6 +65,9 @@ export default function Shell({ children }) {
           {children}
         </div>
       </main>
+
+      {/* Quick-add FAB — disponible en TODA la app */}
+      <QuickAdd />
     </div>
   );
 }

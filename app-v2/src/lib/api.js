@@ -33,6 +33,7 @@ export const api = {
   // Tareas y compromisos
   tasks: (status) => request(`/tasks${status ? `?status=${status}` : ''}`),
   taskComplete: (id) => request(`/tasks/${id}/complete`, { method: 'POST' }),
+  taskCreate: (data) => request('/tasks', { method: 'POST', body: JSON.stringify(data) }),
   taskCancel: (id) => request(`/tasks/${id}/cancel`, { method: 'POST' }),
 
   // Calendar (Google)
@@ -146,6 +147,15 @@ export const api = {
   },
   trendsUpdate: (id, status) => request(`/trends/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
   trendsScanNow: () => request('/trends/scan', { method: 'POST' }),
+
+  // Goals / OKRs — con proyección calculada
+  goalsList: (status = 'activa', area = null) => {
+    const qs = new URLSearchParams({ status });
+    if (area) qs.set('area', area);
+    return request(`/goals?${qs}`);
+  },
+  goalAdd: (data) => request('/goals', { method: 'POST', body: JSON.stringify(data) }),
+  goalUpdate: (id, patch) => request(`/goals/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),
