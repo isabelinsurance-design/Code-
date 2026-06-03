@@ -111,14 +111,15 @@ gzip, rota por antigüedad y borra automáticamente un respaldo corrupto (<1KB).
 
 ## 🤝 Conexión Athena/Pilar → LUNA (cuenta de servicio)
 Athena (Pilar, en Railway) llama a LUNA **máquina-a-máquina**, sin sesión humana,
-con una **llave de servicio**. Permisos: **LEER todo + CREAR solo**
-(leads, tickets, citas, notas, actividad). NO puede editar, cerrar, borrar,
-cambiar estado ni tocar comisiones.
+con una **llave de servicio**. Permisos: **SOLO-LECTURA** (decisión de Isabel) —
+Athena/Pilar **lee** el CRM e informa a LUNA, pero **NO escribe nada**: no crea,
+edita, cierra, borra, cambia estado ni toca comisiones. Athena y Pilar son **una
+sola** cuenta de servicio (`"Athena (Pilar)"`), no dos capas separadas.
 
 **1. Define la llave en `config.php` (Bluehost):**
 ```php
 define('LUNA_SERVICE_KEY', 'pega-aquí-una-llave-larga-aleatoria');
-// Agente real al que se atribuyen los registros que cree Athena (FK).
+// Identidad (FK) a la que se atribuyen las llamadas de Athena en el audit log.
 // Crea un agente "Athena" en el CRM y pon su id, o usa el de Isabel.
 define('LUNA_SERVICE_AGENT_ID', 1);
 // (Opcional) Permitir que Athena LEA comisiones. OFF por defecto
@@ -127,17 +128,17 @@ define('LUNA_SERVICE_AGENT_ID', 1);
 ```
 Genera la llave con: `php -r "echo bin2hex(random_bytes(32));"`
 
-**2. Cómo llama Athena (desde Railway):**
+**2. Cómo consulta Athena (desde Railway):**
 ```
-POST https://withisabelfuentes.com/luna/luna_api.php?action=luna_create_ticket
+GET https://withisabelfuentes.com/luna/luna_api.php?action=luna_full_briefing
 Header:  X-LUNA-Key: <LUNA_SERVICE_KEY>
-Body (form-url-encoded):
-   tipo=PROSPECTO&prioridad=MEDIA&descripcion=Ricardo prospecto T65 desde WhatsApp
 ```
-Respuesta: `{"ok":true,"data":{"id":123,"message":"Ticket #123 creado."}}`
+Respuesta: `{"ok":true,"data":{ ...resumen del día para informar a LUNA... }}`
+> Solo acciones de LECTURA (briefing, hot leads, T65, SOAs, pipeline, etc.).
+> Cualquier acción de escritura responde `403`.
 
 **3. Seguridad:**
-- Acción fuera de la allowlist (ej. `luna_update_member_status`) → `403`.
+- Acción fuera de la allowlist (cualquier escritura, ej. `luna_create_ticket`) → `403`.
 - Athena tiene rol `service`, no `admin` → los `requireAdmin()` la bloquean (doble candado).
 - Cada llamada queda en `luna_audit_log` con prefijo `ATHENA:` para distinguirla.
 - Para revocar: borra/rota `LUNA_SERVICE_KEY` en `config.php`. No afecta tu login.
