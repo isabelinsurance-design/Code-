@@ -105,8 +105,11 @@ if (!function_exists('radarUsageWindow')) {
       catch (Exception $e) { return 0; }
     };
     $out['total']  = $count("1=1");
-    $out['chats']  = $count("action LIKE '%CHAT%'");
-    $out['writes'] = $count("action LIKE '%WRITE:%'");
+    // 'CHAT' exacto (no '%CHAT%', que además contaría el WRITE:LUNA_CHAT que
+    // cada consulta registra por separado → doble conteo).
+    $out['chats']  = $count("action = 'CHAT'");
+    // Escrituras reales al CRM, excluyendo el log interno del propio chat.
+    $out['writes'] = $count("action LIKE 'WRITE:%' AND action <> 'WRITE:LUNA_CHAT'");
     $out['denied'] = $count("action LIKE '%DENEGADO%'");
     $out['alerts'] = $count("action LIKE '%ALERTA%'");
     try {
@@ -251,11 +254,16 @@ if (!function_exists('radarRun')) {
     $validCats = ['viral','social','medicare','competencia','mejora'];
     $validPrio = ['alta','media','baja'];
 
-    if (!$parsed) {
+    // Helper: guarda un run fallido (ok=0) y devuelve la forma estándar.
+    $fail = function (string $msg) use ($pdo, $mode) {
       $pdo->prepare("INSERT INTO luna_radar_runs (modo, resumen, item_count, ok) VALUES (?,?,0,0)")
-          ->execute([$mode, 'No se pudo generar el radar (sin API key o la búsqueda falló). Reintenta más tarde.']);
-      $runId = (int)$pdo->lastInsertId();
-      return ['run_id'=>$runId, 'modo'=>$mode, 'ok'=>false, 'resumen'=>'', 'items'=>[]];
+          ->execute([$mode, $msg]);
+      return ['run_id'=>(int)$pdo->lastInsertId(), 'modo'=>$mode, 'ok'=>false,
+              'resumen'=>'', 'item_count'=>0, 'created_at'=>date('Y-m-d H:i:s'), 'items'=>[]];
+    };
+
+    if (!$parsed) {
+      return $fail('No se pudo generar el radar (sin API key o la búsqueda falló). Reintenta más tarde.');
     }
 
     $resumen = mb_substr(trim((string)($parsed['resumen'] ?? '')), 0, 1000);
@@ -278,6 +286,12 @@ if (!function_exists('radarRun')) {
       ];
     }
 
+    // El modelo respondió pero ningún item quedó válido: no lo guardes como
+    // exitoso (si no, se mostraría/reusaría un radar vacío).
+    if (!$items) {
+      return $fail('El radar respondió sin hallazgos utilizables. Reintenta más tarde.');
+    }
+
     $pdo->prepare("INSERT INTO luna_radar_runs (modo, resumen, item_count, ok) VALUES (?,?,?,1)")
         ->execute([$mode, $resumen, count($items)]);
     $runId = (int)$pdo->lastInsertId();
@@ -289,7 +303,10 @@ if (!function_exists('radarRun')) {
       $ins->execute([$runId, $it['categoria'], $it['titulo'], $it['porque'], $it['accion'], $it['fuente'], $it['prioridad']]);
     }
 
-    return ['run_id'=>$runId, 'modo'=>$mode, 'ok'=>true, 'resumen'=>$resumen, 'items'=>$items];
+    // Forma idéntica a radarLatest() (incluye item_count y created_at) para
+    // que el frontend pinte bien el meta tras "Actualizar ahora".
+    return ['run_id'=>$runId, 'modo'=>$mode, 'ok'=>true, 'resumen'=>$resumen,
+            'item_count'=>count($items), 'created_at'=>date('Y-m-d H:i:s'), 'items'=>$items];
   }
 }
 
