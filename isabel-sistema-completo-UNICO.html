@@ -579,7 +579,7 @@ tr:hover td{background:var(--surface)}
         <span class="nav-icon">🧭</span><span class="nav-label">Pregunta Inteligente</span>
       </button>
       <button class="nav-item" onclick="showModule('intelmkt',this)">
-        <span class="nav-icon">🔭</span><span class="nav-label">Inteligencia Mercado</span>
+        <span class="nav-icon">🔭</span><span class="nav-label">Radar</span>
       </button>
       <button class="nav-item" onclick="showModule('movil',this)">
         <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
@@ -1157,29 +1157,29 @@ tr:hover td{background:var(--surface)}
       </div>
     </div>
 
-    <!-- ══════ INTELIGENCIA DE MERCADO (web search en vivo) ══════ -->
+    <!-- ══════ RADAR (web search en vivo + Chief of Staff lens) ══════ -->
     <div class="module" id="mod-intelmkt">
       <div class="page-header">
-        <div class="page-title">🔭 <em>Inteligencia</em> de Mercado</div>
-        <div class="page-sub">Investiga lo que está pasando AHORA en el mercado hispano de Medicare. Competidores activos · contenido viral · oportunidades específicas para ti.</div>
+        <div class="page-title">🔭 <em>Radar</em></div>
+        <div class="page-sub">Sensa el mercado por fuera y tu propia ejecución por dentro. Te dice qué cambiar.</div>
       </div>
 
       <div class="plan-focus" style="background:var(--purple-lt);border-color:var(--purple)">
         <span style="font-size:20px">🦋</span>
-        <div><strong>Cómo funciona:</strong> con un clic, Claude busca <b>en vivo en la web</b> (no datos viejos): competidores corriendo anuncios bilingües ahora, hooks y formatos que están viralizando esta semana, cambios CMS recientes — y te da 3 oportunidades específicas + UNA acción concreta. Cada investigación se guarda con fecha.</div>
+        <div><strong>5 lentes en un clic:</strong> (1) competidores corriendo anuncios bilingües · (2) contenido viral en Latino Medicare · (3) noticias / cambios CMS · (4) 3 oportunidades específicas para ti · (5) <b>análisis Chief of Staff</b> de cómo estás ejecutando — qué funciona, qué cambiar, qué no estás haciendo. Cada investigación se guarda con fecha.</div>
       </div>
 
       <div class="intel-hero">
         <div class="intel-hero-text">
-          <div class="intel-hero-title">¿Qué está pasando esta semana?</div>
-          <div class="intel-hero-sub">Investigación en vivo del mercado · competidores activos · contenido viral · oportunidades específicas.</div>
+          <div class="intel-hero-title">¿Qué está pasando esta semana — y qué debes cambiar?</div>
+          <div class="intel-hero-sub">Búsqueda web en vivo del mercado + análisis interno de tu propia ejecución (plan, leads, memoria, gaps). El Radar piensa como tu Chief of Staff.</div>
           <div class="intel-cadence">💡 Recomendado: <b>córrelo cada lunes</b> para arrancar la semana sabiendo qué hacer.</div>
         </div>
-        <button class="intel-btn" id="intelMktBtn" onclick="runIntel()">🔍 Investigar el mercado ahora</button>
+        <button class="intel-btn" id="intelMktBtn" onclick="runIntel()">🔍 Activar Radar</button>
       </div>
       <div class="intel-status" id="intelMktStatus">Listo. Asegúrate de tener tu API Key.</div>
 
-      <div class="ai-box" id="intelMktOutput" style="min-height:200px"><div class="ai-label">✨ Resultado de la investigación</div></div>
+      <div class="ai-box" id="intelMktOutput" style="min-height:200px"><div class="ai-label">📡 Reporte del Radar</div></div>
 
       <div class="card" style="margin-top:20px">
         <div class="card-head"><span>📚</span><div class="card-title">Historial de investigaciones</div></div>
@@ -2849,8 +2849,29 @@ async function runEquipoIA(){
   btn.disabled = false;
 }
 
-// ─── INTELIGENCIA DE MERCADO (web search en vivo) ───
+// ─── RADAR (web search + Chief of Staff lens) ───
 const INTEL_STORE = 'isabel_intel_runs';
+
+function buildSelfStateSnapshot(){
+  const totalPlan = document.querySelectorAll('#mod-plan input[type=checkbox]').length;
+  const donePlan = document.querySelectorAll('#mod-plan input[type=checkbox]:checked').length;
+  const planPct = totalPlan ? Math.round(donePlan/totalPlan*100) : 0;
+  const leadsTotal = leads.length;
+  const daysSinceLastLead = leads.length ? Math.floor((Date.now() - leads[0].id) / 86400000) : null;
+  const pendingTareas = memoria.tareas.filter(t => !t.done);
+  const pendingComp = memoria.compromisos.filter(c => !c.fulfilled);
+  let score = 0, gaps = [];
+  try{ score = computeHealth(); gaps = computeGaps(); }catch(_){}
+  let prevRuns = [];
+  try{ prevRuns = JSON.parse(localStorage.getItem(INTEL_STORE) || '[]'); }catch(_){}
+  const prevSummary = prevRuns.slice(0, 2).map(r => `[${r.date}] ${r.text.slice(0, 400).replace(/\s+/g,' ')}`).join('\n');
+  return `Salud del negocio: ${score}/100
+Plan de Acción: ${donePlan}/${totalPlan} tareas marcadas (${planPct}%)
+Leads en CRM: ${leadsTotal}${daysSinceLastLead !== null ? ' (último hace '+daysSinceLastLead+' días)' : ' (sin leads)'}
+Memoria: ${memoria.hechos.length} hechos · ${memoria.personas.length} personas · ${memoria.tareas.length} tareas (${pendingTareas.length} pendientes) · ${memoria.compromisos.length} compromisos (${pendingComp.length} sin cumplir)
+Gaps detectados ahora mismo: ${gaps.length ? gaps.map(g => g.msg).join(' | ') : 'ninguno'}
+Investigaciones previas del Radar: ${prevRuns.length ? prevRuns.length+' ('+prevRuns[0].date+' la más reciente)' : 'ninguna'}${prevSummary ? '\n\nResumen previas:\n'+prevSummary : ''}`;
+}
 
 async function callClaudeWebSearch(systemPrompt, userMsg, maxSearches=6){
   const res = await fetch('https://api.anthropic.com/v1/messages', {
@@ -2863,7 +2884,7 @@ async function callClaudeWebSearch(systemPrompt, userMsg, maxSearches=6){
     },
     body: JSON.stringify({
       model: 'claude-sonnet-4-20250514',
-      max_tokens: 4096,
+      max_tokens: 6000,
       system: systemPrompt,
       tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearches }],
       messages: [{ role: 'user', content: userMsg }]
@@ -2883,24 +2904,44 @@ async function runIntel(){
   const btn = document.getElementById('intelMktBtn');
   const status = document.getElementById('intelMktStatus');
   btn.disabled = true;
-  status.textContent = '🔭 Investigando el mercado en vivo (puede tardar 30-60 seg)…';
-  setOutput('intelMktOutput','<div class="ai-loading">🔍 Buscando en la web<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
+  status.textContent = '🔭 Radar activo (mercado + análisis interno, puede tardar 30-60 seg)…';
+  setOutput('intelMktOutput','<div class="ai-loading">🔍 Activando radar<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
   const t0 = Date.now();
-  const prompt = `Eres analista de inteligencia de mercado para Isabel Fuentes, agente de Medicare en el mercado hispano de SoCal. Investiga AHORA (esta semana) usando búsqueda web y dame un reporte estructurado:
+  const stateSnapshot = buildSelfStateSnapshot();
+  const prompt = `Eres el RADAR de Isabel Fuentes (agente Medicare hispano SoCal). Actúas en doble rol:
+(A) **analista de mercado** que busca AHORA en la web qué pasa afuera, y
+(B) **Chief of Staff** que mira su propia ejecución y le dice qué cambiar.
+
+ESTADO INTERNO DE ISABEL (snapshot del sistema en este momento):
+${stateSnapshot}
+
+Tu reporte debe tener EXACTAMENTE estas 5 secciones, en este orden:
 
 ## 📢 Competidores corriendo anuncios bilingües
-Busca quién está corriendo anuncios de Medicare en Facebook/Instagram dirigidos al mercado hispano/bilingüe en California (ej: Quotely, eHealth, ConnieHealth, GoHealth, agencias locales, agentes virales). Para cada uno: (a) quién, (b) su mensaje/hook principal, (c) qué hace bien.
+Busca en la web quién está corriendo anuncios de Medicare en Facebook/Instagram dirigidos al mercado hispano/bilingüe en California (Quotely, eHealth, ConnieHealth, GoHealth, agencias locales, agentes virales). Para cada uno: (a) quién, (b) hook principal, (c) qué hace bien.
 
 ## 🔥 Contenido viral en español sobre Medicare
-Busca qué tipo de Reels/posts/Lives sobre Medicare en español están funcionando últimamente. Hooks específicos, formatos, ángulos que generan engagement.
+Busca qué Reels/posts/Lives en español sobre Medicare están funcionando últimamente. Hooks, formatos, ángulos que generan engagement.
 
 ## 📰 Noticias / cambios recientes
-Cambios en Medicare Advantage para 2026, beneficios nuevos, regulaciones CMS, o noticias relevantes que Isabel pueda usar en su contenido esta semana.
+Cambios CMS, Medicare Advantage 2026, beneficios nuevos, noticias que Isabel pueda usar esta semana.
 
 ## 💡 3 OPORTUNIDADES específicas para Isabel
-Basado en lo de arriba, dame 3 oportunidades concretas que Isabel debería atacar esta semana. Para cada una: ángulo, gancho sugerido, y por qué funcionaría AHORA.
+Tres oportunidades concretas para atacar esta semana. Para cada una: ángulo, gancho sugerido, por qué funcionaría AHORA.
 
-Usa búsqueda web para obtener información REAL y actual del mercado hispano de Medicare en California. NO inventes ejemplos ni nombres.`;
+## 🧭 ANÁLISIS CHIEF OF STAFF (cómo mejorar la operación)
+Esta es la sección más importante. NO es contenido — son cambios estructurales. Como su Chief of Staff:
+- **Qué está funcionando** en cómo Isabel ejecuta su marketing y su sistema. Sé específica (mira el estado interno).
+- **Qué NO está funcionando** o se está estancando. Sé directa, sin endulzar (ej: "Plan al 15% hace semanas", "0 leads agregados en 12 días", "compromisos sin cumplir acumulándose"). Si todo está bien, dilo.
+- **Si en investigaciones previas mencionamos una oportunidad y no se ejecutó**, llámalo. Cruza las "previas" con el estado actual.
+- **2 cambios concretos que Isabel debe hacer ESTA semana** en su sistema, ritmo o ejecución (no contenido — eso ya está arriba). Ejemplos: "fija el Live del jueves como cita inamovible", "cierra los 3 compromisos pendientes antes del miércoles", "convierte la oportunidad X de la semana pasada en un Reel hoy".
+
+Cierra con "✅ Tu próxima acción:" — UNA acción del Chief of Staff (operacional, no de contenido).
+
+Reglas:
+- Usa búsqueda web para datos reales del mercado. NO inventes nombres, métricas ni ejemplos.
+- Sé honesta y específica. Si Isabel está estancada, dilo. Si está rodando, recónocelo.
+- El análisis Chief of Staff DEBE conectar el mercado (afuera) con su ejecución (adentro).`;
   try{
     const text = await callClaudeWebSearch(ISABEL_SYSTEM, prompt, 6);
     setOutput('intelMktOutput', text || 'Sin resultado.');

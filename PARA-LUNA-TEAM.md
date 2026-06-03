@@ -154,14 +154,35 @@ que corra automática cada lunes y le mande a Isabel los hallazgos por Telegram:
 ```php
 <?php
 require __DIR__ . '/../config.php';
+// Snapshot interno desde MySQL (mismas tablas que luna_memoria, luna_intel previas)
+$snapshot = build_self_state_snapshot($PDO);  // helper que genera string con score, plan%, leads, tareas pendientes, gaps, runs previas
+
 $prompt = <<<EOT
-Analista de inteligencia para Isabel Fuentes (Medicare hispano SoCal).
-Investiga AHORA usando búsqueda web:
-1. Competidores corriendo anuncios bilingües (Quotely, eHealth, etc) — qué dicen.
-2. Contenido viral en español sobre Medicare esta semana.
-3. Cambios CMS / Medicare Advantage 2026.
-4. 3 OPORTUNIDADES específicas para Isabel + UNA acción concreta.
-NO inventes datos.
+Eres el RADAR de Isabel Fuentes. Doble rol: (A) analista de mercado con búsqueda web, (B) Chief of Staff.
+
+ESTADO INTERNO DE ISABEL:
+{$snapshot}
+
+Tu reporte debe tener EXACTAMENTE 5 secciones en este orden:
+
+## 📢 Competidores corriendo anuncios bilingües
+Quién corre ads de Medicare bilingüe en FB/IG SoCal (Quotely, eHealth, etc): hook, qué hace bien.
+
+## 🔥 Contenido viral en español sobre Medicare
+Reels/posts/Lives que funcionan ahora. Hooks, formatos, ángulos.
+
+## 📰 Noticias / cambios CMS
+Cambios MA 2026, beneficios nuevos, noticias.
+
+## 💡 3 OPORTUNIDADES específicas para Isabel
+Cada una: ángulo, gancho, por qué AHORA.
+
+## 🧭 ANÁLISIS CHIEF OF STAFF (cómo mejorar)
+Cambios ESTRUCTURALES (no de contenido). Qué funciona, qué no, qué cambiar esta semana.
+Si previas no se ejecutaron, llámalo.
+
+Cierra con "✅ Tu próxima acción:" UNA acción operacional.
+NO inventes nombres ni métricas.
 EOT;
 
 $body = json_encode([

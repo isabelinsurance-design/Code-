@@ -78,14 +78,17 @@ attention items. Both re-render on every state-changing call
 absolute superlatives, no guarantees, no negative carrier comparisons, etc.)
 and inserts a `.cms-banner` next to the output if anything matches.
 
-**Market intelligence** (`🔭 Inteligencia Mercado`): `runIntel()` calls the
-Anthropic API with the `web_search_20250305` tool enabled (`max_uses: 6`) and a
-structured prompt asking for active competitor ads in Latino Medicare,
-trending viral content, recent CMS/Medicare news, and 3 specific opportunities
-for Isabel. Each run is saved to `isabel_intel_runs` localStorage (last 20)
-and rendered as a collapsible history. The PHP cron version
-(`cron/intel-semanal.php`, lunes 6am) is in `PARA-LUNA-TEAM.md` for the LUNA
-team to deploy.
+**Radar** (`🔭 Radar`): `runIntel()` calls Anthropic with the
+`web_search_20250305` tool enabled (`max_uses: 6`) and a prompt that combines
+**live market intel + internal Chief-of-Staff analysis**. The 5 lenses are:
+(1) competitor bilingual ads, (2) viral Spanish Medicare content, (3) CMS /
+Medicare news, (4) 3 specific opportunities, (5) Chief of Staff analysis —
+this fifth lens reads Isabel's *internal* state (plan %, lead count + recency,
+memoria sizes, pending tareas + compromisos, current gaps, and a summary of
+the previous 2 Radar runs) and tells her what to change structurally.
+`buildSelfStateSnapshot()` produces the internal state string. Each run is
+saved to `isabel_intel_runs` localStorage (last 20). PHP cron version (Mon 6am
+with same 5-lens structure) is in `PARA-LUNA-TEAM.md`.
 
 **Multi-coach orchestrator** (`🧭 Pregunta Inteligente`, Athena Section 5): a
 shared `COACHES` roster (id, icon, name, desc, voice) is the canonical source
