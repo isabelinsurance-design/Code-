@@ -16,6 +16,7 @@ import Reading from './pages/Reading.jsx';
 import Rapport from './pages/Rapport.jsx';
 import Plans from './pages/Plans.jsx';
 import Search from './pages/Search.jsx';
+import Coaches from './pages/Coaches.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -55,6 +56,7 @@ export default function App() {
           <Route path="/rapport" element={<Rapport />} />
           <Route path="/plans" element={<Plans />} />
           <Route path="/search" element={<Search />} />
+          <Route path="/coaches" element={<Coaches />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

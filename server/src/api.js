@@ -606,6 +606,44 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Coaches overview: directorio de los 17 con stats por cada uno ----
+  // (plan items, notes length, thread count, last interaction).
+  app.get('/api/coaches/overview', requireAuth, async (_req, res) => {
+    try {
+      const { SPECIALISTS, DIRECTORA } = await import('./agents.js');
+      const { loadCoachPlan } = await import('./coach_plans.js');
+      const { loadCoachNotes } = await import('./coach_notes.js');
+      const { loadCoachThread } = await import('./coach_threads.js');
+      const all = [
+        { id: 'directora', name: DIRECTORA.name, role: DIRECTORA.role || 'Chief of Staff' },
+        ...Object.values(SPECIALISTS).map((s) => ({ id: s.id, name: s.name, role: s.role || '' })),
+      ];
+      const out = all.map((c) => {
+        // directora no usa coach_plans/notes/threads (su memoria es global)
+        if (c.id === 'directora') {
+          return { ...c, has_data: false, plan_active: 0, plan_total: 0, notes_length: 0, notes_updated: null, thread_length: 0, thread_last_ts: null };
+        }
+        const plan = loadCoachPlan(c.id);
+        const notes = loadCoachNotes(c.id);
+        const thread = loadCoachThread(c.id);
+        const lastTurn = thread.length ? thread[thread.length - 1] : null;
+        return {
+          ...c,
+          has_data: plan.items.length > 0 || notes.notes.length > 0 || thread.length > 0,
+          plan_active: plan.items.filter((i) => i.status === 'active').length,
+          plan_total: plan.items.length,
+          notes_length: notes.notes.length,
+          notes_updated: notes.actualizado,
+          thread_length: thread.length,
+          thread_last_ts: lastTurn?.ts || null,
+        };
+      });
+      res.json(out);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ---- Búsqueda global: busca un keyword en todas las fuentes de memoria ----
   app.get('/api/search', requireAuth, async (req, res) => {
     try {
