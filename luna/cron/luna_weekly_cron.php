@@ -555,14 +555,15 @@ $data = collectWeeklyData($pdo);
 $data['ai_analysis'] = lunaWeeklyAnalysis($data); // null si no hay key/IA → usa fallback
 logWeekly("AI analysis: " . ($data['ai_analysis'] ? 'OK' : 'skipped/unavailable'), $CONFIG);
 
-// 📡 Radar Chief of Staff para el reporte: reusa el último radar semanal de
-// la plataforma si es fresco (≤8 días); si no, genera uno nuevo. Así el email
-// y la vista 📡 Radar muestran lo mismo, sin gastar de más.
+// 📡 Radar Chief of Staff para el reporte. Como el reporte sale el viernes y
+// la junta de equipo (Teams) es el sábado, el radar debe estar FRESCO ese día.
+// Generamos uno nuevo el viernes; solo reusamos si ya se generó hoy (mismo día)
+// para no duplicar trabajo si otro cron corrió esta mañana.
 $data['radar'] = null;
 try {
   $latest = radarLatest($pdo, 'weekly');
-  $fresh  = $latest && !empty($latest['created_at']) && strtotime($latest['created_at']) > strtotime('-8 days');
-  $data['radar'] = $fresh ? $latest : radarRun($pdo, 'weekly');
+  $todayHB = $latest && !empty($latest['created_at']) && substr($latest['created_at'], 0, 10) === date('Y-m-d');
+  $data['radar'] = $todayHB ? $latest : radarRun($pdo, 'weekly');
 } catch (Exception $e) {
   logWeekly("Radar weekly: error - " . $e->getMessage(), $CONFIG);
 }
