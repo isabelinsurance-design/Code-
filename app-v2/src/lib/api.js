@@ -150,4 +150,8 @@ export const api = {
   coachPlanRemove: (coach, itemId) =>
     request(`/coach_plan/${encodeURIComponent(coach)}/${encodeURIComponent(itemId)}`, { method: 'DELETE' }),
   coachPlanClear: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
+  // Expediente que la coach mantiene sobre Isabel (smart coaches C).
+  // Read-only desde la UI; lo escribe la propia coach via tool.
+  coachNotes: (coach) => request(`/coach_notes/${encodeURIComponent(coach)}`),
+  coachNotesClear: (coach) => request(`/coach_notes/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
 };

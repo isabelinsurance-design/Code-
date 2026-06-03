@@ -912,6 +912,67 @@ MODOS:
     description: 'Devuelve el rapport más reciente de Isabel + delta de peso vs hace 4 sem y 12 sem. Úsala cuando ella pregunte "cómo voy con el peso", "cuál fue mi última medida", o cuando una coach de salud necesite el snapshot. Sin parámetros.',
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'reading_agregar',
+    description: 'Guarda un URL (artículo, video, podcast) a la reading list para procesarlo después. ÚSALA cuando Isabel diga "guarda este link", "mira esto", "léeme esto cuando tenga tiempo", o cuando ella te mande un URL en medio de una conversación sobre otra cosa. Opcional: notas (por qué le interesa) y tags (medicare, parenting, salud, etc.).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        url: { type: 'string', description: 'URL completo (http:// o https://).' },
+        titulo: { type: 'string', description: 'Título si lo sabes (opcional — si Isabel solo mandó URL, no inventes).' },
+        notas: { type: 'string', description: 'Por qué le interesa o qué quiere sacar de ahí.' },
+        tags: { type: 'array', items: { type: 'string' }, description: 'Tags para clasificar. Ej: ["medicare", "AEP"]' },
+      },
+      required: ['url'],
+    },
+  },
+  {
+    name: 'reading_lista',
+    description: 'Lista items de la reading list. ÚSALA cuando Isabel pregunte "qué tengo guardado", "qué links pendientes", o cuando quieras ofrecerle algo para leer en un hueco. Default: pending. Filtros opcionales por status y tag.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        status: { type: 'string', enum: ['pending', 'leido', 'archivado'], description: 'Default pending.' },
+        tag: { type: 'string', description: 'Filtra por tag específico.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'reading_resumen',
+    description: 'Genera un resumen de un item de la reading list usando web_search en su URL. ÚSALA cuando Isabel diga "resúmeme el de X", "qué dice el artículo Y", o cuando quieras ofrecerle un preview antes de que se siente a leerlo. Después de resumir, considera marcarlo como leído si Isabel lo confirma.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del item (formato rd_xxx).' },
+      },
+      required: ['id'],
+    },
+  },
+  {
+    name: 'reading_marcar',
+    description: 'Cambia el status de un item: pending (default) | leido (ya lo procesó) | archivado (ya no aplica). ÚSALA cuando Isabel diga "ya leí el de X", "archiva el de Y", etc.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'ID del item.' },
+        status: { type: 'string', enum: ['pending', 'leido', 'archivado'] },
+      },
+      required: ['id', 'status'],
+    },
+  },
+  {
+    name: 'brainstorm_estructurado',
+    description: 'Sesión de brainstorm estructurado sobre un tema: frame → 10 ideas → top 3 ranked → plan de acción para #1. ÚSALA cuando Isabel diga "brainstorm conmigo sobre X", "ayúdame a pensar Y", "qué opciones tengo para Z". El output viene listo para presentárselo. Después tú decides si crear tareas con crear_tarea para el plan de acción.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        tema: { type: 'string', description: 'El tema o pregunta sobre la cual brainstormear. Sé específica.' },
+        contexto: { type: 'string', description: 'Contexto adicional opcional (constraints, presupuesto, qué ya intentó, etc.).' },
+      },
+      required: ['tema'],
+    },
+  },
 
   // ───────── GOALS (Victoria Vision) ─────────
   {
@@ -1766,12 +1827,14 @@ async function dispatchTool(name, input) {
             const b = buildBrandForMarisol();
             if (b) wikiAumentado += b;
           }
-          // Cada coach ve SU propio plan (Phase C — antes solo lo veía
-          // cuando Isabel le chateaba directo en la PWA; ahora también
-          // cuando Athena la consulta desde WhatsApp). Pilar no aplica
-          // — sus "planes" viven en LUNA como tickets/citas.
+          // Cada coach ve SU expediente + SU plan vigente (smart coaches
+          // C). Pilar no aplica — sus "datos" viven en LUNA como
+          // miembros/pólizas/tickets.
           if (c.especialista !== 'pilar') {
             const { planAsContext } = await import('./coach_plans.js');
+            const { notesAsContext } = await import('./coach_notes.js');
+            const notesCtx = notesAsContext(c.especialista, spec.name);
+            if (notesCtx) wikiAumentado += '\n\n' + notesCtx;
             const planCtx = planAsContext(c.especialista, spec.name);
             if (planCtx) wikiAumentado += '\n\n' + planCtx;
           }
@@ -2506,6 +2569,117 @@ async function dispatchTool(name, input) {
       if (t && t.delta_4w !== null) parts.push(`Δ4w: ${t.delta_4w > 0 ? '+' : ''}${t.delta_4w} lbs`);
       if (t && t.delta_12w !== null) parts.push(`Δ12w: ${t.delta_12w > 0 ? '+' : ''}${t.delta_12w} lbs`);
       return parts.join(' · ');
+    }
+    case 'reading_agregar': {
+      try {
+        const { addItem } = await import('./reading_list.js');
+        const it = addItem({
+          url: input.url,
+          titulo: input.titulo,
+          notas: input.notas,
+          tags: input.tags,
+        });
+        const label = it.titulo || it.url.slice(0, 80);
+        return `📚 Guardado [${it.id}] ${label} (${it.fuente || 'web'})${it.tags?.length ? ` · tags: ${it.tags.join(', ')}` : ''}`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'reading_lista': {
+      const { listItems } = await import('./reading_list.js');
+      const items = listItems({
+        status: input.status || 'pending',
+        tag: input.tag || null,
+        limit: 30,
+      });
+      if (!items.length) return `Reading list (${input.status || 'pending'}): vacía.`;
+      const lines = [`📚 Reading list (${input.status || 'pending'}, ${items.length} item${items.length > 1 ? 's' : ''}):`];
+      for (const i of items) {
+        const label = i.titulo || i.url.slice(0, 80);
+        const tagsStr = i.tags?.length ? ` [${i.tags.join(', ')}]` : '';
+        lines.push(`  [${i.id}] ${label} — ${i.fuente || 'web'}${tagsStr}`);
+        if (i.notas) lines.push(`     nota: ${i.notas.slice(0, 100)}`);
+      }
+      return lines.join('\n');
+    }
+    case 'reading_resumen': {
+      const { getItem, updateItem } = await import('./reading_list.js');
+      const it = getItem(input.id);
+      if (!it) return `Item ${input.id} no existe.`;
+      // Si ya tiene resumen cacheado, lo devolvemos sin volver a llamar.
+      if (it.resumen) return `📚 ${it.titulo || it.url}\n\n${it.resumen}\n\n(resumen cacheado — si quieres uno fresco, marca el item y vuelve a agregarlo).`;
+      // Genera resumen con web_search via Anthropic.
+      const { anthropic } = await import('./claude.js');
+      try {
+        const res = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 800,
+          tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: 2 }],
+          messages: [{
+            role: 'user',
+            content: `Necesito un resumen del contenido en esta URL: ${it.url}\n\nBusca el contenido usando web_search (max 2 búsquedas). Devuelve:\n1. TÍTULO real\n2. 4-6 bullets con los puntos clave\n3. UNA conclusión accionable para Isabel (Medicare agent, 53, espíritu emprendedor)\n\nSi web_search no devuelve contenido relevante, di claramente "no pude acceder al contenido" — no inventes.`,
+          }],
+        });
+        const text = res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+        if (text && !/no pude acceder/i.test(text)) {
+          updateItem(input.id, { resumen: text });
+        }
+        return `📚 ${it.titulo || it.url}\n\n${text}`;
+      } catch (err) {
+        return `Error generando resumen: ${err.message}`;
+      }
+    }
+    case 'reading_marcar': {
+      try {
+        const { updateItem } = await import('./reading_list.js');
+        const it = updateItem(input.id, { status: input.status });
+        return `📚 [${it.id}] marcado como ${it.status}.`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'brainstorm_estructurado': {
+      const { anthropic } = await import('./claude.js');
+      const tema = String(input.tema || '').trim();
+      if (!tema) return 'Error: tema vacío.';
+      const ctx = input.contexto ? `\n\nCONTEXTO:\n${input.contexto}` : '';
+      try {
+        const res = await anthropic.messages.create({
+          model: 'claude-sonnet-4-6',
+          max_tokens: 1800,
+          system: 'Sos una facilitadora de brainstorm estructurado para Isabel Fuentes (53, Medicare agent en SoCal, espíritu emprendedor). Usás su filosofía "más completa, no más perfecta" — no perseguir perfección, perseguir progreso. Spanglish natural.',
+          messages: [{
+            role: 'user',
+            content: `Brainstorm estructurado sobre: ${tema}${ctx}
+
+FORMATO EXACTO (sin saltarte ninguna sección):
+
+═══ FRAME ═══
+Reformula la pregunta en una frase más sharp. Si la pregunta original es vaga, hazla específica. Si tiene assumption oculto, exponelo.
+
+═══ 10 IDEAS ═══
+Lista 10 ideas — diversas, incluyendo algunas obvias y algunas locas. Una línea cada una.
+1. ...
+2. ...
+... (hasta 10)
+
+═══ CRITERIOS DE EVALUACIÓN ═══
+3-4 criterios para rankear (ej. impacto, esfuerzo, alineación con AEP, riesgo, costo).
+
+═══ TOP 3 ═══
+Las 3 mejores con 1-2 frases de por qué cada una.
+1. [idea] — porque [razón]
+2. ...
+3. ...
+
+═══ PLAN PARA #1 ═══
+4-6 pasos accionables. Quién, cuándo, qué entregable. Incluí el primer paso que se puede hacer EN LAS PRÓXIMAS 24 HORAS.`
+          }],
+        });
+        return res.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim();
+      } catch (err) {
+        return `Error brainstorm: ${err.message}`;
+      }
     }
     case 'mi_rapport': {
       const { rapportTrend } = await import('./rapport.js');

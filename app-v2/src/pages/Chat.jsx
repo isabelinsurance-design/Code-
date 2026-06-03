@@ -23,6 +23,8 @@ export default function Chat() {
   const [plan, setPlan] = useState(null);
   const [planOpen, setPlanOpen] = useState(true);
   const [newPlanText, setNewPlanText] = useState('');
+  const [notes, setNotes] = useState(null);
+  const [notesOpen, setNotesOpen] = useState(false);
   const scrollRef = useRef(null);
 
   useEffect(() => {
@@ -42,6 +44,28 @@ export default function Chat() {
     }
   }
 
+  async function reloadNotes(c = coach) {
+    if (c === 'directora') {
+      setNotes(null);
+      return;
+    }
+    try {
+      const n = await api.coachNotes(c);
+      setNotes(n);
+    } catch { /* expediente vacío no es error */ }
+  }
+
+  async function clearNotes() {
+    if (coach === 'directora') return;
+    if (!confirm(`¿Borrar TODO el expediente de ${coaches.find((c) => c.id === coach)?.name || coach}? La coach perderá todo lo que ha aprendido de ti.`)) return;
+    try {
+      await api.coachNotesClear(coach);
+      setNotes({ coach_id: coach, notes: '', actualizado: null });
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
   // Al cambiar de coach: hidratamos su hilo persistente desde el servidor.
   // 'directora' usa el history de WhatsApp (compartido) — no tiene endpoint
   // /coach_thread, así que mostramos lista vacía y dejamos que ella responda
@@ -51,6 +75,7 @@ export default function Chat() {
     if (coach === 'directora') {
       setMessages([]);
       setPlan(null);
+      setNotes(null);
       return;
     }
     let cancelled = false;
@@ -63,6 +88,7 @@ export default function Chat() {
       })
       .catch((e) => { if (!cancelled) setErr(e.message); });
     reloadPlan(coach);
+    reloadNotes(coach);
     return () => { cancelled = true; };
   }, [coach]);
 
@@ -124,8 +150,11 @@ export default function Chat() {
     try {
       const r = await api.chat(coach, text);
       setMessages((m) => [...m, { role: 'assistant', content: r.reply || '(sin respuesta)' }]);
-      // La coach pudo haber actualizado su plan vía tools — refrescamos.
-      if (coach !== 'directora') reloadPlan(coach);
+      // La coach pudo haber actualizado su plan o expediente vía tools — refrescamos.
+      if (coach !== 'directora') {
+        reloadPlan(coach);
+        reloadNotes(coach);
+      }
     } catch (e) {
       setErr(e.message);
       setMessages((m) => [...m, { role: 'assistant', content: `[error: ${e.message}]`, error: true }]);
@@ -165,6 +194,27 @@ export default function Chat() {
           )}
         </div>
       </header>
+
+      {notes && notes.notes && (
+        <div className="card bg-lino-50 border border-lino-200">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setNotesOpen((o) => !o)}
+              className="text-sm font-semibold text-lino-800 flex items-center gap-2"
+            >
+              <span>{notesOpen ? '▾' : '▸'}</span>
+              <span>Expediente de {coaches.find((c) => c.id === coach)?.name || coach} sobre ti</span>
+              <span className="text-xs text-ink-3 font-normal">
+                ({notes.notes.length} chars{notes.actualizado ? ` · actualizado ${new Date(notes.actualizado).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}` : ''})
+              </span>
+            </button>
+            <button onClick={clearNotes} className="text-xs text-ink-3 hover:text-red" title="Borrar expediente completo">✕</button>
+          </div>
+          {notesOpen && (
+            <pre className="text-xs text-ink-1 whitespace-pre-wrap font-sans leading-relaxed">{notes.notes}</pre>
+          )}
+        </div>
+      )}
 
       {plan && (plan.items?.length > 0 || coach !== 'directora') && (
         <div className="card bg-lino-50 border border-lino-200">

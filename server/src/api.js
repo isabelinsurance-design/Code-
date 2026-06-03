@@ -546,11 +546,13 @@ export function registerApi(app) {
       const { buildWikiContext } = await import('./memory.js');
       const { loadCoachThread, appendCoachTurn, toApiMessages } = await import('./coach_threads.js');
       const { planAsContext } = await import('./coach_plans.js');
+      const { notesAsContext } = await import('./coach_notes.js');
       const { coachPlanTools, makeCoachPlanDispatcher } = await import('./coach_plan_tools.js');
       const spec = SPECIALISTS[coach];
       if (!spec) return res.status(404).json({ error: 'coach desconocido' });
       const wiki = buildWikiContext();
       const planCtx = planAsContext(coach, spec.name);
+      const notesCtx = notesAsContext(coach, spec.name);
       // Wiki + plan vigente como contexto; tools para que la coach pueda
       // actualizar su propio plan durante la conversación. Persistimos
       // solo el mensaje del usuario y la respuesta final (no los rounds
@@ -564,7 +566,9 @@ export function registerApi(app) {
       const reply = await askSpecialistThreaded(
         spec,
         apiMessages,
-        wiki + (planCtx ? '\n\n' + planCtx : ''),
+        wiki +
+          (notesCtx ? '\n\n' + notesCtx : '') +
+          (planCtx ? '\n\n' + planCtx : ''),
         {
           tools: [...coachPlanTools, WEB_SEARCH],
           toolDispatcher: makeCoachPlanDispatcher(coach),
@@ -655,6 +659,25 @@ export function registerApi(app) {
       const { clearCoachPlan } = await import('./coach_plans.js');
       const plan = clearCoachPlan(req.params.coach);
       res.json(plan);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // ---- Coach notes: expediente de cada coach sobre Isabel ----
+  app.get('/api/coach_notes/:coach', requireAuth, async (req, res) => {
+    try {
+      const { loadCoachNotes } = await import('./coach_notes.js');
+      res.json(loadCoachNotes(req.params.coach));
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/coach_notes/:coach', requireAuth, async (req, res) => {
+    try {
+      const { clearCoachNotes } = await import('./coach_notes.js');
+      res.json(clearCoachNotes(req.params.coach));
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

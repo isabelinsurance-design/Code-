@@ -20,6 +20,7 @@ import { buildResearchInline } from './research.js';
 import { buildBrandInline } from './brand.js';
 import { buildCoachCadenceInline } from './coach_cadence.js';
 import { buildAllPlansInline } from './coach_plans.js';
+import { buildReadingListInline } from './reading_list.js';
 import { SPECIALISTS } from './agents.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -333,6 +334,12 @@ export function buildWikiContext() {
   try {
     const plansBlock = buildAllPlansInline((id) => SPECIALISTS[id]?.name || id);
     if (plansBlock) parts.push(plansBlock);
+  } catch { /* ignore */ }
+  // Reading list — cuántos items pendientes + top 3, para que Athena
+  // los pueda surfacear en evening recap o cuando Isabel tenga hueco.
+  try {
+    const reading = buildReadingListInline();
+    if (reading) parts.push(reading);
   } catch { /* ignore */ }
   if (pending.length) {
     const items = pending.map((p) => {

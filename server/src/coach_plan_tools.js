@@ -10,6 +10,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { addPlanItem, updatePlanItem, loadCoachPlan } from './coach_plans.js';
+import { loadCoachNotes, saveCoachNotes } from './coach_notes.js';
 
 export const coachPlanTools = [
   {
@@ -54,6 +55,20 @@ export const coachPlanTools = [
     description: 'Devuelve TU plan vigente con Isabel — útil si necesitas re-leerlo en medio de la conversación. El plan ya viene en tu contexto al inicio, así que normalmente no necesitas llamarlo. Úsalo solo si Isabel te pregunta directamente "qué me recomendaste" o si quieres confirmar el item_id exacto antes de actualizar.',
     input_schema: { type: 'object', properties: {} },
   },
+  {
+    name: 'coach_notes_actualizar',
+    description: 'Actualiza TU expediente sobre Isabel — los hechos estables que sabes de ella desde tu lente de dominio (ej. Sofía: labs, ciclo, intolerancias; Carmen: alergias, preferencias, hábitos; Rivera: PRs, lesiones, ciclo de entrenamiento; Marisol: estilo de marca, plataformas favoritas; Elena: ingresos típicos, cuentas, vehículos). USA ESTA TOOL CUANDO APRENDAS algo nuevo importante que querrás recordar siempre. Reescribe el blob COMPLETO con tu versión actualizada — preserva lo que sigue siendo cierto, agrega lo nuevo, elimina lo obsoleto. Formato libre markdown. Sé concisa: bullets de hechos, no narrativa.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        notes: {
+          type: 'string',
+          description: 'El expediente completo en markdown. Sustituye al anterior por completo.',
+        },
+      },
+      required: ['notes'],
+    },
+  },
 ];
 
 export function makeCoachPlanDispatcher(coachId) {
@@ -77,6 +92,11 @@ export function makeCoachPlanDispatcher(coachId) {
       return plan.items
         .map((i) => `[${i.id}] (${i.status}) ${i.text}`)
         .join('\n');
+    }
+    if (name === 'coach_notes_actualizar') {
+      saveCoachNotes(coachId, input.notes || '');
+      const n = loadCoachNotes(coachId);
+      return `Expediente actualizado (${n.notes.length} chars). Cambios persistidos.`;
     }
     throw new Error(`Tool desconocida: ${name}`);
   };
