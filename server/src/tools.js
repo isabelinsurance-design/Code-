@@ -1986,7 +1986,14 @@ async function dispatchTool(name, input) {
         }
         return `Tipo desconocido en cola: ${item.type}`;
       } catch (err) {
-        return `Error al enviar el borrador ${item.id}: ${err.message}`;
+        // Re-encolar para que Isabel pueda reintentar sin volver a redactar.
+        // Antes este bug perdía el draft tras falla SMTP — provocaba el ciclo
+        // "envía → 'borrador no en cola' → 'sí preparalo de nuevo'".
+        try {
+          const { queueOutbound } = await import('./memory.js');
+          queueOutbound(item);
+        } catch { /* mejor preservar el error original */ }
+        return `Error al enviar el borrador ${item.id} — lo dejé en cola para retry: ${err.message}`;
       }
     }
     case 'descartar_envio': {

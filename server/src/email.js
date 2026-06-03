@@ -6,23 +6,38 @@ const GMAIL_USER = process.env.GMAIL_USER;
 const GMAIL_APP_PASSWORD = process.env.GMAIL_APP_PASSWORD;
 const emailEnabled = Boolean(GMAIL_USER && GMAIL_APP_PASSWORD);
 
-// ---- Mandar correo (SMTP de Gmail con contraseña de aplicación) ----
+// ---- Mandar correo (SMTP explícito — más confiable que service:'gmail') ----
+// Cambio del shortcut "service: gmail" (puerto 465/secure) al config explícito
+// (puerto 587 / STARTTLS) porque 465 a veces queda colgado desde Railway egress.
+// Mismo Gmail/Workspace, mismo App Password — solo cambia el handshake.
 export async function sendEmail(to, subject, body) {
   if (!emailEnabled) {
     return 'El email todavía no está configurado. Pon GMAIL_USER y GMAIL_APP_PASSWORD en el .env para activarlo.';
   }
   const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host: 'smtp.gmail.com',
+    port: 587,
+    secure: false, // STARTTLS — más confiable que 465 desde Railway
     auth: { user: GMAIL_USER, pass: GMAIL_APP_PASSWORD },
+    connectionTimeout: 15_000, // 15s evita cuelgues largos sin error claro
+    socketTimeout: 15_000,
   });
   const firma = `\n\n—\n${process.env.ISABEL_NAME || 'Isabel Fuentes'}\nLicensed Medicare Agent · California`;
-  await transporter.sendMail({
-    from: GMAIL_USER,
-    to,
-    subject,
-    text: body + firma,
-  });
-  return `Correo enviado a ${to} con el asunto "${subject}".`;
+  try {
+    const info = await transporter.sendMail({
+      from: GMAIL_USER,
+      to,
+      subject,
+      text: body + firma,
+    });
+    console.log(`[email] enviado a ${to}: messageId=${info.messageId}`);
+    return `Correo enviado a ${to} con el asunto "${subject}".`;
+  } catch (err) {
+    // Log detallado para diagnóstico — el error real (code/command/response)
+    // queda en Railway logs aunque Athena solo le muestre el message a Isabel.
+    console.error(`[email] SMTP fail to=${to} code=${err.code || '?'} command=${err.command || '?'} response="${err.response || ''}" message="${err.message}"`);
+    throw err; // re-throw para que confirmar_envio re-encole el draft
+  }
 }
 
 // ---- Revisar correos recientes (IMAP de Gmail) ----
