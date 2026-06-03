@@ -999,6 +999,19 @@ MODOS:
     input_schema: { type: 'object', properties: {} },
   },
   {
+    name: 'push_notificacion',
+    description: 'Manda una notificación push nativa al iPhone/Mac de Isabel (banner del sistema operativo, suena/vibra aún con apps cerradas). ÚSALA cuando ella diga "mándame push de prueba", "mándame notificación push", o cuando hay algo realmente urgente que requiere atención inmediata aunque tenga WhatsApp silenciado. Requiere PWA instalada en iPhone (Safari → Compartir → Añadir a pantalla de inicio) Y permisos de notificación activos. Si no hay subscriptions activas, devuelve mensaje claro.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        titulo: { type: 'string', description: 'Título del push (default: "Athena").' },
+        cuerpo: { type: 'string', description: 'El mensaje. Sé breve — los pushes se cortan a ~120 chars en iOS.' },
+        url: { type: 'string', description: 'URL al tocar el push (default /app/hoy).' },
+      },
+      required: ['cuerpo'],
+    },
+  },
+  {
     name: 'brainstorm_estructurado',
     description: 'Sesión de brainstorm estructurado sobre un tema: frame → 10 ideas → top 3 ranked → plan de acción para #1. ÚSALA cuando Isabel diga "brainstorm conmigo sobre X", "ayúdame a pensar Y", "qué opciones tengo para Z". El output viene listo para presentárselo. Después tú decides si crear tareas con crear_tarea para el plan de acción.',
     input_schema: {
@@ -2729,6 +2742,22 @@ async function dispatchTool(name, input) {
       const last = grades[0];
       lines.push(`\nCambio propuesto en ${last.semana}:\n${last.cambio_propuesto || '(ninguno)'}`);
       return lines.join('\n');
+    }
+    case 'push_notificacion': {
+      try {
+        const { sendToAll } = await import('./push.js');
+        const r = await sendToAll({
+          title: input.titulo || 'Athena',
+          body: input.cuerpo,
+          url: input.url || '/app/hoy',
+          tag: 'directora',
+        });
+        if (!r.ok) return `No pude mandar push: ${r.reason}`;
+        if (r.sent === 0) return 'No hay dispositivos suscritos al push. Activa primero en la PWA: Hoy → "Activar notificaciones" (requiere PWA instalada en iPhone via Safari).';
+        return `🔔 Push enviado a ${r.sent} dispositivo(s)${r.removed ? `, ${r.removed} caducados purgados` : ''}.`;
+      } catch (err) {
+        return `Error en push: ${err.message}`;
+      }
     }
     case 'brainstorm_estructurado': {
       const { anthropic } = await import('./claude.js');
