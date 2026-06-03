@@ -124,19 +124,33 @@ async function attachRecordingToClient(fromPhone, recordingUrl, callSid) {
 export function attachVoiceRelay(httpServer) {
   const wss = new WebSocketServer({ noServer: true });
   httpServer.on('upgrade', (req, socket, head) => {
-    if (req.url !== '/voice/relay') return; // dejamos otros upgrades pasar
+    // Log defensivo: queremos saber EXACTAMENTE qué URL pide Twilio.
+    // Sin esto, si el path no matchea exactamente, la upgrade se ignora
+    // silenciosamente y Twilio dice "application error" al caller.
+    console.log(`[voice] upgrade request url=${req.url} method=${req.method} headers.upgrade=${req.headers.upgrade}`);
+    // Antes era === '/voice/relay'. Eso falla si Twilio agrega query
+    // params (ej. ?session=abc) o trailing slash. Más permisivo:
+    const urlPath = (req.url || '').split('?')[0].replace(/\/+$/, '');
+    if (urlPath !== '/voice/relay') {
+      console.log(`[voice] upgrade NO matchea /voice/relay, dejando pasar (path=${urlPath})`);
+      return; // dejamos otros upgrades pasar
+    }
+    console.log('[voice] upgrade match — iniciando WS handshake');
     wss.handleUpgrade(req, socket, head, (ws) => {
       wss.emit('connection', ws, req);
     });
   });
   wss.on('connection', (ws, req) => {
-    console.log('[voice] cliente WS conectado.');
+    console.log(`[voice] cliente WS conectado from=${req.socket?.remoteAddress || '?'}`);
     runRelaySession(ws).catch((err) => {
-      console.error('[voice] sesión murió:', err.message);
+      console.error('[voice] sesión murió:', err.message, err.stack);
       try { ws.close(); } catch { /* ignore */ }
     });
   });
-  console.log('[voice] /voice/relay listo para llamadas.');
+  wss.on('error', (err) => {
+    console.error('[voice] WSServer error:', err.message);
+  });
+  console.log('[voice] /voice/relay listo para llamadas (WSServer atachado al httpServer).');
 }
 
 async function runRelaySession(ws) {
