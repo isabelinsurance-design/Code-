@@ -575,16 +575,36 @@ export function registerApi(app) {
       // Web_search es server-side: Anthropic lo resuelve, no necesita
       // pasar por el dispatcher local.
       const WEB_SEARCH = { type: 'web_search_20250305', name: 'web_search', max_uses: 2 };
+
+      // PILAR EXCEPTION: cuando es Pilar Medicare en chat directo PWA,
+      // necesita acceso a sus 14 tools luna_* para buscar miembros, crear
+      // tickets, citas, etc. Sin esto solo puede "hablar" de Medicare pero
+      // no actuar sobre el CRM real. Bug descubierto jun 2026: Pilar
+      // misma reportó en chat 'las herramientas luna_* no están disponibles
+      // en esta sesión' — confirmando que la inyección que sí ocurre en
+      // consultar_especialistas (WhatsApp delegation) NO se replicaba en
+      // el flujo PWA directo. Este fix unifica.
+      let tools = [...coachPlanTools, WEB_SEARCH];
+      let toolDispatcher = makeCoachPlanDispatcher(coach);
+      if (coach === 'pilar') {
+        const { LUNA_TOOL_DEFINITIONS, runLunaTool } = await import('./luna_tools.js');
+        tools = [...tools, ...LUNA_TOOL_DEFINITIONS];
+        // Dispatcher combinado: coach_plan_* van al plan dispatcher,
+        // luna_* van al luna runner. Otros tools (web_search) son
+        // server-side y no necesitan dispatcher local.
+        const planDispatcher = makeCoachPlanDispatcher(coach);
+        toolDispatcher = async (name, input) => {
+          if (name.startsWith('luna_')) return runLunaTool(name, input);
+          return planDispatcher(name, input);
+        };
+      }
       const reply = await askSpecialistThreaded(
         spec,
         apiMessages,
         wiki +
           (notesCtx ? '\n\n' + notesCtx : '') +
           (planCtx ? '\n\n' + planCtx : ''),
-        {
-          tools: [...coachPlanTools, WEB_SEARCH],
-          toolDispatcher: makeCoachPlanDispatcher(coach),
-        },
+        { tools, toolDispatcher },
       );
       appendCoachTurn(coach, 'user', message);
       appendCoachTurn(coach, 'assistant', reply);
