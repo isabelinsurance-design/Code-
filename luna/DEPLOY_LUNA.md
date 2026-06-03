@@ -134,11 +134,39 @@ GET https://withisabelfuentes.com/luna/luna_api.php?action=luna_full_briefing
 Header:  X-LUNA-Key: <LUNA_SERVICE_KEY>
 ```
 Respuesta: `{"ok":true,"data":{ ...resumen del día para informar a LUNA... }}`
-> Solo acciones de LECTURA (briefing, hot leads, T65, SOAs, pipeline, etc.).
-> Cualquier acción de escritura responde `403`.
+> Lectura (briefing, hot leads, T65, SOAs, pipeline…) + crear tickets (abajo).
+> Cualquier otra escritura responde `403`.
+
+**2b. Cómo crea un TICKET Athena (contrato — sin tickets sueltos):**
+```
+POST .../luna_api.php?action=luna_create_ticket
+Header:  X-LUNA-Key: <LUNA_SERVICE_KEY>
+Body (form-url-encoded):
+   # Ticket de un CLIENTE (obligatorio miembro_id + responsable):
+   clase=miembro&miembro_id=123&asignado_a=7&tipo=SEGUIMIENTO&prioridad=ALTA&descripcion=...
+   # TAREA (sin cliente):
+   clase=tarea&asignado_a=7&descripcion=...
+   # PROYECTO (sin cliente, se marca "PROYECTO:" en la descripción):
+   clase=proyecto&asignado_a=7&descripcion=...
+```
+Reglas que aplica el servidor automáticamente:
+- **Nunca suelto:** si no mandas `asignado_a`, va al **dueño por defecto**
+  (`LUNA_SERVICE_DEFAULT_ASSIGNEE`, o el admin id 1). Si el responsable no existe, igual.
+- **De cliente:** `clase=miembro` exige `miembro_id` válido (si no, error claro).
+- **Tarea/Proyecto:** sin cliente; tipo `TAREA`. El proyecto se etiqueta `PROYECTO:`.
+- **Origen Athena:** se guarda `fuente='ATHENA'` y la descripción se prefija `[Athena]`,
+  así sabes **quién lo creó** (Athena), **a quién** (`asignado_a`) y **de qué cliente** (`miembro_id`).
+- Respuesta: `{"ok":true,"data":{"id":N,"clase":"...","asignado_a":N,"miembro_id":N,"fuente":"ATHENA"}}`.
+
+> Config opcional en `config.php`:
+> `define('LUNA_SERVICE_DEFAULT_ASSIGNEE', 1);  // a quién van los tickets sin responsable`
+> Para FILTRAR por origen en el CRM, conviene que la columna `tickets.fuente` permita
+> `'ATHENA'`. Si es ENUM y no lo tiene, el servidor cae a `'CRM'` pero la etiqueta
+> `[Athena]` en la descripción **siempre** queda. Para habilitar el filtro:
+> `ALTER TABLE tickets MODIFY fuente ENUM('CRM','WEB','ATHENA', ...);` (ajusta a tus valores).
 
 **3. Seguridad:**
-- Acción fuera de la allowlist (cualquier escritura, ej. `luna_create_ticket`) → `403`.
+- Acción fuera de la allowlist (ej. editar/borrar/cerrar) → `403`.
 - Athena tiene rol `service`, no `admin` → los `requireAdmin()` la bloquean (doble candado).
 - Cada llamada queda en `luna_audit_log` con prefijo `ATHENA:` para distinguirla.
 - Para revocar: borra/rota `LUNA_SERVICE_KEY` en `config.php`. No afecta tu login.

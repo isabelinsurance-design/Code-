@@ -1134,30 +1134,70 @@ case 'luna_update_member_status':
     break;
 
 // ── CREATE TICKET ───────────────────────────────────────
+// Reglas (pedido de Isabel): NADA de tickets sueltos.
+//   • Siempre con RESPONSABLE (persona real). Si no se indica, va al dueño
+//     por defecto (LUNA_SERVICE_DEFAULT_ASSIGNEE o admin), nunca al bot.
+//   • Si es de un CLIENTE → vinculado a miembro_id (clase=miembro).
+//   • TAREA / PROYECTO → sin cliente, se crean distinto (clase=tarea|proyecto).
+//   • Si lo crea Athena/Pilar → se marca el origen (fuente=ATHENA + etiqueta).
 case 'luna_create_ticket':
     requirePost();
     requireActor();
+    $IS_SVC = !empty($IS_SERVICE);
+
     $tipo      = strtoupper(strOrNull($_POST['tipo'] ?? 'OTRO'));
     $prioridad = strtoupper(strOrNull($_POST['prioridad'] ?? 'MEDIA'));
     $desc      = strOrNull($_POST['descripcion'] ?? '');
     $mid       = intOrNull($_POST['miembro_id'] ?? null);
-    $asig      = intOrNull($_POST['asignado_a'] ?? $uid);
-
+    $asig      = intOrNull($_POST['asignado_a'] ?? null);
     if (!$desc) err('Descripción requerida.');
+
+    // CLASE: ticket de MIEMBRO (de un cliente) vs TAREA / PROYECTO (sin cliente).
+    // Explícita (clase=miembro|tarea|proyecto) o inferida por si hay miembro_id.
+    $clase = strtolower((string)(strOrNull($_POST['clase'] ?? '') ?? ''));
+    if (!in_array($clase, ['miembro','tarea','proyecto'], true)) $clase = $mid ? 'miembro' : 'tarea';
+
+    if ($clase === 'miembro') {
+        // De un cliente: OBLIGA miembro_id y que exista (no suelto).
+        if (!$mid) err('Ticket de miembro: falta miembro_id (de qué cliente es). Para algo sin cliente usa clase=tarea o clase=proyecto.');
+        $ck = $pdo->prepare("SELECT 1 FROM miembros WHERE id=?"); $ck->execute([$mid]);
+        if (!$ck->fetchColumn()) err('El miembro_id no existe en el CRM.');
+    } else {
+        // Tarea o proyecto: sin cliente. Tipo TAREA; el proyecto se marca aparte.
+        $mid = null;
+        if ($tipo === 'OTRO' || $tipo === '') $tipo = 'TAREA';
+        if ($clase === 'proyecto' && stripos($desc, 'proyecto') === false) $desc = 'PROYECTO: ' . $desc;
+    }
+
     $tipos_validos = ['SERVICIO','LLAMADA','LLAMADA PERDIDA','APLICACION','CITA','SEGUIMIENTO',
                       'TAREA','PROSPECTO','QUEJA','INCENTIVO','SOPORTE','MARKETING','DENTAL','URGENTE','OTRO'];
-    if (!in_array($tipo, $tipos_validos)) $tipo = 'OTRO';
+    if (!in_array($tipo, $tipos_validos)) $tipo = ($clase === 'miembro') ? 'OTRO' : 'TAREA';
     if (!in_array($prioridad, ['ALTA','MEDIA','BAJA'])) $prioridad = 'MEDIA';
 
-    // Ajusta a lo que la tabla `tickets` REALMENTE acepta (evita 1265 "Data
-    // truncated"): si el ENUM de la BD no tiene el valor, cae a uno válido.
-    $tipo      = dbCoerce($pdo, 'tickets', 'tipo', $tipo, 'OTRO');
+    // RESPONSABLE: nunca suelto. Sin asignación explícita → dueño por defecto.
+    $defaultOwner = (int)(getenv('LUNA_SERVICE_DEFAULT_ASSIGNEE')
+        ?: (defined('LUNA_SERVICE_DEFAULT_ASSIGNEE') ? LUNA_SERVICE_DEFAULT_ASSIGNEE : 1));
+    if (!$asig) $asig = $IS_SVC ? $defaultOwner : $uid;
+    // Agente humano no-admin solo se asigna a sí mismo. Athena (servicio) y
+    // admin pueden asignar a cualquiera del equipo.
+    if (!$admin && !$IS_SVC && $asig !== $uid) $asig = $uid;
+    // El responsable debe existir y estar activo; si no, al dueño por defecto.
+    $ck = $pdo->prepare("SELECT 1 FROM usuarios WHERE id=? AND activo=1"); $ck->execute([$asig]);
+    if (!$ck->fetchColumn()) $asig = $defaultOwner;
+
+    // Ajusta a lo que la tabla `tickets` REALMENTE acepta (evita 1265).
+    $tipo      = dbCoerce($pdo, 'tickets', 'tipo', $tipo, ($clase === 'miembro' ? 'OTRO' : 'TAREA'));
     $prioridad = dbCoerce($pdo, 'tickets', 'prioridad', $prioridad, 'MEDIA');
     $estado    = dbCoerce($pdo, 'tickets', 'estado', 'ABIERTO', 'ABIERTO');
-    $fuente    = dbCoerce($pdo, 'tickets', 'fuente', 'CRM', 'CRM');
 
-    // Non-admin can only assign to themselves
-    if (!$admin && $asig !== $uid) $asig = $uid;
+    // ORIGEN: si lo crea Athena/Pilar, márcalo (fuente=ATHENA para filtrar +
+    // etiqueta en la descripción que SIEMPRE se ve, pase lo que pase el ENUM).
+    if ($IS_SVC) {
+        $fuente = dbCoerce($pdo, 'tickets', 'fuente', 'ATHENA', 'CRM');
+        if (stripos($desc, 'athena') === false) $desc = '[Athena] ' . $desc;
+    } else {
+        $fuente = dbCoerce($pdo, 'tickets', 'fuente', 'CRM', 'CRM');
+    }
 
     $stmt = $pdo->prepare("
         INSERT INTO tickets (miembro_id, agente_id, asignado_a, tipo, prioridad, estado,
@@ -1166,8 +1206,15 @@ case 'luna_create_ticket':
     ");
     $stmt->execute([$mid, $uid, $asig, $tipo, $prioridad, $estado, $desc, $fuente]);
     $tid = (int)$pdo->lastInsertId();
-    logActivity($pdo, $uid, $mid, 'TICKET', "Ticket #$tid creado [$tipo/$prioridad] vía LUNA");
-    ok(['id'=>$tid, 'message'=>"Ticket #$tid creado."]);
+    logActivity($pdo, $uid, $mid, 'TICKET', "Ticket #$tid [$clase/$tipo/$prioridad] → resp #$asig" . ($IS_SVC ? ' vía Athena' : ' vía LUNA'));
+    ok([
+        'id'          => $tid,
+        'clase'       => $clase,
+        'miembro_id'  => $mid,
+        'asignado_a'  => $asig,
+        'fuente'      => $fuente,
+        'message'     => "Ticket #$tid creado ($clase), asignado a #$asig.",
+    ]);
     break;
 
 // ── CLOSE TICKET ────────────────────────────────────────
