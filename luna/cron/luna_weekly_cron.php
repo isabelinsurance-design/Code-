@@ -12,8 +12,9 @@
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/../../config.php';
-require_once __DIR__ . '/../luna_ai.php';    // cerebro IA (degradación elegante si no hay key)
-require_once __DIR__ . '/../luna_radar.php'; // Radar de tendencias / Chief of Staff
+require_once __DIR__ . '/../luna_ai.php';       // cerebro IA (degradación elegante si no hay key)
+require_once __DIR__ . '/../luna_radar.php';    // Radar de tendencias / Chief of Staff
+require_once __DIR__ . '/../luna_meetings.php';  // Acuerdos y seguimiento de la junta
 
 $CONFIG = [
   'send_email'    => true,
@@ -321,7 +322,12 @@ function lunaMeetingAgenda($data) {
         ], JSON_UNESCAPED_UNICODE)
       . "\nResumen del radar (Chief of Staff): " . ($data['radar']['resumen'] ?? '—')
       . "\nHallazgos del radar: " . (implode(' | ', $radarTop) ?: '—')
-      . "\n\nDame la agenda (3-4 puntos) para la junta del sábado.";
+      . "\nTareas pendientes de juntas anteriores: " . (
+          !empty($data['open_actions'])
+            ? implode(' | ', array_map(fn($a) => $a['accion'] . ' (' . ($a['responsable'] ?: 's/d') . ')', array_slice($data['open_actions'], 0, 6)))
+            : 'ninguna'
+        )
+      . "\n\nDame la agenda (3-4 puntos) para la junta del sábado. Si hay pendientes sin cerrar, incluye un punto para revisarlos.";
     $out = lunaAI($system, $user, 500);
     if ($out) return trim($out);
   }
@@ -404,6 +410,17 @@ function buildWeeklyText($data, $format = 'text') {
     $out .= "{$b[0]}═══ 🗓️ AGENDA — JUNTA DE EQUIPO (SÁBADO) ═══{$b[1]}{$br}";
     $agenda = $isHTML ? _wkEsc($data['meeting_agenda'], true) : $data['meeting_agenda'];
     $out .= str_replace("\n", $br, $agenda) . $br . $br;
+  }
+
+  // ═══ 📌 SEGUIMIENTO — PENDIENTES DE LA JUNTA PASADA ═══
+  if (!empty($data['open_actions'])) {
+    $out .= "{$b[0]}═══ 📌 PENDIENTES DE LA JUNTA PASADA ═══{$b[1]}{$br}";
+    foreach (array_slice($data['open_actions'], 0, 8) as $a) {
+      $who = !empty($a['responsable']) ? ' (' . _wkEsc($a['responsable'], $isHTML) . ')' : '';
+      $due = !empty($a['due_date']) ? ' · 📅 ' . _wkEsc($a['due_date'], $isHTML) . (($a['due_date'] < date('Y-m-d')) ? ' ⚠️ vencida' : '') : '';
+      $out .= "• " . _wkEsc($a['accion'], $isHTML) . $who . $due . $br;
+    }
+    $out .= "{$i[0]}Márcalas en withisabelfuentes.com/luna/ → 🗓️ Junta{$i[1]}{$br}{$br}";
   }
 
   // ═══ COMPARACIÓN vs SEMANA ANTERIOR ═══
@@ -649,6 +666,11 @@ try {
   logWeekly("Radar weekly: error - " . $e->getMessage(), $CONFIG);
 }
 logWeekly("Radar weekly: " . (!empty($data['radar']['items']) ? count($data['radar']['items']) . ' items' : 'none'), $CONFIG);
+
+// Tareas pendientes de juntas anteriores (seguimiento).
+try { $data['open_actions'] = meetingOpenActions($pdo); }
+catch (Exception $e) { $data['open_actions'] = []; }
+logWeekly("Open meeting actions: " . count($data['open_actions']), $CONFIG);
 
 // Agenda para la junta del sábado (usa KPIs + radar ya cargados).
 $data['meeting_agenda'] = lunaMeetingAgenda($data);

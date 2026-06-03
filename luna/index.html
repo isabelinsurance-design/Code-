@@ -313,6 +313,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
   <div class="topbar-end">
     <button id="securityBtn" onclick="openSecurity()" style="display:none;position:relative;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🔒 Seguridad<span id="securityBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">0</span></button>
     <button id="radarBtn" onclick="toggleRadar()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📡 Radar<span id="radarDot" style="display:none;width:7px;height:7px;border-radius:50%;background:#16a34a;"></span></button>
+    <button id="meetingBtn" onclick="toggleMeeting()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🗓️ Junta<span id="meetingDot" style="display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d97706;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;"></span></button>
     <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
@@ -416,6 +417,42 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
       <div id="radarMeta" style="font-size:11px;color:var(--t3);"></div>
     </div>
     <div id="radarBody"></div>
+  </div>
+</div>
+
+<!-- ── JUNTA VIEW (acuerdos y seguimiento) ─────────────── -->
+<div id="meetingView" style="display:none;">
+  <div class="grid-wrap">
+    <div class="grid-hero">
+      <div class="grid-hero-sup">Junta de Equipo · Sábado</div>
+      <div class="grid-hero-title">🗓️ <em>Acuerdos</em> y seguimiento</div>
+      <div class="grid-hero-sub">Registra lo que se decide en la junta del sábado. LUNA le da seguimiento: lo pendiente aparece en tu reporte del viernes para la siguiente junta.</div>
+    </div>
+
+    <!-- Pendientes -->
+    <div id="meetingPending" style="margin-bottom:22px;"></div>
+
+    <!-- Form nueva junta -->
+    <div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:18px 20px;margin-bottom:22px;box-shadow:var(--sh);">
+      <div style="font-size:14px;font-weight:800;color:var(--t1);margin-bottom:14px;">➕ Registrar junta</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;margin-bottom:12px;">
+        <label style="font-size:11px;color:var(--t3);font-weight:700;">Fecha<br>
+          <input type="date" id="mFecha" style="margin-top:4px;padding:8px 10px;border:1px solid var(--border);border-radius:9px;background:var(--ink);color:var(--t1);font-family:var(--font);font-size:13px;">
+        </label>
+      </div>
+      <label style="font-size:11px;color:var(--t3);font-weight:700;">Acuerdos / notas de la junta</label>
+      <textarea id="mResumen" rows="3" placeholder="Lo más importante que se habló y se decidió…" style="width:100%;margin-top:4px;margin-bottom:14px;padding:10px 12px;border:1px solid var(--border);border-radius:9px;background:var(--ink);color:var(--t1);font-family:var(--font);font-size:13px;resize:vertical;box-sizing:border-box;"></textarea>
+      <div style="font-size:11px;color:var(--t3);font-weight:700;margin-bottom:8px;">Tareas (qué, quién, para cuándo)</div>
+      <div id="mActions"></div>
+      <datalist id="respList"><option value="Isabel"><option value="Skarleth"><option value="Samia"><option value="Arlette"></datalist>
+      <button onclick="addActionRow()" style="margin-top:6px;padding:6px 12px;border-radius:8px;background:var(--ink);border:1px dashed var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);">+ Agregar tarea</button>
+      <div style="margin-top:16px;">
+        <button onclick="saveMeeting()" id="mSaveBtn" style="padding:9px 20px;border-radius:9px;background:#16a34a;border:none;font-size:13px;font-weight:800;color:#fff;cursor:pointer;font-family:var(--font);">💾 Guardar junta</button>
+      </div>
+    </div>
+
+    <!-- Historial -->
+    <div id="meetingHistory"></div>
   </div>
 </div>
 
@@ -2885,9 +2922,10 @@ function setCat(id) {
 function openWorkspace(id) {
   const a = AGENTS.find(x => x.id === id);
   if (!a) return;
-  // Cierra las vistas alternas (Radar / Recursos) si estaban abiertas.
+  // Cierra las vistas alternas (Radar / Recursos / Junta) si estaban abiertas.
   document.getElementById('radarView').style.display = 'none';
   document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('meetingView').style.display = 'none';
   // Guard: agentes adminOnly solo para Isabel (defensa además del filtro del grid)
   if (a.adminOnly && !(currentUser?.is_admin || location.protocol === 'file:')) {
     toast('🔒 Solo Isabel tiene acceso a este agente');
@@ -3006,6 +3044,7 @@ function toggleRadar() {
   if (showing) { rv.style.display = 'none'; document.getElementById('gridView').style.display = 'block'; return; }
   closeWorkspace();
   document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('meetingView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   rv.style.display = 'block';
   // El botón "Actualizar ahora" solo para Isabel.
@@ -3132,6 +3171,168 @@ async function radarCheckFresh() {
   } catch(e) { /* silencioso */ }
 }
 
+/* ══════════════════════════════════════════
+   🗓️ JUNTA DE EQUIPO — acuerdos y seguimiento
+══════════════════════════════════════════ */
+const MEETING_RESP_COLOR = { Skarleth:'#dc2626', Samia:'#7c3aed', Isabel:'#16a34a', Arlette:'#d97706' };
+
+function _lastSaturday() {
+  const d = new Date();
+  const back = (d.getDay() + 1) % 7; // 0=Dom..6=Sab → días desde el sábado pasado
+  d.setDate(d.getDate() - back);
+  return d.toISOString().slice(0, 10);
+}
+
+function toggleMeeting() {
+  const mv = document.getElementById('meetingView');
+  const showing = mv.style.display !== 'none';
+  if (showing) { mv.style.display = 'none'; document.getElementById('gridView').style.display = 'block'; return; }
+  closeWorkspace();
+  document.getElementById('radarView').style.display = 'none';
+  document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('gridView').style.display = 'none';
+  mv.style.display = 'block';
+  const f = document.getElementById('mFecha');
+  if (!f.value) f.value = _lastSaturday();
+  if (!document.querySelector('#mActions .m-action-row')) addActionRow();
+  loadMeetings();
+}
+
+function addActionRow(accion = '', resp = '', due = '') {
+  const wrap = document.getElementById('mActions');
+  const row = document.createElement('div');
+  row.className = 'm-action-row';
+  row.style.cssText = 'display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;align-items:center;';
+  row.innerHTML = `
+    <input class="m-acc" value="${esc(accion)}" placeholder="Tarea…" style="flex:1;min-width:180px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--ink);color:var(--t1);font-family:var(--font);font-size:12.5px;">
+    <input class="m-resp" list="respList" value="${esc(resp)}" placeholder="Quién" style="width:110px;padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--ink);color:var(--t1);font-family:var(--font);font-size:12.5px;">
+    <input class="m-due" type="date" value="${esc(due)}" style="padding:7px 10px;border:1px solid var(--border);border-radius:8px;background:var(--ink);color:var(--t1);font-family:var(--font);font-size:12.5px;">
+    <button onclick="this.parentNode.remove()" title="Quitar" style="padding:6px 9px;border:none;border-radius:8px;background:var(--ink);color:var(--t3);cursor:pointer;font-size:13px;">✕</button>`;
+  wrap.appendChild(row);
+}
+
+function _collectActions() {
+  return Array.from(document.querySelectorAll('#mActions .m-action-row')).map(r => ({
+    accion: r.querySelector('.m-acc').value.trim(),
+    responsable: r.querySelector('.m-resp').value.trim(),
+    due_date: r.querySelector('.m-due').value.trim(),
+  })).filter(a => a.accion !== '');
+}
+
+async function saveMeeting() {
+  const btn = document.getElementById('mSaveBtn');
+  const resumen = document.getElementById('mResumen').value.trim();
+  const actions = _collectActions();
+  if (!resumen && !actions.length) { toast('Agrega un acuerdo o una tarea'); return; }
+  btn.disabled = true; const old = btn.innerHTML; btn.innerHTML = '⏳ Guardando…';
+  try {
+    const fd = new FormData();
+    fd.append('meeting_date', document.getElementById('mFecha').value || _lastSaturday());
+    fd.append('resumen', resumen);
+    fd.append('actions', JSON.stringify(actions));
+    const r = await fetch(`${CRM_BASE}?action=luna_meeting_save`, { method:'POST', credentials:'same-origin', body: fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'No se pudo guardar');
+    toast('🗓️ Junta guardada');
+    document.getElementById('mResumen').value = '';
+    document.getElementById('mActions').innerHTML = ''; addActionRow();
+    loadMeetings();
+  } catch(e) {
+    toast('Error: ' + e.message);
+  } finally { btn.disabled = false; btn.innerHTML = old; }
+}
+
+async function loadMeetings() {
+  document.getElementById('meetingHistory').innerHTML = '<div style="padding:20px;color:var(--t3);">Cargando…</div>';
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_meeting_list`, { credentials:'same-origin' });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Error');
+    renderMeetingPending(d.data.open_actions || []);
+    renderMeetingHistory(d.data.meetings || []);
+  } catch(e) {
+    document.getElementById('meetingHistory').innerHTML = `<div style="padding:20px;color:#dc2626;">${esc(e.message)}</div>`;
+  }
+}
+
+function _respChip(resp) {
+  if (!resp) return '';
+  const c = MEETING_RESP_COLOR[resp] || 'var(--t3)';
+  return `<span style="font-size:10px;font-weight:800;color:#fff;background:${c};padding:2px 7px;border-radius:99px;">${esc(resp)}</span>`;
+}
+function _dueLabel(due) {
+  if (!due) return '';
+  const overdue = due < new Date().toISOString().slice(0,10);
+  return `<span style="font-size:11px;color:${overdue?'#dc2626':'var(--t3)'};font-weight:${overdue?'800':'400'};">📅 ${esc(due)}${overdue?' (vencida)':''}</span>`;
+}
+
+function renderMeetingPending(open) {
+  const box = document.getElementById('meetingPending');
+  const dot = document.getElementById('meetingDot');
+  if (dot) { if (open.length) { dot.textContent = open.length; dot.style.display = 'inline-block'; } else dot.style.display = 'none'; }
+  if (!open.length) {
+    box.innerHTML = `<div style="background:#16a34a14;border:1px solid #16a34a55;border-radius:12px;padding:14px 16px;font-size:13px;color:var(--t2);">✅ No hay tareas pendientes de juntas anteriores. ¡Al día!</div>`;
+    return;
+  }
+  let h = `<div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📌 Pendientes de juntas anteriores (${open.length})</div>`;
+  h += open.map(a => `
+    <div style="display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--border);border-left:3px solid #d97706;border-radius:10px;padding:10px 13px;margin-bottom:8px;">
+      <button onclick="toggleAction(${a.id},'hecho')" title="Marcar hecha" style="flex-shrink:0;width:22px;height:22px;border-radius:50%;border:2px solid #16a34a;background:none;color:#16a34a;cursor:pointer;font-size:12px;line-height:1;">✓</button>
+      <div style="flex:1;font-size:13px;color:var(--t1);">${esc(a.accion)}</div>
+      ${_respChip(a.responsable)} ${_dueLabel(a.due_date)}
+      <span style="font-size:10px;color:var(--t3);">junta ${esc(a.meeting_date)}</span>
+    </div>`).join('');
+  box.innerHTML = h;
+}
+
+function renderMeetingHistory(meetings) {
+  const box = document.getElementById('meetingHistory');
+  if (!meetings.length) { box.innerHTML = `<div style="padding:18px;color:var(--t3);font-size:13px;">Aún no hay juntas registradas.</div>`; return; }
+  let h = `<div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:10px;">📚 Historial de juntas</div>`;
+  h += meetings.map(m => {
+    const acts = (m.actions || []).map(a => {
+      const done = a.estado === 'hecho', canc = a.estado === 'cancelado';
+      const mark = done ? '✅' : canc ? '🚫' : '⬜';
+      const style = done || canc ? 'opacity:.55;text-decoration:line-through;' : '';
+      const btns = (!done && !canc)
+        ? `<button onclick="toggleAction(${a.id},'hecho')" style="font-size:11px;padding:3px 8px;border:1px solid #16a34a;border-radius:7px;background:none;color:#16a34a;cursor:pointer;">Hecha</button>
+           <button onclick="toggleAction(${a.id},'cancelado')" style="font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:7px;background:none;color:var(--t3);cursor:pointer;">Cancelar</button>`
+        : `<button onclick="toggleAction(${a.id},'pendiente')" style="font-size:11px;padding:3px 8px;border:1px solid var(--border);border-radius:7px;background:none;color:var(--t3);cursor:pointer;">Reabrir</button>`;
+      return `<div style="display:flex;align-items:center;gap:8px;padding:6px 0;border-top:1px solid var(--border);">
+        <span style="${style}flex:1;font-size:12.5px;color:var(--t1);">${mark} ${esc(a.accion)}</span>
+        ${_respChip(a.responsable)} ${_dueLabel(a.due_date)} ${btns}
+      </div>`;
+    }).join('');
+    return `<div style="background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:12px;box-shadow:var(--sh);">
+      <div style="font-size:13px;font-weight:800;color:var(--t1);margin-bottom:6px;">🗓️ Junta del ${esc(m.meeting_date)}</div>
+      ${m.resumen ? `<div style="font-size:12.5px;color:var(--t2);line-height:1.5;margin-bottom:8px;white-space:pre-wrap;">${esc(m.resumen)}</div>` : ''}
+      ${acts || '<div style="font-size:12px;color:var(--t3);">Sin tareas.</div>'}
+    </div>`;
+  }).join('');
+  box.innerHTML = h;
+}
+
+async function toggleAction(id, estado) {
+  try {
+    const fd = new FormData(); fd.append('action_id', id); fd.append('estado', estado);
+    const r = await fetch(`${CRM_BASE}?action=luna_meeting_action`, { method:'POST', credentials:'same-origin', body: fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'Error');
+    loadMeetings();
+  } catch(e) { toast('Error: ' + e.message); }
+}
+
+// Badge de pendientes en el botón 🗓️ (al cargar la plataforma).
+async function meetingCheckPending() {
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_meeting_list&limit=1`, { credentials:'same-origin' });
+    const d = await r.json();
+    const dot = document.getElementById('meetingDot');
+    const n = d.ok ? (d.data.open_actions || []).length : 0;
+    if (dot && n) { dot.textContent = n; dot.style.display = 'inline-block'; }
+  } catch(e) { /* silencioso */ }
+}
+
 async function toggleRecursos() {
   const rv = document.getElementById('recursosView');
   const showing = rv.style.display !== 'none';
@@ -3143,6 +3344,7 @@ async function toggleRecursos() {
   // mostrar recursos
   closeWorkspace();
   document.getElementById('radarView').style.display = 'none';
+  document.getElementById('meetingView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   rv.style.display = 'block';
   if (!recursosData) {
@@ -3713,6 +3915,9 @@ openWorkspace('luna_main');
 
 // ¿El radar de tendencias de hoy ya está listo? (enciende el punto verde)
 radarCheckFresh();
+
+// ¿Hay tareas pendientes de juntas? (badge en el botón 🗓️ Junta)
+meetingCheckPending();
 
 // Memory loads async (CRM fetch), then triggers snapshot + alerts
 (async () => {

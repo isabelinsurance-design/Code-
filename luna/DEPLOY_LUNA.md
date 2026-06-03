@@ -77,6 +77,14 @@ elegante (guarda un run marcado y no rompe nada).
   Arriba lleva una **🗓️ Agenda para la junta de equipo (sábado)**: 3-4 puntos
   accionables sintetizados de los KPIs y el radar (con responsable sugerido).
 
+### 🗓️ Junta de Equipo — acuerdos y seguimiento (nuevo)
+Botón **🗓️ Junta** en la plataforma. Isabel registra los acuerdos y tareas de
+la junta del sábado (qué, quién, para cuándo). Las tareas quedan con estado
+(pendiente/hecho/cancelado) en `luna_meetings` / `luna_meeting_actions` (se
+crean solas). LUNA da seguimiento: lo **pendiente** aparece como sección
+**📌 Pendientes de la junta pasada** en el reporte del viernes y alimenta la
+agenda del sábado, cerrando el ciclo semana a semana.
+
 ## Respaldos (#5) — opciones en config.php
 ```php
 // Carpeta destino (por defecto: ../private_backups, FUERA de public_html)

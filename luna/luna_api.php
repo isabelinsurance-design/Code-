@@ -1750,6 +1750,47 @@ case 'luna_radar_run':
     ok(['run' => $run]);
     break;
 
+// ════════════════════════════════════════════════════════
+// JUNTA DE EQUIPO — notas, acuerdos y seguimiento (sábado)
+// ════════════════════════════════════════════════════════
+
+// ── JUNTA: lista de juntas + pendientes (todo el equipo) ──
+case 'luna_meeting_list':
+    require_once __DIR__ . '/luna_meetings.php';
+    ok([
+        'meetings'     => meetingList($pdo, intOrNull($_GET['limit'] ?? null) ?? 12),
+        'open_actions' => meetingOpenActions($pdo),
+    ]);
+    break;
+
+// ── JUNTA: registrar una junta con sus acuerdos/tareas ───
+case 'luna_meeting_save':
+    requirePost();
+    requireActor();
+    require_once __DIR__ . '/luna_meetings.php';
+    $mDate   = strOrNull($_POST['meeting_date'] ?? null) ?? date('Y-m-d');
+    $resumen = strOrNull($_POST['resumen'] ?? null);
+    $actions = json_decode((string)($_POST['actions'] ?? '[]'), true);
+    if (!is_array($actions)) $actions = [];
+    if ($resumen === null && !$actions) err('Agrega al menos un acuerdo o una tarea.');
+    $mid = meetingSave($pdo, $mDate, $resumen, $actions, $uid);
+    lunaAudit($pdo, $uid, 'MEETING_SAVE', "Registró la junta del $mDate con " . count($actions) . " tareas");
+    ok(['meeting_id' => $mid]);
+    break;
+
+// ── JUNTA: marcar una tarea hecha/pendiente/cancelada ────
+case 'luna_meeting_action':
+    requirePost();
+    requireActor();
+    require_once __DIR__ . '/luna_meetings.php';
+    $aid    = intOrNull($_POST['action_id'] ?? null);
+    $estado = strOrNull($_POST['estado'] ?? null) ?? 'hecho';
+    if (!$aid) err('Falta action_id.');
+    if (!meetingToggleAction($pdo, $aid, $estado)) err('No se pudo actualizar la tarea.');
+    lunaAudit($pdo, $uid, 'MEETING_ACTION', "Tarea #$aid → $estado");
+    ok(['action_id' => $aid, 'estado' => $estado]);
+    break;
+
 // ── REVIEW OUTBOUND — corre los hooks sin guardar nada ───
 // Útil para el botón "copiar" de Estudio Creativo: revisa antes de mostrar.
 case 'luna_review_outbound':
