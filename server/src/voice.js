@@ -65,14 +65,17 @@ export function buildIncomingTwiml(req) {
   const motivo = (req?.query?.motivo || '').slice(0, 400);
   const elevenVoice = process.env.ELEVENLABS_VOICE_ID;
 
-  // VOICE_USE_CONVERSATION_RELAY=true → modo bidireccional con WebSocket
-  //   (requiere que Twilio tenga ConversationRelay habilitado en tu account
-  //   — feature relativamente nuevo, puede que tu cuenta no lo soporte aún).
-  // Default (false): TwiML simple con <Say> — perfecto para el caso de uso
-  //   de recordatorio de cita ([LLAMA] en calendar), `llamar_cliente`
-  //   con motivo, etc. No es conversación bidireccional pero ES un canal
-  //   de notificación por voz que SÍ funciona en cualquier cuenta Twilio.
-  const useConversation = process.env.VOICE_USE_CONVERSATION_RELAY === 'true';
+  // VOICE_SIMPLE_MODE=true → TwiML simple con <Say> + <Hangup>.
+  //   Athena llama, dice el motivo, cuelga. Útil para [LLAMA] recordatorios
+  //   de cita donde no necesitas hablar de vuelta. Más confiable porque
+  //   no depende del WebSocket. Útil como fallback si ConversationRelay
+  //   da problemas (ej. error 64101 por TwiML incompleto, problema con
+  //   STT, etc.).
+  // Default (sin env var): ConversationRelay con TwiML completo —
+  //   bidireccional, puedes hablar con Athena por teléfono. Confirmado
+  //   funcional en cuenta Twilio (mid-2025+).
+  const useSimple = process.env.VOICE_SIMPLE_MODE === 'true';
+  const useConversation = !useSimple;
 
   if (!useConversation) {
     // Modo simple: Athena saluda + dice el motivo + cuelga.
@@ -91,21 +94,35 @@ export function buildIncomingTwiml(req) {
     return twiml;
   }
 
-  // Modo ConversationRelay (avanzado — necesita feature habilitado en Twilio)
+  // Modo ConversationRelay (avanzado — bidireccional con WebSocket).
+  // Twilio requiere TODOS estos atributos para es-MX:
+  //   - language
+  //   - ttsProvider + voice
+  //   - transcriptionProvider + speechModel
+  // Sin uno se queja con error 64101 "Incomplete value set in TwiML".
   const wsUrl = `wss://${publicHost}/voice/relay`;
-  const voiceAttrs = elevenVoice
-    ? ` ttsProvider="ElevenLabs" voice="${elevenVoice}"`
-    : ' voice="Polly.Lupe-Neural" language="es-MX"';
+  // TTS: ElevenLabs si configurado, sino Google (default robusto para
+  // español; Polly también funciona pero requiere ttsProvider=Amazon).
+  let ttsProvider = 'Google';
+  let voice = 'es-US-Neural2-A'; // voz femenina Google neural en español
+  if (elevenVoice) {
+    ttsProvider = 'ElevenLabs';
+    voice = elevenVoice;
+  }
+  // STT: Google Telephony es lo más robusto para español por teléfono.
+  const transcriptionProvider = 'Google';
+  const speechModel = 'telephony';
+  const language = 'es-MX';
   const welcome = motivo
     ? `Hola Isabel, soy Athena. Te llamo por esto: ${motivo}`
     : 'Hola, habla Athena, asistente de Isabel Fuentes. ¿En qué te ayudo?';
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <ConversationRelay url="${wsUrl}"${voiceAttrs} welcomeGreeting="${escapeXml(welcome)}" />
+    <ConversationRelay url="${wsUrl}" ttsProvider="${ttsProvider}" voice="${voice}" transcriptionProvider="${transcriptionProvider}" speechModel="${speechModel}" language="${language}" welcomeGreeting="${escapeXml(welcome)}" />
   </Connect>
 </Response>`;
-  console.log(`[voice] TwiML ConversationRelay generado: wsUrl=${wsUrl} eleven=${elevenVoice ? 'sí' : 'no'} motivo="${motivo}"`);
+  console.log(`[voice] TwiML ConversationRelay generado: wsUrl=${wsUrl} tts=${ttsProvider}/${voice} stt=${transcriptionProvider}/${speechModel} motivo="${motivo}"`);
   return twiml;
 }
 
