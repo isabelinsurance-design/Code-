@@ -170,6 +170,11 @@ export const api = {
 
   // Streaks de hábitos (días consecutivos journal/workout/water + semanas rapport).
   streaks: () => request('/streaks'),
+
+  // Self-grades — Athena se califica semanalmente, propone UN cambio.
+  selfGrades: (limit = 12) => request(`/self_grades?limit=${limit}`),
+  selfGradeRun: () => request('/self_grades/run', { method: 'POST' }),
+  selfGradeImplemented: (semana) => request(`/self_grades/${encodeURIComponent(semana)}/implemented`, { method: 'POST' }),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),

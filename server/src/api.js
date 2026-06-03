@@ -618,6 +618,28 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Self-grades: Athena se califica semanalmente ----
+  app.get('/api/self_grades', requireAuth, async (req, res) => {
+    try {
+      const { listSelfGrades } = await import('./self_grade.js');
+      res.json(listSelfGrades({ limit: parseInt(req.query.limit, 10) || 12 }));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/self_grades/run', requireAuth, async (_req, res) => {
+    try {
+      const { gradeWeek } = await import('./self_grade.js');
+      res.json(await gradeWeek());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.post('/api/self_grades/:semana/implemented', requireAuth, async (req, res) => {
+    try {
+      const { markGradeImplemented } = await import('./self_grade.js');
+      res.json(markGradeImplemented(req.params.semana));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
   // ---- Streaks: días/semanas consecutivos por actividad ----
   app.get('/api/streaks', requireAuth, async (_req, res) => {
     try {

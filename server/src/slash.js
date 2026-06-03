@@ -20,6 +20,7 @@ const SAMI_ALLOWED = new Set([
   'agenda', 'clientes', 'pendientes', 'historial',
   'compromisos', 'skills', 'tareas', 'huecos', 'luna',
   'revisar', 'rapport', 'research', 'chase', 'reading', 'trends', 'scan',
+  'grade', 'mejora',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -81,6 +82,8 @@ export async function runSlash(text, from) {
       case 'reading': return { ok: true, reply: await runReadingList(args) };
       case 'trends': return { ok: true, reply: await runTrends(args) };
       case 'scan': return { ok: true, reply: await runTrendScanNow() };
+      case 'grade': return { ok: true, reply: await runSelfGrade() };
+      case 'mejora': return { ok: true, reply: await runMejoraDigest() };
       default:
         return { ok: false, reply: `Comando "/${cmd}" no existe. Usa /help para ver la lista.` };
     }
@@ -108,6 +111,8 @@ function buildHelp(role) {
     '/research — manda el digest de research ahora',
     '/chase — corre el commitment chase tick ahora',
     '/reading [pending|leido|archivado] — lista reading list (default pending)',
+    '/grade — corre mi self-grade semanal ahora (score 0-100 + propuesta de cambio)',
+    '/mejora — digest de la lente Chief of Staff (propuestas pendientes + último grade)',
   ];
   const isabelExtras = [
     '/triage — corre triage de email ahora',
@@ -440,5 +445,39 @@ async function runTrendScanNow() {
   const r = await runTrendScan();
   if (!r.fresh.length) return 'Scan completo — sin hits nuevos.';
   return `${r.fresh.length} nuevo(s) (${r.highScore.length} score≥8). Top:\n` +
-    r.fresh.slice(0, 3).map((h) => `🔥 [${h.topic_nombre}] ${h.titulo}`).join('\n');
+    r.fresh.slice(0, 3).map((h) => {
+      const icon = h.topic_id === 'chief_of_staff' ? '⚙️' : '🔥';
+      return `${icon} [${h.topic_nombre}] ${h.titulo}`;
+    }).join('\n');
+}
+
+async function runSelfGrade() {
+  const { gradeWeek } = await import('./self_grade.js');
+  const g = await gradeWeek();
+  const delta = g.deltas?.total >= 0 ? `+${g.deltas.total}` : `${g.deltas.total}`;
+  return `📊 Self-grade ${g.semana}: ${g.score}/100 (${delta}).\n\nresp ${g.subscores.response} · cov ${g.subscores.coverage} · eng ${g.subscores.engagement} · proact ${g.subscores.proactive} · team ${g.subscores.team}\n\nCambio propuesto:\n${g.cambio_propuesto?.slice(0, 500) || '(ninguno)'}`;
+}
+
+async function runMejoraDigest() {
+  // /mejora: muestra TODOS los hits chief_of_staff pendientes + último grade.
+  const { listTrends } = await import('./trends.js');
+  const { getLatestGrade } = await import('./self_grade.js');
+  const hits = listTrends({ status: 'pending', topic_id: 'chief_of_staff', limit: 20 });
+  const grade = getLatestGrade();
+  const lines = [];
+  if (grade) {
+    const delta = grade.deltas?.total >= 0 ? `+${grade.deltas.total}` : `${grade.deltas.total}`;
+    lines.push(`📊 Último grade: ${grade.score}/100 (${delta} vs sem prev)${grade.implementado ? ' ✓ implementado' : ''}`);
+    lines.push(`Cambio propuesto: ${grade.cambio_propuesto?.slice(0, 200) || '(ninguno)'}`);
+    lines.push('');
+  }
+  if (!hits.length) {
+    lines.push('Sin propuestas Mejora pendientes. El scan corre 11am todos los días.');
+  } else {
+    lines.push(`⚙️ ${hits.length} propuesta(s) de mejora pendientes:`);
+    for (const h of hits.slice(0, 8)) {
+      lines.push(`  [${h.score}/10] ${h.titulo}\n    → ${h.razon_isabel}`);
+    }
+  }
+  return lines.join('\n');
 }

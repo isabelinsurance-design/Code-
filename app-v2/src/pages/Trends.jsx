@@ -14,7 +14,14 @@ export default function Trends() {
     setLoading(true);
     try {
       const r = await api.trends(status, topicId || null);
-      setItems(r.items || []);
+      // Sort: chief_of_staff (lente meta) PRIMERO siempre, después por score desc.
+      const sorted = (r.items || []).slice().sort((a, b) => {
+        const aMeta = a.topic_id === 'chief_of_staff' ? 1 : 0;
+        const bMeta = b.topic_id === 'chief_of_staff' ? 1 : 0;
+        if (aMeta !== bMeta) return bMeta - aMeta;
+        return (b.score || 0) - (a.score || 0);
+      });
+      setItems(sorted);
       setTopics(r.topics || []);
     } catch (e) {
       setErr(e.message);

@@ -974,7 +974,28 @@ MODOS:
   },
   {
     name: 'trends_scan_ahora',
-    description: 'Dispara el trend scan AHORA mismo (en vez de esperar el cron de 11am). Toma 30-60 segundos porque hace web_search en paralelo en los 5 dominios. ÚSALA cuando Isabel diga "buscame qué hay nuevo", "qué se está moviendo en X", o cuando quieras ofrecerle algo fresh.',
+    description: 'Dispara el trend scan AHORA mismo (en vez de esperar el cron de 11am). Toma 30-60 segundos porque hace web_search en paralelo en las 6 lentes. ÚSALA cuando Isabel diga "buscame qué hay nuevo", "qué se está moviendo en X", o cuando quieras ofrecerle algo fresh.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'self_grade_correr',
+    description: 'Calcula MI nota semanal AHORA (subscores response/coverage/engagement/proactive/team, total 0-100) + delta vs sem prev + propone UN cambio concreto. Toma ~5 seg. ÚSALA cuando Isabel diga "cómo lo estás haciendo", "evalúate", "cómo va Athena". El cron domingo 8pm corre esto automático.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
+    name: 'self_grade_implementado',
+    description: 'Marca el cambio propuesto de una semana específica como implementado. ÚSALA cuando Isabel apruebe la propuesta del self-grade ("sí, hazlo", "sí, dile a Sami") — primero crea la tarea para el dueño, después marca como implementado.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        semana: { type: 'string', description: 'YYYY-W## de la semana del grade. Si Isabel dice "el de esta semana", usa la semana ISO actual.' },
+      },
+      required: ['semana'],
+    },
+  },
+  {
+    name: 'mi_self_grade',
+    description: 'Devuelve el último self-grade que computé (sin recalcular) + los 3 grades anteriores para que veas la trayectoria. ÚSALA cuando Isabel pregunte "cómo te fue esta sem", "muéstrame tu última calificación".',
     input_schema: { type: 'object', properties: {} },
   },
   {
@@ -2675,9 +2696,39 @@ async function dispatchTool(name, input) {
       if (!r.fresh.length) return 'Scan completo — sin hits nuevos esta vuelta. (Posible que ya hayamos visto lo notable, o que no hay novedad fuerte hoy.)';
       const lines = [`🔥 ${r.fresh.length} hit(s) nuevo(s) (${r.highScore.length} score≥8):`];
       for (const h of r.fresh.slice(0, 5)) {
-        lines.push(`[${h.topic_nombre}, score ${h.score}/10] ${h.titulo}\n  ${h.summary}\n  → ${h.razon_isabel}`);
+        const icon = h.topic_id === 'chief_of_staff' ? '⚙️' : '🔥';
+        lines.push(`${icon} [${h.topic_nombre}, score ${h.score}/10] ${h.titulo}\n  ${h.summary}\n  → ${h.razon_isabel}`);
       }
       return lines.join('\n\n');
+    }
+    case 'self_grade_correr': {
+      const { gradeWeek } = await import('./self_grade.js');
+      const g = await gradeWeek();
+      const delta = g.deltas?.total >= 0 ? `+${g.deltas.total}` : `${g.deltas.total}`;
+      return `📊 Self-grade ${g.semana}: ${g.score}/100 (${delta} vs sem prev).\n\nSubscores: response ${g.subscores.response}/20 · coverage ${g.subscores.coverage}/20 · engagement ${g.subscores.engagement}/20 · proactive ${g.subscores.proactive}/20 · team ${g.subscores.team}/20.\n\nCambio propuesto:\n${g.cambio_propuesto}`;
+    }
+    case 'self_grade_implementado': {
+      try {
+        const { markGradeImplemented } = await import('./self_grade.js');
+        const g = markGradeImplemented(input.semana);
+        return `✓ Self-grade de ${g.semana} marcado como implementado.`;
+      } catch (err) {
+        return `Error: ${err.message}`;
+      }
+    }
+    case 'mi_self_grade': {
+      const { listSelfGrades } = await import('./self_grade.js');
+      const grades = listSelfGrades({ limit: 4 });
+      if (!grades.length) return 'Todavía no hay self-grades. El primero corre domingo 8pm (o llamame con self_grade_correr para forzarlo).';
+      const lines = [`📊 Mis últimos ${grades.length} grades:`];
+      for (const g of grades) {
+        const delta = g.deltas?.total >= 0 ? `+${g.deltas.total}` : `${g.deltas.total}`;
+        const impl = g.implementado ? ' ✓ implementado' : '';
+        lines.push(`  ${g.semana}: ${g.score}/100 (${delta})${impl}`);
+      }
+      const last = grades[0];
+      lines.push(`\nCambio propuesto en ${last.semana}:\n${last.cambio_propuesto || '(ninguno)'}`);
+      return lines.join('\n');
     }
     case 'brainstorm_estructurado': {
       const { anthropic } = await import('./claude.js');

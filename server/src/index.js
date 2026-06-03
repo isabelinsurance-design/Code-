@@ -5,7 +5,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
-import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport, dailyTrendScan } from './proactive.js';
+import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport, dailyTrendScan, weeklySelfGrade } from './proactive.js';
 import { sendClosingLoop } from './closing_loop.js';
 import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
@@ -261,6 +261,9 @@ scheduleCron('rapport', process.env.WEEKLY_RAPPORT_CRON  || '0 18 * * 5', sendWe
 // breakthroughs en Medicare, brand, salud 50+, productividad, wealth.
 // Si encuentra hit con score ≥ 8, hace proactive ping.
 scheduleCron('trends',  process.env.TREND_SCAN_CRON      || '0 11 * * *', dailyTrendScan);
+// Self-grade: domingo 8pm. Athena se califica vs sem prev + propone
+// UN cambio concreto. Si baja >5pts o score≤60, pinguea proactiva.
+scheduleCron('self_grade', process.env.SELF_GRADE_CRON   || '0 20 * * 0', weeklySelfGrade);
 // Research digest: mediodía — Athena rota tus temas, hace web_search,
 // te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);

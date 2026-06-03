@@ -149,6 +149,50 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
   console.log('[evening] check-in enviado.');
 }
 
+// ---- Self-grade semanal (domingo 8pm) ----
+// Athena se califica a sí misma cada semana: 5 subscores, total 0-100,
+// delta vs semana previa, y propone UN cambio concreto. Si el grade
+// bajó >5 puntos, manda mensaje proactivo. Si subió, lo guarda silencioso
+// y lo mostrará en el siguiente briefing.
+export async function weeklySelfGrade() {
+  try {
+    const { gradeWeek } = await import('./self_grade.js');
+    const g = await gradeWeek();
+    const delta = g.deltas?.total || 0;
+    const shouldPing = delta <= -5 || g.score <= 60;
+    if (!shouldPing) {
+      console.log(`[self_grade] sem ${g.semana}: ${g.score}/100 (${delta >= 0 ? '+' : ''}${delta}). Silencioso.`);
+      return;
+    }
+    const gate = canSendProactive({ force: g.score <= 50 });
+    if (!gate.ok) {
+      console.log(`[self_grade] saltado ping: ${gate.reason}`);
+      return;
+    }
+    bumpProactiveCount(gate.dayKey);
+    await runProactive(
+      `[SELF-GRADE SEMANAL — ${g.semana}]
+
+Mi nota esta semana: ${g.score}/100 (${delta >= 0 ? '+' : ''}${delta} vs sem prev).
+
+Subscores: response ${g.subscores.response}/20 · coverage ${g.subscores.coverage}/20 · engagement ${g.subscores.engagement}/20 · proactive ${g.subscores.proactive}/20 · team ${g.subscores.team}/20.
+
+CAMBIO QUE ME PROPONGO PARA LA PRÓXIMA SEMANA:
+${g.cambio_propuesto}
+
+INSTRUCCIONES PARA TI (Athena hablándote a Isabel):
+- Mostrame el grade con honestidad — si bajó, di "esta semana operé peor que la pasada en X".
+- Mostrame el CAMBIO PROPUESTO claro. Si necesita Sami para implementar, ofrécete a crearle la tarea.
+- Si Isabel aprueba la propuesta, marca el grade como implementado via tool self_grade_implementado(semana="${g.semana}") y crea la tarea correspondiente.
+- Si dice "no" o "no por ahora", déjalo registrado sin implementar.
+- Sé directa. Es self-reflection — no necesitas suavizar.`,
+    );
+    console.log(`[self_grade] ping enviado para ${g.semana}.`);
+  } catch (err) {
+    console.warn('[self_grade] error:', err.message);
+  }
+}
+
 // ---- Trend scan (diario 11am) ----
 // Corre el scout de virales / trending en los 6 lentes de Isabel
 // (Medicare, brand, salud 50+, productividad, wealth + chief_of_staff
@@ -168,7 +212,11 @@ export async function dailyTrendScan() {
       return;
     }
     bumpProactiveCount(gate.dayKey);
-    const top = r.highScore.slice(0, 2);
+    // Prioriza la lente META (chief_of_staff) en el top — siempre primero
+    // si hay algún hit suyo en highScore, después el mejor de las otras.
+    const metaHits = r.highScore.filter((h) => h.topic_id === 'chief_of_staff');
+    const otrosHits = r.highScore.filter((h) => h.topic_id !== 'chief_of_staff');
+    const top = [...metaHits.slice(0, 2), ...otrosHits.slice(0, 1)].slice(0, 3);
     const blurb = top.map((h) => {
       const icon = h.topic_id === 'chief_of_staff' ? '⚙️' : '🔥';
       return `${icon} [${h.topic_nombre}] ${h.titulo}\n${h.summary}\n→ ${h.razon_isabel}`;

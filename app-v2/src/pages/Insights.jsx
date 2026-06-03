@@ -1,6 +1,22 @@
 import { useEffect, useState } from 'react';
 import { api } from '../lib/api.js';
 
+function SubscoreBar({ label, value, max = 20 }) {
+  const pct = Math.min(100, Math.round((value / max) * 100));
+  const color = pct >= 75 ? 'bg-green-700' : pct >= 50 ? 'bg-lino-700' : 'bg-orange';
+  return (
+    <div className="text-xs">
+      <div className="flex justify-between mb-1">
+        <span className="text-ink-2">{label}</span>
+        <span className="text-ink-3">{value}/{max}</span>
+      </div>
+      <div className="w-full bg-lino-200 rounded-full h-1.5 overflow-hidden">
+        <div className={`h-full ${color}`} style={{ width: `${pct}%` }} />
+      </div>
+    </div>
+  );
+}
+
 const SEV_STYLE = {
   alto: 'bg-red/10 border-red/30 text-red',
   aviso: 'bg-orange/10 border-orange/30 text-orange-700',
@@ -20,11 +36,37 @@ const EMOCION_LABELS = {
 
 export default function Insights() {
   const [data, setData] = useState(null);
+  const [grades, setGrades] = useState([]);
+  const [grading, setGrading] = useState(false);
   const [err, setErr] = useState('');
+
+  async function reloadGrades() {
+    try { setGrades(await api.selfGrades(6)); } catch { /* tolera */ }
+  }
 
   useEffect(() => {
     api.insights().then(setData).catch((e) => setErr(e.message));
+    reloadGrades();
   }, []);
+
+  async function gradeNow() {
+    setGrading(true); setErr('');
+    try {
+      await api.selfGradeRun();
+      reloadGrades();
+    } catch (e) {
+      setErr(e.message);
+    } finally {
+      setGrading(false);
+    }
+  }
+
+  async function markImplemented(semana) {
+    try {
+      await api.selfGradeImplemented(semana);
+      reloadGrades();
+    } catch (e) { setErr(e.message); }
+  }
 
   if (err) return <p className="text-red">{err}</p>;
   if (!data) return <p className="text-ink-3">Cargando insights…</p>;
@@ -49,6 +91,80 @@ export default function Insights() {
           )}
         </p>
       </header>
+
+      {/* Self-grade de Athena — auto-evaluación semanal */}
+      <section>
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="text-sm font-medium text-lino-800">📊 Self-grade de Athena</h3>
+          <button onClick={gradeNow} disabled={grading} className="text-xs text-lino-700 hover:underline">
+            {grading ? 'Calculando…' : 'Correr ahora'}
+          </button>
+        </div>
+        {!grades.length && (
+          <p className="text-ink-3 text-sm italic">Sin self-grades todavía. El cron corre domingo 8pm — o dale "Correr ahora".</p>
+        )}
+        {grades.length > 0 && (
+          <>
+            {/* Trayectoria visual */}
+            <div className="card mb-2">
+              <div className="flex items-end gap-2 h-16">
+                {grades.slice().reverse().map((g) => {
+                  const h = Math.max(8, Math.round((g.score / 100) * 64));
+                  return (
+                    <div key={g.semana} className="flex-1 flex flex-col items-center justify-end" title={`${g.semana}: ${g.score}/100`}>
+                      <div className={`w-full rounded-t ${g.score >= 80 ? 'bg-green-700' : g.score >= 60 ? 'bg-lino-700' : 'bg-orange'}`} style={{ height: h }} />
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="flex justify-between mt-1 text-xs text-ink-3">
+                <span>{grades[grades.length - 1]?.semana}</span>
+                <span>{grades[0]?.semana} (último)</span>
+              </div>
+            </div>
+
+            {/* Último grade en detalle */}
+            {(() => {
+              const g = grades[0];
+              const delta = g.deltas?.total || 0;
+              return (
+                <div className="card">
+                  <div className="flex items-baseline justify-between mb-3">
+                    <div>
+                      <span className="font-serif text-3xl text-lino-800">{g.score}<span className="text-ink-3 text-base">/100</span></span>
+                      <span className={`ml-2 text-sm ${delta >= 0 ? 'text-green-700' : 'text-orange-700'}`}>
+                        {delta >= 0 ? '+' : ''}{delta} vs sem prev
+                      </span>
+                    </div>
+                    <span className="text-xs text-ink-3">{g.semana}</span>
+                  </div>
+                  <div className="grid grid-cols-2 gap-3 mb-3">
+                    <SubscoreBar label="Response (sin errores)" value={g.subscores?.response || 0} />
+                    <SubscoreBar label="Coverage (tools usadas)" value={g.subscores?.coverage || 0} />
+                    <SubscoreBar label="Engagement (volumen)" value={g.subscores?.engagement || 0} />
+                    <SubscoreBar label="Proactive (Isabel responde)" value={g.subscores?.proactive || 0} />
+                    <SubscoreBar label="Team (sin atrasados)" value={g.subscores?.team || 0} />
+                  </div>
+                  {g.cambio_propuesto && (
+                    <div className="mt-3 pt-3 border-t border-lino-200">
+                      <div className="text-xs text-ink-3 mb-1">Cambio propuesto para próxima sem:</div>
+                      <pre className="text-xs text-ink-1 whitespace-pre-wrap font-sans">{g.cambio_propuesto}</pre>
+                      {!g.implementado && (
+                        <button onClick={() => markImplemented(g.semana)} className="mt-2 text-xs text-lino-700 hover:underline">
+                          ✓ Marcar como implementado
+                        </button>
+                      )}
+                      {g.implementado && (
+                        <p className="text-xs text-green-700 mt-2">✓ Implementado el {g.implementado_ts?.slice(0, 10)}</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </>
+        )}
+      </section>
 
       {/* Signals — alertas detectadas por reflexión nocturna */}
       <section>
