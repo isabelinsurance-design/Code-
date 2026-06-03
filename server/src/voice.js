@@ -62,28 +62,62 @@ export function buildIncomingTwiml(req) {
   <Hangup/>
 </Response>`;
   }
-  const wsUrl = `wss://${publicHost}/voice/relay`;
-  // ConversationRelay opcionalmente acepta voz custom — si Isabel ya
-  // tiene voz clonada en ElevenLabs, la usamos también en llamadas.
+  const motivo = (req?.query?.motivo || '').slice(0, 400);
   const elevenVoice = process.env.ELEVENLABS_VOICE_ID;
+
+  // VOICE_USE_CONVERSATION_RELAY=true → modo bidireccional con WebSocket
+  //   (requiere que Twilio tenga ConversationRelay habilitado en tu account
+  //   — feature relativamente nuevo, puede que tu cuenta no lo soporte aún).
+  // Default (false): TwiML simple con <Say> — perfecto para el caso de uso
+  //   de recordatorio de cita ([LLAMA] en calendar), `llamar_cliente`
+  //   con motivo, etc. No es conversación bidireccional pero ES un canal
+  //   de notificación por voz que SÍ funciona en cualquier cuenta Twilio.
+  const useConversation = process.env.VOICE_USE_CONVERSATION_RELAY === 'true';
+
+  if (!useConversation) {
+    // Modo simple: Athena saluda + dice el motivo + cuelga.
+    const voiceAttrs = elevenVoice
+      ? ` voice="${elevenVoice}"` // ElevenLabs via custom voice (si Twilio lo soporta)
+      : ' voice="Polly.Lupe-Neural" language="es-MX"';
+    const mensaje = motivo
+      ? `Hola Isabel, soy Athena. Te llamo para recordarte: ${motivo}. Si necesitas más detalles, abre la app o el WhatsApp. Adiós.`
+      : 'Hola Isabel, soy Athena. Te llamo para confirmar que el sistema de voz está funcionando. Adiós.';
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say${voiceAttrs}>${escapeXml(mensaje)}</Say>
+  <Hangup/>
+</Response>`;
+    console.log(`[voice] TwiML simple generado: motivo="${motivo}" eleven=${elevenVoice ? 'sí' : 'no'}`);
+    return twiml;
+  }
+
+  // Modo ConversationRelay (avanzado — necesita feature habilitado en Twilio)
+  const wsUrl = `wss://${publicHost}/voice/relay`;
   const voiceAttrs = elevenVoice
     ? ` ttsProvider="ElevenLabs" voice="${elevenVoice}"`
     : ' voice="Polly.Lupe-Neural" language="es-MX"';
-  const motivo = (req?.query?.motivo || '').slice(0, 200);
-  // Para outbound calls con motivo (recordatorio de cita, etc.), incluimos
-  // el motivo en el welcome greeting. Para inbound (clientes llamando),
-  // saludo genérico.
   const welcome = motivo
     ? `Hola Isabel, soy Athena. Te llamo por esto: ${motivo}`
     : 'Hola, habla Athena, asistente de Isabel Fuentes. ¿En qué te ayudo?';
   const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <ConversationRelay url="${wsUrl}"${voiceAttrs} welcomeGreeting="${welcome.replace(/"/g, '&quot;')}" />
+    <ConversationRelay url="${wsUrl}"${voiceAttrs} welcomeGreeting="${escapeXml(welcome)}" />
   </Connect>
 </Response>`;
-  console.log(`[voice] TwiML generado: wsUrl=${wsUrl} eleven=${elevenVoice ? 'sí' : 'no'} motivo="${motivo}"`);
+  console.log(`[voice] TwiML ConversationRelay generado: wsUrl=${wsUrl} eleven=${elevenVoice ? 'sí' : 'no'} motivo="${motivo}"`);
   return twiml;
+}
+
+// Escape XML para evitar romper el TwiML con caracteres especiales en
+// motivo o welcome — comilla doble es el más problemático en atributos.
+function escapeXml(text) {
+  return String(text || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
 }
 
 // Twilio nos pega esto cuando termina una llamada — incluye RecordingUrl
