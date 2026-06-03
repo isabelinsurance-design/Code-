@@ -252,6 +252,26 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .cms-banner-head{font-weight:700;color:var(--amber);margin-bottom:4px}
 .cms-banner ul{margin:4px 0 0 18px;padding:0}
 .cms-banner li{margin-bottom:2px}
+
+/* ─── ORCHESTRATOR (Pregunta Inteligente) ─── */
+.route-input{display:flex;gap:10px;flex-direction:column;margin-bottom:12px}
+.route-input textarea{width:100%;min-height:90px;padding:12px 14px;border:1.5px solid var(--border-d);border-radius:12px;font-family:inherit;font-size:14px;color:var(--text);background:var(--white);resize:vertical;line-height:1.5}
+.route-input textarea:focus{outline:0;border-color:var(--gold)}
+.route-input-actions{display:flex;justify-content:flex-end;align-items:center;gap:12px}
+.route-btn{background:linear-gradient(135deg,#333A4D,#3D8FD6);color:#fff;border:0;border-radius:30px;padding:11px 22px;font-size:14px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(61,143,214,.35);transition:transform .15s,box-shadow .15s}
+.route-btn:hover:not(:disabled){transform:translateY(-1px)}
+.route-btn:disabled{opacity:.6;cursor:not-allowed}
+.route-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);min-height:14px;margin-bottom:10px}
+.route-routing-card{background:var(--teal-lt);border:1px solid var(--teal);border-radius:10px;padding:10px 14px;margin-bottom:12px;font-size:13px;color:var(--text)}
+.route-routing-card .route-reason{font-style:italic;color:var(--text-muted);font-size:11.5px;margin-top:3px}
+.route-details{margin-top:14px;border:1px solid var(--border);border-radius:10px;padding:0;overflow:hidden}
+.route-details summary{cursor:pointer;padding:11px 14px;font-size:12.5px;color:var(--text-mid);background:var(--surface);font-weight:600}
+.route-details[open] summary{border-bottom:1px solid var(--border)}
+.route-voice{padding:12px 16px;border-top:1px solid var(--border);font-size:13px;line-height:1.55}
+.route-voice:first-of-type{border-top:0}
+.route-voice-head{font-weight:700;color:var(--gold-dk);margin-bottom:5px;font-size:13.5px}
+.route-roster{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
+.route-roster-chip{font-size:11px;background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:4px 10px;color:var(--text-mid)}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -539,6 +559,9 @@ tr:hover td{background:var(--surface)}
       </button>
       <button class="nav-item" onclick="showModule('equipo',this)">
         <span class="nav-icon">🤖</span><span class="nav-label">Equipo IA</span>
+      </button>
+      <button class="nav-item" onclick="showModule('route',this)">
+        <span class="nav-icon">🧭</span><span class="nav-label">Pregunta Inteligente</span>
       </button>
       <button class="nav-item" onclick="showModule('movil',this)">
         <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
@@ -1079,6 +1102,39 @@ tr:hover td{background:var(--surface)}
             <input type="text" id="memInputCompromisosDue" placeholder="Vence" style="flex:1 1 80px" />
             <button onclick="addMemFromForm('compromisos')">Agregar</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════ ORCHESTRATOR (Pregunta Inteligente) ══════ -->
+    <div class="module" id="mod-route">
+      <div class="page-header">
+        <div class="page-title">🧭 Pregunta <em>Inteligente</em></div>
+        <div class="page-sub">Pregunta cualquier cosa. El orquestador decide qué coaches consultar en paralelo y te da UNA respuesta integrada — el patrón de Athena (Sección 5).</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--teal-lt);border-color:var(--teal)">
+        <span style="font-size:20px">🧠</span>
+        <div><strong>Cómo funciona:</strong> escribes una pregunta → un orquestador IA elige 1-3 coaches del equipo que sean relevantes → corren en paralelo → una respuesta integrada con UNA acción. Puedes abrir "Voces individuales" para ver qué dijo cada coach.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-body">
+          <div class="route-input">
+            <textarea id="routeInput" placeholder='Ej: "Quiero un Reel sobre beneficios dentales que también funcione como anuncio pagado y tenga un CTA fuerte"'></textarea>
+            <div class="route-input-actions">
+              <span style="font-size:11px;color:var(--text-muted)">Coaches disponibles:</span>
+              <button class="route-btn" id="routeBtn" onclick="runOrchestrator()">🧭 Preguntar al equipo</button>
+            </div>
+            <div class="route-roster" id="routeRoster"></div>
+          </div>
+          <div class="route-status" id="routeStatus"></div>
+          <div id="routeRouting"></div>
+          <div class="ai-box" id="routeOutput"><div class="ai-label">✨ Respuesta integrada</div></div>
+          <details class="route-details">
+            <summary>Ver voces individuales de cada coach (avanzado)</summary>
+            <div id="routeIndividual"></div>
+          </details>
         </div>
       </div>
     </div>
@@ -2320,6 +2376,39 @@ Siempre:
 REGLA DE CIERRE (no negociable):
 Termina SIEMPRE con UNA acción concreta para Isabel, en una sola línea, precedida por "✅ Tu próxima acción:". Una sola acción, no cinco. Específica, ejecutable hoy.`;
 
+// ─── COACHES ROSTER (shared by Equipo IA + Orchestrator) ───
+const COACHES = {
+  ganchos: { icon:'🎣', name:'Ganchos Virales', desc:'hooks de 3 segundos para Reels y videos cortos',
+    voice:`Tu voz: editora de titulares de tabloide latino — frases cortísimas, viscerales, primera persona.
+SÍ usas: "esto nadie te lo dice", "lo que tu agente no te explicó", "si tienes 64 te urge saber".
+NUNCA usas: "descubre", "increíble", "lo más barato", "secretos revelados", clickbait obvio.` },
+  live: { icon:'🎙️', name:'Facebook Live', desc:'guiones para Live Q&A semanal',
+    voice:`Tu voz: maestra cálida y clara — como una tía que sabe del tema y se sienta a explicarte sin prisa.
+SÍ usas: "te voy a explicar", "no te preocupes", "mira", "para que me entiendas mejor".
+NUNCA usas: jerga técnica sin traducir, anglicismos forzados, "como les decía", relleno.` },
+  reels: { icon:'📹', name:'Reels', desc:'ideas y guiones cortos virales',
+    voice:`Tu voz: creator latino auténtico, energía natural, hablas como con una amiga.
+SÍ usas: "te juro que", "mira esto", "te lo cuento corto", "etiqueta a quien necesita oír esto".
+NUNCA usas: "you guys", manifest culture, fake hype, "el algoritmo me trajo aquí".` },
+  tip: { icon:'💡', name:'Tip Educativo', desc:'posts "¿Sabías que…?" educativos',
+    voice:`Tu voz: maestra tranquila con autoridad — no grita, no exagera, te explica con un dato sólido.
+SÍ usas: "te explico", "lo que poca gente sabe", "esto es real".
+NUNCA usas: "did you know that…", clickbait, exageraciones, "esto te va a SORPRENDER".` },
+  lead: { icon:'📘', name:'Captura de Leads', desc:'copy de posts con lead magnet',
+    voice:`Tu voz: amiga generosa que regala valor sin presión — invita, no presiona.
+SÍ usas: "esto es regalo", "sin compromiso", "es tuya gratis", "etiqueta a quien la necesita".
+NUNCA usas: "compra ya", "última oportunidad", scarcity falso, "ofertón", "promo".` },
+  historia: { icon:'❤️', name:'Historia Real', desc:'plantillas de historia de cliente real',
+    voice:`Tu voz: narradora respetuosa — honras la historia del cliente, no exageras, no inventas.
+SÍ usas: "[Nombre del cliente]", "[detalle real]" en corchetes para que Isabel llene.
+NUNCA usas: nombres inventados, números fabricados, "lloré con su historia", testimonios falsos.` },
+};
+
+function coachSystem(id){
+  const c = COACHES[id]; if(!c) return ISABEL_SYSTEM;
+  return ISABEL_SYSTEM + '\n\n--- Voz específica de este agente ---\n' + c.voice;
+}
+
 async function askCerebro(){
   const input = document.getElementById('cerebroInput').value.trim();
   const mode = document.getElementById('cerebroMode').value;
@@ -2689,48 +2778,124 @@ async function runEquipoIA(){
   btn.disabled = true;
   const t0 = Date.now();
   const agents = [
-    {id:'eqOut1', name:'Ganchos', voice:`Tu voz: editora de titulares de tabloide latino — frases cortísimas, viscerales, primera persona.
-SÍ usas: "esto nadie te lo dice", "lo que tu agente no te explicó", "si tienes 64 te urge saber".
-NUNCA usas: "descubre", "increíble", "lo más barato", "secretos revelados", clickbait obvio.`,
-     prompt:'Dame 5 GANCHOS virales para Reels de Facebook, mercado hispano 60+ SoCal. Cada gancho 1 frase, capta atención en 3 segundos. Numera 1-5 + 1 línea breve de por qué funciona.'},
-
-    {id:'eqOut2', name:'Live', voice:`Tu voz: maestra cálida y clara — como una tía que sabe del tema y se sienta a explicarte sin prisa.
-SÍ usas: "te voy a explicar", "no te preocupes", "mira", "para que me entiendas mejor".
-NUNCA usas: jerga técnica sin traducir, anglicismos forzados, "como les decía", relleno.`,
-     prompt:'Escribe un GUION de Facebook Live de 5-7 minutos para mi Q&A semanal sobre "Diferencia entre Medicare Advantage y Medicare Suplementario". Estructura: gancho inicial (3 seg), bienvenida cálida, 3 puntos clave, invitación a comentar dudas, cierre con CTA "Escríbeme MEDICARE y te mando mi guía gratis".'},
-
-    {id:'eqOut3', name:'Reels', voice:`Tu voz: creator latino auténtico, energía natural, hablas como con una amiga.
-SÍ usas: "te juro que", "mira esto", "te lo cuento corto", "etiqueta a quien necesita oír esto".
-NUNCA usas: "you guys", manifest culture, fake hype, "el algoritmo me trajo aquí".`,
-     prompt:'Dame 3 IDEAS de Reels para hacerme viral en el mercado latino Medicare SoCal. Para cada uno: (1) tema, (2) gancho de 3 seg, (3) guion 30-45 seg, (4) CTA, (5) por qué se compartiría.'},
-
-    {id:'eqOut4', name:'Tip', voice:`Tu voz: maestra tranquila con autoridad — no grita, no exagera, te explica con un dato sólido.
-SÍ usas: "te explico", "lo que poca gente sabe", "esto es real".
-NUNCA usas: "did you know that…", clickbait, exageraciones, "esto te va a SORPRENDER".`,
-     prompt:'Escribe un post "¿Sabías que…?" en español para audiencia latina 60+, sobre UN beneficio poco conocido de Medicare Advantage (dental/transporte/dinero comida). Gancho + dato + explicación 2-3 líneas + CTA "Escríbeme y te explico si tu plan lo incluye 💙".'},
-
-    {id:'eqOut5', name:'Lead', voice:`Tu voz: amiga generosa que regala valor sin presión — invita, no presiona.
-SÍ usas: "esto es regalo", "sin compromiso", "es tuya gratis", "etiqueta a quien la necesita".
-NUNCA usas: "compra ya", "última oportunidad", scarcity falso, "ofertón", "promo".`,
-     prompt:'Escribe el COPY de un post para ofrecer mi guía gratis "5 cosas que debes saber antes de elegir tu plan Medicare". Hook + 3 razones para descargarla + CTA "Escríbeme MEDICARE y te la mando gratis". Invita a etiquetar a alguien que cumple 65.'},
-
-    {id:'eqOut6', name:'Historia', voice:`Tu voz: narradora respetuosa — honras la historia del cliente, no exageras, no inventas.
-SÍ usas: "[Nombre del cliente]", "[detalle real]" en corchetes para que Isabel llene.
-NUNCA usas: nombres inventados, números fabricados, "lloré con su historia", testimonios falsos.`,
-     prompt:'Dame una PLANTILLA de historia inspiradora que Isabel pueda completar con un cliente real (con su permiso). Deja [corchetes] donde hay que llenar. NO inventes nombres, números ni testimonios. Estructura: situación inicial, momento del cambio, resultado, lección.'}
+    {id:'eqOut1', coachId:'ganchos',  prompt:'Dame 5 GANCHOS virales para Reels de Facebook, mercado hispano 60+ SoCal. Cada gancho 1 frase, capta atención en 3 segundos. Numera 1-5 + 1 línea breve de por qué funciona.'},
+    {id:'eqOut2', coachId:'live',     prompt:'Escribe un GUION de Facebook Live de 5-7 minutos para mi Q&A semanal sobre "Diferencia entre Medicare Advantage y Medicare Suplementario". Estructura: gancho inicial (3 seg), bienvenida cálida, 3 puntos clave, invitación a comentar dudas, cierre con CTA "Escríbeme MEDICARE y te mando mi guía gratis".'},
+    {id:'eqOut3', coachId:'reels',    prompt:'Dame 3 IDEAS de Reels para hacerme viral en el mercado latino Medicare SoCal. Para cada uno: (1) tema, (2) gancho de 3 seg, (3) guion 30-45 seg, (4) CTA, (5) por qué se compartiría.'},
+    {id:'eqOut4', coachId:'tip',      prompt:'Escribe un post "¿Sabías que…?" en español para audiencia latina 60+, sobre UN beneficio poco conocido de Medicare Advantage (dental/transporte/dinero comida). Gancho + dato + explicación 2-3 líneas + CTA "Escríbeme y te explico si tu plan lo incluye 💙".'},
+    {id:'eqOut5', coachId:'lead',     prompt:'Escribe el COPY de un post para ofrecer mi guía gratis "5 cosas que debes saber antes de elegir tu plan Medicare". Hook + 3 razones para descargarla + CTA "Escríbeme MEDICARE y te la mando gratis". Invita a etiquetar a alguien que cumple 65.'},
+    {id:'eqOut6', coachId:'historia', prompt:'Dame una PLANTILLA de historia inspiradora que Isabel pueda completar con un cliente real (con su permiso). Deja [corchetes] donde hay que llenar. NO inventes nombres, números ni testimonios. Estructura: situación inicial, momento del cambio, resultado, lección.'},
   ];
   agents.forEach(a => setOutput(a.id,'<div class="ai-loading">✨ Generando<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>'));
   let done = 0;
   status.textContent = '🚀 6 agentes trabajando en paralelo… 0/6';
   await Promise.all(agents.map(a => {
-    const sys = ISABEL_SYSTEM + '\n\n--- Voz específica de este agente ---\n' + a.voice;
-    return callClaude(sys, a.prompt, a.id).then(()=>{
+    return callClaude(coachSystem(a.coachId), a.prompt, a.id).then(()=>{
       done++;
       status.textContent = `🚀 6 agentes trabajando en paralelo… ${done}/6`;
     }).catch(e => setOutput(a.id, '❌ Error: '+e.message));
   }));
   const secs = ((Date.now()-t0)/1000).toFixed(1);
   status.textContent = `✅ Listo en ${secs}s. Copia lo que te sirva y a publicar 🦋`;
+  btn.disabled = false;
+}
+
+// ─── ORCHESTRATOR (Athena Section 5: multi-coach in parallel + synth) ───
+function renderRoster(){
+  const el = document.getElementById('routeRoster');
+  if(!el) return;
+  el.innerHTML = Object.entries(COACHES).map(([id,c]) =>
+    `<span class="route-roster-chip" title="${escapeHtml(c.desc)}">${c.icon} ${escapeHtml(c.name)}</span>`
+  ).join('');
+}
+
+async function runOrchestrator(){
+  const q = document.getElementById('routeInput').value.trim();
+  const status = document.getElementById('routeStatus');
+  const routing = document.getElementById('routeRouting');
+  const individual = document.getElementById('routeIndividual');
+  if(!q){ status.textContent = '✏️ Escribe tu pregunta primero.'; return; }
+  if(!apiKey){ status.textContent = '⚠️ Pon tu API Key arriba a la derecha.'; return; }
+  const btn = document.getElementById('routeBtn');
+  btn.disabled = true;
+  individual.innerHTML = '';
+  routing.innerHTML = '';
+  setOutput('routeOutput','<div class="ai-loading">🧭 Decidiendo coaches<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
+  // capture-by-default in parallel
+  captureFromMessage(q);
+  const t0 = Date.now();
+
+  // Step 1: routing call — decide which coaches to consult
+  const roster = Object.entries(COACHES).map(([id,c]) => `- ${id}: ${c.desc}`).join('\n');
+  const routePrompt = `Pregunta de Isabel: "${q.replace(/"/g,'\\"')}"
+
+Coaches disponibles:
+${roster}
+
+Tu trabajo: elegir los coaches relevantes (1-3 máximo).
+- Si la pregunta toca UN solo dominio claramente, elige 1.
+- Si toca 2 dominios, elige 2.
+- Si toca 3+ dominios, elige hasta 3 (los más críticos).
+- Nunca más de 3.
+
+Responde SOLO con JSON válido, sin markdown:
+{"coaches":["id1","id2"],"razon":"breve explicación de por qué"}`;
+  let routed = null;
+  try{
+    const raw = await callClaudeRaw('Eres un orquestador. Decides qué especialistas del equipo de Isabel deben responder. Devuelves SOLO JSON.', routePrompt, 250);
+    const m = raw.match(/\{[\s\S]*\}/);
+    if(m){ routed = JSON.parse(m[0]); }
+  }catch(_){ /* fallback below */ }
+  if(!routed || !Array.isArray(routed.coaches) || !routed.coaches.length){
+    routed = { coaches:['ganchos'], razon:'Fallback — el orquestador no decidió, uso Ganchos por defecto.' };
+  }
+  // Filter to valid coaches
+  routed.coaches = routed.coaches.filter(id => COACHES[id]).slice(0, 3);
+  if(!routed.coaches.length) routed.coaches = ['ganchos'];
+
+  routing.innerHTML = `<div class="route-routing-card">🧠 Consultando ${routed.coaches.length} coach${routed.coaches.length===1?'':'es'}: ${routed.coaches.map(id => `<b>${COACHES[id].icon} ${escapeHtml(COACHES[id].name)}</b>`).join(' · ')}<div class="route-reason">${escapeHtml(routed.razon||'')}</div></div>`;
+
+  // Step 2: fire chosen coaches in parallel
+  status.textContent = `🚀 ${routed.coaches.length} coach${routed.coaches.length===1?'':'es'} trabajando en paralelo…`;
+  setOutput('routeOutput','<div class="ai-loading">🚀 Coaches trabajando<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
+  const results = await Promise.all(routed.coaches.map(async (id) => {
+    const c = COACHES[id];
+    try{
+      const text = await callClaudeRaw(coachSystem(id), q, 900);
+      return { id, name:c.name, icon:c.icon, text };
+    }catch(e){
+      return { id, name:c.name, icon:c.icon, text:'❌ Error: '+e.message };
+    }
+  }));
+
+  // Step 3: synthesize (only if >1 coach responded)
+  let finalText;
+  if(results.length > 1){
+    status.textContent = '🪡 Sintetizando una respuesta única…';
+    const synthPrompt = `Pregunta original de Isabel: "${q.replace(/"/g,'\\"')}"
+
+Los siguientes ${results.length} coaches respondieron:
+
+${results.map(r => `### ${r.icon} ${r.name}\n${r.text}`).join('\n\n')}
+
+Tu trabajo: dar UNA respuesta integrada a Isabel. NO pegues las 3 respuestas juntas. Encuentra el punto donde se cruzan, prioriza lo más importante, y dale UNA respuesta clara, accionable, en su voz cálida. Mantén lo más fuerte de cada coach; descarta repeticiones y relleno. Recuerda cerrar con "✅ Tu próxima acción:" UNA acción concreta.`;
+    try{
+      finalText = await callClaudeRaw(ISABEL_SYSTEM, synthPrompt, 1200);
+    }catch(e){
+      finalText = '❌ Error sintetizando: ' + e.message + '\n\nVoces individuales abajo.';
+    }
+  } else {
+    finalText = results[0].text;
+  }
+  setOutput('routeOutput', finalText);
+  try{ setComplianceWarning('routeOutput', checkCompliance(finalText)); }catch(_){}
+
+  // Step 4: show individual voices
+  individual.innerHTML = results.map(r =>
+    `<div class="route-voice"><div class="route-voice-head">${r.icon||''} ${escapeHtml(r.name||r.id)}</div><div class="route-voice-body">${escapeHtml(r.text).replace(/\n/g,'<br>')}</div></div>`
+  ).join('');
+
+  const secs = ((Date.now() - t0) / 1000).toFixed(1);
+  status.textContent = `✅ Listo en ${secs}s · ${routed.coaches.length} coach${routed.coaches.length===1?'':'es'} consultado${routed.coaches.length===1?'':'s'}${results.length>1?' + síntesis':''} 🦋`;
   btn.disabled = false;
 }
 
@@ -3024,6 +3189,7 @@ loadLeads();
 loadPlan();
 loadMemoria();
 renderHealth();
+renderRoster();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){

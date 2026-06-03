@@ -53,6 +53,94 @@ nativos del cPanel. Si los hace Athena (que ya está en Railway), Athena puede
 mandarle el briefing a Isabel directamente vía sus canales actuales (WhatsApp,
 Telegram, voz).
 
+### Blueprint PHP para Bluehost (receta mínima)
+
+Si el equipo LUNA elige Bluehost para el lado servidor, esto es lo mínimo:
+
+**1. Tablas MySQL (memoria persistente que sincroniza con el navegador):**
+```sql
+CREATE TABLE luna_memoria (
+  id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+  layer        ENUM('hechos','personas','tareas','compromisos') NOT NULL,
+  payload      JSON NOT NULL,
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP,
+  done         TINYINT(1) DEFAULT 0,
+  due_date     DATE NULL,
+  INDEX (layer), INDEX (due_date)
+);
+CREATE TABLE luna_drafts (
+  id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+  channel      VARCHAR(32) NOT NULL,       -- 'telegram','email','whatsapp'
+  to_addr      VARCHAR(255),
+  body         TEXT NOT NULL,
+  status       ENUM('pending','approved','sent','discarded') DEFAULT 'pending',
+  created_at   DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+CREATE TABLE luna_audit (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  action VARCHAR(64), payload JSON, created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+**2. Cron en cPanel (briefing 6:30am hora SoCal):**
+```
+30 6 * * * /usr/bin/php /home/USER/luna/cron/briefing.php >> /home/USER/luna/logs/briefing.log 2>&1
+```
+
+**3. `cron/briefing.php` — esqueleto:**
+```php
+<?php
+require __DIR__ . '/../config.php';   // $ANTHROPIC_KEY, $TELEGRAM_BOT_TOKEN, $ISABEL_CHAT_ID, $PDO
+// 1. compute trust score + gaps from luna_memoria
+$score = compute_health($PDO);
+$gaps  = compute_gaps($PDO);
+// 2. call Claude
+$body = json_encode([
+  'model' => 'claude-sonnet-4-20250514',
+  'max_tokens' => 600,
+  'system' => ISABEL_SYSTEM,
+  'messages' => [['role'=>'user','content'=>build_briefing_prompt($score, $gaps)]],
+]);
+$ch = curl_init('https://api.anthropic.com/v1/messages');
+curl_setopt_array($ch, [
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_POST => true,
+  CURLOPT_POSTFIELDS => $body,
+  CURLOPT_HTTPHEADER => [
+    'Content-Type: application/json',
+    'x-api-key: ' . $ANTHROPIC_KEY,
+    'anthropic-version: 2023-06-01',
+  ],
+]);
+$resp = json_decode(curl_exec($ch), true);
+$text = $resp['content'][0]['text'] ?? 'Briefing error';
+// 3. send to Telegram
+$msg = "🌅 *Briefing* — Salud: *{$score}/100*\n\n" . $text;
+file_get_contents("https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage?" . http_build_query([
+  'chat_id' => $ISABEL_CHAT_ID, 'text' => $msg, 'parse_mode' => 'Markdown',
+]));
+```
+
+**4. `webhook-telegram.php` — recibe mensajes:**
+```php
+<?php
+require __DIR__ . '/config.php';
+$update = json_decode(file_get_contents('php://input'), true);
+$msg = $update['message']['text'] ?? '';
+$chat = $update['message']['chat']['id'] ?? null;
+if (!$msg || !$chat) exit;
+// llamar a Claude con el mismo ISABEL_SYSTEM…
+// hacer capture-by-default → INSERT luna_memoria
+// responder via /sendMessage
+```
+
+Telegram apunta su webhook a `https://luna.bluehost.com/webhook-telegram.php` con
+`/setWebhook?url=...` y listo — no necesita proceso largo, es HTTP normal.
+
+**5. Sync navegador ↔ servidor (opcional, futuro):**
+Endpoints `/api/memoria` GET + POST con bearer token; el navegador hace fetch al
+cargar para hidratar `memoria.*` y al guardar para persistir multi-dispositivo.
+
 ## Bot de Telegram (`bot/`)
 
 ⚠️ **No deployable en Bluehost.** El bot está en Python con `python-telegram-bot`

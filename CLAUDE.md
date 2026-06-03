@@ -75,8 +75,18 @@ attention items. Both re-render on every state-changing call
 `toggleMemDone`, `checkApiKey`). **Compliance gating**: `callClaude` runs
 `checkCompliance()` on every AI response against `CMS_FLAGS` regexes (no
 absolute superlatives, no guarantees, no negative carrier comparisons, etc.)
-and inserts a `.cms-banner` next to the output if anything matches. Still not
-built: briefings (need server cron), drafts queue with confirmation gate.
+and inserts a `.cms-banner` next to the output if anything matches.
+
+**Multi-coach orchestrator** (`🧭 Pregunta Inteligente`, Athena Section 5): a
+shared `COACHES` roster (id, icon, name, desc, voice) is the canonical source
+of coach personalities; both `runEquipoIA` and `runOrchestrator` use it.
+`runOrchestrator()` does three Claude calls: a routing call (decides 1-3
+coaches), parallel calls to the chosen coaches via `Promise.all`, and a
+synthesizer call that integrates the voices into one answer with the
+mandatory "✅ Tu próxima acción" closing. Individual coach voices are kept
+visible under a `<details>` block. Still not built (need server-side, see
+`PARA-LUNA-TEAM.md` for PHP blueprint): briefings cron, drafts queue, signals
+nightly job, WhatsApp.
 
 ## Hard rules / conventions
 
