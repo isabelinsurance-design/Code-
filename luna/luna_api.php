@@ -29,8 +29,8 @@ header('X-Content-Type-Options: nosniff');
 //     o constante LUNA_SERVICE_KEY en config.php. Nunca en el código.
 //   • Se manda en el header  X-LUNA-Key: <llave>  (o ?service_key=).
 //   • Permisos LIMITADOS por allowlist explícita (abajo):
-//       LEER todo  +  CREAR solo (leads, tickets, citas, notas, actividad).
-//   • SIN acceso a: cambiar estado, comisiones, editar/cerrar tickets,
+//       SOLO-LECTURA. Athena/Pilar lee el CRM e informa a LUNA; NO escribe.
+//   • SIN acceso a: crear, cambiar estado, comisiones, editar/cerrar tickets,
 //     borrar, config, memoria, outbound, chat LLM. (No están en la lista.)
 //   • Cada llamada queda en luna_audit_log igual que las humanas.
 //
@@ -50,8 +50,10 @@ if ($svcKey !== '') {
 
     // Allowlist: SOLO estas acciones puede ejecutar la cuenta de servicio.
     // Todo lo demás → 403, aunque la llave sea válida.
+    // SOLO-LECTURA: Athena/Pilar lee el CRM e informa a LUNA. NO escribe nada
+    // (ni crear, ni editar, ni borrar). Decisión de Isabel.
     $SERVICE_ALLOWED = [
-        // ── LEER ──────────────────────────────────────────
+        // ── LEER (único permiso) ──────────────────────────
         'luna_whoami','luna_pipeline_summary','luna_t65_alerts',
         'luna_retention_alerts','luna_hot_leads','luna_search_member',
         'luna_member_detail','luna_pending_soa','luna_open_tickets',
@@ -59,9 +61,6 @@ if ($svcKey !== '') {
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_get_all_goals','luna_entity_search','luna_signals_list',
         'luna_skill_list','luna_gaps_overview','luna_business_health',
-        // ── CREAR (solo crear, nunca editar/borrar) ───────
-        'luna_create_member','luna_create_ticket','luna_create_appointment',
-        'luna_add_member_note','luna_log_activity',
     ];
     // Lecturas de comisiones: sensibles para un bot de cara al cliente.
     // OFF por defecto. Para habilitarlas: define LUNA_SERVICE_ALLOW_COMMISSIONS=1
@@ -80,7 +79,7 @@ if ($svcKey !== '') {
             'ok'    => false,
             'error' => 'Acción no permitida para la cuenta de servicio (Athena).',
             'action'=> $reqAction,
-            'hint'  => 'Athena puede LEER y CREAR (leads/tickets/citas/notas/actividad). No puede editar, cerrar, borrar ni cambiar estado/comisiones.',
+            'hint'  => 'Athena/Pilar es SOLO-LECTURA: puede leer el CRM e informar a LUNA, pero no puede crear, editar, cerrar, borrar ni cambiar estado/comisiones.',
         ]);
         exit;
     }
