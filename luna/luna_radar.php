@@ -313,3 +313,47 @@ if (!function_exists('radarLatest')) {
     return $run;
   }
 }
+
+// Email HTML del radar (resumen Chief of Staff + hallazgos por lente).
+// Lo usa el cron semanal para el correo corto del lunes. 'mejora' va primero.
+if (!function_exists('radarEmailHTML')) {
+  function radarEmailHTML(array $run): string {
+    $cats = [
+      'mejora'      => ['🧭','Mejora (Chief of Staff)','#16a34a'],
+      'viral'       => ['🔥','Viral / Marketing','#dc2626'],
+      'social'      => ['📱','Redes sociales','#7c3aed'],
+      'medicare'    => ['🏥','Medicare / CMS','#1B4A6B'],
+      'competencia' => ['🎯','Competencia','#d97706'],
+    ];
+    $esc = fn($s) => htmlspecialchars((string)$s, ENT_QUOTES, 'UTF-8');
+    $items   = $run['items'] ?? [];
+    $resumen = (string)($run['resumen'] ?? '');
+
+    $h  = '<div style="font-family:Arial,Helvetica,sans-serif;max-width:640px;margin:0 auto;color:#1a2730;">';
+    $h .= '<div style="background:#0f2233;color:#fff;padding:20px 24px;border-radius:12px 12px 0 0;">';
+    $h .= '<div style="font-size:12px;letter-spacing:1px;color:#8fb3c9;">LUNA · RADAR SEMANAL</div>';
+    $h .= '<div style="font-size:21px;font-weight:800;margin-top:4px;">🧭 Lectura del Chief of Staff</div></div>';
+    $h .= '<div style="border:1px solid #e2e8ee;border-top:none;border-radius:0 0 12px 12px;padding:22px 24px;">';
+    if ($resumen !== '') {
+      $h .= '<div style="font-size:15px;line-height:1.55;background:#f1f8f3;border-left:4px solid #16a34a;padding:12px 14px;border-radius:8px;margin-bottom:20px;">'.$esc($resumen).'</div>';
+    }
+    foreach ($cats as $cid => $c) {
+      $group = array_values(array_filter($items, fn($x) => ($x['categoria'] ?? '') === $cid));
+      if (!$group) continue;
+      $h .= '<div style="font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:'.$c[2].';margin:18px 0 8px;">'.$c[0].' '.$esc($c[1]).'</div>';
+      foreach ($group as $it) {
+        $h .= '<div style="margin-bottom:12px;">';
+        $h .= '<div style="font-size:14px;font-weight:700;">'.$esc($it['titulo'] ?? '').'</div>';
+        if (!empty($it['porque'])) $h .= '<div style="font-size:12.5px;color:#52606d;margin-top:2px;line-height:1.45;">'.$esc($it['porque']).'</div>';
+        if (!empty($it['accion'])) $h .= '<div style="font-size:13px;background:'.$c[2].'14;border-radius:7px;padding:7px 10px;margin-top:5px;line-height:1.45;"><b style="color:'.$c[2].';">→ Acción:</b> '.$esc($it['accion']).'</div>';
+        if (!empty($it['fuente']) && preg_match('~^https?://~i', (string)$it['fuente'])) {
+          $h .= '<div style="font-size:11px;margin-top:3px;"><a href="'.$esc($it['fuente']).'" style="color:'.$c[2].';">Fuente</a></div>';
+        }
+        $h .= '</div>';
+      }
+    }
+    $h .= '<div style="margin-top:22px;padding-top:14px;border-top:1px solid #e2e8ee;font-size:12px;color:#8a97a3;">Radar completo en <a href="https://withisabelfuentes.com/luna/" style="color:#1B4A6B;">withisabelfuentes.com/luna/</a> → 📡 Radar · LUNA</div>';
+    $h .= '</div></div>';
+    return $h;
+  }
+}

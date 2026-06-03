@@ -55,7 +55,7 @@ cualquiera que haya visto el código fuente la tiene.
 0 9  * * 3  php .../luna/cron/luna_referral_cron.php       # referidos miércoles
 0 8  * * *  php .../luna/cron/luna_email_marketing_cron.php # cumpleaños/newsletter/AEP
 30 6 * * *  php .../luna/cron/luna_radar_cron.php daily     # 📡 radar diario (tendencias)
-0 6  * * 1  php .../luna/cron/luna_radar_cron.php weekly    # 📡 radar semanal (lunes)
+0 7  * * 1  php .../luna/cron/luna_radar_cron.php weekly    # 📡 radar semanal + email lunes 7am
 ```
 > Los crons ya cargan `require '/../../config.php'` (dos niveles arriba), así
 > que funcionan tal cual desde `luna/cron/`. No hay que ajustar el path.
@@ -67,6 +67,13 @@ el botón **📡 Radar**; Isabel puede correrlo a mano con **🔄 Actualizar aho
 Cinco frentes: viral/marketing, redes sociales, Medicare/CMS, competencia y
 **mejora (Chief of Staff)**. Necesita `ANTHROPIC_API_KEY`; sin ella degrada
 elegante (guarda un run marcado y no rompe nada).
+
+**Entrega del Chief of Staff:**
+- **Lunes 7am** — el cron `weekly` manda un correo corto SOLO con el radar
+  (resumen + hallazgos). Ajusta destinatario en `$RADAR_EMAIL` dentro de
+  `luna_radar_cron.php`.
+- **Viernes 5pm** — el reporte semanal (`luna_weekly_cron.php`) reusa ese
+  mismo radar e incluye la sección Chief of Staff junto con los KPIs.
 
 ## Respaldos (#5) — opciones en config.php
 ```php
