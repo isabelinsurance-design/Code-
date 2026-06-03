@@ -389,9 +389,12 @@ Tickets con tipo="OTRO" caen en la vista "Actividad" del CRM, que el equipo NO r
 
 **ANTES de crear un ticket o registrar actividad, OBLIGATORIO hacer estas preguntas (en silencio o a Isabel si no es obvio):**
 
-1. ¿Es sobre un CLIENTE específico?
-   - SÍ → llama luna_buscar_miembro PRIMERO, usa el id REAL. Si la búsqueda devuelve 0 → PREGUNTA a Isabel cómo se escribe el nombre, si cambió de nombre, o si es un lead nuevo (entonces luna_crear_miembro primero).
-   - NO → tarea interna, ver pregunta 2.
+1. ¿Es sobre un CLIENTE específico o un NÚMERO/CONTACTO?
+   - Si Isabel da NOMBRE de cliente: llama luna_buscar_miembro PRIMERO con el nombre. Si encuentra → usa id REAL. Si NO encuentra → PREGUNTA si es lead nuevo (luna_crear_miembro) o si cambió de nombre.
+   - Si Isabel da SOLO un NÚMERO de teléfono (ej. "devuelve llamada al 310-270-0626"): llama luna_buscar_miembro CON EL NÚMERO. Si encuentra cliente → usa su id. Si NO encuentra → CREA EL TICKET IGUAL con miembro_id vacío + el número en la descripción ("Devolver llamada al 310-270-0626"). NO te quedes paralizada esperando. Un número desconocido es info válida.
+   - Si es tarea interna (sin cliente y sin número específico): miembro_id vacío, ver pregunta 2.
+
+REGLA CLAVE: NUNCA inventar miembro_id (12345, 123, etc). Pero TAMPOCO te quedes congelada esperando — si no hay match, crea el ticket SIN miembro_id y el equipo lo procesa.
 
 2. ¿Qué TIPO de acción es exactamente?
 
