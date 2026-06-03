@@ -312,6 +312,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
 
   <div class="topbar-end">
     <button id="securityBtn" onclick="openSecurity()" style="display:none;position:relative;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🔒 Seguridad<span id="securityBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">0</span></button>
+    <button id="radarBtn" onclick="toggleRadar()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📡 Radar<span id="radarDot" style="display:none;width:7px;height:7px;border-radius:50%;background:#16a34a;"></span></button>
     <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
@@ -395,6 +396,26 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
     </div>
     <div class="cat-row" id="recursosTabs"></div>
     <div id="recursosBody"></div>
+  </div>
+</div>
+
+<!-- ── RADAR VIEW (tendencias automáticas) ─────────────── -->
+<div id="radarView" style="display:none;">
+  <div class="grid-wrap">
+    <div class="grid-hero">
+      <div class="grid-hero-sup">Radar de Tendencias · LUNA Chief of Staff</div>
+      <div class="grid-hero-title">📡 Qué está <em>pegando</em> — y qué hacer</div>
+      <div class="grid-hero-sub">LUNA investiga la web cada día y cada semana: contenido viral, redes, Medicare/CMS, competencia y cómo mejorar. Aquí están los hallazgos y la acción concreta.</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:18px;">
+      <div style="display:inline-flex;background:var(--ink);border:1px solid var(--border);border-radius:var(--r);overflow:hidden;">
+        <button id="radarTabDaily" onclick="loadRadar('daily')" style="padding:8px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;">☀️ Diario</button>
+        <button id="radarTabWeekly" onclick="loadRadar('weekly')" style="padding:8px 16px;border:none;background:none;font-family:var(--font);font-size:12px;font-weight:700;color:var(--t3);cursor:pointer;">📅 Semanal</button>
+      </div>
+      <button id="radarRunBtn" onclick="runRadarNow()" style="display:none;align-items:center;gap:6px;padding:8px 14px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);">🔄 Actualizar ahora</button>
+      <div id="radarMeta" style="font-size:11px;color:var(--t3);"></div>
+    </div>
+    <div id="radarBody"></div>
   </div>
 </div>
 
@@ -2864,6 +2885,9 @@ function setCat(id) {
 function openWorkspace(id) {
   const a = AGENTS.find(x => x.id === id);
   if (!a) return;
+  // Cierra las vistas alternas (Radar / Recursos) si estaban abiertas.
+  document.getElementById('radarView').style.display = 'none';
+  document.getElementById('recursosView').style.display = 'none';
   // Guard: agentes adminOnly solo para Isabel (defensa además del filtro del grid)
   if (a.adminOnly && !(currentUser?.is_admin || location.protocol === 'file:')) {
     toast('🔒 Solo Isabel tiene acceso a este agente');
@@ -2959,6 +2983,154 @@ function closeWorkspace() {
 let recursosData = null;
 let recursosCat = null;
 
+/* ══════════════════════════════════════════
+   📡 RADAR DE TENDENCIAS — investigación automática
+   LUNA pensando como Chief of Staff. Lee luna_radar_latest;
+   Isabel puede correrlo a mano con luna_radar_run.
+══════════════════════════════════════════ */
+let radarMode = 'daily';
+let radarBusy = false;
+const RADAR_CATS = {
+  viral:       { icon:'🔥', label:'Viral / Marketing',        color:'#dc2626' },
+  social:      { icon:'📱', label:'Redes sociales',           color:'#7c3aed' },
+  medicare:    { icon:'🏥', label:'Medicare / CMS',           color:'#1B4A6B' },
+  competencia: { icon:'🎯', label:'Competencia e industria',  color:'#d97706' },
+  mejora:      { icon:'🧭', label:'Mejora (Chief of Staff)',  color:'#16a34a' },
+};
+const RADAR_PRIO = { alta:'#dc2626', media:'#d97706', baja:'var(--t3)' };
+
+function toggleRadar() {
+  const rv = document.getElementById('radarView');
+  const showing = rv.style.display !== 'none';
+  if (showing) { rv.style.display = 'none'; document.getElementById('gridView').style.display = 'block'; return; }
+  closeWorkspace();
+  document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('gridView').style.display = 'none';
+  rv.style.display = 'block';
+  // El botón "Actualizar ahora" solo para Isabel.
+  if (currentUser?.is_admin || location.protocol === 'file:') {
+    document.getElementById('radarRunBtn').style.display = 'inline-flex';
+  }
+  loadRadar(radarMode);
+}
+
+function radarTabStyle() {
+  const d = document.getElementById('radarTabDaily'), w = document.getElementById('radarTabWeekly');
+  if (d) d.style.color = radarMode === 'daily'  ? 'var(--t1)' : 'var(--t3)';
+  if (w) w.style.color = radarMode === 'weekly' ? 'var(--t1)' : 'var(--t3)';
+}
+
+async function loadRadar(modo) {
+  radarMode = (modo === 'weekly') ? 'weekly' : 'daily';
+  radarTabStyle();
+  const body = document.getElementById('radarBody');
+  body.innerHTML = '<div style="padding:30px;color:var(--t3);">Cargando radar…</div>';
+  document.getElementById('radarMeta').textContent = '';
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_radar_latest&modo=${radarMode}`, { credentials:'same-origin' });
+    const d = await r.json();
+    renderRadar(d.ok ? d.data.run : null);
+  } catch(e) {
+    body.innerHTML = `<div style="padding:30px;color:#dc2626;">No se pudo cargar el radar: ${esc(e.message)}</div>`;
+  }
+}
+
+function radarWhen(s) {
+  if (!s) return '';
+  const dt = new Date(s.replace(' ', 'T'));
+  if (isNaN(dt)) return s;
+  return dt.toLocaleString('es-US', { weekday:'short', month:'short', day:'numeric', hour:'2-digit', minute:'2-digit' });
+}
+
+function renderRadar(run) {
+  const body = document.getElementById('radarBody');
+  const meta = document.getElementById('radarMeta');
+  if (!run || !run.items || !run.items.length) {
+    const isAdmin = currentUser?.is_admin || location.protocol === 'file:';
+    body.innerHTML = `<div style="background:var(--panel);border:1px dashed var(--border);border-radius:14px;padding:34px;text-align:center;color:var(--t3);">
+      <div style="font-size:30px;margin-bottom:10px;">📡</div>
+      <div style="font-size:14px;color:var(--t2);font-weight:700;margin-bottom:6px;">El radar ${radarMode==='weekly'?'semanal':'diario'} aún no tiene hallazgos.</div>
+      <div style="font-size:12px;">${isAdmin ? 'Dale a <b>🔄 Actualizar ahora</b> para generarlo (tarda ~1 minuto).' : 'Pídele a Isabel que lo genere o espera al próximo escaneo automático.'}</div>
+    </div>`;
+    return;
+  }
+  meta.innerHTML = `Actualizado ${esc(radarWhen(run.created_at))} · ${run.item_count} hallazgos`;
+
+  let html = '';
+  if (run.resumen) {
+    html += `<div style="background:linear-gradient(135deg, var(--panel), var(--ink));border:1px solid var(--border);border-left:4px solid #16a34a;border-radius:14px;padding:16px 18px;margin-bottom:18px;box-shadow:var(--sh);">
+      <div style="font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;color:#16a34a;margin-bottom:6px;">🧭 Lectura del Chief of Staff</div>
+      <div style="font-size:14px;color:var(--t1);line-height:1.5;">${esc(run.resumen)}</div>
+    </div>`;
+  }
+
+  // Agrupar por categoría en orden fijo.
+  Object.keys(RADAR_CATS).forEach(catId => {
+    const items = run.items.filter(it => it.categoria === catId);
+    if (!items.length) return;
+    const c = RADAR_CATS[catId];
+    html += `<div style="display:flex;align-items:center;gap:8px;margin:22px 0 10px;">
+      <span style="font-size:16px;">${c.icon}</span>
+      <span style="font-size:12px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;color:${c.color};">${c.label}</span>
+      <span style="flex:1;height:1px;background:var(--border);"></span>
+    </div>`;
+    html += items.map(it => {
+      const pc = RADAR_PRIO[it.prioridad] || 'var(--t3)';
+      const src = (it.fuente && /^https?:\/\//i.test(it.fuente))
+        ? `<a href="${esc(it.fuente)}" target="_blank" rel="noopener" style="font-size:11px;color:${c.color};text-decoration:none;font-weight:700;">🔗 Fuente</a>` : '';
+      return `<div style="background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:15px 17px;margin-bottom:11px;box-shadow:var(--sh);">
+        <div style="display:flex;align-items:flex-start;gap:10px;margin-bottom:8px;">
+          <span style="margin-top:5px;width:8px;height:8px;border-radius:50%;background:${pc};flex-shrink:0;" title="Prioridad ${esc(it.prioridad)}"></span>
+          <div style="flex:1;font-size:14px;font-weight:700;color:var(--t1);line-height:1.4;">${esc(it.titulo)}</div>
+          ${src}
+        </div>
+        ${it.porque ? `<div style="font-size:12px;color:var(--t3);line-height:1.5;margin:0 0 8px 18px;"><b style="color:var(--t2);">Por qué:</b> ${esc(it.porque)}</div>` : ''}
+        ${it.accion ? `<div style="font-size:12.5px;color:var(--t1);line-height:1.5;margin-left:18px;background:${c.color}12;border-radius:9px;padding:9px 12px;"><b style="color:${c.color};">→ Acción:</b> ${esc(it.accion)}</div>` : ''}
+      </div>`;
+    }).join('');
+  });
+  body.innerHTML = html;
+}
+
+async function runRadarNow() {
+  if (radarBusy) return;
+  radarBusy = true;
+  const btn = document.getElementById('radarRunBtn');
+  const old = btn.innerHTML;
+  btn.innerHTML = '⏳ Investigando…'; btn.style.opacity = '.7'; btn.style.cursor = 'wait';
+  document.getElementById('radarBody').innerHTML =
+    '<div style="padding:34px;text-align:center;color:var(--t3);"><div style="font-size:26px;margin-bottom:10px;">📡</div>LUNA está buscando en la web y armando los hallazgos…<br><span style="font-size:11px;">Esto puede tardar ~1 minuto. No cierres la ventana.</span></div>';
+  try {
+    const fd = new FormData(); fd.append('modo', radarMode);
+    const r = await fetch(`${CRM_BASE}?action=luna_radar_run`, { method:'POST', credentials:'same-origin', body: fd });
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.error || 'No se pudo generar');
+    toast('📡 Radar actualizado');
+    renderRadar(d.data.run);
+    document.getElementById('radarMeta').innerHTML = `Actualizado ahora · ${d.data.run.items.length} hallazgos`;
+  } catch(e) {
+    toast('No se pudo actualizar: ' + e.message);
+    loadRadar(radarMode);
+  } finally {
+    radarBusy = false; btn.innerHTML = old; btn.style.opacity = '1'; btn.style.cursor = 'pointer';
+  }
+}
+
+// Enciende el punto verde del botón 📡 si el radar de hoy ya está listo.
+async function radarCheckFresh() {
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_radar_latest&modo=daily`, { credentials:'same-origin' });
+    const d = await r.json();
+    const run = d.ok ? d.data.run : null;
+    if (run && run.created_at) {
+      const day = String(run.created_at).slice(0,10);
+      const today = new Date().toISOString().slice(0,10);
+      const dot = document.getElementById('radarDot');
+      if (dot && day === today) dot.style.display = 'inline-block';
+    }
+  } catch(e) { /* silencioso */ }
+}
+
 async function toggleRecursos() {
   const rv = document.getElementById('recursosView');
   const showing = rv.style.display !== 'none';
@@ -2969,6 +3141,7 @@ async function toggleRecursos() {
   }
   // mostrar recursos
   closeWorkspace();
+  document.getElementById('radarView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   rv.style.display = 'block';
   if (!recursosData) {
@@ -3536,6 +3709,9 @@ initCurrentUser();
 // Abrir directo el chat de LUNA al entrar (sin pasar por la cuadrícula).
 // El botón "← Agentes" sigue disponible para ir a los demás agentes.
 openWorkspace('luna_main');
+
+// ¿El radar de tendencias de hoy ya está listo? (enciende el punto verde)
+radarCheckFresh();
 
 // Memory loads async (CRM fetch), then triggers snapshot + alerts
 (async () => {

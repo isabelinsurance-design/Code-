@@ -54,9 +54,19 @@ cualquiera que haya visto el código fuente la tiene.
 0 8  1 * *  php .../luna/cron/luna_compliance_cron.php     # auditoría mensual
 0 9  * * 3  php .../luna/cron/luna_referral_cron.php       # referidos miércoles
 0 8  * * *  php .../luna/cron/luna_email_marketing_cron.php # cumpleaños/newsletter/AEP
+30 6 * * *  php .../luna/cron/luna_radar_cron.php daily     # 📡 radar diario (tendencias)
+0 6  * * 1  php .../luna/cron/luna_radar_cron.php weekly    # 📡 radar semanal (lunes)
 ```
 > Los crons ya cargan `require '/../../config.php'` (dos niveles arriba), así
 > que funcionan tal cual desde `luna/cron/`. No hay que ajustar el path.
+
+### 📡 Radar de Tendencias (nuevo)
+LUNA investiga la web (web_search de Anthropic) y guarda hallazgos accionables
+en `luna_radar_runs` / `luna_radar_items` (se crean solas). El equipo los ve en
+el botón **📡 Radar**; Isabel puede correrlo a mano con **🔄 Actualizar ahora**.
+Cinco frentes: viral/marketing, redes sociales, Medicare/CMS, competencia y
+**mejora (Chief of Staff)**. Necesita `ANTHROPIC_API_KEY`; sin ella degrada
+elegante (guarda un run marcado y no rompe nada).
 
 ## Respaldos (#5) — opciones en config.php
 ```php

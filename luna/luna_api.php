@@ -1717,6 +1717,39 @@ case 'luna_actor_set':
     ok(['user_id' => $targetId, 'authorized' => $allow]);
     break;
 
+// ════════════════════════════════════════════════════════
+// RADAR DE TENDENCIAS — investigación automática (web search)
+// ════════════════════════════════════════════════════════
+
+// ── RADAR: último reporte (lo ve todo el equipo) ─────────
+case 'luna_radar_latest':
+    require_once __DIR__ . '/luna_radar.php';
+    $modo = strOrNull($_GET['modo'] ?? '');
+    $run  = radarLatest($pdo, $modo);
+    if (!$run) ok(['run' => null]);
+    ok(['run' => [
+        'id'         => (int)$run['id'],
+        'modo'       => $run['modo'],
+        'resumen'    => $run['resumen'],
+        'item_count' => (int)$run['item_count'],
+        'created_at' => $run['created_at'],
+        'items'      => $run['items'],
+    ]]);
+    break;
+
+// ── RADAR: correr ahora (solo Isabel) — tarda ~30-90s ────
+case 'luna_radar_run':
+    requirePost();
+    requireAdmin();
+    require_once __DIR__ . '/luna_radar.php';
+    @set_time_limit(180);
+    $modo = (($_POST['modo'] ?? '') === 'weekly') ? 'weekly' : 'daily';
+    lunaAudit($pdo, $uid, 'RADAR_RUN', "Corrió el Radar de tendencias ($modo) manualmente");
+    $run = radarRun($pdo, $modo);
+    if (empty($run['ok'])) err('El radar no se pudo generar ahora (revisa ANTHROPIC_API_KEY o reintenta).', 502);
+    ok(['run' => $run]);
+    break;
+
 // ── REVIEW OUTBOUND — corre los hooks sin guardar nada ───
 // Útil para el botón "copiar" de Estudio Creativo: revisa antes de mostrar.
 case 'luna_review_outbound':
