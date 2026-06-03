@@ -191,11 +191,61 @@ export async function createMember(data) {
   return r;
 }
 
+// Tipos válidos de ticket en LUNA — la columna `tickets.tipo` es ENUM,
+// MySQL trunca + warning si recibe algo distinto. Mantener sincronizado
+// con el schema MySQL. Default fallback: SEGUIMIENTO (cubre la mayoría).
+const TICKET_TIPOS_VALIDOS = new Set([
+  'SEGUIMIENTO',
+  'LLAMADA',
+  'CITA',
+  'SERVICIO',
+  'RECORDATORIO',
+  'COMPLIANCE',
+  'DOCUMENTACION',
+]);
+
+// Mapeo defensivo de variantes comunes (inglés, lowercase, sinónimos) →
+// el valor canónico aceptado por LUNA. Si Pilar manda "follow-up" o
+// "seguimiento" o "Follow Up", todo normaliza a SEGUIMIENTO.
+const TICKET_TIPO_ALIAS = {
+  'follow-up': 'SEGUIMIENTO', 'followup': 'SEGUIMIENTO', 'follow up': 'SEGUIMIENTO',
+  'seguimiento': 'SEGUIMIENTO',
+  'call': 'LLAMADA', 'phone': 'LLAMADA', 'phone call': 'LLAMADA', 'telefono': 'LLAMADA',
+  'llamada': 'LLAMADA',
+  'appointment': 'CITA', 'meeting': 'CITA', 'cita': 'CITA',
+  'service': 'SERVICIO', 'servicio': 'SERVICIO',
+  'reminder': 'RECORDATORIO', 'recordatorio': 'RECORDATORIO',
+  'compliance': 'COMPLIANCE', 'soa': 'COMPLIANCE', 'mbi': 'COMPLIANCE',
+  'documentation': 'DOCUMENTACION', 'docs': 'DOCUMENTACION', 'documentacion': 'DOCUMENTACION', 'documentación': 'DOCUMENTACION',
+};
+
+function normalizeTicketTipo(input) {
+  if (!input) return 'SEGUIMIENTO';
+  const up = String(input).trim().toUpperCase();
+  if (TICKET_TIPOS_VALIDOS.has(up)) return up;
+  const lower = String(input).trim().toLowerCase();
+  if (TICKET_TIPO_ALIAS[lower]) return TICKET_TIPO_ALIAS[lower];
+  // Si Pilar mandó algo creativo, default a SEGUIMIENTO (no fail).
+  console.warn(`[luna] tipo de ticket no reconocido "${input}" — usando SEGUIMIENTO`);
+  return 'SEGUIMIENTO';
+}
+
+const TICKET_PRIORIDADES_VALIDAS = new Set(['ALTA', 'MEDIA', 'BAJA']);
+function normalizeTicketPrioridad(input) {
+  if (!input) return 'MEDIA';
+  const up = String(input).trim().toUpperCase();
+  if (TICKET_PRIORIDADES_VALIDAS.has(up)) return up;
+  // Aliases comunes
+  if (['HIGH', 'URGENT', 'CRITICAL', 'URGENTE'].includes(up)) return 'ALTA';
+  if (['LOW', 'NORMAL'].includes(up)) return 'BAJA';
+  return 'MEDIA';
+}
+
 export async function createTicket(data) {
   if (!data?.descripcion) return { ok: false, error: 'Falta descripcion.' };
   const body = {
-    tipo: data.tipo || 'SEGUIMIENTO',
-    prioridad: data.prioridad || 'MEDIA',
+    tipo: normalizeTicketTipo(data.tipo),
+    prioridad: normalizeTicketPrioridad(data.prioridad),
     descripcion: data.descripcion,
     miembro_id: data.miembro_id || '',
     asignado_a: data.asignado_a || '',

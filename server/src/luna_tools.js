@@ -146,11 +146,19 @@ export const LUNA_TOOL_DEFINITIONS = [
     input_schema: {
       type: 'object',
       properties: {
-        tipo: { type: 'string', description: 'SERVICIO / LLAMADA / SEGUIMIENTO / CITA / etc. Default SEGUIMIENTO.' },
-        prioridad: { type: 'string', description: 'ALTA / MEDIA / BAJA. Default MEDIA.' },
+        tipo: {
+          type: 'string',
+          enum: ['SEGUIMIENTO', 'LLAMADA', 'CITA', 'SERVICIO', 'RECORDATORIO', 'COMPLIANCE', 'DOCUMENTACION'],
+          description: 'Tipo del ticket — DEBE ser uno de los valores válidos (la columna es ENUM en MySQL). Default SEGUIMIENTO si no aplica otro. SEGUIMIENTO=tarea genérica, LLAMADA=hacer llamada, CITA=agendar/preparar cita, SERVICIO=service request, RECORDATORIO=avisar de algo, COMPLIANCE=SOA/MBI/TCPA/audit, DOCUMENTACION=papeleo.',
+        },
+        prioridad: {
+          type: 'string',
+          enum: ['ALTA', 'MEDIA', 'BAJA'],
+          description: 'Prioridad del ticket. Default MEDIA.',
+        },
         descripcion: { type: 'string', description: 'Qué hay que hacer.' },
         miembro_id: { type: 'string', description: 'Cliente al que se refiere.' },
-        asignado_a: { type: 'string', description: 'User ID del responsable.' },
+        asignado_a: { type: 'string', description: 'User ID del responsable: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.' },
       },
       required: ['descripcion'],
     },
