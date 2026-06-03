@@ -2677,6 +2677,8 @@ function buildNativeTools(agentId) {
 // Llamada "silenciosa" al modelo: un solo turno enfocado, SIN tools y SIN
 // escribir en la UI. La usan los especialistas consultados en paralelo.
 async function quietLLM(systemPrompt, userText) {
+  // Consulta de IA en segundo plano: solo para Isabel (igual que el chat).
+  if (!canUseChat()) return null;
   const res = await fetch(`${CRM_BASE}?action=luna_chat`, {
     method:'POST',
     headers:{ 'Content-Type':'application/json' },
@@ -2973,8 +2975,15 @@ function openWorkspace(id) {
       </div>`;
   }
 
-  // Update placeholder
-  document.getElementById('chatInput').placeholder = `Escríbele a ${a.name}...`;
+  // Update placeholder + permiso de chat (solo Isabel usa el chat de IA)
+  const _ci = document.getElementById('chatInput'), _sb = document.getElementById('sendBtn');
+  if (canUseChat()) {
+    _ci.disabled = false; if (_sb) _sb.disabled = false;
+    _ci.placeholder = `Escríbele a ${a.name}...`;
+  } else {
+    _ci.disabled = true; if (_sb) _sb.disabled = true;
+    _ci.placeholder = '💬 El chat con LUNA es solo para Isabel. Tú sí puedes ver los datos del CRM, la 🗓️ Junta y recibir los reportes.';
+  }
 
   // Render chat
   renderChat();
@@ -3505,10 +3514,18 @@ function copyEstudio(agentId, mi) {
     .catch(() => toast('No se pudo copiar'));
 }
 
+// El chat de IA es solo para Isabel (admin). El equipo usa los datos, la
+// junta y los reportes automáticos, pero no el chat (que es el costo variable).
+function canUseChat() { return !!(currentUser?.is_admin) || location.protocol === 'file:'; }
+
 async function sendMsg() {
   const inp = document.getElementById('chatInput');
   const msg = inp.value.trim();
   if (!msg || loading || !currentAgent) return;
+  if (!canUseChat()) {
+    toast('💬 El chat con LUNA está disponible solo para Isabel');
+    return;
+  }
   inp.value = ''; inp.style.height = '46px';
 
   const a = currentAgent;
