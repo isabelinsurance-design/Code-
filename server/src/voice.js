@@ -54,6 +54,14 @@ const VOICE_TOOL_BLOCKLIST = new Set([
 // ============================================================
 export function buildIncomingTwiml(req) {
   const publicHost = (process.env.PUBLIC_URL || '').replace(/^https?:\/\//, '').replace(/\/+$/, '');
+  if (!publicHost) {
+    console.error('[voice] buildIncomingTwiml: PUBLIC_URL no configurado — devuelvo TwiML de error');
+    return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Lupe-Neural" language="es-MX">Configuración pendiente. Sami necesita poner la URL pública en Railway.</Say>
+  <Hangup/>
+</Response>`;
+  }
   const wsUrl = `wss://${publicHost}/voice/relay`;
   // ConversationRelay opcionalmente acepta voz custom — si Isabel ya
   // tiene voz clonada en ElevenLabs, la usamos también en llamadas.
@@ -61,12 +69,21 @@ export function buildIncomingTwiml(req) {
   const voiceAttrs = elevenVoice
     ? ` ttsProvider="ElevenLabs" voice="${elevenVoice}"`
     : ' voice="Polly.Lupe-Neural" language="es-MX"';
-  return `<?xml version="1.0" encoding="UTF-8"?>
+  const motivo = (req?.query?.motivo || '').slice(0, 200);
+  // Para outbound calls con motivo (recordatorio de cita, etc.), incluimos
+  // el motivo en el welcome greeting. Para inbound (clientes llamando),
+  // saludo genérico.
+  const welcome = motivo
+    ? `Hola Isabel, soy Athena. Te llamo por esto: ${motivo}`
+    : 'Hola, habla Athena, asistente de Isabel Fuentes. ¿En qué te ayudo?';
+  const twiml = `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
   <Connect>
-    <ConversationRelay url="${wsUrl}"${voiceAttrs} welcomeGreeting="Hola, habla Athena, asistente de Isabel Fuentes. ¿En qué te ayudo?" />
+    <ConversationRelay url="${wsUrl}"${voiceAttrs} welcomeGreeting="${welcome.replace(/"/g, '&quot;')}" />
   </Connect>
 </Response>`;
+  console.log(`[voice] TwiML generado: wsUrl=${wsUrl} eleven=${elevenVoice ? 'sí' : 'no'} motivo="${motivo}"`);
+  return twiml;
 }
 
 // Twilio nos pega esto cuando termina una llamada — incluye RecordingUrl

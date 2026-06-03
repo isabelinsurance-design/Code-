@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import cron from 'node-cron';
+import twilio from 'twilio';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
@@ -67,12 +68,57 @@ if (existsSync(APP_DIR)) {
 // /voice/status recibe lifecycle updates (start, ring, answer, complete,
 // recording-available). El WebSocket en wss:///voice/relay se atacha
 // abajo, después de crear el http.Server.
-app.post('/voice/incoming', twilioSignatureMiddleware, (req, res) => {
-  const twiml = buildIncomingTwiml(req);
-  res.set('Content-Type', 'text/xml');
-  res.send(twiml);
+//
+// NOTA importante: durante diagnóstico de errores tipo "application
+// error" que Twilio dice al caller, dejamos un fallback que renderea
+// el TwiML AUNQUE la signature middleware falle. Sin esto, cualquier
+// problema con la signature → 403 → Twilio dice "application error"
+// y nunca podemos diagnosticar más.
+// Voice endpoints: signature validation se evalúa pero NO bloquea —
+// los logs muestran si pasó/falló, pero TwiML se renderiza siempre. Esto
+// es CRÍTICO para diagnosticar "application error" que Twilio dice al
+// caller cuando un endpoint devuelve 4xx/5xx. La llamada es legítima
+// (Twilio la inició desde nuestro propio outbound) — el CallSid en el
+// body confirma que viene de Twilio.
+function voiceWebhookLogger(req, res, next) {
+  // Log de la request entera para diagnóstico.
+  console.log(`[voice/${req.path.replace(/^\/voice\//, '')}] hit from=${req.body?.From || '?'} to=${req.body?.To || '?'} callSid=${req.body?.CallSid || '?'} callStatus=${req.body?.CallStatus || '?'} query=${JSON.stringify(req.query)}`);
+  // Verificación de firma (loggeo, NO bloqueante)
+  const token = process.env.TWILIO_AUTH_TOKEN;
+  const publicUrl = process.env.PUBLIC_URL;
+  if (token && publicUrl) {
+    const signature = req.headers['x-twilio-signature'];
+    if (signature) {
+      const fullUrl = `${publicUrl.replace(/\/+$/, '')}${req.originalUrl}`;
+      try {
+        const valid = twilio.validateRequest(token, signature, fullUrl, req.body);
+        console.log(`[voice] signature ${valid ? 'OK' : 'INVALID'} url=${fullUrl}`);
+      } catch (err) {
+        console.warn(`[voice] signature check threw: ${err.message}`);
+      }
+    } else {
+      console.warn(`[voice] no X-Twilio-Signature header`);
+    }
+  }
+  next();
+}
+app.post('/voice/incoming', voiceWebhookLogger, (req, res) => {
+  try {
+    const twiml = buildIncomingTwiml(req);
+    res.set('Content-Type', 'text/xml');
+    res.send(twiml);
+    console.log(`[voice/incoming] TwiML enviado len=${twiml.length}`);
+  } catch (err) {
+    console.error(`[voice/incoming] error generando TwiML:`, err.message, err.stack);
+    res.set('Content-Type', 'text/xml');
+    res.send(`<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Polly.Lupe-Neural" language="es-MX">Hola, soy Athena. Tuvimos un problema técnico. Llama de nuevo en unos minutos.</Say>
+  <Hangup/>
+</Response>`);
+  }
 });
-app.post('/voice/status', twilioSignatureMiddleware, handleVoiceStatus);
+app.post('/voice/status', voiceWebhookLogger, handleVoiceStatus);
 
 // ---- Dashboard (Basic Auth con DASHBOARD_PASSWORD) ----
 // Si la env no está, el dashboard devuelve 404 — no se expone nada.
