@@ -3,6 +3,7 @@ import { useAuth } from '../lib/auth.jsx';
 
 const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
+  { to: '/search', label: 'Buscar', icon: '🔍' },
   { to: '/chat', label: 'Chat', icon: '✦' },
   { to: '/plans', label: 'Planes', icon: '◎' },
   { to: '/journal', label: 'Journal', icon: '✑' },

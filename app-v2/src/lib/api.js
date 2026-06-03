@@ -136,6 +136,9 @@ export const api = {
   // Chat con coaches (envía mensaje, recibe reply)
   chatCoaches: () => request('/chat/coaches'),
   chat: (coach, message) => request('/chat', { method: 'POST', body: JSON.stringify({ coach, message }) }),
+  // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
+  // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
+  searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),
   // Todos los planes de todas las coaches en una sola call (cross-coach view).
   coachPlansAll: () => request('/coach_plans'),
   // Hilo persistente de una coach (no aplica a 'directora' — ella usa

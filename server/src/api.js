@@ -606,6 +606,17 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Búsqueda global: busca un keyword en todas las fuentes de memoria ----
+  app.get('/api/search', requireAuth, async (req, res) => {
+    try {
+      const { globalSearch } = await import('./search.js');
+      const r = await globalSearch(req.query.q || '', { limit: parseInt(req.query.limit, 10) || 20 });
+      res.json(r);
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // ---- Coach plans agregados: TODOS los planes vigentes en una vista ----
   // Útil para que Isabel vea su "stack" completo cross-coach de un vistazo.
   app.get('/api/coach_plans', requireAuth, async (_req, res) => {
