@@ -175,6 +175,54 @@ function lunaAudit(PDO $pdo, ?int $uid, string $action, string $detail) {
             ->execute([$uid, mb_substr($action,0,60), mb_substr(redactPII($detail),0,2000), $ip]);
     } catch (Exception $e) { /* audit nunca rompe la operación */ }
 }
+
+// ── ACTORES AUTORIZADOS — quién puede ordenar ACCIONES a LUNA ──
+// Además de Isabel (admin), solo los user_id guardados en
+// luna_authorized_actors pueden ejecutar acciones de escritura
+// (crear / cambiar / cerrar / enviar). El resto solo puede LEER/consultar.
+function ensureActorsTable(PDO $pdo) {
+    static $done = false; if ($done) return; $done = true;
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS luna_authorized_actors (
+            user_id    INT PRIMARY KEY,
+            added_by   INT DEFAULT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    } catch (Exception $e) { /* si falla, userCanAct cae a 'solo admin' */ }
+}
+function authorizedActorIds(PDO $pdo) {
+    static $ids = null;
+    if ($ids !== null) return $ids;
+    try {
+        ensureActorsTable($pdo);
+        $ids = array_map('intval',
+            $pdo->query("SELECT user_id FROM luna_authorized_actors")->fetchAll(PDO::FETCH_COLUMN));
+    } catch (Exception $e) { $ids = []; }
+    return $ids;
+}
+// ¿El usuario actual puede ejecutar ACCIONES (no solo leer)?
+function userCanAct() {
+    global $admin, $uid, $pdo, $IS_SERVICE;
+    if (!empty($IS_SERVICE)) return true;        // Athena ya está limitada por su allowlist
+    if (!empty($admin))      return true;        // Isabel siempre puede
+    return in_array((int)$uid, authorizedActorIds($pdo), true);
+}
+// Candado para acciones de escritura abiertas a "actores aprobados".
+function requireActor() {
+    if (!userCanAct()) {
+        global $pdo, $uid;
+        lunaAudit($pdo, $uid, 'DENEGADO', 'Intento de acción sin permiso (' . ($_GET['action'] ?? $_POST['action'] ?? '?') . ')');
+        err('🔒 No tienes permiso para ordenarle ACCIONES a LUNA. Pídele acceso a Isabel. (Consultar/leer sí puedes.)', 403);
+    }
+}
+// Alerta para Isabel: registra una acción sensible para que ella la revise.
+// No alerta de las acciones de la propia Isabel (ella ya sabe lo que hizo).
+function notifyAdmin(PDO $pdo, ?int $uid, string $summary) {
+    global $admin;
+    if (!empty($admin)) return;
+    lunaAudit($pdo, $uid, 'ALERTA', $summary);
+}
+
 // Review-hooks deterministas antes de mandar algo a un cliente (CMS).
 function reviewOutbound($body, $subject = '') {
     $flags = [];
@@ -271,6 +319,32 @@ case 'luna_chat':
 
     // Audit ligero: registramos QUE hubo una consulta IA (sin guardar el contenido/PII).
     logActivity($pdo, $uid, null, 'LUNA_CHAT', $useWeb ? 'Consulta IA vía LUNA (web_search)' : 'Consulta IA vía LUNA');
+
+    // Registro de conversación: guardamos lo que escribió el usuario en ESTE
+    // turno (PII redactado, truncado) para que Isabel pueda revisar qué se le
+    // pidió a LUNA si sospecha de algo. Solo miramos el ÚLTIMO mensaje: si es
+    // una re-alimentación de tool_result (el loop agéntico), lo saltamos para
+    // no duplicar el mismo prompt humano en cada ronda de tools.
+    $agentLabel = preg_replace('/[^a-zA-Z0-9_\- :]/', '', (string)($body['agent'] ?? ''));
+    $last = end($messages);
+    $humanMsg = '';
+    if (is_array($last) && ($last['role'] ?? '') === 'user') {
+        $c = $last['content'] ?? '';
+        if (is_string($c)) {
+            $humanMsg = $c;
+        } elseif (is_array($c)) {
+            $isToolRefeed = false; $txt = '';
+            foreach ($c as $part) {
+                if (!is_array($part)) continue;
+                if (($part['type'] ?? '') === 'tool_result') { $isToolRefeed = true; break; }
+                if (($part['type'] ?? '') === 'text' && $txt === '') $txt = (string)($part['text'] ?? '');
+            }
+            if (!$isToolRefeed) $humanMsg = $txt;
+        }
+    }
+    if (trim($humanMsg) !== '') {
+        lunaAudit($pdo, $uid, 'CHAT', ($agentLabel ? "[$agentLabel] " : '') . mb_substr(trim($humanMsg), 0, 600));
+    }
 
     $reqBody = [
         'model'      => 'claude-sonnet-4-6',
@@ -909,6 +983,7 @@ case 'luna_carriers_breakdown':
 // ── LOG ACTIVITY ────────────────────────────────────────
 case 'luna_log_activity':
     requirePost();
+    requireActor();
     $tipo  = strOrNull($_POST['tipo'] ?? '');
     $desc  = strOrNull($_POST['descripcion'] ?? '');
     $mid   = intOrNull($_POST['miembro_id'] ?? null);
@@ -923,6 +998,7 @@ case 'luna_log_activity':
 // ── ADD MEMBER NOTE ─────────────────────────────────────
 case 'luna_add_member_note':
     requirePost();
+    requireActor();
     $mid  = intOrNull($_POST['miembro_id'] ?? null);
     $nota = strOrNull($_POST['nota'] ?? '');
     if (!$mid || !$nota) err('Faltan miembro_id o nota.');
@@ -941,6 +1017,7 @@ case 'luna_add_member_note':
 // ── CREATE MEMBER ───────────────────────────────────────
 case 'luna_create_member':
     requirePost();
+    requireActor();
     $nombre   = strOrNull($_POST['nombre'] ?? '');
     $apellido = strOrNull($_POST['apellido'] ?? '');
     $telefono = strOrNull($_POST['telefono'] ?? '');
@@ -973,6 +1050,7 @@ case 'luna_create_member':
     $newId = (int)$pdo->lastInsertId();
 
     logActivity($pdo, $uid, $newId, 'NUEVO', "Miembro creado vía LUNA: $nombre $apellido (estado: $estado)");
+    notifyAdmin($pdo, $uid, "Creó un nuevo miembro/lead vía LUNA (estado: $estado)");
     ok(['id'=>$newId, 'message'=>"Miembro $nombre $apellido creado (id=$newId)."]);
     break;
 
@@ -1001,6 +1079,7 @@ case 'luna_update_member_status':
 // ── CREATE TICKET ───────────────────────────────────────
 case 'luna_create_ticket':
     requirePost();
+    requireActor();
     $tipo      = strtoupper(strOrNull($_POST['tipo'] ?? 'OTRO'));
     $prioridad = strtoupper(strOrNull($_POST['prioridad'] ?? 'MEDIA'));
     $desc      = strOrNull($_POST['descripcion'] ?? '');
@@ -1030,6 +1109,7 @@ case 'luna_create_ticket':
 // ── CLOSE TICKET ────────────────────────────────────────
 case 'luna_close_ticket':
     requirePost();
+    requireActor();
     $tid = intOrNull($_POST['ticket_id'] ?? null);
     $resultado = strOrNull($_POST['resultado'] ?? 'Cerrado vía LUNA');
     if (!$tid) err('Falta ticket_id.');
@@ -1051,6 +1131,7 @@ case 'luna_close_ticket':
 // ── CREATE APPOINTMENT ──────────────────────────────────
 case 'luna_create_appointment':
     requirePost();
+    requireActor();
     $mid       = intOrNull($_POST['miembro_id'] ?? null);
     $agente    = intOrNull($_POST['agente_id'] ?? $uid);
     $tipo      = strOrNull($_POST['tipo'] ?? 'CONSULTA');
@@ -1096,6 +1177,7 @@ case 'luna_send_internal_notif':
 // ── MARK CALLBACK DONE ──────────────────────────────────
 case 'luna_mark_callback_done':
     requirePost();
+    requireActor();
     $cid = intOrNull($_POST['callback_id'] ?? null);
     $notas = strOrNull($_POST['notas'] ?? 'Devuelta vía LUNA');
     if (!$cid) err('Falta callback_id.');
@@ -1109,6 +1191,7 @@ case 'luna_mark_callback_done':
 // ── BATCH RETENTION TICKETS — crea tickets para todas las alertas del día ──
 case 'luna_batch_retention_tickets':
     requirePost();
+    requireActor();
     $assign_to = intOrNull($_POST['assign_to'] ?? null) ?: $uid;
     // Only admin or the assigned agent can do this
     if (!$admin && $assign_to !== $uid) $assign_to = $uid;
@@ -1168,6 +1251,7 @@ case 'luna_batch_retention_tickets':
         $created[] = ['ticket_id'=>$tid, 'miembro'=>"{$m['nombre']} {$m['apellido']}", 'tipo'=>$tipo_llamada];
     }
 
+    if (count($created) > 0) notifyAdmin($pdo, $uid, 'Creó ' . count($created) . ' ticket(s) de retención en lote vía LUNA');
     ok([
         'created'  => count($created),
         'skipped'  => count($members) - count($created),
@@ -1425,6 +1509,7 @@ case 'luna_memory_get':
 
 case 'luna_memory_set':
     requirePost();
+    requireActor();
     $pdo->exec("CREATE TABLE IF NOT EXISTS luna_memory (
         id INT AUTO_INCREMENT PRIMARY KEY,
         mem_type VARCHAR(40) NOT NULL,
@@ -1474,6 +1559,7 @@ case 'luna_memory_set':
 
 case 'luna_memory_delete':
     requirePost();
+    requireActor();
     $type = trim($_POST['type'] ?? '');
     $key  = $_POST['key'] ?? null;
 
@@ -1493,6 +1579,7 @@ case 'luna_memory_delete':
 case 'luna_memory_bulk_import':
     // Migration endpoint: accepts full localStorage JSON dump and imports it
     requirePost();
+    requireActor();
     $pdo->exec("CREATE TABLE IF NOT EXISTS luna_memory (
         id INT AUTO_INCREMENT PRIMARY KEY,
         mem_type VARCHAR(40) NOT NULL,
@@ -1570,6 +1657,66 @@ case 'luna_audit_view':
     ok(['entries' => $stmt->fetchAll()]);
     break;
 
+// ── ALERTAS — acciones sensibles + intentos denegados (solo Isabel) ──
+// Feed para el "campanita" del Centro de Seguridad.
+case 'luna_alerts_view':
+    requireAdmin();
+    ensureActorsTable($pdo);
+    $limit = max(10, min(100, (int)($_GET['limit'] ?? 50)));
+    $sql = "SELECT a.id, a.user_id, u.nombre AS usuario, a.action, a.detail, a.ip, a.created_at
+            FROM luna_audit_log a LEFT JOIN usuarios u ON a.user_id = u.id
+            WHERE a.action LIKE '%ALERTA%' OR a.action LIKE '%DENEGADO%'
+            ORDER BY a.id DESC LIMIT $limit";
+    $rows = $pdo->query($sql)->fetchAll();
+    ok(['alerts' => $rows]);
+    break;
+
+// ── ACTORES — listar quién puede ordenar ACCIONES (solo Isabel) ──
+case 'luna_actors_list':
+    requireAdmin();
+    ensureActorsTable($pdo);
+    $auth  = authorizedActorIds($pdo);
+    $users = $pdo->query("SELECT id, nombre, iniciales, rol FROM usuarios WHERE activo=1 ORDER BY rol DESC, nombre")->fetchAll();
+    $out = [];
+    foreach ($users as $u) {
+        $isAdmin = ($u['rol'] === 'admin');
+        $out[] = [
+            'id'         => (int)$u['id'],
+            'nombre'     => $u['nombre'],
+            'iniciales'  => $u['iniciales'],
+            'rol'        => $u['rol'],
+            'is_admin'   => $isAdmin,
+            'authorized' => in_array((int)$u['id'], $auth, true),
+            'can_act'    => $isAdmin || in_array((int)$u['id'], $auth, true),
+        ];
+    }
+    ok(['actors' => $out]);
+    break;
+
+// ── ACTORES — autorizar / revocar a un agente (solo Isabel) ──
+case 'luna_actor_set':
+    requirePost();
+    requireAdmin();
+    ensureActorsTable($pdo);
+    $targetId = intOrNull($_POST['user_id'] ?? null);
+    $allow    = (int)($_POST['allow'] ?? 0) === 1;
+    if (!$targetId) err('Falta user_id.');
+    $chk = $pdo->prepare("SELECT nombre, rol FROM usuarios WHERE id=? AND activo=1");
+    $chk->execute([$targetId]);
+    $tu = $chk->fetch();
+    if (!$tu) err('Usuario no encontrado o inactivo.');
+    if ($tu['rol'] === 'admin') err('Isabel (admin) ya puede ordenar acciones; no necesita estar en la lista.');
+    if ($allow) {
+        $pdo->prepare("INSERT IGNORE INTO luna_authorized_actors (user_id, added_by) VALUES (?,?)")
+            ->execute([$targetId, $uid]);
+        lunaAudit($pdo, $uid, 'ACTOR_ADD', "Autorizó a {$tu['nombre']} (#$targetId) a ordenar acciones a LUNA");
+    } else {
+        $pdo->prepare("DELETE FROM luna_authorized_actors WHERE user_id=?")->execute([$targetId]);
+        lunaAudit($pdo, $uid, 'ACTOR_REMOVE', "Revocó el permiso de acciones a {$tu['nombre']} (#$targetId)");
+    }
+    ok(['user_id' => $targetId, 'authorized' => $allow]);
+    break;
+
 // ── REVIEW OUTBOUND — corre los hooks sin guardar nada ───
 // Útil para el botón "copiar" de Estudio Creativo: revisa antes de mostrar.
 case 'luna_review_outbound':
@@ -1583,6 +1730,7 @@ case 'luna_review_outbound':
 // ── OUTBOUND ENQUEUE — guarda un borrador (no envía) ─────
 case 'luna_outbound_enqueue':
     requirePost();
+    requireActor();
     ensureOutboundTable($pdo);
     $channel   = strtoupper(strOrNull($_POST['channel'] ?? 'EMAIL'));
     if (!in_array($channel, ['EMAIL','SMS','WHATSAPP'])) $channel = 'EMAIL';
@@ -1608,6 +1756,7 @@ case 'luna_outbound_enqueue':
                    json_encode($review['flags'], JSON_UNESCAPED_UNICODE), $uid]);
     $id = (int)$pdo->lastInsertId();
     logActivity($pdo, $uid, $miembroId, 'OUTBOUND', "Borrador #$id encolado [$channel] vía LUNA");
+    notifyAdmin($pdo, $uid, "Encoló un mensaje $channel para enviar a un miembro (borrador #$id, pendiente de tu aprobación)");
     ok(['id'=>$id, 'review'=>$review, 'status'=>'DRAFT']);
     break;
 
@@ -1727,6 +1876,7 @@ case 'luna_plan_get':
 
 case 'luna_plan_set':
     requirePost();
+    requireActor();
     ensurePlanTable($pdo);
     $itemKey = strOrNull($_POST['item_key'] ?? '');
     if (!$itemKey) err('Falta item_key.');
@@ -1843,6 +1993,7 @@ function computeSignals(PDO $pdo) {
 // ── ENTIDADES ────────────────────────────────────────────
 case 'luna_entity_upsert':
     requirePost();
+    requireActor();
     ensureEntityTable($pdo);
     $name = strOrNull($_POST['name'] ?? '');
     if (!$name) err('Falta name.');
