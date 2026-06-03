@@ -13,8 +13,15 @@ server/data/
 server/backups/
 server/audio/
 
-# Build output (regenerated on deploy)
-server/public/app/
+# Build output de la PWA — COMMITEADO temporalmente.
+# Antes era gitignored y se regeneraba en deploy via postinstall, pero Railway
+# rootDirectory=server hace que Nixpacks NO incluya app-v2/ en el build context,
+# entonces el postinstall falla y /app/ devuelve "Cannot GET /app".
+# Mientras Sami no configure nixpacks.toml a nivel repo, mantenemos el build
+# commiteado. Después de tocar cualquier cosa en app-v2/, rebuild local:
+#   cd app-v2 && npm run build  (escribe a server/public/app/)
+#   git add server/public/app && git commit -m "rebuild PWA"
+# server/public/app/
 
 # Editor / OS
 .DS_Store
