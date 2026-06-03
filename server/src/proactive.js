@@ -149,6 +149,45 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
   console.log('[evening] check-in enviado.');
 }
 
+// ---- Trend scan (diario 11am) ----
+// Corre el scout de virales / trending en los 5 dominios de Isabel
+// (Medicare, brand, salud 50+, productividad, wealth). Si encuentra
+// hits con score ≥ 8, hace un proactive ping con los top 1-2. Si no,
+// solo deja el dump para que ella lo vea en /trends cuando quiera.
+export async function dailyTrendScan() {
+  try {
+    const { runTrendScan } = await import('./trends.js');
+    const r = await runTrendScan();
+    if (!r.highScore.length) {
+      console.log('[trends] sin hits score≥8 hoy — no proactive ping.');
+      return;
+    }
+    const gate = canSendProactive();
+    if (!gate.ok) {
+      console.log(`[trends] saltado proactive ping: ${gate.reason}`);
+      return;
+    }
+    bumpProactiveCount(gate.dayKey);
+    const top = r.highScore.slice(0, 2);
+    const blurb = top.map((h) => `🔥 [${h.topic_nombre}] ${h.titulo}\n${h.summary}\n→ ${h.razon_isabel}`).join('\n\n');
+    await runProactive(
+      `[TREND SCAN DIARIO — ${top.length} hit(s) high score]
+
+${blurb}
+
+INSTRUCCIONES:
+- Salúdame UNA línea y dame el digest arriba ADAPTADO a mi voz.
+- Pregúntame si alguno me interesa para profundizar.
+- Si digo "sí el de X", abre el de la fuente con web_search o pásamelo a la coach relevante (Marisol para brand, Sofía para health, etc.).
+- Si digo "no" o "después", márcalos en mi /trends para revisar después.
+- Sé breve. Estos son SCOUT signals, no análisis completo.`,
+    );
+    console.log(`[trends] proactive enviado con ${top.length} hit(s).`);
+  } catch (err) {
+    console.warn('[trends] dailyTrendScan error:', err.message);
+  }
+}
+
 // ---- Rapport semanal (viernes 6pm) ----
 // Ping con WhatsApp pidiendo peso/medidas/foto/sentires. Lo que Isabel
 // responda, Athena lo procesa y lo guarda con rapport_semanal. Sin

@@ -5,6 +5,7 @@ const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
   { to: '/search', label: 'Buscar', icon: '🔍' },
   { to: '/coaches', label: 'Coaches', icon: '✦' },
+  { to: '/trends', label: 'Trends', icon: '🔥' },
   { to: '/plans', label: 'Planes', icon: '◎' },
   { to: '/journal', label: 'Journal', icon: '✑' },
   { to: '/rapport', label: 'Rapport', icon: '◉' },

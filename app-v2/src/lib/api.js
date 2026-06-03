@@ -138,6 +138,14 @@ export const api = {
   chat: (coach, message) => request('/chat', { method: 'POST', body: JSON.stringify({ coach, message }) }),
   // Directorio de coaches con stats por cada uno (plan, notes, thread length).
   coachesOverview: () => request('/coaches/overview'),
+  // Trend scout — hits virales/trending encontrados por el cron diario.
+  trends: (status = 'pending', topicId = null) => {
+    const qs = new URLSearchParams({ status });
+    if (topicId) qs.set('topic_id', topicId);
+    return request(`/trends?${qs}`);
+  },
+  trendsUpdate: (id, status) => request(`/trends/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify({ status }) }),
+  trendsScanNow: () => request('/trends/scan', { method: 'POST' }),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),

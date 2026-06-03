@@ -606,6 +606,36 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Trends scout: lista hits trending/viral encontrados ----
+  app.get('/api/trends', requireAuth, async (req, res) => {
+    try {
+      const { listTrends, getTrendTopics } = await import('./trends.js');
+      res.json({
+        items: listTrends({
+          status: req.query.status || 'pending',
+          limit: parseInt(req.query.limit, 10) || 100,
+          topic_id: req.query.topic_id || null,
+        }),
+        topics: getTrendTopics(),
+      });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
+  app.patch('/api/trends/:id', requireAuth, async (req, res) => {
+    try {
+      const { updateTrendStatus } = await import('./trends.js');
+      res.json(updateTrendStatus(req.params.id, req.body?.status));
+    } catch (e) { res.status(400).json({ error: e.message }); }
+  });
+
+  app.post('/api/trends/scan', requireAuth, async (_req, res) => {
+    try {
+      const { runTrendScan } = await import('./trends.js');
+      const r = await runTrendScan();
+      res.json(r);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ---- Coaches overview: directorio de los 17 con stats por cada uno ----
   // (plan items, notes length, thread count, last interaction).
   app.get('/api/coaches/overview', requireAuth, async (_req, res) => {

@@ -5,7 +5,7 @@ import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
-import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport } from './proactive.js';
+import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport, dailyTrendScan } from './proactive.js';
 import { sendClosingLoop } from './closing_loop.js';
 import { taskTick } from './tasks.js';
 import { nightlyEmailTriage } from './triage.js';
@@ -257,6 +257,10 @@ scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWe
 // Rapport semanal: viernes 6pm — peso/medidas/foto/sentires. Le da
 // continuidad real a Sofía y Rivera (trend del cuerpo en vez de adivinar).
 scheduleCron('rapport', process.env.WEEKLY_RAPPORT_CRON  || '0 18 * * 5', sendWeeklyRapport);
+// Trend scout: 11am todos los días — busca virales / trending /
+// breakthroughs en Medicare, brand, salud 50+, productividad, wealth.
+// Si encuentra hit con score ≥ 8, hace proactive ping.
+scheduleCron('trends',  process.env.TREND_SCAN_CRON      || '0 11 * * *', dailyTrendScan);
 // Research digest: mediodía — Athena rota tus temas, hace web_search,
 // te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);

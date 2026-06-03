@@ -962,6 +962,22 @@ MODOS:
     },
   },
   {
+    name: 'trends_pendientes',
+    description: 'Lista los trends/virales/breakthroughs que el scout encontró y aún no Isabel ha revisado. ÚSALA cuando ella pregunte "qué hay nuevo / trending / viral", o cuando quieras surfacearle algo en evening recap.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        topic_id: { type: 'string', description: 'Opcional. Filtra por: medicare, brand, health, productividad, wealth.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'trends_scan_ahora',
+    description: 'Dispara el trend scan AHORA mismo (en vez de esperar el cron de 11am). Toma 30-60 segundos porque hace web_search en paralelo en los 5 dominios. ÚSALA cuando Isabel diga "buscame qué hay nuevo", "qué se está moviendo en X", o cuando quieras ofrecerle algo fresh.',
+    input_schema: { type: 'object', properties: {} },
+  },
+  {
     name: 'brainstorm_estructurado',
     description: 'Sesión de brainstorm estructurado sobre un tema: frame → 10 ideas → top 3 ranked → plan de acción para #1. ÚSALA cuando Isabel diga "brainstorm conmigo sobre X", "ayúdame a pensar Y", "qué opciones tengo para Z". El output viene listo para presentárselo. Después tú decides si crear tareas con crear_tarea para el plan de acción.',
     input_schema: {
@@ -2646,6 +2662,22 @@ async function dispatchTool(name, input) {
       } catch (err) {
         return `Error: ${err.message}`;
       }
+    }
+    case 'trends_pendientes': {
+      const { listTrends } = await import('./trends.js');
+      const items = listTrends({ status: 'pending', limit: 15, topic_id: input.topic_id || null });
+      if (!items.length) return 'Sin trends pendientes. El scout corre 11am — tal vez aún no ha encontrado nada hoy.';
+      return items.map((t) => `🔥 [${t.id}] (${t.topic_nombre}, score ${t.score}/10) ${t.titulo}\n   ${t.summary}\n   → ${t.razon_isabel}`).join('\n\n');
+    }
+    case 'trends_scan_ahora': {
+      const { runTrendScan } = await import('./trends.js');
+      const r = await runTrendScan();
+      if (!r.fresh.length) return 'Scan completo — sin hits nuevos esta vuelta. (Posible que ya hayamos visto lo notable, o que no hay novedad fuerte hoy.)';
+      const lines = [`🔥 ${r.fresh.length} hit(s) nuevo(s) (${r.highScore.length} score≥8):`];
+      for (const h of r.fresh.slice(0, 5)) {
+        lines.push(`[${h.topic_nombre}, score ${h.score}/10] ${h.titulo}\n  ${h.summary}\n  → ${h.razon_isabel}`);
+      }
+      return lines.join('\n\n');
     }
     case 'brainstorm_estructurado': {
       const { anthropic } = await import('./claude.js');

@@ -19,7 +19,7 @@ const SAMI_ALLOWED = new Set([
   'help', 'gaps', 'signals', 'briefing',
   'agenda', 'clientes', 'pendientes', 'historial',
   'compromisos', 'skills', 'tareas', 'huecos', 'luna',
-  'revisar', 'rapport', 'research', 'chase', 'reading',
+  'revisar', 'rapport', 'research', 'chase', 'reading', 'trends', 'scan',
 ]);
 
 // Helper: ¿quién está mandando este slash?
@@ -79,6 +79,8 @@ export async function runSlash(text, from) {
       case 'research': return { ok: true, reply: await runResearch() };
       case 'chase': return { ok: true, reply: await runChase() };
       case 'reading': return { ok: true, reply: await runReadingList(args) };
+      case 'trends': return { ok: true, reply: await runTrends(args) };
+      case 'scan': return { ok: true, reply: await runTrendScanNow() };
       default:
         return { ok: false, reply: `Comando "/${cmd}" no existe. Usa /help para ver la lista.` };
     }
@@ -424,4 +426,19 @@ async function runReadingList(args) {
     const label = i.titulo || i.url.slice(0, 70);
     return `[${i.id}] ${label} (${i.fuente || 'web'})`;
   }).join('\n');
+}
+
+async function runTrends(args) {
+  const { listTrends } = await import('./trends.js');
+  const items = listTrends({ status: 'pending', limit: 15, topic_id: args || null });
+  if (!items.length) return 'Sin trends pendientes.';
+  return items.map((t) => `[${t.id}] (${t.topic_nombre}, ${t.score}/10) ${t.titulo}`).join('\n');
+}
+
+async function runTrendScanNow() {
+  const { runTrendScan } = await import('./trends.js');
+  const r = await runTrendScan();
+  if (!r.fresh.length) return 'Scan completo — sin hits nuevos.';
+  return `${r.fresh.length} nuevo(s) (${r.highScore.length} score≥8). Top:\n` +
+    r.fresh.slice(0, 3).map((h) => `🔥 [${h.topic_nombre}] ${h.titulo}`).join('\n');
 }
