@@ -29,9 +29,9 @@ header('X-Content-Type-Options: nosniff');
 //     o constante LUNA_SERVICE_KEY en config.php. Nunca en el código.
 //   • Se manda en el header  X-LUNA-Key: <llave>  (o ?service_key=).
 //   • Permisos LIMITADOS por allowlist explícita (abajo):
-//       SOLO-LECTURA. Athena/Pilar lee el CRM e informa a LUNA; NO escribe.
-//   • SIN acceso a: crear, cambiar estado, comisiones, editar/cerrar tickets,
-//     borrar, config, memoria, outbound, chat LLM. (No están en la lista.)
+//       LEER todo + CREAR tickets (para el equipo). Nada más escribe.
+//   • SIN acceso a: cambiar estado, comisiones, editar/cerrar/borrar tickets,
+//     crear otra cosa, config, memoria, outbound, chat LLM. (No están en la lista.)
 //   • Cada llamada queda en luna_audit_log igual que las humanas.
 //
 // Athena NO recibe rol 'admin', así que aunque alguna acción se colara,
@@ -50,10 +50,11 @@ if ($svcKey !== '') {
 
     // Allowlist: SOLO estas acciones puede ejecutar la cuenta de servicio.
     // Todo lo demás → 403, aunque la llave sea válida.
-    // SOLO-LECTURA: Athena/Pilar lee el CRM e informa a LUNA. NO escribe nada
-    // (ni crear, ni editar, ni borrar). Decisión de Isabel.
+    // LECTURA + crear TICKETS: Athena/Pilar lee el CRM e informa a LUNA, y
+    // puede crear tickets para el equipo (flujo de Isabel). NO puede editar,
+    // cerrar, borrar, cambiar estado/comisiones ni crear otra cosa.
     $SERVICE_ALLOWED = [
-        // ── LEER (único permiso) ──────────────────────────
+        // ── LEER ──────────────────────────────────────────
         'luna_whoami','luna_pipeline_summary','luna_t65_alerts',
         'luna_retention_alerts','luna_hot_leads','luna_search_member',
         'luna_member_detail','luna_pending_soa','luna_open_tickets',
@@ -61,6 +62,8 @@ if ($svcKey !== '') {
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_get_all_goals','luna_entity_search','luna_signals_list',
         'luna_skill_list','luna_gaps_overview','luna_business_health',
+        // ── CREAR (solo tickets, nada más) ────────────────
+        'luna_create_ticket',
     ];
     // Lecturas de comisiones: sensibles para un bot de cara al cliente.
     // OFF por defecto. Para habilitarlas: define LUNA_SERVICE_ALLOW_COMMISSIONS=1
@@ -79,7 +82,7 @@ if ($svcKey !== '') {
             'ok'    => false,
             'error' => 'Acción no permitida para la cuenta de servicio (Athena).',
             'action'=> $reqAction,
-            'hint'  => 'Athena/Pilar es SOLO-LECTURA: puede leer el CRM e informar a LUNA, pero no puede crear, editar, cerrar, borrar ni cambiar estado/comisiones.',
+            'hint'  => 'Athena/Pilar puede LEER el CRM y CREAR tickets, nada más. No puede editar, cerrar, borrar, cambiar estado/comisiones ni crear otra cosa.',
         ]);
         exit;
     }
@@ -139,6 +142,50 @@ function logActivity(PDO $pdo, int $agente_id, ?int $miembro_id, string $tipo, s
 }
 function intOrNull($v) { return ($v === '' || $v === null) ? null : (int)$v; }
 function strOrNull($v) { $v = trim((string)$v); return $v === '' ? null : $v; }
+
+// ── Esquema adaptable: evita "Data truncated" (error 1265) ───
+// Lee del INFORMATION_SCHEMA qué valores acepta REALMENTE una columna
+// (ENUM/SET) o su largo (VARCHAR), y ajusta el valor antes de insertar.
+// Así el código no depende de adivinar el ENUM exacto de la tabla.
+function dbColumnSpec(PDO $pdo, string $table, string $column): array {
+    static $cache = [];
+    $key = "$table.$column";
+    if (isset($cache[$key])) return $cache[$key];
+    $spec = ['type' => 'other', 'values' => [], 'len' => null];
+    try {
+        $st = $pdo->prepare("SELECT DATA_TYPE, COLUMN_TYPE, CHARACTER_MAXIMUM_LENGTH
+                             FROM INFORMATION_SCHEMA.COLUMNS
+                             WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = ? AND COLUMN_NAME = ?");
+        $st->execute([$table, $column]);
+        if ($row = $st->fetch(PDO::FETCH_ASSOC)) {
+            $dt = strtolower((string)$row['DATA_TYPE']);
+            if ($dt === 'enum' || $dt === 'set') {
+                preg_match_all("/'((?:[^']|'')*)'/", (string)$row['COLUMN_TYPE'], $mm);
+                $spec['type']   = $dt;
+                $spec['values'] = array_map(fn($v) => str_replace("''", "'", $v), $mm[1]);
+            } elseif ($dt === 'char' || $dt === 'varchar') {
+                $spec['type'] = 'char';
+                $spec['len']  = $row['CHARACTER_MAXIMUM_LENGTH'] !== null ? (int)$row['CHARACTER_MAXIMUM_LENGTH'] : null;
+            }
+        }
+    } catch (Exception $e) { /* sin acceso a INFORMATION_SCHEMA: degrada a no-op */ }
+    $cache[$key] = $spec;
+    return $spec;
+}
+
+// Ajusta $value a lo que la columna acepta. Para ENUM/SET: devuelve el miembro
+// que coincide (sin importar mayúsculas); si no, $fallback (si existe en el set)
+// o el primer valor del ENUM. Para VARCHAR: trunca al largo permitido.
+function dbCoerce(PDO $pdo, string $table, string $column, string $value, ?string $fallback = null): string {
+    $spec = dbColumnSpec($pdo, $table, $column);
+    if ($spec['type'] === 'enum' || $spec['type'] === 'set') {
+        foreach ($spec['values'] as $opt) if (strcasecmp($opt, $value) === 0) return $opt;
+        if ($fallback !== null) foreach ($spec['values'] as $opt) if (strcasecmp($opt, $fallback) === 0) return $opt;
+        return $spec['values'][0] ?? $value;
+    }
+    if ($spec['type'] === 'char' && $spec['len']) return mb_substr($value, 0, $spec['len']);
+    return $value;
+}
 
 // ── Compliance & audit helpers (capa de confianza) ───────
 // Redacta PII antes de guardar en logs: teléfono, email, MBI.
@@ -1102,15 +1149,22 @@ case 'luna_create_ticket':
     if (!in_array($tipo, $tipos_validos)) $tipo = 'OTRO';
     if (!in_array($prioridad, ['ALTA','MEDIA','BAJA'])) $prioridad = 'MEDIA';
 
+    // Ajusta a lo que la tabla `tickets` REALMENTE acepta (evita 1265 "Data
+    // truncated"): si el ENUM de la BD no tiene el valor, cae a uno válido.
+    $tipo      = dbCoerce($pdo, 'tickets', 'tipo', $tipo, 'OTRO');
+    $prioridad = dbCoerce($pdo, 'tickets', 'prioridad', $prioridad, 'MEDIA');
+    $estado    = dbCoerce($pdo, 'tickets', 'estado', 'ABIERTO', 'ABIERTO');
+    $fuente    = dbCoerce($pdo, 'tickets', 'fuente', 'CRM', 'CRM');
+
     // Non-admin can only assign to themselves
     if (!$admin && $asig !== $uid) $asig = $uid;
 
     $stmt = $pdo->prepare("
         INSERT INTO tickets (miembro_id, agente_id, asignado_a, tipo, prioridad, estado,
                              descripcion, fuente, fecha_creacion)
-        VALUES (?,?,?,?,?,'ABIERTO',?,'CRM',CURDATE())
+        VALUES (?,?,?,?,?,?,?,?,CURDATE())
     ");
-    $stmt->execute([$mid, $uid, $asig, $tipo, $prioridad, $desc]);
+    $stmt->execute([$mid, $uid, $asig, $tipo, $prioridad, $estado, $desc, $fuente]);
     $tid = (int)$pdo->lastInsertId();
     logActivity($pdo, $uid, $mid, 'TICKET', "Ticket #$tid creado [$tipo/$prioridad] vía LUNA");
     ok(['id'=>$tid, 'message'=>"Ticket #$tid creado."]);
