@@ -1161,7 +1161,7 @@ case 'luna_create_ticket':
         // De un cliente: OBLIGA miembro_id y que exista (no suelto).
         if (!$mid) err('Ticket de miembro: falta miembro_id (de qué cliente es). Para algo sin cliente usa clase=tarea o clase=proyecto.');
         $ck = $pdo->prepare("SELECT 1 FROM miembros WHERE id=?"); $ck->execute([$mid]);
-        if (!$ck->fetchColumn()) err('El miembro_id no existe en el CRM.');
+        if (!$ck->fetchColumn()) err("El miembro_id $mid NO existe en el CRM. No inventes clientes: busca el real con luna_search_member y usa su id. Si la persona aún no es cliente, créala primero en el CRM, o manda clase=tarea (sin cliente).");
     } else {
         // Tarea o proyecto: sin cliente. Tipo TAREA; el proyecto se marca aparte.
         $mid = null;
