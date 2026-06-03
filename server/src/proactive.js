@@ -150,10 +150,10 @@ Esto se manda solo, no esperes que yo haya dicho nada.`,
 }
 
 // ---- Trend scan (diario 11am) ----
-// Corre el scout de virales / trending en los 5 dominios de Isabel
-// (Medicare, brand, salud 50+, productividad, wealth). Si encuentra
-// hits con score ≥ 8, hace un proactive ping con los top 1-2. Si no,
-// solo deja el dump para que ella lo vea en /trends cuando quiera.
+// Corre el scout de virales / trending en los 6 lentes de Isabel
+// (Medicare, brand, salud 50+, productividad, wealth + chief_of_staff
+// meta). Si encuentra hits con score ≥ 8, hace un proactive ping con
+// los top 1-2. Si no, solo deja el dump para que ella lo vea en /trends.
 export async function dailyTrendScan() {
   try {
     const { runTrendScan } = await import('./trends.js');
@@ -169,7 +169,11 @@ export async function dailyTrendScan() {
     }
     bumpProactiveCount(gate.dayKey);
     const top = r.highScore.slice(0, 2);
-    const blurb = top.map((h) => `🔥 [${h.topic_nombre}] ${h.titulo}\n${h.summary}\n→ ${h.razon_isabel}`).join('\n\n');
+    const blurb = top.map((h) => {
+      const icon = h.topic_id === 'chief_of_staff' ? '⚙️' : '🔥';
+      return `${icon} [${h.topic_nombre}] ${h.titulo}\n${h.summary}\n→ ${h.razon_isabel}`;
+    }).join('\n\n');
+    const hasMeta = top.some((h) => h.topic_id === 'chief_of_staff');
     await runProactive(
       `[TREND SCAN DIARIO — ${top.length} hit(s) high score]
 
@@ -177,8 +181,8 @@ ${blurb}
 
 INSTRUCCIONES:
 - Salúdame UNA línea y dame el digest arriba ADAPTADO a mi voz.
-- Pregúntame si alguno me interesa para profundizar.
-- Si digo "sí el de X", abre el de la fuente con web_search o pásamelo a la coach relevante (Marisol para brand, Sofía para health, etc.).
+${hasMeta ? '- HAY un hit de la lente META (Chief of Staff — cómo MEJORAR Athena+Isabel). Mencionálo CLARO: "Encontré algo sobre cómo podríamos mejorar nuestro sistema". Si Isabel aprueba el cambio, crea tarea para Sami con responsable=sami para implementar.\n' : ''}- Pregúntame si alguno me interesa para profundizar.
+- Si digo "sí el de X", abre la fuente con web_search o pásamelo a la coach relevante (Marisol para brand, Sofía para health, etc.). Para hits de Chief of Staff: propón cómo implementar el cambio (tarea concreta).
 - Si digo "no" o "después", márcalos en mi /trends para revisar después.
 - Sé breve. Estos son SCOUT signals, no análisis completo.`,
     );

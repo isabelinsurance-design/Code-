@@ -77,7 +77,98 @@ const DEFAULT_TOPICS = [
     ],
     contexto_isabel: 'Construyendo wealth post-50. Negocio Medicare estable. CFO Elena la asesora en cashflow + decisiones financieras.',
   },
+  {
+    id: 'chief_of_staff',
+    nombre: 'Chief of Staff — cómo mejoramos Athena+Isabel',
+    queries: [
+      'AI personal assistant chief of staff trending 2026',
+      'executive operating system entrepreneur breakthrough',
+      'AI agent workflow chief of staff framework viral',
+    ],
+    // Este texto se enriquece dinámicamente en scanTopic con el
+    // snapshot interno de actividad real de Athena. Así el scout
+    // correlaciona tendencias externas con patrones reales internos
+    // y puede proponer cambios accionables ("nadie usa X — quítalo",
+    // "feature Y del mundo nos falta", etc).
+    contexto_isabel: `Esta lente es META — soy Athena (AI Chief of Staff de Isabel) mirando MI PROPIA práctica. Quiero saber:
+1. Qué hacen otros sistemas AI chief-of-staff que YO no hago todavía.
+2. Frameworks de operaciones / executive support que están emergiendo.
+3. Patrones en human-AI work / agentic workflows trending.
+
+FILTRO HARD: skip listicles "10 AI tools", skip "ChatGPT prompts", skip generic productivity content. Solo cosas que cambien CÓMO opero como chief-of-staff.
+
+FORMATO ESPECIAL para esta lente: cada hit debe proponer un CAMBIO CONCRETO a Athena. Ej. "agregar feature X", "deprecar feature Y", "cambiar cadencia Z". El campo razon_isabel debe ser una RECOMENDACIÓN para Sami/Isabel, no solo una observación.
+
+[CONTEXTO INTERNO se inserta dinámicamente abajo]`,
+  },
 ];
+
+// Snapshot interno de Athena — últimos 7 días — para alimentar la
+// lente "chief_of_staff" del Radar con contexto real. Sin esto, el
+// scout solo ve tendencias externas; CON esto puede correlacionar
+// "feature X está trending afuera Y nosotros usamos X mucho" o al
+// revés ("feature Z nadie usa, considerar deprecarla").
+function buildAthenaInternalSnapshot() {
+  const activityFile = join(DATA_DIR, 'activity.json');
+  const signalsFile = join(DATA_DIR, 'signals.json');
+  const tasksFile = join(DATA_DIR, 'tasks.json');
+  let activity = [];
+  let signals = { signals: [] };
+  let tasks = [];
+  try { if (existsSync(activityFile)) activity = JSON.parse(readFileSync(activityFile, 'utf8')); } catch { /* ignore */ }
+  try { if (existsSync(signalsFile)) signals = JSON.parse(readFileSync(signalsFile, 'utf8')); } catch { /* ignore */ }
+  try { if (existsSync(tasksFile)) tasks = JSON.parse(readFileSync(tasksFile, 'utf8')); } catch { /* ignore */ }
+
+  const sevenDaysAgo = Date.now() - 7 * 86_400_000;
+  const recent = (activity || []).filter((a) => new Date(a.ts || 0).getTime() >= sevenDaysAgo);
+
+  // Tool counts
+  const byTool = {};
+  let errors = 0;
+  for (const a of recent) {
+    byTool[a.tool] = (byTool[a.tool] || 0) + 1;
+    const blob = `${a.result_summary || ''} ${a.input_summary || ''}`.toLowerCase();
+    if (/error|falló|fail|timeout|no pude/.test(blob)) errors += 1;
+  }
+  const topUsed = Object.entries(byTool).sort((a, b) => b[1] - a[1]).slice(0, 10);
+
+  // Tools que existen pero NO se usaron — candidatos a deprecar / refactor.
+  // Inferimos del set de tool names disponibles vs los que se invocaron.
+  // (Si no tenemos lista canónica, lo skipeamos.)
+  let unusedHint = '';
+  try {
+    // No queremos hard-require — fallback silencioso si tools.js cambia API.
+    const usedSet = new Set(Object.keys(byTool));
+    const knownCommonTools = [
+      'recordar', 'olvidar', 'crear_tarea', 'consultar_especialistas',
+      'enviar_email', 'enviar_sms', 'web_search', 'journal_entrada',
+      'journal_buscar', 'rapport_semanal', 'brainstorm_estructurado',
+      'reading_agregar', 'reading_resumen', 'trends_pendientes',
+      'trends_scan_ahora', 'coach_notes_actualizar',
+    ];
+    const noUso = knownCommonTools.filter((t) => !usedSet.has(t));
+    if (noUso.length) unusedHint = `Tools NO usadas en 7 días (candidatas a revisar discoverability): ${noUso.join(', ')}`;
+  } catch { /* ignore */ }
+
+  // Tareas atrasadas por dueño
+  const atrasadas = (tasks || []).filter((t) => t.status !== 'lista' && t.status !== 'cancelada' && t.vence && new Date(t.vence) < new Date());
+  const atrasadasPorDueno = {};
+  for (const t of atrasadas) atrasadasPorDueno[t.responsable] = (atrasadasPorDueno[t.responsable] || 0) + 1;
+
+  // Señales actuales por severidad
+  const sigsByPrio = { alto: 0, aviso: 0, info: 0 };
+  for (const s of signals.signals || []) sigsByPrio[s.severidad] = (sigsByPrio[s.severidad] || 0) + 1;
+
+  return [
+    `=== SNAPSHOT INTERNO DE ATHENA (últimos 7 días) ===`,
+    `Tool calls totales: ${recent.length}. Errores detectados: ${errors}.`,
+    `Top 10 tools más usadas: ${topUsed.map(([t, n]) => `${t}×${n}`).join(', ') || 'ninguna'}`,
+    unusedHint,
+    `Tareas atrasadas: ${Object.entries(atrasadasPorDueno).map(([k, v]) => `${k}=${v}`).join(', ') || 'ninguna'}`,
+    `Señales activas: ${sigsByPrio.alto} alto, ${sigsByPrio.aviso} aviso, ${sigsByPrio.info} info`,
+    `=== fin snapshot ===`,
+  ].filter(Boolean).join('\n');
+}
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function load() {
@@ -91,7 +182,15 @@ function newId() { return `trend_${Date.now().toString(36)}${Math.random().toStr
 
 export function getTrendTopics() {
   const d = load();
-  return d.topics?.length ? d.topics : DEFAULT_TOPICS;
+  const stored = d.topics?.length ? d.topics : [];
+  // Merge: si DEFAULT_TOPICS tiene topics nuevos (ej. la lente chief_of_staff
+  // agregada después), los agregamos sin perder ediciones del usuario en
+  // topics existentes. Identificación por id.
+  const byId = new Map(stored.map((t) => [t.id, t]));
+  for (const def of DEFAULT_TOPICS) {
+    if (!byId.has(def.id)) byId.set(def.id, def);
+  }
+  return [...byId.values()];
 }
 
 // Corre UN topic con Sonnet + web_search. Devuelve array de hits
@@ -99,10 +198,20 @@ export function getTrendTopics() {
 // score (1-10 — qué tan accionable / único), y razon (por qué importa
 // para Isabel específicamente).
 async function scanTopic(topic) {
+  // Lente meta (chief_of_staff): inyectamos snapshot interno real para
+  // que el scout correlacione tendencias externas con uso real interno.
+  let contextoEnriquecido = topic.contexto_isabel;
+  if (topic.id === 'chief_of_staff') {
+    try {
+      const snap = buildAthenaInternalSnapshot();
+      contextoEnriquecido = `${topic.contexto_isabel}\n\n${snap}`;
+    } catch { /* fallback al contexto base */ }
+  }
+
   const prompt = `Tu trabajo: encontrar 1-3 cosas REALMENTE NOTABLES (trending, viral, breaking, breakthrough) en el dominio "${topic.nombre}" en los ÚLTIMOS 7 DÍAS.
 
 CONTEXTO DE ISABEL:
-${topic.contexto_isabel}
+${contextoEnriquecido}
 
 QUERIES SUGERIDAS (úsalas o adapta):
 ${topic.queries.map((q) => `- ${q}`).join('\n')}
@@ -173,7 +282,10 @@ Si no hay nada, regresa: []`;
 // decida si surfacear proactivo en WhatsApp.
 export async function runTrendScan() {
   const data = load();
-  const topics = data.topics?.length ? data.topics : DEFAULT_TOPICS;
+  // Usa getTrendTopics() para auto-merge de nuevas DEFAULT_TOPICS — así
+  // si agregamos lentes nuevas (ej. chief_of_staff) entran sin que el
+  // usuario tenga que limpiar trends.json.
+  const topics = getTrendTopics();
   const allHits = await Promise.all(topics.map((t) => scanTopic(t)));
   const flatHits = allHits.flat();
 

@@ -99,14 +99,16 @@ export default function Trends() {
 
       <div className="space-y-3">
         {items.map((t) => (
-          <div key={t.id} className="card">
+          <div key={t.id} className={`card ${t.topic_id === 'chief_of_staff' ? 'border-l-4 border-l-lino-700 bg-lino-50' : ''}`}>
             <div className="flex items-start justify-between gap-2 mb-2">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                   <span className={`px-2 py-0.5 rounded text-xs font-mono ${scoreColor(t.score)}`}>
                     {t.score}/10
                   </span>
-                  <span className="text-xs text-ink-3">{t.topic_nombre}</span>
+                  <span className="text-xs text-ink-3">
+                    {t.topic_id === 'chief_of_staff' ? '⚙️ ' : '🔥 '}{t.topic_nombre}
+                  </span>
                   <span className="text-xs text-ink-3">·</span>
                   <span className="text-xs text-ink-3">{new Date(t.ts).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}</span>
                 </div>
