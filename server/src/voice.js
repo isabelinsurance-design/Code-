@@ -103,24 +103,18 @@ export function buildIncomingTwiml(req) {
   const wsUrl = `wss://${publicHost}/voice/relay`;
   // TTS para ConversationRelay — solo dos providers soportados:
   //   1. ElevenLabs (override absoluto si ELEVENLABS_VOICE_ID set)
-  //   2. Google (default — Polly y otros NO son válidos para
-  //      ConversationRelay aunque sí lo sean para TwiML normal).
+  //   2. Google (default)
   //
-  // IMPORTANTE: el voice locale DEBE matchear language. es-US-Studio-B
-  // con language=es-MX da error 64101 "Invalid values for tts settings".
-  // Studio voices solo existen para algunos locales (no es-MX).
+  // VOZ COMBO PROBADA: es-US-Neural2-A + language=es-MX.
+  // Esta combinación SÍ funcionó en pruebas reales (Twilio la acepta).
+  // El locale del voice (es-US) NO tiene que matchear language (es-MX)
+  // contrario a lo que sugería el error 64101 — para Neural2 voices,
+  // language tag override el locale del voice. Studio es otra historia.
   //
-  // Voces buenas para Mexicana (en orden de naturalidad):
-  //   es-MX-Neural2-A  → Neural mexicana femenina (RECOMENDADA, default)
-  //   es-MX-Neural2-B  → Neural mexicana masculina
-  //   es-MX-Wavenet-A  → Wavenet femenina (acento MX)
-  //   es-US-Neural2-A  → Neural US Spanish (requiere language=es-US)
-  //
-  // VOICE_TTS_VOICE en env override sin tocar código. Si cambias voice,
-  // considera también ajustar language vía VOICE_TTS_LANGUAGE para que
-  // matche el locale.
+  // Cambios futuros: VOICE_TTS_VOICE en env override. Cuidado al cambiar
+  // a Studio (es-US-Studio-B) — esos requieren language=es-US exacto.
   let ttsProvider = 'Google';
-  let voice = process.env.VOICE_TTS_VOICE || 'es-MX-Neural2-A';
+  let voice = process.env.VOICE_TTS_VOICE || 'es-US-Neural2-A';
   if (elevenVoice) {
     ttsProvider = 'ElevenLabs';
     voice = elevenVoice;
