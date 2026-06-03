@@ -141,6 +141,73 @@ Telegram apunta su webhook a `https://luna.bluehost.com/webhook-telegram.php` co
 Endpoints `/api/memoria` GET + POST con bearer token; el navegador hace fetch al
 cargar para hidratar `memoria.*` y al guardar para persistir multi-dispositivo.
 
+**6. Inteligencia semanal cron (la pestaña 🔭 Inteligencia automatizada):**
+
+La pestaña "🔭 Inteligencia de Mercado" del navegador es bajo demanda. Para
+que corra automática cada lunes y le mande a Isabel los hallazgos por Telegram:
+
+```
+0 6 * * 1 /usr/bin/php /home/USER/luna/cron/intel-semanal.php >> /home/USER/luna/logs/intel.log 2>&1
+```
+
+`cron/intel-semanal.php` (idéntico flujo a briefing pero con búsqueda web):
+```php
+<?php
+require __DIR__ . '/../config.php';
+$prompt = <<<EOT
+Analista de inteligencia para Isabel Fuentes (Medicare hispano SoCal).
+Investiga AHORA usando búsqueda web:
+1. Competidores corriendo anuncios bilingües (Quotely, eHealth, etc) — qué dicen.
+2. Contenido viral en español sobre Medicare esta semana.
+3. Cambios CMS / Medicare Advantage 2026.
+4. 3 OPORTUNIDADES específicas para Isabel + UNA acción concreta.
+NO inventes datos.
+EOT;
+
+$body = json_encode([
+  'model' => 'claude-sonnet-4-20250514',
+  'max_tokens' => 4096,
+  'system' => ISABEL_SYSTEM,
+  'tools' => [['type'=>'web_search_20250305', 'name'=>'web_search', 'max_uses'=>6]],
+  'messages' => [['role'=>'user', 'content'=>$prompt]],
+]);
+$ch = curl_init('https://api.anthropic.com/v1/messages');
+curl_setopt_array($ch, [
+  CURLOPT_RETURNTRANSFER => true,
+  CURLOPT_POST => true,
+  CURLOPT_POSTFIELDS => $body,
+  CURLOPT_HTTPHEADER => [
+    'Content-Type: application/json',
+    'x-api-key: ' . $ANTHROPIC_KEY,
+    'anthropic-version: 2023-06-01',
+  ],
+  CURLOPT_TIMEOUT => 120,  // web search puede tardar
+]);
+$resp = json_decode(curl_exec($ch), true);
+
+// Combina text blocks (filtra tool_use/tool_result)
+$text = '';
+foreach (($resp['content'] ?? []) as $b) {
+  if (($b['type'] ?? '') === 'text') $text .= ($b['text'] ?? '') . "\n\n";
+}
+
+// Guarda en MySQL para historial + manda a Telegram
+$PDO->prepare("INSERT INTO luna_intel (text) VALUES (?)")->execute([$text]);
+$msg = "🔭 *Inteligencia semanal*\n\n" . substr($text, 0, 3500);
+file_get_contents("https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage?" . http_build_query([
+  'chat_id' => $ISABEL_CHAT_ID, 'text' => $msg, 'parse_mode' => 'Markdown',
+]));
+```
+
+Necesita tabla:
+```sql
+CREATE TABLE luna_intel (
+  id BIGINT AUTO_INCREMENT PRIMARY KEY,
+  text MEDIUMTEXT,
+  created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
+```
+
 ## Bot de Telegram (`bot/`)
 
 ⚠️ **No deployable en Bluehost.** El bot está en Python con `python-telegram-bot`

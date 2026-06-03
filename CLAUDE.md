@@ -56,6 +56,7 @@ rebuilt UNICO file to Isabel after changes.
 - `isabel_crm_leads` — CRM leads (JSON array)
 - `isabel_plan_progress` — Plan de Acción checkbox state
 - `isabel_memoria_hechos` / `_personas` / `_tareas` / `_compromisos` — layered memory (Athena-style)
+- `isabel_intel_runs` — market intelligence research history (last 20 runs)
 
 ### Athena patterns adopted
 The `🧠 Memoria` tab uses **layered memory** (separate stores for facts about
@@ -76,6 +77,15 @@ attention items. Both re-render on every state-changing call
 `checkCompliance()` on every AI response against `CMS_FLAGS` regexes (no
 absolute superlatives, no guarantees, no negative carrier comparisons, etc.)
 and inserts a `.cms-banner` next to the output if anything matches.
+
+**Market intelligence** (`🔭 Inteligencia Mercado`): `runIntel()` calls the
+Anthropic API with the `web_search_20250305` tool enabled (`max_uses: 6`) and a
+structured prompt asking for active competitor ads in Latino Medicare,
+trending viral content, recent CMS/Medicare news, and 3 specific opportunities
+for Isabel. Each run is saved to `isabel_intel_runs` localStorage (last 20)
+and rendered as a collapsible history. The PHP cron version
+(`cron/intel-semanal.php`, lunes 6am) is in `PARA-LUNA-TEAM.md` for the LUNA
+team to deploy.
 
 **Multi-coach orchestrator** (`🧭 Pregunta Inteligente`, Athena Section 5): a
 shared `COACHES` roster (id, icon, name, desc, voice) is the canonical source

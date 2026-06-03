@@ -272,6 +272,21 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .route-voice-head{font-weight:700;color:var(--gold-dk);margin-bottom:5px;font-size:13.5px}
 .route-roster{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 4px}
 .route-roster-chip{font-size:11px;background:var(--tag);border:1px solid var(--border-d);border-radius:20px;padding:4px 10px;color:var(--text-mid)}
+
+/* ─── INTELIGENCIA DE MERCADO ─── */
+.intel-hero{background:linear-gradient(135deg,#7B5EA7,#3D8FD6);border-radius:14px;padding:24px;color:#fff;margin-bottom:14px;display:flex;align-items:center;gap:18px;flex-wrap:wrap;box-shadow:var(--sh2)}
+.intel-hero-text{flex:1;min-width:220px}
+.intel-hero-title{font-family:'Fraunces',serif;font-size:22px;font-style:italic;line-height:1.2;margin-bottom:5px}
+.intel-hero-sub{font-size:13px;opacity:.92;line-height:1.5}
+.intel-cadence{font-size:12px;opacity:.85;margin-top:8px;padding:6px 10px;background:rgba(255,255,255,.12);border-radius:8px;display:inline-block}
+.intel-btn{background:#F2A977;color:#3A2410;border:0;border-radius:30px;padding:13px 22px;font-size:15px;font-weight:700;cursor:pointer;box-shadow:0 4px 14px rgba(242,169,119,.35);transition:transform .15s}
+.intel-btn:hover:not(:disabled){transform:translateY(-2px)}
+.intel-btn:disabled{opacity:.7;cursor:not-allowed}
+.intel-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);text-align:right;margin-bottom:8px;min-height:14px}
+.intel-history-item{border:1px solid var(--border);border-radius:10px;margin-bottom:8px;background:var(--white);overflow:hidden}
+.intel-history-item summary{cursor:pointer;padding:10px 14px;font-size:13px;color:var(--text);font-weight:600;background:var(--surface)}
+.intel-history-item[open] summary{border-bottom:1px solid var(--border)}
+.intel-history-body{padding:12px 16px;font-size:13px;line-height:1.55;color:var(--text);max-height:480px;overflow-y:auto;white-space:normal}
 .page-header{margin-bottom:24px}
 .page-title{font-family:'Fraunces',serif;font-size:26px;font-weight:400;color:var(--text);line-height:1.15}
 .page-title em{font-style:italic;color:var(--gold-dk)}
@@ -562,6 +577,9 @@ tr:hover td{background:var(--surface)}
       </button>
       <button class="nav-item" onclick="showModule('route',this)">
         <span class="nav-icon">🧭</span><span class="nav-label">Pregunta Inteligente</span>
+      </button>
+      <button class="nav-item" onclick="showModule('intelmkt',this)">
+        <span class="nav-icon">🔭</span><span class="nav-label">Inteligencia Mercado</span>
       </button>
       <button class="nav-item" onclick="showModule('movil',this)">
         <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
@@ -1137,6 +1155,38 @@ tr:hover td{background:var(--surface)}
           </details>
         </div>
       </div>
+    </div>
+
+    <!-- ══════ INTELIGENCIA DE MERCADO (web search en vivo) ══════ -->
+    <div class="module" id="mod-intelmkt">
+      <div class="page-header">
+        <div class="page-title">🔭 <em>Inteligencia</em> de Mercado</div>
+        <div class="page-sub">Investiga lo que está pasando AHORA en el mercado hispano de Medicare. Competidores activos · contenido viral · oportunidades específicas para ti.</div>
+      </div>
+
+      <div class="plan-focus" style="background:var(--purple-lt);border-color:var(--purple)">
+        <span style="font-size:20px">🦋</span>
+        <div><strong>Cómo funciona:</strong> con un clic, Claude busca <b>en vivo en la web</b> (no datos viejos): competidores corriendo anuncios bilingües ahora, hooks y formatos que están viralizando esta semana, cambios CMS recientes — y te da 3 oportunidades específicas + UNA acción concreta. Cada investigación se guarda con fecha.</div>
+      </div>
+
+      <div class="intel-hero">
+        <div class="intel-hero-text">
+          <div class="intel-hero-title">¿Qué está pasando esta semana?</div>
+          <div class="intel-hero-sub">Investigación en vivo del mercado · competidores activos · contenido viral · oportunidades específicas.</div>
+          <div class="intel-cadence">💡 Recomendado: <b>córrelo cada lunes</b> para arrancar la semana sabiendo qué hacer.</div>
+        </div>
+        <button class="intel-btn" id="intelMktBtn" onclick="runIntel()">🔍 Investigar el mercado ahora</button>
+      </div>
+      <div class="intel-status" id="intelMktStatus">Listo. Asegúrate de tener tu API Key.</div>
+
+      <div class="ai-box" id="intelMktOutput" style="min-height:200px"><div class="ai-label">✨ Resultado de la investigación</div></div>
+
+      <div class="card" style="margin-top:20px">
+        <div class="card-head"><span>📚</span><div class="card-title">Historial de investigaciones</div></div>
+        <div class="card-body" id="intelMktHistory"></div>
+      </div>
+
+      <div class="tpl-note" style="margin-top:14px">⚙️ <b>Versión automática semanal:</b> esta versión es bajo demanda (un clic). La versión automática (cada lunes a las 6:30am Isabel recibe los hallazgos por Telegram) se construye server-side — ver <code>PARA-LUNA-TEAM.md</code> sección "Inteligencia semanal cron".</div>
     </div>
 
     <!-- ══════ EQUIPO IA (agentes en paralelo) ══════ -->
@@ -2795,6 +2845,99 @@ async function runEquipoIA(){
   btn.disabled = false;
 }
 
+// ─── INTELIGENCIA DE MERCADO (web search en vivo) ───
+const INTEL_STORE = 'isabel_intel_runs';
+
+async function callClaudeWebSearch(systemPrompt, userMsg, maxSearches=6){
+  const res = await fetch('https://api.anthropic.com/v1/messages', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-api-key': apiKey,
+      'anthropic-version': '2023-06-01',
+      'anthropic-dangerous-direct-browser-access': 'true'
+    },
+    body: JSON.stringify({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: systemPrompt,
+      tools: [{ type: 'web_search_20250305', name: 'web_search', max_uses: maxSearches }],
+      messages: [{ role: 'user', content: userMsg }]
+    })
+  });
+  const data = await res.json();
+  if(data.error) throw new Error(data.error.message);
+  // Combine all text content blocks (filtering out tool_use / tool_result)
+  return (data.content || []).filter(b => b.type === 'text').map(b => b.text || '').join('\n\n');
+}
+
+async function runIntel(){
+  if(!apiKey){
+    document.getElementById('intelMktStatus').textContent = '⚠️ Pon tu API Key arriba a la derecha.';
+    return;
+  }
+  const btn = document.getElementById('intelMktBtn');
+  const status = document.getElementById('intelMktStatus');
+  btn.disabled = true;
+  status.textContent = '🔭 Investigando el mercado en vivo (puede tardar 30-60 seg)…';
+  setOutput('intelMktOutput','<div class="ai-loading">🔍 Buscando en la web<span class="ai-dots"><span>.</span><span>.</span><span>.</span></span></div>');
+  const t0 = Date.now();
+  const prompt = `Eres analista de inteligencia de mercado para Isabel Fuentes, agente de Medicare en el mercado hispano de SoCal. Investiga AHORA (esta semana) usando búsqueda web y dame un reporte estructurado:
+
+## 📢 Competidores corriendo anuncios bilingües
+Busca quién está corriendo anuncios de Medicare en Facebook/Instagram dirigidos al mercado hispano/bilingüe en California (ej: Quotely, eHealth, ConnieHealth, GoHealth, agencias locales, agentes virales). Para cada uno: (a) quién, (b) su mensaje/hook principal, (c) qué hace bien.
+
+## 🔥 Contenido viral en español sobre Medicare
+Busca qué tipo de Reels/posts/Lives sobre Medicare en español están funcionando últimamente. Hooks específicos, formatos, ángulos que generan engagement.
+
+## 📰 Noticias / cambios recientes
+Cambios en Medicare Advantage para 2026, beneficios nuevos, regulaciones CMS, o noticias relevantes que Isabel pueda usar en su contenido esta semana.
+
+## 💡 3 OPORTUNIDADES específicas para Isabel
+Basado en lo de arriba, dame 3 oportunidades concretas que Isabel debería atacar esta semana. Para cada una: ángulo, gancho sugerido, y por qué funcionaría AHORA.
+
+Usa búsqueda web para obtener información REAL y actual del mercado hispano de Medicare en California. NO inventes ejemplos ni nombres.`;
+  try{
+    const text = await callClaudeWebSearch(ISABEL_SYSTEM, prompt, 6);
+    setOutput('intelMktOutput', text || 'Sin resultado.');
+    try{ setComplianceWarning('intelMktOutput', checkCompliance(text)); }catch(_){}
+    saveIntelRun(text);
+    renderIntelHistory();
+    const secs = ((Date.now() - t0) / 1000).toFixed(1);
+    status.textContent = `✅ Investigación completa en ${secs}s · guardada en historial 🦋`;
+  }catch(e){
+    setOutput('intelMktOutput', '❌ Error: ' + e.message);
+    status.textContent = '❌ Falló la investigación: ' + e.message;
+  }
+  btn.disabled = false;
+}
+
+function saveIntelRun(text){
+  let runs = [];
+  try{ runs = JSON.parse(localStorage.getItem(INTEL_STORE) || '[]'); }catch(_){}
+  runs.unshift({
+    id: Date.now(),
+    date: new Date().toLocaleString('es-MX', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }),
+    text: (text || '').slice(0, 12000)
+  });
+  runs = runs.slice(0, 20);
+  try{ localStorage.setItem(INTEL_STORE, JSON.stringify(runs)); }catch(_){}
+}
+
+function renderIntelHistory(){
+  const el = document.getElementById('intelMktHistory');
+  if(!el) return;
+  let runs = [];
+  try{ runs = JSON.parse(localStorage.getItem(INTEL_STORE) || '[]'); }catch(_){}
+  if(!runs.length){
+    el.innerHTML = '<div class="mem-empty">Sin investigaciones previas todavía. Dale al botón de arriba para hacer la primera.</div>';
+    return;
+  }
+  el.innerHTML = runs.map(r =>
+    `<details class="intel-history-item"><summary>📅 ${escapeHtml(r.date)}</summary><div class="intel-history-body">${escapeHtml(r.text).replace(/\n/g, '<br>')}</div></details>`
+  ).join('');
+}
+
 // ─── ORCHESTRATOR (Athena Section 5: multi-coach in parallel + synth) ───
 function renderRoster(){
   const el = document.getElementById('routeRoster');
@@ -3186,6 +3329,7 @@ loadPlan();
 loadMemoria();
 renderHealth();
 renderRoster();
+renderIntelHistory();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
