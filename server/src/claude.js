@@ -104,18 +104,69 @@ function extractText(res) {
 // Variante con hilo persistente: la coach recibe TODA la conversación
 // previa con Isabel + el wiki + el mensaje nuevo, y responde sabiendo
 // el contexto. Usado por la PWA en /api/chat para coaches especialistas.
-// Sin tools — single-call, lectura limpia.
-export async function askSpecialistThreaded(specialist, messages, wikiContext = '') {
+//
+// Si opts.tools + opts.toolDispatcher se proveen (Phase B — planes por
+// coach), corre tool loop hasta que la coach decide cerrar sin más
+// llamadas. Si no, single-call legacy (Phase A).
+export async function askSpecialistThreaded(specialist, messages, wikiContext = '', opts = {}) {
   const systemBlock = {
     type: 'text',
     text: specialist.system + (wikiContext ? `\n\nMEMORIA DE ISABEL:\n${wikiContext}` : ''),
     cache_control: { type: 'ephemeral' },
   };
-  const res = await anthropic.messages.create({
+
+  // Sin tools — single call (Phase A path)
+  if (!opts.tools || !opts.toolDispatcher) {
+    const res = await anthropic.messages.create({
+      model: specialist.model || 'claude-sonnet-4-6',
+      max_tokens: 800,
+      system: [systemBlock],
+      messages,
+    });
+    return extractText(res);
+  }
+
+  // Con tools — loop hasta stop_reason !== 'tool_use' o cap.
+  const convo = [...messages];
+  const maxRounds = opts.maxRounds || 5;
+  for (let round = 0; round < maxRounds; round++) {
+    const res = await anthropic.messages.create({
+      model: specialist.model || 'claude-sonnet-4-6',
+      max_tokens: 1200,
+      system: [systemBlock],
+      tools: opts.tools,
+      messages: convo,
+    });
+    if (res.stop_reason !== 'tool_use') {
+      return extractText(res);
+    }
+    convo.push({ role: 'assistant', content: res.content });
+    const toolResults = [];
+    for (const block of res.content) {
+      if (block.type !== 'tool_use') continue;
+      let resultText;
+      try {
+        resultText = await opts.toolDispatcher(block.name, block.input || {});
+      } catch (err) {
+        resultText = `Error ejecutando ${block.name}: ${err.message}`;
+      }
+      toolResults.push({
+        type: 'tool_result',
+        tool_use_id: block.id,
+        content: String(resultText ?? '(sin resultado)'),
+      });
+    }
+    convo.push({ role: 'user', content: toolResults });
+  }
+  // Cap alcanzado — forzamos respuesta final sin tools.
+  const final = await anthropic.messages.create({
     model: specialist.model || 'claude-sonnet-4-6',
-    max_tokens: 800,
+    max_tokens: 600,
     system: [systemBlock],
-    messages,
+    messages: [
+      ...convo,
+      { role: 'user', content: 'Resume tu respuesta final ahora, sin llamar más herramientas.' },
+    ],
   });
-  return extractText(res);
+  return extractText(final);
 }

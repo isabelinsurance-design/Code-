@@ -140,4 +140,14 @@ export const api = {
   // el history de WhatsApp). Devuelve { coach, messages: [{ role, content, ts }] }.
   coachThread: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`),
   coachThreadClear: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
+  // Plan vigente de una coach — lo que ella le ha recomendado a Isabel.
+  // Devuelve { coach_id, items: [{ id, text, status, ts_created, ts_updated }], actualizado }.
+  coachPlan: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`),
+  coachPlanAdd: (coach, text) =>
+    request(`/coach_plan/${encodeURIComponent(coach)}`, { method: 'POST', body: JSON.stringify({ text }) }),
+  coachPlanUpdate: (coach, itemId, patch) =>
+    request(`/coach_plan/${encodeURIComponent(coach)}/${encodeURIComponent(itemId)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+  coachPlanRemove: (coach, itemId) =>
+    request(`/coach_plan/${encodeURIComponent(coach)}/${encodeURIComponent(itemId)}`, { method: 'DELETE' }),
+  coachPlanClear: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
 };

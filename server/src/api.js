@@ -545,14 +545,27 @@ export function registerApi(app) {
       const { SPECIALISTS } = await import('./agents.js');
       const { buildWikiContext } = await import('./memory.js');
       const { loadCoachThread, appendCoachTurn, toApiMessages } = await import('./coach_threads.js');
+      const { planAsContext } = await import('./coach_plans.js');
+      const { coachPlanTools, makeCoachPlanDispatcher } = await import('./coach_plan_tools.js');
       const spec = SPECIALISTS[coach];
       if (!spec) return res.status(404).json({ error: 'coach desconocido' });
       const wiki = buildWikiContext();
-      // Cargamos el hilo, appendeamos el mensaje del usuario, y mandamos
-      // todo a Claude. Si la respuesta viene OK, persistimos ambos turnos.
+      const planCtx = planAsContext(coach, spec.name);
+      // Wiki + plan vigente como contexto; tools para que la coach pueda
+      // actualizar su propio plan durante la conversación. Persistimos
+      // solo el mensaje del usuario y la respuesta final (no los rounds
+      // intermedios de tool_use/tool_result — quedan ephemeral).
       const thread = loadCoachThread(coach);
       const apiMessages = [...toApiMessages(thread), { role: 'user', content: message }];
-      const reply = await askSpecialistThreaded(spec, apiMessages, wiki);
+      const reply = await askSpecialistThreaded(
+        spec,
+        apiMessages,
+        wiki + (planCtx ? '\n\n' + planCtx : ''),
+        {
+          tools: coachPlanTools,
+          toolDispatcher: makeCoachPlanDispatcher(coach),
+        },
+      );
       appendCoachTurn(coach, 'user', message);
       appendCoachTurn(coach, 'assistant', reply);
       return res.json({ coach, reply });
@@ -580,6 +593,64 @@ export function registerApi(app) {
       const { clearCoachThread } = await import('./coach_threads.js');
       clearCoachThread(req.params.coach);
       res.json({ ok: true, coach: req.params.coach });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  // ---- Coach plans: plan vigente que cada coach le recomendó a Isabel ----
+  // GET   /api/coach_plan/:coach              → plan completo
+  // POST  /api/coach_plan/:coach              { text } → agrega item (manual)
+  // PATCH /api/coach_plan/:coach/:item_id     { text?, status? } → actualiza
+  // DELETE /api/coach_plan/:coach/:item_id    → borra item
+  // DELETE /api/coach_plan/:coach             → borra plan completo
+  app.get('/api/coach_plan/:coach', requireAuth, async (req, res) => {
+    try {
+      const { loadCoachPlan } = await import('./coach_plans.js');
+      res.json(loadCoachPlan(req.params.coach));
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.post('/api/coach_plan/:coach', requireAuth, async (req, res) => {
+    try {
+      const { addPlanItem } = await import('./coach_plans.js');
+      const plan = addPlanItem(req.params.coach, req.body?.text);
+      res.json(plan);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.patch('/api/coach_plan/:coach/:item_id', requireAuth, async (req, res) => {
+    try {
+      const { updatePlanItem } = await import('./coach_plans.js');
+      const patch = {};
+      if (req.body?.text !== undefined) patch.text = req.body.text;
+      if (req.body?.status !== undefined) patch.status = req.body.status;
+      const plan = updatePlanItem(req.params.coach, req.params.item_id, patch);
+      res.json(plan);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/coach_plan/:coach/:item_id', requireAuth, async (req, res) => {
+    try {
+      const { removePlanItem } = await import('./coach_plans.js');
+      const plan = removePlanItem(req.params.coach, req.params.item_id);
+      res.json(plan);
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
+  app.delete('/api/coach_plan/:coach', requireAuth, async (req, res) => {
+    try {
+      const { clearCoachPlan } = await import('./coach_plans.js');
+      const plan = clearCoachPlan(req.params.coach);
+      res.json(plan);
     } catch (e) {
       res.status(400).json({ error: e.message });
     }

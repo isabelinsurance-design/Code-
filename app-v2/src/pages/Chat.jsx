@@ -20,11 +20,27 @@ export default function Chat() {
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [err, setErr] = useState('');
+  const [plan, setPlan] = useState(null);
+  const [planOpen, setPlanOpen] = useState(true);
+  const [newPlanText, setNewPlanText] = useState('');
   const scrollRef = useRef(null);
 
   useEffect(() => {
     api.chatCoaches().then(setCoaches).catch((e) => setErr(e.message));
   }, []);
+
+  async function reloadPlan(c = coach) {
+    if (c === 'directora') {
+      setPlan(null);
+      return;
+    }
+    try {
+      const p = await api.coachPlan(c);
+      setPlan(p);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
 
   // Al cambiar de coach: hidratamos su hilo persistente desde el servidor.
   // 'directora' usa el history de WhatsApp (compartido) — no tiene endpoint
@@ -34,6 +50,7 @@ export default function Chat() {
     setErr('');
     if (coach === 'directora') {
       setMessages([]);
+      setPlan(null);
       return;
     }
     let cancelled = false;
@@ -45,6 +62,7 @@ export default function Chat() {
         setMessages(hist);
       })
       .catch((e) => { if (!cancelled) setErr(e.message); });
+    reloadPlan(coach);
     return () => { cancelled = true; };
   }, [coach]);
 
@@ -54,6 +72,37 @@ export default function Chat() {
     try {
       await api.coachThreadClear(coach);
       setMessages([]);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  async function addPlanItem() {
+    const text = newPlanText.trim();
+    if (!text) return;
+    try {
+      const p = await api.coachPlanAdd(coach, text);
+      setPlan(p);
+      setNewPlanText('');
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  async function updatePlanStatus(itemId, status) {
+    try {
+      const p = await api.coachPlanUpdate(coach, itemId, { status });
+      setPlan(p);
+    } catch (e) {
+      setErr(e.message);
+    }
+  }
+
+  async function removePlanItem(itemId) {
+    if (!confirm('¿Borrar este item del plan?')) return;
+    try {
+      const p = await api.coachPlanRemove(coach, itemId);
+      setPlan(p);
     } catch (e) {
       setErr(e.message);
     }
@@ -75,6 +124,8 @@ export default function Chat() {
     try {
       const r = await api.chat(coach, text);
       setMessages((m) => [...m, { role: 'assistant', content: r.reply || '(sin respuesta)' }]);
+      // La coach pudo haber actualizado su plan vía tools — refrescamos.
+      if (coach !== 'directora') reloadPlan(coach);
     } catch (e) {
       setErr(e.message);
       setMessages((m) => [...m, { role: 'assistant', content: `[error: ${e.message}]`, error: true }]);
@@ -114,6 +165,73 @@ export default function Chat() {
           )}
         </div>
       </header>
+
+      {plan && (plan.items?.length > 0 || coach !== 'directora') && (
+        <div className="card bg-lino-50 border border-lino-200">
+          <div className="flex items-center justify-between mb-2">
+            <button
+              onClick={() => setPlanOpen((o) => !o)}
+              className="text-sm font-semibold text-lino-800 flex items-center gap-2"
+            >
+              <span>{planOpen ? '▾' : '▸'}</span>
+              <span>Plan vigente de {coaches.find((c) => c.id === coach)?.name || coach}</span>
+              {plan.items?.length > 0 && (
+                <span className="text-xs text-ink-3 font-normal">
+                  ({plan.items.filter((i) => i.status === 'active').length} activo,
+                  {' '}{plan.items.filter((i) => i.status === 'paused').length} pausado,
+                  {' '}{plan.items.filter((i) => i.status === 'done').length} hecho)
+                </span>
+              )}
+            </button>
+          </div>
+          {planOpen && (
+            <div className="space-y-2">
+              {!plan.items?.length && (
+                <p className="text-xs text-ink-3 italic">
+                  Sin items todavía. Cuando esta coach te recomiende algo concreto, lo va a agregar acá automáticamente. O agrégalo tú abajo.
+                </p>
+              )}
+              {plan.items?.map((item) => (
+                <div key={item.id} className="flex items-start gap-2 text-sm">
+                  <span className={`shrink-0 px-2 py-0.5 rounded text-xs font-mono ${
+                    item.status === 'active' ? 'bg-green/20 text-green' :
+                    item.status === 'paused' ? 'bg-yellow/30 text-ink-2' :
+                    'bg-lino-200 text-ink-3 line-through'
+                  }`}>
+                    {item.status}
+                  </span>
+                  <span className={`flex-1 ${item.status === 'done' ? 'line-through text-ink-3' : 'text-ink-1'}`}>
+                    {item.text}
+                  </span>
+                  <div className="flex gap-1 shrink-0">
+                    {item.status !== 'active' && (
+                      <button onClick={() => updatePlanStatus(item.id, 'active')} className="text-xs text-ink-3 hover:text-lino-700" title="Reactivar">▶</button>
+                    )}
+                    {item.status === 'active' && (
+                      <button onClick={() => updatePlanStatus(item.id, 'paused')} className="text-xs text-ink-3 hover:text-yellow" title="Pausar">⏸</button>
+                    )}
+                    {item.status !== 'done' && (
+                      <button onClick={() => updatePlanStatus(item.id, 'done')} className="text-xs text-ink-3 hover:text-green" title="Marcar hecho">✓</button>
+                    )}
+                    <button onClick={() => removePlanItem(item.id)} className="text-xs text-ink-3 hover:text-red" title="Borrar">✕</button>
+                  </div>
+                </div>
+              ))}
+              <div className="flex gap-2 pt-2 border-t border-lino-200">
+                <input
+                  type="text"
+                  value={newPlanText}
+                  onChange={(e) => setNewPlanText(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); addPlanItem(); } }}
+                  placeholder="Agregar item manualmente…"
+                  className="input flex-1 text-sm"
+                />
+                <button onClick={addPlanItem} disabled={!newPlanText.trim()} className="btn-secondary text-sm">+</button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
 
       <div ref={scrollRef} className="card flex-1 overflow-y-auto min-h-[400px] max-h-[calc(100vh-280px)] space-y-3">
         {!messages.length && (
