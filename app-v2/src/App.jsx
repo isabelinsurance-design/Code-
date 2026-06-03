@@ -19,6 +19,7 @@ import Search from './pages/Search.jsx';
 import Coaches from './pages/Coaches.jsx';
 import Trends from './pages/Trends.jsx';
 import Goals from './pages/Goals.jsx';
+import Insights from './pages/Insights.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -61,6 +62,7 @@ export default function App() {
           <Route path="/coaches" element={<Coaches />} />
           <Route path="/trends" element={<Trends />} />
           <Route path="/goals" element={<Goals />} />
+          <Route path="/insights" element={<Insights />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

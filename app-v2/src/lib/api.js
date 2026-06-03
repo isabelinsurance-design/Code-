@@ -156,6 +156,9 @@ export const api = {
   },
   goalAdd: (data) => request('/goals', { method: 'POST', body: JSON.stringify(data) }),
   goalUpdate: (id, patch) => request(`/goals/${encodeURIComponent(id)}`, { method: 'PATCH', body: JSON.stringify(patch) }),
+
+  // Insights: signals nocturnas + patrón emocional + learnings AAR.
+  insights: () => request('/insights'),
   // Búsqueda global cross-source (wiki/entities/journal/reading/tasks/
   // commitments/coach_plans/notes/threads). Devuelve { query, total, results }.
   searchGlobal: (q) => request(`/search?q=${encodeURIComponent(q)}`),

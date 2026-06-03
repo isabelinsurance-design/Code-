@@ -618,6 +618,26 @@ export function registerApi(app) {
     }
   });
 
+  // ---- Insights: signals (nightly), patterns, AAR learnings ----
+  app.get('/api/insights', requireAuth, async (_req, res) => {
+    try {
+      const { loadSignals } = await import('./signals.js');
+      const { emocionesPattern } = await import('./journal.js');
+      const { recentLearnings, listOpen: listOpenAar } = await import('./aar.js');
+      const sigs = loadSignals();
+      const pattern = emocionesPattern({ dias: 14 });
+      const learnings = recentLearnings({ limit: 8 });
+      const openAar = listOpenAar();
+      res.json({
+        signals: sigs.signals || [],
+        signals_ts: sigs.ts,
+        emotional_pattern: pattern,
+        learnings,
+        open_decisions: openAar,
+      });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // ---- Goals / OKRs ----
   app.get('/api/goals', requireAuth, async (req, res) => {
     try {

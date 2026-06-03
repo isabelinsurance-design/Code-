@@ -8,6 +8,7 @@ const NAV = [
   { to: '/coaches', label: 'Coaches', icon: '✦' },
   { to: '/trends', label: 'Trends', icon: '🔥' },
   { to: '/goals', label: 'Metas', icon: '◯' },
+  { to: '/insights', label: 'Insights', icon: '✧' },
   { to: '/plans', label: 'Planes', icon: '◎' },
   { to: '/journal', label: 'Journal', icon: '✑' },
   { to: '/rapport', label: 'Rapport', icon: '◉' },
