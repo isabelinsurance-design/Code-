@@ -101,19 +101,20 @@ export function buildIncomingTwiml(req) {
   //   - transcriptionProvider + speechModel
   // Sin uno se queja con error 64101 "Incomplete value set in TwiML".
   const wsUrl = `wss://${publicHost}/voice/relay`;
-  // TTS: 3 modos posibles, en orden de prioridad:
-  //   1. ElevenLabs (si ELEVENLABS_VOICE_ID está set) — voz clonada de Isabel
-  //   2. Override manual (VOICE_TTS_PROVIDER + VOICE_TTS_VOICE en env)
-  //   3. Default: Amazon Polly Mia-Neural (femenina, México, súper natural).
-  //      Mucho más cálida y "humana" que Google Neural2.
+  // TTS para ConversationRelay — solo dos providers soportados:
+  //   1. ElevenLabs (override absoluto si ELEVENLABS_VOICE_ID set)
+  //   2. Google (default — Polly y otros NO son válidos para
+  //      ConversationRelay aunque sí lo sean para TwiML normal).
   //
-  // Voces buenas para Isabel (Spanglish/Mexicana, naturales):
-  //   Amazon Polly:   Polly.Mia-Neural (MX), Polly.Lupe-Neural (US)
-  //   Google Studio:  es-US-Studio-B (premium quality, sounds human)
-  //   Google Neural:  es-US-Neural2-A, es-MX-Neural2-A
-  //   ElevenLabs:     voice_id de voz clonada
-  let ttsProvider = process.env.VOICE_TTS_PROVIDER || 'Amazon';
-  let voice = process.env.VOICE_TTS_VOICE || 'Polly.Mia-Neural';
+  // Voces buenas de Google para Spanglish/Mexicana (en orden de calidad):
+  //   es-US-Studio-B  → Studio premium (más natural, recomendado)
+  //   es-US-Neural2-A → Neural estándar femenina
+  //   es-MX-Neural2-A → Mexicano neural femenina
+  //   es-US-Chirp3-HD-* → HD voices (si disponibles en tu región)
+  //
+  // VOICE_TTS_VOICE en env override la voz default.
+  let ttsProvider = 'Google';
+  let voice = process.env.VOICE_TTS_VOICE || 'es-US-Studio-B';
   if (elevenVoice) {
     ttsProvider = 'ElevenLabs';
     voice = elevenVoice;
