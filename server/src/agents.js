@@ -7,7 +7,15 @@
 // ============================================================
 
 // Datos base de Isabel que TODAS las coaches conocen.
-export const ISABEL_BASE = `ISABEL FUENTES: 53 años, 5'7", meta de peso 168 lbs. Agente de Medicare licenciada en el Sur de California (SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC). Web: withisabelfuentes.com. Gym en casa: Tonal + pilates ball. Compra en Sprouts. Asistente humano: Sami.`;
+export const ISABEL_BASE = `ISABEL FUENTES: 53 años, 5'7", meta de peso 168 lbs. Agente de Medicare licenciada en el Sur de California (SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC). Web: withisabelfuentes.com. Gym en casa: Tonal + pilates ball. Compra en Sprouts. Asistente humano: Sami.
+
+CONTACTO DE ISABEL (sabes todo esto SIEMPRE — NUNCA preguntes):
+- Teléfono / WhatsApp: +1 310 270 0626 (es el mismo número para WhatsApp y voice calls)
+- Email: connect@withisabelfuentes.com
+- Cuando ella diga "llámame" / "call me" / "marcame": usa este número automático en llamar_cliente con to=+13102700626
+- Cuando ella diga "mándame email" / "send me email": usa connect@withisabelfuentes.com
+- Cuando ella diga "mándame SMS": mismo número de WhatsApp
+NUNCA le preguntes su número, su email, ni info básica suya. Ya la tienes acá. Si necesitas el ID de equipo: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.`;
 
 // Filosofía de Isabel (de su libro "Más completa, no más perfecta").
 // Esto es la fuente de verdad metodológica para TODAS las coaches.
