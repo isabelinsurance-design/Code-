@@ -1,0 +1,60 @@
+# ═══════════════════════════════════════════════════════════════════
+#  ENTORNO LOCAL — Medicare with Isabel CRM
+#  Levanta TODO el CRM en tu computadora, sin tocar Bluehost.
+#
+#  USO:
+#    docker compose up        →  arranca todo
+#    Abre:  http://localhost:8080         (el CRM)
+#           http://localhost:8081         (phpMyAdmin, para ver la BD)
+#    docker compose down      →  apaga todo
+# ═══════════════════════════════════════════════════════════════════
+services:
+
+  # ─── Servidor web + PHP ───────────────────────────────────────────
+  web:
+    image: php:8.2-apache
+    command: bash -c "docker-php-ext-install pdo pdo_mysql mysqli > /dev/null 2>&1; a2enmod rewrite; apache2-foreground"
+    ports:
+      - "8080:80"
+    volumes:
+      - ./crm:/var/www/html
+    environment:
+      DB_HOST: db
+      DB_USER: isabel
+      DB_PASS: isabel_local
+      DB_NAME: crm_medicare
+      FINANCE_PASS: local_finance
+      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+      WEBHOOK_SECRET_FB: local_webhook_secret
+    depends_on:
+      - db
+
+  # ─── Base de datos MySQL ──────────────────────────────────────────
+  db:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: root_local
+      MYSQL_DATABASE: crm_medicare
+      MYSQL_USER: isabel
+      MYSQL_PASSWORD: isabel_local
+    volumes:
+      - mysql-data:/var/lib/mysql
+      # Cualquier .sql que pongas en database/ se importa al crear la BD:
+      - ./database:/docker-entrypoint-initdb.d
+
+  # ─── phpMyAdmin (ver/editar la base de datos visualmente) ─────────
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin
+    ports:
+      - "8081:80"
+    environment:
+      PMA_HOST: db
+      PMA_USER: isabel
+      PMA_PASSWORD: isabel_local
+    depends_on:
+      - db
+
+volumes:
+  mysql-data:

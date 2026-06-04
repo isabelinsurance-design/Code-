@@ -1,15 +1,28 @@
-# Secretos — NUNCA subir
+# ─── SECRETOS — NUNCA subir ───────────────────────────────
+crm/config.php
+crm/prompts.php
+crm/prompts__1_.php
 .env
 .env.local
-.env*.local
+*.env
 
-# Dependencias
-node_modules/
+# ─── Datos / subidas de clientes ──────────────────────────
+crm/uploads/
+crm/fotos/
+crm/docs/
+*.sql.gz
 
-# Vercel
-.vercel
+# ─── Respaldos de base de datos con datos reales ──────────
+database/*.sql
+!database/schema-ejemplo.sql
 
-# Sistema
+# ─── Sistema / editor ─────────────────────────────────────
 .DS_Store
 Thumbs.db
 *.log
+node_modules/
+.vscode/
+.idea/
+
+# ─── Docker ───────────────────────────────────────────────
+mysql-data/
