@@ -70,9 +70,16 @@ export default function Chat() {
       // las voces "Premium" / "Enhanced" suenan mucho mejor que default).
       const voices = window.speechSynthesis.getVoices();
       const matchingVoices = voices.filter((v) => v.lang.startsWith(lang.split('-')[0]));
-      // Prefer Premium > Enhanced > regular
-      const preferred = matchingVoices.find((v) => /premium|enhanced/i.test(v.name))
-        || matchingVoices[0];
+      // Las 17 coaches son mujeres — preferir voces femeninas.
+      // En Chrome la default es masculina ("Google español"), así que filtramos.
+      const FEMALE_HINT = /female|mujer|paulina|monica|mónica|paloma|lupe|penelope|penélope|sabina|esperanza|marisol|helena|elena|sofia|sofía|lucia|lucía|elvira|laura|samantha|victoria|karen|tessa|fiona|allison|ava|susan|zira|hazel|catherine/i;
+      const MALE_HINT = /male|hombre|jorge|diego|carlos|juan|miguel|pablo|enrique|ricardo|david|mark|alex|daniel|fred|tom|james/i;
+      const isFemale = (v) => FEMALE_HINT.test(v.name);
+      const isMale = (v) => MALE_HINT.test(v.name);
+      const femaleVoices = matchingVoices.filter(isFemale);
+      const neutralVoices = matchingVoices.filter((v) => !isMale(v) && !isFemale(v));
+      const pool = femaleVoices.length ? femaleVoices : (neutralVoices.length ? neutralVoices : matchingVoices);
+      const preferred = pool.find((v) => /premium|enhanced|neural/i.test(v.name)) || pool[0];
       if (preferred) u.voice = preferred;
       window.speechSynthesis.speak(u);
     } catch (err) {
