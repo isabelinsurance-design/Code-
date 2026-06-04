@@ -231,6 +231,15 @@ export function buildWikiContext() {
   const wiki = getWiki();
   const pending = getPendingOutbound();
   const parts = [];
+  // Datos de contacto de Isabel SIEMPRE al frente — son la causa más
+  // común de "me preguntó mi número otra vez". Repetidos cerca del turno
+  // del user para que el modelo no los pierda en cache.
+  parts.push(`CONTACTO DE ISABEL (NUNCA preguntes — siempre úsalos):
+- Teléfono / WhatsApp / SMS: +13102700626
+- Email: connect@withisabelfuentes.com
+- "llámame" / "call me" / "marcame" → llamar_cliente(+13102700626) sin preguntar.
+- "mándame email" → enviar_email(connect@withisabelfuentes.com,...)
+- IDs equipo LUNA: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.`);
   if (season.texto) parts.push(`TEMPORADA ACTUAL (en qué está enfocada Isabel ahora): ${season.texto}`);
   if (wiki.notas.length) {
     parts.push(wiki.notas.slice(0, 25).map((n) => `- ${n.nota}`).join('\n'));

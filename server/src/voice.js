@@ -44,7 +44,7 @@ const VOICE_MAX_ROUNDS = parseInt(process.env.VOICE_MAX_ROUNDS || '3', 10);
 // llamada — solo los bloqueamos durante voz.
 const VOICE_TOOL_BLOCKLIST = new Set([
   'enviar_email',
-  'enviar_sms_cliente',
+  'enviar_sms',
   'mensaje_a_sami',
   'llamar_cliente', // no llamadas recursivas
 ]);
