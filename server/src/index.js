@@ -306,13 +306,18 @@ scheduleCron('rapport', process.env.WEEKLY_RAPPORT_CRON  || '0 18 * * 5', sendWe
 // Trend scout: 11am todos los días — busca virales / trending /
 // breakthroughs en Medicare, brand, salud 50+, productividad, wealth.
 // Si encuentra hit con score ≥ 8, hace proactive ping.
-scheduleCron('trends',  process.env.TREND_SCAN_CRON      || '0 11 * * *', dailyTrendScan);
+// Trend scout: 3 días por semana (L/M/V) — bajamos de daily porque
+// las trends no se mueven THAT rápido y el scan cuesta ($0.30-0.50/día).
+// Si Isabel quiere force, '/scan' slash command lo dispara on-demand.
+scheduleCron('trends',  process.env.TREND_SCAN_CRON      || '0 11 * * 1,3,5', dailyTrendScan);
 // Self-grade: domingo 8pm. Athena se califica vs sem prev + propone
 // UN cambio concreto. Si baja >5pts o score≤60, pinguea proactiva.
 scheduleCron('self_grade', process.env.SELF_GRADE_CRON   || '0 20 * * 0', weeklySelfGrade);
 // Research digest: mediodía — Athena rota tus temas, hace web_search,
 // te manda 3 cards con top items. Le ahorra a Isabel ~2h/día de scroll.
-scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * *', sendResearchDigest);
+// Research digest: 2x semana (martes/jueves) — overlap conceptual con
+// trend scan, no necesita ser daily. Saves ~$0.50/día.
+scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * 2,4', sendResearchDigest);
 // Closing the loop — 6pm-7pm, reporta lo que cerramos hoy (pattern del Elite EA SOP)
 scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', sendClosingLoop);
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
@@ -323,7 +328,10 @@ scheduleCron('triage',  process.env.EMAIL_TRIAGE_CRON    || '0 5 * * *',  nightl
 // también respeta quiet hours para los recordatorios. El trabajo
 // silencioso de Athena puede correr a cualquier hora pero lo
 // limitamos a horas despiertas para acotar costo.
-scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 7-21 * * *', taskTick);
+// Task tick: cada 3 horas en horas despiertas (vs cada hora antes).
+// taskTick adentro respeta quiet hours. Cada tick que tiene work real
+// cuesta ~$0.05-0.10. 15 ticks/día → 5 ticks/día (66% reducción).
+scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 9,12,15,18,21 * * *', taskTick);
 // Persecución de compromisos: cada 2h en horas despiertas reviso
 // promesas vencidas. Si tengo cómo, le doy un nudge cordial a la
 // persona; en cualquier caso le aviso a Isabel (una vez por compromiso).
@@ -374,7 +382,7 @@ scheduleCron('saturday_brief', process.env.SATURDAY_BRIEF_CRON || '0 21 * * 5', 
 // trigger Athena con mensaje sintético "tengo promesas vencidas,
 // cierralas o avisa a Isabel". Esto cierra el loop say-do:
 // no solo promete — cumple.
-scheduleCron('saydo_followup', '*/30 7-21 * * *', async () => {
+scheduleCron('saydo_followup', '0 7-21/2 * * *', async () => {
   const { listOverdue, listActive } = await import('./saydo.js');
   const overdue = listOverdue();
   const cerca = listActive().filter((p) => {
