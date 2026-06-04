@@ -37,6 +37,9 @@ export default function Chat() {
     return true; // default ON
   });
   const scrollRef = useRef(null);
+  // Ref al componente de mic, para apagarlo cuando se manda el mensaje
+  // o cuando Athena está hablando (evita feedback loop).
+  const micRef = useRef(null);
 
   // Persiste preferencia de auto-speak
   useEffect(() => {
@@ -92,6 +95,9 @@ export default function Chat() {
   async function speak(text) {
     const clean = cleanForSpeech(text);
     if (!clean) return;
+    // Apaga el mic mientras Athena habla — sin esto el reconocimiento
+    // capta la propia voz y se crea un loop.
+    try { micRef.current?.stop(); } catch { /* ignore */ }
     try {
       if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
       if (window.speechSynthesis) window.speechSynthesis.cancel();
@@ -241,6 +247,9 @@ export default function Chat() {
   async function send() {
     const text = input.trim();
     if (!text || sending) return;
+    // Apaga el mic al mandar — evita que siga escuchando mientras
+    // procesamos y mientras Athena habla la respuesta.
+    try { micRef.current?.stop(); } catch { /* ignore */ }
     setErr('');
     setMessages((m) => [...m, { role: 'user', content: text }]);
     setInput('');
@@ -453,6 +462,7 @@ export default function Chat() {
         />
         <div className="flex flex-col gap-2">
           <VoiceInput
+            ref={micRef}
             onTranscript={(text, isFinal) => {
               // Aggrega lo nuevo dictado al input existente.
               // Mientras es interim, REEMPLAZA la última parte (no

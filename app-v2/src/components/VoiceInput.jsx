@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
 
 // Botón de mic que usa Web Speech API nativa del browser.
 //
@@ -20,7 +20,7 @@ const LANG_OPTIONS = [
 ];
 const SILENCE_MS = 5000; // 5 segundos de silencio → para
 
-export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', className = '' }) {
+function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }, ref) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [error, setError] = useState('');
@@ -58,6 +58,13 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
     }
     try { recognitionRef.current?.stop(); } catch { /* ignore */ }
   }
+
+  // Permite al padre (Chat.jsx) parar el mic cuando se manda mensaje
+  // o cuando Athena está hablando, para evitar feedback loops.
+  useImperativeHandle(ref, () => ({
+    stop: stopRecording,
+    isRecording: () => recordingRef.current,
+  }), []);
 
   useEffect(() => {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -217,3 +224,6 @@ export default function VoiceInput({ onTranscript, defaultLang = 'es-MX', classN
     </div>
   );
 }
+
+const VoiceInput = forwardRef(VoiceInputInner);
+export default VoiceInput;
