@@ -24,6 +24,8 @@ import {
   retentionAlerts as lunaRetentionAlerts,
   hotLeads as lunaHotLeads,
   pendingSoa as lunaPendingSoa,
+  openTickets as lunaOpenTickets,
+  todayAppointments as lunaTodayAppointments,
   recentActivity as lunaRecentActivity,
   carriersBreakdown as lunaCarriersBreakdown,
   addMemberNote as lunaAddMemberNote,
@@ -91,6 +93,22 @@ export const LUNA_TOOL_DEFINITIONS = [
       properties: { limite: { type: 'integer', description: 'Cuántas. Default 20.' } },
       required: [],
     },
+  },
+  {
+    name: 'luna_tickets_abiertos',
+    description: 'Lista los tickets ABIERTOS de LUNA (los pendientes del equipo: Skarleth, Arlette, Samia). Opcionalmente filtra por prioridad (ALTA, MEDIA, BAJA). Úsala cuando Isabel pida "reporte de tickets", "qué tiene pendiente el equipo", "tickets abiertos", "qué falta por hacer en LUNA".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        prioridad: { type: 'string', enum: ['', 'ALTA', 'MEDIA', 'BAJA'], description: 'Filtro opcional por prioridad. Vacío = todos.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'luna_citas_hoy',
+    description: 'Lista las citas programadas para HOY en LUNA. Úsala cuando Isabel pregunte por agenda del día, citas pendientes, qué clientes vienen hoy.',
+    input_schema: { type: 'object', properties: {}, required: [] },
   },
   {
     name: 'luna_carriers_breakdown',
@@ -286,6 +304,39 @@ export async function runLunaTool(name, input = {}) {
         if (!r.ok) return `LUNA: ${r.error}`;
         const d = r.data || {};
         return `Por carrier:\n${Object.entries(d).sort((a, b) => b[1] - a[1]).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+      }
+      case 'luna_tickets_abiertos': {
+        const prioridad = (input.prioridad || '').toUpperCase();
+        const r = await lunaOpenTickets({ priority: prioridad });
+        if (!r.ok) return `LUNA: ${r.error}`;
+        const list = r.data || [];
+        if (!list.length) return prioridad
+          ? `Sin tickets abiertos de prioridad ${prioridad}.`
+          : 'Sin tickets abiertos en LUNA.';
+        const header = `${list.length} ticket${list.length === 1 ? '' : 's'} abierto${list.length === 1 ? '' : 's'}${prioridad ? ` (${prioridad})` : ''}:`;
+        const rows = list.slice(0, 30).map((t) => {
+          const id = t.id || '?';
+          const tipo = t.tipo || '?';
+          const prio = t.prioridad ? ` [${t.prioridad}]` : '';
+          const asignado = t.asignado_a || t.asignado_nombre || '—';
+          const cliente = t.miembro_nombre || (t.miembro_id ? `#${t.miembro_id}` : 'sin cliente');
+          const desc = (t.descripcion || t.titulo || '').slice(0, 60);
+          return `#${id}${prio} · ${tipo} · ${cliente} · → ${asignado} · ${desc}`;
+        }).join('\n');
+        return `${header}\n${rows}`;
+      }
+      case 'luna_citas_hoy': {
+        const r = await lunaTodayAppointments();
+        if (!r.ok) return `LUNA: ${r.error}`;
+        const list = r.data || [];
+        if (!list.length) return 'Sin citas en LUNA hoy.';
+        return `${list.length} cita${list.length === 1 ? '' : 's'} hoy:\n${list.slice(0, 20).map((c) => {
+          const hora = (c.fecha_hora || c.hora || '').slice(11, 16);
+          const cliente = c.miembro_nombre || `#${c.miembro_id || '?'}`;
+          const tipo = c.tipo || '';
+          const lugar = c.lugar || c.modalidad || '';
+          return `${hora} · ${cliente} · ${tipo}${lugar ? ` · ${lugar}` : ''}`;
+        }).join('\n')}`;
       }
       case 'luna_agregar_nota': {
         const r = await lunaAddMemberNote(input.miembro_id, input.nota);
