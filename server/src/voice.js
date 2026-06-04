@@ -113,9 +113,20 @@ export function buildIncomingTwiml(req) {
   //
   // Cambios futuros: VOICE_TTS_VOICE en env override. Cuidado al cambiar
   // a Studio (es-US-Studio-B) — esos requieren language=es-US exacto.
+  // IMPORTANTE: para que ConversationRelay use ElevenLabs, Twilio MISMO
+  // necesita tener integrada la cuenta de ElevenLabs (vía Twilio Console
+  // → AI Studio → Integrations → ElevenLabs). NO basta con tener
+  // ELEVENLABS_API_KEY en Railway — esa la usa nuestro server para
+  // WhatsApp voice y PWA, NO Twilio. Si ElevenLabs no está integrada
+  // EN Twilio, ConversationRelay tira error 64112 "voice_id not found".
+  //
+  // Para forzar ElevenLabs en llamadas tras integrar en Twilio Console:
+  //   ENABLE_ELEVENLABS_IN_CALLS=true en Railway
+  // Sin esa flag: usa Google (siempre funciona, voz menos personalizada).
+  const callsUseEleven = process.env.ENABLE_ELEVENLABS_IN_CALLS === 'true';
   let ttsProvider = 'Google';
   let voice = process.env.VOICE_TTS_VOICE || 'es-US-Neural2-A';
-  if (elevenVoice) {
+  if (elevenVoice && callsUseEleven) {
     ttsProvider = 'ElevenLabs';
     voice = elevenVoice;
   }
