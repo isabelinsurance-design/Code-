@@ -1,0 +1,21 @@
+---
+# ═══════════════════════════════════════════════════════════════════
+#  DESPLIEGUE AUTOMÁTICO A BLUEHOST  —  Medicare with Isabel CRM
+#  ─────────────────────────────────────────────────────────────────
+#  Cuando pulses "Deploy HEAD Commit" en cPanel → Git Version Control,
+#  cPanel ejecuta estas tareas: copia la carpeta crm/ del repositorio
+#  dentro de public_html/crm/ (donde vive tu sitio).
+#
+#  ⚠️ VERIFICA TU USUARIO DE cPANEL:
+#     En cPanel, panel derecho "General Information" → "Username".
+#     Si NO es "emzmuumy", cambia esa palabra en las 2 líneas de abajo.
+#
+#  NOTA: config.php NO está en el repositorio (lleva tus claves), así
+#  que este deploy NUNCA lo sobrescribe. El config.php del servidor
+#  se queda intacto. 👍
+# ═══════════════════════════════════════════════════════════════════
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home/emzmuumy/public_html/crm
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R crm/. $DEPLOYPATH/
