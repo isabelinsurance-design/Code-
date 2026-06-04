@@ -1,0 +1,10 @@
+{
+  "name": "crm-isabel",
+  "version": "1.0.0",
+  "private": true,
+  "description": "CRM Isabel Fuentes — Medicare Marketing. Frontend estático + backend serverless en Vercel.",
+  "scripts": {
+    "dev": "vercel dev",
+    "deploy": "vercel --prod"
+  }
+}

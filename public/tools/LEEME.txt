@@ -1,0 +1,2 @@
+Aquí van tus herramientas del CRM (un .html por herramienta).
+Borra este archivo cuando subas la primera.

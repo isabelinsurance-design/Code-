@@ -1,0 +1,15 @@
+# Secretos — NUNCA subir
+.env
+.env.local
+.env*.local
+
+# Dependencias
+node_modules/
+
+# Vercel
+.vercel
+
+# Sistema
+.DS_Store
+Thumbs.db
+*.log
