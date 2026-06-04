@@ -148,6 +148,27 @@ export function registerApi(app) {
 
   // ---- Todo lo demás requiere auth ----
 
+  // TTS: el PWA manda texto y le devolvemos URL de MP3 público.
+  // Usa el mismo synthToPublicUrl que WhatsApp (OpenAI nova/shimmer o ElevenLabs).
+  // Así garantizamos voz femenina sin depender del navegador.
+  app.post('/api/tts', requireAuth, async (req, res) => {
+    try {
+      const text = String((req.body && req.body.text) || '').trim();
+      if (!text) return res.status(400).json({ error: 'text requerido' });
+      if (text.length > 4000) return res.status(400).json({ error: 'texto muy largo' });
+      const { synthToPublicUrl, ttsConfigured } = await import('./tts.js');
+      if (!ttsConfigured()) {
+        return res.status(503).json({ error: 'tts no configurado en servidor' });
+      }
+      const url = await synthToPublicUrl(text);
+      if (!url) return res.status(500).json({ error: 'synth devolvió null' });
+      res.json({ url });
+    } catch (err) {
+      console.error('[api/tts]', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   app.get('/api/hoy', requireAuth, async (_req, res) => {
     try {
       const state = await buildHoyState();

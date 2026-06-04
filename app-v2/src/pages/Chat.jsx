@@ -43,35 +43,35 @@ export default function Chat() {
     try { localStorage.setItem('athena_auto_speak', String(autoSpeak)); } catch { /* ignore */ }
   }, [autoSpeak]);
 
-  // Función para hablar texto. Usa SpeechSynthesis API nativa del browser.
-  // Strip de markdown defensivo igual que en backend voice.js.
-  function speak(text) {
-    if (!text || !window.speechSynthesis) return;
+  // Audio player para TTS del servidor (OpenAI/ElevenLabs).
+  const audioRef = useRef(null);
+
+  function cleanForSpeech(text) {
+    return String(text || '')
+      .replace(/\*\*([^*]+)\*\*/g, '$1')
+      .replace(/__([^_]+)__/g, '$1')
+      .replace(/\*([^*]+)\*/g, '$1')
+      .replace(/_([^_]+)_/g, '$1')
+      .replace(/`([^`]+)`/g, '$1')
+      .replace(/^#+\s+/gm, '')
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+      .replace(/\*+/g, '')
+      .replace(/\s{2,}/g, ' ')
+      .trim();
+  }
+
+  // Browser TTS fallback — solo si el servidor no responde.
+  function speakBrowser(clean) {
+    if (!window.speechSynthesis) return;
     try {
-      window.speechSynthesis.cancel(); // cancela cualquier voz en curso
+      window.speechSynthesis.cancel();
       const lang = localStorage.getItem('athena_voice_lang') || 'es-MX';
-      const clean = String(text)
-        .replace(/\*\*([^*]+)\*\*/g, '$1')
-        .replace(/__([^_]+)__/g, '$1')
-        .replace(/\*([^*]+)\*/g, '$1')
-        .replace(/_([^_]+)_/g, '$1')
-        .replace(/`([^`]+)`/g, '$1')
-        .replace(/^#+\s+/gm, '')
-        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
-        .replace(/\*+/g, '')
-        .replace(/\s{2,}/g, ' ')
-        .trim();
-      if (!clean) return;
       const u = new SpeechSynthesisUtterance(clean);
       u.lang = lang;
       u.rate = 1.0;
       u.pitch = 1.0;
-      // Selecciona voz nativa del SO si está disponible (en iOS Safari
-      // las voces "Premium" / "Enhanced" suenan mucho mejor que default).
       const voices = window.speechSynthesis.getVoices();
       const matchingVoices = voices.filter((v) => v.lang.startsWith(lang.split('-')[0]));
-      // Las 17 coaches son mujeres — preferir voces femeninas.
-      // En Chrome la default es masculina ("Google español"), así que filtramos.
       const FEMALE_HINT = /female|mujer|paulina|monica|mónica|paloma|lupe|penelope|penélope|sabina|esperanza|marisol|helena|elena|sofia|sofía|lucia|lucía|elvira|laura|samantha|victoria|karen|tessa|fiona|allison|ava|susan|zira|hazel|catherine/i;
       const MALE_HINT = /male|hombre|jorge|diego|carlos|juan|miguel|pablo|enrique|ricardo|david|mark|alex|daniel|fred|tom|james/i;
       const isFemale = (v) => FEMALE_HINT.test(v.name);
@@ -83,12 +83,46 @@ export default function Chat() {
       if (preferred) u.voice = preferred;
       window.speechSynthesis.speak(u);
     } catch (err) {
-      console.warn('[chat] speak falló:', err.message);
+      console.warn('[chat] speakBrowser falló:', err.message);
+    }
+  }
+
+  // Habla usando el TTS del servidor (femenino garantizado).
+  // Si el servidor no tiene TTS configurado o falla, cae al navegador.
+  async function speak(text) {
+    const clean = cleanForSpeech(text);
+    if (!clean) return;
+    try {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      if (window.speechSynthesis) window.speechSynthesis.cancel();
+      const r = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+        body: JSON.stringify({ text: clean }),
+      });
+      if (r.ok) {
+        const { url } = await r.json();
+        if (url) {
+          const audio = new Audio(url);
+          audioRef.current = audio;
+          await audio.play();
+          return;
+        }
+      }
+      // Fallback al navegador si el servidor no respondió bien.
+      speakBrowser(clean);
+    } catch (err) {
+      console.warn('[chat] speak servidor falló, uso browser:', err.message);
+      speakBrowser(clean);
     }
   }
 
   function stopSpeaking() {
     try { window.speechSynthesis?.cancel(); } catch { /* ignore */ }
+    try {
+      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    } catch { /* ignore */ }
   }
 
   useEffect(() => {
