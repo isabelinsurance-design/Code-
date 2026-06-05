@@ -1,4 +1,5 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { Mic, MicOff, Square } from 'lucide-react';
 
 // Botón de mic que usa Web Speech API nativa del browser.
 //
@@ -171,8 +172,9 @@ function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }
         disabled
         className={`px-3 py-2 rounded-lg bg-lino-100 text-ink-3 text-xs ${className}`}
         title="Tu browser no soporta voz. Usa Safari (iOS) o Chrome."
+        aria-label="Voz no soportada"
       >
-        🎤 ✗
+        <MicOff size={18} strokeWidth={1.5} />
       </button>
     );
   }
@@ -213,7 +215,9 @@ function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }
           }
           aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
         >
-          {recording ? '⏹' : '🎤'}
+          {recording
+            ? <Square size={18} strokeWidth={1.5} fill="currentColor" />
+            : <Mic size={18} strokeWidth={1.5} />}
         </button>
       </div>
       {error && (

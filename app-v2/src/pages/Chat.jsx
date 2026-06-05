@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import { Volume2, VolumeX } from 'lucide-react';
 import { api } from '../lib/api.js';
 import VoiceInput from '../components/VoiceInput.jsx';
 
@@ -300,7 +301,9 @@ export default function Chat() {
             }`}
             title={autoSpeak ? 'Auto-leer activado — toca para silenciar' : 'Auto-leer apagado — toca para activar'}
           >
-            {autoSpeak ? '🔊 Lee' : '🔇 Silencio'}
+            {autoSpeak
+              ? <span className="inline-flex items-center gap-1.5"><Volume2 size={14} strokeWidth={1.5} /> Lee</span>
+              : <span className="inline-flex items-center gap-1.5"><VolumeX size={14} strokeWidth={1.5} /> Silencio</span>}
           </button>
           <select className="input text-sm" value={coach} onChange={(e) => setCoach(e.target.value)}>
             {coaches.map((c) => (
@@ -425,15 +428,15 @@ export default function Chat() {
                 : 'bg-lino-100 text-ink-1 rounded-bl-sm'
             }`}>
               {m.content}
-              {/* Botón 🔊 en mensajes de Athena para re-escuchar */}
+              {/* Botón para re-escuchar el mensaje de Athena */}
               {m.role === 'assistant' && !m.error && (
                 <button
                   onClick={() => speak(m.content)}
-                  className="ml-2 text-xs text-ink-3 hover:text-lino-800 inline-block"
+                  className="ml-2 text-ink-3 hover:text-lino-800 inline-block align-middle"
                   title="Escuchar de nuevo"
                   aria-label="Escuchar de nuevo"
                 >
-                  🔊
+                  <Volume2 size={14} strokeWidth={1.5} />
                 </button>
               )}
             </div>

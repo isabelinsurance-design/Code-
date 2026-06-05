@@ -1,28 +1,37 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import {
+  Sun, MessageCircle, Search, Sparkles, TrendingUp, Target,
+  Lightbulb, Users, ClipboardList, BookOpen, Heart, BookMarked,
+  Palette, Calendar, CheckCircle2, ListChecks, FileText,
+  Activity, Book, Settings,
+} from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
 import QuickAdd from './QuickAdd.jsx';
 
+// Iconos de línea fina (Lucide) en lugar de emojis. Estilo quiet luxury,
+// consistente con la paleta lino cálido. Stroke 1.5 para que no compita
+// con el texto serif del header.
 const NAV = [
-  { to: '/hoy', label: 'Hoy', icon: '☀' },
-  { to: '/chat', label: 'Athena', icon: '💬' },
-  { to: '/search', label: 'Buscar', icon: '🔍' },
-  { to: '/coaches', label: 'Coaches', icon: '✦' },
-  { to: '/trends', label: 'Trends', icon: '🔥' },
-  { to: '/goals', label: 'Metas', icon: '◯' },
-  { to: '/insights', label: 'Insights', icon: '✧' },
-  { to: '/entities', label: 'Personas', icon: '👥' },
-  { to: '/plans', label: 'Planes', icon: '◎' },
-  { to: '/journal', label: 'Journal', icon: '✑' },
-  { to: '/rapport', label: 'Rapport', icon: '◉' },
-  { to: '/reading', label: 'Reading', icon: '☷' },
-  { to: '/brand', label: 'Brand', icon: '◈' },
-  { to: '/calendar', label: 'Agenda', icon: '◷' },
-  { to: '/aprueba', label: 'Aprueba', icon: '✓' },
-  { to: '/tareas', label: 'Tareas', icon: '✎' },
-  { to: '/wiki', label: 'Wiki', icon: '☵' },
-  { to: '/actividad', label: 'Actividad', icon: '⌖' },
-  { to: '/manual', label: 'Manual', icon: '📖' },
-  { to: '/configura', label: 'Configura', icon: '⚙' },
+  { to: '/hoy', label: 'Hoy', Icon: Sun },
+  { to: '/chat', label: 'Athena', Icon: MessageCircle },
+  { to: '/search', label: 'Buscar', Icon: Search },
+  { to: '/coaches', label: 'Coaches', Icon: Sparkles },
+  { to: '/trends', label: 'Trends', Icon: TrendingUp },
+  { to: '/goals', label: 'Metas', Icon: Target },
+  { to: '/insights', label: 'Insights', Icon: Lightbulb },
+  { to: '/entities', label: 'Personas', Icon: Users },
+  { to: '/plans', label: 'Planes', Icon: ClipboardList },
+  { to: '/journal', label: 'Journal', Icon: BookOpen },
+  { to: '/rapport', label: 'Rapport', Icon: Heart },
+  { to: '/reading', label: 'Reading', Icon: BookMarked },
+  { to: '/brand', label: 'Brand', Icon: Palette },
+  { to: '/calendar', label: 'Agenda', Icon: Calendar },
+  { to: '/aprueba', label: 'Aprueba', Icon: CheckCircle2 },
+  { to: '/tareas', label: 'Tareas', Icon: ListChecks },
+  { to: '/wiki', label: 'Wiki', Icon: FileText },
+  { to: '/actividad', label: 'Actividad', Icon: Activity },
+  { to: '/manual', label: 'Manual', Icon: Book },
+  { to: '/configura', label: 'Configura', Icon: Settings },
 ];
 
 export default function Shell({ children }) {
@@ -53,7 +62,7 @@ export default function Shell({ children }) {
                 }`
               }
             >
-              <span className="text-base md:text-sm md:w-4">{item.icon}</span>
+              <item.Icon size={18} strokeWidth={1.5} className="md:shrink-0" />
               <span>{item.label}</span>
             </NavLink>
           ))}
