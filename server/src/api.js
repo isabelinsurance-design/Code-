@@ -509,6 +509,39 @@ export function registerApi(app) {
     }
   });
 
+  // LUNA — debug raw: devuelve la respuesta CRUDA de cualquier acción LUNA
+  // sin parsear ni interpretar. Útil para diagnosticar discrepancias entre
+  // lo que LUNA dice y lo que Athena reporta.
+  app.get('/api/luna/raw', requireAuth, async (req, res) => {
+    try {
+      const { lunaConfigured, fullBriefing, openTickets, pendingSoa, hotLeads,
+              pipelineSummary, recentActivity, retentionAlerts, todayAppointments,
+              searchMember, memberDetail, t65Alerts, carriersBreakdown } = await import('./luna_client.js');
+      if (!lunaConfigured()) return res.json({ ok: false, reason: 'LUNA no configurado' });
+      const action = req.query.action || 'full_briefing';
+      const dispatch = {
+        full_briefing: () => fullBriefing(),
+        open_tickets: () => openTickets({ priority: req.query.priority || '' }),
+        pending_soa: () => pendingSoa(),
+        hot_leads: () => hotLeads(),
+        pipeline_summary: () => pipelineSummary(),
+        recent_activity: () => recentActivity({ limit: 30 }),
+        retention_alerts: () => retentionAlerts(),
+        today_appointments: () => todayAppointments(),
+        search_member: () => searchMember(req.query.q || ''),
+        member_detail: () => memberDetail(req.query.id || ''),
+        t65_alerts: () => t65Alerts({ days: parseInt(req.query.days || '90', 10) }),
+        carriers_breakdown: () => carriersBreakdown(),
+      };
+      const fn = dispatch[action];
+      if (!fn) return res.status(400).json({ error: `acción "${action}" no soportada. Opciones: ${Object.keys(dispatch).join(', ')}` });
+      const r = await fn();
+      res.json(r);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // LUNA — debug auth: muestra forma masked del valor que Railway tiene.
   // Útil para diagnosticar "Railway se comió el $!" sin exponer la llave.
   app.get('/api/luna/debug-auth', requireAuth, async (_req, res) => {
