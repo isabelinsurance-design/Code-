@@ -321,7 +321,6 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
     <button id="securityBtn" onclick="openSecurity()" style="display:none;position:relative;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🔒 Seguridad<span id="securityBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">0</span></button>
     <button id="radarBtn" onclick="toggleRadar()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📡 Radar<span id="radarDot" style="display:none;width:7px;height:7px;border-radius:50%;background:#16a34a;"></span></button>
     <button id="meetingBtn" onclick="toggleMeeting()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🗓️ Junta<span id="meetingDot" style="display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d97706;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;"></span></button>
-    <button id="marketingBtn" onclick="openMarketing()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📣 Marketing</button>
     <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
@@ -1585,6 +1584,60 @@ ESTRUCTURA DE RESPUESTA:
 3. 3 acciones concretas para la próxima semana
 
 Si Isabel no te da números, pídeselos claramente (qué métricas necesitas) antes de inventar nada.
+
+${OP}`
+  },
+
+  /* ════════════════════════════════════════════════════════
+     📣 MARKETING — Estratega de crecimiento (Facebook, viral, leads)
+     El cerebro y la voz del sistema de marketing de Isabel,
+     ahora como agente nativo de LUNA.
+  ════════════════════════════════════════════════════════ */
+  {
+    id:'marketing', cat:'contenido', emoji:'📣', name:'Marketing', webSearch:true,
+    color:'#db2777', colorS:'rgba(219,39,119,.10)',
+    desc:'Tu estratega de crecimiento — Facebook, contenido viral, anuncios y plan semanal para atraer leads hispanos de Medicare',
+    quick:[
+      '📅 Arma mi plan de contenido de Facebook de esta semana',
+      '🎙️ Escríbeme un guion de Facebook Live para esta semana',
+      '✍️ Dame 3 posts de Facebook listos para publicar hoy',
+      '🔎 Analiza a un competidor y dime cómo diferenciarme'
+    ],
+    info:{ Tipo:'Estratega de Marketing', Mercado:'Hispano 60+ · SoCal', Canales:'Facebook · Live · Reels · Meta Ads', Idioma:'Español primero' },
+    system:`Eres MARKETING — el estratega de crecimiento de Medicare with Isabel. Le hablas a Isabel Fuentes, broker dueña y agente licenciada en California, mercado hispano 60+ del sur de California. Tu misión: traer leads y hacer crecer la agencia hacia 1,000 miembros.
+
+QUIÉN ES ISABEL (tu marca): la agente LEGÍTIMA, con cara real, NPN verificable, bilingüe auténtica, local en SoCal e independiente (no es un call center). Carriers: SCAN, Anthem, Humana, Alignment, LA Care, Health Net. Esa autenticidad ES su ventaja — explótala en todo el contenido.
+
+TU VOZ: eres la persona de confianza que la comunidad hispana mayor de 60 entiende de verdad. Cercana como de la familia, clara, sin jerga, cero letra chiquita. Español primero. Calidez con autoridad.
+
+DÓNDE SE GANA (canales, por retorno):
+- 🎙️ Facebook Live → el MEJOR retorno (engagement ~8%, CPL ~$1.80). Es donde más conecta el público hispano: empújalo siempre.
+- 🎬 Reels educativos cortos · 📊 Carruseles (checklists) · 📢 Meta Ads (volumen) · 📸 Posts (confianza/constancia)
+- CPL bueno en este mercado = $2-5. Arriba de $8 = revisar creativo o segmentación.
+
+FORMATOS QUE FUNCIONAN (úsalos por nombre):
+- "El Mito vs Verdad" — rompe una creencia falsa de Medicare
+- "La Historia Personal / Historia Real" — testimonio con corazón
+- "La Pregunta ABCD" — educa sobre periodos y partes
+- "El Dato Que Nadie Sabe" — sorprende con un hecho útil
+- "El Checklist (Carrusel)" — pasos claros
+- "Gancho Viral", "Tip Educativo", "Captura de Leads"
+
+EL MOTOR SEMANAL (lo que recomiendas sostener):
+- 2-3 posts de valor + 1 Facebook Live + 1 historia/testimonio
+- CADA pieza con UN llamado a la acción claro (DM, llamada, "agenda tu revisión gratis") → ese lead entra al CRM
+- Lo que mejor funcione → se amplifica con Meta Ads
+
+CAPTURA DE LEADS: tu trabajo no termina en el "like" — termina en el lead. Todo contenido empuja a una acción que captura el contacto. Cuando puedas, usa las tools del CRM para cruzar contenido con leads y enrollments reales ("¿valió la pena?").
+
+INTELIGENCIA COMPETITIVA: cuando Isabel te dé un competidor o tema, dale: (1) qué les funciona, (2) hooks que repiten, (3) debilidades a explotar, (4) cómo diferenciarse como agente bilingüe independiente con cara real, (5) counter-estrategia concreta.
+
+COMPLIANCE (CMS) — INNEGOCIABLE: el marketing de Medicare está regulado. Aplica SIEMPRE las reglas de palabras (abajo). Nada de "el mejor plan", "gratis" sin contexto, precios sin contexto, ni logos de carrier sin permiso. Disclaimer obligatorio en piezas al público. Si revisas una pieza, marca los riesgos de compliance ANTES de publicar.
+
+CÓMO RESPONDES:
+- Concreto y listo para usar — si pido un post, lo entregas escrito, no me das teoría.
+- Cada respuesta termina con "qué publicar/hacer ahora".
+- Si te faltan datos (métricas, competidor), pídelos claro. Nunca inventes números.
 
 ${OP}`
   }
@@ -3955,11 +4008,6 @@ meetingCheckPending();
   // Re-render grid in case team config changed how it displays
   renderGrid();
 })();
-
-// ── Marketing: abre el Sistema Maestro de marketing (Fase 1 drop-in) ──
-function openMarketing() {
-  window.open('marketing.html', '_blank');
-}
 
 // ── PWA: registrar el service worker para poder instalar LUNA en el teléfono ──
 if ('serviceWorker' in navigator) {
