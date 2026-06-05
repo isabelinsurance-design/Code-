@@ -201,6 +201,14 @@ export const api = {
   lunaTickets: (prioridad = '') => request(`/luna/tickets${prioridad ? `?prioridad=${encodeURIComponent(prioridad)}` : ''}`),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
+  // Proyectos — cross-domain
+  projects: (status = '') => request(`/projects${status ? `?status=${status}` : ''}`),
+  project: (id) => request(`/projects/${encodeURIComponent(id)}`),
+  projectCreate: (data) => request('/projects', { method: 'POST', body: data }),
+  projectUpdate: (id, patch) => request(`/projects/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }),
+  projectDelete: (id) => request(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  projectLink: (id, kind, itemId) => request(`/projects/${encodeURIComponent(id)}/link`, { method: 'POST', body: { kind, itemId } }),
+  projectUnlink: (id, kind, itemId) => request(`/projects/${encodeURIComponent(id)}/unlink`, { method: 'POST', body: { kind, itemId } }),
   // Command center — mission bar + decisiones + autonomía
   commandStatus: () => request('/command/status'),
   commandDecisions: () => request('/command/decisions'),

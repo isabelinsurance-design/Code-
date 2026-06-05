@@ -24,6 +24,8 @@ import Entities from './pages/Entities.jsx';
 import Manual from './pages/Manual.jsx';
 import Comandos from './pages/Comandos.jsx';
 import Decisiones from './pages/Decisiones.jsx';
+import Proyectos from './pages/Proyectos.jsx';
+import ProyectoDetalle from './pages/ProyectoDetalle.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -71,6 +73,8 @@ export default function App() {
           <Route path="/manual" element={<Manual />} />
           <Route path="/comandos" element={<Comandos />} />
           <Route path="/decisiones" element={<Decisiones />} />
+          <Route path="/proyectos" element={<Proyectos />} />
+          <Route path="/proyectos/:id" element={<ProyectoDetalle />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

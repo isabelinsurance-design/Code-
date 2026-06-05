@@ -1668,6 +1668,37 @@ REGLAS:
     },
   },
   {
+    name: 'proyecto_crear',
+    description: 'Crea un PROYECTO — agrupación cross-domain (tareas + commitments + tickets LUNA + emails) bajo una meta común. Úsalo cuando Isabel mencione un esfuerzo grande/multi-pieza ("AEP 2026", "lanzar curso de Medicare", "buscar segundo asistente", "renovar mi licencia"). Después puedes ir vinculando items relacionados con proyecto_linkear.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre humano del proyecto, ej. "AEP 2026" o "Hire 2nd assistant".' },
+        descripcion: { type: 'string', description: 'Breve (1-2 frases) sobre la meta del proyecto.' },
+        fecha_meta: { type: 'string', description: 'Opcional. ISO date de cuándo debe estar hecho (ej. "2026-12-07" para AEP).' },
+      },
+      required: ['nombre'],
+    },
+  },
+  {
+    name: 'proyecto_linkear',
+    description: 'Vincula un ITEM existente (tarea, commitment, ticket LUNA, email) a un PROYECTO. Hazlo automáticamente cuando crees una tarea/ticket/etc que claramente pertenece a un proyecto activo (ej. una tarea sobre Anthem cuando hay proyecto "AEP 2026").',
+    input_schema: {
+      type: 'object',
+      properties: {
+        proyecto: { type: 'string', description: 'slug o id del proyecto (ej. "aep_2026").' },
+        kind: { type: 'string', enum: ['tasks', 'commitments', 'tickets_luna'], description: 'Tipo de item.' },
+        item_id: { type: 'string', description: 'ID del item (taskId, commitId, o lunaTicketId como string).' },
+      },
+      required: ['proyecto', 'kind', 'item_id'],
+    },
+  },
+  {
+    name: 'proyectos_lista',
+    description: 'Lista los PROYECTOS activos de Isabel con counts. Úsalo cuando Isabel pregunte "qué proyectos tengo", "cómo va X proyecto", o antes de crear tarea/ticket para decidir si vincularlo a uno existente.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
     name: 'vacation_modo',
     description: 'Activa o desactiva MODO VACACIONES. Cuando activo: solo interrumpes a Isabel con cosas URGENTES (Haiku clasifica), todo lo demás se delega auto a Sami; reportes 2x/día en su timezone (no la de SoCal); templates pre-aprobados se mandan sin esperar "envía". Úsalo cuando Isabel diga "estoy de vacaciones", "me voy a [lugar]", "no me molestes los siguientes X días", o "vuelvo el [fecha]". Para desactivar: activar=false.',
     input_schema: {
@@ -3365,6 +3396,33 @@ Empieza ya. No le mandes mensaje a Isabel hasta el resumen final.`;
       } catch (err) {
         return `No pude llamar: ${err.message}`;
       }
+    }
+    case 'proyecto_crear': {
+      try {
+        const { createProject } = await import('./projects.js');
+        const p = createProject({
+          nombre: input.nombre,
+          descripcion: input.descripcion || '',
+          fecha_meta: input.fecha_meta || null,
+        });
+        return `Proyecto "${p.nombre}" creado [slug: ${p.slug}]. Vincúlale items con proyecto_linkear(proyecto="${p.slug}", kind=tasks|commitments|tickets_luna, item_id=...).`;
+      } catch (err) { return `No pude crear proyecto: ${err.message}`; }
+    }
+    case 'proyecto_linkear': {
+      try {
+        const { linkItem } = await import('./projects.js');
+        const r = linkItem(input.proyecto, input.kind, input.item_id);
+        if (!r.ok) return `No pude vincular: ${r.error}`;
+        return `Item ${input.kind} #${input.item_id} vinculado al proyecto "${input.proyecto}".`;
+      } catch (err) { return `Error: ${err.message}`; }
+    }
+    case 'proyectos_lista': {
+      try {
+        const { listProjectsWithCounts } = await import('./projects.js');
+        const list = listProjectsWithCounts().filter((p) => p.status !== 'cerrado');
+        if (!list.length) return 'No hay proyectos activos. Crea uno con proyecto_crear cuando Isabel mencione un esfuerzo grande/multi-pieza.';
+        return list.map((p) => `[${p.slug}] ${p.nombre} (${p.status}) · ${p.counts.total} items (${p.counts.tasks}T/${p.counts.commitments}C/${p.counts.tickets_luna}L/${p.counts.emails}E)`).join('\n');
+      } catch (err) { return `Error: ${err.message}`; }
     }
     case 'vacation_modo': {
       try {

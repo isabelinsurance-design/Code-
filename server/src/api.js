@@ -515,6 +515,59 @@ export function registerApi(app) {
     } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
   });
 
+  // === PROYECTOS — agrupación cross-domain ===
+  app.get('/api/projects', requireAuth, async (req, res) => {
+    try {
+      const { listProjectsWithCounts } = await import('./projects.js');
+      const all = listProjectsWithCounts();
+      const status = req.query.status;
+      res.json(status ? all.filter((p) => p.status === status) : all);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.post('/api/projects', requireAuth, async (req, res) => {
+    try {
+      const { createProject } = await import('./projects.js');
+      const p = createProject(req.body || {});
+      res.json({ ok: true, project: p });
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+  app.get('/api/projects/:id', requireAuth, async (req, res) => {
+    try {
+      const { expandProject } = await import('./projects.js');
+      const v = await expandProject(req.params.id);
+      if (!v) return res.status(404).json({ error: 'no existe' });
+      res.json(v);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.patch('/api/projects/:id', requireAuth, async (req, res) => {
+    try {
+      const { updateProject } = await import('./projects.js');
+      const r = updateProject(req.params.id, req.body || {});
+      if (!r) return res.status(404).json({ error: 'no existe' });
+      res.json({ ok: true, project: r });
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+  app.delete('/api/projects/:id', requireAuth, async (req, res) => {
+    try {
+      const { deleteProject } = await import('./projects.js');
+      res.json(deleteProject(req.params.id));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.post('/api/projects/:id/link', requireAuth, async (req, res) => {
+    try {
+      const { linkItem } = await import('./projects.js');
+      const { kind, itemId } = req.body || {};
+      res.json(linkItem(req.params.id, kind, itemId));
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+  app.post('/api/projects/:id/unlink', requireAuth, async (req, res) => {
+    try {
+      const { unlinkItem } = await import('./projects.js');
+      const { kind, itemId } = req.body || {};
+      res.json(unlinkItem(req.params.id, kind, itemId));
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+
   // Captura rápida — Isabel dicta una tarea/compromiso y Athena la rutea.
   // Reusa runDirectora con un prompt envuelto que fuerza acción inmediata.
   app.post('/api/quick-capture', requireAuth, async (req, res) => {

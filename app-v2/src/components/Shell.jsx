@@ -23,6 +23,7 @@ const NAV_GROUPS = [
   {
     label: 'Equipo',
     items: [
+      { to: '/proyectos', label: 'Proyectos' },
       { to: '/coaches', label: 'Coaches' },
       { to: '/plans', label: 'Planes' },
       { to: '/entities', label: 'Personas' },
