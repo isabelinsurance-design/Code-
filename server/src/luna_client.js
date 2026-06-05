@@ -146,20 +146,56 @@ export async function retentionAlerts() {
   return lunaFetch('retention_alerts');
 }
 
+// Normaliza respuestas de LUNA: desempaca data.tickets / data.miembros /
+// data.citas / data.leads / data.soas etc → array directo. Y mapea
+// nombres de campo del PHP (agente_nombre) a los que espera Athena
+// (asignado_nombre).
+function unwrapArrayResponse(r, possibleKeys = ['tickets', 'miembros', 'leads', 'soas', 'citas', 'items', 'data']) {
+  if (!r || !r.ok) return r;
+  let arr = r.data;
+  if (arr && !Array.isArray(arr)) {
+    for (const k of possibleKeys) {
+      if (Array.isArray(arr[k])) { arr = arr[k]; break; }
+    }
+  }
+  if (!Array.isArray(arr)) arr = [];
+  return { ...r, data: arr };
+}
+
+function mapTicketFields(t) {
+  return {
+    ...t,
+    // Athena espera asignado_a / asignado_nombre pero LUNA devuelve
+    // agente_ini / agente_nombre. Mapeamos sin sobreescribir si ya está.
+    asignado_a: t.asignado_a ?? t.agente_id ?? t.agente_ini ?? null,
+    asignado_nombre: t.asignado_nombre ?? t.agente_nombre ?? null,
+    // miembro_id puede venir como cliente_id en algunos schemas
+    miembro_id: t.miembro_id ?? t.cliente_id ?? null,
+  };
+}
+
 export async function hotLeads() {
-  return lunaFetch('hot_leads');
+  const r = await lunaFetch('hot_leads');
+  return unwrapArrayResponse(r);
 }
 
 export async function pendingSoa() {
-  return lunaFetch('pending_soa');
+  const r = await lunaFetch('pending_soa');
+  return unwrapArrayResponse(r);
 }
 
 export async function openTickets({ priority = '' } = {}) {
-  return lunaFetch('open_tickets', { params: { priority } });
+  const r = await lunaFetch('open_tickets', { params: { priority } });
+  const out = unwrapArrayResponse(r);
+  if (out.ok && Array.isArray(out.data)) {
+    out.data = out.data.map(mapTicketFields);
+  }
+  return out;
 }
 
 export async function todayAppointments() {
-  return lunaFetch('today_appointments');
+  const r = await lunaFetch('today_appointments');
+  return unwrapArrayResponse(r);
 }
 
 export async function recentActivity({ limit = 20 } = {}) {
