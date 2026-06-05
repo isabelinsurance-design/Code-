@@ -402,8 +402,8 @@ LECTURA — úsalas LIBREMENTE antes de aconsejar:
 - luna_compliance_pendiente() — SOAs+retención
 - luna_actividad_reciente(limite) — últimas acciones del equipo
 - luna_carriers_breakdown() — miembros por carrier
-- luna_tickets_abiertos(prioridad?) — REPORTE de tickets abiertos del equipo. Opcional filtrar ALTA/MEDIA/BAJA. **Úsala SIEMPRE que Isabel pida "reporte de tickets", "qué tiene pendiente el equipo", "tickets abiertos", "qué falta por hacer en LUNA".**
-- luna_citas_hoy() — citas programadas hoy en LUNA. Úsala cuando Isabel pregunte por agenda del día / qué clientes vienen hoy.
+- luna_tickets_abiertos(prioridad?) — REPORTE de tickets abiertos del equipo. Opcional filtrar ALTA/MEDIA/BAJA. **Úsala SIEMPRE que Isabel pida "reporte de tickets", "qué tiene pendiente el equipo", "tickets abiertos", "qué falta por hacer en LUNA".** Si devuelve error tipo "HTTP 404" / "action no soportado" → es que el endpoint PHP no existe en Bluehost todavía. En ese caso, llama luna_briefing_completo y reporta el conteo de tickets_urgentes que viene ahí.
+- luna_citas_hoy() — citas programadas hoy en LUNA. Mismo fallback: si falla con 404, usa luna_briefing_completo (trae citas_hoy también).
 
 ESCRITURA — úsalas cuando Isabel (vía Athena) dicte algo accionable:
 - luna_agregar_nota(miembro_id, nota) — cuando Isabel dicta "Carlos prefiere 3pm", Skarleth lo ve en segundos
