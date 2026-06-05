@@ -20,7 +20,7 @@ import { Mic, MicOff, Square, Loader2 } from 'lucide-react';
 const SILENCE_MS = 3000;         // 3s de silencio total → para
 const SILENCE_THRESHOLD = 0.012;  // RMS por debajo de esto = silencio
 
-function VoiceInputInner({ onTranscript, className = '' }, ref) {
+function VoiceInputInner({ onTranscript, inputRef = null, className = '' }, ref) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
   const [busy, setBusy] = useState(false);  // subiendo / transcribiendo
@@ -127,7 +127,13 @@ function VoiceInputInner({ onTranscript, className = '' }, ref) {
             throw new Error(e.error || `whisper ${r.status}`);
           }
           const { text } = await r.json();
-          if (text) onTranscript(text, true);
+          if (text) {
+            onTranscript(text, true);
+            // Después de transcribir, regresa el cursor al textarea
+            // para que Isabel pueda seguir escribiendo o ver el cursor
+            // parpadeando al final del texto.
+            try { inputRef?.current?.focus(); } catch { /* ignore */ }
+          }
         } catch (err) {
           setError(err.message || 'no se pudo transcribir');
         } finally {
@@ -168,6 +174,9 @@ function VoiceInputInner({ onTranscript, className = '' }, ref) {
 
       rec.start();
       setRecording(true);
+      // Enfoca el textarea apenas empieza la grabación — así Isabel ve
+      // dónde va a aparecer el texto y no tiene que hacer un clic extra.
+      try { inputRef?.current?.focus(); } catch { /* ignore */ }
     } catch (err) {
       cleanup();
       setRecording(false);

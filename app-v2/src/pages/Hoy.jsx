@@ -45,6 +45,7 @@ export default function Hoy() {
   });
   const micRef = useRef(null);
   const audioRef = useRef(null);
+  const textareaRef = useRef(null);
 
   useEffect(() => {
     api.hoyState().then(setState).catch((e) => setErr(e.message));
@@ -237,6 +238,7 @@ export default function Hoy() {
 
         <div className="card">
           <textarea
+            ref={textareaRef}
             rows={3}
             className="input w-full resize-none border-0 focus:ring-0 p-0"
             placeholder="Cuéntale lo que tienes en mente…"
@@ -248,6 +250,7 @@ export default function Hoy() {
           <div className="flex items-center justify-between mt-3 pt-3 border-t border-lino-200">
             <VoiceInput
               ref={micRef}
+              inputRef={textareaRef}
               onTranscript={(text, isFinal) => {
                 if (!isFinal) return;
                 const SEND_RE = /[,.!?\s]*(env[ií]a(lo)?|m[aá]ndalo|send( it)?|manda(lo)?)[.!?\s]*$/i;

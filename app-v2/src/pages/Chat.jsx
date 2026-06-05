@@ -41,6 +41,7 @@ export default function Chat() {
   // Ref al componente de mic, para apagarlo cuando se manda el mensaje
   // o cuando Athena está hablando (evita feedback loop).
   const micRef = useRef(null);
+  const textareaRef = useRef(null);
 
   // Persiste preferencia de auto-speak
   useEffect(() => {
@@ -461,6 +462,7 @@ export default function Chat() {
 
       <div className="flex gap-2 items-end">
         <textarea
+          ref={textareaRef}
           rows={2}
           className="input flex-1 resize-none"
           placeholder={inputHint || (coach === 'directora' ? 'Habla con Athena…' : 'Habla o escribe…')}
@@ -472,6 +474,7 @@ export default function Chat() {
         <div className="flex flex-col gap-2">
           <VoiceInput
             ref={micRef}
+            inputRef={textareaRef}
             onTranscript={(text, isFinal) => {
               if (!isFinal) return;
               // Comandos de voz al final del dictado — Isabel puede decir
