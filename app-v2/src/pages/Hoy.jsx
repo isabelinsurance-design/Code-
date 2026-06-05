@@ -100,12 +100,27 @@ export default function Hoy() {
       .trim();
   }
 
+  // iOS Safari bloquea audio.play() si no es del user gesture directo.
+  // Reusamos un solo Audio element y lo "desbloqueamos" con un silencio
+  // cuando aprietas Lee/Enviar/mic.
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  function unlockAudio() {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.preload = 'auto';
+    }
+    if (!audioRef.current.src) {
+      audioRef.current.src = SILENT_WAV;
+      audioRef.current.play().catch(() => { /* silent */ });
+    }
+  }
+
   async function speak(text) {
     const clean = cleanForSpeech(text);
     if (!clean) return;
     try { micRef.current?.stop(); } catch { /* ignore */ }
     try {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      if (audioRef.current) audioRef.current.pause();
       const r = await fetch('/api/tts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -115,9 +130,16 @@ export default function Hoy() {
       if (r.ok) {
         const { url } = await r.json();
         if (url) {
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          await audio.play();
+          if (!audioRef.current) {
+            audioRef.current = new Audio();
+            audioRef.current.preload = 'auto';
+          }
+          audioRef.current.src = url;
+          try {
+            await audioRef.current.play();
+          } catch (playErr) {
+            console.warn('[hoy] audio.play() rechazado:', playErr.message);
+          }
         }
       }
     } catch { /* silent fail */ }
@@ -127,6 +149,9 @@ export default function Hoy() {
     const text = input.trim();
     if (!text || sending) return;
     try { micRef.current?.stop(); } catch { /* ignore */ }
+    // Desbloquea audio AHORA (user gesture). Si Lee está ON, la respuesta
+    // async tendrá permiso de play en iOS Safari.
+    if (autoSpeak) unlockAudio();
     setSending(true);
     setErr('');
     // Optimistic update: muestra tu mensaje de inmediato.
@@ -154,6 +179,9 @@ export default function Hoy() {
   function toggleAutoSpeak() {
     const next = !autoSpeak;
     setAutoSpeak(next);
+    // Activar Lee es user gesture — desbloquea audio aquí para que
+    // la respuesta async pueda sonar en iOS Safari.
+    if (next) unlockAudio();
     try { localStorage.setItem('athena_auto_speak', String(next)); } catch { /* ignore */ }
   }
 

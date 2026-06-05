@@ -92,6 +92,23 @@ export default function Chat() {
     }
   }
 
+  // iOS Safari bloquea audio.play() si no viene de un user gesture directo.
+  // Para que la respuesta de Athena (que llega async 3-5s después) suene:
+  // creamos un Audio persistente y lo "desbloqueamos" con un silencio
+  // cuando el user hace ANY interacción (toggle Lee, tap Enviar, mic).
+  // Después de eso, audio.play() funciona aunque sea async.
+  const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+  function unlockAudio() {
+    if (!audioRef.current) {
+      audioRef.current = new Audio();
+      audioRef.current.preload = 'auto';
+    }
+    if (!audioRef.current.src) {
+      audioRef.current.src = SILENT_WAV;
+      audioRef.current.play().catch(() => { /* silent */ });
+    }
+  }
+
   // Habla usando el TTS del servidor (femenino garantizado).
   // Si el servidor no tiene TTS configurado o falla, cae al navegador.
   async function speak(text) {
@@ -101,7 +118,9 @@ export default function Chat() {
     // capta la propia voz y se crea un loop.
     try { micRef.current?.stop(); } catch { /* ignore */ }
     try {
-      if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+      // NO destruimos el audio element — lo reusamos. iOS Safari mantiene
+      // el "permiso" de play si es el mismo elemento desbloqueado.
+      if (audioRef.current) audioRef.current.pause();
       if (window.speechSynthesis) window.speechSynthesis.cancel();
       const r = await fetch('/api/tts', {
         method: 'POST',
@@ -112,10 +131,18 @@ export default function Chat() {
       if (r.ok) {
         const { url } = await r.json();
         if (url) {
-          const audio = new Audio(url);
-          audioRef.current = audio;
-          await audio.play();
-          return;
+          if (!audioRef.current) {
+            audioRef.current = new Audio();
+            audioRef.current.preload = 'auto';
+          }
+          audioRef.current.src = url;
+          try {
+            await audioRef.current.play();
+            return;
+          } catch (playErr) {
+            console.warn('[chat] audio.play() rechazado por browser:', playErr.message);
+            // Cae al navegador como último recurso.
+          }
         }
       }
       // Fallback al navegador si el servidor no respondió bien.
@@ -258,6 +285,9 @@ export default function Chat() {
     // Apaga el mic al mandar — evita que siga escuchando mientras
     // procesamos y mientras Athena habla la respuesta.
     try { micRef.current?.stop(); } catch { /* ignore */ }
+    // Desbloquea audio AHORA (es user gesture). Si autoSpeak está ON,
+    // cuando la respuesta llegue async, audio.play() ya tendrá permiso.
+    if (autoSpeak) unlockAudio();
     setErr('');
     setMessages((m) => [...m, { role: 'user', content: text }]);
     setInput('');
@@ -298,7 +328,13 @@ export default function Chat() {
         <div className="flex items-center gap-2 flex-wrap">
           <button
             onClick={() => {
-              if (autoSpeak) stopSpeaking();
+              if (autoSpeak) {
+                stopSpeaking();
+              } else {
+                // Encender Lee == user gesture — desbloquea audio aquí
+                // para que iOS Safari permita play() en la próxima respuesta.
+                unlockAudio();
+              }
               setAutoSpeak((v) => !v);
             }}
             className={`px-3 py-2 rounded-lg text-xs font-medium transition-colors ${
