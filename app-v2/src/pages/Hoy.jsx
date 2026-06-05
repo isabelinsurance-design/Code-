@@ -36,10 +36,11 @@ export default function Hoy() {
     rapport_latest: null,
   });
   const [err, setErr] = useState('');
-  // Quick chat con Athena en línea
+  // Quick chat con Athena en línea — guarda últimas conversaciones del
+  // history compartido (no se borran al navegar a otra página).
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
-  const [lastReply, setLastReply] = useState('');
+  const [recentMessages, setRecentMessages] = useState([]);
   const [autoSpeak, setAutoSpeak] = useState(() => {
     try { return localStorage.getItem('athena_auto_speak') === 'true'; } catch { return false; }
   });
@@ -53,6 +54,11 @@ export default function Hoy() {
       .then((b) => setBriefing(b))
       .catch(() => setBriefing(null))
       .finally(() => setBriefingLoading(false));
+    // Carga las últimas 6 turnos de la conversación con Athena.
+    // Compartido con WhatsApp, así que ve TODO el contexto reciente.
+    api.chatHistory(6)
+      .then((r) => setRecentMessages(r.messages || []))
+      .catch(() => { /* silent */ });
 
     (async () => {
       const next = {};
@@ -123,13 +129,16 @@ export default function Hoy() {
     try { micRef.current?.stop(); } catch { /* ignore */ }
     setSending(true);
     setErr('');
+    // Optimistic update: muestra tu mensaje de inmediato.
+    setRecentMessages((m) => [...m, { role: 'user', content: text }]);
+    setInput('');
     try {
       const r = await api.chatToAthena(text);
-      setLastReply(r.reply || '');
-      setInput('');
+      setRecentMessages((m) => [...m, { role: 'assistant', content: r.reply || '' }]);
       if (autoSpeak && r.reply) speak(r.reply);
     } catch (e) {
       setErr(e.message);
+      setRecentMessages((m) => [...m, { role: 'assistant', content: `[error: ${e.message}]`, error: true }]);
     } finally {
       setSending(false);
     }
@@ -278,13 +287,35 @@ export default function Hoy() {
           </div>
         </div>
 
-        {lastReply && (
-          <article className="mt-3 card bg-white/70 text-sm text-ink-1 whitespace-pre-wrap leading-relaxed">
-            <div className="flex items-start gap-3">
-              <AthenaAvatar size={28} className="shrink-0 mt-1" />
-              <div className="flex-1">{lastReply}</div>
-            </div>
-          </article>
+        {recentMessages.length > 0 && (
+          <div className="mt-3 space-y-2 max-h-96 overflow-y-auto pr-1">
+            {recentMessages.map((m, i) => (
+              <article
+                key={i}
+                className={`card text-sm leading-relaxed whitespace-pre-wrap ${
+                  m.role === 'user'
+                    ? 'bg-lino-200/60 ml-8'
+                    : m.error
+                      ? 'bg-red/5 border-red/30 text-red mr-8'
+                      : 'bg-white/80 mr-8'
+                }`}
+              >
+                {m.role === 'assistant' && !m.error ? (
+                  <div className="flex items-start gap-3">
+                    <AthenaAvatar size={28} className="shrink-0 mt-0.5" />
+                    <div className="flex-1 text-ink-1">{m.content}</div>
+                  </div>
+                ) : (
+                  <div className={m.role === 'user' ? 'text-ink-1' : ''}>{m.content}</div>
+                )}
+              </article>
+            ))}
+            {sending && (
+              <article className="card bg-white/60 mr-8 text-sm italic text-ink-3">
+                pensando…
+              </article>
+            )}
+          </div>
         )}
       </section>
 
