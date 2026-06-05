@@ -695,6 +695,46 @@ export function registerApi(app) {
   });
 
   // ---- Coach threads: cargar / limpiar el historial de una coach ----
+  // Historial de Athena (compartido con WhatsApp). El PWA lo hidrata al abrir
+  // el chat para que Isabel vea sus conversaciones previas en lugar de
+  // arrancar en blanco cada vez que cambia de pantalla.
+  app.get('/api/chat/history', requireAuth, async (req, res) => {
+    try {
+      const { getHistory } = await import('./memory.js');
+      const limit = Math.min(80, parseInt(req.query.limit || '40', 10));
+      const all = getHistory();
+      // Solo nos quedamos con turnos de texto plano (no tool_use / tool_result
+      // / imágenes embebidas) y solo {role: user|assistant} con content string.
+      const out = [];
+      for (const m of all.slice(-limit * 2)) {
+        if (m.role !== 'user' && m.role !== 'assistant') continue;
+        let content = '';
+        if (typeof m.content === 'string') {
+          content = m.content;
+        } else if (Array.isArray(m.content)) {
+          // Pluck text blocks; skip image/document/tool_use.
+          content = m.content
+            .filter((b) => b && b.type === 'text' && typeof b.text === 'string')
+            .map((b) => b.text)
+            .join('\n')
+            .trim();
+        }
+        if (!content) continue;
+        // Quita la marca [via web app] / [contexto: ...] que metimos al
+        // mensaje del user para el modelo — Isabel no necesita verlo.
+        content = content
+          .replace(/^\[via web app\]\s*/, '')
+          .replace(/\s*\[contexto:[^\]]*\]\s*$/g, '')
+          .trim();
+        if (!content) continue;
+        out.push({ role: m.role, content });
+      }
+      res.json({ messages: out.slice(-limit) });
+    } catch (e) {
+      res.status(400).json({ error: e.message });
+    }
+  });
+
   // GET devuelve el hilo persistido (para hidratación al abrir la pantalla).
   // DELETE lo borra (para que Isabel pueda "reset" si quiere empezar de cero).
   app.get('/api/coach_thread/:coach', requireAuth, async (req, res) => {

@@ -187,6 +187,8 @@ export const api = {
   // el history de WhatsApp). Devuelve { coach, messages: [{ role, content, ts }] }.
   coachThread: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`),
   coachThreadClear: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
+  // Historial de Athena (compartido con WhatsApp). Devuelve {messages:[{role,content}]}.
+  chatHistory: (limit = 40) => request(`/chat/history?limit=${limit}`),
   // Plan vigente de una coach — lo que ella le ha recomendado a Isabel.
   // Devuelve { coach_id, items: [{ id, text, status, ts_created, ts_updated }], actualizado }.
   coachPlan: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`),

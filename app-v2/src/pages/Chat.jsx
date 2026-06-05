@@ -172,19 +172,25 @@ export default function Chat() {
   }
 
   // Al cambiar de coach: hidratamos su hilo persistente desde el servidor.
-  // 'directora' usa el history de WhatsApp (compartido) — no tiene endpoint
-  // /coach_thread, así que mostramos lista vacía y dejamos que ella responda
-  // sabiendo todo desde su lado.
+  // Hidrata el historial al entrar/cambiar de coach. Athena usa el history
+  // compartido con WhatsApp (/api/chat/history); las especialistas usan su
+  // hilo persistente (/api/coach_thread/:coach).
   useEffect(() => {
     setErr('');
-    if (coach === 'directora') {
-      setMessages([]);
-      setPlan(null);
-      setNotes(null);
-      return;
-    }
     let cancelled = false;
     setMessages([]);
+    if (coach === 'directora') {
+      setPlan(null);
+      setNotes(null);
+      api.chatHistory(40)
+        .then((r) => {
+          if (cancelled) return;
+          const hist = (r.messages || []).map((m) => ({ role: m.role, content: m.content }));
+          setMessages(hist);
+        })
+        .catch((e) => { if (!cancelled) setErr(e.message); });
+      return () => { cancelled = true; };
+    }
     api.coachThread(coach)
       .then((r) => {
         if (cancelled) return;
