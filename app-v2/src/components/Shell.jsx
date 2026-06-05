@@ -1,37 +1,62 @@
 import { NavLink, useNavigate } from 'react-router-dom';
-import {
-  Sun, MessageCircle, Search, Sparkles, TrendingUp, Target,
-  Lightbulb, Users, ClipboardList, BookOpen, Heart, BookMarked,
-  Palette, Calendar, CheckCircle2, ListChecks, FileText,
-  Activity, Book, Settings,
-} from 'lucide-react';
 import { useAuth } from '../lib/auth.jsx';
+import AthenaAvatar from './AthenaAvatar.jsx';
 import QuickAdd from './QuickAdd.jsx';
 
-// Iconos de línea fina (Lucide) en lugar de emojis. Estilo quiet luxury,
-// consistente con la paleta lino cálido. Stroke 1.5 para que no compita
-// con el texto serif del header.
-const NAV = [
-  { to: '/hoy', label: 'Hoy', Icon: Sun },
-  { to: '/chat', label: 'Athena', Icon: MessageCircle },
-  { to: '/search', label: 'Buscar', Icon: Search },
-  { to: '/coaches', label: 'Coaches', Icon: Sparkles },
-  { to: '/trends', label: 'Trends', Icon: TrendingUp },
-  { to: '/goals', label: 'Metas', Icon: Target },
-  { to: '/insights', label: 'Insights', Icon: Lightbulb },
-  { to: '/entities', label: 'Personas', Icon: Users },
-  { to: '/plans', label: 'Planes', Icon: ClipboardList },
-  { to: '/journal', label: 'Journal', Icon: BookOpen },
-  { to: '/rapport', label: 'Rapport', Icon: Heart },
-  { to: '/reading', label: 'Reading', Icon: BookMarked },
-  { to: '/brand', label: 'Brand', Icon: Palette },
-  { to: '/calendar', label: 'Agenda', Icon: Calendar },
-  { to: '/aprueba', label: 'Aprueba', Icon: CheckCircle2 },
-  { to: '/tareas', label: 'Tareas', Icon: ListChecks },
-  { to: '/wiki', label: 'Wiki', Icon: FileText },
-  { to: '/actividad', label: 'Actividad', Icon: Activity },
-  { to: '/manual', label: 'Manual', Icon: Book },
-  { to: '/configura', label: 'Configura', Icon: Settings },
+// Sin iconos. Tipografía limpia. Estilo Hermès / Linear — el lujo
+// real es el espacio en blanco y la jerarquía tipográfica. El sidebar
+// agrupa por sección con un divisor sutil para no parecer lista plana.
+
+const NAV_GROUPS = [
+  {
+    label: 'Diario',
+    items: [
+      { to: '/hoy', label: 'Hoy' },
+      { to: '/chat', label: 'Athena' },
+      { to: '/tareas', label: 'Tareas y promesas' },
+      { to: '/calendar', label: 'Agenda' },
+      { to: '/aprueba', label: 'Aprueba' },
+    ],
+  },
+  {
+    label: 'Equipo',
+    items: [
+      { to: '/coaches', label: 'Coaches' },
+      { to: '/plans', label: 'Planes' },
+      { to: '/entities', label: 'Personas' },
+    ],
+  },
+  {
+    label: 'Crecimiento',
+    items: [
+      { to: '/goals', label: 'Metas' },
+      { to: '/insights', label: 'Insights' },
+      { to: '/trends', label: 'Trends' },
+      { to: '/rapport', label: 'Rapport' },
+      { to: '/journal', label: 'Journal' },
+      { to: '/reading', label: 'Reading' },
+      { to: '/brand', label: 'Brand' },
+    ],
+  },
+  {
+    label: 'Sistema',
+    items: [
+      { to: '/wiki', label: 'Wiki y temporada' },
+      { to: '/actividad', label: 'Actividad' },
+      { to: '/search', label: 'Buscar' },
+      { to: '/manual', label: 'Manual' },
+      { to: '/configura', label: 'Configura' },
+    ],
+  },
+];
+
+// Para el bottom-nav mobile usamos solo los 5 más importantes.
+const MOBILE_NAV = [
+  { to: '/hoy', label: 'Hoy' },
+  { to: '/chat', label: 'Athena' },
+  { to: '/tareas', label: 'Tareas' },
+  { to: '/calendar', label: 'Agenda' },
+  { to: '/coaches', label: 'Coaches' },
 ];
 
 export default function Shell({ children }) {
@@ -45,32 +70,68 @@ export default function Shell({ children }) {
 
   return (
     <div className="h-full flex flex-col md:flex-row">
-      {/* Sidebar desktop / bottom-nav mobile */}
-      <aside className="md:w-56 bg-lino-50 border-b md:border-b-0 md:border-r border-lino-200 flex md:flex-col">
-        <div className="hidden md:block px-5 py-6">
-          <h1 className="font-serif text-2xl text-lino-800">Athena</h1>
-          <p className="text-xs text-ink-3 mt-1">Chief of Staff</p>
+      {/* Sidebar desktop */}
+      <aside className="hidden md:flex md:w-64 bg-lino-50 border-r border-lino-200 md:flex-col">
+        <div className="px-6 py-7 flex items-center gap-3">
+          <AthenaAvatar size={48} />
+          <div>
+            <h1 className="font-serif text-2xl text-lino-800 leading-none">Athena</h1>
+            <p className="text-xs text-ink-3 mt-1 tracking-wide">Chief of Staff</p>
+          </div>
         </div>
-        <nav className="flex md:flex-col flex-1 overflow-x-auto md:overflow-visible">
-          {NAV.map((item) => (
-            <NavLink
-              key={item.to}
-              to={item.to}
-              className={({ isActive }) =>
-                `flex-1 md:flex-none flex flex-col md:flex-row items-center md:items-center md:gap-3 px-3 py-3 md:py-2 md:mx-2 md:my-0.5 md:rounded-lg text-xs md:text-sm transition-colors ${
-                  isActive ? 'bg-lino-200 text-lino-800 md:font-medium' : 'text-ink-2 hover:bg-lino-100'
-                }`
-              }
-            >
-              <item.Icon size={18} strokeWidth={1.5} className="md:shrink-0" />
-              <span>{item.label}</span>
-            </NavLink>
+
+        <nav className="flex-1 overflow-y-auto px-3 pb-4 space-y-5">
+          {NAV_GROUPS.map((group) => (
+            <div key={group.label}>
+              <p className="px-3 mb-2 text-[10px] uppercase tracking-[0.18em] text-ink-3 font-medium">
+                {group.label}
+              </p>
+              <div className="space-y-0.5">
+                {group.items.map((item) => (
+                  <NavLink
+                    key={item.to}
+                    to={item.to}
+                    end={item.to === '/hoy'}
+                    className={({ isActive }) =>
+                      `block px-3 py-1.5 text-sm rounded transition-colors ${
+                        isActive
+                          ? 'text-lino-900 font-medium bg-white/60'
+                          : 'text-ink-2 hover:text-lino-800 hover:bg-white/40'
+                      }`
+                    }
+                  >
+                    {item.label}
+                  </NavLink>
+                ))}
+              </div>
+            </div>
           ))}
         </nav>
-        <button onClick={onLogout} className="hidden md:block btn-ghost mx-2 mb-3 text-xs">
+
+        <button onClick={onLogout} className="mx-3 mb-4 mt-2 text-xs text-ink-3 hover:text-lino-800 text-left px-3 py-1.5">
           Salir
         </button>
       </aside>
+
+      {/* Bottom-nav mobile — 5 items principales, tipografía solo */}
+      <nav className="md:hidden bg-lino-50 border-b border-lino-200 flex overflow-x-auto">
+        {MOBILE_NAV.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            end={item.to === '/hoy'}
+            className={({ isActive }) =>
+              `flex-1 min-w-[64px] text-center py-3 text-xs transition-colors ${
+                isActive
+                  ? 'text-lino-900 font-medium border-b-2 border-lino-700'
+                  : 'text-ink-2'
+              }`
+            }
+          >
+            {item.label}
+          </NavLink>
+        ))}
+      </nav>
 
       {/* Contenido */}
       <main className="flex-1 overflow-y-auto">
