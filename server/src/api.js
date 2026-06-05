@@ -509,6 +509,28 @@ export function registerApi(app) {
     }
   });
 
+  // LUNA — debug auth: muestra forma masked del valor que Railway tiene.
+  // Útil para diagnosticar "Railway se comió el $!" sin exponer la llave.
+  app.get('/api/luna/debug-auth', requireAuth, async (_req, res) => {
+    const key = process.env.LUNA_API_KEY || '';
+    const masked = key.length === 0
+      ? '(vacío)'
+      : key.length < 6
+        ? '(muy corta)'
+        : `${key.slice(0, 4)}…${key.slice(-2)}`;
+    res.json({
+      masked,
+      length: key.length,
+      has_dollar: key.includes('$'),
+      has_exclaim: key.includes('!'),
+      dollar_count: (key.match(/\$/g) || []).length,
+      exclaim_count: (key.match(/!/g) || []).length,
+      first_3_chars: key.slice(0, 3),
+      last_2_chars: key.slice(-2),
+      base_url: process.env.LUNA_BASE_URL ? 'configurado' : 'falta',
+    });
+  });
+
   // LUNA — health check: pinguea cada acción y reporta status individual.
   // Útil para distinguir "LUNA caída" vs "acción no implementada".
   app.get('/api/luna/health', requireAuth, async (_req, res) => {

@@ -61,7 +61,14 @@ async function lunaFetch(action, { method = 'GET', params = {}, body = null } = 
 
   const init = {
     method,
-    headers: { 'X-LUNA-Key': process.env.LUNA_API_KEY },
+    // Mandamos TRES headers para cubrir distintas variantes que el PHP
+    // pueda estar checando. PHP solo lee el que coincida — los demás
+    // los ignora. Esto evita el bug "header name mismatch".
+    headers: {
+      'X-LUNA-Key': process.env.LUNA_API_KEY,
+      'X-Athena-Key': process.env.LUNA_API_KEY,
+      'Authorization': `Bearer ${process.env.LUNA_API_KEY}`,
+    },
     signal: AbortSignal.timeout(TIMEOUT_MS),
   };
 
