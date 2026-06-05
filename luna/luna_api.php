@@ -14,7 +14,18 @@
  * Ubicación esperada: public_html/luna/luna_api.php
  * ═══════════════════════════════════════════════════════
  */
-require_once __DIR__ . '/luna_config.php';  // ← config propio de LUNA (siempre en la misma carpeta)
+// Carga el config de LUNA buscándolo en las ubicaciones posibles (a prueba de
+// balas: funciona esté dentro de luna/ o un nivel arriba). El primero que exista.
+$__luna_cfg = null;
+foreach ([__DIR__ . '/luna_config.php', __DIR__ . '/../luna_config.php', __DIR__ . '/../config.php'] as $__c) {
+    if (is_file($__c)) { $__luna_cfg = $__c; break; }
+}
+if ($__luna_cfg === null) {
+    http_response_code(500);
+    header('Content-Type: application/json; charset=utf-8');
+    die(json_encode(['ok'=>false,'error'=>'LUNA: no se encontró luna_config.php. Súbelo a la carpeta luna/ con las credenciales de la base de datos.']));
+}
+require_once $__luna_cfg;
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
