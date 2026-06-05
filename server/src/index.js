@@ -342,6 +342,22 @@ function scheduleCron(label, expr, fn) {
 
 scheduleCron('briefing', process.env.MORNING_BRIEFING_CRON || '30 6 * * *', sendMorningBriefing);
 scheduleCron('evening', process.env.EVENING_CHECKIN_CRON || '0 21 * * *', sendEveningCheckin);
+// === Manager Mode — 6 rutinas que la convierten en mánager ===
+import('./manager_mode.js').then((mm) => {
+  // 1. Day plan scheduled — 7am, horario explícito del día
+  scheduleCron('mgr_day_plan', process.env.MGR_DAY_PLAN_CRON || '0 7 * * 1-6', mm.dayPlanScheduled);
+  // 2. Coach cadence auto — 8am, ping de check-ins de coaches due
+  scheduleCron('mgr_coach_cadence', process.env.MGR_COACH_CADENCE_CRON || '0 8 * * *', mm.coachCadenceAuto);
+  // 3. Focus blocks auto — 6:45am L-V, crea bloque 9-11am si hay standing order
+  scheduleCron('mgr_focus_blocks', process.env.MGR_FOCUS_CRON || '45 6 * * 1-5', mm.focusBlocksAuto);
+  // 4. Hourly nudge — cada 30min 7am-9pm, ping si algo viene en <30min
+  scheduleCron('mgr_hourly_nudge', process.env.MGR_NUDGE_CRON || '*/30 7-21 * * *', mm.hourlyNudge);
+  // 5. Daily audit — 8pm L-V, "dijiste X, hiciste Y"
+  scheduleCron('mgr_daily_audit', process.env.MGR_AUDIT_CRON || '0 20 * * 1-5', mm.dailyAudit);
+  // 6. Pre-meeting deep brief — cada 5min, brief serio 15min antes
+  scheduleCron('mgr_premeeting', process.env.MGR_PREMEETING_CRON || '*/5 7-21 * * *', mm.preMeetingDeepBrief);
+}).catch((e) => console.warn('[cron] manager_mode no se pudo cargar:', e.message));
+
 scheduleCron('weekly',  process.env.WEEKLY_REVIEW_CRON   || '0 18 * * 0', sendWeeklyReview);
 // Rapport semanal: viernes 6pm — peso/medidas/foto/sentires. Le da
 // continuidad real a Sofía y Rivera (trend del cuerpo en vez de adivinar).
