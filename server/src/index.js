@@ -4,7 +4,7 @@ import cron from 'node-cron';
 import twilio from 'twilio';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
-import { getHistory, saveHistory } from './memory.js';
+import { getHistory, saveHistory, logActivity } from './memory.js';
 import { sendMorningBriefing } from './briefing.js';
 import { sendEveningCheckin, sendWeeklyReview, nightlyReflection, sendResearchDigest, sendWeeklyRapport, dailyTrendScan, weeklySelfGrade } from './proactive.js';
 import { sendClosingLoop } from './closing_loop.js';
@@ -188,9 +188,25 @@ app.post('/whatsapp', rateLimitMiddleware, twilioSignatureMiddleware, async (req
   try {
     const messages = getHistory();
     const userContent = await buildUserContent(text, numMedia, req.body);
+    // Log Isabel's message to activity feed para que aparezca en /actividad
+    // (antes solo se logueaban tool calls — ella no veía su propia pregunta).
+    try {
+      logActivity({
+        tool: 'isabel_pregunta',
+        input_summary: text || `(media: ${numMedia} adjunto${numMedia === 1 ? '' : 's'})`,
+        result_summary: 'WhatsApp inbound',
+      });
+    } catch { /* ignore */ }
     messages.push({ role: 'user', content: userContent });
     const { reply, messages: updated } = await runDirectora(messages);
     saveHistory(updated);
+    try {
+      logActivity({
+        tool: 'athena_responde',
+        input_summary: text?.slice(0, 100) || '(media)',
+        result_summary: (reply || '').slice(0, 200),
+      });
+    } catch { /* ignore */ }
     await replyTo(from, reply, { voice: userSentVoice });
   } catch (err) {
     console.error('[whatsapp] Error procesando mensaje:', err);

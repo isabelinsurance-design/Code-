@@ -606,11 +606,25 @@ export function registerApi(app) {
         // sabe. La marca [via web app] le dice a Athena de qué canal
         // viene esta vuelta para que pueda calibrar tono / formato.
         const { runDirectora } = await import('./directora.js');
-        const { getHistory, saveHistory } = await import('./memory.js');
+        const { getHistory, saveHistory, logActivity } = await import('./memory.js');
         const history = getHistory();
+        try {
+          logActivity({
+            tool: 'isabel_pregunta',
+            input_summary: message.slice(0, 200),
+            result_summary: 'PWA chat → Athena',
+          });
+        } catch { /* ignore */ }
         history.push({ role: 'user', content: `[via web app] ${message}` });
         const { reply, messages: updated } = await runDirectora(history);
         saveHistory(updated);
+        try {
+          logActivity({
+            tool: 'athena_responde',
+            input_summary: message.slice(0, 100),
+            result_summary: (reply || '').slice(0, 200),
+          });
+        } catch { /* ignore */ }
         return res.json({ coach, reply });
       }
       // Specialists: hilo persistente por coach. Cada especialista
