@@ -80,8 +80,34 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .sidebar-section{padding:0 12px;margin-bottom:4px}
 .sidebar-label{
   font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--text-muted);padding:8px 8px 4px;display:block;
+  text-transform:uppercase;color:var(--text-muted);padding:14px 12px 2px;display:block;
 }
+.sidebar-label-desc{
+  padding:0 12px 6px;font-size:10.5px;color:var(--text-muted);line-height:1.35;font-style:italic;
+}
+.sidebar-search{
+  margin:8px 12px 6px;padding:7px 12px 7px 30px;width:calc(100% - 24px);
+  border:1px solid var(--border);border-radius:18px;font-family:inherit;
+  font-size:12px;color:var(--text);background:var(--surface) url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238C7A60' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>") no-repeat 10px 7px;
+}
+.sidebar-search:focus{outline:0;border-color:var(--gold);background-color:var(--white)}
+.sidebar-collapsible{display:none}
+.sidebar-collapsible.open{display:block}
+.sidebar-toggle{
+  display:flex;align-items:center;justify-content:space-between;width:calc(100% - 24px);
+  margin:14px 12px 2px;padding:8px 12px;border:0;background:none;cursor:pointer;
+  font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--text-muted);border-radius:8px;
+}
+.sidebar-toggle:hover{background:var(--tag);color:var(--text)}
+.sidebar-toggle-caret{transition:transform .2s;font-size:10px}
+.sidebar-toggle.open .sidebar-toggle-caret{transform:rotate(90deg)}
+.sidebar-toggle-count{background:var(--tag);color:var(--text-mid);font-size:9px;padding:1px 7px;border-radius:10px;font-weight:700;letter-spacing:.04em}
+.nav-item.hidden-by-search{display:none}
+.sidebar-section.empty-by-search{display:none}
+.sidebar-label.hidden-by-search,.sidebar-label-desc.hidden-by-search,.sidebar-toggle.hidden-by-search{display:none}
+.sidebar-empty{padding:14px 16px;font-size:12px;color:var(--text-muted);font-style:italic;display:none}
+.sidebar-empty.visible{display:block}
 .nav-item{
   display:flex;align-items:center;gap:10px;padding:9px 12px;
   border-radius:10px;cursor:pointer;transition:all .15s;
@@ -576,7 +602,11 @@ tr:hover td{background:var(--surface)}
 
   <!-- ─── SIDEBAR ─── -->
   <nav class="sidebar">
+    <input type="text" class="sidebar-search" id="sidebarSearch" placeholder="Buscar pestaña…" oninput="filterSidebar(this.value)"/>
+    <div class="sidebar-empty" id="sidebarEmpty">Sin resultados.</div>
+
     <div class="sidebar-label">EMPEZAR AQUÍ</div>
+    <div class="sidebar-label-desc">Lo que define tu estrategia y marca</div>
     <div class="sidebar-section">
       <button class="nav-item active" onclick="showModule('plan',this)">
         <span class="nav-icon">🎯</span><span class="nav-label">Plan de Acción</span>
@@ -606,7 +636,8 @@ tr:hover td{background:var(--surface)}
         <span class="nav-icon">📱</span><span class="nav-label">Agente Móvil</span>
       </button>
     </div>
-    <div class="sidebar-label">COMMAND CENTER</div>
+    <div class="sidebar-label">TU DÍA A DÍA</div>
+    <div class="sidebar-label-desc">Vista general y tu asistente IA</div>
     <div class="sidebar-section">
       <button class="nav-item" onclick="showModule('dashboard',this)">
         <span class="nav-icon">📊</span><span class="nav-label">Dashboard</span>
@@ -615,7 +646,8 @@ tr:hover td{background:var(--surface)}
         <span class="nav-icon">🧠</span><span class="nav-label">Cerebro IA</span>
       </button>
     </div>
-    <div class="sidebar-label">CONTENIDO</div>
+    <div class="sidebar-label">CREAR CONTENIDO</div>
+    <div class="sidebar-label-desc">Lo que vas a publicar esta semana</div>
     <div class="sidebar-section">
       <button class="nav-item" onclick="showModule('ads',this)">
         <span class="nav-icon">📢</span><span class="nav-label">Meta Ads Studio</span>
@@ -631,6 +663,7 @@ tr:hover td{background:var(--surface)}
       </button>
     </div>
     <div class="sidebar-label">INTELIGENCIA</div>
+    <div class="sidebar-label-desc">Espía competidores y cumple las reglas CMS</div>
     <div class="sidebar-section">
       <button class="nav-item" onclick="showModule('intel',this)">
         <span class="nav-icon">🕵️</span><span class="nav-label">Competencia Intel</span>
@@ -640,6 +673,7 @@ tr:hover td{background:var(--surface)}
       </button>
     </div>
     <div class="sidebar-label">NEGOCIOS</div>
+    <div class="sidebar-label-desc">Tus leads y tus números</div>
     <div class="sidebar-section">
       <button class="nav-item" onclick="showModule('crm',this)">
         <span class="nav-icon">👥</span><span class="nav-label">CRM Leads</span>
@@ -649,8 +683,15 @@ tr:hover td{background:var(--surface)}
         <span class="nav-icon">📈</span><span class="nav-label">Métricas</span>
       </button>
     </div>
-    <div class="sidebar-label">HERRAMIENTAS COMPLETAS</div>
-    <div class="sidebar-section">
+    <button class="sidebar-toggle" id="toolsToggle" onclick="toggleToolsSection()">
+      <span>🔧 Herramientas Avanzadas</span>
+      <span style="display:flex;align-items:center;gap:8px">
+        <span class="sidebar-toggle-count">18</span>
+        <span class="sidebar-toggle-caret">▶</span>
+      </span>
+    </button>
+    <div class="sidebar-label-desc" id="toolsToggleDesc" style="display:none">Dashboards completos por si quieres profundidad</div>
+    <div class="sidebar-collapsible sidebar-section" id="toolsCollapsible">
       <button class="nav-item" onclick="openTool('isabel-marketing-dashboard.html',this,'Centro de Comando Medicare')">
         <span class="nav-icon">🎛️</span><span class="nav-label">Centro de Comando</span>
       </button>
@@ -3602,6 +3643,70 @@ function closeSidebar(){
   document.getElementById('sidebarOverlay').classList.remove('open');
 }
 
+// ─── SIDEBAR UX: search filter + collapsible advanced tools ───
+function filterSidebar(query){
+  const q = (query || '').trim().toLowerCase();
+  const sidebar = document.querySelector('.sidebar');
+  const empty = document.getElementById('sidebarEmpty');
+  if(!sidebar) return;
+  // If query is empty, show everything (respecting collapsed state for the tools section)
+  if(!q){
+    sidebar.querySelectorAll('.nav-item.hidden-by-search').forEach(el => el.classList.remove('hidden-by-search'));
+    sidebar.querySelectorAll('.sidebar-section.empty-by-search,.sidebar-label.hidden-by-search,.sidebar-label-desc.hidden-by-search,.sidebar-toggle.hidden-by-search')
+      .forEach(el => el.classList.remove('empty-by-search','hidden-by-search'));
+    if(empty) empty.classList.remove('visible');
+    return;
+  }
+  // Expand the tools section while searching so matches inside are visible
+  const tools = document.getElementById('toolsCollapsible');
+  const toggle = document.getElementById('toolsToggle');
+  if(tools && !tools.classList.contains('open')){ tools.classList.add('open'); }
+  let anyMatch = false;
+  sidebar.querySelectorAll('.nav-item').forEach(el => {
+    const txt = (el.querySelector('.nav-label')?.textContent || '').toLowerCase();
+    if(txt.includes(q)){ el.classList.remove('hidden-by-search'); anyMatch = true; }
+    else { el.classList.add('hidden-by-search'); }
+  });
+  // Hide labels/descs whose section has no visible items
+  const groups = sidebar.querySelectorAll('.sidebar-section');
+  groups.forEach(section => {
+    const visibleItems = section.querySelectorAll('.nav-item:not(.hidden-by-search)').length;
+    if(visibleItems === 0){
+      section.classList.add('empty-by-search');
+      // hide preceding label + desc + toggle
+      let p = section.previousElementSibling;
+      while(p && (p.classList.contains('sidebar-label-desc') || p.classList.contains('sidebar-label') || p.classList.contains('sidebar-toggle'))){
+        p.classList.add('hidden-by-search'); p = p.previousElementSibling;
+      }
+    } else {
+      section.classList.remove('empty-by-search');
+      let p = section.previousElementSibling;
+      while(p && (p.classList.contains('sidebar-label-desc') || p.classList.contains('sidebar-label') || p.classList.contains('sidebar-toggle'))){
+        p.classList.remove('hidden-by-search'); p = p.previousElementSibling;
+      }
+    }
+  });
+  if(empty) empty.classList.toggle('visible', !anyMatch);
+}
+
+const TOOLS_TOGGLE_STORE = 'isabel_tools_section_open';
+function toggleToolsSection(open){
+  const tools = document.getElementById('toolsCollapsible');
+  const toggle = document.getElementById('toolsToggle');
+  const desc = document.getElementById('toolsToggleDesc');
+  if(!tools || !toggle) return;
+  const willOpen = (typeof open === 'boolean') ? open : !tools.classList.contains('open');
+  tools.classList.toggle('open', willOpen);
+  toggle.classList.toggle('open', willOpen);
+  if(desc) desc.style.display = willOpen ? '' : 'none';
+  try { localStorage.setItem(TOOLS_TOGGLE_STORE, willOpen ? '1' : '0'); } catch(_){}
+}
+function restoreToolsToggle(){
+  let open = false;
+  try { open = localStorage.getItem(TOOLS_TOGGLE_STORE) === '1'; } catch(_){}
+  toggleToolsSection(open);
+}
+
 // ─── INIT ───
 renderCalendar();
 loadApiKey();
@@ -3613,6 +3718,7 @@ renderRoster();
 renderIntelHistory();
 renderAEP();
 renderDashUpcoming();
+restoreToolsToggle();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
