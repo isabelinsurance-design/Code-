@@ -1,0 +1,16 @@
+{
+  "name": "LUNA — Medicare with Isabel",
+  "short_name": "LUNA",
+  "description": "Tu Chief of Staff con IA: reportes, radar, junta y más.",
+  "start_url": "index.html",
+  "scope": ".",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#18162b",
+  "theme_color": "#18162b",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

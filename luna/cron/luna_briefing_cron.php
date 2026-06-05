@@ -17,7 +17,7 @@ require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante s
 $CONFIG = [
   // Canales activos (true/false)
   'send_email'    => true,
-  'send_telegram' => true,   // requiere bot token + chat ID
+  'send_telegram' => false,  // ← apagado: Isabel usa la app/correo, no Telegram
   'send_whatsapp' => false,  // activar cuando Meta apruebe
 
   // Email

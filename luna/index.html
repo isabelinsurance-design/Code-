@@ -2,8 +2,15 @@
 <html lang="es" data-theme="light">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>LUNA — Medicare Agent Platform</title>
+<!-- ── PWA: instalar en el teléfono como app (igual que Athena) ── -->
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#18162b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="LUNA">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;0,9..144,700;1,9..144,300&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <style>
 /* ── TOKENS ───────────────────────────── */
@@ -3947,6 +3954,13 @@ meetingCheckPending();
   // Re-render grid in case team config changed how it displays
   renderGrid();
 })();
+
+// ── PWA: registrar el service worker para poder instalar LUNA en el teléfono ──
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
 </script>
 </body>
 </html>
