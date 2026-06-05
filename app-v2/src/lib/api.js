@@ -199,6 +199,12 @@ export const api = {
   quickCapture: (text) => request('/quick-capture', { method: 'POST', body: { text } }),
   // LUNA tickets abiertos (vista directa, no chat con Pilar).
   lunaTickets: (prioridad = '') => request(`/luna/tickets${prioridad ? `?prioridad=${encodeURIComponent(prioridad)}` : ''}`),
+  // LUNA — buscar miembro
+  lunaSearch: (q) => request(`/luna/search?q=${encodeURIComponent(q)}`),
+  // LUNA — expediente completo
+  lunaMember: (id) => request(`/luna/member/${encodeURIComponent(id)}`),
+  // LUNA — snapshot ligero (mission bar)
+  lunaSnapshot: () => request('/luna/snapshot'),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
   // Reglas permanentes (standing orders)

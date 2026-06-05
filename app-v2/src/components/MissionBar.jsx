@@ -46,14 +46,22 @@ function summarizeTool(tool) {
 
 export default function MissionBar() {
   const [status, setStatus] = useState(null);
+  const [luna, setLuna] = useState(null);
   const [error, setError] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
     async function load() {
       try {
-        const s = await api.commandStatus();
-        if (!cancelled) { setStatus(s); setError(false); }
+        const [s, l] = await Promise.all([
+          api.commandStatus(),
+          api.lunaSnapshot().catch(() => null),
+        ]);
+        if (!cancelled) {
+          setStatus(s);
+          setLuna(l?.ok ? l : null);
+          setError(false);
+        }
       } catch {
         if (!cancelled) setError(true);
       }
@@ -111,6 +119,36 @@ export default function MissionBar() {
         <span>{alerts}</span>
         <span className={alerts > 0 ? '' : 'text-lino-300'}>alertas</span>
       </Link>
+
+      {/* LUNA widgets — counters operacionales */}
+      {luna && (luna.tickets_total > 0 || luna.soas_pendientes > 0 || luna.citas_hoy > 0) && (
+        <>
+          <span className="text-lino-400 hidden sm:inline">|</span>
+          <Link to="/clientes" className="inline-flex items-center gap-1.5 shrink-0 hover:text-amber">
+            <span className={luna.tickets_alta > 0 ? 'text-amber' : ''}>{luna.tickets_total}</span>
+            <span className={luna.tickets_alta > 0 ? 'text-amber' : 'text-lino-300'}>tickets</span>
+            {luna.tickets_alta > 0 && <span className="text-amber">●</span>}
+          </Link>
+          {luna.soas_pendientes > 0 && (
+            <>
+              <span className="text-lino-400">·</span>
+              <span className="inline-flex items-center gap-1.5 shrink-0 text-amber">
+                <span>{luna.soas_pendientes}</span>
+                <span>SOAs</span>
+              </span>
+            </>
+          )}
+          {luna.citas_hoy > 0 && (
+            <>
+              <span className="text-lino-400">·</span>
+              <span className="inline-flex items-center gap-1.5 shrink-0">
+                <span>{luna.citas_hoy}</span>
+                <span className="text-lino-300">citas hoy</span>
+              </span>
+            </>
+          )}
+        </>
+      )}
 
       {/* Activity actual — animada */}
       {currentActivity && (

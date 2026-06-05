@@ -481,6 +481,67 @@ export function registerApi(app) {
     }
   });
 
+  // LUNA — búsqueda de cliente
+  app.get('/api/luna/search', requireAuth, async (req, res) => {
+    try {
+      const { lunaConfigured, searchMember } = await import('./luna_client.js');
+      if (!lunaConfigured()) return res.json({ ok: false, reason: 'LUNA no configurado', results: [] });
+      const q = (req.query.q || '').trim();
+      if (q.length < 2) return res.json({ ok: true, results: [] });
+      const r = await searchMember(q);
+      if (!r.ok) return res.json({ ok: false, reason: r.error, results: [] });
+      res.json({ ok: true, results: r.data || [] });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message, results: [] });
+    }
+  });
+
+  // LUNA — expediente completo de un miembro
+  app.get('/api/luna/member/:id', requireAuth, async (req, res) => {
+    try {
+      const { lunaConfigured, memberDetail } = await import('./luna_client.js');
+      if (!lunaConfigured()) return res.status(503).json({ ok: false, reason: 'LUNA no configurado' });
+      const r = await memberDetail(req.params.id);
+      if (!r.ok) return res.status(404).json(r);
+      res.json(r);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // LUNA — snapshot ligero para la mission bar
+  app.get('/api/luna/snapshot', requireAuth, async (_req, res) => {
+    try {
+      const { lunaConfigured, fullBriefing, openTickets, pendingSoa } = await import('./luna_client.js');
+      if (!lunaConfigured()) return res.json({ ok: false, reason: 'LUNA no configurado' });
+      const [briefRes, ticketsRes, soaRes] = await Promise.all([
+        fullBriefing().catch(() => ({ ok: false })),
+        openTickets({ priority: '' }).catch(() => ({ ok: false })),
+        pendingSoa().catch(() => ({ ok: false })),
+      ]);
+      const out = {
+        ok: true,
+        tickets_total: 0, tickets_alta: 0,
+        soas_pendientes: 0,
+        citas_hoy: 0, hot_leads: 0, retencion_dia: 0,
+      };
+      if (ticketsRes.ok && Array.isArray(ticketsRes.data)) {
+        out.tickets_total = ticketsRes.data.length;
+        out.tickets_alta = ticketsRes.data.filter((t) => (t.prioridad || '').toUpperCase() === 'ALTA').length;
+      }
+      if (soaRes.ok && Array.isArray(soaRes.data)) out.soas_pendientes = soaRes.data.length;
+      if (briefRes.ok && briefRes.data) {
+        const d = briefRes.data;
+        out.citas_hoy = d.citas_hoy?.length || d.appointments_today?.length || 0;
+        out.hot_leads = d.hot_leads?.length || 0;
+        out.retencion_dia = d.retencion_dia?.length || d.retention_today?.length || 0;
+      }
+      res.json(out);
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // === STANDING ORDERS — reglas permanentes ===
   app.get('/api/orders', requireAuth, async (req, res) => {
     try {
