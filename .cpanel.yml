@@ -16,6 +16,6 @@
 # ═══════════════════════════════════════════════════════════════════
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/emzmuumy/public_html/crm
+    - export DEPLOYPATH=/home1/emzmuumy/public_html/crm
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R crm/. $DEPLOYPATH/
