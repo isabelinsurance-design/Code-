@@ -321,6 +321,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
     <button id="securityBtn" onclick="openSecurity()" style="display:none;position:relative;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🔒 Seguridad<span id="securityBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">0</span></button>
     <button id="radarBtn" onclick="toggleRadar()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📡 Radar<span id="radarDot" style="display:none;width:7px;height:7px;border-radius:50%;background:#16a34a;"></span></button>
     <button id="meetingBtn" onclick="toggleMeeting()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🗓️ Junta<span id="meetingDot" style="display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d97706;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;"></span></button>
+    <button id="marketingBtn" onclick="openMarketing()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📣 Marketing</button>
     <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
@@ -3954,6 +3955,11 @@ meetingCheckPending();
   // Re-render grid in case team config changed how it displays
   renderGrid();
 })();
+
+// ── Marketing: abre el Sistema Maestro de marketing (Fase 1 drop-in) ──
+function openMarketing() {
+  window.open('marketing.html', '_blank');
+}
 
 // ── PWA: registrar el service worker para poder instalar LUNA en el teléfono ──
 if ('serviceWorker' in navigator) {
