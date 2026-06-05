@@ -298,9 +298,19 @@ export default function Hoy() {
                     {m.content}
                   </p>
                 ) : (
-                  <p className={`text-base leading-relaxed ${m.error ? 'text-red' : 'text-ink-1'}`}>
-                    {m.content}
-                  </p>
+                  <div className={`text-base leading-relaxed ${m.error ? 'text-red' : 'text-ink-1'} group`}>
+                    <span className="whitespace-pre-wrap">{m.content}</span>
+                    {!m.error && (
+                      <button
+                        onClick={() => { unlockAudio(); speak(m.content); }}
+                        className="ml-2 inline-block align-middle text-ink-3 hover:text-lino-800 opacity-60 group-hover:opacity-100 transition-opacity"
+                        title="Escuchar"
+                        aria-label="Escuchar respuesta"
+                      >
+                        <Volume2 size={14} strokeWidth={1.5} />
+                      </button>
+                    )}
+                  </div>
                 )}
               </div>
             ))}
