@@ -1,18 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Volume2, VolumeX, RefreshCw } from 'lucide-react';
+import { Volume2, VolumeX, RefreshCw, Mic } from 'lucide-react';
 import { api } from '../lib/api.js';
 import AthenaAvatar from '../components/AthenaAvatar.jsx';
 import VoiceInput from '../components/VoiceInput.jsx';
 
-// Hoy en estilo "Athena primero":
-//   1) Saludo + fecha
-//   2) Briefing del día (cards generadas por el cron 6:30am)
-//   3) Caja para hablar con Athena ahí mismo
-//   4) Tu día en números — strip horizontal compacto al final
-//
-// Diseño: lino cálido, serif para títulos, lots of whitespace.
-// NO dashboard denso. Athena al frente, datos como apoyo.
+// Hoy — Versión C "Magazine Spread".
+// Tratamiento editorial inspirado en Cereal Magazine, The Gentlewoman, Frieze.
+// Filosofía: cero cards, cero shadows, hairlines y running heads como en revista.
+// Each section = un "article" con su running head a la izquierda + cuerpo serif.
+// Composer flotante anclado abajo. Athena al frente como lead photo.
 
 function greeting() {
   const h = new Date().getHours();
@@ -21,23 +18,25 @@ function greeting() {
   return 'Buenas noches';
 }
 
+function issueNumber() {
+  // Día del año — "ATHENA No. 271" tipo masthead de revista
+  const start = new Date(new Date().getFullYear(), 0, 0);
+  const diff = Date.now() - start.getTime();
+  return Math.floor(diff / 86_400_000);
+}
+
+function nowHHMM() {
+  return new Date().toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' });
+}
+
 export default function Hoy() {
   const navigate = useNavigate();
   const [briefing, setBriefing] = useState(null);
   const [briefingLoading, setBriefingLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [state, setState] = useState(null);
-  const [stats, setStats] = useState({
-    trends_pending: 0,
-    reading_pending: 0,
-    goals_active: 0,
-    journal_week: 0,
-    plans_total_active: 0,
-    rapport_latest: null,
-  });
+  const [stats, setStats] = useState({});
   const [err, setErr] = useState('');
-  // Quick chat con Athena en línea — guarda últimas conversaciones del
-  // history compartido (no se borran al navegar a otra página).
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [recentMessages, setRecentMessages] = useState([]);
@@ -54,23 +53,21 @@ export default function Hoy() {
       .then((b) => setBriefing(b))
       .catch(() => setBriefing(null))
       .finally(() => setBriefingLoading(false));
-    // Carga las últimas 6 turnos de la conversación con Athena.
-    // Compartido con WhatsApp, así que ve TODO el contexto reciente.
     api.chatHistory(6)
       .then((r) => setRecentMessages(r.messages || []))
       .catch(() => { /* silent */ });
 
     (async () => {
       const next = {};
-      try { const t = await api.trends('pending'); next.trends_pending = t.items?.length || 0; } catch {}
-      try { const r = await api.readingList('pending'); next.reading_pending = r?.length || 0; } catch {}
-      try { const g = await api.goalsList('activa'); next.goals_active = g?.length || 0; } catch {}
-      try { const j = await api.journalList(7); next.journal_week = j?.length || 0; } catch {}
+      try { const t = await api.trends('pending'); next.trends = t.items?.length || 0; } catch {}
+      try { const r = await api.readingList('pending'); next.reading = r?.length || 0; } catch {}
+      try { const g = await api.goalsList('activa'); next.goals = g?.length || 0; } catch {}
+      try { const j = await api.journalList(7); next.journal = j?.length || 0; } catch {}
       try {
         const p = await api.coachPlansAll();
-        next.plans_total_active = (p || []).reduce((acc, c) => acc + c.items.filter((i) => i.status === 'active').length, 0);
+        next.planes = (p || []).reduce((acc, c) => acc + c.items.filter((i) => i.status === 'active').length, 0);
       } catch {}
-      try { const rap = await api.rapport(1); next.rapport_latest = rap.trend?.latest || null; } catch {}
+      try { const rap = await api.rapport(1); next.peso = rap.trend?.latest?.peso_lbs || null; } catch {}
       setStats((s) => ({ ...s, ...next }));
     })();
   }, []);
@@ -81,11 +78,8 @@ export default function Hoy() {
     try {
       const b = await api.briefingRefresh();
       setBriefing(b);
-    } catch (e) {
-      setErr(e.message);
-    } finally {
-      setRefreshing(false);
-    }
+    } catch (e) { setErr(e.message); }
+    finally { setRefreshing(false); }
   }
 
   function cleanForSpeech(text) {
@@ -100,9 +94,6 @@ export default function Hoy() {
       .trim();
   }
 
-  // iOS Safari bloquea audio.play() si no es del user gesture directo.
-  // Reusamos un solo Audio element y lo "desbloqueamos" con un silencio
-  // cuando aprietas Lee/Enviar/mic.
   const SILENT_WAV = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
   function unlockAudio() {
     if (!audioRef.current) {
@@ -135,26 +126,20 @@ export default function Hoy() {
             audioRef.current.preload = 'auto';
           }
           audioRef.current.src = url;
-          try {
-            await audioRef.current.play();
-          } catch (playErr) {
-            console.warn('[hoy] audio.play() rechazado:', playErr.message);
-          }
+          try { await audioRef.current.play(); }
+          catch (playErr) { console.warn('[hoy] audio.play rechazado:', playErr.message); }
         }
       }
-    } catch { /* silent fail */ }
+    } catch { /* silent */ }
   }
 
   async function sendToAthena() {
     const text = input.trim();
     if (!text || sending) return;
     try { micRef.current?.stop(); } catch { /* ignore */ }
-    // Desbloquea audio AHORA (user gesture). Si Lee está ON, la respuesta
-    // async tendrá permiso de play en iOS Safari.
     if (autoSpeak) unlockAudio();
     setSending(true);
     setErr('');
-    // Optimistic update: muestra tu mensaje de inmediato.
     setRecentMessages((m) => [...m, { role: 'user', content: text }]);
     setInput('');
     try {
@@ -164,9 +149,7 @@ export default function Hoy() {
     } catch (e) {
       setErr(e.message);
       setRecentMessages((m) => [...m, { role: 'assistant', content: `[error: ${e.message}]`, error: true }]);
-    } finally {
-      setSending(false);
-    }
+    } finally { setSending(false); }
   }
 
   function onKey(e) {
@@ -179,8 +162,6 @@ export default function Hoy() {
   function toggleAutoSpeak() {
     const next = !autoSpeak;
     setAutoSpeak(next);
-    // Activar Lee es user gesture — desbloquea audio aquí para que
-    // la respuesta async pueda sonar en iOS Safari.
     if (next) unlockAudio();
     try { localStorage.setItem('athena_auto_speak', String(next)); } catch { /* ignore */ }
   }
@@ -190,101 +171,218 @@ export default function Hoy() {
   const fechaTexto = state?.fecha || new Date().toLocaleDateString('es-MX', {
     weekday: 'long', day: 'numeric', month: 'long',
   });
+  const fechaUpper = fechaTexto.toUpperCase();
 
   const hasBriefing = briefing?.cards?.length > 0;
   const briefingStale = briefing?.stale;
 
+  // El primer card del briefing es "lo más importante" → lo tratamos como hero.
+  // Los demás como artículos secundarios.
+  const heroCard = hasBriefing ? briefing.cards[0] : null;
+  const otherCards = hasBriefing ? briefing.cards.slice(1) : [];
+
   return (
-    <div className="space-y-8">
-      {/* 1) Saludo */}
-      <header className="flex items-center gap-4">
-        <AthenaAvatar size={56} className="hidden sm:block" />
-        <div>
-          <h2 className="font-serif text-3xl md:text-4xl text-lino-800 leading-tight">
-            {greeting()}, Isabel
-          </h2>
-          <p className="text-ink-3 text-sm capitalize mt-1">{fechaTexto}</p>
+    <div className="pb-32" style={{ paddingBottom: 'calc(8rem + env(safe-area-inset-bottom))' }}>
+      {/* MASTHEAD — como portada de revista */}
+      <header className="flex items-end justify-between border-b border-ink-1 pt-2 pb-3 mb-8">
+        <div className="font-serif text-sm tracking-wide text-ink-1">
+          ATHENA <span className="font-mono text-xs text-ink-3 ml-2">No. {issueNumber()}</span>
+        </div>
+        <div className="font-mono text-[10px] tracking-widest text-ink-3 uppercase">
+          {fechaUpper} · {nowHHMM()}
         </div>
       </header>
 
-      {/* 2) Briefing del día */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-lino-800">Tu briefing de hoy</h3>
-          <button
-            onClick={refreshBriefing}
-            disabled={refreshing}
-            className="text-xs text-ink-3 hover:text-lino-800 inline-flex items-center gap-1.5"
-            title={hasBriefing ? 'Pedir un briefing fresco' : 'Generar briefing ahora'}
-          >
-            <RefreshCw size={12} strokeWidth={1.5} className={refreshing ? 'animate-spin' : ''} />
-            {refreshing ? 'Pensando…' : hasBriefing ? 'Actualizar' : 'Generar'}
-          </button>
+      {/* LEAD — foto + greeting estilo cover story */}
+      <section className="flex items-start gap-4 mb-12">
+        <AthenaAvatar size={80} className="shrink-0" />
+        <div>
+          <h1 className="font-serif text-[2rem] leading-[1.05] tracking-tight text-ink-1">
+            {greeting()},<br />
+            <span className="italic font-light">Isabel</span>.
+          </h1>
+          <p className="font-mono text-[10px] tracking-[0.2em] text-ink-3 uppercase mt-3">
+            Tu día empieza con calma
+          </p>
         </div>
-
-        {briefingLoading && <p className="text-ink-3 text-sm">Cargando tu briefing…</p>}
-
-        {!briefingLoading && !hasBriefing && (
-          <div className="card text-center py-8">
-            <p className="text-ink-3 text-sm mb-3">Todavía no hay briefing hoy.</p>
-            <button
-              onClick={refreshBriefing}
-              disabled={refreshing}
-              className="btn-primary text-sm"
-            >
-              {refreshing ? 'Generando…' : 'Pedirle uno a Athena'}
-            </button>
-          </div>
-        )}
-
-        {!briefingLoading && hasBriefing && (
-          <>
-            {briefingStale && (
-              <p className="text-xs text-amber mb-2">
-                Este briefing es de un día previo. Pide uno nuevo si quieres el de hoy.
-              </p>
-            )}
-            <div className="space-y-3">
-              {briefing.cards.map((card, i) => (
-                <article
-                  key={i}
-                  className="card whitespace-pre-wrap text-sm text-ink-1 leading-relaxed"
-                >
-                  {card}
-                </article>
-              ))}
-            </div>
-          </>
-        )}
       </section>
 
-      {/* 3) Habla con Athena */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-lino-800">Habla con Athena</h3>
-          <button
-            onClick={toggleAutoSpeak}
-            className="text-xs text-ink-3 hover:text-lino-800 inline-flex items-center gap-1.5"
-            title={autoSpeak ? 'Auto-leer activado' : 'Auto-leer apagado'}
-          >
-            {autoSpeak
-              ? <><Volume2 size={12} strokeWidth={1.5} /> Lee</>
-              : <><VolumeX size={12} strokeWidth={1.5} /> Silencio</>}
-          </button>
+      {/* ARTICLE 1 — Editorial / lo más importante */}
+      <article className="grid grid-cols-[60px_1fr] gap-4 mb-8">
+        <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-ink-3 pt-1.5">
+          Editorial
         </div>
+        <div className="border-b border-lino-400 pb-6">
+          {briefingLoading && <p className="text-ink-3 text-sm italic font-serif">Cargando tu día…</p>}
+          {!briefingLoading && !hasBriefing && (
+            <>
+              <p className="font-serif text-lg italic text-ink-3 leading-snug">
+                Todavía no hay briefing hoy.
+              </p>
+              <button
+                onClick={refreshBriefing}
+                disabled={refreshing}
+                className="mt-3 font-mono text-[10px] uppercase tracking-[0.18em] text-ink-1 border-b border-ink-1 pb-0.5 hover:text-lino-700 hover:border-lino-700 transition-colors"
+              >
+                {refreshing ? 'Generando…' : 'Pedirle uno'}
+              </button>
+            </>
+          )}
+          {hasBriefing && (
+            <>
+              <h2 className="font-serif text-[1.4rem] leading-tight text-ink-1 font-normal whitespace-pre-wrap">
+                {heroCard}
+              </h2>
+              {briefingStale && (
+                <p className="font-mono text-[9px] tracking-widest uppercase text-amber mt-3">
+                  Briefing del día anterior · <button onClick={refreshBriefing} className="underline">pedir uno nuevo</button>
+                </p>
+              )}
+              <button
+                onClick={refreshBriefing}
+                disabled={refreshing}
+                className="mt-4 font-mono text-[9px] uppercase tracking-[0.22em] text-ink-3 hover:text-ink-1 inline-flex items-center gap-1.5 transition-colors"
+              >
+                <RefreshCw size={10} strokeWidth={1.5} className={refreshing ? 'animate-spin' : ''} />
+                {refreshing ? 'Actualizando' : 'Actualizar briefing'}
+              </button>
+            </>
+          )}
+        </div>
+      </article>
 
-        <div className="card">
-          <textarea
-            ref={textareaRef}
-            rows={3}
-            className="input w-full resize-none border-0 focus:ring-0 p-0"
-            placeholder="Cuéntale lo que tienes en mente…"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={onKey}
-            disabled={sending}
-          />
-          <div className="flex items-center justify-between mt-3 pt-3 border-t border-lino-200">
+      {/* ARTICLES 2..N — resto del briefing */}
+      {otherCards.map((card, i) => (
+        <article key={i} className="grid grid-cols-[60px_1fr] gap-4 mb-8">
+          <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-ink-3 pt-1.5">
+            {['Agenda', 'Cuerpo', 'Mente', 'Equipo', 'Negocio'][i] || `0${i + 2}`}
+          </div>
+          <div className="border-b border-lino-400 pb-6">
+            <p className="font-serif text-base leading-relaxed text-ink-1 whitespace-pre-wrap">
+              {card}
+            </p>
+          </div>
+        </article>
+      ))}
+
+      {/* DATA LINE — stats como typográfica, no como tiles */}
+      <div className="font-mono text-[11px] text-ink-3 border-t border-b border-ink-1 py-3 my-10 leading-loose tracking-tight">
+        <Link to="/plans" className="hover:text-ink-1">PLANES {String(stats.planes ?? 0).padStart(2, '0')}</Link>
+        <span className="mx-2 text-lino-400">·</span>
+        <Link to="/goals" className="hover:text-ink-1">METAS {String(stats.goals ?? 0).padStart(2, '0')}</Link>
+        <span className="mx-2 text-lino-400">·</span>
+        <Link to="/trends" className="hover:text-ink-1">TRENDS {String(stats.trends ?? 0).padStart(2, '0')}</Link>
+        <span className="mx-2 text-lino-400">·</span>
+        <Link to="/reading" className="hover:text-ink-1">READ {String(stats.reading ?? 0).padStart(2, '0')}</Link>
+        <span className="mx-2 text-lino-400">·</span>
+        <Link to="/journal" className="hover:text-ink-1">JOURNAL {String(stats.journal ?? 0).padStart(2, '0')}</Link>
+        {stats.peso && (
+          <>
+            <span className="mx-2 text-lino-400">·</span>
+            <Link to="/rapport" className="hover:text-ink-1">PESO {stats.peso}</Link>
+          </>
+        )}
+      </div>
+
+      {/* CONVERSACIÓN RECIENTE — como diálogos en un artículo */}
+      {recentMessages.length > 0 && (
+        <article className="grid grid-cols-[60px_1fr] gap-4 mb-8">
+          <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-ink-3 pt-1.5">
+            Diálogo
+          </div>
+          <div className="border-b border-lino-400 pb-6 space-y-3">
+            {recentMessages.slice(-6).map((m, i) => (
+              <div key={i} className="font-serif">
+                {m.role === 'user' ? (
+                  <p className="text-ink-2 text-base leading-relaxed pl-4 border-l-2 border-lino-400 italic">
+                    {m.content}
+                  </p>
+                ) : (
+                  <p className={`text-base leading-relaxed ${m.error ? 'text-red' : 'text-ink-1'}`}>
+                    {m.content}
+                  </p>
+                )}
+              </div>
+            ))}
+            {sending && (
+              <p className="font-mono text-[10px] uppercase tracking-widest text-ink-3 animate-pulse">
+                Athena escribiendo…
+              </p>
+            )}
+          </div>
+        </article>
+      )}
+
+      {/* FOCUS BLOCKS y LEGAL — secciones opcionales como artículos cortos */}
+      {state?.focus_blocks?.length > 0 && (
+        <article className="grid grid-cols-[60px_1fr] gap-4 mb-8">
+          <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-ink-3 pt-1.5">
+            Tiempo
+          </div>
+          <div className="border-b border-lino-400 pb-6">
+            {state.focus_blocks.map((b) => (
+              <p key={b.id} className="font-serif text-sm text-ink-1 leading-relaxed">
+                <span className="font-medium">{b.titulo}</span>
+                <span className="text-ink-3 font-mono text-[10px] ml-3 tracking-wide">
+                  {b.modo.toUpperCase()} · {b.inicio_hhmm}–{b.fin_hhmm}
+                </span>
+              </p>
+            ))}
+          </div>
+        </article>
+      )}
+
+      {state?.legal_alerts && (state.legal_alerts.vencidas?.length || state.legal_alerts['7']?.length) ? (
+        <article className="grid grid-cols-[60px_1fr] gap-4 mb-8">
+          <div className="font-mono text-[9px] tracking-[0.25em] uppercase text-amber pt-1.5">
+            Legal
+          </div>
+          <div className="border-b border-lino-400 pb-6 space-y-1">
+            {state.legal_alerts.vencidas?.map((o) => (
+              <p key={o.id} className="font-serif text-sm text-red leading-relaxed">
+                <span className="font-mono text-[10px] uppercase tracking-wide">Vencida</span> · {o.descripcion} ({o.dias_vencida}d)
+              </p>
+            ))}
+            {state.legal_alerts['7']?.map((o) => (
+              <p key={o.id} className="font-serif text-sm text-amber leading-relaxed">
+                {o.descripcion} <span className="font-mono text-[10px] uppercase tracking-wide">en {o.dias_falt}d</span>
+              </p>
+            ))}
+          </div>
+        </article>
+      ) : null}
+
+      {err && <p className="text-red text-xs font-mono uppercase tracking-wide mt-4">{err}</p>}
+
+      {/* COMPOSER — flotante al pie, estilo notebook margin */}
+      <div
+        className="fixed left-0 right-0 bottom-0 border-t border-ink-1 bg-lino-100/95 backdrop-blur-md"
+        style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="max-w-4xl mx-auto px-4 md:px-8 py-4">
+          <div className="font-serif italic text-sm text-ink-3 mb-2">
+            ¿Qué quieres mover hoy?
+          </div>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={toggleAutoSpeak}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3 hover:text-ink-1 transition-colors shrink-0 inline-flex items-center gap-1.5"
+              title={autoSpeak ? 'Lee activado' : 'Lee apagado'}
+            >
+              {autoSpeak
+                ? <><Volume2 size={12} strokeWidth={1.5} /> Lee</>
+                : <><VolumeX size={12} strokeWidth={1.5} /> Mute</>}
+            </button>
+            <textarea
+              ref={textareaRef}
+              rows={1}
+              className="flex-1 bg-transparent border-b border-ink-1 font-sans text-base text-ink-1 outline-none resize-none py-1.5 placeholder:italic placeholder:font-serif placeholder:text-ink-3"
+              placeholder="Habla normal, ella entiende…"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKey}
+              disabled={sending}
+            />
             <VoiceInput
               ref={micRef}
               inputRef={textareaRef}
@@ -295,123 +393,24 @@ export default function Hoy() {
                 setInput((prev) => (prev ? prev + ' ' : '') + clean);
                 if (SEND_RE.test(text)) setTimeout(() => sendToAthena(), 50);
               }}
+              className="shrink-0"
             />
-            <div className="flex items-center gap-3">
-              <button
-                onClick={() => navigate('/chat')}
-                className="text-xs text-ink-3 hover:text-lino-800"
-                title="Abrir chat completo"
-              >
-                Ver todo
-              </button>
-              <button
-                onClick={sendToAthena}
-                disabled={sending || !input.trim()}
-                className="btn-primary text-sm"
-              >
-                {sending ? '…' : 'Enviar'}
-              </button>
-            </div>
+            <button
+              onClick={sendToAthena}
+              disabled={sending || !input.trim()}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] px-3 py-2 border border-ink-1 text-ink-1 hover:bg-ink-1 hover:text-lino-100 transition-colors disabled:opacity-30 shrink-0"
+            >
+              Enviar
+            </button>
+            <button
+              onClick={() => navigate('/chat')}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3 hover:text-ink-1 transition-colors shrink-0 hidden md:block"
+            >
+              Ver todo
+            </button>
           </div>
         </div>
-
-        {recentMessages.length > 0 && (
-          <div className="mt-3 space-y-2 max-h-96 overflow-y-auto pr-1">
-            {recentMessages.map((m, i) => (
-              <article
-                key={i}
-                className={`card text-sm leading-relaxed whitespace-pre-wrap ${
-                  m.role === 'user'
-                    ? 'bg-lino-200/60 ml-8'
-                    : m.error
-                      ? 'bg-red/5 border-red/30 text-red mr-8'
-                      : 'bg-white/80 mr-8'
-                }`}
-              >
-                {m.role === 'assistant' && !m.error ? (
-                  <div className="flex items-start gap-3">
-                    <AthenaAvatar size={28} className="shrink-0 mt-0.5" />
-                    <div className="flex-1 text-ink-1">{m.content}</div>
-                  </div>
-                ) : (
-                  <div className={m.role === 'user' ? 'text-ink-1' : ''}>{m.content}</div>
-                )}
-              </article>
-            ))}
-            {sending && (
-              <article className="card bg-white/60 mr-8 text-sm italic text-ink-3">
-                pensando…
-              </article>
-            )}
-          </div>
-        )}
-      </section>
-
-      {/* 4) Tu día en números — strip compacto */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h3 className="font-serif text-lg text-lino-800">Tu día en números</h3>
-        </div>
-        <div className="grid grid-cols-3 md:grid-cols-6 gap-2 text-center">
-          <Link to="/tareas" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">{stats.plans_total_active}</div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Plan activo</div>
-          </Link>
-          <Link to="/goals" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">{stats.goals_active}</div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Metas</div>
-          </Link>
-          <Link to="/trends" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">{stats.trends_pending}</div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Trends</div>
-          </Link>
-          <Link to="/reading" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">{stats.reading_pending}</div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Reading</div>
-          </Link>
-          <Link to="/journal" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">{stats.journal_week}</div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Journal</div>
-          </Link>
-          <Link to="/rapport" className="card-mini hover:bg-lino-50">
-            <div className="font-serif text-xl text-lino-800">
-              {stats.rapport_latest?.peso_lbs || '—'}
-            </div>
-            <div className="text-[10px] text-ink-3 uppercase tracking-wider mt-0.5">Peso lbs</div>
-          </Link>
-        </div>
-      </section>
-
-      {/* Bloques de detalle solo si hay data — más discretos */}
-      {state?.focus_blocks?.length > 0 && (
-        <section>
-          <h3 className="font-serif text-lg text-lino-800 mb-3">Tiempo protegido hoy</h3>
-          <ul className="card space-y-1">
-            {state.focus_blocks.map((b) => (
-              <li key={b.id} className="text-sm text-ink-2">
-                <span className="font-medium">{b.titulo}</span>
-                <span className="text-ink-3"> · {b.modo} · {b.inicio_hhmm}–{b.fin_hhmm}</span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {state?.legal_alerts && (state.legal_alerts.vencidas?.length || state.legal_alerts['7']?.length) && (
-        <section>
-          <h3 className="font-serif text-lg text-lino-800 mb-3">Legal — atención</h3>
-          <div className="card border-amber/40 bg-amber/5 space-y-1">
-            {state.legal_alerts.vencidas?.map((o) => (
-              <p key={o.id} className="text-sm text-red">
-                <strong>Vencida:</strong> {o.descripcion} ({o.dias_vencida}d)
-              </p>
-            ))}
-            {state.legal_alerts['7']?.map((o) => (
-              <p key={o.id} className="text-sm text-amber">{o.descripcion} en {o.dias_falt} días</p>
-            ))}
-          </div>
-        </section>
-      )}
+      </div>
     </div>
   );
 }

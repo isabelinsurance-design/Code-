@@ -25,8 +25,9 @@ export default {
         red: '#B33A2E',
       },
       fontFamily: {
-        sans: ['system-ui', '-apple-system', 'Inter', 'Segoe UI', 'sans-serif'],
-        serif: ['Georgia', 'Cambria', 'serif'],
+        sans: ['"DM Sans"', 'system-ui', '-apple-system', 'Inter', 'sans-serif'],
+        serif: ['Fraunces', 'Georgia', 'Cambria', 'serif'],
+        mono: ['"DM Mono"', 'ui-monospace', 'monospace'],
       },
     },
   },
