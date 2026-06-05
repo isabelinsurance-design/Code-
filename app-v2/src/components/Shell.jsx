@@ -4,6 +4,7 @@ import QuickAdd from './QuickAdd.jsx';
 
 const NAV = [
   { to: '/hoy', label: 'Hoy', icon: '☀' },
+  { to: '/chat', label: 'Athena', icon: '💬' },
   { to: '/search', label: 'Buscar', icon: '🔍' },
   { to: '/coaches', label: 'Coaches', icon: '✦' },
   { to: '/trends', label: 'Trends', icon: '🔥' },
