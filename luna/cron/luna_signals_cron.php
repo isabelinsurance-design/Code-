@@ -16,7 +16,7 @@
    señales en sync con computeSignals() de luna_api.php.
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 
 $TZ = 'America/Los_Angeles';
 date_default_timezone_set($TZ);

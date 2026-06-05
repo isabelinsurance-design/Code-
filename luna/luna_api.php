@@ -14,7 +14,7 @@
  * Ubicación esperada: public_html/luna/luna_api.php
  * ═══════════════════════════════════════════════════════
  */
-require_once __DIR__ . '/../config.php';   // ← LUNA vive en /luna/, config en raíz (ruta robusta con __DIR__)
+require_once __DIR__ . '/luna_config.php';  // ← config propio de LUNA (siempre en la misma carpeta)
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');

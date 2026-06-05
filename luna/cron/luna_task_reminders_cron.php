@@ -16,7 +16,7 @@
    Isabel (marcada "sin correo") y se reintenta al día siguiente.
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 require_once __DIR__ . '/../luna_meetings.php';
 
 date_default_timezone_set('America/Los_Angeles');

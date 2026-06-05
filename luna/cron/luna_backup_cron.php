@@ -21,7 +21,7 @@
    lo permite, el script crea un .htaccess "Deny from all" como respaldo.
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 
 $TZ = 'America/Los_Angeles';
 date_default_timezone_set($TZ);

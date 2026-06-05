@@ -16,7 +16,7 @@
    https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://withisabelfuentes.com/luna/luna_telegram_webhook.php
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/luna_config.php';  // ← config propio de LUNA
 
 define('TG_TOKEN', 'XXXX:YYYY');           // ← mismo token del BotFather
 define('ISABEL_CHAT_ID', '0');             // ← chat_id de Isabel

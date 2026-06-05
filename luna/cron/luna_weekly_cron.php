@@ -11,7 +11,7 @@
    COMPARA: esta semana vs semana anterior + acumulado mensual
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 require_once __DIR__ . '/../luna_ai.php';       // cerebro IA (degradación elegante si no hay key)
 require_once __DIR__ . '/../luna_radar.php';    // Radar de tendencias / Chief of Staff
 require_once __DIR__ . '/../luna_meetings.php';  // Acuerdos y seguimiento de la junta

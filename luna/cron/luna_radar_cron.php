@@ -14,7 +14,7 @@
    ANTHROPIC_API_KEY o la búsqueda web falla, guarda un run marcado y sale.
 ════════════════════════════════════════════════════════════════ */
 
-require_once __DIR__ . '/../../config.php';
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 require_once __DIR__ . '/../luna_radar.php';
 
 $TZ = 'America/Los_Angeles';

@@ -11,7 +11,7 @@
 ════════════════════════════════════════════════════════════════ */
 
 // ─── CONFIG ───────────────────────────────────────────────────
-require_once __DIR__ . '/../../config.php'; // Bluehost DB credentials
+require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 require_once __DIR__ . '/../luna_ai.php'; // cerebro IA (degradación elegante si no hay key)
 
 $CONFIG = [
