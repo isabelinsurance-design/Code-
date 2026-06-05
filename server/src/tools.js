@@ -2156,7 +2156,19 @@ async function dispatchTool(name, input) {
         const venceStr = t.vence
           ? ` Vence: ${new Date(t.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles' })}.`
           : '';
-        return `Tarea creada [${t.id}] para ${t.responsable}: "${t.descripcion}".${venceStr}`;
+        // Auto-grouping: si la tarea encaja en un proyecto activo, vincula.
+        let autoStr = '';
+        try {
+          const { autoGroupItem } = await import('./project_classifier.js');
+          const r = await autoGroupItem({
+            kind: 'task',
+            itemId: t.id,
+            title: t.descripcion || t.titulo,
+            description: t.contexto || '',
+          });
+          if (r.auto_grouped) autoStr = ` · vinculada a proyecto "${r.project_nombre}".`;
+        } catch { /* ignore */ }
+        return `Tarea creada [${t.id}] para ${t.responsable}: "${t.descripcion}".${venceStr}${autoStr}`;
       } catch (err) {
         return `Error creando tarea: ${err.message}`;
       }
@@ -2230,7 +2242,19 @@ async function dispatchTool(name, input) {
         const c = createCommitment(input);
         const due = c.vence ? ` Vence: ${new Date(c.vence).toLocaleString('es-MX', { timeZone: process.env.TIMEZONE || 'America/Los_Angeles' })}.` : '';
         const reach = c.persona_contacto ? ` Lo voy a perseguir vía ${c.canal} a ${c.persona_contacto}.` : ' Sin contacto registrado — solo te aviso cuando se atrase.';
-        return `Compromiso registrado [${c.id}]: ${c.persona} → "${c.descripcion}".${due}${reach}`;
+        // Auto-grouping
+        let autoStr = '';
+        try {
+          const { autoGroupItem } = await import('./project_classifier.js');
+          const r = await autoGroupItem({
+            kind: 'commitment',
+            itemId: c.id,
+            title: `${c.persona}: ${c.descripcion}`,
+            description: c.descripcion,
+          });
+          if (r.auto_grouped) autoStr = ` · vinculado a "${r.project_nombre}".`;
+        } catch { /* ignore */ }
+        return `Compromiso registrado [${c.id}]: ${c.persona} → "${c.descripcion}".${due}${reach}${autoStr}`;
       } catch (err) {
         return `Error: ${err.message}`;
       }

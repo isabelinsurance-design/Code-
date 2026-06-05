@@ -235,6 +235,8 @@ export const api = {
   projectDelete: (id) => request(`/projects/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   projectLink: (id, kind, itemId) => request(`/projects/${encodeURIComponent(id)}/link`, { method: 'POST', body: { kind, itemId } }),
   projectUnlink: (id, kind, itemId) => request(`/projects/${encodeURIComponent(id)}/unlink`, { method: 'POST', body: { kind, itemId } }),
+  // Reclasificar huérfanos — Haiku decide en qué proyecto van
+  projectsReclassify: () => request('/projects/reclassify', { method: 'POST' }),
   // Command center — mission bar + decisiones + autonomía
   commandStatus: () => request('/command/status'),
   commandDecisions: () => request('/command/decisions'),

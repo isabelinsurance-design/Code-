@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { RefreshCw, Plus, ArrowRight } from 'lucide-react';
+import { RefreshCw, Plus, ArrowRight, Sparkles } from 'lucide-react';
 import { api } from '../lib/api.js';
 
 // Proyectos — agrupación cross-domain (tareas + commitments + tickets LUNA + emails).
@@ -114,6 +114,22 @@ export default function Proyectos() {
     } catch (e) { setErr(e.message); }
   }
 
+  const [reclassifying, setReclassifying] = useState(false);
+  async function reclassify() {
+    setReclassifying(true);
+    setErr('');
+    try {
+      const r = await api.projectsReclassify();
+      await reload();
+      if (r.grouped > 0) {
+        alert(`Auto-grupé ${r.grouped} de ${r.processed} items huérfanos.`);
+      } else {
+        alert(`Revisé ${r.processed} items huérfanos — ninguno encajaba con confianza suficiente.`);
+      }
+    } catch (e) { setErr(e.message); }
+    finally { setReclassifying(false); }
+  }
+
   const filtered = filter ? projects.filter((p) => p.status === filter) : projects;
 
   return (
@@ -162,13 +178,26 @@ export default function Proyectos() {
       {showForm && <NewProjectForm onCreate={create} onCancel={() => setShowForm(false)} />}
 
       {!showForm && (
-        <button
-          onClick={() => setShowForm(true)}
-          className="font-mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-ink-1 text-ink-1 hover:bg-ink-1 hover:text-lino-100 inline-flex items-center gap-2 mb-8"
-        >
-          <Plus size={12} strokeWidth={2} />
-          Nuevo proyecto
-        </button>
+        <div className="flex flex-wrap gap-3 mb-8">
+          <button
+            onClick={() => setShowForm(true)}
+            className="font-mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-ink-1 text-ink-1 hover:bg-ink-1 hover:text-lino-100 inline-flex items-center gap-2"
+          >
+            <Plus size={12} strokeWidth={2} />
+            Nuevo proyecto
+          </button>
+          {projects.length > 0 && (
+            <button
+              onClick={reclassify}
+              disabled={reclassifying}
+              className="font-mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 text-ink-3 hover:text-ink-1 inline-flex items-center gap-2 disabled:opacity-40"
+              title="Pasa Haiku por tareas y promesas huérfanas y las vincula al proyecto que más encaje"
+            >
+              <Sparkles size={12} strokeWidth={1.5} />
+              {reclassifying ? 'Clasificando…' : 'Auto-vincular huérfanos'}
+            </button>
+          )}
+        </div>
       )}
 
       {/* PROJECTS LIST */}

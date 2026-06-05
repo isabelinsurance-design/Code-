@@ -968,6 +968,16 @@ export function registerApi(app) {
     } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
   });
 
+  // Reclasificar items huérfanos — corre el classifier sobre tareas y
+  // compromisos sin proyecto y los auto-vincula.
+  app.post('/api/projects/reclassify', requireAuth, async (_req, res) => {
+    try {
+      const { reclassifyOrphans } = await import('./project_classifier.js');
+      const r = await reclassifyOrphans({ kinds: ['tasks', 'commitments'] });
+      res.json(r);
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // Captura rápida — Isabel dicta una tarea/compromiso y Athena la rutea.
   // Reusa runDirectora con un prompt envuelto que fuerza acción inmediata.
   app.post('/api/quick-capture', requireAuth, async (req, res) => {

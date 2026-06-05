@@ -361,7 +361,20 @@ export async function runLunaTool(name, input = {}) {
         const r = await lunaCreateTicket(input);
         if (!r.ok) return `No pude crear el ticket en LUNA: ${r.error}`;
         const asignado = { '6': 'Isabel', '7': 'Skarleth', '9': 'Arlette', '10': 'Samia' }[String(input.asignado_a)] || 'sin asignar';
-        return `Ticket ${input.tipo || 'SEGUIMIENTO'}/${input.prioridad || 'MEDIA'} creado en LUNA · asignado a ${asignado} · id=${r.data?.id || '?'}.`;
+        // Auto-grouping
+        let autoStr = '';
+        try {
+          const { autoGroupItem } = await import('./project_classifier.js');
+          const ag = await autoGroupItem({
+            kind: 'ticket_luna',
+            itemId: r.data?.id,
+            title: input.titulo || input.descripcion || 'ticket LUNA',
+            description: input.descripcion || '',
+            context: input.miembro_nombre ? `Cliente: ${input.miembro_nombre}` : '',
+          });
+          if (ag.auto_grouped) autoStr = ` · vinculado a "${ag.project_nombre}".`;
+        } catch { /* ignore */ }
+        return `Ticket ${input.tipo || 'SEGUIMIENTO'}/${input.prioridad || 'MEDIA'} creado en LUNA · asignado a ${asignado} · id=${r.data?.id || '?'}.${autoStr}`;
       }
       case 'luna_crear_cita': {
         const r = await lunaCreateAppointment(input);
