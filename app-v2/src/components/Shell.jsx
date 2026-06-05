@@ -41,6 +41,7 @@ const NAV_GROUPS = [
   {
     label: 'Sistema',
     items: [
+      { to: '/comandos', label: 'Cómo hablarle' },
       { to: '/wiki', label: 'Wiki y temporada' },
       { to: '/actividad', label: 'Actividad' },
       { to: '/search', label: 'Buscar' },

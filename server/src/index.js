@@ -363,6 +363,10 @@ scheduleCron('self_grade', process.env.SELF_GRADE_CRON   || '0 20 * * 0', weekly
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * 2,4', sendResearchDigest);
 // Closing the loop — 6pm-7pm, reporta lo que cerramos hoy (pattern del Elite EA SOP)
 scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', sendClosingLoop);
+// Ticket monitor — 10am y 4pm L-S, avisa tickets LUNA estancados (>2 días, >0.5 si ALTA)
+import('./ticket_monitor.js').then(({ sendStaleTicketAlert }) => {
+  scheduleCron('ticket_monitor', process.env.TICKET_MONITOR_CRON || '0 10,16 * * 1-6', sendStaleTicketAlert);
+}).catch((e) => console.warn('[cron] ticket_monitor no se pudo cargar:', e.message));
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
 // Triage corre antes del briefing para que Athena tenga lista la
 // clasificación + borradores en cola cuando salude a Isabel.

@@ -104,11 +104,49 @@ export function computeClosingLoop() {
   };
 }
 
-// Construye el mensaje WhatsApp para Isabel
-export function buildClosingLoopMessage() {
+// Trae estado del equipo Medicare desde LUNA — tickets abiertos por persona,
+// tickets cerrados hoy. Falla suave: si LUNA no responde, devuelve null y la
+// sección no aparece en el mensaje.
+async function teamStatusFromLuna() {
+  try {
+    const { lunaConfigured, openTickets, recentActivity } = await import('./luna_client.js');
+    if (!lunaConfigured()) return null;
+    const [openRes, actRes] = await Promise.all([
+      openTickets({ priority: '' }).catch(() => ({ ok: false })),
+      recentActivity({ limit: 100 }).catch(() => ({ ok: false })),
+    ]);
+    const result = { abiertos: {}, cerrados_hoy: 0, total_abiertos: 0, source: 'luna' };
+    if (openRes.ok && Array.isArray(openRes.data)) {
+      for (const t of openRes.data) {
+        const owner = t.asignado_nombre || `id ${t.asignado_a || '?'}`;
+        result.abiertos[owner] = (result.abiertos[owner] || 0) + 1;
+        result.total_abiertos++;
+      }
+    }
+    if (actRes.ok && Array.isArray(actRes.data)) {
+      const TZ = process.env.TIMEZONE || 'America/Los_Angeles';
+      const today = new Intl.DateTimeFormat('en-CA', {
+        timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+      }).format(new Date());
+      result.cerrados_hoy = actRes.data.filter((a) => {
+        const localDate = a.fecha ? new Intl.DateTimeFormat('en-CA', {
+          timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit',
+        }).format(new Date(a.fecha)) : null;
+        return localDate === today && /cerr|complet|hech|done/i.test(a.descripcion || a.tipo || '');
+      }).length;
+    }
+    return result;
+  } catch { return null; }
+}
+
+// Construye el mensaje WhatsApp para Isabel. Async ahora — incluye estado del
+// equipo Medicare desde LUNA si está conectado.
+export async function buildClosingLoopMessage() {
   const loop = computeClosingLoop();
-  if (loop.total === 0) {
-    return null; // si nada que reportar, no mandar
+  const team = await teamStatusFromLuna();
+  // Reportamos si hubo actividad propia O si hay tickets de equipo a mencionar.
+  if (loop.total === 0 && (!team || team.total_abiertos === 0)) {
+    return null;
   }
 
   const fecha = new Date().toLocaleDateString('es-MX', {
@@ -116,34 +154,49 @@ export function buildClosingLoopMessage() {
     timeZone: process.env.TIMEZONE || 'America/Los_Angeles',
   });
 
-  const lines = [`🌅 Closing the Loop — ${fecha}`, ''];
-  lines.push(`Cerramos ${loop.total} acción${loop.total !== 1 ? 'es' : ''} hoy:`);
-  lines.push('');
+  const lines = [`Cierre del día — ${fecha}`, ''];
 
-  // Orden por importancia: outbound primero, después memory, después brand/legal
-  const orderPriority = [
-    'enviar_email', 'confirmar_envio', 'enviar_sms', 'mensaje_a_sami', 'llamar_cliente',
-    'crear_cita', 'reagendar_cita', 'cancelar_cita',
-    'luna_crear_miembro', 'luna_crear_ticket', 'luna_crear_cita',
-    'luna_agregar_nota', 'luna_registrar_actividad',
-    'completar_tarea', 'marcar_cumplido',
-    'comprometer_entrega',
-    'skill_invocar', 'crear_rutina',
-    'brand_idea_add', 'brand_calendar_add', 'brand_post_registrar',
-    'registrar_obligacion_legal', 'cumpli_obligacion',
-    'entidad_anotar', 'recordar',
-  ];
-
-  for (const tool of orderPriority) {
-    const entries = loop.por_tool[tool];
-    if (!entries || !entries.length) continue;
-    const meta = TOOL_LABELS[tool] || { icon: '•', label: tool };
-    lines.push(`${meta.icon} ${meta.label} × ${entries.length}`);
+  // SECCIÓN 1: Equipo Medicare (lo más importante para Isabel)
+  if (team && (team.total_abiertos > 0 || team.cerrados_hoy > 0)) {
+    lines.push('EQUIPO MEDICARE');
+    if (team.cerrados_hoy > 0) {
+      lines.push(`✓ ${team.cerrados_hoy} acción${team.cerrados_hoy !== 1 ? 'es' : ''} cerrada${team.cerrados_hoy !== 1 ? 's' : ''} hoy`);
+    }
+    if (team.total_abiertos > 0) {
+      lines.push(`◯ ${team.total_abiertos} ticket${team.total_abiertos !== 1 ? 's' : ''} abierto${team.total_abiertos !== 1 ? 's' : ''}:`);
+      const sorted = Object.entries(team.abiertos).sort((a, b) => b[1] - a[1]);
+      for (const [owner, n] of sorted) {
+        lines.push(`  · ${owner}: ${n}`);
+      }
+    }
+    lines.push('');
   }
 
-  lines.push('');
-  lines.push('Mañana: revisamos en el briefing 6:30am.');
+  // SECCIÓN 2: Lo que TÚ hiciste vía Athena hoy
+  if (loop.total > 0) {
+    lines.push('TUS ACCIONES HOY');
+    const orderPriority = [
+      'enviar_email', 'confirmar_envio', 'enviar_sms', 'mensaje_a_sami', 'llamar_cliente',
+      'crear_cita', 'reagendar_cita', 'cancelar_cita',
+      'luna_crear_miembro', 'luna_crear_ticket', 'luna_crear_cita',
+      'luna_agregar_nota', 'luna_registrar_actividad',
+      'completar_tarea', 'marcar_cumplido',
+      'comprometer_entrega',
+      'skill_invocar', 'crear_rutina',
+      'brand_idea_add', 'brand_calendar_add', 'brand_post_registrar',
+      'registrar_obligacion_legal', 'cumpli_obligacion',
+      'entidad_anotar', 'recordar',
+    ];
+    for (const tool of orderPriority) {
+      const entries = loop.por_tool[tool];
+      if (!entries || !entries.length) continue;
+      const meta = TOOL_LABELS[tool] || { icon: '•', label: tool };
+      lines.push(`${meta.icon} ${meta.label} × ${entries.length}`);
+    }
+    lines.push('');
+  }
 
+  lines.push('Mañana: briefing 6:30am.');
   return lines.join('\n');
 }
 
@@ -165,7 +218,7 @@ export async function sendClosingLoop() {
     return;
   }
 
-  const message = buildClosingLoopMessage();
+  const message = await buildClosingLoopMessage();
   if (!message) {
     console.log('[closing_loop] nada que reportar hoy — saltado.');
     return;
