@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check, Flame, Settings as SettingsIcon, Search } from 'lucide-react';
 import { api } from '../lib/api.js';
 
 export default function Trends() {
@@ -36,7 +37,7 @@ export default function Trends() {
     setErr('');
     try {
       const r = await api.trendsScanNow();
-      setErr(`✓ Scan: ${r.fresh.length} nuevo(s), ${r.highScore.length} score≥8.`);
+      setErr(`Scan completo: ${r.fresh.length} nuevo(s), ${r.highScore.length} score≥8.`);
       await reload();
     } catch (e) {
       setErr(e.message);
@@ -68,8 +69,8 @@ export default function Trends() {
           <h2 className="font-serif text-3xl text-lino-800">Trends</h2>
           <p className="text-ink-3 text-sm">Lo que está volviéndose viral / trending / breaking en tus dominios. Scan automático 11am.</p>
         </div>
-        <button onClick={scanNow} disabled={scanning} className="btn-primary text-sm">
-          {scanning ? 'Buscando…' : '🔍 Scan ahora'}
+        <button onClick={scanNow} disabled={scanning} className="btn-primary text-sm inline-flex items-center gap-1.5">
+          {scanning ? 'Buscando…' : <><Search size={14} strokeWidth={1.5} /> Scan ahora</>}
         </button>
       </header>
 
@@ -113,8 +114,11 @@ export default function Trends() {
                   <span className={`px-2 py-0.5 rounded text-xs font-mono ${scoreColor(t.score)}`}>
                     {t.score}/10
                   </span>
-                  <span className="text-xs text-ink-3">
-                    {t.topic_id === 'chief_of_staff' ? '⚙️ ' : '🔥 '}{t.topic_nombre}
+                  <span className="text-xs text-ink-3 inline-flex items-center gap-1">
+                    {t.topic_id === 'chief_of_staff'
+                      ? <SettingsIcon size={11} strokeWidth={1.5} />
+                      : <Flame size={11} strokeWidth={1.5} />}
+                    {t.topic_nombre}
                   </span>
                   <span className="text-xs text-ink-3">·</span>
                   <span className="text-xs text-ink-3">{new Date(t.ts).toLocaleDateString('es-MX', { month: 'short', day: 'numeric' })}</span>
@@ -128,9 +132,9 @@ export default function Trends() {
                 )}
               </div>
               <div className="flex gap-1 shrink-0">
-                {status !== 'aplicado' && <button onClick={() => mark(t.id, 'aplicado')} className="text-xs text-ink-3 hover:text-green-700" title="Aplicado">✓</button>}
-                {status !== 'archivado' && <button onClick={() => mark(t.id, 'archivado')} className="text-xs text-ink-3 hover:text-ink-1" title="Archivar">📁</button>}
-                {status !== 'pending' && <button onClick={() => mark(t.id, 'pending')} className="text-xs text-ink-3 hover:text-yellow" title="Volver a pending">↻</button>}
+                {status !== 'aplicado' && <button onClick={() => mark(t.id, 'aplicado')} className="text-ink-3 hover:text-green-700" title="Aplicado"><Check size={14} strokeWidth={1.5} /></button>}
+                {status !== 'archivado' && <button onClick={() => mark(t.id, 'archivado')} className="text-xs text-ink-3 hover:text-ink-1" title="Archivar">Archivar</button>}
+                {status !== 'pending' && <button onClick={() => mark(t.id, 'pending')} className="text-xs text-ink-3 hover:text-yellow" title="Volver a pending">↺</button>}
               </div>
             </div>
             <p className="text-sm text-ink-1">{t.summary}</p>

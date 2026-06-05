@@ -47,7 +47,7 @@ export default function Calendar() {
     return (
       <div className="space-y-5">
         <header>
-          <h2 className="font-serif text-3xl text-lino-800">Calendario</h2>
+          <h2 className="font-serif text-3xl text-lino-800">Agenda</h2>
         </header>
         <div className="card bg-amber/5 border-amber/30">
           <p className="text-sm text-ink-2">
@@ -65,7 +65,7 @@ export default function Calendar() {
     <div className="space-y-5">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="font-serif text-3xl text-lino-800">Calendario</h2>
+          <h2 className="font-serif text-3xl text-lino-800">Agenda</h2>
           <p className="text-ink-3 text-sm">Tus próximos eventos de Google Calendar.</p>
         </div>
         <div className="flex gap-2">

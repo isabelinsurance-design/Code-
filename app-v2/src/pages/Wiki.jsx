@@ -46,7 +46,7 @@ export default function Wiki() {
   return (
     <div className="space-y-5">
       <header>
-        <h2 className="font-serif text-3xl text-lino-800">Wiki & Temporada</h2>
+        <h2 className="font-serif text-3xl text-lino-800">Wiki y temporada</h2>
         <p className="text-ink-3 text-sm">Tu memoria persistente. Lo que Athena lee antes de cada turno.</p>
       </header>
 

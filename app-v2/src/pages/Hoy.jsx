@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { AlertTriangle, Search } from 'lucide-react';
 import { api } from '../lib/api.js';
 import PushSettings from '../components/PushSettings.jsx';
 
@@ -90,8 +91,8 @@ export default function Hoy() {
         <Link to="/goals" className="card hover:bg-lino-50 transition-colors">
           <div className="text-xs text-ink-3">Metas</div>
           <div className="font-serif text-2xl text-lino-800 mt-1">{stats.goals_active}</div>
-          <div className={`text-xs ${stats.goals_off_track > 0 ? 'text-orange-700' : 'text-ink-3'}`}>
-            {stats.goals_off_track > 0 ? `⚠ ${stats.goals_off_track} off-track` : 'activas'}
+          <div className={`text-xs inline-flex items-center gap-1 ${stats.goals_off_track > 0 ? 'text-orange-700' : 'text-ink-3'}`}>
+            {stats.goals_off_track > 0 ? <><AlertTriangle size={11} strokeWidth={1.5} /> {stats.goals_off_track} off-track</> : 'activas'}
           </div>
         </Link>
         <Link to="/reading" className="card hover:bg-lino-50 transition-colors">
@@ -119,7 +120,7 @@ export default function Hoy() {
         </Link>
         <Link to="/search" className="card hover:bg-lino-50 transition-colors">
           <div className="text-xs text-ink-3">Buscar</div>
-          <div className="font-serif text-2xl text-lino-800 mt-1">🔍</div>
+          <div className="font-serif text-2xl text-lino-800 mt-1"><Search size={22} strokeWidth={1.5} className="inline" /></div>
           <div className="text-xs text-ink-3">global</div>
         </Link>
       </div>

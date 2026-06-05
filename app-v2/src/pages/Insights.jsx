@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Check, AlertTriangle, Info, OctagonAlert, BarChart3 } from 'lucide-react';
 import { api } from '../lib/api.js';
 
 function SubscoreBar({ label, value, max = 20 }) {
@@ -23,7 +24,12 @@ const SEV_STYLE = {
   info: 'bg-lino-100 border-lino-200 text-ink-2',
 };
 
-const SEV_ICON = { alto: '🛑', aviso: '⚠️', info: 'ℹ️' };
+function SevIcon({ sev }) {
+  const props = { size: 14, strokeWidth: 1.5, className: 'inline-block' };
+  if (sev === 'alto') return <OctagonAlert {...props} />;
+  if (sev === 'aviso') return <AlertTriangle {...props} />;
+  return <Info {...props} />;
+}
 
 const EMOCION_LABELS = {
   estres: '😣 Estrés',
@@ -95,7 +101,7 @@ export default function Insights() {
       {/* Self-grade de Athena — auto-evaluación semanal */}
       <section>
         <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm font-medium text-lino-800">📊 Self-grade de Athena</h3>
+          <h3 className="text-sm font-medium text-lino-800 inline-flex items-center gap-1.5"><BarChart3 size={14} strokeWidth={1.5} /> Self-grade de Athena</h3>
           <button onClick={gradeNow} disabled={grading} className="text-xs text-lino-700 hover:underline">
             {grading ? 'Calculando…' : 'Correr ahora'}
           </button>
@@ -150,12 +156,12 @@ export default function Insights() {
                       <div className="text-xs text-ink-3 mb-1">Cambio propuesto para próxima sem:</div>
                       <pre className="text-xs text-ink-1 whitespace-pre-wrap font-sans">{g.cambio_propuesto}</pre>
                       {!g.implementado && (
-                        <button onClick={() => markImplemented(g.semana)} className="mt-2 text-xs text-lino-700 hover:underline">
-                          ✓ Marcar como implementado
+                        <button onClick={() => markImplemented(g.semana)} className="mt-2 text-xs text-lino-700 hover:underline inline-flex items-center gap-1">
+                          <Check size={12} strokeWidth={1.5} /> Marcar como implementado
                         </button>
                       )}
                       {g.implementado && (
-                        <p className="text-xs text-green-700 mt-2">✓ Implementado el {g.implementado_ts?.slice(0, 10)}</p>
+                        <p className="text-xs text-green-700 mt-2 inline-flex items-center gap-1"><Check size={12} strokeWidth={1.5} /> Implementado el {g.implementado_ts?.slice(0, 10)}</p>
                       )}
                     </div>
                   )}
@@ -176,7 +182,7 @@ export default function Insights() {
           {signalsByPrio.map((s, i) => (
             <div key={i} className={`card border ${SEV_STYLE[s.severidad] || SEV_STYLE.info}`}>
               <div className="flex items-start gap-2">
-                <span className="shrink-0">{SEV_ICON[s.severidad] || '·'}</span>
+                <span className="shrink-0"><SevIcon sev={s.severidad} /></span>
                 <div className="flex-1">
                   <div className="text-sm font-medium">{s.mensaje}</div>
                   <div className="text-xs opacity-70 mt-1">{s.tipo}</div>

@@ -285,7 +285,7 @@ export default function Chat() {
     <div className="space-y-4 h-full flex flex-col">
       <header className="flex items-end justify-between gap-3 flex-wrap">
         <div>
-          <h2 className="font-serif text-3xl text-lino-800">Chat</h2>
+          <h2 className="font-serif text-3xl text-lino-800">Athena</h2>
           <p className="text-ink-3 text-sm">Habla con cualquiera de tus coaches.</p>
         </div>
         <div className="flex items-center gap-2 flex-wrap">

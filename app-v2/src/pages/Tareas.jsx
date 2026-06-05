@@ -13,7 +13,7 @@ export default function Tareas() {
   return (
     <div className="space-y-5">
       <header>
-        <h2 className="font-serif text-3xl text-lino-800">Tareas & promesas</h2>
+        <h2 className="font-serif text-3xl text-lino-800">Tareas y promesas</h2>
         <p className="text-ink-3 text-sm">Lo que tú debes vs lo que te deben.</p>
       </header>
 

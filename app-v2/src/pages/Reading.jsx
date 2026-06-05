@@ -70,7 +70,7 @@ export default function Reading() {
     <div className="space-y-5">
       <header className="flex items-end justify-between flex-wrap gap-3">
         <div>
-          <h2 className="font-serif text-3xl text-lino-800">Reading List</h2>
+          <h2 className="font-serif text-3xl text-lino-800">Reading</h2>
           <p className="text-ink-3 text-sm">Tu pocket interno — links que quieres procesar después.</p>
         </div>
         <button onClick={() => setComposing((c) => !c)} className="btn-primary text-sm">
