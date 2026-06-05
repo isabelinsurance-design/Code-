@@ -229,7 +229,34 @@ async function replyTo(to, text, { voice = false } = {}) {
 //  - PDFs → document blocks base64 (Claude los lee nativo desde 3.5)
 //  - Audio (voice notes) → transcripción Whisper, se mete como texto
 //  - Otros → nota textual
+// Reescribe el mensaje de Isabel para inyectar su contacto cuando dice
+// "llámame", "mándame email", etc. Athena tiene el dato en su system
+// prompt + memoria, pero a veces lo ignora. Si el dato está en el mensaje
+// mismo del usuario, ya no puede ignorarlo — lo está leyendo literal.
+function injectIsabelContact(text) {
+  if (!text) return text;
+  const ISABEL_PHONE = '+13102700626';
+  const ISABEL_EMAIL = 'connect@withisabelfuentes.com';
+  // Llamadas
+  if (/\b(ll[aá]mame|c[aá]llame|m[aá]rcame|call me|phone me|ring me)\b/i.test(text)
+      && !text.includes(ISABEL_PHONE)) {
+    text += ` [contexto: el número de Isabel es ${ISABEL_PHONE} — úsalo con llamar_cliente sin preguntar]`;
+  }
+  // Email
+  if (/\b(m[aá]ndame email|send me email|email me|email to me)\b/i.test(text)
+      && !text.includes(ISABEL_EMAIL)) {
+    text += ` [contexto: el email de Isabel es ${ISABEL_EMAIL}]`;
+  }
+  // SMS
+  if (/\b(m[aá]ndame sms|m[aá]ndame texto|text me|sms me)\b/i.test(text)
+      && !text.includes(ISABEL_PHONE)) {
+    text += ` [contexto: el número de Isabel es ${ISABEL_PHONE} — úsalo con enviar_sms]`;
+  }
+  return text;
+}
+
 async function buildUserContent(text, numMedia, body) {
+  text = injectIsabelContact(text);
   if (!numMedia) return text;
   const parts = [];
   const transcripts = [];
@@ -266,7 +293,7 @@ async function buildUserContent(text, numMedia, body) {
       transcripts.push(`[Isabel adjuntó un archivo ${ctype} que todavía no puedo procesar.]`);
     }
   }
-  const merged = [text, ...transcripts].filter(Boolean).join('\n\n');
+  const merged = injectIsabelContact([text, ...transcripts].filter(Boolean).join('\n\n'));
   parts.push({ type: 'text', text: merged || '(Isabel mandó adjunto sin texto — describe lo que ves/oíste/leíste y reacciona.)' });
   return parts;
 }

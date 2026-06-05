@@ -467,16 +467,34 @@ export default function Chat() {
           <VoiceInput
             ref={micRef}
             onTranscript={(text, isFinal) => {
-              // Aggrega lo nuevo dictado al input existente.
-              // Mientras es interim, REEMPLAZA la última parte (no
-              // duplica). Cuando es final, lo deja fijo y limpia.
-              if (isFinal) {
-                setInput((prev) => (prev ? prev + ' ' : '') + text);
-              } else {
-                // Para visual feedback en tiempo real, podemos
-                // appendear el interim — pero solo si es algo nuevo
-                // distinto del último final. Mantenemos simple por ahora:
-                // solo committeamos en final.
+              if (!isFinal) return;
+              // Comandos de voz al final del dictado — Isabel puede decir
+              // "...y envía" / "...send" / "...manda" para auto-enviar sin
+              // tener que tocar el botón. Detectamos y limpiamos.
+              const SEND_RE = /[,.!?\s]*(env[ií]a(lo|lo ya)?|m[aá]ndalo|s[eé]ndalo|send( it)?|manda(lo)?)[.!?\s]*$/i;
+              const CLEAR_RE = /[,.!?\s]*(borra eso|c[aá]ncela|cancel( that)?|clear( that)?|empieza de nuevo)[.!?\s]*$/i;
+              const CALL_RE = /[,.!?\s]*(ll[aá]mame|c[aá]llame|m[aá]rcame|call me)[.!?\s]*$/i;
+
+              const clean = text.replace(SEND_RE, '').trim();
+              const shouldSend = SEND_RE.test(text);
+              const shouldClear = CLEAR_RE.test(text);
+
+              if (shouldClear) {
+                setInput('');
+                return;
+              }
+              setInput((prev) => {
+                const next = (prev ? prev + ' ' : '') + clean;
+                if (shouldSend) {
+                  // Defer para que React aplique el setInput primero.
+                  setTimeout(() => { send(); }, 50);
+                }
+                return next;
+              });
+              // "llámame" sin más → mandar mensaje literal para que Athena
+              // ejecute llamar_cliente con el número hardcoded.
+              if (CALL_RE.test(text.trim())) {
+                setTimeout(() => { send(); }, 50);
               }
             }}
           />

@@ -7,7 +7,7 @@
 // ============================================================
 
 // Datos base de Isabel que TODAS las coaches conocen.
-export const ISABEL_BASE = `ISABEL FUENTES: 53 años, 5'7", meta de peso 168 lbs. Agente de Medicare licenciada en el Sur de California (SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC). Web: withisabelfuentes.com. Gym en casa: Tonal + pilates ball. Compra en Sprouts. Asistente humano: Sami.
+export const ISABEL_BASE = `ISABEL FUENTES: 53 años, 5'7", meta de peso 168 lbs. Agente de Medicare licenciada en el Sur de California (SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, UHC). Web: withisabelfuentes.com. Gym en casa: Tonal + pilates ball. Compra en Sprouts.
 
 ⚠️ CONTACTO DE ISABEL — MEMORIZADO. NUNCA PREGUNTAR. ⚠️
 - Teléfono / WhatsApp / SMS / voice = **+13102700626** (un solo número para todo)
@@ -18,7 +18,12 @@ REGLA ABSOLUTA: Si Isabel dice "llámame", "call me", "marcame", "ring me", "pho
 Si Isabel dice "mándame email" → enviar_email a connect@withisabelfuentes.com.
 Si Isabel dice "mándame SMS" / "text me" → enviar_sms al +13102700626.
 
-IDs del equipo en LUNA: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.
+⚠️ ASISTENTES DE ISABEL — NO LOS CONFUNDAS ⚠️
+- **SAMI** = asistente PERSONAL HUMANA de Isabel. NO es del equipo Medicare. Hace life admin, errands, agenda personal, lo que delegues con \`mensaje_a_sami\`. Se contacta vía SAMI_EMAIL / SAMI_WHATSAPP.
+- **SAMIA (id 10 en LUNA)** = miembro del EQUIPO MEDICARE (junto con Skarleth id 7 y Arlette id 9). Trabaja clientes Medicare en LUNA. NO es Sami.
+- Suenan parecido pero son personas distintas: Sami → vida personal de Isabel | Samia → clientes Medicare.
+
+IDs del equipo Medicare en LUNA: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.
 
 Cualquier pregunta tuya tipo "¿a qué número?" / "¿confirmas tu teléfono?" / "what's your phone?" es un BUG tuyo. La info ya la tienes acá arriba — léela otra vez antes de preguntar.`;
 
