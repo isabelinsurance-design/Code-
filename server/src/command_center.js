@@ -234,8 +234,8 @@ export async function approveDecision(kind, id) {
     return { ok: true, action: 'popped', item };
   }
   if (kind === 'improvement') {
-    const { setImprovementStatus } = await import('./improvements.js');
-    return { ok: true, result: setImprovementStatus(id, 'aprobada') };
+    const { updateImprovementStatus } = await import('./improvements.js');
+    return { ok: true, result: updateImprovementStatus(id, 'aprobada') };
   }
   if (kind === 'skill') {
     const { approveSkill } = await import('./skills.js');
@@ -251,8 +251,8 @@ export async function declineDecision(kind, id, razon = '') {
     return { ok: true, action: 'discarded', item };
   }
   if (kind === 'improvement') {
-    const { setImprovementStatus } = await import('./improvements.js');
-    return { ok: true, result: setImprovementStatus(id, 'descartada') };
+    const { updateImprovementStatus } = await import('./improvements.js');
+    return { ok: true, result: updateImprovementStatus(id, 'descartada') };
   }
   if (kind === 'skill') {
     const { retireSkill } = await import('./skills.js');

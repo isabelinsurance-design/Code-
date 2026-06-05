@@ -23,6 +23,7 @@ import Insights from './pages/Insights.jsx';
 import Entities from './pages/Entities.jsx';
 import Manual from './pages/Manual.jsx';
 import Comandos from './pages/Comandos.jsx';
+import Decisiones from './pages/Decisiones.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -69,6 +70,7 @@ export default function App() {
           <Route path="/entities" element={<Entities />} />
           <Route path="/manual" element={<Manual />} />
           <Route path="/comandos" element={<Comandos />} />
+          <Route path="/decisiones" element={<Decisiones />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

@@ -201,6 +201,12 @@ export const api = {
   lunaTickets: (prioridad = '') => request(`/luna/tickets${prioridad ? `?prioridad=${encodeURIComponent(prioridad)}` : ''}`),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
+  // Command center — mission bar + decisiones + autonomía
+  commandStatus: () => request('/command/status'),
+  commandDecisions: () => request('/command/decisions'),
+  commandAutonomy: () => request('/command/autonomy'),
+  decisionApprove: (kind, id) => request(`/command/decisions/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/approve`, { method: 'POST' }),
+  decisionDecline: (kind, id, razon = '') => request(`/command/decisions/${encodeURIComponent(kind)}/${encodeURIComponent(id)}/decline`, { method: 'POST', body: { razon } }),
   // Plan vigente de una coach — lo que ella le ha recomendado a Isabel.
   // Devuelve { coach_id, items: [{ id, text, status, ts_created, ts_updated }], actualizado }.
   coachPlan: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`),

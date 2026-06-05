@@ -481,6 +481,40 @@ export function registerApi(app) {
     }
   });
 
+  // === COMMAND CENTER — barra de status + decisiones + autonomía ===
+  app.get('/api/command/status', requireAuth, async (_req, res) => {
+    try {
+      const { getLiveStatus } = await import('./command_center.js');
+      res.json(await getLiveStatus());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.get('/api/command/decisions', requireAuth, async (_req, res) => {
+    try {
+      const { getDecisionsPending } = await import('./command_center.js');
+      res.json({ decisions: await getDecisionsPending() });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.get('/api/command/autonomy', requireAuth, async (_req, res) => {
+    try {
+      const { getAutonomyToday } = await import('./command_center.js');
+      res.json(getAutonomyToday());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.post('/api/command/decisions/:kind/:id/approve', requireAuth, async (req, res) => {
+    try {
+      const { approveDecision } = await import('./command_center.js');
+      const r = await approveDecision(req.params.kind, req.params.id);
+      res.json(r);
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+  app.post('/api/command/decisions/:kind/:id/decline', requireAuth, async (req, res) => {
+    try {
+      const { declineDecision } = await import('./command_center.js');
+      const r = await declineDecision(req.params.kind, req.params.id, req.body?.razon || '');
+      res.json(r);
+    } catch (e) { res.status(500).json({ ok: false, error: e.message }); }
+  });
+
   // Captura rápida — Isabel dicta una tarea/compromiso y Athena la rutea.
   // Reusa runDirectora con un prompt envuelto que fuerza acción inmediata.
   app.post('/api/quick-capture', requireAuth, async (req, res) => {

@@ -1,6 +1,7 @@
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../lib/auth.jsx';
 import AthenaAvatar from './AthenaAvatar.jsx';
+import MissionBar from './MissionBar.jsx';
 import QuickAdd from './QuickAdd.jsx';
 
 // Sin iconos. Tipografía limpia. Estilo Hermès / Linear — el lujo
@@ -13,6 +14,7 @@ const NAV_GROUPS = [
     items: [
       { to: '/hoy', label: 'Hoy' },
       { to: '/chat', label: 'Athena' },
+      { to: '/decisiones', label: 'Decisiones' },
       { to: '/tareas', label: 'Tareas y promesas' },
       { to: '/calendar', label: 'Agenda' },
       { to: '/aprueba', label: 'Aprueba' },
@@ -135,8 +137,9 @@ export default function Shell({ children }) {
       </nav>
 
       {/* Contenido */}
-      <main className="flex-1 overflow-y-auto">
-        <div className="max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-10">
+      <main className="flex-1 overflow-y-auto flex flex-col">
+        <MissionBar />
+        <div className="flex-1 max-w-4xl mx-auto px-4 md:px-8 py-6 md:py-10 w-full">
           {children}
         </div>
       </main>
