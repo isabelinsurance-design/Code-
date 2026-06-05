@@ -48,9 +48,13 @@ if (!function_exists('db')) {
 // comentada. Si no, quita las // del inicio y pega tu key.
 // define('ANTHROPIC_API_KEY', 'sk-ant-api03-...');
 
-// ── LLAVE DE SERVICIO (Athena → LUNA) ──────────────────────────
-// String largo que inventas tú. Athena la manda en el header X-LUNA-Key.
-define('LUNA_SERVICE_KEY', 'cambia-esto-por-algo-largo-y-secreto-2026');
+// ── LLAVE DE SERVICIO (Athena → LUNA)  ★ IMPORTANTE ★ ──────────
+// Esta llave DEBE SER IDÉNTICA, carácter por carácter, a la que Athena
+// manda en el header X-LUNA-Key (su variable de entorno en Railway).
+//   • Si Athena YA tiene una llave funcionando: copia ESE mismo texto aquí.
+//   • Si empiezas de cero: inventa un string largo y ponlo en LOS DOS lados.
+// Si no coinciden, LUNA responde 403 "Llave de servicio inválida" en TODO.
+define('LUNA_SERVICE_KEY', 'PON_AQUI_LA_MISMA_LLAVE_QUE_USA_ATHENA');
 
 // ── OPCIONALES (dejar comentados hasta necesitarlos) ───────────
 // define('LUNA_SERVICE_AGENT_ID', 1);          // id de Isabel en tabla usuarios
