@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { MapPin, Users } from 'lucide-react';
 import { api } from '../lib/api.js';
 import Section from '../components/Section.jsx';
 
@@ -14,7 +15,13 @@ export default function Calendar() {
     try {
       const s = await api.calendarStatus();
       setStatus(s);
-      if (s.configured) setEvents(await api.calendarUpcoming(hours, 50));
+      if (s.configured) {
+        // El endpoint devuelve {ok, events, reason} — extraemos events.
+        // Si ok=false o events es undefined, dejamos array vacío.
+        const r = await api.calendarUpcoming(hours, 50);
+        const list = Array.isArray(r) ? r : (r?.events || []);
+        setEvents(list);
+      }
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   }
@@ -101,14 +108,15 @@ function EventRow({ ev, onDelete }) {
     <div className="border-b border-lino-200 last:border-0 py-2 flex items-start justify-between gap-3">
       <div className="flex-1">
         <div className="font-medium text-ink-1">{ev.titulo || ev.summary}</div>
-        <div className="text-xs text-ink-3 mt-0.5">
-          {fechaStr}
-          {ev.ubicacion && <> · 📍 {ev.ubicacion}</>}
-          {ev.meetLink && <> · <a href={ev.meetLink} target="_blank" rel="noreferrer" className="text-lino-700 hover:underline">Meet ↗</a></>}
+        <div className="text-xs text-ink-3 mt-0.5 inline-flex items-center gap-1 flex-wrap">
+          <span>{fechaStr}</span>
+          {ev.ubicacion && <span className="inline-flex items-center gap-1">· <MapPin size={11} strokeWidth={1.5} /> {ev.ubicacion}</span>}
+          {ev.meetLink && <>· <a href={ev.meetLink} target="_blank" rel="noreferrer" className="text-lino-700 hover:underline">Meet ↗</a></>}
         </div>
         {ev.asistentes?.length > 0 && (
-          <div className="text-xs text-ink-3 mt-0.5">
-            👥 {ev.asistentes.map((a) => a.email || a).slice(0, 3).join(', ')}
+          <div className="text-xs text-ink-3 mt-0.5 inline-flex items-center gap-1">
+            <Users size={11} strokeWidth={1.5} />
+            {ev.asistentes.map((a) => a.email || a).slice(0, 3).join(', ')}
             {ev.asistentes.length > 3 && ` +${ev.asistentes.length - 3}`}
           </div>
         )}
