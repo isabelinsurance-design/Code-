@@ -69,6 +69,7 @@ if ($svcKey !== '') {
         'luna_whoami','luna_pipeline_summary','luna_t65_alerts',
         'luna_retention_alerts','luna_hot_leads','luna_search_member',
         'luna_member_detail','luna_pending_soa','luna_open_tickets',
+        'luna_tickets_by_agent',
         'luna_today_appointments','luna_attendance_today',
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_get_all_goals','luna_entity_search','luna_signals_list',
@@ -805,6 +806,42 @@ case 'luna_open_tickets':
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     ok(['tickets'=>$stmt->fetchAll()]);
+    break;
+
+// ── TICKETS POR AGENTE — desglose de todo el equipo ─────
+// Responde "cuántos tickets abiertos/cerrados tiene cada agente".
+// Disponible para Isabel (admin) y para Athena (cuenta de servicio).
+// Un agente normal NO ve el desglose del equipo.
+case 'luna_tickets_by_agent':
+    if (!$admin && !$IS_SERVICE) {
+        err('El desglose de tickets por agente lo ve Isabel (o Athena).', 403);
+    }
+    // Agrupa por el responsable del ticket: asignado_a si existe, si no agente_id.
+    $rows = $pdo->query("
+        SELECT u.id            AS agente_id,
+               u.nombre        AS agente_nombre,
+               u.iniciales     AS agente_ini,
+               COUNT(*)                                                   AS total,
+               SUM(t.estado <> 'CERRADO')                                 AS abiertos,
+               SUM(t.estado =  'CERRADO')                                 AS cerrados,
+               SUM(t.estado <> 'CERRADO' AND t.prioridad = 'ALTA')        AS abiertos_alta,
+               SUM(t.estado <> 'CERRADO'
+                   AND t.fecha_seguimiento IS NOT NULL
+                   AND t.fecha_seguimiento < CURDATE())                   AS vencidos
+        FROM tickets t
+        LEFT JOIN usuarios u ON u.id = COALESCE(t.asignado_a, t.agente_id)
+        GROUP BY u.id, u.nombre, u.iniciales
+        ORDER BY abiertos DESC, cerrados DESC
+    ")->fetchAll();
+    // Totales del equipo (para cuadrar con el briefing).
+    $tot = $pdo->query("
+        SELECT COUNT(*) AS total,
+               SUM(estado <> 'CERRADO')                          AS abiertos,
+               SUM(estado =  'CERRADO')                          AS cerrados,
+               SUM(estado <> 'CERRADO' AND prioridad = 'ALTA')   AS abiertos_alta
+        FROM tickets
+    ")->fetch();
+    ok(['por_agente' => $rows, 'totales' => $tot]);
     break;
 
 // ── MY TICKETS — for the logged-in user ─────────────────
