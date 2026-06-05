@@ -581,6 +581,22 @@ export function registerApi(app) {
     }
   });
 
+  // === TRIAGE — batch del 5am ===
+  app.get('/api/triage/today', requireAuth, async (_req, res) => {
+    try {
+      const { loadTodayTriage } = await import('./triage.js');
+      res.json(loadTodayTriage() || { emails: [], date: null });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  // Re-disparar triage manualmente — cuesta tokens, no es para spam
+  app.post('/api/triage/run', requireAuth, async (_req, res) => {
+    try {
+      const { nightlyEmailTriage, loadTodayTriage } = await import('./triage.js');
+      await nightlyEmailTriage();
+      res.json(loadTodayTriage() || { emails: [] });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // === BANDEJA OPERACIONAL — drafts + triage + alertas en una vista ===
   app.get('/api/bandeja', requireAuth, async (_req, res) => {
     const out = {

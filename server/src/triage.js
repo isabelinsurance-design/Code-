@@ -10,11 +10,33 @@
 //   4. Guarda un resumen corto en la wiki para que el briefing
 //      lo mencione.
 // ============================================================
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runDirectora } from './directora.js';
 import { fetchRecentEmails, emailEnabled } from './email.js';
 import { remember, logActivity } from './memory.js';
 
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const TRIAGE_FILE = join(__dirname, '..', 'data', 'triage_today.json');
 const TRIAGE_LIMIT = parseInt(process.env.TRIAGE_EMAIL_LIMIT || '25', 10);
+
+function saveTriageBatch(batch) {
+  try {
+    if (!existsSync(dirname(TRIAGE_FILE))) mkdirSync(dirname(TRIAGE_FILE), { recursive: true });
+    writeFileSync(TRIAGE_FILE, JSON.stringify(batch, null, 2));
+  } catch (e) { console.warn('[triage] save falló:', e.message); }
+}
+
+export function loadTodayTriage() {
+  try {
+    if (!existsSync(TRIAGE_FILE)) return null;
+    const data = JSON.parse(readFileSync(TRIAGE_FILE, 'utf8'));
+    const today = new Date().toISOString().slice(0, 10);
+    if (data.date !== today) return { ...data, stale: true };
+    return data;
+  } catch { return null; }
+}
 
 export async function nightlyEmailTriage() {
   if (!emailEnabled) {
@@ -41,8 +63,38 @@ export async function nightlyEmailTriage() {
   });
   if (!fresh.length) {
     console.log('[triage] no hay correos frescos sin leer.');
+    saveTriageBatch({
+      date: new Date().toISOString().slice(0, 10),
+      generated_at: new Date().toISOString(),
+      total_revisados: 0,
+      emails: [],
+      summary: 'Inbox limpio — nada nuevo desde las 18h pasadas.',
+    });
     return;
   }
+
+  // Persistimos la lista cruda para que el PWA la pueda mostrar.
+  // Athena después le agrega clasificación en su run (pero el snapshot
+  // base ya queda).
+  const initial = {
+    date: new Date().toISOString().slice(0, 10),
+    generated_at: new Date().toISOString(),
+    total_revisados: fresh.length,
+    emails: fresh.map((e) => ({
+      id: e.id || e.message_id || `${e.de}-${e.fecha}`,
+      de: e.de,
+      de_nombre: e.de_nombre,
+      asunto: e.asunto,
+      body_preview: e.body_preview?.slice(0, 400) || '',
+      fecha: e.fecha,
+      no_leido: !!e.no_leido,
+      // Defaults — Athena los puede sobreescribir vía wiki memory
+      clasificacion: 'pendiente',
+      accion: null,
+    })),
+    summary: null,
+  };
+  saveTriageBatch(initial);
 
   const inventario = fresh
     .map(

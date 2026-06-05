@@ -18,6 +18,7 @@ const NAV_GROUPS = [
       { to: '/tareas', label: 'Tareas y promesas' },
       { to: '/calendar', label: 'Agenda' },
       { to: '/aprueba', label: 'Aprueba' },
+      { to: '/triage', label: 'Email triage' },
     ],
   },
   {

@@ -213,6 +213,9 @@ export const api = {
   usage: () => request('/usage'),
   // Bandeja operacional — drafts + alertas + triage + team en una sola llamada
   bandeja: () => request('/bandeja'),
+  // Triage del día (snapshot del batch 5am)
+  triageToday: () => request('/triage/today'),
+  triageRefresh: () => request('/triage/run', { method: 'POST' }),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
   // Reglas permanentes (standing orders)
