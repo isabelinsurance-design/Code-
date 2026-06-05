@@ -1668,6 +1668,41 @@ REGLAS:
     },
   },
   {
+    name: 'regla_crear',
+    description: 'Crea una REGLA PERMANENTE (standing order) que Athena obedece SIEMPRE. Úsala cuando Isabel diga "siempre haz X", "nunca hagas Y", "cuando pase Z haz W", "por default usa X". Categorías: comunicacion (cómo responder a comunicaciones), escalacion (qué te despierta), tiempo (quiet hours, ventanas), equipo (auto-followup, asignación default), delegacion (qué haces sin preguntar), compliance (CMS/SOA/MBI), otro. Estas reglas se inyectan al prompt cada turno — TÚ las lees y aplicas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        regla: { type: 'string', description: 'La regla en texto claro y declarativo. Ej. "Si Sami no responde un ticket en 24h, mándale SMS auto." Sé específica.' },
+        categoria: { type: 'string', enum: ['comunicacion', 'escalacion', 'tiempo', 'equipo', 'delegacion', 'compliance', 'otro'] },
+        nombre: { type: 'string', description: 'Nombre corto opcional para la regla. Si no, se infiere.' },
+      },
+      required: ['regla', 'categoria'],
+    },
+  },
+  {
+    name: 'reglas_lista',
+    description: 'Lista las REGLAS PERMANENTES activas. Úsalo cuando Isabel pregunte "qué reglas te di" / "qué reglas tienes" / quieras chequear si una nueva regla duplica una existente.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        categoria: { type: 'string', description: 'Filtro opcional por categoría.' },
+      },
+      required: [],
+    },
+  },
+  {
+    name: 'regla_retirar',
+    description: 'Retira/desactiva una REGLA PERMANENTE. Úsalo cuando Isabel diga "olvida esa regla" / "ya no apliques X" / "borra esa orden".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        id: { type: 'string', description: 'slug o id de la regla.' },
+      },
+      required: ['id'],
+    },
+  },
+  {
     name: 'proyecto_crear',
     description: 'Crea un PROYECTO — agrupación cross-domain (tareas + commitments + tickets LUNA + emails) bajo una meta común. Úsalo cuando Isabel mencione un esfuerzo grande/multi-pieza ("AEP 2026", "lanzar curso de Medicare", "buscar segundo asistente", "renovar mi licencia"). Después puedes ir vinculando items relacionados con proyecto_linkear.',
     input_schema: {
@@ -3396,6 +3431,40 @@ Empieza ya. No le mandes mensaje a Isabel hasta el resumen final.`;
       } catch (err) {
         return `No pude llamar: ${err.message}`;
       }
+    }
+    case 'regla_crear': {
+      try {
+        const { createOrder } = await import('./standing_orders.js');
+        const o = createOrder({
+          regla: input.regla,
+          categoria: input.categoria || 'otro',
+          nombre: input.nombre || null,
+        });
+        return `Regla creada [${o.categoria}/${o.slug}]: "${o.regla}". Desde ya la aplico en cada turno sin preguntarte.`;
+      } catch (err) { return `No pude crear la regla: ${err.message}`; }
+    }
+    case 'reglas_lista': {
+      try {
+        const { listOrders } = await import('./standing_orders.js');
+        const list = listOrders({ status: 'activa', categoria: input.categoria || null });
+        if (!list.length) return 'Sin reglas permanentes todavía.';
+        const byCat = {};
+        for (const o of list) {
+          if (!byCat[o.categoria]) byCat[o.categoria] = [];
+          byCat[o.categoria].push(o);
+        }
+        return Object.entries(byCat).map(([cat, items]) =>
+          `[${cat.toUpperCase()}]\n${items.map((o) => `· [${o.slug}] ${o.regla}${o.veces_aplicada ? ` (aplicada ${o.veces_aplicada}x)` : ''}`).join('\n')}`
+        ).join('\n\n');
+      } catch (err) { return `Error: ${err.message}`; }
+    }
+    case 'regla_retirar': {
+      try {
+        const { retireOrder } = await import('./standing_orders.js');
+        const o = retireOrder(input.id);
+        if (!o) return `No existe regla "${input.id}".`;
+        return `Regla "${o.slug}" retirada. Ya no la aplico.`;
+      } catch (err) { return `Error: ${err.message}`; }
     }
     case 'proyecto_crear': {
       try {

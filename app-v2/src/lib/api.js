@@ -201,6 +201,18 @@ export const api = {
   lunaTickets: (prioridad = '') => request(`/luna/tickets${prioridad ? `?prioridad=${encodeURIComponent(prioridad)}` : ''}`),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
+  // Reglas permanentes (standing orders)
+  orders: (status = 'activa', categoria = '') => {
+    const qs = new URLSearchParams();
+    if (status) qs.set('status', status);
+    if (categoria) qs.set('categoria', categoria);
+    return request(`/orders${qs.toString() ? `?${qs}` : ''}`);
+  },
+  orderCreate: (data) => request('/orders', { method: 'POST', body: data }),
+  orderUpdate: (id, patch) => request(`/orders/${encodeURIComponent(id)}`, { method: 'PATCH', body: patch }),
+  orderPause: (id) => request(`/orders/${encodeURIComponent(id)}/pause`, { method: 'POST' }),
+  orderActivate: (id) => request(`/orders/${encodeURIComponent(id)}/activate`, { method: 'POST' }),
+  orderDelete: (id) => request(`/orders/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   // Proyectos — cross-domain
   projects: (status = '') => request(`/projects${status ? `?status=${status}` : ''}`),
   project: (id) => request(`/projects/${encodeURIComponent(id)}`),

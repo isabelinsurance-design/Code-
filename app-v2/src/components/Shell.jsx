@@ -44,6 +44,7 @@ const NAV_GROUPS = [
   {
     label: 'Sistema',
     items: [
+      { to: '/reglas', label: 'Órdenes permanentes' },
       { to: '/comandos', label: 'Cómo hablarle' },
       { to: '/wiki', label: 'Wiki y temporada' },
       { to: '/actividad', label: 'Actividad' },

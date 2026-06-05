@@ -481,6 +481,40 @@ export function registerApi(app) {
     }
   });
 
+  // === STANDING ORDERS — reglas permanentes ===
+  app.get('/api/orders', requireAuth, async (req, res) => {
+    try {
+      const { listOrders } = await import('./standing_orders.js');
+      res.json(listOrders({ status: req.query.status, categoria: req.query.categoria }));
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+  app.post('/api/orders', requireAuth, async (req, res) => {
+    try {
+      const { createOrder } = await import('./standing_orders.js');
+      res.json({ ok: true, order: createOrder(req.body || {}) });
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+  app.patch('/api/orders/:id', requireAuth, async (req, res) => {
+    try {
+      const { updateOrder } = await import('./standing_orders.js');
+      const r = updateOrder(req.params.id, req.body || {});
+      if (!r) return res.status(404).json({ error: 'no existe' });
+      res.json({ ok: true, order: r });
+    } catch (e) { res.status(400).json({ ok: false, error: e.message }); }
+  });
+  app.post('/api/orders/:id/pause', requireAuth, async (req, res) => {
+    const { pauseOrder } = await import('./standing_orders.js');
+    res.json({ ok: true, order: pauseOrder(req.params.id) });
+  });
+  app.post('/api/orders/:id/activate', requireAuth, async (req, res) => {
+    const { activateOrder } = await import('./standing_orders.js');
+    res.json({ ok: true, order: activateOrder(req.params.id) });
+  });
+  app.delete('/api/orders/:id', requireAuth, async (req, res) => {
+    const { deleteOrder } = await import('./standing_orders.js');
+    res.json(deleteOrder(req.params.id));
+  });
+
   // === COMMAND CENTER — barra de status + decisiones + autonomía ===
   app.get('/api/command/status', requireAuth, async (_req, res) => {
     try {

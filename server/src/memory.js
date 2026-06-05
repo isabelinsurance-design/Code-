@@ -9,6 +9,7 @@ import { buildTeamInline, buildTeamBriefingBlock } from './team.js';
 import { buildHabitsInline } from './habits.js';
 import { buildFinanzasInline } from './finanzas.js';
 import { vacationContextBlock as vacationContextSync } from './vacation.js';
+import { buildStandingOrdersBlock } from './standing_orders.js';
 import { buildJournalInline } from './journal.js';
 import { buildGoalsInline } from './goals.js';
 import { buildOverloadInline } from './overload.js';
@@ -246,6 +247,13 @@ export function buildWikiContext() {
   try {
     const vac = vacationContextSync();
     if (vac) parts.unshift(vac);
+  } catch { /* ignore */ }
+  // Standing orders — reglas permanentes. Después del contacto pero
+  // ANTES de season/wiki, porque son políticas que Athena debe respetar
+  // en cada decisión.
+  try {
+    const so = buildStandingOrdersBlock();
+    if (so) parts.push(so);
   } catch { /* ignore */ }
   if (season.texto) parts.push(`TEMPORADA ACTUAL (en qué está enfocada Isabel ahora): ${season.texto}`);
   if (wiki.notas.length) {
