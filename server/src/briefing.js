@@ -1,8 +1,35 @@
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { getHistory, saveHistory } from './memory.js';
 import { canSendProactive } from './proactive.js';
 import { isAepNow } from './crm.js';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const BRIEFING_FILE = join(__dirname, '..', 'data', 'briefing_today.json');
+
+function saveBriefingToDisk(cards) {
+  try {
+    if (!existsSync(dirname(BRIEFING_FILE))) mkdirSync(dirname(BRIEFING_FILE), { recursive: true });
+    writeFileSync(BRIEFING_FILE, JSON.stringify({
+      date: new Date().toISOString().slice(0, 10),
+      generated_at: new Date().toISOString(),
+      cards,
+    }, null, 2));
+  } catch (e) { console.warn('[briefing] no se pudo guardar a disco:', e.message); }
+}
+
+export function loadTodayBriefing() {
+  try {
+    if (!existsSync(BRIEFING_FILE)) return null;
+    const data = JSON.parse(readFileSync(BRIEFING_FILE, 'utf8'));
+    const today = new Date().toISOString().slice(0, 10);
+    if (data.date !== today) return { ...data, stale: true };
+    return data;
+  } catch { return null; }
+}
 
 // Devuelve true si estamos a 30 días (o menos) del inicio del AEP
 // (15 oct), del OEP (1 ene), o ya dentro del AEP. Sirve para activar
@@ -201,6 +228,8 @@ Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que
   // Si el split no encuentra el divisor (Athena ignoró el format),
   // cae a 1 solo mensaje — fallback graceful.
   const cards = splitCards(reply);
+  // Persistir en disco para que el PWA lo muestre en Hoy.
+  saveBriefingToDisk(cards);
   for (let i = 0; i < cards.length; i++) {
     await sendMessage(to, cards[i]);
     if (i < cards.length - 1) {

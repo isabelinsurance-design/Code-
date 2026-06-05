@@ -695,6 +695,32 @@ export function registerApi(app) {
   });
 
   // ---- Coach threads: cargar / limpiar el historial de una coach ----
+  // Briefing del día — generado por el cron 6:30am y guardado a disco.
+  // El PWA lo lee al abrir Hoy. Si no hay (deploy fresco, cron no ha
+  // corrido), permite forzarlo bajo demanda con POST.
+  app.get('/api/briefing/today', requireAuth, async (_req, res) => {
+    try {
+      const { loadTodayBriefing } = await import('./briefing.js');
+      const data = loadTodayBriefing();
+      res.json(data || { cards: [], date: null });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Genera un briefing fresco bajo demanda (cuesta tokens — no es para
+  // refrescar a cada rato). Pensado para "no tengo briefing hoy todavía".
+  app.post('/api/briefing/refresh', requireAuth, async (_req, res) => {
+    try {
+      const { sendMorningBriefing, loadTodayBriefing } = await import('./briefing.js');
+      await sendMorningBriefing();
+      const data = loadTodayBriefing();
+      res.json(data || { cards: [] });
+    } catch (e) {
+      res.status(500).json({ error: e.message });
+    }
+  });
+
   // Historial de Athena (compartido con WhatsApp). El PWA lo hidrata al abrir
   // el chat para que Isabel vea sus conversaciones previas en lugar de
   // arrancar en blanco cada vez que cambia de pantalla.

@@ -189,6 +189,12 @@ export const api = {
   coachThreadClear: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
   // Historial de Athena (compartido con WhatsApp). Devuelve {messages:[{role,content}]}.
   chatHistory: (limit = 40) => request(`/chat/history?limit=${limit}`),
+  // Briefing del día (cards generadas por el cron 6:30am).
+  briefingToday: () => request('/briefing/today'),
+  // Genera un briefing fresco (cuesta tokens — úsalo solo si falta).
+  briefingRefresh: () => request('/briefing/refresh', { method: 'POST' }),
+  // Mensaje rápido a Athena (no usa Chat.jsx, devuelve solo el reply).
+  chatToAthena: (message) => request('/chat', { method: 'POST', body: { coach: 'directora', message } }),
   // Plan vigente de una coach — lo que ella le ha recomendado a Isabel.
   // Devuelve { coach_id, items: [{ id, text, status, ts_created, ts_updated }], actualizado }.
   coachPlan: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`),
