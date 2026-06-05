@@ -351,7 +351,7 @@ import('./manager_mode.js').then((mm) => {
   // 3. Focus blocks auto — 6:45am L-V, crea bloque 9-11am si hay standing order
   scheduleCron('mgr_focus_blocks', process.env.MGR_FOCUS_CRON || '45 6 * * 1-5', mm.focusBlocksAuto);
   // 4. Hourly nudge — cada 30min 7am-9pm, ping si algo viene en <30min
-  scheduleCron('mgr_hourly_nudge', process.env.MGR_NUDGE_CRON || '*/30 7-21 * * *', mm.hourlyNudge);
+  scheduleCron('mgr_hourly_nudge', process.env.MGR_NUDGE_CRON || '0 7-21 * * *', mm.hourlyNudge);
   // 5. Daily audit — 8pm L-V, "dijiste X, hiciste Y"
   scheduleCron('mgr_daily_audit', process.env.MGR_AUDIT_CRON || '0 20 * * 1-5', mm.dailyAudit);
   // 6. Pre-meeting deep brief — cada 5min, brief serio 15min antes

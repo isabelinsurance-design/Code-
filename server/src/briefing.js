@@ -222,7 +222,7 @@ Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que
   });
 
   // Briefing matutino vale Opus — es el ancla del día y la calidad importa.
-  const { reply, messages: updated } = await runDirectora(messages, { tier: 'deep' });
+  const { reply, messages: updated } = await runDirectora(messages, { tier: 'default' });
   saveHistory(updated);
   // Visual cards: separar el reply en 3-4 mensajes WhatsApp.
   // Si el split no encuentra el divisor (Athena ignoró el format),

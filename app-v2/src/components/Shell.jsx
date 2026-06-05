@@ -50,6 +50,7 @@ const NAV_GROUPS = [
       { to: '/wiki', label: 'Wiki y temporada' },
       { to: '/actividad', label: 'Actividad' },
       { to: '/diagnostico', label: 'Diagnóstico' },
+      { to: '/uso', label: 'Uso y costos' },
       { to: '/search', label: 'Buscar' },
       { to: '/manual', label: 'Manual' },
       { to: '/configura', label: 'Configura' },

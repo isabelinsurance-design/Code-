@@ -581,6 +581,14 @@ export function registerApi(app) {
     }
   });
 
+  // === USO / COSTOS — estimación en vivo ===
+  app.get('/api/usage', requireAuth, async (_req, res) => {
+    try {
+      const { usageSnapshot } = await import('./usage.js');
+      res.json(usageSnapshot());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // === DIAGNÓSTICO GLOBAL — status de cada integración ===
   app.get('/api/diagnostico', requireAuth, async (_req, res) => {
     const result = { services: [] };

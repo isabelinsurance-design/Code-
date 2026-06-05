@@ -209,6 +209,8 @@ export const api = {
   lunaHealth: () => request('/luna/health'),
   // Diagnóstico global — status de cada integración
   diagnostico: () => request('/diagnostico'),
+  // Uso / costos — estimación en vivo
+  usage: () => request('/usage'),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
   // Reglas permanentes (standing orders)

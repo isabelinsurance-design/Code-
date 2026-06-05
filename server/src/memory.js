@@ -465,7 +465,7 @@ export function getHistory() {
 export function saveHistory(messages) {
   // Cortamos primero a los últimos 40 turnos, luego renombramos tools y
   // limpiamos huérfanos (incluyendo los creados por el corte mismo).
-  const trimmed = Array.isArray(messages) ? messages.slice(-40) : messages;
+  const trimmed = Array.isArray(messages) ? messages.slice(-24) : messages;
   save(HISTORY_FILE, dropOrphanToolBlocks(sanitizeToolNames(trimmed)));
 }
 

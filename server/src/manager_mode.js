@@ -124,7 +124,7 @@ Máximo 350 palabras. Sé estilo COS humana, no robot.`;
 
   const messages = getHistory();
   messages.push({ role: 'user', content: prompt });
-  const { reply, messages: updated } = await runDirectora(messages, { tier: 'deep' });
+  const { reply, messages: updated } = await runDirectora(messages, { tier: 'default' });
   saveHistory(updated);
   if (!reply) return;
 
