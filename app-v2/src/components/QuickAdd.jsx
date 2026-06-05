@@ -1,12 +1,22 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
 import { api } from '../lib/api.js';
 import VoiceInput from './VoiceInput.jsx';
 
 // Floating action button + modal para captura rápida desde cualquier
 // página. Reduce fricción para journal, task, URL, rapport sin tener
 // que navegar a cada página específica.
+//
+// Se OCULTA en /hoy y /chat (donde ya hay un composer de Athena anclado
+// abajo). Antes chocaba visualmente con el composer fijo.
 export default function QuickAdd() {
+  const location = useLocation();
   const [open, setOpen] = useState(false);
+  const PATHS_WITH_BOTTOM_COMPOSER = ['/hoy', '/chat', '/'];
+  const hideFab = PATHS_WITH_BOTTOM_COMPOSER.some(
+    (p) => location.pathname === p || location.pathname.startsWith(p + '/')
+  );
+  if (hideFab && !open) return null;
   const [mode, setMode] = useState(null); // null | 'journal' | 'task' | 'url' | 'rapport'
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState('');
