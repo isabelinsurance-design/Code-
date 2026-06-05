@@ -1667,6 +1667,53 @@ REGLAS:
       required: ['telefono', 'motivo'],
     },
   },
+  {
+    name: 'vacation_modo',
+    description: 'Activa o desactiva MODO VACACIONES. Cuando activo: solo interrumpes a Isabel con cosas URGENTES (Haiku clasifica), todo lo demás se delega auto a Sami; reportes 2x/día en su timezone (no la de SoCal); templates pre-aprobados se mandan sin esperar "envía". Úsalo cuando Isabel diga "estoy de vacaciones", "me voy a [lugar]", "no me molestes los siguientes X días", o "vuelvo el [fecha]". Para desactivar: activar=false.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        activar: { type: 'boolean', description: 'true para entrar a modo vacación, false para salir' },
+        hasta: { type: 'string', description: 'Fecha ISO de regreso (ej. "2026-07-15"). Opcional pero recomendado — sin esto Isabel queda en modo vacación indefinido.' },
+        timezone: { type: 'string', description: 'Timezone IANA donde está Isabel (ej. "Europe/Madrid", "Asia/Tokyo"). Default: America/Los_Angeles.' },
+        location: { type: 'string', description: 'Lugar donde está (para el contexto de reportes). Ej. "Madrid", "Tokyo".' },
+        notes: { type: 'string', description: 'Notas extra opcionales (ej. "celebrando cumpleaños — solo emergencias REALES").' },
+      },
+      required: ['activar'],
+    },
+  },
+  {
+    name: 'template_listar',
+    description: 'Lista los templates de email/SMS pre-aprobados por Isabel. Útil cuando necesitas responderle a un cliente rutinariamente y quieres reusar un template aprobado en vez de redactar nuevo + esperar confirmación.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'template_usar',
+    description: 'USA un template pre-aprobado y MANDA el email/SMS DIRECTO (sin pasar por drafts queue). Solo si el template está aprobado por Isabel. Variables del template ({{cliente_nombre}}, {{fecha}}, etc.) se reemplazan con los valores que pases en vars.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        slug: { type: 'string', description: 'Slug del template (ej. "confirmacion_cita").' },
+        destinatario: { type: 'string', description: 'Email o teléfono según el canal del template.' },
+        vars: { type: 'object', description: 'Variables a reemplazar en el template. Ej. {"cliente_nombre":"Maritza","fecha":"viernes 3pm"}.' },
+      },
+      required: ['slug', 'destinatario'],
+    },
+  },
+  {
+    name: 'template_crear',
+    description: 'Crea un template pre-aprobado. Isabel debe haberte dicho explícitamente qué redactar — esto no es para que tú inventes templates. Después de crear, el template queda disponible para usar sin más confirmación.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        nombre: { type: 'string', description: 'Nombre humano del template. Ej. "Confirmación de cita".' },
+        canal: { type: 'string', enum: ['email', 'sms'], description: 'Canal.' },
+        asunto: { type: 'string', description: 'Solo para email.' },
+        cuerpo: { type: 'string', description: 'Cuerpo con variables {{nombre}}, {{fecha}}, etc.' },
+      },
+      required: ['nombre', 'canal', 'cuerpo'],
+    },
+  },
 ];
 
 // Ejecuta una herramienta y devuelve el resultado como texto.
@@ -3318,6 +3365,62 @@ Empieza ya. No le mandes mensaje a Isabel hasta el resumen final.`;
       } catch (err) {
         return `No pude llamar: ${err.message}`;
       }
+    }
+    case 'vacation_modo': {
+      try {
+        const { setVacation } = await import('./vacation.js');
+        const r = setVacation({
+          activar: input.activar,
+          hasta: input.hasta || null,
+          timezone: input.timezone || null,
+          location: input.location || '',
+          notes: input.notes || '',
+        });
+        if (!input.activar) return 'Modo vacaciones desactivado. Bienvenida de vuelta.';
+        const hasta = r.state.end_iso
+          ? new Date(r.state.end_iso).toLocaleDateString('es-MX', { day: 'numeric', month: 'long' })
+          : 'sin fecha';
+        return `Modo vacaciones activado hasta ${hasta} (TZ: ${r.state.timezone}${r.state.location ? `, ${r.state.location}` : ''}). Solo te interrumpo con cosas URGENTES. Todo lo demás lo delego a Sami. Reportes a las 9am y 7pm tuyas.`;
+      } catch (err) {
+        return `No pude cambiar modo vacaciones: ${err.message}`;
+      }
+    }
+    case 'template_listar': {
+      try {
+        const { listTemplates } = await import('./templates.js');
+        const list = listTemplates();
+        if (!list.length) return 'No hay templates pre-aprobados todavía. Crea uno con template_crear cuando Isabel te dicte uno explícitamente.';
+        return list.map((t) => `[${t.slug}] ${t.nombre} (${t.canal})${t.veces_usado ? ` · usado ${t.veces_usado}x` : ''}`).join('\n');
+      } catch (err) { return `Error: ${err.message}`; }
+    }
+    case 'template_usar': {
+      try {
+        const { renderTemplate } = await import('./templates.js');
+        const rendered = renderTemplate(input.slug, input.vars || {});
+        if (rendered.canal === 'email') {
+          const { sendEmail } = await import('./email.js');
+          await sendEmail({ to: input.destinatario, subject: rendered.asunto, text: rendered.cuerpo });
+          return `Email enviado a ${input.destinatario} usando template "${input.slug}" (aprobado).`;
+        }
+        if (rendered.canal === 'sms') {
+          const { sendSms } = await import('./whatsapp.js');
+          await sendSms(input.destinatario, rendered.cuerpo);
+          return `SMS enviado a ${input.destinatario} usando template "${input.slug}" (aprobado).`;
+        }
+        return `Canal no soportado: ${rendered.canal}`;
+      } catch (err) { return `No pude usar template: ${err.message}`; }
+    }
+    case 'template_crear': {
+      try {
+        const { addTemplate } = await import('./templates.js');
+        const t = addTemplate({
+          nombre: input.nombre,
+          canal: input.canal,
+          asunto: input.asunto || '',
+          cuerpo: input.cuerpo,
+        });
+        return `Template "${t.slug}" creado y aprobado. Lo puedes usar con template_usar(slug="${t.slug}", destinatario=..., vars={...}).`;
+      } catch (err) { return `No pude crear template: ${err.message}`; }
     }
     default:
       return `Herramienta desconocida: ${name}`;

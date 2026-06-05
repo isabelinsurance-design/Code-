@@ -8,6 +8,7 @@ import { buildAarInline } from './aar.js';
 import { buildTeamInline, buildTeamBriefingBlock } from './team.js';
 import { buildHabitsInline } from './habits.js';
 import { buildFinanzasInline } from './finanzas.js';
+import { vacationContextBlock as vacationContextSync } from './vacation.js';
 import { buildJournalInline } from './journal.js';
 import { buildGoalsInline } from './goals.js';
 import { buildOverloadInline } from './overload.js';
@@ -240,6 +241,12 @@ export function buildWikiContext() {
 - "llámame" / "call me" / "marcame" → llamar_cliente(+13102700626) sin preguntar.
 - "mándame email" → enviar_email(connect@withisabelfuentes.com,...)
 - IDs equipo LUNA: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.`);
+  // Vacation mode — bloque al frente si está activo, para que TODA decisión
+  // de Athena considere "Isabel no debe ser molestada con esto".
+  try {
+    const vac = vacationContextSync();
+    if (vac) parts.unshift(vac);
+  } catch { /* ignore */ }
   if (season.texto) parts.push(`TEMPORADA ACTUAL (en qué está enfocada Isabel ahora): ${season.texto}`);
   if (wiki.notas.length) {
     parts.push(wiki.notas.slice(0, 25).map((n) => `- ${n.nota}`).join('\n'));

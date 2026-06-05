@@ -367,6 +367,11 @@ scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', se
 import('./ticket_monitor.js').then(({ sendStaleTicketAlert }) => {
   scheduleCron('ticket_monitor', process.env.TICKET_MONITOR_CRON || '0 10,16 * * 1-6', sendStaleTicketAlert);
 }).catch((e) => console.warn('[cron] ticket_monitor no se pudo cargar:', e.message));
+// Vacation reports — corre cada hora y solo manda si la hora local de Isabel
+// (en SU timezone) es 9am o 7pm. Bypass si no hay vacación activa.
+import('./vacation_report.js').then(({ sendVacationReports }) => {
+  scheduleCron('vacation_reports', process.env.VACATION_REPORTS_CRON || '0 * * * *', sendVacationReports);
+}).catch((e) => console.warn('[cron] vacation_reports no se pudo cargar:', e.message));
 scheduleCron('reflect', process.env.NIGHTLY_REFLECT_CRON || '0 2 * * *',  nightlyReflection);
 // Triage corre antes del briefing para que Athena tenga lista la
 // clasificación + borradores en cola cuando salude a Isabel.
