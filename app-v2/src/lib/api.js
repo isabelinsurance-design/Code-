@@ -4,10 +4,16 @@
 const base = '/api';
 
 async function request(path, opts = {}) {
+  // Auto-stringify body si viene como objeto (compatibilidad mixta legacy).
+  let body = opts.body;
+  if (body && typeof body === 'object' && !(body instanceof FormData) && !(body instanceof Blob)) {
+    body = JSON.stringify(body);
+  }
   const res = await fetch(base + path, {
     credentials: 'include',
     headers: { 'Content-Type': 'application/json', ...(opts.headers || {}) },
     ...opts,
+    body,
   });
   if (res.status === 401) {
     // Sesión expiró — la app maneja el redirect
