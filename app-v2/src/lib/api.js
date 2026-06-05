@@ -205,6 +205,10 @@ export const api = {
   lunaMember: (id) => request(`/luna/member/${encodeURIComponent(id)}`),
   // LUNA — snapshot ligero (mission bar)
   lunaSnapshot: () => request('/luna/snapshot'),
+  // LUNA — health check por acción
+  lunaHealth: () => request('/luna/health'),
+  // Diagnóstico global — status de cada integración
+  diagnostico: () => request('/diagnostico'),
   // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
   commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
   // Reglas permanentes (standing orders)

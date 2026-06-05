@@ -509,6 +509,179 @@ export function registerApi(app) {
     }
   });
 
+  // LUNA — health check: pinguea cada acción y reporta status individual.
+  // Útil para distinguir "LUNA caída" vs "acción no implementada".
+  app.get('/api/luna/health', requireAuth, async (_req, res) => {
+    try {
+      const client = await import('./luna_client.js');
+      if (!client.lunaConfigured()) {
+        return res.json({ ok: false, configured: false, actions: [] });
+      }
+      // Acciones a pinguear (lecturas seguras, no afectan estado)
+      const checks = [
+        { name: 'search_member', label: 'Buscar miembro', call: () => client.searchMember('test') },
+        { name: 'pipeline_summary', label: 'Pipeline', call: () => client.pipelineSummary() },
+        { name: 'full_briefing', label: 'Briefing completo', call: () => client.fullBriefing() },
+        { name: 'hot_leads', label: 'Hot leads', call: () => client.hotLeads() },
+        { name: 'pending_soa', label: 'SOAs pendientes', call: () => client.pendingSoa() },
+        { name: 'recent_activity', label: 'Actividad reciente', call: () => client.recentActivity({ limit: 5 }) },
+        { name: 'carriers_breakdown', label: 'Carriers', call: () => client.carriersBreakdown() },
+        { name: 't65_alerts', label: 'T65 alertas', call: () => client.t65Alerts({ days: 90 }) },
+        { name: 'retention_alerts', label: 'Retención', call: () => client.retentionAlerts() },
+        { name: 'open_tickets', label: 'Tickets abiertos', call: () => client.openTickets({ priority: '' }) },
+        { name: 'today_appointments', label: 'Citas hoy', call: () => client.todayAppointments() },
+      ];
+      const results = await Promise.all(checks.map(async (c) => {
+        try {
+          const r = await c.call();
+          return {
+            name: c.name,
+            label: c.label,
+            ok: r.ok !== false,
+            elapsed_ms: r.elapsed_ms || null,
+            kind: r.kind || (r.ok === false ? 'unknown' : 'ok'),
+            error: r.error || null,
+          };
+        } catch (e) {
+          return { name: c.name, label: c.label, ok: false, error: e.message, kind: 'exception' };
+        }
+      }));
+      const ok_count = results.filter((r) => r.ok).length;
+      res.json({
+        ok: true,
+        configured: true,
+        ok_count,
+        total: results.length,
+        actions: results,
+      });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // === DIAGNÓSTICO GLOBAL — status de cada integración ===
+  app.get('/api/diagnostico', requireAuth, async (_req, res) => {
+    const result = { services: [] };
+    // Calendar
+    try {
+      const { calendarConfigured, listUpcomingEvents } = await import('./calendar.js');
+      const configured = calendarConfigured();
+      let detail = null, ok = configured;
+      if (configured) {
+        try {
+          const { events } = await listUpcomingEvents({ withinHours: 24, limit: 5 });
+          detail = `${(events || []).length} eventos en 24h`;
+        } catch (e) { ok = false; detail = e.message; }
+      } else { detail = 'env vars GOOGLE_CALENDAR_* faltan'; }
+      result.services.push({ name: 'Google Calendar', configured, ok, detail });
+    } catch { /* ignore */ }
+    // Twilio
+    try {
+      const tw_ok = Boolean(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN);
+      result.services.push({
+        name: 'Twilio WhatsApp', configured: tw_ok, ok: tw_ok,
+        detail: tw_ok ? (process.env.TWILIO_WHATSAPP_FROM || 'sin from') : 'falta SID/token',
+      });
+      result.services.push({
+        name: 'Twilio SMS', configured: tw_ok, ok: tw_ok,
+        detail: process.env.TWILIO_SMS_FROM || 'usa from de WhatsApp',
+      });
+      result.services.push({
+        name: 'Twilio Voice', configured: Boolean(tw_ok && process.env.TWILIO_VOICE_FROM), ok: tw_ok,
+        detail: process.env.TWILIO_VOICE_FROM || 'falta TWILIO_VOICE_FROM',
+      });
+    } catch { /* ignore */ }
+    // Email
+    try {
+      const resend = Boolean(process.env.RESEND_API_KEY);
+      const gmail = Boolean(process.env.GMAIL_USER && process.env.GMAIL_APP_PASSWORD);
+      result.services.push({
+        name: 'Email (Resend)', configured: resend, ok: resend,
+        detail: resend ? (process.env.RESEND_FROM || 'sin from') : 'falta RESEND_API_KEY',
+      });
+      result.services.push({
+        name: 'Email (Gmail SMTP)', configured: gmail, ok: gmail,
+        detail: gmail ? process.env.GMAIL_USER : 'fallback solo',
+      });
+    } catch { /* ignore */ }
+    // OpenAI Whisper + TTS
+    try {
+      const openai = Boolean(process.env.OPENAI_API_KEY);
+      result.services.push({
+        name: 'OpenAI Whisper (voz→texto)', configured: openai, ok: openai,
+        detail: openai ? 'whisper-1' : 'falta OPENAI_API_KEY',
+      });
+      result.services.push({
+        name: 'OpenAI TTS (texto→voz)', configured: openai, ok: openai,
+        detail: openai ? (process.env.TTS_VOICE || 'nova') : 'falta OPENAI_API_KEY',
+      });
+    } catch { /* ignore */ }
+    // ElevenLabs
+    try {
+      const eleven = Boolean(process.env.ELEVENLABS_API_KEY && process.env.ELEVENLABS_VOICE_ID);
+      const inCalls = process.env.ENABLE_ELEVENLABS_IN_CALLS === 'true';
+      result.services.push({
+        name: 'ElevenLabs (clon voz)', configured: eleven, ok: eleven,
+        detail: eleven ? `voice ${process.env.ELEVENLABS_VOICE_ID?.slice(0, 8)}…${inCalls ? ' · activo en llamadas' : ' · solo voice notes'}` : 'falta API key o voice ID',
+      });
+    } catch { /* ignore */ }
+    // LUNA
+    try {
+      const { lunaConfigured, pipelineSummary } = await import('./luna_client.js');
+      const configured = lunaConfigured();
+      let ok = configured, detail = null;
+      if (configured) {
+        try {
+          const r = await pipelineSummary();
+          ok = r.ok !== false;
+          detail = ok ? 'conectado' : `${r.kind || 'error'}: ${r.error || 'unknown'}`;
+        } catch (e) { ok = false; detail = e.message; }
+      } else { detail = 'falta LUNA_BASE_URL / LUNA_API_KEY'; }
+      result.services.push({ name: 'LUNA CRM', configured, ok, detail });
+    } catch { /* ignore */ }
+    // Nextiva
+    try {
+      const nx = Boolean(process.env.NEXTIVA_API_KEY);
+      result.services.push({
+        name: 'Nextiva SMS', configured: nx, ok: nx,
+        detail: nx ? 'API key set' : 'falta NEXTIVA_API_KEY',
+      });
+    } catch { /* ignore */ }
+    // Instagram
+    try {
+      const ig = Boolean(process.env.IG_ACCESS_TOKEN && process.env.IG_USER_ID);
+      result.services.push({
+        name: 'Instagram', configured: ig, ok: ig,
+        detail: ig ? 'conectado (read-only)' : 'falta IG_ACCESS_TOKEN/IG_USER_ID',
+      });
+    } catch { /* ignore */ }
+    // Push
+    try {
+      const push = Boolean(process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY);
+      result.services.push({
+        name: 'Push notifications', configured: push, ok: push,
+        detail: push ? 'VAPID configurado' : 'falta VAPID_*',
+      });
+    } catch { /* ignore */ }
+    // Backups R2
+    try {
+      const r2 = Boolean(process.env.BACKUP_S3_BUCKET && process.env.BACKUP_S3_ACCESS_KEY_ID);
+      result.services.push({
+        name: 'Backups R2', configured: r2, ok: r2,
+        detail: r2 ? process.env.BACKUP_S3_BUCKET : 'solo backup local',
+      });
+    } catch { /* ignore */ }
+    // GitHub
+    try {
+      const gh = Boolean(process.env.GITHUB_TOKEN && process.env.GITHUB_REPO);
+      result.services.push({
+        name: 'GitHub Issues', configured: gh, ok: gh,
+        detail: gh ? process.env.GITHUB_REPO : 'falta GITHUB_TOKEN',
+      });
+    } catch { /* ignore */ }
+    res.json(result);
+  });
+
   // LUNA — snapshot ligero para la mission bar
   app.get('/api/luna/snapshot', requireAuth, async (_req, res) => {
     try {

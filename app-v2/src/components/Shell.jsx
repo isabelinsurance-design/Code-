@@ -49,6 +49,7 @@ const NAV_GROUPS = [
       { to: '/comandos', label: 'Cómo hablarle' },
       { to: '/wiki', label: 'Wiki y temporada' },
       { to: '/actividad', label: 'Actividad' },
+      { to: '/diagnostico', label: 'Diagnóstico' },
       { to: '/search', label: 'Buscar' },
       { to: '/manual', label: 'Manual' },
       { to: '/configura', label: 'Configura' },

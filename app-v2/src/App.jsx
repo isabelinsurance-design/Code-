@@ -29,6 +29,7 @@ import ProyectoDetalle from './pages/ProyectoDetalle.jsx';
 import Reglas from './pages/Reglas.jsx';
 import Clientes from './pages/Clientes.jsx';
 import ClienteExpediente from './pages/ClienteExpediente.jsx';
+import Diagnostico from './pages/Diagnostico.jsx';
 
 function Protected() {
   const { user } = useAuth();
@@ -81,6 +82,7 @@ export default function App() {
           <Route path="/reglas" element={<Reglas />} />
           <Route path="/clientes" element={<Clientes />} />
           <Route path="/clientes/:id" element={<ClienteExpediente />} />
+          <Route path="/diagnostico" element={<Diagnostico />} />
           <Route path="/actividad" element={<Actividad />} />
         </Route>
         <Route path="*" element={<Navigate to="/hoy" replace />} />

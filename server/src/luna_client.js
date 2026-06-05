@@ -48,7 +48,7 @@ function redactPii(s) {
 
 async function lunaFetch(action, { method = 'GET', params = {}, body = null } = {}) {
   if (!lunaConfigured()) {
-    return { ok: false, error: 'LUNA no está configurado (LUNA_BASE_URL / LUNA_API_KEY).' };
+    return { ok: false, error: 'LUNA no está configurado (LUNA_BASE_URL / LUNA_API_KEY).', kind: 'not_configured' };
   }
 
   const url = new URL(baseUrl());
@@ -74,13 +74,38 @@ async function lunaFetch(action, { method = 'GET', params = {}, body = null } = 
     init.headers['Content-Type'] = 'application/x-www-form-urlencoded';
   }
 
+  const t0 = Date.now();
   try {
     const res = await fetch(url.toString(), init);
-    if (!res.ok) return { ok: false, error: `HTTP ${res.status}: ${res.statusText}` };
-    const data = await res.json();
-    return data;
+    const elapsed = Date.now() - t0;
+    if (!res.ok) {
+      // Diferenciamos por código HTTP para que Athena/UI puedan decirle a
+      // Isabel si es "acción no implementada" vs "server caído".
+      let kind = 'http_error';
+      if (res.status === 404) kind = 'action_not_supported';
+      else if (res.status >= 500) kind = 'server_error';
+      else if (res.status === 401 || res.status === 403) kind = 'auth';
+      return { ok: false, error: `HTTP ${res.status}: ${res.statusText}`, kind, status: res.status, elapsed_ms: elapsed };
+    }
+    // Si LUNA devuelve HTML en vez de JSON (warning o notice de PHP),
+    // parse falla. Lo categorizamos para que sea diagnosticable.
+    const text = await res.text();
+    try {
+      const data = JSON.parse(text);
+      return { ...data, elapsed_ms: elapsed };
+    } catch {
+      return {
+        ok: false,
+        error: 'LUNA devolvió HTML en vez de JSON (probablemente PHP warning/notice)',
+        kind: 'parse_error',
+        sample: text.slice(0, 200),
+        elapsed_ms: elapsed,
+      };
+    }
   } catch (err) {
-    return { ok: false, error: err.message || 'fetch failed' };
+    const elapsed = Date.now() - t0;
+    const kind = err.name === 'TimeoutError' || err.name === 'AbortError' ? 'timeout' : 'network_error';
+    return { ok: false, error: err.message || 'fetch failed', kind, elapsed_ms: elapsed };
   }
 }
 
