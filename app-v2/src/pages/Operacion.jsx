@@ -31,7 +31,7 @@ export default function Operacion() {
       {/* Masthead */}
       <header className="flex items-end justify-between border-b border-ink-1 pt-2 pb-3 mb-8">
         <div className="font-serif text-sm tracking-wide text-ink-1">
-          ATHENA <span className="font-mono text-xs text-ink-3 ml-2">Operación Medicare</span>
+          ATHENA <span className="font-mono text-xs text-ink-3 ml-2">CRM · LUNA</span>
         </div>
         <button
           onClick={generate}
@@ -39,19 +39,19 @@ export default function Operacion() {
           className="font-mono text-[10px] uppercase tracking-[0.18em] px-4 py-2 border border-ink-1 text-ink-1 hover:bg-ink-1 hover:text-lino-100 inline-flex items-center gap-2 disabled:opacity-40"
         >
           {loading ? <RefreshCw size={12} strokeWidth={1.5} className="animate-spin" /> : <FileText size={12} strokeWidth={1.5} />}
-          {loading ? 'Pilar analizando…' : data ? 'Pedir uno nuevo' : 'Generar reporte'}
+          {loading ? 'LUNA analizando…' : data ? 'Pedir uno nuevo' : 'Generar reporte'}
         </button>
       </header>
 
       {/* LEAD */}
       <section className="mb-10">
         <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-ink-3 mb-2">
-          Análisis deep de Pilar sobre tu CRM
+          Análisis deep de LUNA sobre tu CRM
         </p>
         <h1 className="font-serif text-[2rem] leading-[1.1] tracking-tight text-ink-1">
           {data
-            ? <span><em className="italic font-light">Lo que Pilar ve</em><br/>cuando mira todo junto.</span>
-            : <span><em className="italic font-light">Sin reporte todavía.</em><br/>Tap arriba para que Pilar haga un análisis completo.</span>}
+            ? <span><em className="italic font-light">Lo que LUNA ve</em><br/>cuando mira todo junto.</span>
+            : <span><em className="italic font-light">Sin reporte todavía.</em><br/>Tap arriba para que LUNA haga un análisis completo.</span>}
         </h1>
       </section>
 
@@ -78,7 +78,7 @@ export default function Operacion() {
       {data?.data_dump && (
         <details className="mt-8">
           <summary className="font-mono text-[10px] uppercase tracking-[0.18em] text-ink-3 hover:text-ink-1 cursor-pointer">
-            Ver datos crudos que vio Pilar
+            Ver datos crudos que vio LUNA
           </summary>
           <pre className="font-mono text-[11px] text-ink-3 leading-relaxed mt-4 whitespace-pre-wrap border-t border-lino-300 pt-4">
             {data.data_dump}

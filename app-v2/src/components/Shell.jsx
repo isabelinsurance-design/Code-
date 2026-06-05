@@ -25,7 +25,7 @@ const NAV_GROUPS = [
     label: 'Equipo',
     items: [
       { to: '/clientes', label: 'Clientes' },
-      { to: '/operacion', label: 'Operación Medicare' },
+      { to: '/operacion', label: 'LUNA · CRM' },
       { to: '/proyectos', label: 'Proyectos' },
       { to: '/coaches', label: 'Coaches' },
       { to: '/plans', label: 'Planes' },
