@@ -509,6 +509,18 @@ export function registerApi(app) {
     }
   });
 
+  // Medicare Operations Report — análisis deep de Pilar sobre todo el CRM
+  app.post('/api/medicare-report', requireAuth, async (_req, res) => {
+    try {
+      const { generateMedicareReport } = await import('./medicare_report.js');
+      const r = await generateMedicareReport();
+      res.json(r);
+    } catch (e) {
+      console.error('[medicare-report]', e.message);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // LUNA — debug raw: devuelve la respuesta CRUDA de cualquier acción LUNA
   // sin parsear ni interpretar. Útil para diagnosticar discrepancias entre
   // lo que LUNA dice y lo que Athena reporta.

@@ -211,6 +211,8 @@ export const api = {
   lunaMember: (id) => request(`/luna/member/${encodeURIComponent(id)}`),
   // LUNA — snapshot ligero (mission bar)
   lunaSnapshot: () => request('/luna/snapshot'),
+  // Medicare Operations Report — Pilar analiza todo el CRM y da recommendations
+  medicareReport: () => request('/medicare-report', { method: 'POST' }),
   // LUNA — health check por acción
   lunaHealth: () => request('/luna/health'),
   // Diagnóstico global — status de cada integración
