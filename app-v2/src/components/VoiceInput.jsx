@@ -1,168 +1,190 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react';
-import { Mic, MicOff, Square } from 'lucide-react';
+import { Mic, MicOff, Square, Loader2 } from 'lucide-react';
 
-// Botón de mic que usa Web Speech API nativa del browser.
+// Botón de mic que graba con MediaRecorder y manda el audio al servidor.
+// El servidor lo transcribe con Whisper, que AUTO-DETECTA idioma — por eso
+// ya no hay toggle ES/EN. Spanglish ("voy a llamar a Maritza for the
+// appointment") sale bien naturalmente.
 //
-// Manejo de pausas (iOS-friendly):
-//   Safari iOS NO respeta continuous=true confiablemente — termina la
-//   sesión a los pocos segundos aunque le digamos que siga. Estrategia:
-//     1) Mientras user está en "recording mode" (botón rojo activo),
-//        si el recognition termina por su cuenta, lo RESTARTAMOS auto.
-//        Da apariencia de continuous real en iOS.
-//     2) Detección de silencio: si pasan SILENCE_MS sin recibir ningún
-//        resultado (final ni interim), paramos de verdad. Default 5s.
-//     3) El usuario también puede parar manual con el botón ⏹.
+// Flujo:
+//   1) Tap mic → pide permiso de micrófono, empieza a grabar (botón rojo)
+//   2) Tap stop → para de grabar, sube el blob a /api/transcribe
+//   3) Whisper transcribe → texto llega → onTranscript(texto, true)
 //
-// Spanglish: toggle ES/EN. Web Speech NO auto-detecta idioma.
+// Auto-stop por silencio: 3s sin sonido detectable → para automáticamente
+// (analiza el RMS del stream). Usuario también puede parar manual con stop.
+//
+// Trade-off vs Web Speech: ~1-2 seg de espera después de parar (Whisper
+// procesa), pero a cambio: real auto-detect, mejor precisión, spanglish.
 
-const LANG_OPTIONS = [
-  { code: 'es-MX', label: 'ES', name: 'Español' },
-  { code: 'en-US', label: 'EN', name: 'English' },
-];
-const SILENCE_MS = 5000; // 5 segundos de silencio → para
+const SILENCE_MS = 3000;         // 3s de silencio total → para
+const SILENCE_THRESHOLD = 0.012;  // RMS por debajo de esto = silencio
 
-function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }, ref) {
+function VoiceInputInner({ onTranscript, className = '' }, ref) {
   const [supported, setSupported] = useState(true);
   const [recording, setRecording] = useState(false);
+  const [busy, setBusy] = useState(false);  // subiendo / transcribiendo
   const [error, setError] = useState('');
-  const [lang, setLang] = useState(() => {
-    try {
-      const saved = localStorage.getItem('athena_voice_lang');
-      if (saved && LANG_OPTIONS.find((l) => l.code === saved)) return saved;
-    } catch { /* ignore */ }
-    return defaultLang;
-  });
-  // Refs para que cambios NO re-creen el recognition.
-  const recognitionRef = useRef(null);
-  const recordingRef = useRef(false);
+
+  const mediaRecorderRef = useRef(null);
+  const streamRef = useRef(null);
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
   const silenceTimerRef = useRef(null);
-  const restartingRef = useRef(false);
+  const lastSoundAtRef = useRef(0);
+  const rafRef = useRef(null);
+  const chunksRef = useRef([]);
+  const cancelledRef = useRef(false);
 
   useEffect(() => {
-    try { localStorage.setItem('athena_voice_lang', lang); } catch { /* ignore */ }
-  }, [lang]);
-
-  function resetSilenceTimer() {
-    if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    silenceTimerRef.current = setTimeout(() => {
-      console.log('[voice] silencio detectado, parando');
-      stopRecording();
-    }, SILENCE_MS);
-  }
-
-  function stopRecording() {
-    recordingRef.current = false;
-    setRecording(false);
-    if (silenceTimerRef.current) {
-      clearTimeout(silenceTimerRef.current);
-      silenceTimerRef.current = null;
-    }
-    try { recognitionRef.current?.stop(); } catch { /* ignore */ }
-  }
-
-  // Permite al padre (Chat.jsx) parar el mic cuando se manda mensaje
-  // o cuando Athena está hablando, para evitar feedback loops.
-  useImperativeHandle(ref, () => ({
-    stop: stopRecording,
-    isRecording: () => recordingRef.current,
-  }), []);
-
-  useEffect(() => {
-    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-    if (!SR) {
+    if (!navigator.mediaDevices?.getUserMedia || !window.MediaRecorder) {
       setSupported(false);
-      return;
     }
-    const rec = new SR();
-    rec.lang = lang;
-    rec.continuous = true;
-    rec.interimResults = true;
-    rec.maxAlternatives = 1;
+    return () => { cleanup(); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
-    rec.onresult = (event) => {
-      let interim = '';
-      let final = '';
-      for (let i = event.resultIndex; i < event.results.length; i++) {
-        const transcript = event.results[i][0].transcript;
-        if (event.results[i].isFinal) {
-          final += transcript;
-        } else {
-          interim += transcript;
+  function cleanup() {
+    try { if (rafRef.current) cancelAnimationFrame(rafRef.current); } catch { /* ignore */ }
+    rafRef.current = null;
+    try { if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current); } catch { /* ignore */ }
+    silenceTimerRef.current = null;
+    try { streamRef.current?.getTracks().forEach((t) => t.stop()); } catch { /* ignore */ }
+    streamRef.current = null;
+    try { audioCtxRef.current?.close(); } catch { /* ignore */ }
+    audioCtxRef.current = null;
+    analyserRef.current = null;
+    mediaRecorderRef.current = null;
+  }
+
+  useImperativeHandle(ref, () => ({
+    stop: () => {
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+      }
+    },
+    cancel: () => {
+      cancelledRef.current = true;
+      if (mediaRecorderRef.current && mediaRecorderRef.current.state === 'recording') {
+        try { mediaRecorderRef.current.stop(); } catch { /* ignore */ }
+      }
+    },
+    isRecording: () => recording,
+  }), [recording]);
+
+  function pickMimeType() {
+    const candidates = [
+      'audio/webm;codecs=opus',
+      'audio/webm',
+      'audio/mp4',
+      'audio/ogg;codecs=opus',
+    ];
+    for (const t of candidates) {
+      if (window.MediaRecorder.isTypeSupported?.(t)) return t;
+    }
+    return '';  // browser default
+  }
+
+  async function startRecording() {
+    setError('');
+    cancelledRef.current = false;
+    chunksRef.current = [];
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({
+        audio: { echoCancellation: true, noiseSuppression: true, autoGainControl: true },
+      });
+      streamRef.current = stream;
+
+      const mimeType = pickMimeType();
+      const rec = mimeType ? new MediaRecorder(stream, { mimeType }) : new MediaRecorder(stream);
+      mediaRecorderRef.current = rec;
+
+      rec.ondataavailable = (e) => {
+        if (e.data && e.data.size > 0) chunksRef.current.push(e.data);
+      };
+
+      rec.onstop = async () => {
+        const wasCancelled = cancelledRef.current;
+        cleanup();
+        setRecording(false);
+        if (wasCancelled) return;
+        const blob = new Blob(chunksRef.current, { type: rec.mimeType || 'audio/webm' });
+        chunksRef.current = [];
+        if (blob.size < 1000) {
+          // Muy corto — probablemente no dijiste nada útil.
+          return;
         }
-      }
-      if (final) {
-        onTranscript(final.trim(), true);
-        resetSilenceTimer();
-      } else if (interim) {
-        resetSilenceTimer();
-      }
-    };
-
-    rec.onerror = (event) => {
-      const errMsg = event.error || 'voice_error';
-      if (errMsg === 'no-speech' || errMsg === 'aborted') return;
-      if (errMsg === 'not-allowed') {
-        setError('Permite acceso al mic en Settings → Safari');
-        recordingRef.current = false;
-        setRecording(false);
-        return;
-      }
-      setError(errMsg);
-    };
-
-    rec.onend = () => {
-      // iOS Safari termina la sesión a los pocos segundos aunque
-      // continuous=true. Si el usuario sigue queriendo grabar (botón
-      // rojo activo), reiniciamos automáticamente.
-      if (recordingRef.current && !restartingRef.current) {
-        restartingRef.current = true;
-        setTimeout(() => {
-          if (recordingRef.current) {
-            try {
-              rec.start();
-            } catch (err) {
-              console.warn('[voice] restart falló:', err.message);
-              recordingRef.current = false;
-              setRecording(false);
-              setError(err.message);
-            }
+        setBusy(true);
+        try {
+          const r = await fetch('/api/transcribe', {
+            method: 'POST',
+            credentials: 'include',
+            headers: { 'Content-Type': blob.type },
+            body: blob,
+          });
+          if (!r.ok) {
+            const e = await r.json().catch(() => ({}));
+            throw new Error(e.error || `whisper ${r.status}`);
           }
-          restartingRef.current = false;
-        }, 100);
-      } else {
-        setRecording(false);
+          const { text } = await r.json();
+          if (text) onTranscript(text, true);
+        } catch (err) {
+          setError(err.message || 'no se pudo transcribir');
+        } finally {
+          setBusy(false);
+        }
+      };
+
+      // Silence detection via WebAudio.
+      try {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        const ctx = new AudioCtx();
+        audioCtxRef.current = ctx;
+        const source = ctx.createMediaStreamSource(stream);
+        const analyser = ctx.createAnalyser();
+        analyser.fftSize = 2048;
+        source.connect(analyser);
+        analyserRef.current = analyser;
+        const buf = new Float32Array(analyser.fftSize);
+        lastSoundAtRef.current = Date.now();
+        const tick = () => {
+          if (!analyserRef.current) return;
+          analyser.getFloatTimeDomainData(buf);
+          let sum = 0;
+          for (let i = 0; i < buf.length; i++) sum += buf[i] * buf[i];
+          const rms = Math.sqrt(sum / buf.length);
+          if (rms > SILENCE_THRESHOLD) lastSoundAtRef.current = Date.now();
+          if (Date.now() - lastSoundAtRef.current > SILENCE_MS) {
+            // Auto-stop.
+            try { rec.stop(); } catch { /* ignore */ }
+            return;
+          }
+          rafRef.current = requestAnimationFrame(tick);
+        };
+        rafRef.current = requestAnimationFrame(tick);
+      } catch (err) {
+        console.warn('[voice] WebAudio falló, sin auto-silencio:', err.message);
       }
-    };
 
-    recognitionRef.current = rec;
-    return () => {
-      try { rec.abort(); } catch { /* ignore */ }
-      if (silenceTimerRef.current) clearTimeout(silenceTimerRef.current);
-    };
-  }, [lang, onTranscript]);
-
-  function switchLang(newLang) {
-    if (newLang === lang) return;
-    if (recordingRef.current) stopRecording();
-    setLang(newLang);
+      rec.start();
+      setRecording(true);
+    } catch (err) {
+      cleanup();
+      setRecording(false);
+      if (err.name === 'NotAllowedError') {
+        setError('Permite acceso al mic en Ajustes del navegador');
+      } else {
+        setError(err.message || 'no pude abrir el mic');
+      }
+    }
   }
 
   function toggle() {
-    if (!recognitionRef.current) return;
-    setError('');
-    if (recordingRef.current) {
-      stopRecording();
+    if (busy) return;
+    if (recording) {
+      try { mediaRecorderRef.current?.stop(); } catch { /* ignore */ }
     } else {
-      try {
-        recordingRef.current = true;
-        setRecording(true);
-        recognitionRef.current.start();
-        resetSilenceTimer();
-      } catch (err) {
-        recordingRef.current = false;
-        setRecording(false);
-        setError(err.message || 'no pude empezar');
-      }
+      startRecording();
     }
   }
 
@@ -170,8 +192,8 @@ function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }
     return (
       <button
         disabled
-        className={`px-3 py-2 rounded-lg bg-lino-100 text-ink-3 text-xs ${className}`}
-        title="Tu browser no soporta voz. Usa Safari (iOS) o Chrome."
+        className={`px-3 py-2 rounded-lg bg-lino-100 text-ink-3 ${className}`}
+        title="Tu navegador no soporta grabación de voz."
         aria-label="Voz no soportada"
       >
         <MicOff size={18} strokeWidth={1.5} />
@@ -181,45 +203,31 @@ function VoiceInputInner({ onTranscript, defaultLang = 'es-MX', className = '' }
 
   return (
     <div className="relative">
-      <div className="flex items-center gap-1">
-        {/* Toggle ES/EN */}
-        <div className="flex bg-lino-100 rounded-lg overflow-hidden text-xs">
-          {LANG_OPTIONS.map((opt) => (
-            <button
-              key={opt.code}
-              onClick={() => switchLang(opt.code)}
-              className={`px-2 py-2 transition-colors ${
-                lang === opt.code
-                  ? 'bg-lino-700 text-white font-medium'
-                  : 'text-ink-3 hover:bg-lino-200'
-              }`}
-              title={opt.name}
-              aria-label={`Cambiar a ${opt.name}`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-        {/* Mic button */}
-        <button
-          onClick={toggle}
-          className={`px-3 py-2 rounded-lg transition-all ${
-            recording
-              ? 'bg-red text-white animate-pulse'
+      <button
+        onClick={toggle}
+        disabled={busy}
+        className={`px-3 py-2 rounded-lg transition-all ${
+          recording
+            ? 'bg-red text-white animate-pulse'
+            : busy
+              ? 'bg-lino-200 text-ink-3'
               : 'bg-lino-100 text-ink-2 hover:bg-lino-200'
-          } ${className}`}
-          title={
-            recording
-              ? 'Hablando… (5s de silencio para. o tócala)'
-              : `Toca y habla (${lang === 'es-MX' ? 'Español' : 'English'})`
-          }
-          aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
-        >
-          {recording
+        } ${className}`}
+        title={
+          busy
+            ? 'Transcribiendo…'
+            : recording
+              ? 'Grabando — toca para parar (o 3s de silencio)'
+              : 'Toca y habla (detecta ES/EN automáticamente)'
+        }
+        aria-label={recording ? 'Parar grabación' : 'Empezar grabación'}
+      >
+        {busy
+          ? <Loader2 size={18} strokeWidth={1.5} className="animate-spin" />
+          : recording
             ? <Square size={18} strokeWidth={1.5} fill="currentColor" />
             : <Mic size={18} strokeWidth={1.5} />}
-        </button>
-      </div>
+      </button>
       {error && (
         <p className="absolute top-full left-0 mt-1 text-xs text-red whitespace-nowrap">
           {error}

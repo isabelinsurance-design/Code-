@@ -55,3 +55,33 @@ export async function transcribeWhatsAppAudio(mediaUrl, contentType) {
   const text = (data.text || '').trim();
   return { ok: true, transcript: text, note: '' };
 }
+
+// Transcribe un buffer de audio crudo (del PWA — grabado con MediaRecorder).
+// Whisper auto-detecta idioma → no necesitamos toggle ES/EN. Perfecto para
+// spanglish ("voy a llamar a Maritza for the appointment" sale bien).
+export async function transcribeAudioBuffer(buf, mimeType = 'audio/webm') {
+  if (!OPENAI_API_KEY) {
+    return { ok: false, transcript: '', error: 'OPENAI_API_KEY no configurada' };
+  }
+  const ext = mimeType.includes('webm') ? 'webm'
+    : mimeType.includes('ogg') ? 'ogg'
+    : mimeType.includes('mp4') || mimeType.includes('m4a') ? 'm4a'
+    : mimeType.includes('mp3') ? 'mp3'
+    : mimeType.includes('wav') ? 'wav'
+    : 'webm';
+  const form = new FormData();
+  form.append('file', new Blob([buf], { type: mimeType }), `voice.${ext}`);
+  form.append('model', WHISPER_MODEL);
+  // No fijamos idioma — Whisper detecta. Spanglish friendly.
+  const w = await fetch('https://api.openai.com/v1/audio/transcriptions', {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${OPENAI_API_KEY}` },
+    body: form,
+  });
+  if (!w.ok) {
+    const errTxt = await w.text().catch(() => '');
+    return { ok: false, transcript: '', error: `Whisper ${w.status}: ${errTxt.slice(0, 200)}` };
+  }
+  const data = await w.json();
+  return { ok: true, transcript: (data.text || '').trim() };
+}

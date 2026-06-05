@@ -148,6 +148,50 @@ export function registerApi(app) {
 
   // ---- Todo lo demás requiere auth ----
 
+  // STT: el PWA manda audio (webm/ogg) y le devolvemos texto transcrito.
+  // Usa Whisper — auto-detecta idioma, perfecto para spanglish.
+  // El body llega como raw bytes con Content-Type del MediaRecorder.
+  app.post('/api/transcribe', requireAuth, async (req, res) => {
+    try {
+      const chunks = [];
+      let total = 0;
+      const MAX_BYTES = 10 * 1024 * 1024; // 10 MB ~ varios minutos
+      let aborted = false;
+      req.on('data', (c) => {
+        total += c.length;
+        if (total > MAX_BYTES) {
+          aborted = true;
+          res.status(413).json({ error: 'audio muy largo' });
+          req.destroy();
+          return;
+        }
+        chunks.push(c);
+      });
+      req.on('end', async () => {
+        if (aborted) return;
+        try {
+          const buf = Buffer.concat(chunks);
+          if (!buf.length) return res.status(400).json({ error: 'sin audio' });
+          const mime = req.headers['content-type'] || 'audio/webm';
+          const { transcribeAudioBuffer } = await import('./transcribe.js');
+          const r = await transcribeAudioBuffer(buf, mime);
+          if (!r.ok) return res.status(502).json({ error: r.error || 'whisper falló' });
+          res.json({ text: r.transcript });
+        } catch (err) {
+          console.error('[api/transcribe]', err.message);
+          res.status(500).json({ error: err.message });
+        }
+      });
+      req.on('error', (err) => {
+        console.error('[api/transcribe] stream error', err.message);
+        if (!res.headersSent) res.status(500).json({ error: err.message });
+      });
+    } catch (err) {
+      console.error('[api/transcribe]', err.message);
+      res.status(500).json({ error: err.message });
+    }
+  });
+
   // TTS: el PWA manda texto y le devolvemos URL de MP3 público.
   // Usa el mismo synthToPublicUrl que WhatsApp (OpenAI nova/shimmer o ElevenLabs).
   // Así garantizamos voz femenina sin depender del navegador.
