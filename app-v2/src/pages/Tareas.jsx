@@ -1,14 +1,16 @@
 import { useState } from 'react';
 import TasksPanel from '../components/tareas/TasksPanel.jsx';
 import CommitmentsPanel from '../components/tareas/CommitmentsPanel.jsx';
+import BandejaPanel from '../components/tareas/BandejaPanel.jsx';
 
 const TABS = [
+  { id: 'bandeja', label: 'Bandeja' },
   { id: 'tareas', label: 'Tareas' },
   { id: 'compromisos', label: 'Te deben' },
 ];
 
 export default function Tareas() {
-  const [tab, setTab] = useState('tareas');
+  const [tab, setTab] = useState('bandeja');
 
   return (
     <div className="space-y-5">
@@ -31,6 +33,7 @@ export default function Tareas() {
         ))}
       </div>
 
+      {tab === 'bandeja' && <BandejaPanel />}
       {tab === 'tareas' && <TasksPanel />}
       {tab === 'compromisos' && <CommitmentsPanel />}
     </div>

@@ -581,6 +581,108 @@ export function registerApi(app) {
     }
   });
 
+  // === BANDEJA OPERACIONAL — drafts + triage + alertas en una vista ===
+  app.get('/api/bandeja', requireAuth, async (_req, res) => {
+    const out = {
+      drafts: [],
+      alerts: { tareas_vencidas: [], commits_vencidos: [], tickets_stale: [] },
+      triage: { last_run: null, summary: null },
+      team: null,
+    };
+    // Drafts en outbound queue
+    try {
+      const { getPendingOutbound } = await import('./memory.js');
+      out.drafts = (getPendingOutbound() || []).map((d) => ({
+        id: d.id,
+        kind: d.kind || d.tipo || 'mensaje',
+        to: d.to || d.destinatario,
+        subject: d.subject || d.asunto || null,
+        body_preview: (d.body || d.texto || '').slice(0, 200),
+        ts: d.creado || d.ts,
+      }));
+    } catch { /* ignore */ }
+    // Alertas — tareas vencidas
+    try {
+      const { listTasks } = await import('./tasks.js');
+      const tasks = listTasks({ status: 'pendiente' }) || [];
+      out.alerts.tareas_vencidas = tasks
+        .filter((t) => t.vence && new Date(t.vence).getTime() < Date.now())
+        .map((t) => ({
+          id: t.id,
+          descripcion: t.descripcion || t.titulo,
+          responsable: t.responsable || t.owner,
+          dias_vencida: Math.floor((Date.now() - new Date(t.vence).getTime()) / 86_400_000),
+        }))
+        .sort((a, b) => b.dias_vencida - a.dias_vencida);
+    } catch { /* ignore */ }
+    // Alertas — compromisos vencidos
+    try {
+      const { listCommitments } = await import('./commitments.js');
+      const cs = listCommitments({ status: 'pendiente' }) || [];
+      out.alerts.commits_vencidos = cs
+        .filter((c) => c.vence && new Date(c.vence).getTime() < Date.now())
+        .map((c) => ({
+          id: c.id,
+          persona: c.persona,
+          descripcion: c.descripcion,
+          canal: c.canal,
+          contacto: c.persona_contacto || c.contacto || null,
+          dias_vencido: Math.floor((Date.now() - new Date(c.vence).getTime()) / 86_400_000),
+          nudges: c.recordatorios_enviados || 0,
+        }))
+        .sort((a, b) => b.dias_vencido - a.dias_vencido);
+    } catch { /* ignore */ }
+    // Alertas — tickets LUNA stale (alta prioridad)
+    try {
+      const { checkStaleTickets } = await import('./ticket_monitor.js');
+      const r = await checkStaleTickets();
+      if (r.ok && r.stale) {
+        out.alerts.tickets_stale = r.stale
+          .filter((t) => (t.prioridad || '').toUpperCase() === 'ALTA')
+          .slice(0, 10)
+          .map((t) => ({
+            id: t.id,
+            descripcion: t.descripcion || t.titulo,
+            asignado_nombre: t.asignado_nombre,
+            miembro_nombre: t.miembro_nombre,
+            dias: Math.floor(t.dias_sin_movimiento || 0),
+          }));
+      }
+    } catch { /* ignore */ }
+    // Triage — buscamos en wiki el último "Triage de la mañana"
+    try {
+      const { listMemories } = await import('./memory.js');
+      const wiki = listMemories(30) || [];
+      const lastTriage = wiki.find((m) => /triage/i.test(m.nota || ''));
+      if (lastTriage) {
+        out.triage = {
+          last_run: lastTriage.ts,
+          summary: lastTriage.nota,
+        };
+      }
+    } catch { /* ignore */ }
+    // Team (LUNA) — snapshot ya implementado
+    try {
+      const { lunaConfigured, openTickets } = await import('./luna_client.js');
+      if (lunaConfigured()) {
+        const r = await openTickets({ priority: '' }).catch(() => ({ ok: false }));
+        if (r.ok && Array.isArray(r.data)) {
+          const byOwner = {};
+          for (const t of r.data) {
+            const k = t.asignado_nombre || (t.asignado_a ? `id ${t.asignado_a}` : '—');
+            byOwner[k] = (byOwner[k] || 0) + 1;
+          }
+          out.team = {
+            total: r.data.length,
+            alta: r.data.filter((t) => (t.prioridad || '').toUpperCase() === 'ALTA').length,
+            by_owner: byOwner,
+          };
+        }
+      }
+    } catch { /* ignore */ }
+    res.json(out);
+  });
+
   // === USO / COSTOS — estimación en vivo ===
   app.get('/api/usage', requireAuth, async (_req, res) => {
     try {
