@@ -278,7 +278,7 @@ export function seedDefaultCadences() {
     { coach: 'marisol', cadencia: 'viernes', hora: '21:00' },
     { coach: 'elena', cadencia: 'viernes', hora: '17:00' },
     { coach: 'ines', cadencia: 'domingo', hora: '18:00' }, // planning semanal de aprendizaje
-    { coach: 'pilar', cadencia: 'quincenal' },
+    { coach: 'luna', cadencia: 'quincenal' },
     { coach: 'beatriz', cadencia: 'quincenal' },
     { coach: 'dolores', cadencia: 'quincenal' }, // cuidado padres — check-in regular sin sobrecargar
     { coach: 'nora', cadencia: 'mensual', dia: 1 }, // negociación — reset mensual de deals abiertos

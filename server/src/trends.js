@@ -184,7 +184,7 @@ function buildAthenaInternalSnapshot() {
       if (m) coachUsage[m[1].toLowerCase()] = (coachUsage[m[1].toLowerCase()] || 0) + 1;
     }
   }
-  const allCoaches = ['carmen', 'rivera', 'sofia', 'pilar', 'elena', 'alma', 'rosa', 'camila', 'marisol', 'lucia', 'catalina', 'beatriz', 'esperanza', 'victoria', 'luna', 'valentina'];
+  const allCoaches = ['carmen', 'rivera', 'sofia', 'luna', 'elena', 'alma', 'rosa', 'camila', 'marisol', 'lucia', 'catalina', 'beatriz', 'esperanza', 'victoria', 'aurora', 'valentina'];
   const coachesNoUsados = allCoaches.filter((c) => !coachUsage[c]);
   const topCoaches = Object.entries(coachUsage).sort((a, b) => b[1] - a[1]).slice(0, 5);
 

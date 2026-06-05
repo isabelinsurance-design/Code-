@@ -1288,7 +1288,7 @@ export function registerApi(app) {
       // el flujo PWA directo. Este fix unifica.
       let tools = [...coachPlanTools, WEB_SEARCH];
       let toolDispatcher = makeCoachPlanDispatcher(coach);
-      if (coach === 'pilar') {
+      if (coach === 'luna' || coach === 'pilar') { // 'pilar' por backward-compat
         const { LUNA_TOOL_DEFINITIONS, runLunaTool } = await import('./luna_tools.js');
         tools = [...tools, ...LUNA_TOOL_DEFINITIONS];
         // Dispatcher combinado: coach_plan_* van al plan dispatcher,

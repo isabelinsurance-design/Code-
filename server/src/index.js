@@ -507,6 +507,14 @@ scheduleCron('eod_nudge', process.env.EOD_NUDGE_CRON || '0 18 * * 1-5', async ()
 const port = process.env.PORT || 3000;
 const httpServer = app.listen(port, async () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
+  // Corre migraciones de data al boot (rename pilar→luna, luna→aurora, etc).
+  // Idempotente — si ya corrió, no hace nada.
+  try {
+    const { runAllMigrations } = await import('./migrations.js');
+    runAllMigrations();
+  } catch (e) {
+    console.error('[migrations] error:', e.message);
+  }
   // Arranca el listener de Gmail IDLE (event-driven inbox). Si las
   // credenciales no están, no hace nada. Si la conexión cae, se
   // reconecta con backoff. NO bloquea el arranque del server.

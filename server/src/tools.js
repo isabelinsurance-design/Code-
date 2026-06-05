@@ -1951,7 +1951,7 @@ async function dispatchTool(name, input) {
             presupuesto: c.presupuesto_palabras,
             tools: [WEB_SEARCH],
           };
-          if (c.especialista === 'pilar') {
+          if (c.especialista === 'luna' || c.especialista === 'pilar') {
             // Pilar: LUNA + web_search. Sus datos viven en LUNA — no
             // necesita coach_plan/notes (los miembros, pólizas, tickets
             // ya son su "plan/expediente" estructurado).
@@ -2002,7 +2002,7 @@ async function dispatchTool(name, input) {
           // Cada coach ve SU expediente + SU plan vigente (smart coaches
           // C). Pilar no aplica — sus "datos" viven en LUNA como
           // miembros/pólizas/tickets.
-          if (c.especialista !== 'pilar') {
+          if (c.especialista !== 'luna' && c.especialista !== 'pilar') {
             const { planAsContext } = await import('./coach_plans.js');
             const { notesAsContext } = await import('./coach_notes.js');
             const notesCtx = notesAsContext(c.especialista, spec.name);
