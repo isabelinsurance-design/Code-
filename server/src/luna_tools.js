@@ -314,13 +314,23 @@ export async function runLunaTool(name, input = {}) {
           ? `Sin tickets abiertos de prioridad ${prioridad}.`
           : 'Sin tickets abiertos en LUNA.';
 
-        // AGREGACIÓN COMPLETA sobre los 89 (no muestreo).
-        // Pilar antes contaba de un slice(0,30) y subestimaba a Arlette/Sami.
-        // Ahora le pasamos los conteos pre-calculados.
-        const byAgent = {};
-        const byPriority = { ALTA: 0, MEDIA: 0, BAJA: 0 };
-        const byAgentPrio = {};
+        // OPCIÓN C — desglose por estado (matchea LUNA UI) Y aporta contexto
+        // de los otros estados. Plus smart insights.
+        const byState = { ABIERTO: [], 'EN PROCESO': [], PENDIENTE: [] };
         for (const t of list) {
+          const s = (t.estado || 'ABIERTO').toUpperCase();
+          if (byState[s]) byState[s].push(t);
+          else byState[s] = [t];
+        }
+        const abiertos = byState.ABIERTO || [];
+        const enProceso = byState['EN PROCESO'] || [];
+        const pendientes = byState.PENDIENTE || [];
+
+        // Agregación por agente — SOLO de los ABIERTOS (lo que matchea UI)
+        const byAgent = {};
+        const byAgentPrio = {};
+        const byPriority = { ALTA: 0, MEDIA: 0, BAJA: 0 };
+        for (const t of abiertos) {
           const a = t.asignado_nombre || 'sin asignar';
           byAgent[a] = (byAgent[a] || 0) + 1;
           const p = (t.prioridad || 'MEDIA').toUpperCase();
@@ -332,29 +342,110 @@ export async function runLunaTool(name, input = {}) {
         const agentLines = Object.entries(byAgent)
           .sort((a, b) => b[1] - a[1])
           .map(([name, n]) => {
-            const detail = byAgentPrio[name];
+            const d = byAgentPrio[name];
             const parts = [];
-            if (detail.ALTA) parts.push(`${detail.ALTA} alta`);
-            if (detail.MEDIA) parts.push(`${detail.MEDIA} media`);
-            if (detail.BAJA) parts.push(`${detail.BAJA} baja`);
+            if (d.ALTA) parts.push(`${d.ALTA} alta`);
+            if (d.MEDIA) parts.push(`${d.MEDIA} media`);
+            if (d.BAJA) parts.push(`${d.BAJA} baja`);
             return `${name}: ${n}${parts.length ? ` (${parts.join(', ')})` : ''}`;
           })
           .join('\n');
 
-        // 8 ejemplos representativos (mezcla de prioridades), para que Pilar
-        // pueda dar contexto si Isabel pide detalle.
-        const sample = list.slice(0, 8).map((t) => {
-          const id = t.id || '?';
-          const prio = t.prioridad ? `[${t.prioridad}]` : '';
-          const asignado = t.asignado_nombre || 'sin asignar';
-          const desc = (t.descripcion || t.titulo || '').slice(0, 60);
-          return `#${id} ${prio} · ${asignado} · ${desc}`;
-        }).join('\n');
+        // SMART INSIGHTS — análisis de lo que puede perderse
+        const insights = [];
+        const now = Date.now();
+        const daysOld = (iso) => iso ? Math.floor((now - new Date(iso).getTime()) / 86_400_000) : 0;
 
-        const header = `${list.length} tickets abiertos${prioridad ? ` (${prioridad})` : ''}.`;
-        const prioSummary = `Por prioridad: ${byPriority.ALTA} alta, ${byPriority.MEDIA} media, ${byPriority.BAJA} baja.`;
+        // 1. ALTA estancados (>3 días sin moverse)
+        const altaStancados = abiertos.filter((t) =>
+          (t.prioridad || '').toUpperCase() === 'ALTA' &&
+          t.fecha_creacion && daysOld(t.fecha_creacion) >= 3
+        );
+        if (altaStancados.length) {
+          const top = altaStancados.slice(0, 3).map((t) => {
+            const owner = t.asignado_nombre || 'sin asignar';
+            const desc = (t.descripcion || '').slice(0, 60);
+            return `#${t.id} (${owner}, ${daysOld(t.fecha_creacion)}d): ${desc}`;
+          }).join('\n   ');
+          insights.push(`${altaStancados.length} ALTA estancados ≥3 días:\n   ${top}`);
+        }
 
-        return `${header}\n\nPor agente:\n${agentLines}\n\n${prioSummary}\n\nEjemplos:\n${sample}`;
+        // 2. ALTA sin asignar (huérfanos urgentes)
+        const altaHuerfanos = abiertos.filter((t) =>
+          (t.prioridad || '').toUpperCase() === 'ALTA' &&
+          !t.asignado_a
+        );
+        if (altaHuerfanos.length) {
+          const top = altaHuerfanos.slice(0, 3).map((t) => {
+            const desc = (t.descripcion || '').slice(0, 60);
+            return `#${t.id}: ${desc}`;
+          }).join('\n   ');
+          insights.push(`${altaHuerfanos.length} ALTA sin dueño (nadie los está agarrando):\n   ${top}`);
+        }
+
+        // 3. Detección de fechas en la descripción ya pasadas o cercanas
+        // Busca patrones como "el 10 de junio", "para el viernes", "hoy", "mañana"
+        const meses = { enero:1, febrero:2, marzo:3, abril:4, mayo:5, junio:6, julio:7, agosto:8, septiembre:9, octubre:10, noviembre:11, diciembre:12 };
+        const fechaDescripcion = [];
+        for (const t of abiertos) {
+          const desc = (t.descripcion || '').toLowerCase();
+          if (!desc) continue;
+          // patrón "el 10 de junio" o "10 de junio"
+          const m = desc.match(/(\d{1,2})\s+de\s+(enero|febrero|marzo|abril|mayo|junio|julio|agosto|septiembre|octubre|noviembre|diciembre)/);
+          if (m) {
+            const day = parseInt(m[1], 10);
+            const month = meses[m[2]];
+            const year = new Date().getFullYear();
+            const target = new Date(year, month - 1, day);
+            const diff = Math.floor((target.getTime() - now) / 86_400_000);
+            if (diff >= -1 && diff <= 7) {
+              const owner = t.asignado_nombre || 'sin asignar';
+              const status = diff < 0 ? `vencida ${Math.abs(diff)}d` : diff === 0 ? 'HOY' : diff === 1 ? 'mañana' : `en ${diff}d`;
+              fechaDescripcion.push(`#${t.id} (${owner}, ${status}): ${(t.descripcion || '').slice(0, 80)}`);
+            }
+          }
+        }
+        if (fechaDescripcion.length) {
+          insights.push(`${fechaDescripcion.length} tickets con fecha próxima/vencida en la descripción:\n   ${fechaDescripcion.slice(0, 5).join('\n   ')}`);
+        }
+
+        // 4. Tickets muy viejos (>60 días)
+        const muyViejos = abiertos.filter((t) => t.fecha_creacion && daysOld(t.fecha_creacion) >= 60);
+        if (muyViejos.length >= 5) {
+          insights.push(`${muyViejos.length} tickets llevan más de 60 días abiertos — probablemente hay que revisarlos o cerrarlos.`);
+        }
+
+        // 5. Concentración de carga
+        const owners = Object.entries(byAgent).sort((a, b) => b[1] - a[1]);
+        if (owners.length >= 2 && owners[0][1] > owners[1][1] * 2 && owners[0][0] !== 'sin asignar') {
+          insights.push(`${owners[0][0]} carga ${owners[0][1]} tickets — más del doble que el siguiente. Posible cuello de botella.`);
+        }
+
+        // Armar respuesta final
+        const lines = [];
+        lines.push(`${abiertos.length} tickets ABIERTOS estrictos.`);
+        lines.push('');
+        if (agentLines) {
+          lines.push('Por agente:');
+          lines.push(agentLines);
+          lines.push('');
+        }
+        if (enProceso.length || pendientes.length) {
+          const extra = [];
+          if (enProceso.length) extra.push(`${enProceso.length} EN PROCESO (alguien ya los está trabajando)`);
+          if (pendientes.length) extra.push(`${pendientes.length} PENDIENTE (esperando algo del cliente o equipo)`);
+          lines.push('Además:');
+          lines.push(extra.join('\n'));
+          lines.push('');
+          lines.push(`Total no cerrado: ${list.length}.`);
+          lines.push('');
+        }
+        if (insights.length) {
+          lines.push('LO QUE NO HAY QUE PERDER DE VISTA:');
+          lines.push(insights.join('\n\n'));
+        }
+
+        return lines.join('\n');
       }
       case 'luna_citas_hoy': {
         const r = await lunaTodayAppointments();
