@@ -1,52 +1,74 @@
-# Para Sami — agregar endpoints `open_tickets` y `today_appointments` en LUNA
+# Para Sami — endpoints `open_tickets` y `today_appointments` en LUNA
 
-Athena (vía Pilar) tiene dos tools nuevos:
+> ⚠️ **ACTUALIZADO** después de descubrir que la query actual de `open_tickets`
+> NO devuelve `asignado_a`, lo que hizo que Athena agrupara todos los tickets
+> bajo "Isabel" (la creadora) en vez del agente real al que están asignados.
+
+Athena (vía Pilar) tiene dos tools:
 - `luna_tickets_abiertos` → llama `?action=luna_open_tickets&priority=...`
 - `luna_citas_hoy` → llama `?action=luna_today_appointments`
 
-Isabel los está pidiendo en WhatsApp y en el PWA. Ahora mismo fallan con 404
-porque esos `case` no existen en `luna_api.php` en Bluehost.
+Para que Athena pueda decirle a Isabel "Arlette tiene 16 tickets / Skarleth 5",
+la query de open_tickets DEBE devolver el campo `asignado_a` (id del agente
+asignado) — no solo `agente_ini`/`agente_nombre` (que son del CREADOR).
 
-## Lo que hay que agregar
+## El SQL correcto
 
-Abre `luna_api.php` en Bluehost (cPanel → File Manager → `public_html/`).
-
-Busca el `switch ($action)` grande. Agrega estos dos casos antes del `default:`.
-
-### Case 1 — Tickets abiertos
+Reemplaza el `case 'luna_open_tickets':` actual con este:
 
 ```php
 case 'luna_open_tickets':
     $priority = $_GET['priority'] ?? '';
     $sql = "SELECT t.id, t.tipo, t.prioridad, t.descripcion, t.titulo, t.estado,
-                   t.asignado_a, u.nombre AS asignado_nombre,
+                   t.asignado_a,
+                   COALESCE(u.nombre, CASE
+                       WHEN t.asignado_a IS NULL THEN 'sin asignar'
+                       ELSE CONCAT('id ', t.asignado_a)
+                   END) AS asignado_nombre,
+                   t.agente_ini, t.agente_nombre,
                    t.miembro_id, m.nombre AS miembro_nombre,
                    t.fecha_creacion
             FROM tickets t
             LEFT JOIN usuarios u ON t.asignado_a = u.id
             LEFT JOIN miembros m ON t.miembro_id = m.id
-            WHERE t.estado IN ('ABIERTO', 'EN_PROCESO', 'PENDIENTE')";
+            WHERE t.estado IN ('ABIERTO', 'EN PROCESO', 'PENDIENTE')";
     $params = [];
     if (!empty($priority)) {
         $sql .= " AND t.prioridad = ?";
         $params[] = $priority;
     }
     $sql .= " ORDER BY FIELD(t.prioridad, 'ALTA', 'MEDIA', 'BAJA'), t.fecha_creacion DESC
-              LIMIT 50";
+              LIMIT 250";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode(['ok' => true, 'data' => $rows]);
+    echo json_encode(['ok' => true, 'data' => ['tickets' => $rows]]);
     break;
 ```
 
-### Case 2 — Citas de hoy
+### Cambios clave vs la versión anterior
+
+1. **Devuelve `t.asignado_a`** (id numérico) y `asignado_nombre` (vía JOIN
+   a `usuarios.nombre`). Es lo que Athena necesita para agrupar por agente.
+2. **`COALESCE` para "sin asignar":** si `asignado_a IS NULL`, devuelve el
+   texto literal `'sin asignar'`. Eso hace que esos 37 tickets huérfanos
+   aparezcan como un grupo identificable, no se pierdan en NULL.
+3. **`'EN PROCESO'` con espacio** (no underscore) — match al schema real.
+4. **LIMIT 250** (era 50) — el conteo real de ABIERTO es ~89, con todos
+   los estados puede pasar de 100.
+5. **Mantiene `agente_ini`/`agente_nombre`** — son útiles como info
+   secundaria (quién creó el ticket). Athena ahora distingue creador de
+   asignado.
+6. **Envuelve en `{tickets: rows}`** — match al shape que ya devuelves.
+   Athena ya lo desempaca correctamente.
+
+## Citas hoy (sin cambios)
 
 ```php
 case 'luna_today_appointments':
     $sql = "SELECT c.id, c.tipo, c.fecha_hora, c.modalidad, c.lugar, c.notas,
                    c.miembro_id, m.nombre AS miembro_nombre,
-                   c.asignado_a, u.nombre AS asignado_nombre
+                   c.asignado_a, COALESCE(u.nombre, 'sin asignar') AS asignado_nombre
             FROM citas c
             LEFT JOIN miembros m ON c.miembro_id = m.id
             LEFT JOIN usuarios u ON c.asignado_a = u.id
@@ -55,29 +77,39 @@ case 'luna_today_appointments':
     $stmt = $pdo->prepare($sql);
     $stmt->execute();
     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    echo json_encode(['ok' => true, 'data' => $rows]);
+    echo json_encode(['ok' => true, 'data' => ['citas' => $rows]]);
     break;
 ```
 
-## Importante
+## Verificar antes de subir
 
-1. **Verifica los nombres de columnas y tablas** — usé los más comunes
-   (`tickets`, `citas`, `miembros`, `usuarios`). Si en tu schema se llaman
-   distinto (`citas` puede ser `appointments`, etc.), ajusta antes de subir.
+Prueba con curl desde tu computadora:
 
-2. **Verifica los valores de `estado`** en `tickets` — yo asumí `ABIERTO`,
-   `EN_PROCESO`, `PENDIENTE`. Si son distintos (ej. `OPEN`, `OPEN_IN_PROGRESS`),
-   ajusta el `WHERE`.
+```bash
+curl -s -H "X-LUNA-Key: <la llave>" \
+     "https://[tu-dominio]/luna_api.php?action=luna_open_tickets" \
+     | python3 -c "import json,sys; d=json.load(sys.stdin); tickets=d['data']['tickets']; \
+       from collections import Counter; \
+       c=Counter(t['asignado_nombre'] for t in tickets); \
+       print('Total:', len(tickets)); \
+       [print(f'  {n}: {v}') for n,v in c.most_common()]"
+```
 
-3. **Backup primero** — siempre baja `luna_api.php` antes de editarlo.
+Debes ver algo como (basado en datos reales de junio 2026):
+```
+Total: 89
+  sin asignar: 37
+  Isabel: 18
+  Arlette: 16
+  Sami: 13
+  Skarleth: 5
+```
 
-4. Una vez subido, prueba en el browser:
-   `https://tu-dominio.com/luna_api.php?action=luna_open_tickets&priority=ALTA`
-   con el header `X-LUNA-Key: TU_LLAVE`. Debería devolver JSON con `ok: true`.
+Si los números coinciden con lo que Isabel ve en la UI de LUNA → funciona.
 
-## Mientras tanto
+## Avisar a Isabel
 
-Ya le dije a Pilar que si estos endpoints fallan con 404, use
-`luna_briefing_completo` como respaldo (ese ya existe y trae conteo de
-tickets ALTA + citas de hoy). Isabel no se queda sin respuesta, pero el
-reporte va a ser limitado (solo conteo + alta prioridad).
+Cuando esté listo:
+
+> *"Listo, fixed. open_tickets ahora devuelve asignado_a correctamente.
+> Athena debería darte los conteos por agente correctos al toque."*

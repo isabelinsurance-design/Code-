@@ -162,14 +162,24 @@ function unwrapArrayResponse(r, possibleKeys = ['tickets', 'miembros', 'leads', 
   return { ...r, data: arr };
 }
 
+// Mapa de id → nombre de agentes en LUNA (mismo que ISABEL_BASE)
+const AGENT_NAMES = { 6: 'Isabel', 7: 'Skarleth', 9: 'Arlette', 10: 'Sami' };
+
 function mapTicketFields(t) {
+  // CRÍTICO: agente_ini/agente_nombre = QUIEN CREÓ el ticket (casi siempre IF)
+  //          asignado_a              = A QUIÉN está asignado (6/7/9/10/NULL)
+  // Antes los confundíamos y Athena reportaba todos los tickets como de Isabel.
+  // El agrupamiento real debe ser por asignado_a.
+  const asignadoId = t.asignado_a ?? null;
+  const asignadoNombre = t.asignado_nombre
+    ?? (asignadoId != null ? AGENT_NAMES[asignadoId] : null)
+    ?? (asignadoId == null ? 'sin asignar' : `id ${asignadoId}`);
   return {
     ...t,
-    // Athena espera asignado_a / asignado_nombre pero LUNA devuelve
-    // agente_ini / agente_nombre. Mapeamos sin sobreescribir si ya está.
-    asignado_a: t.asignado_a ?? t.agente_id ?? t.agente_ini ?? null,
-    asignado_nombre: t.asignado_nombre ?? t.agente_nombre ?? null,
-    // miembro_id puede venir como cliente_id en algunos schemas
+    asignado_a: asignadoId,
+    asignado_nombre: asignadoNombre,
+    creador_ini: t.agente_ini ?? null,
+    creador_nombre: t.agente_nombre ?? null,
     miembro_id: t.miembro_id ?? t.cliente_id ?? null,
   };
 }
