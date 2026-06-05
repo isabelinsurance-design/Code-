@@ -438,6 +438,71 @@ export function registerApi(app) {
     res.json(noteCommitment(req.params.id, (req.body || {}).texto || ''));
   });
 
+  // Nudge — manda un recordatorio a la persona del compromiso vía
+  // WhatsApp o SMS y registra el ping. Si no hay contacto guardado,
+  // falla con mensaje claro. Sube el contador recordatorios_enviados.
+  app.post('/api/commitments/:id/nudge', requireAuth, async (req, res) => {
+    try {
+      const { getCommitment, noteCommitment, bumpReminder } = await import('./commitments.js');
+      const c = getCommitment(req.params.id);
+      if (!c) return res.status(404).json({ ok: false, error: 'no existe' });
+      const contacto = c.persona_contacto || c.contacto || '';
+      if (!contacto) return res.status(400).json({ ok: false, error: 'sin contacto para esta persona' });
+      const canal = (c.canal || 'whatsapp').toLowerCase();
+      const msg = (req.body?.mensaje || '').trim()
+        || `Hola ${c.persona}, te escribe Isabel (vía su asistente Athena). Quería seguir con esto: ${c.descripcion}. ¿Cómo vamos? Gracias.`;
+      const { sendMessage } = await import('./whatsapp.js');
+      const to = canal === 'sms'
+        ? (contacto.startsWith('+') ? contacto : `+${contacto.replace(/\D/g, '')}`)
+        : (contacto.startsWith('whatsapp:') ? contacto : `whatsapp:${contacto.startsWith('+') ? contacto : '+' + contacto.replace(/\D/g, '')}`);
+      await sendMessage(to, msg);
+      if (typeof bumpReminder === 'function') bumpReminder(c.id);
+      noteCommitment(c.id, `Nudge enviado vía ${canal} (${new Date().toISOString().slice(0, 10)})`);
+      const { logActivity } = await import('./memory.js');
+      logActivity({ tool: 'commitment_nudge', input_summary: c.persona, result_summary: `via ${canal}` });
+      res.json({ ok: true, canal, to });
+    } catch (e) {
+      console.error('[api/nudge]', e.message);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
+  // LUNA — tickets abiertos del equipo (para que Isabel los vea sin chatear Pilar)
+  app.get('/api/luna/tickets', requireAuth, async (req, res) => {
+    try {
+      const { lunaConfigured, openTickets } = await import('./luna_client.js');
+      if (!lunaConfigured()) return res.json({ ok: false, reason: 'LUNA no configurado', tickets: [] });
+      const priority = req.query.prioridad || req.query.priority || '';
+      const r = await openTickets({ priority });
+      if (!r.ok) return res.json({ ok: false, reason: r.error, tickets: [] });
+      res.json({ ok: true, tickets: r.data || [] });
+    } catch (e) {
+      res.status(500).json({ ok: false, error: e.message, tickets: [] });
+    }
+  });
+
+  // Captura rápida — Isabel dicta una tarea/compromiso y Athena la rutea.
+  // Reusa runDirectora con un prompt envuelto que fuerza acción inmediata.
+  app.post('/api/quick-capture', requireAuth, async (req, res) => {
+    try {
+      const text = String(req.body?.text || '').trim();
+      if (!text) return res.status(400).json({ error: 'text vacío' });
+      const { runDirectora } = await import('./directora.js');
+      const { getHistory, saveHistory, logActivity } = await import('./memory.js');
+      const history = getHistory();
+      const wrapped = `[CAPTURA RÁPIDA desde pantalla Tareas] ${text}\n\n(Esto es delegación pura. Identifica las acciones, créalas todas en una sola vuelta — ticket LUNA si es para el equipo, crear_tarea si es para ti/athena/sami, comprometer_entrega si alguien te prometió algo. Responde corto: solo confirma qué hiciste.)`;
+      history.push({ role: 'user', content: wrapped });
+      try { logActivity({ tool: 'isabel_pregunta', input_summary: text.slice(0, 200), result_summary: 'quick-capture' }); } catch { /* ignore */ }
+      const { reply, messages: updated } = await runDirectora(history);
+      saveHistory(updated);
+      try { logActivity({ tool: 'athena_responde', input_summary: text.slice(0, 100), result_summary: (reply || '').slice(0, 200) }); } catch { /* ignore */ }
+      res.json({ ok: true, reply });
+    } catch (e) {
+      console.error('[api/quick-capture]', e.message);
+      res.status(500).json({ ok: false, error: e.message });
+    }
+  });
+
   // Tasks
   app.get('/api/tasks', requireAuth, async (req, res) => {
     const { listTasks } = await import('./tasks.js');

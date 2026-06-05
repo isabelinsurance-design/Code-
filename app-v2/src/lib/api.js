@@ -195,6 +195,12 @@ export const api = {
   briefingRefresh: () => request('/briefing/refresh', { method: 'POST' }),
   // Mensaje rápido a Athena (no usa Chat.jsx, devuelve solo el reply).
   chatToAthena: (message) => request('/chat', { method: 'POST', body: { coach: 'directora', message } }),
+  // Captura rápida — Isabel dicta texto, Athena lo rutea (ticket LUNA, tarea, compromiso, etc).
+  quickCapture: (text) => request('/quick-capture', { method: 'POST', body: { text } }),
+  // LUNA tickets abiertos (vista directa, no chat con Pilar).
+  lunaTickets: (prioridad = '') => request(`/luna/tickets${prioridad ? `?prioridad=${encodeURIComponent(prioridad)}` : ''}`),
+  // Nudge — manda recordatorio al contacto del compromiso vía WhatsApp/SMS.
+  commitmentNudge: (id, mensaje = '') => request(`/commitments/${id}/nudge`, { method: 'POST', body: { mensaje } }),
   // Plan vigente de una coach — lo que ella le ha recomendado a Isabel.
   // Devuelve { coach_id, items: [{ id, text, status, ts_created, ts_updated }], actualizado }.
   coachPlan: (coach) => request(`/coach_plan/${encodeURIComponent(coach)}`),

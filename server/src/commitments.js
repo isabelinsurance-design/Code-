@@ -103,6 +103,11 @@ export function failCommitment(id, razon = '') {
 export function cancelCommitment(id) {
   return patch(id, { status: 'cancelado' });
 }
+export function bumpReminder(id) {
+  const c = getCommitment(id);
+  if (!c) return null;
+  return patch(id, { recordatorios_enviados: (c.recordatorios_enviados || 0) + 1 });
+}
 export function noteCommitment(id, texto) {
   const c = getCommitment(id);
   if (!c) return null;
