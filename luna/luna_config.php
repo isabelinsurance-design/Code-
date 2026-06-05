@@ -3,35 +3,36 @@
    LUNA CONFIG — Medicare with Isabel
    ════════════════════════════════════════════════════════════════
 
-   INSTRUCCIONES PARA SAMI (Bluehost):
+   ░░░ INSTRUCCIONES PARA SAMI ░░░
    ─────────────────────────────────────────────────────────────
-   1. Copia este archivo a:  public_html/website_5a1c69e7/luna/luna_config.php
-   2. Rellena los 4 campos marcados con  ← LLENAR  (DB + API key)
-   3. Guarda. LUNA ya debería arrancar.
+   SOLO tienes que llenar los 4 valores de abajo marcados con ★.
+   No borres nada más. Guarda y sube a:
+       public_html/website_5a1c69e7/luna/luna_config.php
 
-   Los datos de la base de datos los encuentras en Bluehost →
-   cPanel → MySQL® Databases (usuario, contraseña, nombre de BD).
-   La LUNA_SERVICE_KEY la inventas tú: cualquier string largo y
-   aleatorio (ej: genera uno en passwordsgenerator.net).
+   Los datos de MySQL están en: cPanel → MySQL® Databases
+   (usuario, contraseña y nombre de la base de datos).
    ════════════════════════════════════════════════════════════════ */
 
-// ── BASE DE DATOS ──────────────────────────────────────────────
-define('LUNA_DB_HOST', 'localhost');
-define('LUNA_DB_USER', 'LLENAR_usuario_mysql');      // ← LLENAR
-define('LUNA_DB_PASS', 'LLENAR_password_mysql');     // ← LLENAR
-define('LUNA_DB_NAME', 'LLENAR_nombre_base_datos');  // ← LLENAR
+// ════════════════════════════════════════════════════════════════
+//  ★★★  LLENA ESTOS 4 VALORES  ★★★   (deja las comillas)
+// ════════════════════════════════════════════════════════════════
+$LUNA_DB_HOST = 'localhost';                 // ★ casi siempre es: localhost
+$LUNA_DB_USER = 'PON_AQUI_EL_USUARIO';       // ★ usuario de MySQL
+$LUNA_DB_PASS = 'PON_AQUI_LA_CONTRASENA';    // ★ contraseña de MySQL
+$LUNA_DB_NAME = 'PON_AQUI_LA_BASE_DATOS';    // ★ nombre de la base de datos
+// ════════════════════════════════════════════════════════════════
 
-// ── FUNCIÓN DE CONEXIÓN ────────────────────────────────────────
+
+// ── Función de conexión (NO TOCAR) ─────────────────────────────
 if (!function_exists('db')) {
     function db(): PDO {
+        global $LUNA_DB_HOST, $LUNA_DB_USER, $LUNA_DB_PASS, $LUNA_DB_NAME;
         static $pdo = null;
         if ($pdo !== null) return $pdo;
         $pdo = new PDO(
-            'mysql:host=' . LUNA_DB_HOST
-                . ';dbname=' . LUNA_DB_NAME
-                . ';charset=utf8mb4',
-            LUNA_DB_USER,
-            LUNA_DB_PASS,
+            "mysql:host={$LUNA_DB_HOST};dbname={$LUNA_DB_NAME};charset=utf8mb4",
+            $LUNA_DB_USER,
+            $LUNA_DB_PASS,
             [
                 PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
                 PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
@@ -43,28 +44,16 @@ if (!function_exists('db')) {
 }
 
 // ── API KEY DE ANTHROPIC (Claude / Athena) ─────────────────────
-// Puedes definirla aquí O como variable de entorno en Bluehost.
-// Si ya la tienes como env var, comenta la línea define().
-if (!defined('ANTHROPIC_API_KEY')) {
-    define('ANTHROPIC_API_KEY', 'LLENAR_sk-ant-api03-...');  // ← LLENAR
-}
+// Si ya la tienes como variable de entorno en Bluehost, deja esta línea
+// comentada. Si no, quita las // del inicio y pega tu key.
+// define('ANTHROPIC_API_KEY', 'sk-ant-api03-...');
 
-// ── LLAVE DE SERVICIO (Athena → LUNA, máquina-a-máquina) ──────
-// String largo y aleatorio. Athena la manda en el header X-LUNA-Key.
-// Genérala en: https://www.random.org/strings/ o similar.
-if (!defined('LUNA_SERVICE_KEY')) {
-    define('LUNA_SERVICE_KEY', 'LLENAR_llave_secreta_larga');  // ← LLENAR
-}
+// ── LLAVE DE SERVICIO (Athena → LUNA) ──────────────────────────
+// String largo que inventas tú. Athena la manda en el header X-LUNA-Key.
+define('LUNA_SERVICE_KEY', 'cambia-esto-por-algo-largo-y-secreto-2026');
 
 // ── OPCIONALES (dejar comentados hasta necesitarlos) ───────────
-// ID del usuario de Isabel en la tabla `usuarios` (default: 1)
-// define('LUNA_SERVICE_AGENT_ID', 1);
-
-// ID del miembro "OTRO" en `miembros` para tickets sin cliente
-// define('LUNA_DEFAULT_TICKET_MEMBER', 0);
-
-// ID del agente por defecto para tickets sin responsable
-// define('LUNA_SERVICE_DEFAULT_ASSIGNEE', 1);
-
-// Permitir que Athena lea comisiones (sensible — off por defecto)
-// define('LUNA_SERVICE_ALLOW_COMMISSIONS', 1);
+// define('LUNA_SERVICE_AGENT_ID', 1);          // id de Isabel en tabla usuarios
+// define('LUNA_DEFAULT_TICKET_MEMBER', 0);     // id del miembro "OTRO"
+// define('LUNA_SERVICE_DEFAULT_ASSIGNEE', 1);  // agente por defecto de tickets
+// define('LUNA_SERVICE_ALLOW_COMMISSIONS', 1); // Athena lee comisiones (sensible)
