@@ -313,17 +313,48 @@ export async function runLunaTool(name, input = {}) {
         if (!list.length) return prioridad
           ? `Sin tickets abiertos de prioridad ${prioridad}.`
           : 'Sin tickets abiertos en LUNA.';
-        const header = `${list.length} ticket${list.length === 1 ? '' : 's'} abierto${list.length === 1 ? '' : 's'}${prioridad ? ` (${prioridad})` : ''}:`;
-        const rows = list.slice(0, 30).map((t) => {
+
+        // AGREGACIÓN COMPLETA sobre los 89 (no muestreo).
+        // Pilar antes contaba de un slice(0,30) y subestimaba a Arlette/Sami.
+        // Ahora le pasamos los conteos pre-calculados.
+        const byAgent = {};
+        const byPriority = { ALTA: 0, MEDIA: 0, BAJA: 0 };
+        const byAgentPrio = {};
+        for (const t of list) {
+          const a = t.asignado_nombre || 'sin asignar';
+          byAgent[a] = (byAgent[a] || 0) + 1;
+          const p = (t.prioridad || 'MEDIA').toUpperCase();
+          byPriority[p] = (byPriority[p] || 0) + 1;
+          if (!byAgentPrio[a]) byAgentPrio[a] = { ALTA: 0, MEDIA: 0, BAJA: 0 };
+          byAgentPrio[a][p] = (byAgentPrio[a][p] || 0) + 1;
+        }
+
+        const agentLines = Object.entries(byAgent)
+          .sort((a, b) => b[1] - a[1])
+          .map(([name, n]) => {
+            const detail = byAgentPrio[name];
+            const parts = [];
+            if (detail.ALTA) parts.push(`${detail.ALTA} alta`);
+            if (detail.MEDIA) parts.push(`${detail.MEDIA} media`);
+            if (detail.BAJA) parts.push(`${detail.BAJA} baja`);
+            return `${name}: ${n}${parts.length ? ` (${parts.join(', ')})` : ''}`;
+          })
+          .join('\n');
+
+        // 8 ejemplos representativos (mezcla de prioridades), para que Pilar
+        // pueda dar contexto si Isabel pide detalle.
+        const sample = list.slice(0, 8).map((t) => {
           const id = t.id || '?';
-          const tipo = t.tipo || '?';
-          const prio = t.prioridad ? ` [${t.prioridad}]` : '';
-          const asignado = t.asignado_a || t.asignado_nombre || '—';
-          const cliente = t.miembro_nombre || (t.miembro_id ? `#${t.miembro_id}` : 'sin cliente');
+          const prio = t.prioridad ? `[${t.prioridad}]` : '';
+          const asignado = t.asignado_nombre || 'sin asignar';
           const desc = (t.descripcion || t.titulo || '').slice(0, 60);
-          return `#${id}${prio} · ${tipo} · ${cliente} · → ${asignado} · ${desc}`;
+          return `#${id} ${prio} · ${asignado} · ${desc}`;
         }).join('\n');
-        return `${header}\n${rows}`;
+
+        const header = `${list.length} tickets abiertos${prioridad ? ` (${prioridad})` : ''}.`;
+        const prioSummary = `Por prioridad: ${byPriority.ALTA} alta, ${byPriority.MEDIA} media, ${byPriority.BAJA} baja.`;
+
+        return `${header}\n\nPor agente:\n${agentLines}\n\n${prioSummary}\n\nEjemplos:\n${sample}`;
       }
       case 'luna_citas_hoy': {
         const r = await lunaTodayAppointments();
