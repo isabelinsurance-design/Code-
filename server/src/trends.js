@@ -180,11 +180,15 @@ function buildAthenaInternalSnapshot() {
   for (const a of recent7) {
     if (a.tool === 'consultar_especialistas') {
       // input_summary suele tener pista del coach — heurística simple
-      const m = (a.input_summary || '').match(/\b(carmen|rivera|sofia|pilar|elena|alma|rosa|camila|marisol|lucia|catalina|beatriz|esperanza|victoria|luna|valentina)\b/i);
-      if (m) coachUsage[m[1].toLowerCase()] = (coachUsage[m[1].toLowerCase()] || 0) + 1;
+      const m = (a.input_summary || '').match(/\b(carmen|rivera|sofia|pilar|elena|alma|rosa|marisol|lucia|catalina|beatriz|esperanza|victoria|luna|aurora|valentina|dolores|paloma|nora|vida|ines)\b/i);
+      if (m) {
+        let key = m[1].toLowerCase();
+        if (key === 'pilar') key = 'luna'; // legacy log entries
+        coachUsage[key] = (coachUsage[key] || 0) + 1;
+      }
     }
   }
-  const allCoaches = ['carmen', 'rivera', 'sofia', 'luna', 'elena', 'alma', 'rosa', 'camila', 'marisol', 'lucia', 'catalina', 'beatriz', 'esperanza', 'victoria', 'aurora', 'valentina'];
+  const allCoaches = ['carmen', 'rivera', 'sofia', 'luna', 'elena', 'alma', 'rosa', 'marisol', 'lucia', 'catalina', 'beatriz', 'esperanza', 'victoria', 'aurora', 'valentina', 'dolores', 'paloma', 'nora', 'vida', 'ines'];
   const coachesNoUsados = allCoaches.filter((c) => !coachUsage[c]);
   const topCoaches = Object.entries(coachUsage).sort((a, b) => b[1] - a[1]).slice(0, 5);
 

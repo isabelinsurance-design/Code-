@@ -197,7 +197,7 @@ export function promptInicialPara(coach) {
     sofia: '¿Cómo estoy de sueño, hormonas y vitaminas hoy? ¿Algo que ajustar?',
     paloma: 'Quiero hablar sobre intimidad / deseo / mi cuerpo en esta fase. Sin filtro.',
     alma: 'Check-in emocional. Te cuento cómo va mi semana y me ayudas a procesar.',
-pilar: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SOA falta?',
+    luna: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SOA falta?',
     elena: 'Revisión financiera de la semana. ¿Cómo va vs metas? ¿Qué ajustar?',
     nora: '¿Qué negociación / deal tengo abierto? Ayúdame con el próximo movimiento.',
     victoria: '¿Cómo voy con mis 3 rocas de la semana? ¿Cuál es la siguiente acción?',
@@ -208,7 +208,7 @@ pilar: 'Pipeline review. ¿Quién está caliente? ¿Quién se enfría? ¿Qué SO
     dolores: 'Check-in sobre mis padres / familia mayor. ¿Qué necesito hacer / preguntar?',
     esperanza: 'Intención del mes / momento espiritual. Aterrízame.',
     rosa: '¿Qué área de casa (organización o decor) necesita atención este mes?',
-    luna: 'Skin check. Síntomas / cambios / qué probar.',
+    aurora: 'Skin check. Síntomas / cambios / qué probar.',
     valentina: 'Wardrobe review trimestral. Qué sobra, qué falta.',
     catalina: 'Viaje próximo. Trip planning logístico.',
   };
@@ -286,7 +286,7 @@ export function seedDefaultCadences() {
     { coach: 'rosa', cadencia: 'mensual', dia: 1 }, // ahora cubre organización + decor
     { coach: 'valentina', cadencia: 'trimestral' },
     { coach: 'paloma', cadencia: 'bajo_demanda' }, // intimidad — solo cuando ella lo busque
-    { coach: 'luna', cadencia: 'bajo_demanda' },
+    { coach: 'aurora', cadencia: 'bajo_demanda' }, // skincare
     { coach: 'lucia', cadencia: 'bajo_demanda' }, // voz + public speaking
     { coach: 'catalina', cadencia: 'bajo_demanda' },
   ];
