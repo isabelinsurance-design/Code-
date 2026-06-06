@@ -14,8 +14,16 @@
  * Ubicación esperada: public_html/luna/luna_api.php
  * ═══════════════════════════════════════════════════════
  */
-// Carga el config de LUNA buscándolo en las ubicaciones posibles (a prueba de
-// balas: funciona esté dentro de luna/ o un nivel arriba). El primero que exista.
+// 1) Config del CRM (si existe): trae la conexión db() + las constantes DB_* +
+//    ANTHROPIC_API_KEY REALES que ya usa el CRM (la base con los tickets/miembros).
+//    Se carga PRIMERO: así su db() queda definida, y la db() de luna_config.php
+//    (que está guardada con if(!function_exists)) simplemente se salta.
+foreach ([__DIR__ . '/../../crm/config.php', __DIR__ . '/../crm/config.php'] as $__crmcfg) {
+    if (is_file($__crmcfg)) { require_once $__crmcfg; break; }
+}
+
+// 2) Config de LUNA (LUNA_SERVICE_KEY para el puente con Athena, etc.).
+//    A prueba de balas: funciona esté dentro de luna/ o un nivel arriba.
 $__luna_cfg = null;
 foreach ([__DIR__ . '/luna_config.php', __DIR__ . '/../luna_config.php', __DIR__ . '/../config.php'] as $__c) {
     if (is_file($__c)) { $__luna_cfg = $__c; break; }
