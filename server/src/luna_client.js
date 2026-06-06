@@ -89,10 +89,17 @@ async function lunaFetch(action, { method = 'GET', params = {}, body = null } = 
       // Diferenciamos por código HTTP para que Athena/UI puedan decirle a
       // Isabel si es "acción no implementada" vs "server caído".
       let kind = 'http_error';
+      let errorMsg = `HTTP ${res.status}: ${res.statusText}`;
       if (res.status === 404) kind = 'action_not_supported';
       else if (res.status >= 500) kind = 'server_error';
-      else if (res.status === 401 || res.status === 403) kind = 'auth';
-      return { ok: false, error: `HTTP ${res.status}: ${res.statusText}`, kind, status: res.status, elapsed_ms: elapsed };
+      else if (res.status === 401 || res.status === 403) {
+        kind = 'auth';
+        // Inyectamos los HECHOS reales del bridge para que la IA no invente
+        // causas plausibles pero falsas ("session expired", "password changed",
+        // "IP blocked"). Este bridge usa shared-secret en header, no sesiones.
+        errorMsg = `HTTP ${res.status}: PHP rechazó la llave. El bridge Athena↔LUNA usa shared secret en header X-LUNA-Key (NO sesiones, NO passwords, NO IP whitelist). Las 3 causas reales posibles: (a) LUNA_API_KEY en Railway no matchea la constante en luna_config.php, (b) bypass en luna_api.php se sobreescribió o nunca se aplicó, (c) la constante PHP cambió de nombre. Próximo paso: abrir Diagnóstico en el PWA para ver longitud + masked de la llave actual.`;
+      }
+      return { ok: false, error: errorMsg, kind, status: res.status, elapsed_ms: elapsed };
     }
     // Si LUNA devuelve HTML en vez de JSON (warning o notice de PHP),
     // parse falla. Lo categorizamos para que sea diagnosticable.
