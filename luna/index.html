@@ -321,6 +321,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
     <button id="securityBtn" onclick="openSecurity()" style="display:none;position:relative;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🔒 Seguridad<span id="securityBadge" style="display:none;position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:#dc2626;color:#fff;font-size:10px;font-weight:800;line-height:18px;text-align:center;">0</span></button>
     <button id="radarBtn" onclick="toggleRadar()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📡 Radar<span id="radarDot" style="display:none;width:7px;height:7px;border-radius:50%;background:#16a34a;"></span></button>
     <button id="meetingBtn" onclick="toggleMeeting()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">🗓️ Junta<span id="meetingDot" style="display:none;min-width:16px;height:16px;padding:0 4px;border-radius:8px;background:#d97706;color:#fff;font-size:10px;font-weight:800;line-height:16px;text-align:center;"></span></button>
+    <button id="marketingBtn" onclick="toggleMarketing()" style="position:relative;display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📣 Marketing</button>
     <button id="recursosBtn" onclick="toggleRecursos()" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:var(--r);background:var(--ink);border:1px solid var(--border);font-size:12px;font-weight:700;color:var(--t2);cursor:pointer;font-family:var(--font);transition:all .14s;">📚 Recursos</button>
     <div class="theme-btn" onclick="toggleTheme()" id="themeBtn">☀️</div>
     <div class="user-chip">
@@ -460,6 +461,20 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
 
     <!-- Historial -->
     <div id="meetingHistory"></div>
+  </div>
+</div>
+
+<!-- ── MARKETING VIEW (Sistema Maestro — 18 herramientas, embebido) ─────── -->
+<div id="marketingView" style="display:none;">
+  <div class="grid-wrap">
+    <div class="grid-hero">
+      <div class="grid-hero-sup">Marketing · Sistema Maestro</div>
+      <div class="grid-hero-title">📣 Tu sistema de <em>marketing</em> completo</div>
+      <div class="grid-hero-sub">Todas tus herramientas en un solo lugar: plan, marca, plantillas, viral, ads, competencia, métricas y más. Para crear estrategia conversando, usa también el agente <b>📣 Marketing</b>.</div>
+    </div>
+    <div style="border:1px solid var(--border);border-radius:14px;overflow:hidden;background:var(--panel);box-shadow:var(--sh);">
+      <iframe id="marketingFrame" title="Sistema de Marketing de Isabel" style="width:100%;height:80vh;border:0;display:block;"></iframe>
+    </div>
   </div>
 </div>
 
@@ -2989,10 +3004,11 @@ function setCat(id) {
 function openWorkspace(id) {
   const a = AGENTS.find(x => x.id === id);
   if (!a) return;
-  // Cierra las vistas alternas (Radar / Recursos / Junta) si estaban abiertas.
+  // Cierra las vistas alternas (Radar / Recursos / Junta / Marketing) si estaban abiertas.
   document.getElementById('radarView').style.display = 'none';
   document.getElementById('recursosView').style.display = 'none';
   document.getElementById('meetingView').style.display = 'none';
+  document.getElementById('marketingView').style.display = 'none';
   // Guard: agentes adminOnly solo para Isabel (defensa además del filtro del grid)
   if (a.adminOnly && !(currentUser?.is_admin || location.protocol === 'file:')) {
     toast('🔒 Solo Isabel tiene acceso a este agente');
@@ -3119,6 +3135,7 @@ function toggleRadar() {
   closeWorkspace();
   document.getElementById('recursosView').style.display = 'none';
   document.getElementById('meetingView').style.display = 'none';
+  document.getElementById('marketingView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   rv.style.display = 'block';
   // El botón "Actualizar ahora" solo para Isabel.
@@ -3264,12 +3281,29 @@ function toggleMeeting() {
   closeWorkspace();
   document.getElementById('radarView').style.display = 'none';
   document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('marketingView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   mv.style.display = 'block';
   const f = document.getElementById('mFecha');
   if (!f.value) f.value = _lastSaturday();
   if (!document.querySelector('#mActions .m-action-row')) addActionRow();
   loadMeetings();
+}
+
+// ── MARKETING: abre tu Sistema Maestro completo (18 herramientas) dentro de Luna ──
+function toggleMarketing() {
+  const mv = document.getElementById('marketingView');
+  const showing = mv.style.display !== 'none';
+  if (showing) { mv.style.display = 'none'; document.getElementById('gridView').style.display = 'block'; return; }
+  closeWorkspace();
+  document.getElementById('radarView').style.display = 'none';
+  document.getElementById('recursosView').style.display = 'none';
+  document.getElementById('meetingView').style.display = 'none';
+  document.getElementById('gridView').style.display = 'none';
+  // Carga la app de marketing solo la primera vez (es grande, ~1.4 MB).
+  const fr = document.getElementById('marketingFrame');
+  if (!fr.getAttribute('src')) fr.setAttribute('src', 'marketing.html');
+  mv.style.display = 'block';
 }
 
 function addActionRow(accion = '', resp = '', due = '') {
@@ -3419,6 +3453,7 @@ async function toggleRecursos() {
   closeWorkspace();
   document.getElementById('radarView').style.display = 'none';
   document.getElementById('meetingView').style.display = 'none';
+  document.getElementById('marketingView').style.display = 'none';
   document.getElementById('gridView').style.display = 'none';
   rv.style.display = 'block';
   if (!recursosData) {
