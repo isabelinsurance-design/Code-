@@ -26,6 +26,8 @@ import {
   pendingSoa as lunaPendingSoa,
   openTickets as lunaOpenTickets,
   todayAppointments as lunaTodayAppointments,
+  ticketsByAgent as lunaTicketsByAgent,
+  businessHealth as lunaBusinessHealth,
   recentActivity as lunaRecentActivity,
   carriersBreakdown as lunaCarriersBreakdown,
   addMemberNote as lunaAddMemberNote,
@@ -93,6 +95,16 @@ export const LUNA_TOOL_DEFINITIONS = [
       properties: { limite: { type: 'integer', description: 'Cuántas. Default 20.' } },
       required: [],
     },
+  },
+  {
+    name: 'luna_tickets_por_agente',
+    description: 'Vista pre-agregada por agente de LUNA — desglose limpio de tickets por persona del equipo, con prioridades y rendimiento. Úsalo cuando Isabel pida "cómo va cada agente" o "quién tiene más carga". (Endpoint nuevo del lado de LUNA — junio 2026.)',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
+  {
+    name: 'luna_business_health',
+    description: 'HEALTH CHECK del negocio Medicare desde LUNA — métricas estratégicas: retención, churn, pipeline, ingresos por carrier, productividad por agente. Úsalo cuando Isabel pida "cómo va el negocio" o "dame health check" o análisis de gerencia. (Endpoint nuevo del lado de LUNA — junio 2026.)',
+    input_schema: { type: 'object', properties: {}, required: [] },
   },
   {
     name: 'luna_tickets_abiertos',
@@ -304,6 +316,28 @@ export async function runLunaTool(name, input = {}) {
         if (!r.ok) return `LUNA: ${r.error}`;
         const d = r.data || {};
         return `Por carrier:\n${Object.entries(d).sort((a, b) => b[1] - a[1]).map(([k, v]) => `  ${k}: ${v}`).join('\n')}`;
+      }
+      case 'luna_tickets_por_agente': {
+        const r = await lunaTicketsByAgent();
+        if (!r.ok) {
+          if (r.kind === 'action_not_supported') {
+            return 'El endpoint tickets_by_agent no está disponible en LUNA todavía. Pídeselo a Isabel o cae a luna_tickets_abiertos como respaldo.';
+          }
+          return `LUNA: ${r.error}`;
+        }
+        // Shape libre — LUNA lo define. Pasamos tal cual con formato JSON
+        // legible para que Athena/coach lo interprete.
+        return JSON.stringify(r.data || r, null, 2);
+      }
+      case 'luna_business_health': {
+        const r = await lunaBusinessHealth();
+        if (!r.ok) {
+          if (r.kind === 'action_not_supported') {
+            return 'El endpoint business_health no está disponible en LUNA todavía. Pídeselo a Isabel para que LUNA lo despliegue.';
+          }
+          return `LUNA: ${r.error}`;
+        }
+        return JSON.stringify(r.data || r, null, 2);
       }
       case 'luna_tickets_abiertos': {
         const prioridad = (input.prioridad || '').toUpperCase();

@@ -138,6 +138,17 @@ export async function fullBriefing() {
   return lunaFetch('full_briefing');
 }
 
+// Endpoints nuevos que LUNA construyó hoy (6 jun 2026).
+// Disponibles después de que LUNA termine deploy a Bluehost.
+
+export async function ticketsByAgent() {
+  return lunaFetch('tickets_by_agent');
+}
+
+export async function businessHealth() {
+  return lunaFetch('business_health');
+}
+
 export async function t65Alerts({ days = 90 } = {}) {
   return lunaFetch('t65_alerts', { params: { days } });
 }
