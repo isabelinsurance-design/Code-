@@ -1,4 +1,6 @@
-// Servidor de archivos estaticos minimo (index.html, samia.html, tools/*.html).
+// Servidor de archivos estaticos minimo.
+//   /            -> app/samia.html     (la escuela: app de entrenamiento)
+//   /dashboard   -> app/dashboard.html (panel de operacion)
 // Reemplaza el rol de serve.sh (python http.server) y ademas expone /api.
 
 import { readFile, stat } from 'node:fs/promises';
@@ -18,7 +20,8 @@ const TYPES = {
 
 export async function serveStatic(req, res) {
   let urlPath = decodeURIComponent(new URL(req.url, 'http://x').pathname);
-  if (urlPath === '/') urlPath = '/index.html';
+  if (urlPath === '/') urlPath = '/app/samia.html';
+  else if (urlPath === '/dashboard' || urlPath === '/dashboard/') urlPath = '/app/dashboard.html';
 
   // Anti path-traversal: resolver dentro de REPO_ROOT.
   const target = normalize(join(REPO_ROOT, urlPath));

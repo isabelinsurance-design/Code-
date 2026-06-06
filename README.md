@@ -1,4 +1,8 @@
-# SAMIA — Backend (Fase 1: Fundación)
+# SAMIA — la escuela de Medicare del equipo de Isabel
+
+> Asistente IA / maestra de Medicare. Entrena a los agentes nuevos y los rescata en
+> vivo. Contexto del proyecto en [`CLAUDE.md`](CLAUDE.md); organización del repo ahí
+> mismo. Abajo: qué cambió y las fases construidas.
 
 SAMIA es la asistente IA del equipo de Medicare de Isabel Fuentes. Su trabajo:
 **entrenar a los agentes nuevos** y **rescatarlos en vivo** cuando se atoran con un
@@ -43,8 +47,8 @@ cp .env.example .env          # pon tu ANTHROPIC_API_KEY
 npm start                     # http://localhost:8137
 ```
 
-Abre `http://localhost:8137/samia.html`. `npm start` sirve TODO el repo
-(index.html, tools/, samia.html) y además expone `/api`.
+Abre `http://localhost:8137/` (la escuela) o `/dashboard` (el panel de operación).
+`npm start` sirve `app/` y el legacy en `archive/`, y además expone `/api`.
 
 ---
 
@@ -301,7 +305,7 @@ Endpoints nuevos: `GET /api/growth`, `GET /api/growth/chief`, `POST /api/growth/
 
 ### Fase 10 — Dashboard
 
-- **Panel del equipo** (`samia-dashboard.html`): una UI de una sola página (sin build,
+- **Panel del equipo** (`app/dashboard.html`, en `/dashboard`): una UI de una sola página (sin build,
   vanilla JS, misma estética de marca) que hace visible y usable todo lo construido.
   Seis secciones: **Briefing** (regenerable), **Señales** (con severidad/tipo y
   recomputar), **Compromisos** (marcar hechos), **Memoria** (personas, huecos, y
@@ -336,10 +340,10 @@ Para que el scheduler de la Fase 5 dispare de verdad (briefing 06:30, reflexión
 02:00, etc.) hay que correr SAMIA en un host *always-on* — un sandbox efímero no
 sirve. El repo ya trae la config: `railway.json`, `nixpacks.toml`, `Procfile`,
 `DATA_DIR` overridable para el volumen, y `npm start` que funciona con o sin `.env`.
-**Guía paso a paso en [`DEPLOY.md`](DEPLOY.md)** (Railway: variables, dominio, volumen
+**Guía paso a paso en [`DEPLOY.md`](docs/DEPLOY.md)** (Railway: variables, dominio, volumen
 persistente en `/data`, `TZ` para hora de California).
 
-Ya desplegado con una key real, corre el **[`SMOKE-TEST.md`](SMOKE-TEST.md)**: 9 pasos
+Ya desplegado con una key real, corre el **[`SMOKE-TEST.md`](docs/SMOKE-TEST.md)**: 9 pasos
 con `curl` que validan los caminos que dependen del LLM (chat, captura Haiku, resumen
 de reflexión, reescritura compliant, síntesis del fan-out, skills inyectadas) — lo
 único que el sandbox no puede verificar.
