@@ -6,7 +6,7 @@
 <title>LUNA — Medicare Agent Platform</title>
 <!-- ── PWA: instalar en el teléfono como app (igual que Athena) ── -->
 <link rel="manifest" href="manifest.json">
-<meta name="theme-color" content="#18162b">
+<meta name="theme-color" content="#8b6f47">
 <link rel="apple-touch-icon" href="apple-touch-icon.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -15,8 +15,8 @@
 <style>
 /* ── TOKENS ───────────────────────────── */
 :root {
-  --blue:   #1a56ff;
-  --blue-s: rgba(26,86,255,.10);
+  --blue:   #8b6f47;   /* acento principal cálido (café lino, estilo Athena) */
+  --blue-s: rgba(139,111,71,.10);
   --teal:   #0097a7;
   --teal-s: rgba(0,151,167,.10);
   --grn:    #00875a;
@@ -34,18 +34,19 @@
 }
 
 [data-theme="light"] {
-  --bg:     #f5f5f7;
-  --panel:  #ffffff;
-  --border: rgba(0,0,0,.08);
-  --border2:rgba(0,0,0,.14);
-  --t1:     #0d1117;
-  --t2:     #52606d;
-  --t3:     #9aa5b4;
-  --ink:    rgba(0,0,0,.04);
-  --ink2:   rgba(0,0,0,.07);
-  --sh:     0 1px 3px rgba(0,0,0,.06),0 8px 32px rgba(0,0,0,.06);
-  --sh-lg:  0 4px 6px rgba(0,0,0,.04),0 16px 48px rgba(0,0,0,.10);
-  --nav:    rgba(255,255,255,.82);
+  /* Paleta "lino/crema" — estética de Athena */
+  --bg:     #f7f3ec;   /* crema cálida (fondo) */
+  --panel:  #fffdf9;   /* blanco cálido (tarjetas) */
+  --border: #e8ddca;   /* borde lino */
+  --border2:#d4c3a4;   /* borde lino marcado */
+  --t1:     #2b2419;   /* café oscuro (texto principal) */
+  --t2:     #6b5f50;   /* café medio (secundario) */
+  --t3:     #9a8d77;   /* café claro (terciario) */
+  --ink:    rgba(139,111,71,.08);  /* tinte cálido sutil (botones) */
+  --ink2:   rgba(139,111,71,.14);
+  --sh:     0 1px 3px rgba(74,58,38,.06),0 8px 32px rgba(74,58,38,.07);
+  --sh-lg:  0 4px 6px rgba(74,58,38,.05),0 16px 48px rgba(74,58,38,.11);
+  --nav:    rgba(255,253,249,.85);
 }
 [data-theme="dark"] {
   --bg:     #0c1017;
@@ -502,6 +503,11 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
 
     <!-- CHAT -->
     <div class="ws-main">
+      <!-- Selector de agente arriba del chat (estilo Athena: cambia sin salir) -->
+      <div style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;">
+        <span style="font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);">Hablando con</span>
+        <select id="agentSelect" onchange="openWorkspace(this.value)" style="padding:6px 10px;border-radius:10px;background:var(--ink);border:1px solid var(--border);font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer;"></select>
+      </div>
       <div class="chat-area" id="chatArea"></div>
       <div class="chat-footer">
         <div class="chat-input-row">
@@ -708,7 +714,7 @@ const AGENTS = [
   ════════════════════════════════════════════════════════ */
   {
     id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA', webSearch:true,
-    color:'#1a56ff', colorS:'rgba(26,86,255,.12)',
+    color:'#8b6f47', colorS:'rgba(139,111,71,.12)',
     desc:'El cerebro de tu negocio — háblale en lenguaje natural, ella decide qué hacer y a qué subagente consultar',
     quick:[
       '💚 ¿Cómo está la salud del negocio hoy? Dame el Health Score',
@@ -2998,6 +3004,15 @@ function setCat(id) {
   renderGrid();
 }
 
+// Llena el selector de agentes del chat (respeta agentes solo-admin)
+function populateAgentSelect() {
+  const sel = document.getElementById('agentSelect');
+  if (!sel) return;
+  const isAdmin = currentUser?.is_admin || location.protocol === 'file:';
+  sel.innerHTML = AGENTS.filter(a => !a.adminOnly || isAdmin)
+    .map(a => `<option value="${a.id}">${a.emoji} ${esc(a.name)}</option>`).join('');
+}
+
 /* ══════════════════════════════════════════
    OPEN WORKSPACE
 ══════════════════════════════════════════ */
@@ -3015,6 +3030,9 @@ function openWorkspace(id) {
     return;
   }
   currentAgent = a;
+  // Sincroniza el selector de agente del chat (estilo Athena: cambiar sin salir)
+  const _sel = document.getElementById('agentSelect');
+  if (_sel) { if (!_sel.options.length) populateAgentSelect(); _sel.value = id; }
 
   // Switch views
   document.getElementById('gridView').style.display = 'none';
