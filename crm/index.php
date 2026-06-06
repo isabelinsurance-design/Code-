@@ -2101,6 +2101,10 @@ document.addEventListener('DOMContentLoaded',function(){
 
 <!-- PLANEACIÓN -->
 <div id="tab-PLANEACION" class="tab-pane">
+<a href="estrategia.php" style="display:flex;align-items:center;justify-content:space-between;gap:10px;background:<?=$P1?>;color:#fff;border-radius:11px;padding:12px 16px;margin-bottom:14px;text-decoration:none">
+  <span style="font-size:11px;font-weight:900;letter-spacing:1px;text-transform:uppercase">◍ Estrategia & Embudo Diario — meta vs. real</span>
+  <span style="font-size:10px;font-weight:900;background:rgba(255,255,255,.18);border-radius:8px;padding:5px 11px">ABRIR →</span>
+</a>
 <?php
 $plan_metas=[]; $plan_checks=[]; $plan_notas=[];
 try{
