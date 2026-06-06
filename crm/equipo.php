@@ -29,7 +29,7 @@ try { $pdo->exec("CREATE TABLE IF NOT EXISTS mood_diario (
 )"); } catch(Exception $e) {}
 
 // ── Escritura (PRG: Post → Redirect → Get) ───────────────────────────────
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $action = $_POST['action'] ?? '';
     if ($action === 'win') {
         $texto = trim($_POST['texto'] ?? '');
