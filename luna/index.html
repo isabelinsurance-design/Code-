@@ -692,9 +692,9 @@ const AGENTS = [
      Conoce todos los subagentes y sabe cuándo usar cada uno.
   ════════════════════════════════════════════════════════ */
   {
-    id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA', webSearch:true,
+    id:'luna_main', cat:'principal', emoji:'🦉', name:'Athena', webSearch:true,
     color:'#1a56ff', colorS:'rgba(26,86,255,.12)',
-    desc:'Tu asistente principal — háblale en lenguaje natural, ella decide qué hacer y a qué subagente consultar',
+    desc:'Tu Chief of Staff — háblale en lenguaje natural; ella decide qué hacer y a qué especialista consultar',
     quick:[
       '💚 ¿Cómo está la salud del negocio hoy? Dame el Health Score',
       '📋 Dame mi briefing del día — todo lo que necesito saber',
@@ -702,7 +702,7 @@ const AGENTS = [
       '📊 Resumen: pipeline, retención, comisiones y prioridades'
     ],
     info:{ Tipo:'Cerebro Principal', Acceso:'Todo el sistema', Ruteo:'Inteligente automático', Idioma:'Español primero' },
-    system:`Eres LUNA — la asistente de inteligencia artificial principal de Medicare with Isabel. Le hablas a Isabel Fuentes, broker dueña de la agencia, en segunda persona ("tú", "tu agencia"), tono cercano y directo.
+    system:`Eres Athena — la Chief of Staff (asistente principal) de Medicare with Isabel y la cara del sistema LUNA. Le hablas a Isabel Fuentes, broker dueña de la agencia, en segunda persona ("tú", "tu agencia"), tono cercano y directo.
 
 TU ROL: Eres el primer punto de contacto cuando Isabel abre el sistema. Eres la mente central que entiende cualquier pregunta sobre el negocio y la responde con datos reales del CRM, memoria del negocio, y razonamiento claro.
 
@@ -3047,7 +3047,7 @@ function openWorkspace(id) {
     _ci.placeholder = `Escríbele a ${a.name}...`;
   } else {
     _ci.disabled = true; if (_sb) _sb.disabled = true;
-    _ci.placeholder = '💬 El chat con LUNA es solo para Isabel. Tú sí puedes ver los datos del CRM, la 🗓️ Junta y recibir los reportes.';
+    _ci.placeholder = '💬 El chat con Athena es solo para Isabel. Tú sí puedes ver los datos del CRM, la 🗓️ Junta y recibir los reportes.';
   }
 
   // Render chat
@@ -3588,7 +3588,7 @@ async function sendMsg() {
   const msg = inp.value.trim();
   if (!msg || loading || !currentAgent) return;
   if (!canUseChat()) {
-    toast('💬 El chat con LUNA está disponible solo para Isabel');
+    toast('💬 El chat con Athena está disponible solo para Isabel');
     return;
   }
   inp.value = ''; inp.style.height = '46px';
@@ -3994,8 +3994,8 @@ loadDismissedAlerts();
 renderGrid();
 initCurrentUser();
 
-// Abrir directo el chat de LUNA al entrar (sin pasar por la cuadrícula).
-// El botón "← Agentes" sigue disponible para ir a los demás agentes.
+// Abrir directo el chat de Athena (Chief of Staff) al entrar, sin pasar por la
+// cuadrícula. El botón "← Agentes" sigue disponible para ir a los demás agentes.
 openWorkspace('luna_main');
 
 // ¿El radar de tendencias de hoy ya está listo? (enciende el punto verde)
