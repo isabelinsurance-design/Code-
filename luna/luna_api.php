@@ -83,8 +83,12 @@ if ($svcKey !== '') {
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_get_all_goals','luna_entity_search','luna_signals_list',
         'luna_skill_list','luna_gaps_overview','luna_business_health',
-        // ── CREAR (solo tickets, nada más) ────────────────
+        // ── ESCRIBIR (aditivo, un registro a la vez — nunca editar/cerrar/borrar) ──
         'luna_create_ticket',
+        'luna_add_member_note',
+        'luna_log_activity',
+        'luna_create_appointment',
+        'luna_create_member',   // entra como lead marcado "origen ATHENA" (candado abajo)
     ];
     // Lecturas de comisiones: sensibles para un bot de cara al cliente.
     // OFF por defecto. Para habilitarlas: define LUNA_SERVICE_ALLOW_COMMISSIONS=1
@@ -1168,6 +1172,14 @@ case 'luna_create_member':
     $ciudad   = strOrNull($_POST['ciudad'] ?? '');
     $email    = strOrNull($_POST['email'] ?? '');
     $idioma   = strtoupper(strOrNull($_POST['idioma'] ?? 'ESP'));
+
+    // 🔒 Candado Athena: un lead creado por el bot queda marcado (fuente ATHENA)
+    // para que Isabel lo revise, y SIEMPRE entra como lead — el bot nunca crea
+    // un miembro ACTIVO directo.
+    if (!empty($IS_SERVICE)) {
+        $fuente = 'ATHENA';
+        if (!in_array($estado, ['PROSPECTO','HOT LEAD','FOLLOW-UP'])) $estado = 'PROSPECTO';
+    }
 
     if (!$nombre || !$apellido) err('Nombre y apellido son requeridos.');
     if (!in_array($estado, ['PROSPECTO','T65','HOT LEAD','FOLLOW-UP','PENDIENTE','ACTIVO','CANCELADO'])) {
