@@ -143,7 +143,10 @@ if (empty($_SESSION['user'])) {
 $user  = $_SESSION['user'];
 $admin = ($user['rol'] ?? '') === 'admin';
 $uid   = (int)$user['id'];
-$pdo   = db();
+// No tumbar TODO si la base no conecta (p.ej. credenciales en blanco): si falla,
+// $pdo = null y las acciones que SÍ necesitan base devuelven un error limpio (no un
+// 500 que mata todo). Auth, luna_whoami y el diagnóstico responden SIN base de datos.
+try { $pdo = db(); } catch (\Throwable $e) { $pdo = null; error_log('[luna_api] DB no conecta: ' . $e->getMessage()); }
 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
@@ -2529,4 +2532,9 @@ default:
 } catch (Exception $e) {
     error_log('[luna_api] ' . $e->getMessage());
     err('Error inesperado: ' . $e->getMessage(), 500);
+} catch (\Throwable $e) {
+    error_log('[luna_api] Throwable: ' . $e->getMessage());
+    err((isset($pdo) && $pdo === null)
+        ? 'La base de datos de LUNA no está conectada (faltan credenciales reales en luna_config.php).'
+        : 'Error inesperado: ' . $e->getMessage(), 500);
 }
