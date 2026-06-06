@@ -1318,6 +1318,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 </div>
 </div>
 <a href="logout.php" class="huser"><?=av(h($user['iniciales']),h($user['color']),24)?><div><div class="huser-name"><?=h(explode(' ',$user['nombre'])[0])?></div><div class="huser-role"><?=$admin?'ADMIN':'EMPLEADO'?> · SALIR</div></div></a>
+<a href="marketing.html" class="hbtn" title="Marketing y Campañas" style="font-size:13px;padding:5px 9px;text-decoration:none">📣</a>
 <?php if($admin):?><button class="hbtn" onclick="openFinance()" title="Portal Financiero" style="font-size:13px;padding:5px 9px">💰</button><?php endif;?>
 </div>
 </header>
