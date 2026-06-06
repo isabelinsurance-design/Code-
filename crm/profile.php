@@ -53,7 +53,12 @@ $notas = $pdo->prepare("SELECT n.*,u.nombre as autor,u.iniciales,u.color
                         WHERE n.miembro_id=? ORDER BY n.created_at DESC");
 $notas->execute([$id]);
 $notas = $notas->fetchAll();
-$fam = $m['familiar_id'] ? $pdo->query("SELECT id,nombre,apellido,estado,telefono FROM miembros WHERE id=".$m['familiar_id'])->fetch() : null;
+$fam = null;
+if ($m['familiar_id']) {
+    $st = $pdo->prepare("SELECT id,nombre,apellido,estado,telefono FROM miembros WHERE id=?");
+    $st->execute([(int)$m['familiar_id']]);
+    $fam = $st->fetch();
+}
 
 // ── RETENCIÓN: llamadas y cuestionario ───────────────────────────
 $_pr_bienvenida = null;

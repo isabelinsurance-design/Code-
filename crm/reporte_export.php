@@ -25,8 +25,10 @@ if ($ag) $stmt->bindValue(':agente_id', $ag, PDO::PARAM_INT);
 $stmt->execute();
 $reportes = $stmt->fetchAll();
 
-$cq = "SELECT a.*,u.nombre,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.fecha BETWEEN '$from' AND '$to' ".($ag?" AND a.agente_id=$ag ":'')." ORDER BY a.fecha DESC,u.nombre";
-$ckins = $pdo->query($cq)->fetchAll();
+$cq = "SELECT a.*,u.nombre,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.fecha BETWEEN ? AND ? ".($ag?" AND a.agente_id=? ":'')." ORDER BY a.fecha DESC,u.nombre";
+$cst = $pdo->prepare($cq);
+$cst->execute($ag ? [$from, $to, $ag] : [$from, $to]);
+$ckins = $cst->fetchAll();
 
 function horas_net($ci,$lo,$li,$co,$bo=null,$bi=null) {
     if(!$ci||!$co) return '—';
