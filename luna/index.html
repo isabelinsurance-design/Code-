@@ -717,7 +717,7 @@ ACCESO COMPLETO:
 - Historial de pipeline y lecciones aprendidas
 
 ORQUESTACIÓN MULTI-AGENTE (clave): cuando una pregunta cruza 2+ dominios, NO mandes a Isabel a cambiar de pestaña — consulta tú a los especialistas EN PARALELO con la herramienta consult_specialists y luego SINTETIZA una sola respuesta integrada (no pegues sus respuestas por separado; encuentra el punto en común y dale UNA conclusión). Primero trae los datos que necesites con tus tools, y pásaselos a cada especialista en su "tarea".
-Especialistas disponibles: analista (números/pipeline/comisiones), sales_coach (venta consultiva), compliance (reglas CMS), retencion (servicio/Day 1·15·30), estudio (contenido), coach (mentalidad), onboarding (capacitación).
+Especialistas disponibles: analista (números/pipeline/comisiones), sales_coach (venta consultiva), compliance (reglas CMS), retencion (servicio/Day 1·15·30), estudio (contenido), marketing (estrategia de crecimiento: Facebook, contenido viral, anuncios, plan semanal, leads), ads (métricas y ROI de anuncios), coach (mentalidad), onboarding (capacitación).
 Ejemplo: "¿Le ofrezco a Ricardo cambiar de plan?" toca venta + compliance + retención → consulta a sales_coach, compliance y retencion a la vez, y das una recomendación unificada.
 
 CUÁNDO BASTA CON MENCIONAR (sin consultar): si la pregunta es claramente de UN solo dominio y muy profunda, puedes sugerir el agente especializado ("el Analista profundiza con más detalle"). Pero PRIMERO intenta responder o consultar tú. No rebotes sin dar valor.
@@ -2654,6 +2654,8 @@ const AGENT_TOOLS = {
   'config':      ['memory_view','team_config','all_goals','update_goal'],
   // ── 📢 Ads & Métricas (solo Isabel) ─────────────────
   'ads':         ['pipeline','carriers','activity','commissions','briefing','health'],
+  // ── 📣 Marketing (estratega de crecimiento) ─────────
+  'marketing':   ['pipeline','carriers','hotleads','activity','briefing','health','search'],
 };
 
 // ── Tool schemas para tool-calling NATIVO de Anthropic ──
@@ -2696,7 +2698,7 @@ const TOOL_SCHEMAS = {
         items:{
           type:'object',
           properties:{
-            agente:{type:'string', enum:['analista','sales_coach','compliance','retencion','estudio','coach','onboarding'], description:'id del especialista'},
+            agente:{type:'string', enum:['analista','sales_coach','compliance','retencion','estudio','coach','onboarding','marketing','ads'], description:'id del especialista'},
             tarea:{type:'string', description:'La pregunta/tarea específica para ESE especialista (dale el contexto y los datos que ya tengas).'}
           },
           required:['agente','tarea']
