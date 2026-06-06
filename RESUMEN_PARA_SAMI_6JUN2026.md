@@ -112,24 +112,26 @@ Hay otra sesión de IA trabajando del lado de LUNA (Bluehost), en la rama `claud
 
 ### Paso 2 — Verificar `luna_config.php`
 
-Asegúrate que el archivo tenga estos dos valores correctos (sin la `"` extra que vimos ayer):
+Asegúrate que el archivo tenga estos dos valores correctos:
 
 ```php
-define('LUNA_SERVICE_KEY', '5e6c916e1328c10c2200f6ed6bb0929b1129f64f449df194cb1a00231f191b7e');
+define('LUNA_SERVICE_KEY', '<<COPIA AQUÍ LA LLAVE DE RAILWAY>>');
 ```
 
-Esa llave **DEBE matchear** exactamente la que está en Railway como `LUNA_API_KEY`.
+**Cómo conseguir la llave (no la pongo en este doc por seguridad):**
+- Railway → proyecto Athena → Variables → `LUNA_API_KEY` → click el ojito 👁 → copia los 64 caracteres hex
+- Pega en `luna_config.php` SIN comillas dobles extras, SIN espacios
 
 ### Paso 3 — Probar con curl
 
-Desde tu computadora:
+⚠️ Reemplaza `<LLAVE>` por la llave real y `<tu-dominio-luna>` por tu dominio real de Bluehost:
 
 ```bash
-curl -i -H "X-LUNA-Key: 5e6c916e1328c10c2200f6ed6bb0929b1129f64f449df194cb1a00231f191b7e" \
-     "https://[tu-dominio-luna]/luna_api.php?action=luna_pipeline_summary"
+curl -i -H "X-LUNA-Key: <LLAVE>" \
+     "https://<tu-dominio-luna>/luna_api.php?action=luna_pipeline_summary"
 ```
 
-Si devuelve `HTTP/2 200` con JSON `{ok:true, ...}` → funcionó. Si da 403 → la llave no matchea, revisa de nuevo.
+Si devuelve `HTTP/2 200` con JSON `{ok:true, ...}` → funcionó. Si da 403 → la llave no matchea, revisa de nuevo. Si dice `Could not resolve host` → te falta cambiar el dominio placeholder.
 
 ### Paso 4 — Confirmar a Isabel
 

@@ -34,22 +34,36 @@ cPanel → File Manager → navega a `public_html/website_5a1c69e7/luna/`
 - `luna_config.php` ← debe tener la `LUNA_SERVICE_KEY` correcta
 - Cualquier otro PHP nuevo de la rama
 
-### 3. Verifica que `luna_config.php` tenga:
+### 3. Verifica que `luna_config.php` tenga la llave correcta
 
 ```php
-define('LUNA_SERVICE_KEY', '5e6c916e1328c10c2200f6ed6bb0929b1129f64f449df194cb1a00231f191b7e');
+define('LUNA_SERVICE_KEY', '<<PEGA AQUÍ LA LLAVE>>');
 ```
 
-(64 caracteres hex, debe matchear EXACTAMENTE la `LUNA_API_KEY` que está en Railway)
+**De dónde sacar la llave (NO la pongo en este doc por seguridad):**
+1. Entra a Railway → proyecto Athena → Variables
+2. Click en `LUNA_API_KEY` para revelar el valor
+3. Copia los **64 caracteres hex** (empieza con `5e6c`)
+4. Pégalos en `luna_config.php` SIN comillas dobles extras, SIN espacios
+
+**Debe matchear EXACTAMENTE** la `LUNA_API_KEY` que está en Railway. Cualquier diferencia (un espacio extra, una `"` extra como nos pasó ayer) tira 403.
 
 ### 4. Test con curl
 
+⚠️ **Antes de correr el curl, reemplaza DOS placeholders:**
+- `<LLAVE>` → la misma llave de 64 caracteres del paso 3
+- `<tu-dominio-luna.com>` → tu dominio real de Bluehost donde vive LUNA (NO el de Athena en Railway)
+
 ```bash
-curl -i -H "X-LUNA-Key: 5e6c916e1328c10c2200f6ed6bb0929b1129f64f449df194cb1a00231f191b7e" \
-     "https://[tu-dominio-luna]/luna_api.php?action=luna_pipeline_summary"
+curl -i -H "X-LUNA-Key: <LLAVE>" \
+     "https://<tu-dominio-luna.com>/luna_api.php?action=luna_pipeline_summary"
 ```
 
 **Resultado esperado:** `HTTP/2 200` + JSON `{"ok":true, "data": {...}}`
+
+Si ves `Could not resolve host: tu-dominio-luna.com` → te olvidaste de reemplazar el dominio.
+Si ves `HTTP/2 403` → la llave no matchea, revisa paso 3.
+Si ves `HTTP/2 500` → ver "Síntoma 2" abajo.
 
 ---
 
