@@ -6458,13 +6458,10 @@ window.addEventListener('DOMContentLoaded',()=>{
   if(sessionStorage.getItem(_vk))return;
   sessionStorage.setItem(_vk,'1');
   let msg = `Hola ${NOMBRE_USUARIO}, bienvenida. `;
-if(TICKETS_HOY>0||ALERTAS_HOY>0){
-msg += `Tienes ${TICKETS_HOY} tickets abiertos`;
-if(ALERTAS_HOY>0) msg += ` y ${ALERTAS_HOY} llamadas de retención pendientes`;
-msg += '. ';
-
+if(ALERTAS_HOY>0){
+msg += `Tienes ${ALERTAS_HOY} llamadas de retención pendientes. `;
 } else {
-msg += 'No tienes tareas urgentes. ¡Buen trabajo! ';
+msg += '¡Buen trabajo! ';
 }
 msg += 'Recuerda hacer tu check-in y enviar tu reporte al final del día.';
 document.body.addEventListener('click',()=>{ if(!window.speechSynthesis.speaking) hablar(msg); },{once:true});
@@ -6504,11 +6501,9 @@ toast('¡BIENVENIDA '+NOMBRE_USUARIO.toUpperCase()+'!');
 setTimeout(()=>{
 if(window.speechSynthesis.speaking) return;
 const follows = <?=count(array_filter($members,fn($m)=>$m['estado']==='IN PROCESS'))?>;
-if(follows>0||TICKETS_HOY>0){
+if(follows>0){
 let msg=`Atención ${NOMBRE_USUARIO}. `;
-if(follows>0) msg+=`Tienes ${follows} prospectos en seguimiento esperando tu llamada. No los dejes enfriar. `;
-
-if(TICKETS_HOY>0) msg+=`Y tienes ${TICKETS_HOY} tickets urgentes por resolver.`;
+msg+=`Tienes ${follows} prospectos en seguimiento esperando tu llamada. No los dejes enfriar. `;
 hablar(msg);
 }
 }, 300000); // 5 minutos
