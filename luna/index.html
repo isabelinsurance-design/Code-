@@ -505,7 +505,7 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
       <div class="chat-area" id="chatArea"></div>
       <div class="chat-footer">
         <div class="chat-input-row">
-          <textarea class="chat-ta" id="chatInput" rows="1" placeholder="Escribe tu mensaje…  (o toca 🎤)"></textarea>
+          <textarea class="chat-ta" id="chatInput" rows="1" placeholder="Habla con LUNA…  (o toca 🎤)"></textarea>
           <button class="send-btn" id="voiceBtn" onclick="toggleVoice()" title="LUNA habla / silencio" style="background:var(--ink);color:var(--t2);border:1px solid var(--border);">🔊</button>
           <button class="send-btn" id="micBtn" onclick="startMic()" title="Hablar" style="background:var(--ink);color:var(--t2);border:1px solid var(--border);">🎤</button>
           <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
@@ -4074,8 +4074,19 @@ function toggleVoice(){
 function pickSpanishVoice(){
   try {
     const vs = speechSynthesis.getVoices() || [];
-    return vs.find(v=>/es[-_]US/i.test(v.lang)) || vs.find(v=>/es[-_]MX/i.test(v.lang))
-        || vs.find(v=>/^es/i.test(v.lang)) || null;
+    const es = vs.filter(v => /^es/i.test(v.lang));
+    if (!es.length) return null;
+    // Athena suena como mujer: preferimos una voz FEMENINA en español (Mónica, Paulina, Paloma…).
+    const FEMALE = /female|mujer|paulina|monica|mónica|paloma|lupe|penelope|penélope|sabina|esperanza|marisol|helena|elena|sofia|sofía|lucia|lucía|elvira|laura|samantha|victoria|karen|zira|hazel|catherine/i;
+    const MALE   = /male|hombre|jorge|diego|carlos|juan|miguel|pablo|enrique|ricardo|david|mark|alex|daniel|fred|tom|james/i;
+    const female  = es.filter(v => FEMALE.test(v.name));
+    const neutral = es.filter(v => !MALE.test(v.name) && !FEMALE.test(v.name));
+    const pool = female.length ? female : (neutral.length ? neutral : es);
+    // Dentro del pool: prefiere es-MX, luego es-US, y voces premium/enhanced/neural.
+    const ordered = pool.filter(v=>/es[-_]MX/i.test(v.lang))
+      .concat(pool.filter(v=>/es[-_]US/i.test(v.lang)))
+      .concat(pool);
+    return ordered.find(v=>/premium|enhanced|neural/i.test(v.name)) || ordered[0] || null;
   } catch(_){ return null; }
 }
 function speak(text){
@@ -4092,9 +4103,9 @@ function speak(text){
   try {
     speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(t);
-    u.lang = 'es-US';
-    const v = pickSpanishVoice(); if (v) u.voice = v;
-    u.rate = 1.03; u.pitch = 1.0;
+    const v = pickSpanishVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'es-MX'; }
+    u.rate = 1.0; u.pitch = 1.0;   // natural y cálido, como Athena
     speechSynthesis.speak(u);
   } catch(_){}
 }
