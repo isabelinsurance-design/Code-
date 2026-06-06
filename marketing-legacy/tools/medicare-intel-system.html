@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Medicare Intel Pro — Isabel Fuentes</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;--card:#FFFFFF;
+  --border:#E8E0D0;--border-dk:#D4C9B5;
+  --gold:#C9A96E;--gold-lt:#F0E6D0;--gold-dk:#A07840;
+  --teal:#4A7B9D;--teal-lt:#EBF3F8;--teal-dk:#2E5F7A;
+  --red:#C0392B;--red-lt:#FDEDEB;
+  --green:#2E7D55;--green-lt:#EAF5EE;
+  --amber:#B8860B;--amber-lt:#FFF8E1;
+  --purple:#6B4FA0;--purple-lt:#F3EFFC;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;--tag:#F5EFE3;
+}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
+h1,h2,h3,h4{font-weight:700;line-height:1.3}
+p{line-height:1.65}
+a{color:var(--teal);text-decoration:none}
+button{cursor:pointer;font-family:inherit}
+
+/* HEADER */
+#hdr{background:var(--white);border-bottom:2px solid rgba(201,169,110,.3);padding:14px 20px}
+#hdr-inner{max-width:940px;margin:0 auto;display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px}
+.hdr-tags{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:6px}
+#hdr h1{font-size:19px;font-weight:800;margin-bottom:2px}
+#hdr p{font-size:12px;color:var(--text-muted)}
+.lang-btns{display:flex;gap:6px}
+.lang-btn{border:none;border-radius:8px;padding:7px 14px;font-weight:700;font-size:12px;transition:background .15s}
+
+/* NAV */
+#nav{background:var(--white);border-bottom:1px solid var(--border);overflow-x:auto;position:sticky;top:0;z-index:100}
+#nav-inner{max-width:940px;margin:0 auto;display:flex;padding:0 12px;white-space:nowrap}
+.nav-btn{background:none;border:none;border-bottom:2.5px solid transparent;padding:11px 11px;font-size:12px;color:var(--text-muted);font-weight:400;display:inline-flex;align-items:center;gap:4px;transition:all .15s}
+.nav-btn.active{border-bottom-color:var(--gold);color:var(--gold-dk);font-weight:800}
+.nav-badge{font-size:9px;border-radius:4px;padding:1px 5px;font-weight:800;background:var(--gold-lt);color:var(--gold-dk)}
+.nav-badge.red{background:var(--red-lt);color:var(--red)}
+
+/* MAIN */
+#main{max-width:940px;margin:0 auto;padding:22px 16px}
+.section{display:none}
+.section.active{display:block}
+
+/* TAGS / BADGES */
+.tag{display:inline-block;border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;letter-spacing:.3px;white-space:nowrap;border:1px solid transparent}
+.tag-sm{padding:2px 8px;font-size:10px}
+.tag-gold{background:var(--gold-lt);color:var(--gold-dk);border-color:rgba(201,169,110,.35)}
+.tag-teal{background:var(--teal-lt);color:var(--teal-dk);border-color:rgba(74,123,157,.3)}
+.tag-red{background:var(--red-lt);color:var(--red);border-color:rgba(192,57,43,.25)}
+.tag-green{background:var(--green-lt);color:var(--green);border-color:rgba(46,125,85,.25)}
+.tag-amber{background:var(--amber-lt);color:var(--amber);border-color:rgba(184,134,11,.25)}
+.tag-purple{background:var(--purple-lt);color:var(--purple);border-color:rgba(107,79,160,.25)}
+.tag-gray{background:var(--tag);color:var(--text-mid);border-color:var(--border)}
+
+/* CARDS */
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px}
+.card+.card{margin-top:12px}
+
+/* STAT GRID */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:12px;margin-bottom:22px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px}
+.stat-val{font-size:22px;font-weight:800;color:var(--gold-dk)}
+.stat-label{font-size:12px;font-weight:600;margin:3px 0 2px}
+.stat-sub{font-size:11px;color:var(--text-muted)}
+
+/* ALERT */
+.alert{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px 16px;margin-bottom:12px;border-left-width:4px;border-left-style:solid}
+.alert-head{display:flex;gap:8px;align-items:flex-start;margin-bottom:6px;flex-wrap:wrap}
+.alert-body{font-size:12.5px;color:var(--text-mid);line-height:1.65;margin-bottom:8px}
+.alert-action{display:flex;gap:8px;border-radius:7px;padding:7px 12px;font-size:12px;font-weight:600}
+
+/* BANNER */
+.banner{border-radius:12px;padding:13px 16px;margin-bottom:20px;display:flex;gap:12px;align-items:flex-start}
+.banner i{font-size:20px;flex-shrink:0;margin-top:2px}
+.banner-title{font-size:12px;font-weight:700;margin-bottom:3px}
+.banner-body{font-size:12.5px;line-height:1.6}
+
+/* ACCORDION */
+.acc{border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.acc-head{width:100%;background:var(--card);border:none;padding:13px 16px;cursor:pointer;display:flex;justify-content:space-between;align-items:center;text-align:left;gap:10px}
+.acc-head:hover{background:var(--surface)}
+.acc-title{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:4px}
+.acc-tags{display:flex;gap:6px;flex-wrap:wrap}
+.acc-chevron{font-size:16px;color:var(--text-muted);flex-shrink:0;transition:transform .2s}
+.acc-chevron.open{transform:rotate(180deg)}
+.acc-body{border-top:1px solid var(--border);padding:14px 16px;background:var(--surface);display:none}
+.acc-body.open{display:block}
+
+/* Q ITEM */
+.q-item{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden}
+.q-head{width:100%;background:none;border:none;padding:13px 16px;cursor:pointer;display:flex;gap:10px;align-items:flex-start;text-align:left}
+.q-head:hover{background:var(--surface)}
+.q-num{font-weight:800;font-size:16px;color:var(--gold-dk);min-width:26px;padding-top:1px}
+.q-txt{font-weight:700;font-size:13.5px;color:var(--text);margin-bottom:6px}
+.q-body{border-top:1px solid var(--border);padding:14px 16px;background:var(--surface)}
+.q-section-label{font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px}
+.quote-block{background:var(--gold-lt);border-left:3px solid var(--gold);border-radius:0 7px 7px 0;padding:6px 12px;font-size:12.5px;color:var(--text-mid);font-style:italic;margin-bottom:5px}
+.answer-block{background:var(--teal-lt);border:1px solid rgba(74,123,157,.25);border-radius:8px;padding:10px 14px;font-size:12.5px;line-height:1.7;margin-bottom:14px}
+.content-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:8px}
+.content-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.content-type{font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:4px}
+.content-text{font-size:12px;color:var(--text);line-height:1.55}
+
+/* COPY BOX */
+.copy-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.copy-head{display:flex;justify-content:space-between;align-items:center;padding:7px 14px;border-bottom:1px solid var(--border)}
+.copy-label{font-size:11px;color:var(--text-muted);font-weight:600}
+.copy-btn{background:var(--teal);color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:11px;font-weight:700;cursor:pointer;transition:background .15s}
+.copy-btn:hover{background:var(--teal-dk)}
+.copy-btn.copied{background:var(--green)}
+.copy-pre{margin:0;padding:12px 14px;font-size:12px;line-height:1.75;color:var(--text);white-space:pre-wrap;word-break:break-word;font-family:'Courier New',monospace}
+
+/* FILTER BTNS */
+.filter-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.filter-btn{border:none;border-radius:8px;padding:6px 12px;font-size:11px;font-weight:700;background:var(--tag);color:var(--text-mid);cursor:pointer;transition:all .15s}
+.filter-btn.active{background:var(--gold);color:#fff}
+
+/* POWER BAR */
+.power-wrap{display:flex;align-items:center;gap:6px;margin-bottom:8px}
+.power-track{width:80px;height:5px;background:var(--border);border-radius:3px;overflow:hidden}
+.power-fill{height:100%;border-radius:3px}
+.power-label{font-size:10px;color:var(--text-muted);font-weight:600}
+
+/* VOCAB TABLE */
+.vocab-table{border:1px solid var(--border);border-radius:12px;overflow:hidden;margin-bottom:20px}
+.vocab-head-row{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border);background:var(--surface)}
+.vocab-row{display:grid;grid-template-columns:1fr 1fr;gap:0;padding:10px 16px;border-bottom:1px solid var(--border)}
+.vocab-row:last-child{border-bottom:none}
+.vocab-old{font-size:12px;color:var(--text-muted);font-style:italic;padding-right:10px}
+.vocab-new{font-size:12px;color:var(--text);font-weight:600}
+
+/* COMPLIANCE */
+.comp-row{padding:12px 16px;border-bottom:1px solid var(--border)}
+.comp-row:last-child{border-bottom:none}
+.comp-indicator{width:16px;height:16px;border-radius:3px;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800}
+.comp-text{font-weight:600;font-size:12.5px;color:var(--text);flex:1}
+.comp-action{font-size:12px;color:var(--teal-dk);font-weight:600;line-height:1.55;margin-top:3px;padding-left:26px}
+
+/* CMS TABLE */
+.cms-row{display:grid;grid-template-columns:1fr 1fr}
+.cms-yes{padding:10px 14px;background:var(--green-lt);border-right:1px solid var(--border)}
+.cms-no{padding:10px 14px;background:var(--red-lt)}
+.cms-label{font-size:11px;font-weight:700;display:block;margin-bottom:3px}
+.cms-val{font-size:12px;color:var(--text)}
+
+/* GAP CARDS */
+.gap-card{background:var(--card);border:1px solid var(--border);border-left:4px solid var(--gold-dk);border-radius:12px;padding:18px;margin-bottom:14px}
+.gap-top{display:flex;gap:10px;align-items:flex-start;margin-bottom:12px}
+.gap-medal{font-size:28px;flex-shrink:0}
+.gap-inner-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px;margin-bottom:10px}
+.gap-why{background:var(--red-lt);border-radius:8px;padding:10px 14px}
+.gap-opp{background:var(--green-lt);border-radius:8px;padding:10px 14px}
+.gap-action{background:var(--gold-lt);border-radius:8px;padding:8px 14px;border-left:3px solid var(--gold)}
+.gap-sub-label{font-size:11px;font-weight:700;margin-bottom:4px}
+.gap-sub-text{font-size:12px;color:var(--text);line-height:1.6}
+
+/* CAL */
+.cal-row{display:grid;grid-template-columns:80px 70px 1fr 110px;gap:10px;padding:11px 16px;border-bottom:1px solid var(--border);align-items:center}
+.cal-row:last-child{border-bottom:none}
+
+/* ACTION GRID */
+.action-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.action-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.action-week{display:flex;gap:8px;align-items:center;margin-bottom:10px}
+.action-item{display:flex;gap:7px;font-size:12px;color:var(--text-mid);margin-bottom:5px;align-items:flex-start}
+.action-dot{width:6px;height:6px;background:var(--gold);border-radius:50%;flex-shrink:0;margin-top:5px}
+
+/* INTEL METHODS */
+.intel-method{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:14px}
+.intel-head{display:flex;gap:10px;align-items:center;margin-bottom:14px}
+.intel-icon{background:var(--teal-lt);border-radius:8px;padding:8px;font-size:22px;color:var(--teal)}
+.intel-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px;margin-bottom:12px}
+.intel-step{font-size:12px;color:var(--text);margin-bottom:4px;display:flex;gap:7px}
+.intel-num{color:var(--teal);font-weight:700;flex-shrink:0}
+.intel-tip{background:var(--gold-lt);border-radius:8px;padding:8px 14px;border-left:3px solid var(--gold);font-size:12px}
+
+/* ZIP GRID */
+.zip-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px;margin-bottom:12px}
+.zip-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
+.zip-area{font-weight:700;font-size:12px;margin-bottom:3px}
+.zip-codes{font-size:11px;color:var(--text-muted);font-family:monospace}
+
+/* FRASES */
+.frases-wrap{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:20px}
+.frase-chip{font-size:12px;color:var(--text-mid);background:var(--tag);border-radius:8px;padding:5px 12px;border:1px solid var(--border)}
+
+/* INFO BOX */
+.info-box{border-radius:8px;padding:10px 14px;font-size:12px;line-height:1.6;margin-top:10px}
+
+/* FOOTER */
+#footer{text-align:center;margin-top:36px;padding-top:20px;border-top:1px solid var(--border)}
+#footer p{font-size:11px;color:var(--text-muted);margin-top:4px}
+
+/* HOOKS */
+.hook-row{background:var(--gold-lt);border:1px solid rgba(201,169,110,.4);border-radius:10px;padding:10px 14px;display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.hook-text{font-size:12.5px;color:var(--text);line-height:1.6;font-style:italic}
+
+/* PRINCIPLES */
+.principle-row{display:flex;gap:8px;font-size:12.5px;color:var(--text);line-height:1.5;margin-bottom:5px}
+
+/* SCRIPT TABS */
+.script-lang-toggle{display:flex;gap:6px;margin-bottom:12px}
+.s-lang-btn{border:none;border-radius:7px;padding:5px 14px;font-size:11px;font-weight:700;cursor:pointer}
+.s-lang-btn.active{background:var(--gold);color:#fff}
+.s-lang-btn:not(.active){background:var(--tag);color:var(--text-mid)}
+
+@media(max-width:600px){
+  .stat-grid,.content-grid,.gap-inner-grid,.cal-row,.action-grid,.zip-grid{grid-template-columns:1fr}
+  .cal-row{grid-template-columns:80px 1fr}
+  .vocab-row,.vocab-head-row{grid-template-columns:1fr}
+}
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div id="hdr">
+  <div id="hdr-inner">
+    <div>
+      <div class="hdr-tags">
+        <span class="tag tag-teal">SISTEMA STANDALONE v1.0</span>
+        <span class="tag tag-red">INTELIGENCIA DE MARKETING MEDICARE</span>
+      </div>
+      <h1>Medicare Intel Pro</h1>
+      <p>Isabel Fuentes · Licensed Medicare Agent CA · withisabelfuentes.com · Sur de California · Mayo 2026</p>
+    </div>
+    <div class="lang-btns">
+      <button class="lang-btn" id="btn-es" onclick="setLang('es')" style="background:var(--gold);color:#fff">🇲🇽 ES</button>
+      <button class="lang-btn" id="btn-en" onclick="setLang('en')" style="background:var(--tag);color:var(--text-mid)">🇺🇸 EN</button>
+    </div>
+  </div>
+</div>
+
+<!-- NAV -->
+<div id="nav">
+  <div id="nav-inner">
+    <button class="nav-btn active" onclick="showSection('intel')"><i class="ti ti-radar-2"></i>Intel de Mercado<span class="nav-badge red">🔥 AHORA</span></button>
+    <button class="nav-btn" onclick="showSection('mining')"><i class="ti ti-message-search"></i>Minería Comentarios<span class="nav-badge">TOP 20</span></button>
+    <button class="nav-btn" onclick="showSection('content')"><i class="ti ti-sparkles"></i>Formatos Virales</button>
+    <button class="nav-btn" onclick="showSection('scripts')"><i class="ti ti-video"></i>Scripts de Video</button>
+    <button class="nav-btn" onclick="showSection('vocab')"><i class="ti ti-language"></i>Vocabulario</button>
+    <button class="nav-btn" onclick="showSection('gaps')"><i class="ti ti-target"></i>Brechas<span class="nav-badge">5 ORO</span></button>
+    <button class="nav-btn" onclick="showSection('calendar')"><i class="ti ti-calendar-week"></i>Calendario</button>
+    <button class="nav-btn" onclick="showSection('compliance')"><i class="ti ti-shield-check"></i>Compliance</button>
+    <button class="nav-btn" onclick="showSection('competitive')"><i class="ti ti-eye-off"></i>Competencia</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+<!-- ── INTEL ── -->
+<div id="sec-intel" class="section active">
+  <div class="stat-grid">
+    <div class="stat-card"><div class="stat-val">53%</div><div class="stat-label">Latinos nuevos no asegurados CA</div><div class="stat-sub">del total estatal — H.R.1</div></div>
+    <div class="stat-card"><div class="stat-val">$202.90</div><div class="stat-label">Prima Part B 2026</div><div class="stat-sub">+9.7% vs 2025</div></div>
+    <div class="stat-card"><div class="stat-val">215M</div><div class="stat-label">Impresiones fraude Facebook</div><div class="stat-sub">en el último año</div></div>
+    <div class="stat-card"><div class="stat-val">36%</div><div class="stat-label">Latinos sin médico regular</div><div class="stat-sub">oportunidad enorme</div></div>
+  </div>
+
+  <div class="alert" style="border-left-color:var(--red)">
+    <div class="alert-head"><span class="tag tag-red">CRÍTICO</span><strong style="font-size:14px">Recortes H.R.1 — $1 Trillón Cortados</strong></div>
+    <p class="alert-body">4 millones de latinos entre 14M americanos que perderán cobertura en 10 años. En California: 53% de los nuevos no asegurados son hispanos. La comunidad necesita urgentemente un agente de confianza que explique la verdad.</p>
+    <div class="alert-action" style="background:var(--red-lt)"><i class="ti ti-arrow-right" style="color:var(--red);margin-top:2px;flex-shrink:0"></i><span>Publica HOY sobre lo que está pasando. Sé la voz de calma y soluciones.</span></div>
+  </div>
+
+  <div class="alert" style="border-left-color:var(--gold)">
+    <div class="alert-head"><span class="tag tag-gold">ALTA</span><strong style="font-size:14px">215M Impresiones Fraudulentas en Facebook</strong></div>
+    <p class="alert-body">215 millones de impresiones de anuncios fraudulentos de Medicare en el último año. El 73% llegó a usuarios mayores de 65 años. El Congreso tiene audiencias activas ahora mismo.</p>
+    <div class="alert-action" style="background:var(--gold-lt)"><i class="ti ti-arrow-right" style="color:var(--gold);margin-top:2px;flex-shrink:0"></i><span>Contenido "yo soy legítima, así me verificas" genera shares masivos ahora mismo.</span></div>
+  </div>
+
+  <div class="alert" style="border-left-color:var(--gold)">
+    <div class="alert-head"><span class="tag tag-gold">ALTA</span><strong style="font-size:14px">GLP-1 / Ozempic en Medicare desde Julio 2026</strong></div>
+    <p class="alert-body">Mounjaro, Ozempic, Wegovy y Zepbound disponibles a $50/mes bajo Part D desde julio 2026. Las aseguradoras decidieron si incluirlo. No todos los planes lo tienen.</p>
+    <div class="alert-action" style="background:var(--gold-lt)"><i class="ti ti-arrow-right" style="color:var(--gold);margin-top:2px;flex-shrink:0"></i><span>Publica '¿Ozempic con Medicare? Te digo exactamente qué plan lo cubre en TU código postal.'</span></div>
+  </div>
+
+  <div class="alert" style="border-left-color:var(--teal)">
+    <div class="alert-head"><span class="tag tag-teal">MEDIA</span><strong style="font-size:14px">Prima Part B subió a $202.90 (+9.7%)</strong></div>
+    <p class="alert-body">COLA del Seguro Social fue solo $56/mes. Un tercio del aumento ya se fue en Medicare. Enojo real en la comunidad — contenido muy compartido.</p>
+    <div class="alert-action" style="background:var(--teal-lt)"><i class="ti ti-arrow-right" style="color:var(--teal);margin-top:2px;flex-shrink:0"></i><span>Infografía: "Recibiste $56, te quitaron $18. ¿Y el resto?" — genera debate orgánico masivo.</span></div>
+  </div>
+
+  <div class="alert" style="border-left-color:var(--teal)">
+    <div class="alert-head"><span class="tag tag-teal">MEDIA</span><strong style="font-size:14px">D-SNP: Cambio de Plan Cada Mes</strong></div>
+    <p class="alert-body">Si tienes Medicare + Medi-Cal (dual eligible) puedes cambiar de plan TODOS LOS MESES. Muy pocos en la comunidad lo saben. Genera sorpresa masiva.</p>
+    <div class="alert-action" style="background:var(--teal-lt)"><i class="ti ti-arrow-right" style="color:var(--teal);margin-top:2px;flex-shrink:0"></i><span>Post: '¿Tienes los dos? Puedes cambiar este mes. No esperes hasta octubre.'</span></div>
+  </div>
+
+  <div class="card" style="margin-top:20px;background:var(--gold-lt);border-color:rgba(201,169,110,.4)">
+    <div style="font-weight:800;color:var(--gold-dk);font-size:13px;margin-bottom:10px">💡 Lead Magnet Recomendado — PDF Descargable Gratuito</div>
+    <div class="copy-box">
+      <div class="copy-head"><span class="copy-label">Título del Lead Magnet / PDF</span><button class="copy-btn" onclick="copyText(this,'lm')">Copiar</button></div>
+      <pre class="copy-pre" id="lm">"GUÍA GRATUITA 2026:
+Los 7 Errores que Cometen los Hispanos
+al Elegir Medicare en California
+(y cómo evitarlos)"
+
+Por Isabel Fuentes
+Licensed Medicare Agent | California
+withisabelfuentes.com | NPN: [XXXXX]
+
+→ Distribuye en grupos de Facebook a cambio de email/teléfono.
+→ 100% CMS-compliant si no menciona planes específicos ni promete beneficios sin contexto.</pre>
+    </div>
+  </div>
+</div><!-- /intel -->
+
+<!-- ── MINING ── -->
+<div id="sec-mining" class="section">
+  <div class="banner" style="background:var(--teal-lt);border:1px solid rgba(74,123,157,.25)">
+    <i class="ti ti-message-search" style="color:var(--teal)"></i>
+    <div><div class="banner-title" style="color:var(--teal)">Minería de Comentarios — Top 20 Preguntas</div>
+    <div class="banner-body">Basado en análisis de grupos de Facebook hispanos, YouTube en español, foros AARP, Quora, Reddit r/Medicare y reportes UCLA/CHCF/KFF. Ordenado por frecuencia + urgencia emocional.</div></div>
+  </div>
+
+  <div class="filter-row" id="mining-filters">
+    <button class="filter-btn active" onclick="filterMining('todos',this)">Todos</button>
+    <button class="filter-btn" onclick="filterMining('Inmigración',this)">Inmigración</button>
+    <button class="filter-btn" onclick="filterMining('Dinero',this)">Dinero</button>
+    <button class="filter-btn" onclick="filterMining('Elegibilidad',this)">Elegibilidad</button>
+    <button class="filter-btn" onclick="filterMining('Emocional',this)">Emocional</button>
+    <button class="filter-btn" onclick="filterMining('Medi-Cal',this)">Medi-Cal</button>
+    <button class="filter-btn" onclick="filterMining('Familia',this)">Familia</button>
+  </div>
+
+  <div id="questions-list"></div>
+</div><!-- /mining -->
+
+<!-- ── CONTENT ── -->
+<div id="sec-content" class="section">
+  <div class="banner" style="background:var(--gold-lt);border:1px solid rgba(201,169,110,.3)">
+    <i class="ti ti-sparkles" style="color:var(--gold)"></i>
+    <div><div class="banner-title" style="color:var(--gold-dk)">Truco algorítmico clave</div>
+    <div class="banner-body">Incluye una palabra clave que la gente escriba en los comentarios ("CAMBIO", "PRIMA", "OZEMPIC"). Cada comentario con esa palabra indica a Facebook que tu post genera conversación real → mayor alcance orgánico.</div></div>
+  </div>
+  <div id="viral-list"></div>
+</div><!-- /content -->
+
+<!-- ── SCRIPTS ── -->
+<div id="sec-scripts" class="section">
+  <div class="card" style="margin-bottom:18px">
+    <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:10px">Principios para videos cara a cámara</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>Graba cara a cámara, en español mexicano/centroamericano (tu mercado en SoCal)</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>45–90 segundos es la duración óptima para máximo engagement</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>Hook de apertura en los primeros 3 segundos — la primera frase decide si se quedan</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>Subtítulos siempre activos — el 85% ve Facebook sin sonido</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>Tu cara, tu nombre, tu NPN visible al final</div>
+    <div class="principle-row"><i class="ti ti-check" style="color:var(--green);flex-shrink:0;font-size:14px;margin-top:2px"></i>No menciones planes específicos en videos orgánicos educativos</div>
+  </div>
+
+  <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:10px">Hooks de apertura probados (primeros 3 segundos)</div>
+  <div class="hook-row"><span class="tag tag-gold tag-sm" style="flex-shrink:0">Miedo</span><span class="hook-text">"¡Espera! Si tienes Medicare y ves anuncios de dinero gratis — hay algo que DEBES saber antes de hacer clic."</span></div>
+  <div class="hook-row"><span class="tag tag-red tag-sm" style="flex-shrink:0">Urgencia</span><span class="hook-text">"Tu seguro de Medicare cambió en 2026 y nadie te avisó. Te explico en 60 segundos."</span></div>
+  <div class="hook-row"><span class="tag tag-teal tag-sm" style="flex-shrink:0">Sorpresa</span><span class="hook-text">"¿Tienes Medicare Y Medi-Cal? Entonces puedes cambiar de plan ESTE MES. No tienes que esperar a octubre."</span></div>
+  <div class="hook-row"><span class="tag tag-gold tag-sm" style="flex-shrink:0">Enojo→Solución</span><span class="hook-text">"La prima de Medicare subió casi 10% este año. Pero hay una forma legal de protegerte. Te explico."</span></div>
+  <div class="hook-row" style="margin-bottom:20px"><span class="tag tag-red tag-sm" style="flex-shrink:0">2026</span><span class="hook-text">"Si tienes residencia legal y no eres ciudadano, necesitas escuchar esto sobre tu Medicare ahora mismo."</span></div>
+
+  <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:10px">Scripts completos listos para grabar</div>
+  <div id="scripts-list"></div>
+</div><!-- /scripts -->
+
+<!-- ── VOCAB ── -->
+<div id="sec-vocab" class="section">
+  <div class="banner" style="background:var(--purple-lt);border:1px solid rgba(107,79,160,.2)">
+    <i class="ti ti-language" style="color:var(--purple)"></i>
+    <div><div class="banner-title" style="color:var(--purple)">Vocabulario de la Comunidad Hispana</div>
+    <div class="banner-body">Usa estas palabras en tu contenido. La jerga técnica crea distancia. El vocabulario de la comunidad crea conexión y confianza.</div></div>
+  </div>
+  <div class="vocab-table">
+    <div class="vocab-head-row">
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted)">❌ JERGA DE INDUSTRIA</span>
+      <span style="font-size:11px;font-weight:700;color:var(--text-muted)">✅ CÓMO LO DICE LA GENTE</span>
+    </div>
+    <div id="vocab-rows"></div>
+  </div>
+  <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:10px">Frases exactas que usa la comunidad en comentarios</div>
+  <div class="frases-wrap" id="frases-wrap"></div>
+  <div class="card" style="background:var(--green-lt);border-color:rgba(46,125,85,.25)">
+    <div style="font-weight:700;color:var(--green);font-size:13px;margin-bottom:8px">Cómo aplicar esto en tu contenido</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> En vez de "inscripción abierta" → "la temporada en que puedes cambiar de plan"</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> En vez de "premium mensual" → "lo que pagas al mes por tu seguro"</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> En vez de "formulario" → "la lista de pastillas que cubre tu plan"</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Empieza posts con frases que la gente usa: "¿Es verdad que..." o "Me dijeron que..."</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Termina con una palabra clave para comentarios: "Escríbeme CAMBIO abajo"</div>
+  </div>
+</div><!-- /vocab -->
+
+<!-- ── GAPS ── -->
+<div id="sec-gaps" class="section">
+  <div class="banner" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.2)">
+    <i class="ti ti-target" style="color:var(--red)"></i>
+    <div><div class="banner-title" style="color:var(--red)">5 Preguntas que NADIE está Respondiendo Bien</div>
+    <div class="banner-body">Estas son las oportunidades de posicionamiento más grandes en el mercado hispano de Medicare en SoCal. La competencia no las está cubriendo. Tú puedes ser la referencia en cada una.</div></div>
+  </div>
+  <div id="gaps-list"></div>
+</div><!-- /gaps -->
+
+<!-- ── CALENDAR ── -->
+<div id="sec-calendar" class="section">
+  <div class="card" style="overflow:hidden;padding:0;margin-bottom:20px">
+    <div style="padding:11px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-mid)">Publicación semanal mínima recomendada</div>
+    <div class="cal-row" style="background:var(--surface);font-size:11px;font-weight:700;color:var(--text-muted)"><span>DÍA</span><span>TIPO</span><span>TEMA</span><span>FORMATO</span></div>
+    <div class="cal-row"><span style="font-weight:700">Lunes</span><span class="tag tag-teal tag-sm">Video</span><span style="font-size:12.5px">Alerta semanal / noticias Medicare</span><span style="font-size:11px;color:var(--text-muted);text-align:right">Reel 60 seg</span></div>
+    <div class="cal-row"><span style="font-weight:700">Miércoles</span><span class="tag tag-gold tag-sm">Imagen</span><span style="font-size:12.5px">Infografía educativa / dato sorpresivo</span><span style="font-size:11px;color:var(--text-muted);text-align:right">Carrusel 3–5 slides</span></div>
+    <div class="cal-row"><span style="font-weight:700">Jueves</span><span class="tag tag-green tag-sm">Texto</span><span style="font-size:12.5px">Pregunta ABCD o historia de cliente</span><span style="font-size:11px;color:var(--text-muted);text-align:right">Post texto largo</span></div>
+    <div class="cal-row"><span style="font-weight:700">Sábado</span><span class="tag tag-red tag-sm">Live</span><span style="font-size:12.5px">Seminario educativo en español (quincenal)</span><span style="font-size:11px;color:var(--text-muted);text-align:right">Facebook Live 30–45 min</span></div>
+    <div class="cal-row" style="border-bottom:none"><span style="font-weight:700">Domingo</span><span class="tag tag-gray tag-sm">Story</span><span style="font-size:12.5px">Detrás de cámaras / momento personal</span><span style="font-size:11px;color:var(--text-muted);text-align:right">Stories 15 seg</span></div>
+  </div>
+
+  <div class="card" style="background:var(--gold-lt);border-color:rgba(201,169,110,.4);margin-bottom:20px">
+    <div style="font-weight:700;font-size:13px;color:var(--gold-dk);margin-bottom:10px">Serie T-65 (Turning 65) — Contenido evergreen que funciona todo el año</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Semana 1: '¿Qué es Medicare? La versión sin complicaciones'</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Semana 2: 'Las 4 partes de Medicare — explicadas con ejemplos simples'</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Semana 3: '¿Cuándo me inscribo? No cometas este error costoso'</div>
+    <div class="principle-row"><span style="color:var(--gold);font-weight:700;flex-shrink:0">→</span> Semana 4: 'Llámame antes de cumplir 65' — CTA directo</div>
+  </div>
+
+  <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:12px">Plan de Acción — Próximas 4 Semanas</div>
+  <div class="action-grid">
+    <div class="action-card"><div class="action-week"><span class="tag tag-teal tag-sm">Semana 1</span><span style="font-weight:700;font-size:12px">Audit + Setup</span></div>
+      <div class="action-item"><span class="action-dot"></span>Entra a Meta Ad Library y analiza 10 anuncios de competidores</div>
+      <div class="action-item"><span class="action-dot"></span>Únete a 5 grupos de Facebook hispanos de SoCal</div>
+      <div class="action-item"><span class="action-dot"></span>Crea hoja Google con preguntas de comentarios</div>
+    </div>
+    <div class="action-card"><div class="action-week"><span class="tag tag-teal tag-sm">Semana 2</span><span style="font-weight:700;font-size:12px">Contenido Caliente</span></div>
+      <div class="action-item"><span class="action-dot"></span>Publica 1 Reel: "¿Te van a quitar el Medicare?"</div>
+      <div class="action-item"><span class="action-dot"></span>Publica 1 carrusel: '5 cosas que Medicare NO cubre'</div>
+      <div class="action-item"><span class="action-dot"></span>Responde 10 comentarios en grupos como experta</div>
+    </div>
+    <div class="action-card"><div class="action-week"><span class="tag tag-teal tag-sm">Semana 3</span><span style="font-weight:700;font-size:12px">Lead Generation</span></div>
+      <div class="action-item"><span class="action-dot"></span>Corre 1 anuncio Mito vs Verdad ($5–10/día)</div>
+      <div class="action-item"><span class="action-dot"></span>Instala el Pixel de Meta en withisabelfuentes.com</div>
+      <div class="action-item"><span class="action-dot"></span>Configura formulario de consulta gratis</div>
+    </div>
+    <div class="action-card"><div class="action-week"><span class="tag tag-teal tag-sm">Semana 4</span><span style="font-weight:700;font-size:12px">Optimización</span></div>
+      <div class="action-item"><span class="action-dot"></span>Analiza qué contenido tuvo más engagement</div>
+      <div class="action-item"><span class="action-dot"></span>Duplica el formato ganador</div>
+      <div class="action-item"><span class="action-dot"></span>Construye audiencia lookalike de mejores leads</div>
+    </div>
+  </div>
+</div><!-- /calendar -->
+
+<!-- ── COMPLIANCE ── -->
+<div id="sec-compliance" class="section">
+  <div class="banner" style="background:var(--red-lt);border:1px solid rgba(192,57,43,.2)">
+    <i class="ti ti-shield-check" style="color:var(--red)"></i>
+    <div><div class="banner-title" style="color:var(--red)">Regla CMS para Facebook Lives</div>
+    <div class="banner-body">Un Facebook Live sobre Medicare es un "Evento Educativo" según CMS. No puedes hacer inscripciones durante el Live. Al finalizar, invita al contacto privado (DM, WhatsApp). Documenta todo.</div></div>
+  </div>
+  <div class="card" style="overflow:hidden;padding:0;margin-bottom:16px">
+    <div style="padding:11px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-mid)">Checklist CMS — Antes de publicar cualquier contenido</div>
+    <div id="compliance-list"></div>
+  </div>
+  <div class="card" style="overflow:hidden;padding:0;margin-bottom:16px">
+    <div style="padding:11px 16px;border-bottom:1px solid var(--border);font-weight:700;font-size:13px;color:var(--text-mid)">Guía rápida de lenguaje CMS-compliant</div>
+    <div id="cms-table"></div>
+  </div>
+  <div class="card" style="background:var(--green-lt);border-color:rgba(46,125,85,.25)">
+    <div style="font-weight:700;font-size:13px;color:var(--green);margin-bottom:8px">Disclaimer Universal — Copia y pega en todo material con beneficios</div>
+    <div class="copy-box">
+      <div class="copy-head"><span class="copy-label">Disclaimer CMS-compliant</span><button class="copy-btn" onclick="copyText(this,'disc')">Copiar</button></div>
+      <pre class="copy-pre" id="disc">*Beneficios varían por plan y área geográfica. Disponible en planes seleccionados. Isabel Fuentes es agente independiente licenciada en California, NPN: [XXXXX]. No afiliada con Medicare ni ningún programa federal. El plan de cobertura puede cambiar. Para más información visita medicare.gov o withisabelfuentes.com</pre>
+    </div>
+  </div>
+</div><!-- /compliance -->
+
+<!-- ── COMPETITIVE ── -->
+<div id="sec-competitive" class="section">
+  <div class="banner" style="background:var(--teal-lt);border:1px solid rgba(74,123,157,.25)">
+    <i class="ti ti-eye-off" style="color:var(--teal)"></i>
+    <div><div class="banner-title" style="color:var(--teal)">Cómo espiar a tu competencia sin que lo sepan (100% legal)</div>
+    <div class="banner-body">Tres métodos gratuitos que cualquier agente puede usar. Sin violar CMS. Sin gastos. Solo inteligencia de mercado real.</div></div>
+  </div>
+  <div id="intel-methods"></div>
+
+  <div class="card" style="margin-top:4px">
+    <div style="font-weight:700;font-size:13px;color:var(--text-mid);margin-bottom:12px">Targeting Geográfico — ZIP Codes Prioritarios SoCal</div>
+    <div class="zip-grid">
+      <div class="zip-card"><div class="zip-area">East LA / Boyle Heights</div><div class="zip-codes">90022, 90033, 90063</div></div>
+      <div class="zip-card"><div class="zip-area">Anaheim / Santa Ana</div><div class="zip-codes">92801, 92703, 92705</div></div>
+      <div class="zip-card"><div class="zip-area">Ontario / Pomona</div><div class="zip-codes">91762, 91766, 91768</div></div>
+      <div class="zip-card"><div class="zip-area">Riverside</div><div class="zip-codes">92503, 92504, 92507</div></div>
+      <div class="zip-card"><div class="zip-area">San Bernardino</div><div class="zip-codes">92404, 92410, 92411</div></div>
+      <div class="zip-card"><div class="zip-area">Compton / Lynwood</div><div class="zip-codes">90220, 90221, 90262</div></div>
+    </div>
+    <div class="info-box" style="background:var(--teal-lt);border:1px solid rgba(74,123,157,.2)">
+      <strong style="color:var(--teal)">Meta 2026 Special Ads Category:</strong> Insurance = sin targeting por edad exacta. Usa señales de comportamiento: intereses "retirement planning", "Medicare", "health insurance" + targeting geográfico por ZIP.
+      El CPL en español suele ser <strong>30–50% más bajo</strong> que en inglés — menos competencia en subastas en español.
+    </div>
+  </div>
+</div><!-- /competitive -->
+
+<!-- FOOTER -->
+<div id="footer">
+  <div style="display:flex;gap:8px;justify-content:center;flex-wrap:wrap;margin-bottom:8px">
+    <span class="tag tag-teal">SISTEMA STANDALONE v1.0</span>
+    <span class="tag tag-gold">Integrable al Sistema Mayor</span>
+  </div>
+  <p>Isabel Fuentes · Licensed Medicare Agent CA · withisabelfuentes.com · NPN: [XXXXX]</p>
+  <p>Sistema de Inteligencia de Marketing Medicare · Sur de California · Mayo 2026 · Revisar mensualmente</p>
+</div>
+
+</div><!-- /main -->
+
+<script>
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let currentLang = 'es';
+let currentMiningFilter = 'todos';
+
+// ─── DATA ─────────────────────────────────────────────────────────────────────
+const Q = [
+  {rank:1,bloque:'Inmigración',bloqueTag:'tag-red',
+   pregunta:'¿Necesito ser ciudadano americano para tener Medicare?',
+   palabras:["'Yo llevo 25 años aquí con residencia, ¿me corresponde?'","'Mi marido pagó impuestos toda su vida, ¿tiene derecho?'","'Escuché que le quitan Medicare a los inmigrantes'"],
+   respuesta:'No tienes que ser ciudadano. Pero los requisitos dependen de si tú o tu cónyuge trabajaron en USA al menos 10 años pagando impuestos de Medicare. Los titulares de green card están protegidos si cumplen ese requisito. Cada caso es diferente — yo reviso el tuyo sin costo.',
+   post:'¿Eres residente (no ciudadano) y te preguntas si tienes derecho a Medicare? La respuesta no es un simple sí o no. Depende de cuántos años trabajaste en USA. Yo reviso TU caso específico, gratis, en español.',
+   reel:'¿Los inmigrantes pierden Medicare en 2026? La verdad que nadie te está diciendo',
+   email:'Carmen: ¿Tienes residencia? Lo que cambió con Medicare en 2025',
+   ad:'¿Tienes green card y cumples 65? Llámame antes de perder tu ventana de inscripción'},
+  {rank:2,bloque:'Inmigración',bloqueTag:'tag-red',
+   pregunta:'¿Si pido Medicare me afecta para la ciudadanía o la green card?',
+   palabras:["'No quiero meterme en problemas con migración'","'Mi hija dice que no pida nada del gobierno por si acaso'","'Tenemos miedo de que nos lo usen en contra después'"],
+   respuesta:'Medicare NO es una razón para ser considerado "carga pública" (public charge). Es un beneficio que tú ganaste trabajando y pagando impuestos — no es asistencia en efectivo. Hay matices según tu situación específica. Llámame y te explico de forma confidencial.',
+   post:'IMPORTANTE para familias inmigrantes: ¿Medicare afecta tu estatus migratorio? Lo que realmente dice la ley — sin alarmar, sin mentiras.',
+   reel:'Mi familia tiene miedo de pedir Medicare. ¿Qué les digo?',
+   email:"La diferencia entre Medicare y 'carga pública' — explicado en 2 minutos",
+   ad:'¿Confundida sobre inmigración y Medicare? Llamada confidencial, sin costo, en español.'},
+  {rank:3,bloque:'Inmigración',bloqueTag:'tag-red',
+   pregunta:'¿Me van a quitar el Medicare que ya tengo?',
+   palabras:["'Vi en las noticias que van a recortar Medicare'","'Llevo años con Medicare, ¿me lo quitan ahora?'","'Tengo TPS, ¿pierdo mi seguro?'"],
+   respuesta:'La ley H.R.1 sí cambió reglas para ciertos inmigrantes. Si tienes green card y trabajaste 10 años, estás protegida. Si tienes TPS u otro estatus, tu situación es diferente y necesitas revisarla YA — la notificación de cancelación llega en julio 2026. Yo te ayudo a entender qué opciones tienes.',
+   post:'Si alguien de tu familia tiene Medicare y NO es ciudadano, necesitan leer esto esta semana.',
+   reel:'¿A quién le están quitando Medicare en 2026? Te explico sin exagerar',
+   email:'Urgente: ¿Tu Medicare está en riesgo? Revisa antes de julio',
+   ad:'Tienes Medicare y no eres ciudadana. Revisa si estás protegida — gratis, esta semana.'},
+  {rank:4,bloque:'Dinero',bloqueTag:'tag-gold',
+   pregunta:'¿Medicare es gratis? ¿Cuánto tengo que pagar?',
+   palabras:["'Dicen que Medicare es gratis pero luego te cobran'","'Vi un anuncio de $0, ¿es verdad?'","'¿Cuánto me descuentan del Social Security?'"],
+   respuesta:'Parte A (hospital) = $0 si trabajaste 10+ años. Parte B (médico) = $202.90/mes en 2026, se descuenta del Seguro Social. PERO hay planes Medicare Advantage con $0 de prima adicional disponibles en LA, OC e Inland Empire. Eso es lo que yo te ayudo a encontrar.',
+   post:'¿Medicare es gratis o no? La respuesta honesta que ningún anuncio te dice 👇',
+   reel:'Parte A, B, C, D — ¿cuánto cuesta cada una? Te lo explico en 60 segundos',
+   email:'Lo que te descuentan del Social Security para Medicare en 2026',
+   ad:'¿Cuánto pagarás de Medicare? Calculamos juntos — gratis, en español.'},
+  {rank:5,bloque:'Dinero',bloqueTag:'tag-gold',
+   pregunta:'¿Los beneficios extras de Medicare son reales o mentira?',
+   palabras:["'Vi que dan $900 al mes para comida. ¿Es verdad?'","'¿La tarjeta OTC existe de verdad?'","'Ese anuncio de TV que dice que te dan dinero de vuelta del Medicare'"],
+   respuesta:'Las tarjetas OTC son reales — PERO son beneficios extras de planes Medicare Advantage específicos, no de todos. El Medicare Original no da tarjeta OTC a nadie. Los anuncios de TV son frecuentemente engañosos. Yo te digo exactamente qué planes en tu código postal tienen beneficios OTC reales y cuánto.',
+   post:"'Me dan $900 al mes con Medicare' — ¿Verdad o trampa? Te cuento la realidad antes de que te estafen.",
+   reel:'La tarjeta OTC de Medicare: lo real, lo exagerado y lo que nadie te dice',
+   email:'Tu vecina tiene $200/mes para compras. ¿A ti también te corresponde?',
+   ad:'¿Qué beneficios extras tienes disponibles en tu ZIP code? Te lo reviso gratis.'},
+  {rank:6,bloque:'Dinero',bloqueTag:'tag-gold',
+   pregunta:'¿Hay ayuda para pagar la prima si no tengo mucho dinero?',
+   palabras:["'Vivo de mi Social Security nada más'","'¿Qué es eso del Extra Help?'","'¿Medi-Cal me ayuda a pagar Medicare?'"],
+   respuesta:'Sí. Hay programas que la mayoría no conoce: Extra Help/LIS (paga medicamentos), Medicare Savings Programs (Medi-Cal puede pagar tu prima de la Parte B), y planes D-SNP para quienes tienen ambos seguros. Yo verifico si calificas — completamente gratis.',
+   post:'¿Sabes que hay programas que pagan TU prima de Medicare? Muchos hispanos califican y no lo saben.',
+   reel:'El programa secreto que paga el Medicare de personas con bajos ingresos',
+   email:'Tres programas de ayuda económica para Medicare que casi nadie conoce',
+   ad:'¿Ingresos limitados? Hay planes en tu área con $0 de prima. Te los busco gratis.'},
+  {rank:7,bloque:'Dinero',bloqueTag:'tag-gold',
+   pregunta:'¿Cuánto pago si voy al hospital o al doctor?',
+   palabras:["'¿Tengo que pagar algo cuando voy al doctor con Medicare?'","'¿Hay deducible?'","'Si me operan, ¿me llega una factura enorme?'"],
+   respuesta:'Con Medicare Original sí hay copagos y pagas 20% sin límite máximo — eso asusta a mucha gente. Con Medicare Advantage generalmente tienes copagos fijos ($0–35 por visita) y un límite máximo anual. Yo te enseño el comparativo real de planes en tu área antes de que firmes nada.',
+   post:'El error costoso que cometen muchos al elegir Medicare: ignorar el límite máximo de gastos.',
+   reel:'¿Cuánto pagarías si te hospitalizan con Medicare Original vs. Medicare Advantage?',
+   email:'El número que todo beneficiario de Medicare debe saber antes de elegir plan',
+   ad:'¿Cuánto pagarías en el peor escenario? Te lo muestro con números reales. Gratis.'},
+  {rank:8,bloque:'Elegibilidad',bloqueTag:'tag-teal',
+   pregunta:'¿Cuándo exactamente me tengo que inscribir en Medicare?',
+   palabras:["'¿Cuándo empieza mi Medicare cuando cumplo 65?'","'¿Puedo inscribirme antes?'","'Cumplo 65 en agosto, ¿qué tengo que hacer?'"],
+   respuesta:'El Período de Inscripción Inicial comienza 3 meses ANTES de cumplir 65 y termina 3 meses DESPUÉS — son 7 meses en total. Si te inscribes tarde, pagas penalidades de por vida. Yo te digo exactamente cuáles son tus fechas según tu cumpleaños.',
+   post:'¿Cuándo cumples 65? Esto es lo que tienes que hacer 3 meses ANTES — sin falta.',
+   reel:'Los 7 meses más importantes de tu vida para Medicare (no los desperdicies)',
+   email:'Querida Rosa: Tu ventana de Medicare abre en [mes]. No la pierdas.',
+   ad:'Cumples 65 pronto. Llámame ANTES — hay una ventana que no puedes perder.'},
+  {rank:9,bloque:'Elegibilidad',bloqueTag:'tag-teal',
+   pregunta:'Todavía estoy trabajando a los 65. ¿Tengo que inscribirme?',
+   palabras:["'Sigo trabajando y tengo seguro del trabajo. ¿Para qué necesito Medicare?'","'¿Pierdo mi seguro del trabajo si me meto a Medicare?'","'Mi jefe y el Seguro Social me dicen cosas diferentes'"],
+   respuesta:'Depende del tamaño de tu empresa. Si tiene 20+ empleados, puedes esperar. Si tiene menos de 20, Medicare se vuelve primario y necesitas actuar. Hay una ventana especial cuando dejas el trabajo. Yo te explico exactamente cuándo y cómo para no pagar penalidades.',
+   post:'Sigues trabajando a los 65 y tienes seguro del trabajo. ¿Necesitas Medicare? La respuesta depende de UNA sola cosa.',
+   reel:'¿Trabajas a los 65 años? Lo que nadie te dice sobre Medicare y tu seguro actual',
+   email:'¿Sigues trabajando? Esto cambia todo sobre cuándo inscribirte en Medicare',
+   ad:'¿65 años y todavía trabajando? Una llamada de 15 minutos puede ahorrarte miles.'},
+  {rank:10,bloque:'Elegibilidad',bloqueTag:'tag-teal',
+   pregunta:'¿Puedo cambiar de plan si no me gusta el que elegí?',
+   palabras:["'Me inscribí pero mi doctor no está en la red'","'¿Cada cuánto puedo cambiar de plan?'","'Eligió un plan mi hijo y no me gusta. ¿Qué hago?'"],
+   respuesta:'Sí puedes cambiar — pero hay ventanas específicas. La Inscripción Abierta es del 15 oct al 7 dic cada año. Del 1 ene al 31 mar puedes hacer un cambio único si ya tienes Medicare Advantage. Si hay circunstancias especiales (mudanza, pérdida de otro seguro) hay períodos adicionales.',
+   post:"Muchas personas creen que están 'atrapadas' en su plan de Medicare todo el año. La verdad es más flexible de lo que piensas.",
+   reel:'¿Elegiste el plan equivocado? Todavía puedes cambiarlo (pero hay fechas límite)',
+   email:'Tu plan de Medicare cambió en enero y tus beneficios bajaron. ¿Qué puedes hacer?',
+   ad:'¿No te gusta tu plan? Aún puedes cambiarlo. Te explico cómo — gratis.'},
+  {rank:11,bloque:'Emocional',bloqueTag:'tag-purple',
+   pregunta:'¿Mi doctor de siempre va a aceptar Medicare?',
+   palabras:["'Tengo 10 años con el mismo doctor. No quiero perderlo'","'¿Cómo sé si mi doctor está en el plan?'","'En el plan que me ofrecieron, ¿mi doctor está incluido?'"],
+   respuesta:'Esta es la primera pregunta que hago YO antes de recomendar cualquier plan. Tu doctor va primero — luego buscamos el mejor plan que lo incluya. Nunca al revés. Yo verifico la red en 5 minutos antes de que firmes nada.',
+   post:'Antes de cambiar de plan de Medicare, haz UNA sola pregunta: ¿Mi doctor está en la red? Yo lo verifico gratis en 5 minutos.',
+   reel:'Me cambiaron de plan y perdí a mi doctor. ¿Cómo evitarlo?',
+   email:'El error #1 al elegir Medicare Advantage (y cómo lo prevengo contigo)',
+   ad:'¿Tienes un doctor que adoras? Yo busco el plan que lo incluye. No al revés.'},
+  {rank:12,bloque:'Emocional',bloqueTag:'tag-purple',
+   pregunta:'¿Medicare cubre el dentista? ¿Y los ojos?',
+   palabras:["'Necesito hacerme la dentadura. ¿Medicare la paga?'","'Me dijeron que Medicare no cubre los dientes. ¿Es verdad?'","'¿Los lentes también los cubre?'"],
+   respuesta:'Medicare Original NO cubre dental de rutina ni exámenes de la vista para lentes — eso sorprende mucho a la gente. PERO hay planes Medicare Advantage en Los Ángeles y Orange County que sí incluyen dental, visión y audífonos. Yo te encuentro el plan que cubra dientes, ojos y medicamentos juntos.',
+   post:'❌ MITO: Medicare cubre el dentista. ✅ VERDAD: El Medicare Original no cubre dientes ni ojos de rutina. Pero hay planes en tu código postal que sí lo hacen.',
+   reel:'¿Medicare cubre el dentista? La respuesta que nadie quiere darte',
+   email:'La sorpresa más costosa de Medicare: lo que no cubre y cómo protegerte',
+   ad:'¿Necesitas dental, visión o audífonos? Hay planes en LA, OC e IE que los cubren. Te busco el mejor.'},
+  {rank:13,bloque:'Emocional',bloqueTag:'tag-purple',
+   pregunta:'¿Qué pasa si me enfermo gravemente y necesito hospital?',
+   palabras:["'Tengo miedo de que si me enfermo no me alcance el dinero'","'¿Hay un tope de cuánto pago al año?'","'¿Me pueden negar atención con Medicare?'"],
+   respuesta:'Medicare NO puede negar atención de emergencia. Y los planes Medicare Advantage tienen un límite máximo anual de gastos de bolsillo — el Medicare Original NO tiene ese límite (eso asusta). Yo te explico exactamente cuánto sería el máximo que pagarías en el peor escenario antes de que firmes.',
+   post:'La pregunta que nadie hace pero todos deberían: ¿Cuánto pagarías si te diagnostican algo serio? Te doy el número exacto antes de elegir un plan.',
+   reel:'¿Qué pasa con tu Medicare si te dan un diagnóstico grave?',
+   email:'El número más importante de tu plan de Medicare que nadie te enseña',
+   ad:'Antes de elegir un plan, deja que te muestre el escenario real. Sin sorpresas.'},
+  {rank:14,bloque:'Emocional',bloqueTag:'tag-purple',
+   pregunta:'¿Medicare cubre mis medicamentos para la presión / diabetes / colesterol?',
+   palabras:["'Tomo 5 pastillas al día. ¿Las cubre Medicare?'","'¿Qué pasa con la insulina?'","'Mi pastilla de la presión es de marca. ¿Solo cubre genéricas?'"],
+   respuesta:'Sí cubre medicamentos — pero cada plan tiene una lista diferente. En 2026 hay un tope de $2,100 al año en medicamentos Part D. Trae tu lista de pastillas y yo comparo los planes según TUS medicamentos específicos — no uno genérico para todos.',
+   post:'Toma tus pastillas y llámame. Yo comparo los planes según TUS medicamentos — no uno genérico para todos.',
+   reel:'¿Tomas pastillas para la presión o diabetes? Esto importa mucho al elegir Medicare',
+   email:'El límite de $2,100 para medicamentos en 2026 — lo que significa para ti',
+   ad:'¿Tomas 3 o más medicamentos? Comparamos cuál plan te ahorra más. Gratis.'},
+  {rank:15,bloque:'Emocional',bloqueTag:'tag-purple',
+   pregunta:'¿Medicare cubre el Ozempic? ¿Lo de los GLP-1?',
+   palabras:["'Vi que Medicare cubre el Ozempic. ¿Es verdad?'","'¿Cómo consigo el Wegovy a $50 con Medicare?'","'¿Todos los planes lo cubren o solo algunos?'"],
+   respuesta:'Desde julio 2026: Ozempic, Mounjaro, Wegovy y Zepbound disponibles a $50/mes bajo Part D — pero SOLO en los planes que optaron por incluirlos. No todos los planes lo tienen. Yo sé exactamente qué planes en SoCal están cubriendo GLP-1 en tu código postal.',
+   post:'¿Medicare cubre Ozempic a $50/mes? Sí — pero NO en todos los planes. Te digo cuáles sí lo tienen en tu área.',
+   reel:'Ozempic y Medicare en 2026: la respuesta que te va a sorprender',
+   email:'Ozempic a $50/mes con Medicare: lo que tu plan actual posiblemente no te dijo',
+   ad:'¿Quieres Ozempic cubierto por Medicare? Yo encuentro el plan correcto en tu ZIP.'},
+  {rank:16,bloque:'Medi-Cal',bloqueTag:'tag-green',
+   pregunta:'Tengo Medi-Cal. ¿Qué pasa cuando cumpla 65?',
+   palabras:["'Si tengo Medi-Cal y llego a los 65, ¿pierdo el Medi-Cal?'","'¿Puedo tener los dos al mismo tiempo?'","'¿Quién paga primero?'"],
+   respuesta:'Puedes tener ambos — se llama "dual eligible" o Medi-Medi. Medicare paga primero, Medi-Cal puede cubrir lo que Medicare no paga. Si eres dual eligible, hay planes D-SNP especiales diseñados para ti con beneficios extras. Yo me especializo exactamente en estos casos.',
+   post:'¿Tienes Medi-Cal y vas a cumplir 65? Hay algo que cambia — y puede ser MUY bueno para ti.',
+   reel:'Medi-Cal + Medicare: lo que nadie te explica cuando cumples 65',
+   email:'Tienes Medi-Cal. Cumples 65. Aquí está tu plan de acción.',
+   ad:'¿Medi-Cal y cerca de los 65? Hay planes especiales para ti. Te explico gratis.'},
+  {rank:17,bloque:'Medi-Cal',bloqueTag:'tag-green',
+   pregunta:'¿Me quitan el Medi-Cal si me inscribo en Medicare Advantage?',
+   palabras:["'Tengo miedo de perder mi Medi-Cal si cambio de plan'","'¿Tengo que elegir entre Medi-Cal o Medicare?'"],
+   respuesta:'No. La inscripción en Medicare Advantage no te quita el Medi-Cal. Son programas separados que pueden trabajar juntos. PERO hay que elegir los planes correctos para que se coordinen bien. Ese es exactamente mi trabajo.',
+   post:'MITO: "Si elijo Medicare Advantage pierdo mi Medi-Cal." VERDAD: No los pierdes. Pero hay que hacerlo bien.',
+   reel:'¿Medi-Cal Y Medicare Advantage al mismo tiempo? La verdad',
+   email:'No tienes que elegir entre Medi-Cal y Medicare Advantage. Aquí te explico por qué.',
+   ad:'Medi-Cal + Medicare Advantage juntos: te explico cómo funciona. Sin costo.'},
+  {rank:18,bloque:'Medi-Cal',bloqueTag:'tag-green',
+   pregunta:'¿Puedo ver a cualquier doctor o tengo que estar en una red?',
+   palabras:["'¿HMO o PPO? No entiendo la diferencia'","'¿Puedo ver a un especialista sin referido?'","'¿Puedo ir a UCLA o Cedars-Sinai?'"],
+   respuesta:'Con Medicare Original: cualquier doctor que acepte Medicare, sin referidos. Con Medicare Advantage HMO: necesitas red y referido para especialistas. Con PPO: más flexibilidad. La elección depende de tus doctores actuales. Yo te explico cuál te conviene según tu situación real.',
+   post:'HMO vs PPO vs Medicare Original: la guía honesta sin términos complicados para la comunidad hispana.',
+   reel:'¿HMO o PPO? La diferencia en 60 segundos para que nunca te confundas',
+   email:'¿Quieres ir a UCLA? ¿Cedars-Sinai? Lo que tu plan de Medicare tiene que decir',
+   ad:'¿Tienes doctores favoritos? Yo busco el plan correcto para ti. Gratis.'},
+  {rank:19,bloque:'Medi-Cal',bloqueTag:'tag-green',
+   pregunta:'¿Cada cuánto tengo que renovar o hacer algo con mi Medicare?',
+   palabras:["'¿Se renueva solo o tengo que hacer algo cada año?'","'Recibí una carta de Medicare. ¿Tengo que cambiar algo?'","'¿Cómo sé si mi plan del año pasado sigue siendo el mejor?'"],
+   respuesta:'Tu plan se renueva automáticamente — pero los beneficios CAMBIAN cada año. Medicamentos pueden cambiar de precio, tu doctor puede salir de la red, los beneficios extras pueden reducirse. Por eso yo te llamo CADA AÑO antes de octubre para revisar tu plan sin costo adicional.',
+   post:'Tu plan de Medicare se renueva automáticamente. Pero los beneficios pueden cambiar. ¿Cuándo fue la última vez que alguien revisó el tuyo?',
+   reel:'Por qué revisar tu plan de Medicare cada año puede ahorrarte cientos de dólares',
+   email:'Es temporada de revisión de planes. Revisa el tuyo conmigo — 20 minutos, sin costo.',
+   ad:'¿Tu plan de Medicare sigue siendo el mejor para ti este año? Lo verifico gratis.'},
+  {rank:20,bloque:'Familia',bloqueTag:'tag-amber',
+   pregunta:'¿Cómo ayudo a mis papás que no hablan inglés a elegir su Medicare?',
+   palabras:["'Mis papás no hablan inglés. ¿Cómo les explico Medicare?'","'Quiero ayudar a mi mamá pero yo tampoco entiendo bien'","'¿Pueden venir todos a una cita?'"],
+   respuesta:'Esto lo hago todos los días. Me reúno con familias completas — padres, hijos, quien quieran traer — y lo explico en español, sin prisa, sin jerga técnica. Nunca presiono para vender. Primero entiendo la situación de cada persona, después recomiendo. Completamente gratis para la familia.',
+   post:'¿Tus papás no hablan inglés y necesitan elegir Medicare? Reúnanse conmigo. Yo explico en español, sin prisa, sin letra chica.',
+   reel:'Ayudar a tus papás con Medicare — lo que necesitas saber como hijo/hija',
+   email:'Para los hijos: cómo ayudar a tus padres a elegir el Medicare correcto',
+   ad:'¿Tus papás necesitan ayuda con Medicare? Vengan juntos — yo explico en español. Sin costo.'}
+];
+
+const VIRALES = [
+  {nombre:'El Mito vs Verdad',powerLabel:'Altísimo share',poder:97,
+   desc:'Formato más compartido de todos. Rompe creencias incorrectas — la gente lo envía para proteger a su familia.',
+   cms:'100% educativo — mínimas restricciones CMS. Máximo alcance orgánico.',
+   template:`❌ MITO: "Medicare cubre dental y visión"
+✅ VERDAD: El Medicare Original NO cubre dientes ni ojos de rutina.
+
+❌ MITO: "Todos los planes Medicare son iguales"
+✅ VERDAD: Hay planes en Los Ángeles con $0 de prima que incluyen dental, visión Y medicamentos.
+
+❌ MITO: "Si no me inscribo a los 65 lo hago después sin problema"
+✅ VERDAD: Esperar tiene PENALIDADES DE POR VIDA.
+
+¿Cuál de estos mitos creías tú? 👇 Comenta abajo.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]
+🌐 withisabelfuentes.com`},
+  {nombre:'La Historia Personal',powerLabel:'Máximo shares + DMs',poder:95,
+   desc:'Cuenta una historia real de cliente (anonimizada o con permiso). Personaje + problema + resolución + CTA.',
+   cms:'Incluye autorización escrita del cliente si lo identificas. Historia anonimizada: libre.',
+   template:`Esta semana me llamó una señora de East Los Ángeles, llorando.
+
+Me dijo: "Isabel, hice clic en un anuncio de Facebook que prometía $900 de Medicare para groceries. Me pidieron mi número de Medicare y mi fecha de nacimiento. ¿Qué hago?"
+
+Le expliqué que había sido víctima de una estafa. Revisamos su cuenta de Medicare juntas. Gracias a Dios no habían cambiado nada todavía.
+
+Pero hay miles de personas en nuestra comunidad que no tienen a nadie que las ayude.
+
+Por eso existo yo.
+
+Si tú o alguien de tu familia recibió una llamada extraña o hizo clic en un anuncio de Medicare — llámenme. La consulta es completamente GRATIS y en español.
+
+Mi número está en mi perfil. 💙
+
+(Por favor comparte esto. Puede proteger a alguien que conoces.)`},
+  {nombre:'La Pregunta ABCD',powerLabel:'100+ comentarios',poder:90,
+   desc:'Las opciones ABCD son perfectas para Facebook. Cada respuesta es un lead calificado.',
+   cms:'Educativo puro. El seguimiento en comentarios es donde conviertes leads.',
+   template:`Pregunta rápida para mi comunidad 👇
+
+¿Cuándo fue la ÚLTIMA VEZ que alguien revisó tu plan de Medicare para asegurarse de que sigue siendo el mejor para ti?
+
+A) Nunca lo he revisado
+B) Cuando me inscribí por primera vez
+C) El año pasado durante la inscripción abierta
+D) Lo reviso cada año con mi agente
+
+(Responde en los comentarios — hay algo importante que quiero compartir dependiendo de tu respuesta)
+
+Soy Isabel Fuentes, agente de Medicare licenciada en California. 🇲🇽`},
+  {nombre:'El Dato Que Nadie Sabe',powerLabel:'Alta sorpresa + shares',poder:88,
+   desc:'Información sorpresiva con valor económico directo. La palabra clave en comentarios activa el algoritmo de Facebook.',
+   cms:"Truco algorítmico: 'CAMBIO' en comentarios le dice a Facebook que tu post genera conversación real → más alcance orgánico.",
+   template:`Dato que la mayoría de personas con Medicare + Medi-Cal NO saben:
+
+👉 Puedes cambiar tu plan de Medicare UNA VEZ POR MES.
+
+No tienes que esperar hasta octubre.
+No tienes que esperar a una circunstancia especial.
+Simplemente... puedes hacerlo. Todos los meses.
+
+Esto aplica si tienes AMBOS: Medicare y Medi-Cal.
+
+¿Por qué importa? Porque si tu plan actual no cubre tu médico favorito, o tus medicamentos subieron de precio, puedes actuar ahora — no en meses.
+
+¿Tienes Medicare Y Medi-Cal y nunca habías escuchado esto?
+
+Escríbeme "CAMBIO" en los comentarios y te explico cómo funciona en tu condado.
+
+Isabel Fuentes | Medicare Agent CA | NPN: [XXXXX]`},
+  {nombre:'El Checklist (Carrusel)',powerLabel:'Más guardado/saved',poder:85,
+   desc:'El formato guardado #1 en Facebook. La gente lo guarda para referencia futura.',
+   cms:'Comparte en grupos hispanos de SoCal. Cada compartida es exposición orgánica gratuita.',
+   template:`SLIDE 1 🔴 Cómo identificar un anuncio FALSO de Medicare:
+❌ Promete dinero en efectivo o tarjetas de regalo
+❌ Usa fotos de famosos o del presidente
+❌ No muestra nombre ni licencia del agente
+❌ Te pide datos sin explicarte nada
+❌ Dice "reclama ahora" con urgencia extrema
+
+SLIDE 2 ✅ Cómo reconocer un agente LEGÍTIMO:
+✓ Tiene nombre completo y foto real
+✓ Muestra número NPN verificable en medicare.gov
+✓ Explica beneficios para TU condado específico
+✓ Te invita a consulta GRATUITA sin presión
+✓ Tiene website y forma de contacto clara
+
+SLIDE 3 📞 Soy Isabel Fuentes.
+Agente licenciada en California.
+LA · Orange County · Inland Empire
+📞 [NÚMERO] | 🌐 withisabelfuentes.com
+NPN: [XXXXX]`}
+];
+
+const SCRIPTS_DATA = [
+  {titulo:'Script #1 — Desenmascarador de Estafas',dur:'60 seg',trigger:'Miedo → Confianza',cuando:'Esta semana — máxima urgencia',
+   es:`[Mírala a cámara, tono serio pero cálido]
+
+"Hola, soy Isabel Fuentes, agente licenciada de Medicare aquí en el sur de California.
+
+Esta semana me han llamado CINCO personas de mi comunidad preguntando sobre anuncios en Facebook que prometen dinero gratis de Medicare — para groceries, gasolina, renta.
+
+Necesito decirte algo importante: ESO ES UNA ESTAFA.
+
+Los estafadores están usando fotos de celebridades para engañar a nuestros abuelitos y papás.
+
+Así se ve un anuncio REAL de un agente legítimo:
+✅ Tiene nombre y foto del agente
+✅ Tiene número NPN verificable
+✅ No te promete dinero en efectivo
+✅ Te invita a una conversación, no a hacer clic en un link
+
+Si alguien de tu familia hizo clic en uno de esos anuncios — llámame. Te ayudo a verificar que tu cobertura esté segura. Gratis.
+
+Soy Isabel Fuentes, withisabelfuentes.com, NPN [XXXXX].
+¡Comparte esto para proteger a tu familia!"`,
+   en:`[Look at camera, serious but warm tone]
+
+"Hi, I'm Isabel Fuentes, a licensed Medicare agent here in Southern California.
+
+This week FIVE people from my community called me about Facebook ads promising free Medicare money — for groceries, gas, rent.
+
+I need to tell you something important: THAT IS A SCAM.
+
+Scammers are using celebrity photos to deceive our grandparents and parents.
+
+Here's what a REAL licensed agent's content looks like:
+✅ Shows agent name and real photo
+✅ Has a verifiable NPN number on medicare.gov
+✅ Doesn't promise cash money
+✅ Invites conversation, not a link click
+
+If someone in your family clicked one of those ads — call me. I'll help verify your coverage is safe. For free.
+
+I'm Isabel Fuentes, withisabelfuentes.com, NPN [XXXXX].
+Share this to protect your family!"`},
+  {titulo:'Script #2 — La Prima Subió (Enojo → Solución)',dur:'75 seg',trigger:'Enojo → Esperanza',cuando:'Alta prioridad — datos 2026',
+   es:`[Tono empático, como platicando con una amiga]
+
+"¿Ya viste que Medicare Part B subió a $202 al mes este año?
+
+Eso es casi $18 más al mes. Y el aumento del Seguro Social fue de solo $56. Así que básicamente un tercio de tu aumento ya se fue.
+
+Lo que muchas personas no saben es que si tienes un plan Medicare Advantage, puedes protegerte de esos aumentos con beneficios adicionales que ya están incluidos.
+
+Hay personas en Los Ángeles, Orange County y el Inland Empire que pagan $0 de prima mensual y tienen dental, visión, audífonos y hasta beneficio para alimentos incluidos.
+
+Eso no es magia. Es conocer las opciones correctas para tu código postal.
+
+¿Quieres saber si calificas? Escríbeme 'PRIMA' por WhatsApp al [TU NÚMERO] y reviso tu situación sin ningún costo.
+
+*Beneficios varían por plan y área geográfica."`,
+   en:`[Warm, conversational tone]
+
+"Did you see that Medicare Part B went up to $202 a month this year?
+
+That's nearly $18 more per month. And Social Security's increase was only $56. So basically a third of your raise is already gone.
+
+What most people don't know is that if you have a Medicare Advantage plan, you can protect yourself from those increases with extra benefits already built in.
+
+There are people in Los Angeles, Orange County and the Inland Empire paying $0 monthly premium with dental, vision, hearing, and even food benefits included.
+
+That's not magic. It's knowing the right options for your zip code.
+
+Text me 'PREMIUM' on WhatsApp at [YOUR NUMBER] and I'll review your situation at no cost.
+
+*Benefits vary by plan and geographic area."`},
+  {titulo:'Script #3 — Inmigrantes y Medicare 2026',dur:'90 seg',trigger:'Miedo → Claridad',cuando:'URGENTE — publicar esta semana',
+   es:`[Tono calmado, serio, de consejera de confianza]
+
+"Si eres residente permanente o tienes estatus legal en los Estados Unidos y tienes preguntas sobre tu Medicare en 2026 — necesito hablar contigo hoy.
+
+Hubo cambios en la ley este año que afectan a algunas personas. No a todos. Pero es importante que sepas exactamente dónde estás parada.
+
+Lo que sí sé con certeza:
+
+Si tienes green card y trabajaste 10 años pagando impuestos aquí — tu Medicare está protegido.
+
+Si tienes otro tipo de estatus legal — TPS, visas humanitarias, o asilo — tu situación es diferente y necesitas revisarla antes de julio de este año.
+
+Y lo más importante: pedir Medicare no te hace 'carga pública'. Medicare es un derecho que ganaste trabajando.
+
+Yo no te voy a decir solo lo que quieres escuchar. Te voy a decir la verdad, y si hay algo que resolver, lo resolvemos juntos.
+
+Escríbeme 'ESTATUS' por mensaje privado y agendamos una llamada sin costo, sin compromiso y completamente confidencial.
+
+Soy Isabel Fuentes. withisabelfuentes.com. NPN [XXXXX]."`,
+   en:`[Calm, serious, trusted advisor tone]
+
+"If you're a legal resident or have legal immigration status in the United States and you have questions about your Medicare in 2026 — I need to talk to you today.
+
+There were law changes this year that affect some people. Not everyone. But it's important you know exactly where you stand.
+
+If you have a green card and worked 10 years paying taxes here — your Medicare is protected.
+
+If you have another type of legal status — TPS, humanitarian visas, or asylum — your situation is different and you need to review it before July of this year.
+
+Applying for Medicare does NOT make you a 'public charge.' Medicare is a right you earned by working.
+
+Message me 'STATUS' privately and we'll schedule a call — free, no commitment, completely confidential.
+
+I'm Isabel Fuentes. withisabelfuentes.com. NPN [XXXXX]."`},
+  {titulo:'Script #4 — Medicare 101 para T-65',dur:'90 seg',trigger:'Curiosidad → Confianza',cuando:'Evergreen — funciona todo el año',
+   es:`[Cámara directa, energía amable y clara]
+
+"Si tú, tus papás o alguien cercano va a cumplir 65 años en los próximos meses — este video es para ustedes.
+
+Medicare tiene cuatro partes. Te las explico rápido.
+
+Parte A: el hospital. Generalmente es gratis si trabajaste suficientes años aquí.
+
+Parte B: el médico y servicios ambulatorios. Tiene un costo mensual — en 2026 son $202 al mes que generalmente salen de tu Seguro Social.
+
+Parte C: es el Medicare Advantage. Un plan de compañía privada que combina A y B, generalmente incluye medicamentos, y puede agregar dental, visión y otros beneficios. Muchos tienen $0 de prima adicional.
+
+Parte D: los medicamentos. Puedes tenerla incluida en el Parte C o comprarla por separado.
+
+Lo MÁS importante: tienes una ventana de 7 meses alrededor de tu cumpleaños número 65 para inscribirte. Si la pierdes, pagas penalidades de por vida.
+
+Llámame ANTES de cumplir 65. Eso es todo lo que te pido.
+
+Soy Isabel Fuentes, agente de Medicare licenciada en California. withisabelfuentes.com. NPN [XXXXX]."`,
+   en:null}
+];
+
+const VOCAB_DATA = [
+  {viejo:'Enroll in Medicare',nuevo:'"Inscribirse en Medicare" / "Meterse a Medicare"'},
+  {viejo:'Premium',nuevo:'"Lo que pago al mes" / "La mensualidad"'},
+  {viejo:'Deductible',nuevo:'"Lo que pago antes de que arranque el seguro"'},
+  {viejo:'Network / In-network',nuevo:'"Si mi doctor está en la lista" / "Si acepta el plan"'},
+  {viejo:'Medicare Advantage',nuevo:'"El Medicare de la compañía privada" / "El plan privado"'},
+  {viejo:'Part D',nuevo:'"El de los medicamentos" / "El de las pastillas"'},
+  {viejo:'Dual eligible',nuevo:'"Los que tienen los dos" / "Medi-Medi"'},
+  {viejo:'Formulary',nuevo:'"La lista de pastillas que cubre" / "Si mi medicina está incluida"'},
+  {viejo:'Prior authorization',nuevo:'"Cuando el doctor tiene que pedir permiso" / "Cuando te dicen que no"'},
+  {viejo:'Late enrollment penalty',nuevo:'"La multa por inscribirse tarde" / "Lo que te cobran de más"'},
+  {viejo:'Copay',nuevo:'"Lo que pago en la oficina" / "Lo que pago en la farmacia"'},
+  {viejo:'OTC benefit',nuevo:'"La tarjeta para compras" / "Lo que te dan para Walmart"'},
+  {viejo:'AEP / Annual Enrollment Period',nuevo:'"Cuando puedes cambiar de plan" / "La temporada de inscripción"'},
+  {viejo:'Special Enrollment Period',nuevo:'"El permiso especial para cambiar"'},
+  {viejo:'D-SNP',nuevo:'"El plan especial para los que tienen Medi-Cal y Medicare"'}
+];
+
+const FRASES = ['"Yo que tú..."','"Me dijeron que..."','"¿Es verdad que...?"','"Tengo entendido que..."','"Mi vecina me dijo que..."','"El de la tele dice que..."','"No quiero meterme en problemas"','"No sé por dónde empezar"','"Tengo miedo de equivocarme"','"¿A quién le puedo preguntar?"','"¿Y si luego me arrepiento?"','"¿Y si mi doctor no acepta?"'];
+
+const GAPS_DATA = [
+  {medal:'🥇',level:'ENORME',levelTag:'tag-red',titulo:'Inmigrantes con Estatus Legal + Medicare',
+   gap:'¿Mi situación migratoria específica (TPS, DACA, visa humanitaria, asilo) me da derecho a Medicare?',
+   porQue:'Es complicada, cambia constantemente, y la mayoría de agentes la evitan por miedo a equivocarse. Los sitios web dan respuestas genéricas.',
+   opp:'Posiciónate como la única agente en SoCal especializada en casos de inmigrantes con estatus legal. Crea contenido específico para residentes permanentes, personas con TPS y refugiados. Ningún competidor lo está haciendo bien.',
+   accion:'Serie de 4 videos: "Medicare para [green card] / [TPS] / [asilo] / [residente nuevo]" — uno para cada perfil migratorio.'},
+  {medal:'🥈',level:'ENORME',levelTag:'tag-red',titulo:'Dual Eligible (Medi-Medi) Hispano',
+   gap:'Tengo Medicare Y Medi-Cal. ¿Cuál es el mejor plan para alguien EXACTAMENTE como yo?',
+   porQue:'Los planes D-SNP son complicados. La mayoría de agentes venden Medicare Advantage genérico y no se especializan en dual eligible.',
+   opp:'Tienes Anthem, LA Care y Molina en tu portafolio — todos con planes D-SNP. Este mercado es tuyo si te posicionas como experta en Medi-Medi. En LA County hay decenas de miles de dual eligibles hispanos.',
+   accion:'Facebook Live mensual: "Todo sobre Medicare + Medi-Cal" específico para dual eligible. Series con keyword: MEDI-MEDI.'},
+  {medal:'🥉',level:'GRANDE',levelTag:'tag-gold',titulo:'La Trampa de los Anuncios de TV',
+   gap:'¿Cómo sé si el beneficio que vi en el anuncio de TV es real y disponible en MI código postal?',
+   porQue:'Los agentes que hacen esos anuncios no quieren explicar las limitaciones. Los que dan info honesta tienen miedo de parecer negativos.',
+   opp:'Crea una serie "Real o No Real" que desmitifique los anuncios de TV. Te posicionas como honesta vs. la competencia engañosa. La comunidad hispana valorará esa transparencia inmensamente.',
+   accion:'"Vi este anuncio de Medicare en la tele — ¿es real?" — responde con datos reales de tu área. Serie semanal.'},
+  {medal:'🏅',level:'GRANDE',levelTag:'tag-gold',titulo:'Qué Pasa Cuando Te Enfermas Gravemente',
+   gap:'Si me dan un diagnóstico serio (cáncer, fallo renal, derrame), ¿qué hace exactamente mi plan y cuánto voy a pagar?',
+   porQue:'Es un tema incómodo que los agentes evitan. La gente tiene miedo de preguntar, los agentes tienen miedo de responder.',
+   opp:'Crea contenido valiente y honesto sobre escenarios reales. El nivel de confianza que genera es imposible de igualar con anuncios de beneficios.',
+   accion:'"Si te diagnostican diabetes avanzada, aquí está exactamente lo que cubre tu plan MA vs. Original Medicare." — uno por cada condición común en la comunidad.'},
+  {medal:'🎖️',level:'MEDIANA',levelTag:'tag-teal',titulo:'Qué Hacer Cuando el Plan Dice No',
+   gap:'El plan me negó algo que mi doctor ordenó. ¿Qué puedo hacer?',
+   porQue:'Nadie quiere hablar de los problemas post-venta. La mayoría de agentes desaparecen después de la inscripción.',
+   opp:'Posiciónate como la agente que está contigo DESPUÉS de la venta. Un post "Le gané una apelación a un plan por mi cliente" es más poderoso que cualquier anuncio.',
+   accion:'Crea un proceso documentado de apelaciones y publica sobre él: "Te acompaño si el plan dice no." — diferenciador masivo.'}
+];
+
+const COMP_LIST = [
+  {check:'¿El contenido promete beneficios o montos específicos?',action:"SÍ → Agrega: 'Beneficios varían por plan y área geográfica. Disponible en planes seleccionados.'",level:'rojo'},
+  {check:'¿Mencionas un plan por nombre o carrier?',action:'SÍ → Necesitas aprobación previa del carrier antes de publicar.',level:'rojo'},
+  {check:'¿El anuncio lleva directamente a inscripción?',action:'NUNCA → CMS prohíbe esto sin consentimiento documentado previo.',level:'rojo'},
+  {check:'¿Tu NPN está visible en el material?',action:'OBLIGATORIO en todos los materiales de marketing, pagados y orgánicos.',level:'rojo'},
+  {check:'¿Usas palabras como "gratis", "mejor" o "máximo"?',action:'Requieren evidencia verificable o están prohibidas sin contexto adecuado.',level:'amarillo'},
+  {check:'¿Usas testimoniales de clientes?',action:'Requieren autorización escrita firmada antes de publicar.',level:'amarillo'},
+  {check:'¿El contenido es 100% educativo puro?',action:'Mínimas restricciones CMS. Máximo alcance orgánico. Ideal para contenido diario.',level:'verde'},
+  {check:'¿Facebook Live con audiencia?',action:'Es Evento Educativo CMS. No puedes hacer inscripciones durante el Live. Invita a contacto privado post-Live.',level:'amarillo'},
+  {check:'¿El anuncio es de Special Ads Category?',action:'Todos los anuncios de seguros van aquí desde 2024. Sin targeting por edad exacta.',level:'rojo'}
+];
+
+const CMS_TABLE = [
+  {si:'"Planes con $0 de prima disponibles en tu área"',no:'"Todos los planes son $0"'},
+  {si:'"Algunos planes incluyen beneficios de dental y visión"',no:'"Medicare cubre dental y visión"'},
+  {si:'"Llámame para revisar tus opciones sin costo"',no:'"El mejor plan de Medicare"'},
+  {si:'"Agente licenciado en California, NPN: XXXX"',no:'Omitir tu NPN en anuncios'},
+  {si:'"Planes disponibles en Los Ángeles, Orange County"',no:'Prometer beneficios sin nombrar el plan'}
+];
+
+const INTEL_DATA = [
+  {metodo:'Meta Ad Library',icono:'ti-search',url:'https://facebook.com/ads/library',
+   steps:['País: United States','Categoría: Housing, employment, or social issues','Busca: "Medicare" + "Medicare Advantage" + "SCAN" + "Humana California"','Filtra: anuncios activos en California'],
+   buscar:['¿Qué imágenes usan? (personas mayores hispanas, doctores, familias)','¿Qué copy usan? (qué términos, qué promesas)','¿Cuánto tiempo llevan corriendo? (más tiempo = está funcionando)','¿Qué CTA tienen? (Call, WhatsApp, formulario)'],
+   tip:'Anuncio activo por 30+ días = probablemente rentable. Cópialo y mejóralo.'},
+  {metodo:'Grupos Facebook Hispanos',icono:'ti-users-group',url:null,
+   steps:['"Latinos en Los Ángeles" — alta concentración T-65','"Hispanos en Orange County" — poder adquisitivo medio-alto','"Comunidad Hispana Inland Empire" — mercado menos saturado','"Salvadoreños en LA" — alta preocupación por TPS + Medicare','"Mexicanos en California" — volumen masivo'],
+   buscar:['Busca posts con: "Medicare", "seguro de salud", "65 años", "Medi-Cal"','Copia las preguntas de los comentarios — oro de contenido','Responde como experta SIN vender directamente — construyes autoridad'],
+   tip:'NUNCA hagas pitch de ventas en grupos. Te bloquean + viola CMS. Solo valor educativo.'},
+  {metodo:'Keywords Sin Explotar',icono:'ti-keyword',url:null,
+   steps:['"Medicare gratis California"','"seguro médico para mayores de 65 sin costo"','"cómo inscribirse en Medicare en español"','"Medicare cubre el dentista"','"agente de Medicare habla español cerca de mí"','"qué pasa si cumplo 65 y tengo Medi-Cal"'],
+   buscar:['Úsalos en tus posts de Facebook para búsqueda orgánica','Crea contenido de blog/artículo para SEO local','Añádelos a tu Google Business Profile'],
+   tip:'Alto volumen + baja competencia en español = CPL más bajo que en inglés.'}
+];
+
+// ─── RENDER FUNCTIONS ─────────────────────────────────────────────────────────
+function renderQuestions(){
+  const list = document.getElementById('questions-list');
+  const filtered = currentMiningFilter==='todos' ? Q : Q.filter(q=>q.bloque===currentMiningFilter);
+  list.innerHTML = filtered.map(q=>`
+    <div class="q-item">
+      <button class="q-head" onclick="toggleQ(${q.rank})">
+        <span class="q-num">#${q.rank}</span>
+        <div style="flex:1">
+          <div class="q-txt">${q.pregunta}</div>
+          <span class="tag tag-sm ${q.bloqueTag}">${q.bloque}</span>
+        </div>
+        <i class="ti ti-chevron-down acc-chevron" id="qchev-${q.rank}"></i>
+      </button>
+      <div class="q-body" id="qbody-${q.rank}" style="display:none">
+        <div class="q-section-label">Lo que dicen con sus palabras exactas</div>
+        ${q.palabras.map(p=>`<div class="quote-block">${p}</div>`).join('')}
+        <br>
+        <div class="q-section-label" style="color:var(--teal)">Respuesta exacta de Isabel</div>
+        <div class="answer-block">${q.respuesta}</div>
+        <div class="q-section-label">Ideas de contenido generadas de esta pregunta</div>
+        <div class="content-grid">
+          <div class="content-card"><div class="content-type">📘 Post Facebook</div><div class="content-text">${q.post}</div></div>
+          <div class="content-card"><div class="content-type">🎬 Reel/TikTok</div><div class="content-text">${q.reel}</div></div>
+          <div class="content-card"><div class="content-type">📧 Email Subject</div><div class="content-text">${q.email}</div></div>
+          <div class="content-card"><div class="content-type">💰 Anuncio Pagado</div><div class="content-text">${q.ad}</div></div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+
+function toggleQ(rank){
+  const body = document.getElementById('qbody-'+rank);
+  const chev = document.getElementById('qchev-'+rank);
+  const open = body.style.display==='block';
+  body.style.display = open?'none':'block';
+  chev.style.transform = open?'':'rotate(180deg)';
+}
+
+function renderVirales(){
+  const list = document.getElementById('viral-list');
+  list.innerHTML = VIRALES.map((v,i)=>{
+    const pw = v.poder>=90?'var(--red)':v.poder>=85?'var(--gold)':'var(--green)';
+    const pt = v.poder>=90?'tag-red':v.poder>=85?'tag-gold':'tag-green';
+    return `<div class="acc">
+      <button class="acc-head" onclick="toggleAcc('v${i}')">
+        <div style="flex:1">
+          <div class="acc-title">${v.nombre}</div>
+          <div class="acc-tags"><span class="tag tag-sm ${pt}">${v.powerLabel}</span></div>
+        </div>
+        <i class="ti ti-chevron-down acc-chevron" id="vchev-${i}"></i>
+      </button>
+      <div class="acc-body" id="v${i}">
+        <div class="power-wrap">
+          <div class="power-track"><div class="power-fill" style="width:${v.poder}%;background:${pw}"></div></div>
+          <span class="power-label">${v.poder}%</span>
+          <span style="font-size:12px;color:var(--text-mid);margin-left:6px">${v.desc}</span>
+        </div>
+        <div style="background:var(--green-lt);border:1px solid rgba(46,125,85,.25);border-radius:8px;padding:7px 12px;font-size:12px;margin-bottom:12px">
+          <strong style="color:var(--green)">Nota CMS: </strong>${v.cms}
+        </div>
+        <div class="copy-box">
+          <div class="copy-head"><span class="copy-label">Copy listo para publicar</span><button class="copy-btn" onclick="copyText(this,'vtpl${i}')">Copiar</button></div>
+          <pre class="copy-pre" id="vtpl${i}">${v.template}</pre>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderScripts(){
+  const list = document.getElementById('scripts-list');
+  list.innerHTML = SCRIPTS_DATA.map((s,i)=>`
+    <div class="acc">
+      <button class="acc-head" onclick="toggleAcc('sc${i}')">
+        <div style="flex:1">
+          <div class="acc-title">${s.titulo}</div>
+          <div class="acc-tags">
+            <span class="tag tag-sm tag-teal">${s.dur}</span>
+            <span class="tag tag-sm tag-gold">${s.trigger}</span>
+            <span class="tag tag-sm tag-red">${s.cuando}</span>
+          </div>
+        </div>
+        <i class="ti ti-chevron-down acc-chevron" id="scchev-${i}"></i>
+      </button>
+      <div class="acc-body" id="sc${i}">
+        <div class="script-lang-toggle">
+          <button class="s-lang-btn ${currentLang==='es'?'active':''}" onclick="setScriptLang('es',${i})" id="sl-es-${i}">🇲🇽 Español</button>
+          ${s.en?`<button class="s-lang-btn ${currentLang==='en'?'active':''}" onclick="setScriptLang('en',${i})" id="sl-en-${i}">🇺🇸 English</button>`:''}
+        </div>
+        <div id="script-es-${i}">
+          <div class="copy-box">
+            <div class="copy-head"><span class="copy-label">🇲🇽 Script en Español</span><button class="copy-btn" onclick="copyText(this,'ses${i}')">Copiar</button></div>
+            <pre class="copy-pre" id="ses${i}">${s.es}</pre>
+          </div>
+        </div>
+        ${s.en?`<div id="script-en-${i}" style="display:none">
+          <div class="copy-box">
+            <div class="copy-head"><span class="copy-label">🇺🇸 Script in English</span><button class="copy-btn" onclick="copyText(this,'sen${i}')">Copiar</button></div>
+            <pre class="copy-pre" id="sen${i}">${s.en}</pre>
+          </div>
+        </div>`:''}
+      </div>
+    </div>`).join('');
+}
+
+function setScriptLang(lang,i){
+  const esDiv = document.getElementById('script-es-'+i);
+  const enDiv = document.getElementById('script-en-'+i);
+  const esBt = document.getElementById('sl-es-'+i);
+  const enBt = document.getElementById('sl-en-'+i);
+  if(lang==='es'){
+    esDiv.style.display='block';
+    if(enDiv) enDiv.style.display='none';
+    if(esBt) esBt.classList.add('active');
+    if(enBt) enBt.classList.remove('active');
+  } else {
+    esDiv.style.display='none';
+    if(enDiv) enDiv.style.display='block';
+    if(esBt) esBt.classList.remove('active');
+    if(enBt) enBt.classList.add('active');
+  }
+}
+
+function renderVocab(){
+  document.getElementById('vocab-rows').innerHTML = VOCAB_DATA.map(v=>`
+    <div class="vocab-row">
+      <div class="vocab-old">${v.viejo}</div>
+      <div class="vocab-new">${v.nuevo}</div>
+    </div>`).join('');
+  document.getElementById('frases-wrap').innerHTML = FRASES.map(f=>`<span class="frase-chip">${f}</span>`).join('');
+}
+
+function renderGaps(){
+  document.getElementById('gaps-list').innerHTML = GAPS_DATA.map(g=>`
+    <div class="gap-card">
+      <div class="gap-top">
+        <span class="gap-medal">${g.medal}</span>
+        <div style="flex:1">
+          <div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap">
+            <span class="tag tag-sm ${g.levelTag}">BRECHA ${g.level}</span>
+            <strong style="font-size:14px">${g.titulo}</strong>
+          </div>
+          <div style="background:var(--surface);border-radius:8px;padding:8px 12px">
+            <span style="font-size:12px;color:var(--text-muted);font-weight:600">PREGUNTA SIN RESPONDER: </span>
+            <span style="font-size:12.5px;font-style:italic">"${g.gap}"</span>
+          </div>
+        </div>
+      </div>
+      <div class="gap-inner-grid">
+        <div class="gap-why">
+          <div class="gap-sub-label" style="color:var(--red)">POR QUÉ NADIE LO RESPONDE</div>
+          <div class="gap-sub-text">${g.porQue}</div>
+        </div>
+        <div class="gap-opp">
+          <div class="gap-sub-label" style="color:var(--green)">TU OPORTUNIDAD</div>
+          <div class="gap-sub-text">${g.opp}</div>
+        </div>
+      </div>
+      <div class="gap-action">
+        <div class="gap-sub-label" style="color:var(--gold-dk)">ACCIÓN CONCRETA</div>
+        <div class="gap-sub-text">${g.accion}</div>
+      </div>
+    </div>`).join('');
+}
+
+function renderCompliance(){
+  document.getElementById('compliance-list').innerHTML = COMP_LIST.map(c=>{
+    const col = c.level==='rojo'?'var(--red)':c.level==='amarillo'?'var(--amber)':'var(--green)';
+    const bg = c.level==='rojo'?'var(--red-lt)':c.level==='amarillo'?'var(--amber-lt)':'var(--green-lt)';
+    const sym = c.level==='rojo'?'!':c.level==='amarillo'?'~':'✓';
+    return `<div class="comp-row">
+      <div style="display:flex;gap:10px;align-items:flex-start">
+        <div class="comp-indicator" style="background:${bg};border:1.5px solid ${col};color:${col}">${sym}</div>
+        <div>
+          <div class="comp-text">${c.check}</div>
+          <div class="comp-action">${c.action}</div>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('cms-table').innerHTML = CMS_TABLE.map((r,i)=>`
+    <div class="cms-row" style="${i<CMS_TABLE.length-1?'border-bottom:1px solid var(--border)':''}">
+      <div class="cms-yes">
+        <span class="cms-label" style="color:var(--green)">✅ PUEDES DECIR</span>
+        <span class="cms-val">${r.si}</span>
+      </div>
+      <div class="cms-no">
+        <span class="cms-label" style="color:var(--red)">🚫 NO PUEDES DECIR</span>
+        <span class="cms-val">${r.no}</span>
+      </div>
+    </div>`).join('');
+}
+
+function renderIntelMethods(){
+  document.getElementById('intel-methods').innerHTML = INTEL_DATA.map(m=>`
+    <div class="intel-method">
+      <div class="intel-head">
+        <div class="intel-icon"><i class="ti ${m.icono}" style="font-size:22px;display:block"></i></div>
+        <div>
+          <h3 style="font-size:15px;font-weight:800;margin-bottom:2px">${m.metodo}</h3>
+          ${m.url?`<a href="${m.url}" target="_blank" rel="noopener" style="font-size:11px">${m.url}</a>`:''}
+        </div>
+      </div>
+      <div class="intel-grid">
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">CÓMO HACERLO</div>
+          ${m.steps.map((s,j)=>`<div class="intel-step"><span class="intel-num">${j+1}.</span>${s}</div>`).join('')}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:6px">QUÉ BUSCAR</div>
+          ${m.buscar.map(b=>`<div class="intel-step"><i class="ti ti-arrow-right" style="color:var(--gold);font-size:12px;flex-shrink:0;margin-top:2px"></i>${b}</div>`).join('')}
+        </div>
+      </div>
+      <div class="intel-tip"><strong style="color:var(--gold-dk)">PRO TIP: </strong>${m.tip}</div>
+    </div>`).join('');
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────────
+function showSection(id){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('sec-'+id).classList.add('active');
+  event.currentTarget.classList.add('active');
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function filterMining(filter,btn){
+  currentMiningFilter = filter;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderQuestions();
+}
+
+function toggleAcc(id){
+  const body = document.getElementById(id);
+  const chevId = id.replace(/[0-9]/g,n=>n)+'chev-'+id.replace(/[^0-9]/g,'');
+  const open = body.classList.contains('open');
+  body.classList.toggle('open');
+  // find chevron in parent button
+  const btn = body.previousElementSibling;
+  const chev = btn.querySelector('.acc-chevron');
+  if(chev) chev.classList.toggle('open');
+}
+
+function copyText(btn,id){
+  const el = document.getElementById(id);
+  if(!el) return;
+  navigator.clipboard.writeText(el.textContent).then(()=>{
+    btn.textContent='✓ Copiado';
+    btn.classList.add('copied');
+    setTimeout(()=>{btn.textContent='Copiar';btn.classList.remove('copied');},2000);
+  });
+}
+
+function setLang(lang){
+  currentLang = lang;
+  const esBt = document.getElementById('btn-es');
+  const enBt = document.getElementById('btn-en');
+  if(lang==='es'){
+    esBt.style.background='var(--gold)';esBt.style.color='#fff';
+    enBt.style.background='var(--tag)';enBt.style.color='var(--text-mid)';
+  } else {
+    enBt.style.background='var(--teal)';enBt.style.color='#fff';
+    esBt.style.background='var(--tag)';esBt.style.color='var(--text-mid)';
+  }
+}
+
+// ─── INIT ─────────────────────────────────────────────────────────────────────
+renderQuestions();
+renderVirales();
+renderScripts();
+renderVocab();
+renderGaps();
+renderCompliance();
+renderIntelMethods();
+</script>
+</body>
+</html>

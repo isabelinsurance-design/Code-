@@ -1,0 +1,1427 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Isabel Fuentes — Sistema Maestro de Marketing Medicare</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,200;0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,200;1,9..144,300;1,9..144,400&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,300&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F6F1E9;--bg2:#EDE6D8;--bg3:#E3DAC8;--bg4:#D9CEB8;
+  --card:#FFFEFB;--card2:#FAF7F2;
+  --ink:#1C1A17;--c2:rgba(28,26,23,.6);--c3:rgba(28,26,23,.36);--c4:rgba(28,26,23,.09);
+  --gold:#8B7355;--gold2:#6B5640;
+  --gold3:rgba(139,115,85,.11);--gold4:rgba(139,115,85,.05);
+  --gold-g:linear-gradient(135deg,#8B7355,#B09070 45%,#8B7355);
+  --amber:#C4784A;--amber2:rgba(196,120,74,.11);
+  --teal:#5A8A78;--teal2:rgba(90,138,120,.11);
+  --blue:#4A7A9A;--blue2:rgba(74,122,154,.1);
+  --red:#B85540;--red2:rgba(184,85,64,.09);
+  --purple:#7A6A9A;--purple2:rgba(122,106,154,.1);
+  --green:#5A8A68;--green2:rgba(90,138,104,.11);
+  --border:rgba(139,115,85,.13);--border2:rgba(139,115,85,.26);
+  --sh:0 1px 12px rgba(60,42,24,.07);--sh2:0 6px 28px rgba(60,42,24,.12);
+}
+*{margin:0;padding:0;box-sizing:border-box;}
+html{scroll-behavior:smooth;}
+body{
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);
+  min-height:100vh;-webkit-font-smoothing:antialiased;
+  background-image:
+    radial-gradient(ellipse 60% 50% at 0 0,rgba(139,115,85,.05) 0%,transparent 55%),
+    radial-gradient(ellipse 50% 60% at 100% 100%,rgba(196,120,74,.04) 0%,transparent 55%);
+}
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:2px;}
+
+/* ── HEADER ── */
+.hdr{
+  background:var(--card);border-bottom:1px solid var(--border);
+  padding:14px 28px;position:sticky;top:0;z-index:200;box-shadow:var(--sh);
+}
+.hdr-in{max-width:1200px;margin:0 auto;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
+.logo{display:flex;align-items:center;gap:13px;}
+.logo-mark{
+  width:42px;height:42px;border-radius:11px;
+  background:linear-gradient(145deg,var(--gold3),var(--gold4));
+  border:1px solid var(--border2);
+  display:flex;align-items:center;justify-content:center;font-size:19px;
+}
+.logo-text .name{
+  font-family:'Fraunces',serif;font-size:19px;font-weight:400;
+  color:var(--ink);line-height:1;letter-spacing:-.01em;
+}
+.logo-text .name em{
+  font-style:italic;
+  background:var(--gold-g);-webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;background-clip:text;
+}
+.logo-text .sub{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--c3);margin-top:3px;
+}
+.hdr-meta{display:flex;align-items:center;gap:14px;}
+.hdr-badge{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;
+  padding:4px 13px;border-radius:20px;
+}
+.prog-mini{text-align:right;}
+.prog-num{font-family:'Fraunces',serif;font-size:20px;font-weight:300;color:var(--gold);line-height:1;}
+.prog-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.08em;margin-top:2px;}
+.prog-track{height:3px;width:110px;background:var(--bg3);border-radius:2px;margin-top:5px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--gold),var(--amber));border-radius:2px;transition:width .6s;}
+
+/* ── LAYOUT ── */
+.layout{display:flex;max-width:1200px;margin:0 auto;}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:200px;min-width:200px;height:calc(100vh - 71px);
+  position:sticky;top:71px;overflow-y:auto;
+  background:var(--card2);border-right:1px solid var(--border);
+  padding:16px 10px;flex-shrink:0;
+}
+.sidebar::-webkit-scrollbar{width:2px;}
+.sidebar-section{margin-bottom:18px;}
+.sidebar-label{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--c3);font-weight:600;
+  padding:0 8px;margin-bottom:6px;
+}
+.nav-item{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+  cursor:pointer;transition:all .16s;border:1px solid transparent;
+  font-size:12px;font-weight:500;color:var(--c2);background:none;
+  width:100%;text-align:left;font-family:'DM Sans',sans-serif;
+}
+.nav-item:hover{background:var(--bg2);color:var(--ink);}
+.nav-item.on{
+  background:var(--gold3);border-color:var(--border2);
+  color:var(--gold);font-weight:600;
+}
+.nav-item .ni{font-size:15px;flex-shrink:0;}
+.nav-item .nt{flex:1;}
+.nav-item .pct-badge{
+  font-family:'DM Mono',monospace;font-size:9px;color:var(--c3);
+}
+.nav-item.on .pct-badge{color:var(--gold);}
+.nav-pending{
+  display:flex;align-items:center;gap:9px;padding:8px 10px;border-radius:8px;
+  font-size:11px;color:var(--c3);font-family:'DM Sans',sans-serif;
+}
+.pending-dot{
+  width:6px;height:6px;border-radius:50%;
+  border:1px dashed var(--c3);flex-shrink:0;
+}
+
+/* ── MAIN ── */
+.main{flex:1;min-width:0;padding:24px 22px 60px;height:calc(100vh - 71px);overflow-y:auto;}
+.main::-webkit-scrollbar{width:4px;}
+.main::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px;}
+.view{display:none;animation:fup .28s ease both;}
+.view.on{display:block;}
+@keyframes fup{from{opacity:0;transform:translateY(7px);}to{opacity:1;transform:translateY(0);}}
+
+/* ── CARD ── */
+.card{
+  background:var(--card);border:1px solid var(--border);border-radius:13px;
+  padding:20px 22px;margin-bottom:14px;box-shadow:var(--sh);
+  position:relative;overflow:hidden;
+}
+.card::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:2.5px;
+  background:var(--tc,var(--gold));border-radius:13px 13px 0 0;
+}
+.ey{
+  font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.26em;
+  text-transform:uppercase;color:var(--tc,var(--gold));font-weight:600;margin-bottom:4px;
+}
+.ct{
+  font-family:'Fraunces',serif;font-size:18px;font-weight:300;
+  font-style:italic;color:var(--ink);margin-bottom:14px;line-height:1.2;
+}
+.ct span{color:var(--tc,var(--gold));}
+
+/* ── GRIDS ── */
+.g2{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:11px;}
+.g3{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;}
+.g4{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:9px;}
+
+/* ── BOX ── */
+.box{
+  background:var(--bg2);border:1px solid var(--border);
+  border-left:2px solid var(--bc,var(--gold));border-radius:9px;padding:12px 14px;
+}
+.bh{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.15em;
+  text-transform:uppercase;color:var(--bc,var(--gold));font-weight:600;margin-bottom:6px;
+}
+.bb{font-size:12px;color:var(--c2);line-height:1.65;}
+
+/* ── KPI ── */
+.kpi{
+  background:var(--bg2);border:1px solid var(--border);border-radius:9px;
+  padding:13px;text-align:center;
+}
+.kv{font-family:'Fraunces',serif;font-size:24px;font-weight:300;line-height:1;margin-bottom:4px;}
+.kl{font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;}
+
+/* ── ROW ── */
+.row{display:flex;gap:12px;padding:8px 0;border-bottom:1px solid var(--c4);align-items:flex-start;}
+.row:last-child{border:none;}
+
+/* ── SCRIPT BOX ── */
+.sbox{
+  background:var(--bg3);border:1px solid var(--border2);border-radius:8px;
+  padding:13px 15px;font-family:'DM Mono',monospace;font-size:11px;
+  color:var(--ink);line-height:1.9;margin:10px 0;cursor:pointer;
+  position:relative;transition:background .15s;white-space:pre-wrap;
+}
+.sbox:hover{background:var(--bg4);}
+.sbox .ch{
+  position:absolute;right:10px;top:9px;font-size:8px;color:var(--c3);
+  letter-spacing:.1em;text-transform:uppercase;
+}
+.sbox.ok{background:var(--teal2);border-color:rgba(90,138,120,.3);}
+.sbox.ok .ch{color:var(--teal);}
+
+/* ── TAG ── */
+.tag{
+  display:inline-flex;align-items:center;border-radius:5px;padding:2px 8px;
+  font-family:'DM Mono',monospace;font-size:8.5px;letter-spacing:.04em;margin:2px;
+}
+
+/* ── CHECKLIST ── */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(145px,1fr));gap:7px;margin-bottom:16px;}
+.ptile{
+  background:var(--card);border:1px solid var(--border);
+  border-top:2.5px solid var(--pc,var(--gold));border-radius:9px;
+  padding:11px 13px;cursor:pointer;transition:all .18s;
+}
+.ptile.on,.ptile:hover{box-shadow:var(--sh2);}
+.pi{font-size:17px;margin-bottom:5px;}
+.pl{font-family:'DM Mono',monospace;font-size:7.5px;color:var(--pc,var(--gold));letter-spacing:.2em;text-transform:uppercase;font-weight:600;margin-bottom:2px;}
+.pn{font-size:12px;font-weight:600;color:var(--ink);margin-bottom:1px;}
+.ps{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--c3);margin-bottom:6px;}
+.ppb{height:3px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:3px;}
+.ppf{height:100%;background:var(--pc,var(--gold));border-radius:2px;transition:width .5s;}
+.ppt{font-family:'DM Mono',monospace;font-size:8.5px;color:var(--pc,var(--gold));font-weight:600;}
+.ck{display:flex;gap:10px;padding:8px 0;border-bottom:1px solid var(--c4);cursor:pointer;align-items:flex-start;}
+.ck:last-child{border:none;}
+.ckb{
+  width:19px;height:19px;border-radius:5px;flex-shrink:0;margin-top:1px;
+  border:1.5px solid var(--border2);background:transparent;
+  display:flex;align-items:center;justify-content:center;transition:all .15s;
+}
+.ck:hover .ckb{border-color:var(--gc,var(--gold));}
+.ck.done .ckb{background:var(--gc,var(--gold));border-color:var(--gc,var(--gold));}
+.ckm{display:none;font-size:10px;color:#fff;font-weight:700;}
+.ck.done .ckm{display:block;}
+.ckt{font-size:12.5px;color:var(--ink);line-height:1.5;}
+.ck.done .ckt{color:var(--c3);text-decoration:line-through;}
+
+/* ── AGENT CARD ── */
+.acard{
+  background:var(--card);border:1px solid var(--border);border-radius:12px;
+  overflow:hidden;box-shadow:var(--sh);margin-bottom:12px;
+}
+.ahead{padding:16px 18px 13px;border-bottom:1px solid var(--border);position:relative;}
+.ahead::before{content:'';position:absolute;top:0;left:0;right:0;height:2.5px;background:var(--ac,var(--gold));border-radius:12px 12px 0 0;}
+.abody{padding:14px 18px;}
+.ftrig{padding:8px 14px;display:flex;gap:8px;align-items:center;font-size:11.5px;font-weight:600;color:var(--red);background:rgba(184,85,64,.05);border-bottom:1px solid var(--border);}
+.fact{display:flex;gap:7px;padding:4px 14px;font-size:11px;color:var(--c2);align-items:flex-start;}
+.fnum{font-family:'DM Mono',monospace;font-size:8px;font-weight:700;color:var(--ac,var(--gold));background:var(--gold3);border-radius:3px;padding:1px 5px;flex-shrink:0;margin-top:2px;}
+
+/* ── DASHBOARD ── */
+.hero{
+  background:linear-gradient(145deg,var(--card) 0%,rgba(237,230,216,.6) 100%);
+  border:1px solid var(--border2);border-radius:14px;padding:24px 26px;
+  margin-bottom:16px;position:relative;overflow:hidden;
+}
+.hero::before{
+  content:'';position:absolute;top:0;left:0;right:0;height:3px;
+  background:var(--gold-g);
+}
+.hero-eyebrow{
+  font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.28em;
+  text-transform:uppercase;color:var(--gold);font-weight:600;
+  display:flex;align-items:center;gap:7px;margin-bottom:8px;
+}
+.live-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.3;}}
+.hero-title{
+  font-family:'Fraunces',serif;font-size:28px;font-weight:300;
+  color:var(--ink);line-height:1.1;letter-spacing:-.02em;margin-bottom:6px;
+}
+.hero-title em{font-style:italic;color:var(--gold);}
+.hero-sub{font-size:12px;color:var(--c2);line-height:1.65;max-width:600px;}
+
+.status-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px;margin-bottom:14px;}
+.status-card{
+  background:var(--card);border:1px solid var(--border);border-radius:10px;
+  padding:14px 16px;display:flex;align-items:flex-start;gap:12px;
+}
+.status-icon{font-size:22px;flex-shrink:0;}
+.status-label{font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:3px;}
+.status-val{font-size:13px;font-weight:600;color:var(--ink);}
+.status-note{font-size:11px;color:var(--c3);margin-top:2px;}
+
+.pill{
+  display:inline-flex;align-items:center;gap:5px;border-radius:20px;
+  padding:4px 11px;font-family:'DM Mono',monospace;font-size:9px;font-weight:600;letter-spacing:.05em;
+}
+
+/* ── PENDING SECTION ── */
+.pending-card{
+  background:linear-gradient(135deg,var(--bg2),var(--bg3));
+  border:1px dashed var(--border2);border-radius:13px;padding:20px 22px;
+  margin-bottom:14px;
+}
+.pending-badge{
+  font-family:'DM Mono',monospace;font-size:8px;letter-spacing:.24em;
+  text-transform:uppercase;color:var(--c3);font-weight:600;margin-bottom:8px;
+  display:flex;align-items:center;gap:7px;
+}
+.pending-title{
+  font-family:'Fraunces',serif;font-size:17px;font-weight:300;
+  font-style:italic;color:var(--c2);margin-bottom:12px;
+}
+
+/* ── PHASE VISUAL ── */
+.phase-block{
+  border-radius:10px;padding:16px 18px;margin-bottom:10px;border:1px solid;
+}
+
+/* ── FOOTER ── */
+.footer{
+  text-align:center;padding:36px 0 20px;
+  font-family:'DM Mono',monospace;font-size:9px;color:var(--c3);
+  letter-spacing:.1em;line-height:2.1;
+}
+.footer em{font-family:'Fraunces',serif;font-size:13px;font-style:italic;color:var(--gold);display:block;margin-bottom:5px;letter-spacing:0;}
+
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+  .sidebar{display:none;}
+  .main{padding:16px 14px 60px;}
+  .mobile-nav{display:flex!important;}
+  .g2,.g3,.g4{grid-template-columns:1fr;}
+  .pgrid{grid-template-columns:repeat(2,1fr);}
+}
+.mobile-nav{
+  display:none;position:fixed;bottom:0;left:0;right:0;z-index:200;
+  background:var(--card);border-top:1px solid var(--border);
+  padding:8px 10px;gap:4px;overflow-x:auto;box-shadow:0 -4px 20px rgba(0,0,0,.08);
+}
+.mobile-nav button{
+  padding:7px 12px;border-radius:7px;border:none;background:transparent;
+  color:var(--c3);font-family:'DM Sans',sans-serif;font-size:11px;cursor:pointer;
+  white-space:nowrap;
+}
+.mobile-nav button.on{background:var(--gold3);color:var(--gold);font-weight:600;}
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="hdr-in">
+    <div class="logo">
+      <div class="logo-mark">⭐</div>
+      <div class="logo-text">
+        <div class="name">Isabel <em>Fuentes</em></div>
+        <div class="sub">Sistema Maestro · Medicare Marketing · SoCal</div>
+      </div>
+    </div>
+    <div class="hdr-meta">
+      <div class="pill" style="background:var(--green2);color:var(--green);border:1px solid rgba(90,138,104,.25)">
+        <div class="live-dot"></div>Mayo 2026
+      </div>
+      <div class="pill" style="background:var(--amber2);color:var(--amber);border:1px solid rgba(196,120,74,.25)">
+        🌴 Sur de California
+      </div>
+      <div class="prog-mini">
+        <div class="prog-num" id="pn">0%</div>
+        <div class="prog-lbl" id="pl">0/0 tareas</div>
+        <div class="prog-track"><div class="prog-fill" id="pf" style="width:0%"></div></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+<!-- SIDEBAR -->
+<div class="sidebar">
+  <div class="sidebar-section">
+    <div class="sidebar-label">Sistema</div>
+    <button class="nav-item on" onclick="go('dashboard',this)"><span class="ni">🏠</span><span class="nt">Dashboard</span></button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Inteligencia</div>
+    <button class="nav-item" onclick="go('intel',this)"><span class="ni">🧠</span><span class="nt">Inteligencia</span></button>
+    <button class="nav-item" onclick="go('competidores',this)"><span class="ni">🕵️</span><span class="nt">Competidores</span></button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Contenido</div>
+    <button class="nav-item" onclick="go('contenido',this)"><span class="ni">✍️</span><span class="nt">Contenido</span></button>
+    <button class="nav-item" onclick="go('scripts',this)"><span class="ni">🎬</span><span class="nt">Scripts y Copy</span></button>
+    <button class="nav-item" onclick="go('anuncios',this)"><span class="ni">📣</span><span class="nt">Anuncios</span></button>
+    <button class="nav-item" onclick="go('respuestas',this)"><span class="ni">💬</span><span class="nt">Respuestas</span></button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Sistema</div>
+    <button class="nav-item" onclick="go('compliance',this)"><span class="ni">⚖️</span><span class="nt">Compliance</span></button>
+    <button class="nav-item" onclick="go('checklists',this)"><span class="ni">✅</span><span class="nt">Checklists</span><span class="pct-badge" id="sb-ck">0%</span></button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Automatización</div>
+    <button class="nav-item" onclick="go('agentes',this)"><span class="ni">🤖</span><span class="nt">Agentes</span></button>
+    <button class="nav-item" onclick="go('crewai',this)"><span class="ni">🐍</span><span class="nt">CrewAI Setup</span></button>
+  </div>
+  <div class="sidebar-section">
+    <div class="sidebar-label">Próximamente</div>
+    <div class="nav-pending"><div class="pending-dot"></div>CRM → Conectar</div>
+    <div class="nav-pending"><div class="pending-dot"></div>Nextiva → Conectar</div>
+    <div class="nav-pending"><div class="pending-dot"></div>Facebook → Webhook</div>
+    <div class="nav-pending"><div class="pending-dot"></div>n8n → Scheduler</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+
+<!-- ══ DASHBOARD ══ -->
+<div class="view on" id="v-dashboard">
+  <div class="hero">
+    <div class="hero-eyebrow"><div class="live-dot"></div>Sistema Activo · Isabel Fuentes Medicare SoCal</div>
+    <div class="hero-title">Tu sistema completo de<br>marketing <em>autónomo.</em></div>
+    <div class="hero-sub" style="margin-top:10px">
+      Todo lo investigado, construido y verificado en un solo lugar. Inteligencia competitiva, contenido, scripts, anuncios, compliance, checklists y el roadmap de agentes autónomos — integrados y listos para operar.
+    </div>
+  </div>
+
+  <!-- STATUS GRID -->
+  <div class="status-grid">
+    <div class="status-card">
+      <div class="status-icon">📊</div>
+      <div>
+        <div class="status-label">Sistema</div>
+        <div class="status-val">10 módulos activos</div>
+        <div class="status-note">Investigación + Agentes integrados</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-icon">🚨</div>
+      <div>
+        <div class="status-label">Alerta de Mercado</div>
+        <div class="status-val">215M impresiones falsas</div>
+        <div class="status-note">Tu oportunidad está abierta HOY</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-icon">🤖</div>
+      <div>
+        <div class="status-label">Agentes</div>
+        <div class="status-val">5 agentes definidos</div>
+        <div class="status-note">Fase 1 activa · Fase 3 en progreso</div>
+      </div>
+    </div>
+    <div class="status-card">
+      <div class="status-icon">🔜</div>
+      <div>
+        <div class="status-label">Conexiones Pendientes</div>
+        <div class="status-val">CRM · Nextiva · n8n</div>
+        <div class="status-note">Se agregarán más información</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STACK VISUAL -->
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Stack Completo del Sistema</div>
+    <div class="ct">Cómo encajan <span>todas las piezas</span></div>
+    <div style="background:var(--bg3);border:1px solid var(--border2);border-radius:10px;padding:18px 20px;font-family:'DM Mono',monospace;font-size:11px;color:var(--ink);line-height:2.2">
+<span style="color:var(--c3)">INVESTIGACIÓN (este sistema)</span>
+  Inteligencia · Competidores · Contenido · Scripts · Anuncios · Compliance
+
+<span style="color:var(--c3)">PUBLICACIÓN (Fase 1 — activar hoy)</span>
+  <span style="color:var(--gold)">Claude</span> + <span style="color:var(--teal)">Canva MCP</span> + <span style="color:var(--green)">Blotato</span> → Facebook + Instagram
+
+<span style="color:var(--c3)">AUTOMATIZACIÓN (Fase 2 — Mes 2)</span>
+  <span style="color:var(--purple)">n8n Cloud</span> dispara → <span style="color:var(--gold)">Claude</span> ejecuta → Tú apruebas → <span style="color:var(--green)">Blotato</span> publica
+
+<span style="color:var(--c3)">AGENTES AUTÓNOMOS (Fase 3 — Mes 3-4)</span>
+  <span style="color:var(--amber)">Python</span> + <span style="color:var(--red)">CrewAI</span> + <span style="color:var(--gold)">Claude API</span> → 5 agentes con memoria y fallback
+
+<span style="color:var(--c3)">CONEXIONES PENDIENTES (información por agregar)</span>
+  Tu CRM (Bluehost) ←→ Agentes ←→ <span style="color:var(--blue)">Nextiva</span> ←→ Facebook Leads
+    </div>
+  </div>
+
+  <!-- THIS WEEK -->
+  <div class="card" style="--tc:var(--green)">
+    <div class="ey">Acción Inmediata · Esta Semana</div>
+    <div class="ct">El primer agente que puedes activar <span>en 30 minutos hoy</span></div>
+    <div style="font-size:12.5px;color:var(--c2);line-height:2.1;font-family:'DM Mono',monospace;background:var(--bg3);padding:15px 17px;border-radius:8px;border:1px solid var(--border2)">
+<span style="color:var(--c3)">Paso 1 ·</span> <strong style="color:var(--ink)">blotato.com</strong> → Crear cuenta (7 días gratis, sin tarjeta)
+<span style="color:var(--c3)">Paso 2 ·</span> Settings → Conectar Facebook Page + Instagram Business
+<span style="color:var(--c3)">Paso 3 ·</span> Settings → API tab → Copiar MCP URL: <strong>mcp.blotato.com/mcp</strong>
+<span style="color:var(--c3)">Paso 4 ·</span> Claude.ai → Connectors → Add custom → Pegar URL → Autorizar
+<span style="color:var(--c3)">Prueba  ·</span> Decirle a Claude: <strong style="color:var(--gold)">"Muéstrame mis cuentas en Blotato"</strong>
+<span style="color:var(--green)">✅ Si ves tu página = sistema activo. Publicas desde Claude.</span>
+    </div>
+  </div>
+
+  <!-- PENDING CONNECTIONS -->
+  <div class="pending-card">
+    <div class="pending-badge"><div style="width:8px;height:8px;border:1.5px dashed var(--c3);border-radius:50%"></div>Conexiones Pendientes · Se agregan cuando esté lista la información</div>
+    <div class="pending-title">Tu CRM · Nextiva · Facebook Lead Ads · n8n Scheduler</div>
+    <div style="font-size:12px;color:var(--c3);line-height:1.8">
+      Estas conexiones están documentadas y planificadas. Se activarán en fases posteriores una vez que se complete la información adicional que Isabel está preparando para el sistema.
+    </div>
+  </div>
+</div>
+
+<!-- ══ INTELIGENCIA ══ -->
+<div class="view" id="v-intel">
+  <div class="card" style="--tc:var(--red)">
+    <div class="ey">🚨 Alerta Crítica · Mayo 2026</div>
+    <div class="ct">La mayor oportunidad de tu carrera <span>está pasando ahora</span></div>
+    <div class="g3">
+      <div class="box" style="--bc:var(--red)"><div class="bh">215 Millones</div><div class="bb">Impresiones de anuncios FALSOS de Medicare en Facebook. El Congreso tiene audiencias activas. Tu mercado está asustado y confundido.</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Tu Posición Única</div><div class="bb">Eres la agente LEGÍTIMA, con cara real, NPN verificable, bilingüe auténtica y local en SoCal. Exactamente lo que esa audiencia necesita.</div></div>
+      <div class="box" style="--bc:var(--green)"><div class="bh">La Ventana Abierta</div><div class="bb">Mayo–Agosto 2026 es pre-AEP. Los agentes que ganan octubre empiezan a construir audiencia AHORA. Tu ventana competitiva está abierta.</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--blue)">
+    <div class="ey">Datos del Mercado · SoCal 2026</div>
+    <div class="ct">Los números que debes <span>conocer de memoria</span></div>
+    <div class="g4">
+      <div class="kpi"><div class="kv" style="color:var(--blue)">7M</div><div class="kl">Beneficiarios Medicare CA</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--amber)">15%</div><div class="kl">Con inglés limitado</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--gold)">$202.90</div><div class="kl">Prima Part B 2026</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--teal)">+9.7%</div><div class="kl">Aumento Part B vs 2025</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--purple)">77%</div><div class="kl">Hispanos sienten que marcas no los entienden</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--green)">$30</div><div class="kl">CPL Click-to-WhatsApp vs $45+ form</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--amber)">53%</div><div class="kl">Hispanos sin seguro al perder Medicaid</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--red)">4M</div><div class="kl">Latinos perderán cobertura próx. 10 años</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--amber)">
+    <div class="ey">Temas Virales · Verificados Mayo 2026</div>
+    <div class="ct">Los 8 temas con más <span>engagement en tu mercado ahora</span></div>
+    <div id="viralL"></div>
+  </div>
+
+  <div class="card" style="--tc:var(--teal)">
+    <div class="ey">Mapa de Oportunidades · Sur de California</div>
+    <div class="ct">Dónde está <span>tu mercado exacto</span></div>
+    <div class="g3">
+      <div class="box" style="--bc:var(--red)"><div class="bh">🔴 East LA / Boyle Heights</div><div class="bb">D-SNP / Medi-Cal dual. Español mexicano. Prioridad máxima. Mayor concentración de dual eligible. Competidor principal: Team Alvarez.</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">🟠 Orange County</div><div class="bb">T-65 trabajadores. Santa Ana, Anaheim, Garden Grove. Mix español + inglés. Alto poder adquisitivo. Poco cubierto en español.</div></div>
+      <div class="box" style="--bc:var(--gold)"><div class="bh">🟡 Inland Empire</div><div class="bb">Primera generación 65+. San Bernardino, Riverside, Ontario. Español predominante. Menor competencia. Alto potencial D-SNP.</div></div>
+      <div class="box" style="--bc:var(--teal)"><div class="bh">🟢 San Fernando Valley</div><div class="bb">T-65 en crecimiento. Mercado menos saturado. Oportunidad de ser la primera agente con presencia digital fuerte en español.</div></div>
+      <div class="box" style="--bc:var(--blue)"><div class="bh">🔵 Long Beach / Pico-Union</div><div class="bb">Dual eligible, alta concentración de seniors. WhatsApp como canal principal. Comunidad mixta latinoamericana.</div></div>
+      <div class="box" style="--bc:var(--purple)"><div class="bh">🟣 Koreatown / Westlake</div><div class="bb">Comunidad densa, español neutro. Muchos inmigrantes con preguntas sobre elegibilidad Medicare. Canal digital fuerte.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ COMPETIDORES ══ -->
+<div class="view" id="v-competidores">
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Protocolo de Espionaje · Cada Lunes 7 AM</div>
+    <div class="ct">Herramienta: <span>facebook.com/ads/library</span></div>
+    <div class="box" style="--bc:var(--blue);margin-bottom:12px"><div class="bh">Regla de Oro</div><div class="bb">Si un anuncio lleva <strong>30+ días corriendo = ROI positivo</strong>. Analiza su hook, formato y mensaje. Crea tu versión mejorada.</div></div>
+    <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--gold);letter-spacing:.18em;text-transform:uppercase;font-weight:600;margin-bottom:8px">Palabras clave para buscar</div>
+    <div style="display:flex;flex-wrap:wrap;gap:4px">
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Medicare California español</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Medicare hispano Los Angeles</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">seguro médico Medicare</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Medicare gratis California</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Medicare 2026 beneficios</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">SCAN Health Plan</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Anthem Medicare español</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">Medicare Orange County</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">plan de salud seniors</span>
+      <span class="tag" style="background:var(--gold4);color:var(--gold);border:1px solid var(--border2)">seguro de salud mayores</span>
+    </div>
+  </div>
+  <div class="card" style="--tc:var(--red)">
+    <div class="ey">Mapa de Competidores · Investigados Mayo 2026</div>
+    <div class="ct">Sus debilidades · <span>Tu ventaja exacta</span></div>
+    <div id="compL"></div>
+  </div>
+  <div class="card" style="--tc:var(--green)">
+    <div class="ey">Brechas que Nadie Está Llenando</div>
+    <div class="ct">Oportunidades <span>vírgenes en tu mercado</span></div>
+    <div class="g2">
+      <div class="box" style="--bc:var(--green)"><div class="bh">🟢 T-65 en español todo el año</div><div class="bb">Todos se activan solo en AEP (oct-dic). Hay personas cumpliendo 65 cada mes que necesitan orientación ANTES de su cumpleaños. Nadie les habla en español.</div></div>
+      <div class="box" style="--bc:var(--green)"><div class="bh">🟢 Hispanos trabajando después de 65</div><div class="bb">Ventana especial de 8 meses después de cobertura de empleador. Casi ningún agente lo explica claramente en español.</div></div>
+      <div class="box" style="--bc:var(--green)"><div class="bh">🟢 Videos bilingüe ES + EN</div><div class="bb">Tus clientes tienen hijos adultos que deciden con ellos. Un video bilingüe llega a ambas generaciones. Nadie en el mercado local lo hace.</div></div>
+      <div class="box" style="--bc:var(--green)"><div class="bh">🟢 Grupo Facebook en español</div><div class="bb">Nadie tiene un grupo activo de "Medicare en Español — Sur de California." Es tuyo para tomar. Los seniors hacen sus preguntas reales ahí.</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ CONTENIDO ══ -->
+<div class="view" id="v-contenido">
+  <div class="g2">
+    <div class="card" style="--tc:var(--gold)">
+      <div class="ey">Pilares de Contenido</div>
+      <div class="ct">La mezcla <span>ideal por semana</span></div>
+      <div id="pillarL"></div>
+    </div>
+    <div class="card" style="--tc:var(--teal)">
+      <div class="ey">Calendario Semanal</div>
+      <div class="ct">Horarios óptimos <span>hispanos 60+</span></div>
+      <div class="row"><div style="width:82px;flex-shrink:0"><div style="font-family:'Fraunces',serif;font-size:13px;font-weight:300;font-style:italic;color:var(--teal)">Lunes</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">10:00 AM</div></div><div><div style="font-size:12px;font-weight:600">Educativo</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">Carrusel / Infografía</div></div></div>
+      <div class="row"><div style="width:82px;flex-shrink:0"><div style="font-family:'Fraunces',serif;font-size:13px;font-weight:300;font-style:italic;color:var(--amber)">Miércoles</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">12:00 PM</div></div><div><div style="font-size:12px;font-weight:600">Testimonio / BTS</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">Video corto + Foto</div></div></div>
+      <div class="row"><div style="width:82px;flex-shrink:0"><div style="font-family:'Fraunces',serif;font-size:13px;font-weight:300;font-style:italic;color:var(--gold)">Viernes</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">1:00 PM</div></div><div><div style="font-size:12px;font-weight:600">FAQ / Pregunta</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">Texto + Imagen</div></div></div>
+      <div class="row" style="border:none"><div style="width:82px;flex-shrink:0"><div style="font-family:'Fraunces',serif;font-size:13px;font-weight:300;font-style:italic;color:var(--blue)">Domingo</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">10:00 AM</div></div><div><div style="font-size:12px;font-weight:600">Motivacional</div><div style="font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">Reels / Imagen cálida</div></div></div>
+    </div>
+  </div>
+  <div class="card" style="--tc:var(--purple)">
+    <div class="ey">Plan 30 Días · Investigado y Verificado</div>
+    <div class="ct">Semana a semana <span>qué publicar exactamente</span></div>
+    <div id="plan30L"></div>
+  </div>
+  <div class="card" style="--tc:var(--amber)">
+    <div class="ey">Fórmula Live → 5 Reels</div>
+    <div class="ct">Cada Facebook Live genera <span>una semana de contenido</span></div>
+    <div style="background:var(--amber2);border:1px solid rgba(196,120,74,.2);border-radius:8px;padding:11px 14px;margin-bottom:11px;font-size:12px;color:var(--c2)"><strong style="color:var(--ink)">Regla:</strong> 85% de videos en Facebook se ven SIN sonido. Subtítulos en español en TODOS los clips. Hook fuerte en los primeros 3 segundos.</div>
+    <div class="g3">
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Clip #1 · Min 3-6</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px">"La regla de los 7 meses"</div><div class="bb">Hook: "¿Sabes cuánto tiempo tienes para inscribirte?"</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Clip #2 · Min 8-11</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px">"Lo que Medicare NO cubre"</div><div class="bb">Hook: "El error más costoso que veo cada mes"</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Clip #3 · Min 13-15</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px">"Lo primero que hago con tu plan"</div><div class="bb">Hook: "Antes de firmar cualquier póliza hago ESTO"</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Clip #4 · Min 18-20</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px">"El gobierno puede pagar tu Medicare"</div><div class="bb">Hook: "¿Sabías que hay programas que pagan tu prima?"</div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">Clip #5 · Min 22-24</div><div style="font-size:12px;font-weight:600;color:var(--ink);margin-bottom:3px">"El error que te cuesta miles"</div><div class="bb">Hook: "Si no revisas tu plan en octubre esto te pasa"</div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ SCRIPTS ══ -->
+<div class="view" id="v-scripts">
+  <div class="card" style="--tc:var(--amber)">
+    <div class="ey">Hooks Verificados · Los primeros 3 segundos lo deciden todo</div>
+    <div class="ct">Fórmulas que <span>detienen el scroll</span></div>
+    <div id="hookL"></div>
+  </div>
+  <div class="card" style="--tc:var(--teal)">
+    <div class="ey">Scripts de Video Completos</div>
+    <div class="ct">Guiones listos para <span>grabar hoy mismo</span></div>
+    <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--teal);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-bottom:7px">Script #1 · "La Pregunta del Millón" · 45-60 seg</div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>[HOOK 0-3 seg — texto en pantalla]
+"¿Ya cumpliste 65... o los cumples pronto? 👇"
+
+[ISABEL a cámara, directa y cálida]:
+"¿Sabes qué pasa si no te inscribes a Medicare a tiempo?
+Te pueden cobrar una MULTA de por vida en tu prima mensual.
+
+Soy Isabel Fuentes, agente licenciada de Medicare
+aquí en el Sur de California. En 2 minutos te explico
+EXACTAMENTE qué fechas debes saber.
+
+La ventana de inscripción son 7 meses: 3 antes de tu
+cumpleaños, el mes de tu cumpleaños, y 3 meses después.
+Si te sales de esa ventana... las multas son permanentes.
+
+¿Tienes preguntas sobre TU caso? Escríbeme al DM
+o al WhatsApp. Sin costo. En español."
+
+[Texto final: Tu nombre · NPN · withisabelfuentes.com]</div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--teal);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin:12px 0 7px">Script #2 · "Alerta de Estafas" · MÁS VIRAL</div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>[HOOK 0-3 seg]
+"🚨 Si viste ESTE anuncio en Facebook..."
+
+[ISABEL, seria pero calmada]:
+"Si viste un anuncio que te promete $3,600 de Medicare
+para groceries o renta... es una ESTAFA.
+
+Así distingues un agente REAL:
+❌ Falso: Prometen dinero sin hablar contigo
+❌ Falso: No tienen foto ni nombre real
+❌ Falso: No muestran su número NPN
+
+✅ Real: Soy Isabel Fuentes, NPN [TU NPN]
+✅ Real: Licenciada en California — verifica en NAIC.org
+
+Comparte esto para proteger a tu familia."</div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--teal);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin:12px 0 7px">Script #3 · "D-SNP — El Beneficio Secreto" · 45 seg</div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>[HOOK 0-3 seg]
+"¿Tienes Medicare Y Medi-Cal? Escucha esto 👇"
+
+[ISABEL]:
+"Si tienes Medicare y también Medi-Cal,
+puedes CAMBIAR tu plan UNA VEZ AL MES,
+todo el año.
+
+No tienes que esperar hasta octubre.
+No tienes que quedarte con un plan que no funciona.
+
+¿Quieres que revisemos si calificas?
+Escríbeme al DM. Gratis. En español."
+
+[Disclaimer: Isabel Fuentes, Licensed Agent CA, NPN: XXXXX
+Los beneficios varían por plan y área.]</div>
+  </div>
+
+  <div class="card" style="--tc:var(--purple)">
+    <div class="ey">Banco de Posts · Listos para Publicar</div>
+    <div class="ct">Copia, personaliza levemente, <span>nunca idéntico</span></div>
+    <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--purple);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-bottom:7px">Post #1 · "Lista Rápida"</div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>5 cosas que desearía que todos supieran sobre Medicare:
+
+1️⃣ No es automático — debes inscribirte activamente
+2️⃣ Hay multas permanentes si te tardas en inscribirte
+3️⃣ No todos los planes son iguales — hay cientos de opciones
+4️⃣ Puedes cambiar tu plan una vez al año (oct-dic)
+5️⃣ Un agente de Medicare como yo = GRATIS para ti
+
+¿Cuál de estas no sabías? Comenta el número 👇
+
+—
+withisabelfuentes.com | NPN: [XXXXX]
+Not connected with or endorsed by the U.S. Government.</div>
+
+    <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--purple);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin:12px 0 7px">Post #2 · "D-SNP Urgente"</div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>¿Tienes Medicare Y Medi-Cal?
+
+Entonces puedes cambiar tu plan
+CUALQUIER MES DEL AÑO 😲
+
+No tienes que esperar hasta octubre.
+Hablemos — puede que tengas beneficios
+que no estás usando.
+
+📱 DM o WhatsApp: [tu número]
+
+—
+Isabel Fuentes | Licensed Agent CA | NPN: [XXXXX]
+Plans not available in all areas.</div>
+  </div>
+</div>
+
+<!-- ══ ANUNCIOS ══ -->
+<div class="view" id="v-anuncios">
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Estructura de Campañas · $20/día inicial</div>
+    <div class="ct">Dos campañas · Una semana de A/B · <span>Sin tocar nada</span></div>
+    <div class="g2">
+      <div style="background:var(--card);border:1px solid var(--border);border-top:2.5px solid var(--blue);border-radius:11px;padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:400">Campaña 1: Awareness</div>
+          <div style="background:var(--blue2);color:var(--blue);border:1px solid rgba(74,122,154,.3);border-radius:20px;padding:3px 11px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600">$5/día</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Objetivo</div>
+        <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Reach / Brand Awareness · Video Views</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Audiencia</div>
+        <div style="font-size:12px;color:var(--c2);margin-bottom:8px">58-70 años · Español · LA+OC+IE+Riverside</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Contenido</div>
+        <div style="font-size:12px;color:var(--c2)">Video educativo 45-60 seg · Isabel a cámara · selfie vertical</div>
+      </div>
+      <div style="background:var(--card);border:1px solid var(--border);border-top:2.5px solid var(--amber);border-radius:11px;padding:16px 18px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+          <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:400">Campaña 2: Leads</div>
+          <div style="background:var(--amber2);color:var(--amber);border:1px solid rgba(196,120,74,.3);border-radius:20px;padding:3px 11px;font-family:'DM Mono',monospace;font-size:11px;font-weight:600">$15/día</div>
+        </div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Objetivo</div>
+        <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Lead Generation</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Audiencia</div>
+        <div style="font-size:12px;color:var(--c2);margin-bottom:8px">Retargeting — quienes vieron el video de Campaña 1</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.1em;text-transform:uppercase;margin-bottom:2px">Formulario</div>
+        <div style="font-size:12px;color:var(--c2)">Nombre · Teléfono · ¿Cuándo cumple 65? · TCPA consent</div>
+      </div>
+    </div>
+  </div>
+  <div class="card" style="--tc:var(--teal)">
+    <div class="ey">Targeting Exacto · Copiar en Ads Manager</div>
+    <div class="ct">Estos parámetros, <span>sin cambiar nada</span></div>
+    <div class="g4">
+      <div class="box" style="--bc:var(--blue)"><div class="bh">📍 Ubicación</div><div class="bb">Los Angeles County ✅<br>Orange County ✅<br>San Bernardino ✅<br>Riverside County ✅<br><em>Incluir ciudades. NO excluir áreas.</em></div></div>
+      <div class="box" style="--bc:var(--teal)"><div class="bh">👤 Demografía</div><div class="bb">Edad: 58-70 años<br>Idioma: Español (Spain + US)<br>Placements: FB Feed + Reels<br><span style="color:var(--red)">❌ Desactivar Audience Network</span></div></div>
+      <div class="box" style="--bc:var(--amber)"><div class="bh">🎯 Intereses</div><div class="bb">Medicare · Medicare Advantage<br>Seguro médico · AARP<br>Jubilación / Retirement<br>Seguro Social / SSA</div></div>
+      <div class="box" style="--bc:var(--red)"><div class="bh">🚫 Excluir</div><div class="bb">Leads en tu CRM<br>Clientes actuales<br><em>No gastar en quien ya eres su agente</em></div></div>
+    </div>
+  </div>
+  <div class="card" style="--tc:var(--red)">
+    <div class="ey">KPIs Target y Señales de Alarma</div>
+    <div class="ct">Cuándo escalar y <span>cuándo pausar</span></div>
+    <div class="g4" style="margin-bottom:12px">
+      <div class="kpi"><div class="kv" style="color:var(--teal)">1.5%</div><div class="kl">CTR mínimo</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--amber)">$15</div><div class="kl">CPL máximo</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--gold)">5+</div><div class="kl">Leads / $100</div></div>
+      <div class="kpi"><div class="kv" style="color:var(--blue)">3.0</div><div class="kl">Frecuencia máx.</div></div>
+    </div>
+    <div class="g2">
+      <div class="box" style="--bc:var(--red);background:var(--red2)"><div class="bb">CTR &lt; 0.8% después de 3 días y $15+ → <strong>PAUSAR</strong></div></div>
+      <div class="box" style="--bc:var(--red);background:var(--red2)"><div class="bb">CPL &gt; $45 → <strong>REVISAR AUDIENCIA</strong></div></div>
+      <div class="box" style="--bc:var(--amber);background:var(--amber2)"><div class="bb">Frecuencia &gt; 3.5 en 7 días → <strong>CAMBIAR CREATIVO</strong></div></div>
+      <div class="box" style="--bc:var(--amber);background:var(--amber2)"><div class="bb">"Stop showing me this" en comentarios → <strong>Relevance bajo</strong></div></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══ RESPUESTAS ══ -->
+<div class="view" id="v-respuestas">
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Top 12 Preguntas · Minería de Comentarios Real</div>
+    <div class="ct">Lo que la comunidad hispana <span>pregunta en Facebook</span></div>
+    <div id="faqL"></div>
+  </div>
+  <div class="card" style="--tc:var(--teal)">
+    <div class="ey">Banco de Respuestas a Comentarios</div>
+    <div class="ct">Personaliza siempre con el nombre · <span>Nunca copies idéntico</span></div>
+    <div id="respL"></div>
+  </div>
+</div>
+
+<!-- ══ COMPLIANCE ══ -->
+<div class="view" id="v-compliance">
+  <div class="g2">
+    <div class="card" style="--tc:var(--red)">
+      <div class="ey">NUNCA Digas Esto</div>
+      <div class="ct">Violaciones <span>CMS 2026</span></div>
+      <div id="neverL"></div>
+    </div>
+    <div class="card" style="--tc:var(--green)">
+      <div class="ey">SIEMPRE Incluye Esto</div>
+      <div class="ct">Requisitos <span>no negociables</span></div>
+      <div id="alwaysL"></div>
+    </div>
+  </div>
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Disclaimer Estándar · Todos los Anuncios</div>
+    <div class="ct">Copia esto en <span>cada material pagado</span></div>
+    <div class="sbox" onclick="cp(this)"><span class="ch">tap to copy</span>Isabel Fuentes, Licensed Insurance Agent | CA | NPN: [TU NPN]
+Plans not available in all areas. Not connected with or endorsed
+by the U.S. Government or the federal Medicare program.
+📞 [Tu teléfono] | withisabelfuentes.com</div>
+  </div>
+</div>
+
+<!-- ══ CHECKLISTS ══ -->
+<div class="view" id="v-checklists">
+  <div class="pgrid" id="phGrid"></div>
+  <div class="card" id="ckPanel" style="--tc:var(--blue)">
+    <div class="ey" id="ckEy">Fundación</div>
+    <div class="ct" id="ckTit">Página + Espionaje · <span id="ckPct">0%</span></div>
+    <div id="ckItems"></div>
+  </div>
+</div>
+
+<!-- ══ AGENTES ══ -->
+<div class="view" id="v-agentes">
+  <div class="card" style="--tc:var(--amber)">
+    <div class="ey">La Diferencia Crítica</div>
+    <div class="ct">Chatbot ≠ Workflow ≠ <span>Agente Autónomo Real</span></div>
+    <div class="g3">
+      <div style="background:var(--red2);border:1px solid rgba(184,85,64,.22);border-radius:9px;padding:13px">
+        <div style="font-size:11px;font-weight:700;color:var(--red);margin-bottom:7px">❌ Chatbot</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--c2);line-height:1.85">Responde cuando le preguntas<br>Sin memoria entre sesiones<br>No actúa sin instrucción<br>Si falla: se detiene</div>
+      </div>
+      <div style="background:var(--amber2);border:1px solid rgba(196,120,74,.25);border-radius:9px;padding:13px">
+        <div style="font-size:11px;font-weight:700;color:var(--amber);margin-bottom:7px">⚠️ Workflow (n8n/Zapier)</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--c2);line-height:1.85">Corre en horario ✅<br>Sigue pasos rígidos<br>No hay tomates → ERROR<br>Facebook cae → muere</div>
+      </div>
+      <div style="background:var(--green2);border:1px solid rgba(90,138,104,.25);border-radius:9px;padding:13px">
+        <div style="font-size:11px;font-weight:700;color:var(--green);margin-bottom:7px">✅ Agente Autónomo</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--c2);line-height:1.85">Tiene un OBJETIVO<br>Razona cómo llegar<br>No hay tomates → sustituto<br>Facebook cae → reprograma</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--gold)">
+    <div class="ey">Roadmap de Agentes · 3 Fases</div>
+    <div class="ct">De donde estás <span>a sistema 100% autónomo</span></div>
+    <div class="phase-block" style="background:var(--green2);border-color:rgba(90,138,104,.25);border-left:2.5px solid var(--green);margin-bottom:9px">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--green);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:4px">Fase 1 · Semanas 1-2 · DISPONIBLE HOY</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px">Claude + Canva + Blotato · Asistido</div>
+      <div style="font-size:12px;color:var(--c2);line-height:1.8">Conectas Blotato a Claude (15 min) → publicas Facebook + Instagram desde este chat · Canva MCP diseña posts sin abrir otra app · Claude tiene fallback básico — si algo falla, busca otra forma · <strong style="color:var(--green)">10x mejor que lo que tienes hoy</strong></div>
+    </div>
+    <div class="phase-block" style="background:var(--blue2);border-color:rgba(74,122,154,.2);border-left:2.5px solid var(--blue);margin-bottom:9px">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--blue);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:4px">Fase 2 · Mes 2 · Semi-Autónomo</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px">n8n dispara → Claude ejecuta → Tú apruebas</div>
+      <div style="font-size:12px;color:var(--c2);line-height:1.8">n8n programado activa el Agente Espía cada lunes 6 AM · Claude genera reporte + contenido de la semana · Tú apruebas en 10 min · Blotato publica toda la semana · Fallback: si Meta Ad Library falla → busca en Google, Instagram, TikTok · <strong style="color:var(--blue)">20 min/semana de trabajo tuyo</strong></div>
+    </div>
+    <div class="phase-block" style="background:var(--purple2);border-color:rgba(122,106,154,.2);border-left:2.5px solid var(--purple)">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:4px">Fase 3 · Mes 3-4 · Totalmente Autónomo</div>
+      <div style="font-size:13px;font-weight:600;color:var(--ink);margin-bottom:7px">Python + CrewAI + Claude API · El sistema corre solo</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:8px;margin-bottom:10px">
+        <div style="background:var(--card);border:1px solid rgba(122,106,154,.2);border-radius:7px;padding:10px 11px"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px">👑 El Director</div><div style="font-size:11px;color:var(--c2);line-height:1.5">Orquestador Claude que asigna tareas, monitorea y decide cuando falla.</div></div>
+        <div style="background:var(--card);border:1px solid rgba(122,106,154,.2);border-radius:7px;padding:10px 11px"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px">🧠 Memoria Real</div><div style="font-size:11px;color:var(--c2);line-height:1.5">Recuerda qué funcionó, qué competidores vio, qué cambios de CMS aplican.</div></div>
+        <div style="background:var(--card);border:1px solid rgba(122,106,154,.2);border-radius:7px;padding:10px 11px"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px">🔧 Self-Healing</div><div style="font-size:11px;color:var(--c2);line-height:1.5">Facebook cae → reintenta. Post falla CMS → reescribe. Sin intervención humana.</div></div>
+        <div style="background:var(--card);border:1px solid rgba(122,106,154,.2);border-radius:7px;padding:10px 11px"><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--purple);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:5px">📈 Aprende Solo</div><div style="font-size:11px;color:var(--c2);line-height:1.5">Si los Reels de estafas dieron 200 comentarios, la próxima semana los prioriza.</div></div>
+      </div>
+      <div style="background:rgba(122,106,154,.07);border:1px solid rgba(122,106,154,.18);border-radius:7px;padding:10px 13px;font-size:12px;color:var(--c2)"><strong style="color:var(--ink)">🐍 Requisito técnico:</strong> La configuración inicial de CrewAI + Claude API requiere <strong>Python básico</strong>. Una vez configurado, el sistema corre solo sin tocar código.</div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--purple)">
+    <div class="ey">Los 5 Agentes del Sistema</div>
+    <div class="ct">Cada uno con objetivo, memoria <span>y árbol de fallback</span></div>
+    <div id="agentL"></div>
+  </div>
+</div>
+
+<!-- ══ CREWAI ══ -->
+<div class="view" id="v-crewai">
+  <div class="card" style="--tc:var(--purple)">
+    <div class="ey">¿Qué es CrewAI?</div>
+    <div class="ct">El framework que convierte Claude <span>en un equipo autónomo</span></div>
+    <div style="font-size:13px;color:var(--c2);line-height:1.8;margin-bottom:14px">
+      CrewAI es el <strong style="color:var(--ink)">gerente del equipo de agentes.</strong> Tú defines quién es cada agente, cuál es su objetivo, qué herramientas tiene, y cómo debe actuar cuando algo sale mal. El sistema lo ejecuta solo, con memoria entre sesiones.
+    </div>
+    <div class="g2">
+      <div class="box" style="--bc:var(--purple)"><div class="bh">Sin CrewAI</div><div class="bb">Un solo Claude muy inteligente que hace todo — pero se olvida de todo cuando cierras el chat. No hay equipo. No hay memoria persistente. No hay fallback real.</div></div>
+      <div class="box" style="--bc:var(--green)"><div class="bh">Con CrewAI</div><div class="bb">5 especialistas con roles, objetivos claros y memoria. Se comunican entre ellos. El Espía le pasa el reporte al de Contenido. El Director supervisa a todos. Cuando algo falla, buscan alternativas solos.</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--amber)">
+    <div class="ey">Los 4 Conceptos Core de CrewAI</div>
+    <div class="ct">Lo que tu equipo necesita <span>entender para empezar</span></div>
+    <div class="g2">
+      <div class="box" style="--bc:var(--amber)"><div class="bh">🧑‍💼 Agent (Agente)</div><div class="bb">Un empleado con rol específico. Tiene: nombre, objetivo, historia de fondo y herramientas. <strong>Ejemplo:</strong> "Soy el Agente Espía. Mi objetivo es encontrar inteligencia competitiva Medicare cada semana. Uso Meta Ad Library y web search."</div></div>
+      <div class="box" style="--bc:var(--teal)"><div class="bh">📋 Task (Tarea)</div><div class="bb">Lo que ese agente debe lograr. NO son instrucciones paso a paso — es un <strong>objetivo con contexto</strong>. El agente decide cómo llegar. "Entrega inteligencia competitiva. Si Meta falla, usa Google. Nunca regreses vacío."</div></div>
+      <div class="box" style="--bc:var(--blue)"><div class="bh">👥 Crew (Equipo)</div><div class="bb">El grupo completo de agentes trabajando juntos. El Director asigna tareas. El Espía pasa datos al de Contenido. El de Contenido le manda el post al Publicador. Todo fluye automaticamente.</div></div>
+      <div class="box" style="--bc:var(--gold)"><div class="bh">🔧 Tool (Herramienta)</div><div class="bb">Las apps que el agente puede usar. <strong>Para Isabel:</strong> Web Search (espiar), Canva MCP (diseñar), Blotato MCP (publicar), tu CRM API (leer leads), Nextiva API (disparar llamadas).</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="--tc:var(--blue)">
+    <div class="ey">Stack Técnico Completo · En Orden de Aprendizaje</div>
+    <div class="ct">Lo que tu equipo aprende <span>para activar la Fase 3</span></div>
+    <div id="stackL"></div>
+  </div>
+
+  <div class="card" style="--tc:var(--teal)">
+    <div class="ey">Código Real · Agente Espía en CrewAI</div>
+    <div class="ct">Así se ve un agente autónomo <span>real en código</span></div>
+    <div class="sbox" onclick="cp(this)" style="font-size:10.5px"><span class="ch">tap to copy</span># Agente Espía - Isabel Fuentes Medicare Marketing
+# CrewAI + Claude API
+
+from crewai import Agent, Task, Crew
+
+# DEFINE EL AGENTE CON OBJETIVO — no con pasos rígidos
+spy_agent = Agent(
+    role="Medicare Market Intelligence Specialist",
+    goal="""Deliver actionable competitive intelligence
+    about Medicare Hispanic market in SoCal every week.
+    ALWAYS achieve this goal regardless of obstacles.
+    If primary source fails, find alternatives.
+    Never return empty-handed.""",
+    backstory="""Expert in Medicare marketing for Hispanic
+    communities in SoCal. Understands T-65 market deeply.
+    Knows CMS compliance inside out.""",
+    memory=True,          # Recuerda semanas anteriores
+    max_retry_limit=3,    # Intenta 3 veces antes de escalar
+    allow_delegation=True # Puede pedir ayuda a otros agentes
+)
+
+# LA TAREA TIENE OBJETIVO, NO PASOS RÍGIDOS
+spy_task = Task(
+    description="""
+    Find Medicare Hispanic market intelligence for this week.
+
+    PRIMARY: Search Meta Ad Library for Spanish Medicare ads
+    running 30+ days (= profitable, copy their strategy).
+
+    IF Meta Ad Library unavailable:
+    → Search Google: "Medicare Hispanic California Facebook ads"
+    → Analyze Instagram for Medicare Spanish content
+    → Use previous week data as baseline
+
+    ALWAYS deliver:
+    - Top 3 competitor tactics this week
+    - 2 gaps nobody is filling
+    - 1 opportunity specific for Isabel Fuentes
+    - CMS compliance check on all findings
+    """,
+    agent=spy_agent,
+    expected_output="Weekly intel report with actionable insights"
+)</div>
+  </div>
+
+  <!-- PENDING CONNECTIONS IN CREWAI -->
+  <div class="pending-card">
+    <div class="pending-badge"><div style="width:8px;height:8px;border:1.5px dashed var(--c3);border-radius:50%"></div>Conexiones Pendientes para la Fase 3</div>
+    <div class="pending-title">CRM · Nextiva · Facebook Webhooks · n8n Scheduler</div>
+    <div class="g2">
+      <div style="background:var(--card);border:1px dashed var(--border2);border-radius:9px;padding:13px 15px;opacity:.7">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">🔜 Tu CRM → Agentes</div>
+        <div style="font-size:12px;color:var(--c3);line-height:1.6">Los agentes podrán leer leads nuevos, actualizar estados y registrar actividad directamente en tu CRM de Bluehost via API PHP.</div>
+      </div>
+      <div style="background:var(--card);border:1px dashed var(--border2);border-radius:9px;padding:13px 15px;opacity:.7">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">🔜 Nextiva → CRM</div>
+        <div style="font-size:12px;color:var(--c3);line-height:1.6">Cada llamada que haces en Nextiva se registra sola en el CRM. Lead nuevo = llamada automática en menos de 5 minutos.</div>
+      </div>
+      <div style="background:var(--card);border:1px dashed var(--border2);border-radius:9px;padding:13px 15px;opacity:.7">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">🔜 Facebook Leads → CRM</div>
+        <div style="font-size:12px;color:var(--c3);line-height:1.6">Webhook PHP en Bluehost recibe leads de Facebook Lead Ads y los guarda directamente en MySQL. Sin copiar y pegar.</div>
+      </div>
+      <div style="background:var(--card);border:1px dashed var(--border2);border-radius:9px;padding:13px 15px;opacity:.7">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--c3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px">🔜 n8n → Scheduler</div>
+        <div style="font-size:12px;color:var(--c3);line-height:1.6">n8n Cloud dispara el Agente Espía cada lunes 6 AM y el Agente Métricas cada viernes 6 PM. Completamente automático.</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="footer">
+  <em>withisabelfuentes.com</em>
+  ISABEL FUENTES · LICENSED MEDICARE AGENT · CALIFORNIA<br/>
+  LOS ÁNGELES · ORANGE COUNTY · INLAND EMPIRE · MAYO 2026<br/>
+  <span style="opacity:.5">Sistema Maestro · Todo investigado y verificado · Actualizar AEP (oct) y OEP (ene)</span>
+</div>
+</div><!-- /main -->
+</div><!-- /layout -->
+
+<!-- MOBILE NAV -->
+<div class="mobile-nav" id="mobileNav">
+  <button class="on" onclick="go('dashboard',this)">🏠</button>
+  <button onclick="go('intel',this)">🧠</button>
+  <button onclick="go('competidores',this)">🕵️</button>
+  <button onclick="go('contenido',this)">✍️</button>
+  <button onclick="go('scripts',this)">🎬</button>
+  <button onclick="go('anuncios',this)">📣</button>
+  <button onclick="go('respuestas',this)">💬</button>
+  <button onclick="go('compliance',this)">⚖️</button>
+  <button onclick="go('checklists',this)">✅</button>
+  <button onclick="go('agentes',this)">🤖</button>
+  <button onclick="go('crewai',this)">🐍</button>
+</div>
+
+<script>
+/* ══ DATA ══════════════════════════════════════════ */
+const VIRAL=[
+  {r:1,t:"Estafas de Medicare en Facebook",w:"215M impresiones falsas. Audiencias en el Congreso. Mercado asustado y confundido.",f:"Video 45 seg",u:"🔴 AHORA",c:"var(--red)"},
+  {r:2,t:"Prima Part B sube a $202.90 (+9.7%)",w:"Subió $17.90 vs COLA de solo $56. Enojo masivo. Post '¿qué te quedó de tu aumento?' = viral.",f:"Carrusel",u:"🔴 AHORA",c:"var(--red)"},
+  {r:3,t:"Inmigrantes + Medicare 2026 (H.R.1)",w:"Cambios de Medicaid. Millones de hispanos en incertidumbre sobre su cobertura.",f:"Reel educativo",u:"🔴 AHORA",c:"var(--red)"},
+  {r:4,t:"Medi-Cal cambios 2026",w:"Renovación automática terminada. Riesgo de pérdida de cobertura mensual.",f:"Post urgente",u:"🟠 ALTA",c:"var(--amber)"},
+  {r:5,t:"¿Mi doctor acepta Medicare?",w:"Miedo emocional #1 del mercado hispano. Nadie quiere perder a su médico.",f:"Video Reel",u:"🟠 ALTA",c:"var(--amber)"},
+  {r:6,t:"¿Medicare cubre Ozempic / GLP-1?",w:"Curiosidad + esperanza masiva. Miles de hispanos buscan esta respuesta.",f:"Post educativo",u:"🟠 ALTA",c:"var(--amber)"},
+  {r:7,t:"D-SNP — cambiar de plan cada mes",w:"Dual eligible. Pocos lo saben. Sorpresa positiva = alto engagement.",f:"Carrusel sorpresa",u:"🟡 CONTINUA",c:"var(--teal)"},
+  {r:8,t:"Medicare si viajo a México",w:"Nicho hispano único. Muy compartido en grupos familiares. Nadie lo cubre.",f:"Reel informativo",u:"🟢 OPORTUNIDAD",c:"var(--blue)"},
+];
+
+const COMPS=[
+  {n:"Team Alvarez",a:"East LA",good:["Apellido hispano = confianza","Enfoque geográfico East LA"],bad:["Web desactualizada 2023-2024","Sin video marketing activo","Sin contenido educativo fresco"],opp:"Atacar su territorio con contenido actual. Tus carriers premium (SCAN, UHC) son superiores."},
+  {n:"Skyline Benefit",a:"LA County",good:["Contenido educativo actualizado","SEO fuerte en Google"],bad:["Cero presencia en español","Sin cara hispana visible","Todo en inglés"],opp:"El mercado hispano de LA que ellos ignoran es literalmente tu mercado."},
+  {n:"Dulcinea Insurance",a:"Nacional",good:["Agencia digital hispana multi-estado"],bad:["Sin presencia local SoCal","Sin carriers CA premium (SCAN)","Impersonal, no local"],opp:"Tú eres LOCAL. Conoces los vecindarios, hablas el español auténtico, tienes los carriers correctos para CA."},
+  {n:"Estafadores en Meta",a:"Todo SoCal",good:["215M impresiones (impacto masivo)"],bad:["No son reales ni verificables","No tienen NPN","No son locales"],opp:"Posicionarte como la alternativa LEGÍTIMA y VERIFICABLE. NPN visible. Cara real. California licensed."},
+];
+
+const PILLARS=[
+  {icon:"🎓",label:"Educación",pct:35,c:"var(--teal)",desc:"Posicionarte como la experta"},
+  {icon:"❤️",label:"Historia / BTS",pct:25,c:"var(--amber)",desc:"Confianza y conexión humana"},
+  {icon:"❓",label:"Preguntas / FAQ",pct:20,c:"var(--gold)",desc:"Engagement y leads calificados"},
+  {icon:"🏥",label:"Beneficios",pct:15,c:"var(--blue)",desc:"Conversión directa"},
+  {icon:"🎉",label:"Temporada / AEP",pct:5,c:"var(--purple)",desc:"Urgencia y acción"},
+];
+
+const PLAN30=[
+  {wk:"Semana 1",th:"Quién soy y por qué me importa tu salud",c:"var(--blue)",days:[
+    {d:"Día 1 · Lunes",f:"Reel",t:"Presentación personal — '¿Por qué soy agente de Medicare?' Tu historia auténtica."},
+    {d:"Día 3 · Miércoles",f:"Carrusel",t:"'¿Qué es Medicare? 5 pasos simples' — Educación básica visual."},
+    {d:"Día 5 · Viernes",f:"Post texto",t:"Pregunta: '¿Cuál es tu mayor duda sobre Medicare?' — Engagement puro."},
+    {d:"Día 7 · Domingo",f:"Reel",t:"Primera ALERTA de estafas de Medicare en Facebook. El más viral."},
+  ]},
+  {wk:"Semana 2",th:"Las fechas que no puedes perder",c:"var(--teal)",days:[
+    {d:"Día 8 · Lunes",f:"Carrusel",t:"La regla de los 7 meses — inscripción a Medicare sin penalidades."},
+    {d:"Día 10 · Miércoles",f:"Video",t:"'¿Cómo sé si mi doctor acepta Medicare?' — Miedo #1 del mercado."},
+    {d:"Día 12 · Viernes",f:"Post",t:"Serie T-65: '¿Cuándo me toca inscribirme?' — Con fecha exacta."},
+    {d:"Día 14 · Domingo",f:"Reel",t:"Historia de cliente (con permiso, sin nombre) — Cómo les ayudaste."},
+  ]},
+  {wk:"Semana 3",th:"Beneficios que pocos conocen",c:"var(--amber)",days:[
+    {d:"Día 15 · Lunes",f:"Carrusel",t:"D-SNP: Si tienes Medi-Cal + Medicare, puedes cambiar de plan cada mes."},
+    {d:"Día 17 · Miércoles",f:"Video",t:"'¿Medicare cubre el dentista?' — Beneficio sorpresa con alta atención."},
+    {d:"Día 19 · Viernes",f:"Post",t:"'¿Medicare si viajo a México?' — Nicho hispano único."},
+    {d:"Día 21 · Domingo",f:"Live",t:"'5 Preguntas más Comunes sobre Medicare' — 20-30 min en español."},
+  ]},
+  {wk:"Semana 4",th:"Pre-AEP + Urgencia",c:"var(--purple)",days:[
+    {d:"Día 22 · Lunes",f:"Carrusel",t:"'Por qué octubre es el mes más importante para tu plan de salud.'"},
+    {d:"Día 24 · Miércoles",f:"Video",t:"'El error más costoso: no revisar tu plan en AEP.' Con ejemplo real."},
+    {d:"Día 26 · Viernes",f:"Post",t:"'¿Cómo trabajo contigo sin costo?' — Explica cómo funciona el agente."},
+    {d:"Día 28 · Domingo",f:"Reel",t:"CTA directo: 'Agenda tu consulta gratis antes de octubre.' Urgencia."},
+  ]},
+];
+
+const HOOKS=[
+  {t:"MIEDO + URGENCIA",h:"¿Sabes qué pasa si no te inscribes a Medicare a tiempo? La multa es de por vida.",c:"var(--red)"},
+  {t:"SORPRESA + AHORRO",h:"¿Tienes Medicare Y Medi-Cal? Puedes cambiar de plan UNA VEZ AL MES. Casi nadie lo sabe.",c:"var(--amber)"},
+  {t:"PROTECCIÓN FAMILIA",h:"Si ves un anuncio en Facebook prometiendo $3,600 de Medicare... es una ESTAFA.",c:"var(--red)"},
+  {t:"ENOJO + INJUSTICIA",h:"Tu Seguro Social subió $56. Tu Medicare Part B subió $17.90. ¿Para qué sirvió tu aumento?",c:"var(--gold)"},
+  {t:"URGENCIA T-65",h:"Si cumples 65 en los próximos 3 meses, tu ventana de Medicare ya está abierta.",c:"var(--teal)"},
+  {t:"CURIOSIDAD",h:"¿Medicare cubre el dentista? La respuesta te sorprende.",c:"var(--blue)"},
+  {t:"NICHO ÚNICO",h:"¿Qué pasa con tu Medicare si te vas a México 3 meses? La verdad completa.",c:"var(--purple)"},
+  {t:"COMUNIDAD",h:"Lo que nadie te explica cuando llegas a los 65 en California.",c:"var(--gold)"},
+];
+
+const FAQS=[
+  {q:"¿Medicare cubre mis medicamentos?",r:"Medicare Original (Part A + B) NO cubre medicamentos. Necesitas el Part D o un plan Medicare Advantage con medicamentos. Escríbeme y revisamos tus recetas específicas sin costo."},
+  {q:"¿Cuánto cuesta Medicare?",r:"La Part B estándar es $202.90/mes en 2026. Pero hay planes Medicare Advantage con prima $0 disponibles. Depende de tu código postal. Vamos a ver qué aplica en tu caso."},
+  {q:"¿Necesito ser ciudadano para Medicare?",r:"No necesariamente. Si tú o tu cónyuge trabajaron y pagaron impuestos por 10 años en EE.UU., calificas. Los residentes legales también pueden calificar. Escríbeme con tu situación específica."},
+  {q:"¿Mi doctor acepta Medicare?",r:"Lo verificas en Medicare.gov/care-compare. O escríbeme con el nombre de tu doctor y yo lo verifico por ti sin costo — es lo primero que hago para mis clientes."},
+  {q:"¿Puedo perder mi Medi-Cal si me inscribo en Medicare?",r:"No — si tienes ambos (dual eligible) te beneficias más. Hay planes especiales D-SNP diseñados exactamente para ti. Hablemos."},
+  {q:"¿Qué pasa si no me inscribo a tiempo?",r:"Las penalidades son permanentes: 10% adicional en la prima de Part B por cada 12 meses de retraso. La ventana inicial son 7 meses. No la pierdas — contáctame antes."},
+  {q:"¿Puedo cambiar mi plan Medicare?",r:"Sí, una vez al año durante AEP (15 oct – 7 dic). PERO si tienes Medi-Cal + Medicare (dual eligible), puedes cambiar UNA VEZ AL MES. ¿Tienes ambos? Escríbeme."},
+  {q:"¿Medicare cubre dentista y visión?",r:"Medicare Original NO cubre dental ni visión de rutina. Pero muchos planes Medicare Advantage SÍ incluyen estos beneficios. Yo te comparo las opciones sin costo."},
+  {q:"¿Cuándo me inscribo si sigo trabajando?",r:"Si tienes cobertura del empleador, puedes esperar. Tienes hasta 8 meses después de que termine esa cobertura sin penalidades. Hay excepciones — cuéntame tu situación."},
+  {q:"¿Medicare me cubre si viajo a México?",r:"Medicare Original NO cubre fuera de EE.UU. en la mayoría de casos. Pero algunos planes Medicare Advantage ofrecen cobertura de emergencias en México. Si viajas seguido, esto importa — hablemos."},
+  {q:"¿Qué es el IRMAA?",r:"Es un cargo adicional para quienes tienen ingresos altos (más de $106,000/individuo en 2026). Hay formas de apelar o planificarlo. Escríbeme con tu situación."},
+  {q:"¿Cómo me cobras a mí?",r:"No te cobro. Trabajo a través de las compañías de seguros — ellas me pagan. Para ti es completamente gratuito. No hay diferencia en el costo de tu plan si trabajas conmigo."},
+];
+
+const RESPS=[
+  {cat:"Elegibilidad",q:"¿Cuándo puedo inscribirme?",r:"¡Hola [Nombre]! La elegibilidad depende de tu situación específica. Hay períodos especiales que la mayoría no conoce. ¿Me dices cuándo cumples 65 y si estás trabajando actualmente? Te digo exactamente tus fechas. — Isabel"},
+  {cat:"Costo",q:"¿Es gratis Medicare?",r:"¡Hola [Nombre]! Medicare tiene diferentes partes y algunas tienen costo. La Part B es $202.90/mes en 2026. PERO hay planes con prima $0 disponibles en tu área. Depende de tu código postal. ¿Me escribes al privado? — Isabel, Licensed Agent CA"},
+  {cat:"Urgencia T-65",q:"Tengo 64 años, ¿ya debo hacer algo?",r:"[Nombre], llegaste en el momento PERFECTO 🎯 A los 64 es cuando debes empezar a planificar. Tu ventana se abre 3 meses antes de tu cumpleaños — si la pierdes, las penalidades son permanentes. ¿Cuándo cumples los 65? — Isabel"},
+  {cat:"Lead Caliente",q:"Quiero información / ¿me puedes ayudar?",r:"¡[Nombre], claro que sí! Mi consulta es completamente gratuita y en español. Para ayudarte mejor: ¿ya tienes Medicare o todavía no? ¿Tienes algún plan actualmente? — Isabel Fuentes, Licensed Agent CA"},
+];
+
+const NEVER=[
+  '"El MEJOR plan de Medicare"','"Medicare GRATIS" sin especificar prima $0','"GARANTIZADO que te aprobamos"',
+  '"TODOS los médicos aceptados"','"Oferta por tiempo limitado"',
+  'Beneficios específicos sin mencionar plan + año del contrato',
+  'Logos de Medicare/CMS/Medicaid sin permiso escrito',
+];
+const ALWAYS=[
+  'Tu NPN en todos los materiales pagados','Nombre del plan + año al mencionar beneficios',
+  '"Plans not available in all areas"','"Not connected with or endorsed by the U.S. Government"',
+  'Disclaimer CMS en el footer de anuncios','Consentimiento TCPA en formularios',
+  'Screenshots de todos los anuncios — 10 años (exigencia CMS)',
+  'Autorización escrita antes de usar testimoniales',
+];
+
+const CHECKLISTS={
+  foundation:{c:"var(--blue)",label:"Fundación",sub:"Página + Espionaje",icon:"🏗️",items:[
+    "Foto de perfil profesional (tu cara, NO un logo)","'Acerca de' completo en español e inglés",
+    "Cover photo con NPN, teléfono y especialidad","NPN visible en la página de Facebook",
+    "Disclaimers CMS en sección 'Sobre nosotros'","Horario de atención publicado",
+    "Enlace a withisabelfuentes.com activo","Botón CTA configurado (Enviar mensaje / Llamar)",
+    "Pixel de Meta instalado en tu website","WhatsApp Business vinculado",
+    "Respuesta automática de Messenger activada","5 competidores documentados en Google Sheets",
+    "20 preguntas frecuentes recopiladas de grupos hispanos","Primer post de bienvenida publicado",
+  ]},
+  content:{c:"var(--teal)",label:"Contenido",sub:"Posts + Calendario",icon:"✍️",items:[
+    "30 posts programados en Meta Business Suite","10 posts de banco guardados para emergencias",
+    "Banco de respuestas en Google Docs","Scripts de 4 Facebook Lives preparados",
+    "5 Reels del primer Live cortados y subtitulados","Subtítulos en español en TODOS los videos",
+    "Hashtags optimizados guardados","Facebook Live promovido 3 días antes","Grupo de Facebook en español creado",
+  ]},
+  ads:{c:"var(--amber)",label:"Anuncios",sub:"Campañas Meta",icon:"📣",items:[
+    "Cuenta de Meta Business verificada","Método de pago activo en Ads Manager",
+    "Custom Audience de retargeting creada","Campaña 1: Awareness $5/día activa",
+    "Campaña 2: Leads $15/día con formulario","A/B test activo (2 variaciones por campaña)",
+    "NPN en todos los anuncios pagados","Disclaimer 'Not affiliated with government' en ads",
+    "Screenshots de todos los anuncios guardados (10 años)",
+  ]},
+  leads:{c:"var(--purple)",label:"Leads",sub:"Seguimiento CRM",icon:"🎯",items:[
+    "CRM configurado y funcionando","Guión de llamada de seguimiento listo",
+    "Meta: contactar lead en menos de 5 minutos","Responder mensajes de Facebook en menos de 1 hora",
+    "Mensaje de confirmación de cita automático","Recordatorio de cita 24 horas antes",
+    "Template de seguimiento post-cita creado",
+  ]},
+  optimize:{c:"var(--red)",label:"Optimizar",sub:"KPIs + Análisis",icon:"📊",items:[
+    "Revisión de métricas todos los lunes 10 AM","CTR mínimo 1.5% — pausar si menor",
+    "CPL máximo $15 por lead Medicare","Frecuencia máxima 3.0 — cambiar creativo si mayor",
+    "Mínimo 5 leads por cada $100 invertidos","Duplicar lo que funcionó, eliminar lo que no",
+    "Revisar Meta Ad Library de 2 competidores por semana",
+  ]},
+  compliance:{c:"var(--gold)",label:"Compliance",sub:"CMS + Legal",icon:"⚖️",items:[
+    "NPN en todos los materiales pagados","Nombre del plan + año al mencionar beneficios",
+    '"Plans not available in all areas" en anuncios','"Not connected with or endorsed by US Government"',
+    "Sin superlativos sin contexto verificable","Sin promesas de beneficios garantizados",
+    "Sin logos de Medicare/CMS sin permiso","Autorización escrita para testimoniales",
+    "Formulario con consentimiento TCPA activo","Screenshots guardados 10 años",
+  ]},
+};
+
+const AGENTS=[
+  {icon:"🕵️",name:"El Agente Espía",role:"COMPETITIVE INTELLIGENCE · LUNES 6 AM",c:"var(--purple)",
+   desc:"Objetivo: entregar inteligencia competitiva accionable cada semana. Si Meta Ad Library falla, busca en Google, Instagram, TikTok. Nunca regresa vacío.",
+   fb:[
+     {t:"Meta Ad Library no responde",a:["Espera 10 min y reintenta","Busca en Google: 'Medicare Hispanic California site:facebook.com'","Analiza Instagram Explore y TikTok para contenido Medicare en español","Usa datos semanas anteriores + nota al reporte"]},
+     {t:"No hay anuncios nuevos esta semana",a:["Analiza contenido orgánico de páginas competidoras","Revisa grupos hispanos de Facebook Medicare — ¿qué preguntan?","Busca noticias CMS de la semana — nueva oportunidad de contenido"]},
+   ]},
+  {icon:"✍️",name:"El Agente de Contenido",role:"CONTENT CREATION · CMS COMPLIANT",c:"var(--teal)",
+   desc:"Toma el reporte del Agente Espía y genera el contenido de la semana en la voz exacta de Isabel. Si el primer intento falla compliance, lo reescribe solo.",
+   fb:[
+     {t:"Post falla la revisión CMS",a:["Identifica la violación: superlativo, beneficio sin disclaimer, promesa","Reescribe eliminando la violación manteniendo el mensaje","Nuevo compliance check. Si falla 2 veces → escala a Isabel con diagnóstico"]},
+     {t:"Tema con historial de bajo engagement",a:["Consulta la memoria: ¿fue el formato, horario o ángulo?","Propone variante: mismo tema, diferente formato","Si el tema es el problema, sugiere el siguiente de la lista del Espía"]},
+   ]},
+  {icon:"🎨",name:"El Agente Diseñador",role:"CANVA MCP · VISUAL DESIGN",c:"var(--blue)",
+   desc:"Usa Canva MCP para convertir el contenido en diseños visuales. Carruseles, posts, thumbnails para Lives. Todo en el branding de Isabel Fuentes.",
+   fb:[
+     {t:"Template de Canva falla o no aplica",a:["Usa template alternativo del brand kit de Isabel","Si Canva está down → genera post de texto-only con instrucciones de diseño manual"]},
+   ]},
+  {icon:"🚀",name:"El Agente Publicador",role:"BLOTATO MCP · FB + INSTAGRAM",c:"var(--green)",
+   desc:"Su obsesión: que cada post aprobado llegue al público en el mejor momento. Si Facebook falla, no pierde el post — lo guarda, monitorea, reprograma.",
+   fb:[
+     {t:"Facebook API caída al momento de publicar",a:["Guarda el post en cola. Reintenta cada 15 min por 2 horas","Si sigue caída: reprograma para misma hora del día siguiente","Ajusta el calendar de la semana para mantener coherencia","Notifica: 'Post del lunes se publica mañana 10 AM. Calendar ajustado.'"]},
+     {t:"Engagement muy bajo en primeras 2 horas",a:["Analiza: ¿es el horario, formato o el primer párrafo?","Edita el primer párrafo con hook más fuerte (Facebook permite editar)","Informa al Agente Métricas para análisis semanal"]},
+   ]},
+  {icon:"⚖️",name:"El Agente Compliance",role:"CMS GUARDIAN · ZERO VIOLATIONS",c:"var(--gold)",
+   desc:"Antes de que cualquier post llegue a Blotato, lo revisa contra las reglas CMS 2026. Detecta superlativos, beneficios sin disclaimer y textos de riesgo.",
+   fb:[
+     {t:"Contenido ambiguo — no está claro si viola CMS",a:["Genera versión conservadora del mismo mensaje","Marca la sección ambigua para revisión de Isabel","Nunca publica algo en duda — regla estricta"]},
+   ]},
+];
+
+const STACK=[
+  {n:1,tool:"Python básico",tiempo:"2-3 semanas",desc:"El lenguaje que conecta todo. Variables, funciones, archivos. No necesitas ser experto — solo lo básico para configurar CrewAI.",c:"var(--amber)"},
+  {n:2,tool:"CrewAI",tiempo:"1 semana",desc:"El framework de agentes. Defines roles, objetivos y herramientas. La documentación es excelente y hay tutoriales en español. Open source, gratis.",c:"var(--purple)"},
+  {n:3,tool:"Claude API",tiempo:"2-3 días",desc:"La clave que conecta tus agentes CrewAI con el cerebro de Claude. ANTHROPIC_API_KEY. Un archivo de configuración.",c:"var(--gold)"},
+  {n:4,tool:"n8n Cloud",tiempo:"1 día",desc:"El scheduler. Solo dispara los agentes en horario. Lunes 6 AM = Agente Espía activo. Visual, drag-and-drop, sin código.",c:"var(--blue)"},
+  {n:5,tool:"Blotato MCP",tiempo:"30 minutos",desc:"El publicador. Conecta con Facebook e Instagram desde Claude. Ya puedes activarlo HOY en Fase 1.",c:"var(--green)"},
+];
+
+/* ══ STATE ══ */
+const SK='isabel_maestro_v1';
+let S={},activePhase='foundation';
+function loadS(){
+  try{S=JSON.parse(localStorage.getItem(SK)||'{}')}catch(e){S={}}
+  Object.keys(CHECKLISTS).forEach(k=>{
+    if(!S[k])S[k]=CHECKLISTS[k].items.map(()=>false);
+    while(S[k].length<CHECKLISTS[k].items.length)S[k].push(false);
+  });
+}
+function saveS(){localStorage.setItem(SK,JSON.stringify(S));}
+
+/* ══ RENDER ══ */
+function render(){
+  // Viral
+  const vl=document.getElementById('viralL');
+  if(vl)vl.innerHTML=VIRAL.map(v=>`
+    <div class="row">
+      <div style="font-family:'Fraunces',serif;font-size:18px;font-weight:300;color:${v.c};width:26px;flex-shrink:0;text-align:center;line-height:1.3">${v.r}</div>
+      <div style="flex:1"><div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:2px">${v.t}</div><div style="font-size:11px;color:var(--c2);line-height:1.5">${v.w}</div></div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px;flex-shrink:0">
+        <span class="tag" style="background:rgba(0,0,0,.04);color:${v.c};border:1px solid rgba(0,0,0,.07)">${v.f}</span>
+        <span style="font-family:'DM Mono',monospace;font-size:8.5px;color:${v.c};font-weight:600">${v.u}</span>
+      </div>
+    </div>`).join('');
+
+  // Comps
+  const cl=document.getElementById('compL');
+  if(cl)cl.innerHTML=COMPS.map(c=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:2px solid var(--red);border-radius:9px;padding:13px 15px;margin-bottom:10px">
+      <div style="display:flex;align-items:center;gap:9px;margin-bottom:11px">
+        <div style="font-family:'Fraunces',serif;font-size:16px;font-weight:300;font-style:italic;color:var(--ink)">${c.n}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--c3)">📍 ${c.a}</div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px">
+        <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--teal);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px">✅ Fortalezas</div><div style="font-size:11px;color:var(--c2);line-height:1.6">${c.good.join('<br>')}</div></div>
+        <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--red);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px">❌ Debilidades</div><div style="font-size:11px;color:var(--c2);line-height:1.6">${c.bad.join('<br>')}</div></div>
+        <div><div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--amber);letter-spacing:.1em;text-transform:uppercase;font-weight:600;margin-bottom:4px">🎯 Tu Ventaja</div><div style="font-size:11px;color:var(--c2);line-height:1.6">${c.opp}</div></div>
+      </div>
+    </div>`).join('');
+
+  // Pillars
+  const pl=document.getElementById('pillarL');
+  if(pl)pl.innerHTML=PILLARS.map(p=>`
+    <div style="margin-bottom:11px">
+      <div style="display:flex;justify-content:space-between;margin-bottom:4px"><span style="font-size:12.5px">${p.icon} ${p.label}</span><span style="font-family:'DM Mono',monospace;font-size:11px;font-weight:600;color:${p.c}">${p.pct}%</span></div>
+      <div style="height:4px;background:var(--bg3);border-radius:2px;overflow:hidden;margin-bottom:2px"><div style="height:100%;width:${p.pct}%;background:${p.c};border-radius:2px"></div></div>
+      <div style="font-size:10px;color:var(--c3)">${p.desc}</div>
+    </div>`).join('');
+
+  // Plan 30
+  const p30=document.getElementById('plan30L');
+  if(p30)p30.innerHTML=PLAN30.map(wk=>`
+    <div style="border-left:2px solid ${wk.c};padding-left:13px;margin-bottom:14px">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:${wk.c};letter-spacing:.2em;text-transform:uppercase;font-weight:700;margin-bottom:2px">${wk.wk}</div>
+      <div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:8px;font-style:italic">${wk.th}</div>
+      ${wk.days.map(d=>`<div style="display:flex;gap:10px;padding:6px 0;border-bottom:1px solid var(--c4);font-size:11.5px">
+        <div style="width:110px;flex-shrink:0;font-family:'DM Mono',monospace;font-size:9px;color:var(--c3)">${d.d}</div>
+        <div style="background:${wk.c}15;border:1px solid ${wk.c}25;border-radius:4px;padding:1px 6px;font-family:'DM Mono',monospace;font-size:8.5px;color:${wk.c};flex-shrink:0;align-self:flex-start">${d.f}</div>
+        <div style="color:var(--c2);flex:1">${d.t}</div>
+      </div>`).join('')}
+    </div>`).join('');
+
+  // Hooks
+  const hl=document.getElementById('hookL');
+  if(hl)hl.innerHTML=HOOKS.map(h=>`
+    <div class="row">
+      <span class="tag" style="background:${h.c}12;color:${h.c};border:1px solid ${h.c}22;flex-shrink:0">${h.t}</span>
+      <div style="font-size:12.5px;color:var(--ink);font-style:italic;flex:1">"${h.h}"</div>
+    </div>`).join('');
+
+  // FAQ
+  const fl=document.getElementById('faqL');
+  if(fl)fl.innerHTML=FAQS.map((f,i)=>`
+    <div class="row">
+      <div style="font-family:'DM Mono',monospace;font-size:8.5px;color:var(--gold);font-weight:700;width:24px;flex-shrink:0;padding-top:2px">#${i+1}</div>
+      <div style="flex:1">
+        <div style="font-size:12.5px;font-weight:600;color:var(--ink);margin-bottom:3px">❓ ${f.q}</div>
+        <div style="font-size:11.5px;color:var(--c2);line-height:1.55">💬 ${f.r}</div>
+      </div>
+    </div>`).join('');
+
+  // Responses
+  const rl=document.getElementById('respL');
+  if(rl)rl.innerHTML=RESPS.map(r=>`
+    <div style="background:var(--bg2);border:1px solid var(--border);border-left:2px solid var(--teal);border-radius:8px;padding:11px 13px;margin-bottom:9px">
+      <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--teal);letter-spacing:.12em;text-transform:uppercase;font-weight:600;margin-bottom:4px">${r.cat} · "${r.q}"</div>
+      <div style="font-size:11.5px;color:var(--c2);line-height:1.65;font-style:italic">${r.r}</div>
+    </div>`).join('');
+
+  // Never/Always
+  const nl=document.getElementById('neverL');
+  if(nl)nl.innerHTML=NEVER.map(n=>`<div class="row" style="font-size:12px;color:var(--c2)"><span style="color:var(--red);font-weight:700;flex-shrink:0">✗</span><span>${n}</span></div>`).join('');
+  const al=document.getElementById('alwaysL');
+  if(al)al.innerHTML=ALWAYS.map(a=>`<div class="row" style="font-size:12px;color:var(--c2)"><span style="color:var(--green);font-weight:700;flex-shrink:0">✓</span><span>${a}</span></div>`).join('');
+
+  // Agents
+  const agL=document.getElementById('agentL');
+  if(agL)agL.innerHTML=AGENTS.map(a=>`
+    <div class="acard" style="--ac:${a.c}">
+      <div class="ahead">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:${a.c};letter-spacing:.14em;text-transform:uppercase;font-weight:600;margin-bottom:6px">${a.role}</div>
+        <div style="display:flex;gap:11px;align-items:flex-start">
+          <div style="font-size:26px;flex-shrink:0">${a.icon}</div>
+          <div>
+            <div style="font-family:'Fraunces',serif;font-size:17px;font-weight:400;color:var(--ink);margin-bottom:3px">${a.name}</div>
+            <div style="font-size:12px;color:var(--c2);line-height:1.6">${a.desc}</div>
+          </div>
+        </div>
+      </div>
+      <div class="abody">
+        <div style="font-family:'DM Mono',monospace;font-size:8px;color:var(--red);letter-spacing:.16em;text-transform:uppercase;font-weight:600;margin-bottom:8px">Árbol de Fallback</div>
+        ${a.fb.map(fb=>`
+          <div style="background:var(--bg2);border:1px solid var(--border);border-left:2px solid ${a.c};border-radius:8px;overflow:hidden;margin-bottom:7px">
+            <div class="ftrig"><span style="font-size:12px">❌</span>${fb.t}</div>
+            ${fb.a.map((act,i)=>`<div class="fact"><div class="fnum">${i+1}</div><div>${act}</div></div>`).join('')}
+          </div>`).join('')}
+      </div>
+    </div>`).join('');
+
+  // Stack
+  const sl=document.getElementById('stackL');
+  if(sl)sl.innerHTML=STACK.map(s=>`
+    <div style="display:flex;gap:13px;padding:11px 0;border-bottom:1px solid var(--c4);align-items:flex-start">
+      <div style="width:20px;height:20px;border-radius:5px;background:${s.c}15;color:${s.c};display:flex;align-items:center;justify-content:center;font-family:'DM Mono',monospace;font-size:10px;font-weight:700;flex-shrink:0">${s.n}</div>
+      <div style="width:120px;flex-shrink:0">
+        <div style="font-size:13px;font-weight:600;color:var(--ink)">${s.tool}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:9px;color:${s.c}">${s.tiempo}</div>
+      </div>
+      <div style="font-size:12px;color:var(--c2);line-height:1.6;flex:1">${s.desc}</div>
+    </div>`).join('');
+
+  buildPhaseGrid();
+  renderChecklist();
+  updateAll();
+}
+
+/* ══ CHECKLIST ══ */
+const PH_ORDER=['foundation','content','ads','leads','optimize','compliance'];
+function buildPhaseGrid(){
+  const g=document.getElementById('phGrid');
+  if(!g)return;
+  g.innerHTML='';
+  PH_ORDER.forEach(id=>{
+    const ph=CHECKLISTS[id];const r=pct(id);
+    const d=document.createElement('div');
+    d.className='ptile'+(id===activePhase?' on':'');
+    d.style.setProperty('--pc',ph.c);
+    d.innerHTML=`<div class="pi">${ph.icon}</div><div class="pl">Fase</div><div class="pn">${ph.label}</div><div class="ps">${ph.sub}</div><div class="ppb"><div class="ppf" style="width:${r.p}%;--pc:${ph.c}"></div></div><div class="ppt">${r.p}% · ${r.d}/${r.t}</div>`;
+    d.onclick=()=>{document.querySelectorAll('.ptile').forEach(t=>t.classList.remove('on'));d.classList.add('on');activePhase=id;renderChecklist();};
+    g.appendChild(d);
+  });
+}
+function pct(id){const a=S[id]||[];const d=a.filter(Boolean).length;return{d,t:a.length||1,p:Math.round(d/(a.length||1)*100)};}
+function renderChecklist(){
+  const ph=CHECKLISTS[activePhase];
+  const panel=document.getElementById('ckPanel');
+  if(!panel)return;
+  panel.style.setProperty('--tc',ph.c);
+  document.getElementById('ckEy').textContent=ph.label;
+  const r=pct(activePhase);
+  document.getElementById('ckTit').innerHTML=ph.sub+' · <span>'+r.p+'% completado</span>';
+  document.getElementById('ckPct').textContent=r.p+'%';
+  const items=document.getElementById('ckItems');
+  items.innerHTML='';
+  ph.items.forEach((item,idx)=>{
+    const done=S[activePhase][idx];
+    const row=document.createElement('div');
+    row.className='ck'+(done?' done':'');
+    row.style.setProperty('--gc',ph.c);
+    row.innerHTML=`<div class="ckb"><span class="ckm">✓</span></div><span class="ckt">${item}</span>`;
+    row.onclick=()=>{S[activePhase][idx]=!S[activePhase][idx];saveS();updateAll();renderChecklist();buildPhaseGrid();};
+    items.appendChild(row);
+  });
+}
+function updateAll(){
+  PH_ORDER.forEach(id=>{});
+  const all=Object.values(S).flat();
+  const d=all.filter(Boolean).length,t=all.length,p=Math.round(d/(t||1)*100);
+  const el=document.getElementById('pn');if(el)el.textContent=p+'%';
+  const ll=document.getElementById('pl');if(ll)ll.textContent=d+'/'+t+' tareas';
+  const fl=document.getElementById('pf');if(fl)fl.style.width=p+'%';
+  const sb=document.getElementById('sb-ck');if(sb)sb.textContent=p+'%';
+}
+
+/* ══ NAVIGATION ══ */
+function go(id,btn){
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('on'));
+  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('on'));
+  document.querySelectorAll('.mobile-nav button').forEach(b=>b.classList.remove('on'));
+  const v=document.getElementById('v-'+id);
+  if(v)v.classList.add('on');
+  if(btn){btn.classList.add('on');}
+  // sync mobile nav
+  const mbn=document.querySelectorAll('.mobile-nav button');
+  const ids=['dashboard','intel','competidores','contenido','scripts','anuncios','respuestas','compliance','checklists','agentes','crewai'];
+  const idx=ids.indexOf(id);
+  if(idx>=0&&mbn[idx])mbn[idx].classList.add('on');
+}
+
+/* ══ COPY ══ */
+function cp(el){
+  const text=el.innerText.replace('tap to copy','').trim();
+  navigator.clipboard.writeText(text).then(()=>{
+    const h=el.querySelector('.ch');
+    if(h){const o=h.textContent;h.textContent='✓ copiado';el.classList.add('ok');setTimeout(()=>{h.textContent=o;el.classList.remove('ok');},2200);}
+  }).catch(()=>prompt('Copia:',text));
+}
+
+/* ══ INIT ══ */
+window.addEventListener('DOMContentLoaded',()=>{loadS();render();});
+</script>
+</body>
+</html>

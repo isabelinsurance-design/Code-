@@ -1,0 +1,857 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Isabel Fuentes — Sistema Medicare Marketing</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;800&family=DM+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+/* ── RESET & BASE ── */
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;
+  --border:#E8E0D0;--border-dark:#D4C9B5;
+  --gold:#C9A96E;--gold-light:#F0E6D0;--gold-dark:#A07840;
+  --teal:#4A7B9D;--teal-light:#EBF3F8;
+  --red:#C0392B;--red-light:#FDEDEB;
+  --green:#2E7D55;--green-light:#EAF5EE;
+  --amber:#D97706;--amber-light:#FEF3C7;
+  --purple:#6D3FAF;--purple-light:#F3EEFF;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
+  --shadow:0 2px 16px rgba(44,36,22,0.09);
+}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5}
+button{font-family:inherit;cursor:pointer}
+/* ── LAYOUT ── */
+.header{background:var(--white);border-bottom:2px solid var(--border);padding:16px 28px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;position:sticky;top:0;z-index:100}
+.h-left{display:flex;align-items:center;gap:14px}
+.h-avatar{width:46px;height:46px;border-radius:12px;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:24px;flex-shrink:0}
+.h-title{font-family:'Playfair Display',serif;font-size:17px;font-weight:800;color:var(--text);letter-spacing:-.2px}
+.h-sub{font-size:12px;color:var(--text-muted);margin-top:2px}
+.h-carriers{display:flex;gap:6px;flex-wrap:wrap}
+.tab-bar{background:var(--white);border-bottom:1px solid var(--border);padding:0 28px;display:flex;gap:4px;overflow-x:auto}
+.tab-btn{border:none;background:none;padding:14px 20px;font-size:13px;font-weight:600;color:var(--text-muted);border-bottom:3px solid transparent;white-space:nowrap;transition:all .2s}
+.tab-btn.active{font-weight:800;border-bottom-color:var(--teal);color:var(--teal)}
+.tab-btn[data-id="C"].active{color:var(--red);border-bottom-color:var(--red)}
+.tab-btn[data-id="D"].active{color:var(--purple);border-bottom-color:var(--purple)}
+.tab-btn[data-id="E"].active{color:var(--green);border-bottom-color:var(--green)}
+.wrap{max-width:860px;margin:0 auto;padding:28px 20px 64px}
+.tab-panel{display:none}.tab-panel.active{display:block}
+.footer{background:var(--white);border-top:1px solid var(--border);padding:14px 28px;text-align:center;font-size:12px;color:var(--text-muted)}
+/* ── COMMON ── */
+.card{background:var(--white);border-radius:16px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.badge{display:inline-block;border-radius:100px;padding:3px 12px;font-size:11px;font-weight:700;letter-spacing:.4px}
+.sec-header{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.sec-icon{width:44px;height:44px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.sec-title{font-weight:800;font-size:17px;color:var(--text);letter-spacing:-.2px}
+.sec-sub{font-size:13px;color:var(--text-muted);margin-top:2px}
+/* ── BADGE COLORS ── */
+.bg-teal{background:var(--teal-light);color:var(--teal);border:1px solid rgba(74,123,157,.3)}
+.bg-red{background:var(--red-light);color:var(--red);border:1px solid rgba(192,57,43,.3)}
+.bg-green{background:var(--green-light);color:var(--green);border:1px solid rgba(46,125,85,.3)}
+.bg-amber{background:var(--amber-light);color:var(--amber);border:1px solid rgba(217,119,6,.3)}
+.bg-purple{background:var(--purple-light);color:var(--purple);border:1px solid rgba(109,63,175,.3)}
+.bg-gold{background:var(--gold-light);color:var(--gold-dark);border:1px solid rgba(201,169,110,.4)}
+.bg-muted{background:#f1ede6;color:var(--text-muted);border:1px solid var(--border)}
+/* ── TAB A — DAYS ── */
+.day-card{margin-bottom:12px}
+.day-header{padding:18px 22px;cursor:pointer;display:flex;align-items:center;gap:14px;transition:background .2s;user-select:none}
+.day-num{width:44px;height:44px;border-radius:10px;color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:800;flex-shrink:0;line-height:1.1}
+.day-num span:first-child{font-size:8px;letter-spacing:.6px;opacity:.8;text-transform:uppercase}
+.day-num span:last-child{font-size:18px}
+.day-meta{flex:1}
+.day-title{font-weight:800;font-size:15px;color:var(--text);display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.day-sub{font-size:12px;color:var(--text-muted);margin-top:3px}
+.day-arrow{font-size:18px;transition:transform .2s}
+.day-body{padding:0 22px 22px;border-top:1px solid var(--border);display:none}
+.day-body.open{display:block}
+.hooks-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:18px}
+.hook-box{border-radius:12px;padding:14px 16px}
+.hook-label{font-size:10px;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px}
+.hook-text{font-size:12.5px;line-height:1.65;font-style:italic}
+.beats-title{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);margin:16px 0 8px}
+.beat-row{display:flex;gap:12px;align-items:flex-start;background:var(--surface);border-radius:10px;padding:12px 14px;border:1px solid var(--border);margin-bottom:8px}
+.beat-left{flex-shrink:0;text-align:center;min-width:80px}
+.beat-tag{color:#fff;border-radius:6px;padding:2px 8px;font-size:10px;font-weight:800;margin-bottom:3px;display:inline-block}
+.beat-time{font-size:10px;color:var(--text-muted)}
+.beat-txt{font-size:13px;color:var(--text-mid);line-height:1.65;flex:1}
+.compliance-box{margin-top:14px;background:var(--amber-light);border-radius:10px;padding:12px 16px;border:1px solid rgba(217,119,6,.3);display:flex;gap:10px}
+.comp-inner .c-label{font-size:11px;font-weight:800;color:var(--amber);text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px}
+.comp-inner .c-txt{font-size:12px;color:#78350F;line-height:1.6}
+/* ── TAB B — COMPETITION ── */
+.toggle-row{display:flex;gap:8px;margin-bottom:20px;flex-wrap:wrap}
+.toggle-btn{border:2px solid var(--border);background:var(--white);color:var(--text-mid);border-radius:100px;padding:8px 20px;font-size:13px;font-weight:700;transition:all .2s}
+.toggle-btn.active-works{border-color:var(--green);background:var(--green);color:#fff}
+.toggle-btn.active-fails{border-color:var(--red);background:var(--red);color:#fff}
+.toggle-btn.active-gaps{border-color:var(--teal);background:var(--teal);color:#fff}
+.comp-list{display:none}.comp-list.active{display:flex;flex-direction:column;gap:12px}
+.comp-item{background:var(--white);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:18px 22px;display:flex;gap:14px;align-items:flex-start}
+.comp-icon{font-size:28px;flex-shrink:0;line-height:1}
+.comp-title{font-weight:800;font-size:15px;color:var(--text);margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.comp-desc{font-size:13px;color:var(--text-mid);line-height:1.7}
+.gap-tag{background:var(--gold-light);border:1.5px solid var(--gold);border-radius:8px;padding:6px 12px;font-size:11px;font-weight:800;color:var(--gold-dark);flex-shrink:0;text-align:center;line-height:1.3}
+.advantage-box{margin-top:20px;background:var(--gold-light);border-radius:16px;padding:20px 24px;border:1.5px solid var(--gold)}
+.advantage-title{font-weight:800;font-size:15px;color:var(--gold-dark);margin-bottom:8px}
+.advantage-txt{font-size:13px;color:var(--text-mid);line-height:1.75}
+/* ── TAB C — COMPLIANCE ── */
+.cms-alert{background:var(--red-light);border-radius:14px;padding:16px 20px;border:1px solid rgba(192,57,43,.3);margin-bottom:20px;display:flex;gap:12px}
+.cms-alert-txt{font-size:13px;color:#7f1d1d;line-height:1.7}
+.cms-card{background:var(--white);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);overflow:hidden;margin-bottom:12px}
+.cms-card.sev-HIGH{border-left:4px solid var(--red)}
+.cms-card.sev-MEDIUM{border-left:4px solid var(--amber)}
+.cms-card.sev-LOW{border-left:4px solid var(--teal)}
+.cms-card.sev-INFO{border-left:4px solid var(--green)}
+.cms-body{padding:18px 22px}
+.cms-top{display:flex;align-items:center;gap:10px;margin-bottom:10px;flex-wrap:wrap}
+.cms-regla{font-size:12px;font-weight:700;color:var(--text-muted)}
+.cms-linea{border-radius:8px;padding:8px 14px;font-style:italic;font-size:13px;color:var(--text);margin-bottom:12px;border:1px solid rgba(0,0,0,.08)}
+.cms-prob{font-size:13px;color:var(--text-mid);line-height:1.65;margin-bottom:12px}
+.cms-fix{background:var(--green-light);border-radius:8px;padding:10px 14px;border:1px solid rgba(46,125,85,.3);display:flex;gap:8px}
+.cms-fix-txt{font-size:13px;color:#1a4731;line-height:1.65}
+.gold-rules{margin-top:20px;background:var(--green-light);border-radius:16px;padding:20px 24px;border:1.5px solid rgba(46,125,85,.3)}
+.gold-rules-title{font-weight:800;font-size:14px;color:var(--green);margin-bottom:12px}
+.rule-row{display:flex;gap:10px;align-items:flex-start;margin-bottom:8px}
+.rule-check{color:var(--green);font-weight:800;flex-shrink:0}
+.rule-txt{font-size:13px;color:var(--text-mid);line-height:1.6}
+/* ── TAB D — ADS ── */
+.campaign-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:16px 20px}
+.camp-item{background:var(--surface);border-radius:10px;padding:12px 14px;border:1px solid var(--border);display:flex;gap:10px}
+.camp-icon{font-size:18px;flex-shrink:0}
+.camp-label{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.camp-val{font-size:13px;color:var(--text);font-weight:700;margin-top:2px}
+.aud-card{background:var(--white);border-radius:14px;border:1px solid var(--border);box-shadow:var(--shadow);padding:16px 20px;margin-bottom:10px}
+.aud-title{font-weight:800;font-size:14px;color:var(--text);display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.aud-targeting{background:var(--purple-light);border-radius:8px;padding:8px 12px;font-size:12px;color:#4c1d95;margin-bottom:8px;border:1px solid rgba(109,63,175,.2)}
+.aud-note{font-size:12px;color:var(--text-mid);line-height:1.6}
+.copy-tabs{display:flex;gap:8px;margin-bottom:14px}
+.copy-tab{border:2px solid var(--border);background:var(--white);color:var(--text-mid);border-radius:100px;padding:7px 18px;font-size:12px;font-weight:700;transition:all .2s}
+.copy-tab.active{border-color:var(--purple);background:var(--purple);color:#fff}
+.copy-panel{display:none}.copy-panel.active{display:block}
+.copy-headline{font-family:'Playfair Display',serif;font-size:20px;font-weight:800;color:var(--text);line-height:1.3;margin-bottom:16px}
+.copy-body{background:var(--surface);border-radius:10px;padding:14px 16px;font-size:14px;color:var(--text-mid);line-height:1.75;margin-bottom:16px;border:1px solid var(--border)}
+.copy-cta{display:inline-block;background:var(--purple);color:#fff;border-radius:8px;padding:10px 22px;font-weight:800;font-size:14px;margin-right:14px}
+.copy-note{font-size:12px;color:var(--text-muted);display:inline}
+/* ── TAB E — 30 DAYS ── */
+.legend{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:18px}
+.legend-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text-mid)}
+.legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.week-label{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:1px;color:var(--text-muted);margin-bottom:8px}
+.week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-bottom:16px}
+.cal-day{background:var(--white);border:2px solid var(--border);border-radius:10px;padding:10px 6px;cursor:pointer;text-align:center;transition:all .18s;user-select:none}
+.cal-day:hover{transform:translateY(-1px);box-shadow:0 4px 12px rgba(44,36,22,.1)}
+.cal-day.selected{color:#fff}
+.cal-num{font-size:20px;font-weight:900;line-height:1}
+.cal-pillar{font-size:9px;margin-top:4px;line-height:1.3;font-weight:600}
+.cal-cta{font-size:8px;border-radius:4px;padding:2px 4px;margin-top:5px;display:inline-block;font-weight:700}
+.day-detail{border-radius:16px;overflow:hidden;margin-top:16px;border:2px solid var(--border)}
+.detail-head{padding:14px 20px;display:flex;align-items:center;justify-content:space-between}
+.detail-title{font-weight:800;font-size:16px;color:#fff}
+.detail-sub{font-size:12px;color:rgba(255,255,255,.75);margin-top:2px}
+.detail-body{padding:16px 20px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;background:var(--white)}
+.detail-cell{background:var(--surface);border-radius:10px;padding:12px 14px;border:1px solid var(--border)}
+.detail-cell-label{font-size:11px;color:var(--text-muted);font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.detail-cell-val{font-size:14px;font-weight:800;color:var(--text)}
+.stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-top:20px}
+.stat-card{background:var(--white);border-radius:12px;padding:16px 14px;border:1px solid var(--border);text-align:center}
+.stat-num{font-family:'Playfair Display',serif;font-size:28px;font-weight:800}
+.stat-lbl{font-size:12px;color:var(--text-muted);margin-top:3px}
+/* ── RESPONSIVE ── */
+@media(max-width:640px){
+  .hooks-grid{grid-template-columns:1fr}
+  .campaign-grid{grid-template-columns:1fr}
+  .week-grid{grid-template-columns:repeat(7,1fr);gap:4px}
+  .cal-day{padding:8px 4px}
+  .cal-num{font-size:15px}
+  .cal-pillar{display:none}
+  .detail-body{grid-template-columns:1fr}
+  .stats-row{grid-template-columns:1fr 1fr}
+}
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="h-left">
+    <div class="h-avatar">👩</div>
+    <div>
+      <div class="h-title">Isabel Fuentes — Medicare Marketing System</div>
+      <div class="h-sub">Facebook/Meta · Mercado Hispano · Sur de California</div>
+    </div>
+  </div>
+  <div class="h-carriers">
+    <span class="badge bg-teal">SCAN</span>
+    <span class="badge bg-teal">Anthem</span>
+    <span class="badge bg-teal">Humana</span>
+    <span class="badge bg-teal">LA Care</span>
+    <span class="badge bg-teal">Molina</span>
+    <span class="badge bg-teal">United</span>
+  </div>
+</div>
+
+<!-- TAB BAR -->
+<div class="tab-bar">
+  <button class="tab-btn active" data-id="A" onclick="switchTab('A')">📅 Días 2–7</button>
+  <button class="tab-btn" data-id="B" onclick="switchTab('B')">🔍 Competencia</button>
+  <button class="tab-btn" data-id="C" onclick="switchTab('C')">✅ Compliance</button>
+  <button class="tab-btn" data-id="D" onclick="switchTab('D')">📢 Facebook Ads</button>
+  <button class="tab-btn" data-id="E" onclick="switchTab('E')">🗓️ 30 Días</button>
+</div>
+
+<!-- ═══════════════════ TAB A — DÍAS 2-7 ═══════════════════ -->
+<div class="tab-panel active" id="panel-A">
+<div class="wrap">
+  <div class="sec-header">
+    <div class="sec-icon" style="background:var(--teal-light);border:1.5px solid rgba(74,123,157,.3)">📅</div>
+    <div>
+      <div class="sec-title">Días 2 al 7 — Calendario de Contenido Completo</div>
+      <div class="sec-sub">Scripts, hooks, CTA y notas de compliance para cada día · Haz clic en cada tarjeta para expandir</div>
+    </div>
+  </div>
+
+  <!-- DAY 2 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(2)" style="background:white" id="dh-2">
+      <div class="day-num" style="background:var(--teal)"><span>DÍA</span><span>2</span></div>
+      <div class="day-meta">
+        <div class="day-title">Sí Existe — y Es Real <span class="badge bg-teal">Educativo</span> <span class="badge bg-muted">CTA: "GRATIS"</span></div>
+        <div class="day-sub">Beneficios a $0 · Talking Head + B-roll de texto</div>
+      </div>
+      <div class="day-arrow" style="color:var(--teal)" id="da-2">▾</div>
+    </div>
+    <div class="day-body" id="db-2">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--teal-light);border:1px solid rgba(74,123,157,.25)">
+          <div class="hook-label" style="color:var(--teal)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"¿$0 al mes de prima? Sí, es real — y aquí te explico cómo funciona 👇"</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Mucha gente me dice: Isabel, eso suena demasiado bueno para ser verdad. Y yo los entiendo — porque a mí también me sonó raro la primera vez. Pero es real, y hoy te lo explico."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--teal)">Gancho</span><div class="beat-time">0:00–0:08</div></div><div class="beat-txt">Mostrar una factura de $0 en pantalla o escribir "$0" con marcador en papel blanco. Visual poderosísimo que detiene el scroll sin sonido.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:#64748B">Educación</span><div class="beat-time">0:08–0:35</div></div><div class="beat-txt">Medicare Advantage: el gobierno paga una tarifa al carrier por cada miembro inscrito — eso cubre la prima. Mencionar SCAN, Humana, Anthem, LA Care como planes reales de SoCal. No mencionar precios específicos.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--green)">Beneficios</span><div class="beat-time">0:35–0:50</div></div><div class="beat-txt">Enumerar con dedos: dental ✋, vista ✌️, medicamentos 🤟, gimnasio. Gesto visual esencial — el 85% ve sin sonido.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:50–1:00</div></div><div class="beat-txt">Señalar a cámara: "Escríbeme GRATIS en los comentarios y te ayudo a encontrar el tuyo." Sonrisa genuina al cerrar.</div></div>
+      <div class="compliance-box">
+        <span style="font-size:16px;flex-shrink:0">⚠️</span>
+        <div class="comp-inner"><div class="c-label">Nota CMS</div><div class="c-txt">SIEMPRE incluir en la descripción del post: "Las primas y beneficios varían según el plan y el condado." No decir "gratis" para el plan — decir "$0 de prima mensual en planes selectos."</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 3 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(3)" id="dh-3">
+      <div class="day-num" style="background:var(--purple)"><span>DÍA</span><span>3</span></div>
+      <div class="day-meta">
+        <div class="day-title">¿Tienes Medi-Cal Y Medicare? <span class="badge bg-purple">Educativo Avanzado</span> <span class="badge bg-muted">CTA: "DOBLE"</span></div>
+        <div class="day-sub">Dual Eligible D-SNP · Talking Head con props (2 tarjetas físicas)</div>
+      </div>
+      <div class="day-arrow" style="color:var(--purple)" id="da-3">▾</div>
+    </div>
+    <div class="day-body" id="db-3">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--purple-light);border:1px solid rgba(109,63,175,.25)">
+          <div class="hook-label" style="color:var(--purple)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Si tienes Medicare Y Medi-Cal al mismo tiempo... hay algo que nadie te ha explicado 👇"</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Para las personas que me dicen: yo tengo los dos — Medicare y Medi-Cal. Primero: eso es perfectamente normal. Segundo: eso significa que podrías calificar para un plan especial con beneficios adicionales que la mayoría de agentes ni siquiera mencionan."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--red)">Gancho Visual</span><div class="beat-time">0:00–0:09</div></div><div class="beat-txt">Mostrar dos tarjetas físicas — una azul de Medicare, una roja de Medi-Cal. El gesto de las dos tarjetas detiene el scroll incluso sin sonido.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:#64748B">Educación</span><div class="beat-time">0:09–0:38</div></div><div class="beat-txt">D-SNP: plan especial para personas elegibles en ambos programas. Beneficios extra: transporte a citas médicas, tarjeta OTC para comida/farma, ayuda en casa. Muy pocos lo saben.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--green)">Calificación</span><div class="beat-time">0:38–0:50</div></div><div class="beat-txt">"¿Cómo sabes si calificas? Si tienes tarjeta de Medi-Cal activa, muy probablemente sí." Simplificar — no hablar de detalles técnicos de elegibilidad.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:50–1:00</div></div><div class="beat-txt">"Escríbeme DOBLE en los comentarios y revisamos juntos si calificas." Levantar los dos dedos — visual refuerza el mensaje.</div></div>
+      <div class="compliance-box">
+        <span style="font-size:16px;flex-shrink:0">⚠️</span>
+        <div class="comp-inner"><div class="c-label">Nota CMS</div><div class="c-txt">No garantizar elegibilidad sin verificar. Mencionar que se requiere Medi-Cal activo para calificar a D-SNP. No nombrar carriers D-SNP específicos sin verificar disponibilidad en el condado del cliente.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 4 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(4)" id="dh-4">
+      <div class="day-num" style="background:var(--amber)"><span>DÍA</span><span>4</span></div>
+      <div class="day-meta">
+        <div class="day-title">María No Lo Sabía <span class="badge bg-amber">Confianza</span> <span class="badge bg-muted">CTA: "REVISAR"</span></div>
+        <div class="day-sub">Historia de Cliente · Talking Head emocional</div>
+      </div>
+      <div class="day-arrow" style="color:var(--amber)" id="da-4">▾</div>
+    </div>
+    <div class="day-body" id="db-4">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--amber-light);border:1px solid rgba(217,119,6,.25)">
+          <div class="hook-label" style="color:var(--amber)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Una señora me llamó llorando porque llevaba 2 años pagando una multa que nunca debió pagar 😔"</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Hace unos meses me llamó una señora — la voy a llamar María. Me dijo: Isabel, llevo dos años pagando $47 de más en mi Medicare y nunca me explicaron por qué. Cuando revisé su caso, vi exactamente qué había pasado."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--red)">Historia Primero</span><div class="beat-time">0:00–0:10</div></div><div class="beat-txt">Empezar con la historia — NO con tu nombre. La historia primero siempre. Cara de empatía genuina. Tu audiencia se ve reflejada en María.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:#64748B">Narración</span><div class="beat-time">0:10–0:38</div></div><div class="beat-txt">Historia compuesta con detalle específico: "$47 dólares de más cada mes" — el número concreto crea credibilidad inmediata. Inscripción tardía, multa de por vida. Nadie se lo explicó a tiempo.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--green)">Resolución</span><div class="beat-time">0:38–0:50</div></div><div class="beat-txt">"No podemos borrar la multa — pero sí encontramos un plan que compensa eso con beneficios adicionales. Hoy paga menos en total." La honestidad en la resolución construye credibilidad.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:50–1:00</div></div><div class="beat-txt">"Escríbeme REVISAR en los comentarios y lo vemos juntos." Cierre cálido, sin presión.</div></div>
+      <div class="compliance-box" style="background:var(--red-light);border:1px solid rgba(192,57,43,.3)">
+        <span style="font-size:16px;flex-shrink:0">🚨</span>
+        <div class="comp-inner"><div class="c-label" style="color:var(--red)">Nota CMS — CRÍTICO</div><div class="c-txt" style="color:#7f1d1d">Historia compuesta. NUNCA uses nombre real sin consentimiento escrito del cliente. Agregar al video o descripción: "Historia compuesta para proteger privacidad. Resultados individuales varían."</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 5 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(5)" id="dh-5">
+      <div class="day-num" style="background:var(--red)"><span>DÍA</span><span>5</span></div>
+      <div class="day-meta">
+        <div class="day-title">La Ventana Más Importante del Año <span class="badge bg-red">AEP Urgencia</span> <span class="badge bg-muted">CTA: "OCTUBRE"</span></div>
+        <div class="day-sub">Oct 15 – Dic 7 · Talking Head + prop (calendario físico)</div>
+      </div>
+      <div class="day-arrow" style="color:var(--red)" id="da-5">▾</div>
+    </div>
+    <div class="day-body" id="db-5">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--red-light);border:1px solid rgba(192,57,43,.25)">
+          <div class="hook-label" style="color:var(--red)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Del 15 de octubre al 7 de diciembre puedes cambiar tu plan de Medicare. Después — se cierra. 🔒"</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Una vez al año, Medicare te da una oportunidad de revisar y cambiar tu plan. Se llama el Período de Inscripción Anual. Abre el 15 de octubre y cierra el 7 de diciembre. Después de esa fecha — lo que tengas, te lo quedas por todo el año siguiente."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--red)">Urgencia Visual</span><div class="beat-time">0:00–0:10</div></div><div class="beat-txt">Mostrar calendario físico con Oct 15 y Dic 7 marcados en rojo. Escribir en papel o pizarrón. Fechas grandes. Tachar el período cerrado con marker rojo.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:#64748B">Por Qué Cambiar</span><div class="beat-time">0:10–0:38</div></div><div class="beat-txt">Los planes cambian cada año: primas, copagos, medicamentos, red de doctores. Tu plan del año pasado puede no ser el mejor para el próximo. Es tu derecho revisarlo — y mi trabajo ayudarte.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--amber)">No Esperes</span><div class="beat-time">0:38–0:50</div></div><div class="beat-txt">"Diciembre es cuando todos llaman — las citas se llenan. Los que llaman en octubre salen con tiempo y con el mejor plan. No esperes."</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:50–1:00</div></div><div class="beat-txt">"Escríbeme OCTUBRE en los comentarios y agendamos tu revisión gratuita ahora." Apuntar al calendario.</div></div>
+      <div class="compliance-box">
+        <span style="font-size:16px;flex-shrink:0">⚠️</span>
+        <div class="comp-inner"><div class="c-label">Nota CMS</div><div class="c-txt">Fechas AEP son reguladas por CMS — Oct 15–Dic 7 es correcto. Verificar año fiscal en curso antes de publicar. Publicar este video entre el 1 de octubre y el 30 de noviembre para máximo impacto.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 6 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(6)" id="dh-6">
+      <div class="day-num" style="background:var(--green)"><span>DÍA</span><span>6</span></div>
+      <div class="day-meta">
+        <div class="day-title">El Dentista Que Tu Medicare Sí Puede Cubrir <span class="badge bg-green">Beneficio Específico</span> <span class="badge bg-muted">CTA: "DIENTE"</span></div>
+        <div class="day-sub">Dental — el pain point #1 · Talking Head conversacional</div>
+      </div>
+      <div class="day-arrow" style="color:var(--green)" id="da-6">▾</div>
+    </div>
+    <div class="day-body" id="db-6">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--green-light);border:1px solid rgba(46,125,85,.25)">
+          <div class="hook-label" style="color:var(--green)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"¿Tu Medicare incluye dental? 🦷 Muchos planes sí incluyen — y muchas personas no lo saben."</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Cuando le pregunto a mis clientes qué es lo que más les preocupa, casi siempre me dicen lo mismo: Isabel, los dientes. El dentista es carísimo. Y tienen razón — pero hay planes que sí cubren dental. Hoy te explico cuáles."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--green)">Gancho</span><div class="beat-time">0:00–0:09</div></div><div class="beat-txt">Señalarte los dientes con el dedo o mostrar gráfico de diente en pantalla. Directo, visual, sin ambigüedad.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--red)">El Problema</span><div class="beat-time">0:09–0:28</div></div><div class="beat-txt">Medicare Original (Part A + B) NO cubre dental. Muchas personas llegan al dentista y la cuenta es de $800+ sin esperarlo. Esto NO tiene que pasarte.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--teal)">La Solución</span><div class="beat-time">0:28–0:48</div></div><div class="beat-txt">Medicare Advantage SÍ puede incluir dental preventivo y mayor. SCAN, Alignment, Humana tienen coberturas distintas en SoCal. Hay que revisar cuál tiene la mejor red de dentistas en tu ZIP code específico.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:48–1:00</div></div><div class="beat-txt">"Escríbeme DIENTE en los comentarios y te ayudo a comparar los planes con mejor cobertura dental en tu área."</div></div>
+      <div class="compliance-box">
+        <span style="font-size:16px;flex-shrink:0">⚠️</span>
+        <div class="comp-inner"><div class="c-label">Nota CMS</div><div class="c-txt">Verificar cobertura dental específica por carrier y condado ANTES de filmar. Siempre decir "en planes selectos, sujeto a disponibilidad." No prometer cobertura específica hasta ver la situación individual.</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DAY 7 -->
+  <div class="card day-card">
+    <div class="day-header" onclick="toggleDay(7)" id="dh-7">
+      <div class="day-num" style="background:var(--gold-dark)"><span>DÍA</span><span>7</span></div>
+      <div class="day-meta">
+        <div class="day-title">No Existe "El Mejor Plan" <span class="badge bg-gold">Autoridad / FAQ</span> <span class="badge bg-muted">CTA: "PLAN"</span></div>
+        <div class="day-sub">¿Cuál plan es el mejor para mí? · Talking Head — confianza, no ventas</div>
+      </div>
+      <div class="day-arrow" style="color:var(--gold-dark)" id="da-7">▾</div>
+    </div>
+    <div class="day-body" id="db-7">
+      <div class="hooks-grid">
+        <div class="hook-box" style="background:var(--gold-light);border:1px solid rgba(201,169,110,.4)">
+          <div class="hook-label" style="color:var(--gold-dark)">📱 Gancho de Texto</div>
+          <div class="hook-text" style="color:var(--text-mid)">"La pregunta más común que me hacen: ¿Cuál es el mejor plan de Medicare? Mi respuesta siempre es la misma 👇"</div>
+        </div>
+        <div class="hook-box" style="background:var(--surface);border:1px solid var(--border)">
+          <div class="hook-label" style="color:var(--text-muted)">🎤 Gancho Verbal (seg 1–5)</div>
+          <div class="hook-text" style="color:var(--text-mid)">"Mucha gente me llama y lo primero que pregunta es: Isabel, ¿cuál es el mejor plan? Y yo siempre les digo lo mismo: no existe el mejor plan para todos — existe el plan correcto para TI."</div>
+        </div>
+      </div>
+      <div class="beats-title">Script por Beats</div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--gold-dark)">Gancho</span><div class="beat-time">0:00–0:09</div></div><div class="beat-txt">Levantar la mano con cara de pregunta genuina — "¿cuál es el mejor plan?" Los primeros 2 segundos deben comunicar curiosidad sin palabras.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:#64748B">Reencuadre</span><div class="beat-time">0:09–0:32</div></div><div class="beat-txt">Los 4 factores del plan correcto: (1) tus médicos, (2) tus medicamentos, (3) tu condado, (4) lo que más usas. Contar con dedos — el gesto visual es esencial para espectadores sin sonido.</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--teal)">Diferenciador</span><div class="beat-time">0:32–0:50</div></div><div class="beat-txt">"Por eso trabajo con múltiples compañías — SCAN, Anthem, Humana, Alignment, LA Care, Health Net, Molina, United. No estoy casada con ninguna. Mi trabajo es encontrar la mejor para TI."</div></div>
+      <div class="beat-row"><div class="beat-left"><span class="beat-tag" style="background:var(--text)">CTA</span><div class="beat-time">0:50–1:00</div></div><div class="beat-txt">"Escríbeme PLAN en los comentarios y hacemos la comparación gratuita — sin compromiso." Cierre con sonrisa segura, no ansiosa.</div></div>
+      <div class="compliance-box">
+        <span style="font-size:16px;flex-shrink:0">⚠️</span>
+        <div class="comp-inner"><div class="c-label">Nota CMS</div><div class="c-txt">Mencionar carriers por nombre está permitido a nivel agente en contenido educativo. No comparar precios concretos entre carriers sin disclaimers. Verificar que tienes contratos activos con todos los carriers que mencionas.</div></div>
+      </div>
+    </div>
+  </div>
+
+</div><!-- /wrap -->
+</div><!-- /panel-A -->
+
+<!-- ═══════════════════ TAB B — COMPETENCIA ═══════════════════ -->
+<div class="tab-panel" id="panel-B">
+<div class="wrap">
+  <div class="sec-header">
+    <div class="sec-icon" style="background:var(--teal-light);border:1.5px solid rgba(74,123,157,.3)">🔍</div>
+    <div>
+      <div class="sec-title">Inteligencia de Competencia — Mercado Hispano Medicare SoCal</div>
+      <div class="sec-sub">Análisis de contenido en Facebook/Meta · Lo que funciona, falla, y los huecos que Isabel puede tomar</div>
+    </div>
+  </div>
+
+  <div class="toggle-row">
+    <button class="toggle-btn active-works" onclick="switchComp('works')" id="cb-works">✅ Qué Funciona</button>
+    <button class="toggle-btn" onclick="switchComp('fails')" id="cb-fails">❌ Qué Falla</button>
+    <button class="toggle-btn" onclick="switchComp('gaps')" id="cb-gaps">💎 Oportunidades</button>
+  </div>
+
+  <!-- WORKS -->
+  <div class="comp-list active" id="comp-works">
+    <div class="comp-item"><div class="comp-icon">🎯</div><div><div class="comp-title">Videos de "Beneficios $0 / Gratis"</div><div class="comp-desc">Máximo engagement en el mercado hispano. Beneficios concretos superan explicaciones técnicas. La palabra "$0" detiene el scroll del 80% de la demo 55+ en pruebas de 2024–2025.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">👤</div><div><div class="comp-title">Testimonios Cara a Cámara</div><div class="comp-desc">Agentes con testimonios (reales o compuestos bien narrados) generan 3× más shares. La comunidad latina confía en personas, no en logos. El valor de la historia supera al dato estadístico.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">📅</div><div><div class="comp-title">Urgencia de Fechas AEP</div><div class="comp-desc">Contenido de "se acaba el tiempo" en octubre–noviembre explota en alcance orgánico. Agentes que publican temprano en octubre capturan la mayor parte del tráfico de la temporada.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">🌮</div><div><div class="comp-title">Conexión Cultural Auténtica</div><div class="comp-desc">Videos en entornos familiares (cocina, sala) superan a los de oficina formal. La autenticidad cultural genera confianza inmediata. El mercado hispano detecta a 1km la "actuación" corporativa.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">📱</div><div><div class="comp-title">Facebook + WhatsApp Combinados</div><div class="comp-desc">Agentes que usan Facebook como descubrimiento y WhatsApp para follow-up convierten entre 2× y 4× más que los que solo usan email o llamada fría.</div></div></div>
+  </div>
+
+  <!-- FAILS -->
+  <div class="comp-list" id="comp-fails">
+    <div class="comp-item"><div class="comp-icon">❌</div><div><div class="comp-title">Jerga Técnica Sin Traducción</div><div class="comp-desc">"Part A", "Part B", "formulary", "IRMAA" — el 80% de la audiencia hispana no maneja esta terminología. Pierden atención en 8 segundos. Casi nunca se explica en español real, solo traducción de términos.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">❌</div><div><div class="comp-title">Intro Lenta en los Primeros 3 Segundos</div><div class="comp-desc">El 70% de los videos competidores comienzan con "Hola, soy [nombre], agente de Medicare..." Facebook penaliza los primeros 3 segundos sin hook. El algoritmo entierra el video antes de que empiece.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">❌</div><div><div class="comp-title">Agentes Cautivos de Un Solo Carrier</div><div class="comp-desc">Agentes de solo SCAN o solo Humana son percibidos como vendedores, no asesores. Isabel siendo broker independiente con 8 carriers es una ventaja competitiva diferenciadora ENORME.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">❌</div><div><div class="comp-title">CTA Genérico o Ausente</div><div class="comp-desc">"Llámame" o "visita mi website" son los CTAs menos efectivos en Facebook orgánico. "Comenta X" genera 4× más conversiones. La barrera de escribir una palabra es casi cero.</div></div></div>
+    <div class="comp-item"><div class="comp-icon">❌</div><div><div class="comp-title">Sin Sistema de Contenido Consistente</div><div class="comp-desc">La mayoría publica 1–2 veces por mes de forma irregular. El algoritmo de Facebook premia la consistencia sobre la perfección. Un video promedio cada 2 días supera a un video perfecto por mes.</div></div></div>
+  </div>
+
+  <!-- GAPS -->
+  <div class="comp-list" id="comp-gaps">
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">0 Agentes Con Sistema en Español en SoCal <span class="badge bg-red">ALTA</span></div><div class="comp-desc">Ningún agente visible tiene un sistema de contenido diario o semanal en español. 30 días de contenido consistente convierte a Isabel en la voz de referencia del mercado.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">WhatsApp Status Ignorado Por Todos <span class="badge bg-red">ALTA</span></div><div class="comp-desc">Ningún competidor usa WhatsApp Status como canal sistemático. Es la pantalla más vista por la demo 55+ latina en SoCal. Costo: $0. Alcance: masivo entre clientes activos que reenvían a familiares.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">D-SNP Casi Nadie Lo Explica <span class="badge bg-red">ALTA</span></div><div class="comp-desc">Los planes Dual Eligible son el producto más valioso para la comunidad latina de bajos ingresos — y casi ningún agente en SoCal lo explica con claridad en español.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">Educación T-65 (Turning 65) <span class="badge bg-amber">MEDIA</span></div><div class="comp-desc">Hay contenido para personas ya en Medicare — muy poco para quienes se acercan a los 65. Este segmento no sabe ni por dónde empezar. Alta conversión, baja competencia.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">Inland Empire y OC Sub-servidos <span class="badge bg-amber">MEDIA</span></div><div class="comp-desc">Agentes con presencia en español se concentran en LA. Riverside, San Bernardino, Anaheim, Santa Ana tienen demanda no cubierta. El contenido local ("en Riverside") eleva el engagement notablemente.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+    <div class="comp-item"><div class="comp-icon">💎</div><div style="flex:1"><div class="comp-title">Bilingüe Real (No Traducción) <span class="badge bg-red">ALTA</span></div><div class="comp-desc">La mayoría publica en inglés o usa traducciones robóticas del inglés. Contenido generado en español natural — como Isabel habla — no tiene equivalente real en el mercado SoCal.</div></div><div class="gap-tag">HUECO<br>LIBRE</div></div>
+  </div>
+
+  <div class="advantage-box">
+    <div class="advantage-title">🏆 Ventaja Competitiva Clave de Isabel</div>
+    <div class="advantage-txt">Isabel combina <strong>3 diferenciadores que ningún competidor en SoCal tiene juntos</strong>: (1) broker independiente con 8 carriers — no está casada con nadie, (2) sistema de contenido en español natural, no traducido, y (3) opera en el mercado hispano bilingüe con autorización CMS. El primer agente que consolide estas tres ventajas con contenido consistente domina el mercado orgánico de Medicare en español en Southern California.</div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ TAB C — COMPLIANCE ═══════════════════ -->
+<div class="tab-panel" id="panel-C">
+<div class="wrap">
+  <div class="sec-header">
+    <div class="sec-icon" style="background:var(--red-light);border:1.5px solid rgba(192,57,43,.3)">✅</div>
+    <div>
+      <div class="sec-title">Revisión CMS — Script Día 1</div>
+      <div class="sec-sub">Análisis punto por punto · Medicare Marketing Guidelines (MMG) 2025–2026</div>
+    </div>
+  </div>
+
+  <div class="cms-alert">
+    <span style="font-size:22px;flex-shrink:0">📋</span>
+    <div class="cms-alert-txt"><strong>Advertencia General:</strong> El contenido de Medicare en redes sociales está regulado por CMS. Para anuncios pagados, se requiere aprobación de tu FMO/carrier antes de publicar. Para contenido orgánico educativo (no promocional de plan específico), los requisitos son menores — pero los puntos abajo aplican igualmente para protegerte legal y profesionalmente.</div>
+  </div>
+
+  <div class="cms-card sev-HIGH">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-red">⛔ Alto</span><span class="cms-regla">CMS MMG §70.10 — Premium Representation</span></div>
+      <div class="cms-linea" style="background:var(--red-light)">"prima de cero dólares al mes"</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> Sin qualifier de variabilidad por plan/condado. Esta afirmación requiere disclaimer obligatorio según CMS §70.10.</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> "Muchos planes de Medicare Advantage en el sur de California tienen prima de $0 al mes — dependiendo del plan y el condado donde vives."</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-HIGH">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-red">⛔ Alto</span><span class="cms-regla">CMS MMG §70.7 — Benefits Representation</span></div>
+      <div class="cms-linea" style="background:var(--red-light)">"Incluyen dental. Incluyen la vista. Algunos tienen hasta beneficios para el gimnasio."</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> Mencionar beneficios específicos sin qualifier puede considerarse representación material. Los beneficios varían por plan, condado y año fiscal.</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> Agregar siempre: "…en planes selectos, sujeto a disponibilidad en tu condado y según el plan específico."</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-MEDIUM">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-amber">⚠️ Medio</span><span class="cms-regla">CMS MMG §60.2 — Agent Compensation Disclosure</span></div>
+      <div class="cms-linea" style="background:var(--amber-light)">"te ayudo completamente gratis. Tú no me pagas nada."</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> Correcto en esencia — pero puede confundirse con que el plan es gratuito. CMS prefiere contexto de compensación explícito.</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> "Mi asesoría no te cuesta nada — los agentes de Medicare somos compensados por los carriers, no por ti."</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-MEDIUM">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-amber">⚠️ Medio</span><span class="cms-regla">CMS MMG §50.3 — Truthful and Not Misleading</span></div>
+      <div class="cms-linea" style="background:var(--amber-light)">Estadística: "0 agentes independientes con sistema en español en SoCal"</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> Afirmación comparativa no verificable. CMS requiere que las comparaciones sean precisas y comprobables.</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> Remover o cambiar a: "Muy pocos agentes en nuestro mercado tienen un sistema de educación consistente en español."</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-MEDIUM">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-amber">⚠️ Medio</span><span class="cms-regla">CMS MMG §70.9 — Scope of Appointment</span></div>
+      <div class="cms-linea" style="background:var(--amber-light)">"Escríbeme '65' en los comentarios — te llamo"</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> El contacto outbound basado en un comentario sin Scope of Appointment (SOA) puede ser problemático. Verificar protocolo de tu FMO.</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> El comentario actúa como expresión de interés — legítimo. Al contactarlos, completar SOA antes de discutir planes específicos. Tu FMO puede tener un SOA digital para texto/WhatsApp.</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-LOW">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-teal">ℹ️ Bajo</span><span class="cms-regla">CMS MMG §80.2 — Government Disclaimer</span></div>
+      <div class="cms-linea" style="background:var(--teal-light)">Disclaimer de gobierno — ausente en el video</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Problema:</strong> Para material de MA, CMS recomienda incluir: "We are not connected with or endorsed by the U.S. Government or the federal Medicare program."</div>
+      <div class="cms-fix"><span>✏️</span><div class="cms-fix-txt"><strong>Fix:</strong> Incluir en la descripción del post de Facebook (no necesariamente en el video oral). En inglés y español en posts bilingües.</div></div>
+    </div>
+  </div>
+
+  <div class="cms-card sev-INFO">
+    <div class="cms-body">
+      <div class="cms-top"><span class="badge bg-green">✅ OK</span><span class="cms-regla">CMS MMG §60.1 — Agent Identification</span></div>
+      <div class="cms-linea" style="background:var(--green-light)">"Soy Isabel, agente licenciada de Medicare"</div>
+      <div class="cms-prob"><strong style="color:var(--text)">Estado:</strong> Correcto. La identificación con nombre y licencia es requerida y está bien ejecutada en el video.</div>
+    </div>
+  </div>
+
+  <div class="gold-rules">
+    <div class="gold-rules-title">🛡️ Reglas de Oro CMS Para Todo Contenido de Medicare</div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">No menciones primas o copagos específicos sin decir "varía según plan y condado"</span></div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">No compares planes específicos en contenido orgánico — sí en entrevistas individuales con SOA firmado</span></div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">Siempre incluye tu nombre y NPN en el video o en la descripción del post</span></div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">No uses "gratis" para el plan — usa "$0 de prima mensual en planes selectos"</span></div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">Historias de clientes requieren consentimiento escrito o declarar "historia compuesta para proteger privacidad"</span></div>
+    <div class="rule-row"><span class="rule-check">✓</span><span class="rule-txt">Para ads pagados: aprobación de FMO/carrier SIEMPRE antes de publicar</span></div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════ TAB D — FACEBOOK ADS ═══════════════════ -->
+<div class="tab-panel" id="panel-D">
+<div class="wrap">
+  <div class="sec-header">
+    <div class="sec-icon" style="background:var(--purple-light);border:1.5px solid rgba(109,63,175,.3)">📢</div>
+    <div>
+      <div class="sec-title">Estrategia de Facebook Ads — Día 1</div>
+      <div class="sec-sub">Campaña de Lead Generation · Sur de California · Mercado hispano Medicare</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:18px">
+    <div style="background:var(--purple-light);padding:14px 20px;border-bottom:1px solid var(--border)">
+      <div style="font-weight:800;font-size:13px;color:var(--purple);letter-spacing:.5px">📊 ESTRUCTURA DE CAMPAÑA</div>
+    </div>
+    <div class="campaign-grid">
+      <div class="camp-item"><span class="camp-icon">🎯</span><div><div class="camp-label">Objetivo</div><div class="camp-val">Lead Generation — Facebook Lead Ads (formulario nativo)</div></div></div>
+      <div class="camp-item"><span class="camp-icon">💰</span><div><div class="camp-label">Presupuesto AEP</div><div class="camp-val">$20–30/día durante Oct 15–Dic 7</div></div></div>
+      <div class="camp-item"><span class="camp-icon">📆</span><div><div class="camp-label">Presupuesto Off-AEP</div><div class="camp-val">$8–12/día para T-65 evergreen</div></div></div>
+      <div class="camp-item"><span class="camp-icon">🧪</span><div><div class="camp-label">Prueba Inicial</div><div class="camp-val">7 días por conjunto antes de escalar</div></div></div>
+      <div class="camp-item" style="grid-column:1/-1"><span class="camp-icon">📈</span><div><div class="camp-label">ROI Esperado</div><div class="camp-val">Costo por lead: $15–45 en SoCal hispano (benchmark 2025). Conversión de lead a cliente: 15–30% con buen follow-up por WhatsApp.</div></div></div>
+    </div>
+  </div>
+
+  <div style="font-weight:800;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px">👥 Audiencias Objetivo</div>
+
+  <div class="aud-card">
+    <div class="aud-title">T-65 Núcleo — SoCal Hispano <span class="badge bg-red">ALTA</span> <span class="badge bg-purple">50% del presupuesto</span></div>
+    <div class="aud-targeting"><strong>Targeting:</strong> Edad: 62–67 · Idioma: Español · LA Metro + OC + Inland Empire · Intereses: Medicare, Social Security, salud senior</div>
+    <div class="aud-note">💡 Tu audiencia principal. Personas que se acercan a Medicare por primera vez y necesitan orientación en español. Alto intent, alta conversión.</div>
+  </div>
+
+  <div class="aud-card">
+    <div class="aud-title">Cuidadores Familiares Hispanos <span class="badge bg-amber">MEDIA</span> <span class="badge bg-purple">25% del presupuesto</span></div>
+    <div class="aud-targeting"><strong>Targeting:</strong> Edad: 35–55 · Español o inglés · Intereses: cuidado de ancianos, seguro médico familiar · Comportamiento: Family caregiver</div>
+    <div class="aud-note">💡 Hijos que buscan ayuda para sus padres. Muy alta motivación — a veces más que el propio beneficiario. Excelente canal de referido orgánico.</div>
+  </div>
+
+  <div class="aud-card">
+    <div class="aud-title">Retargeting — Video Views 50%+ <span class="badge bg-red">ALTA</span> <span class="badge bg-purple">25% del presupuesto</span></div>
+    <div class="aud-targeting"><strong>Targeting:</strong> Custom Audience: vieron más del 50% del video del Día 1 · Excluir: leads ya completados</div>
+    <div class="aud-note">💡 Mejor ROI del presupuesto completo. Personas que ya mostraron interés — solo necesitan el empuje final hacia el formulario.</div>
+  </div>
+
+  <div style="font-weight:800;font-size:13px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.8px;margin:18px 0 12px">✍️ Variantes de Copy — A/B/C Test</div>
+
+  <div class="copy-tabs">
+    <button class="copy-tab active" onclick="switchCopy(0)" id="ct-0">Variante A</button>
+    <button class="copy-tab" onclick="switchCopy(1)" id="ct-1">Variante B</button>
+    <button class="copy-tab" onclick="switchCopy(2)" id="ct-2">Variante C</button>
+  </div>
+
+  <div class="card">
+    <div style="padding:20px 22px">
+      <div class="copy-panel active" id="cp-0">
+        <div style="margin-bottom:10px"><span class="badge bg-purple">A — Urgencia (Multa)</span></div>
+        <div class="copy-headline">"¿Cumples 65 este año? Hay una multa que nadie te explicó."</div>
+        <div class="copy-body">Si no te inscribes a Medicare en el momento correcto, pueden cobrarte una multa de por vida en tu prima mensual. Isabel Fuentes, agente licenciada en el sur de California, te explica todo sin costo para ti.</div>
+        <div><span class="copy-cta">📲 Hablar con Isabel</span><span class="copy-note">💡 Mejor para tráfico frío. El gancho de miedo detiene el scroll.</span></div>
+      </div>
+      <div class="copy-panel" id="cp-1">
+        <div style="margin-bottom:10px"><span class="badge bg-purple">B — Beneficios $0</span></div>
+        <div class="copy-headline">"Planes de Medicare con $0 al mes + dental + vista en planes selectos."</div>
+        <div class="copy-body">En el sur de California hay planes de Medicare Advantage que pueden costarte $0 de prima mensual e incluir dental, vista y más. Isabel te ayuda a encontrar el correcto para TI — sin costo y sin compromiso. (Primas y beneficios varían según plan y condado.)</div>
+        <div><span class="copy-cta">📲 Ver Mis Opciones</span><span class="copy-note">💡 Mejor para retargeting. La audiencia ya sabe quién eres.</span></div>
+      </div>
+      <div class="copy-panel" id="cp-2">
+        <div style="margin-bottom:10px"><span class="badge bg-purple">C — Confianza Bilingüe</span></div>
+        <div class="copy-headline">"Medicare en Español — Isabel te ayuda gratis en el Sur de California."</div>
+        <div class="copy-body">¿Prefieres que alguien te explique Medicare en español? Soy Isabel Fuentes, agente licenciada en el sur de California. Trabajo con SCAN, Anthem, Humana, Molina y más. Sin compromiso, sin presión.</div>
+        <div><span class="copy-cta">📲 Consulta Gratuita</span><span class="copy-note">💡 Mejor para audiencia de cuidadores. El idioma como diferenciador.</span></div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- ═══════════════════ TAB E — 30 DÍAS ═══════════════════ -->
+<div class="tab-panel" id="panel-E">
+<div class="wrap">
+  <div class="sec-header">
+    <div class="sec-icon" style="background:var(--green-light);border:1.5px solid rgba(46,125,85,.3)">🗓️</div>
+    <div>
+      <div class="sec-title">Calendario Completo — 30 Días</div>
+      <div class="sec-sub">Sistema de contenido · Pillares · CTA palabras clave · Haz clic en cualquier día para ver detalles</div>
+    </div>
+  </div>
+
+  <div class="legend">
+    <div class="legend-item"><div class="legend-dot" style="background:var(--red)"></div>Urgencia/AEP/Mitos</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--teal)"></div>Educativo/Herramienta</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--purple)"></div>Avanzado/Local/Live</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--amber)"></div>Confianza/FAQ/Error</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--green)"></div>Beneficio/BTS</div>
+    <div class="legend-item"><div class="legend-dot" style="background:var(--gold)"></div>Autoridad/Comunidad</div>
+  </div>
+
+  <div id="cal-container"></div>
+  <div id="day-detail" style="display:none"></div>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-num" style="color:var(--teal)">30</div><div class="stat-lbl">Días de contenido</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--purple)">6</div><div class="stat-lbl">Pilares distintos</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--red)">18</div><div class="stat-lbl">Reels de 60 seg</div></div>
+    <div class="stat-card"><div class="stat-num" style="color:var(--amber)">4+</div><div class="stat-lbl">Carruseles y Posts</div></div>
+  </div>
+</div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <strong style="color:var(--text-mid)">Isabel Fuentes · Licensed Medicare Agent · withisabelfuentes.com</strong>
+  · Sistema de Contenido Medicare en Español · Southern California · CMS Compliant
+</div>
+
+<script>
+// ── TAB SWITCHING ──
+function switchTab(id) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelector(`.tab-btn[data-id="${id}"]`).classList.add('active');
+  document.getElementById('panel-'+id).classList.add('active');
+}
+
+// ── DAY ACCORDION ──
+var openDay = null;
+function toggleDay(n) {
+  var body = document.getElementById('db-'+n);
+  var arrow = document.getElementById('da-'+n);
+  var header = document.getElementById('dh-'+n);
+  if (openDay && openDay !== n) {
+    var ob = document.getElementById('db-'+openDay);
+    var oa = document.getElementById('da-'+openDay);
+    var oh = document.getElementById('dh-'+openDay);
+    ob.classList.remove('open');
+    oa.style.transform = 'none';
+    oh.style.background = 'white';
+  }
+  if (body.classList.contains('open')) {
+    body.classList.remove('open');
+    arrow.style.transform = 'none';
+    header.style.background = 'white';
+    openDay = null;
+  } else {
+    body.classList.add('open');
+    arrow.style.transform = 'rotate(180deg)';
+    header.style.background = 'var(--surface)';
+    openDay = n;
+  }
+}
+
+// ── COMPETITION TABS ──
+function switchComp(which) {
+  ['works','fails','gaps'].forEach(function(w) {
+    document.getElementById('comp-'+w).classList.remove('active');
+    document.getElementById('cb-'+w).classList.remove('active-works','active-fails','active-gaps');
+  });
+  document.getElementById('comp-'+which).classList.add('active');
+  document.getElementById('cb-'+which).classList.add('active-'+which);
+  // Show/hide advantage box only for gaps
+  var adv = document.querySelector('.advantage-box');
+  if(adv) adv.style.display = (which === 'gaps') ? 'block' : 'none';
+}
+
+// ── AD COPY TABS ──
+function switchCopy(i) {
+  document.querySelectorAll('.copy-tab').forEach(function(t,idx) {
+    t.classList.toggle('active', idx === i);
+  });
+  document.querySelectorAll('.copy-panel').forEach(function(p,idx) {
+    p.classList.toggle('active', idx === i);
+  });
+}
+
+// ── CALENDAR 30 DÍAS ──
+var calData = [
+  {day:1,week:1,pillar:'Urgencia',tema:'La multa de por vida',tipo:'Reel 60s',cta:'65',color:'var(--red)'},
+  {day:2,week:1,pillar:'Educativo',tema:'Beneficios a $0',tipo:'Reel 60s',cta:'GRATIS',color:'var(--teal)'},
+  {day:3,week:1,pillar:'Avanzado',tema:'Dual Eligible D-SNP',tipo:'Reel 60s',cta:'DOBLE',color:'var(--purple)'},
+  {day:4,week:1,pillar:'Confianza',tema:'Historia: la multa de María',tipo:'Reel 60s',cta:'REVISAR',color:'var(--amber)'},
+  {day:5,week:1,pillar:'AEP',tema:'Oct 15–Dic 7: la ventana',tipo:'Reel 60s',cta:'OCTUBRE',color:'var(--red)'},
+  {day:6,week:1,pillar:'Beneficio',tema:'Dental — el más buscado',tipo:'Reel 60s',cta:'DIENTE',color:'var(--green)'},
+  {day:7,week:1,pillar:'Autoridad',tema:'¿Cuál plan es el mejor?',tipo:'Reel 60s',cta:'PLAN',color:'var(--gold-dark)'},
+  {day:8,week:2,pillar:'Educativo',tema:'¿Y mis medicamentos? Part D',tipo:'Reel 60s',cta:'MEDS',color:'var(--teal)'},
+  {day:9,week:2,pillar:'FAQ',tema:'¿Puedo cambiar de médico?',tipo:'Post Texto',cta:'DOCTOR',color:'var(--amber)'},
+  {day:10,week:2,pillar:'Avanzado',tema:'Medicare vs Medi-Cal — diferencia',tipo:'Reel 60s',cta:'DIFERENCIA',color:'var(--purple)'},
+  {day:11,week:2,pillar:'Confianza',tema:'Historia: la visión de Don Carlos',tipo:'Reel 60s',cta:'VISTA',color:'var(--green)'},
+  {day:12,week:2,pillar:'Beneficio',tema:'Tarjeta OTC — dinero para farma',tipo:'Reel 60s',cta:'OTC',color:'var(--gold-dark)'},
+  {day:13,week:2,pillar:'Beneficio',tema:'Transporte médico incluido',tipo:'Reel 60s',cta:'TRANSPORTE',color:'var(--teal)'},
+  {day:14,week:2,pillar:'Engagement',tema:'Pregunta: ¿cuál es tu mayor duda?',tipo:'Post Q&A',cta:'PREGUNTA',color:'var(--amber)'},
+  {day:15,week:3,pillar:'BTS',tema:'Un día ayudando a una familia',tipo:'Vlog corto',cta:'COMPARTIR',color:'var(--green)'},
+  {day:16,week:3,pillar:'Plan Spotlight',tema:'SCAN Health Plan — qué lo hace especial',tipo:'Reel 60s',cta:'SCAN',color:'var(--teal)'},
+  {day:17,week:3,pillar:'Local',tema:'Inland Empire — planes disponibles',tipo:'Reel geo',cta:'INLAND',color:'var(--purple)'},
+  {day:18,week:3,pillar:'Local',tema:'Orange County — planes disponibles',tipo:'Reel geo',cta:'OC',color:'var(--amber)'},
+  {day:19,week:3,pillar:'Confianza',tema:'Testimonio bilingüe',tipo:'Reel 60s',cta:'REVISAR',color:'var(--gold-dark)'},
+  {day:20,week:3,pillar:'Mitos',tema:'MITO: Medicare es gratis para todos',tipo:'Reel 60s',cta:'MITO',color:'var(--red)'},
+  {day:21,week:3,pillar:'Mitos',tema:'MITO: No puedo cambiar de plan',tipo:'Reel 60s',cta:'MITO2',color:'var(--red)'},
+  {day:22,week:4,pillar:'AEP',tema:'"Quedan X días para inscribirse"',tipo:'Reel countdown',cta:'URGENTE',color:'var(--red)'},
+  {day:23,week:4,pillar:'Herramienta',tema:'Checklist de inscripción Medicare',tipo:'Carrusel',cta:'CHECKLIST',color:'var(--teal)'},
+  {day:24,week:4,pillar:'Confianza',tema:'De $189/mes a $0/mes — historia',tipo:'Reel 60s',cta:'HISTORIA',color:'var(--green)'},
+  {day:25,week:4,pillar:'Avanzado',tema:'SCAN vs Humana vs Alignment',tipo:'Carrusel visual',cta:'COMPARAR',color:'var(--purple)'},
+  {day:26,week:4,pillar:'Error',tema:'Los 3 errores más costosos',tipo:'Reel 60s',cta:'ERROR',color:'var(--amber)'},
+  {day:27,week:4,pillar:'Conversión',tema:'"¿Aún no revisaste tu plan?"',tipo:'Reel directo',cta:'REVISAR',color:'var(--red)'},
+  {day:28,week:4,pillar:'Comunidad',tema:'Gracias — comparte con quien necesite',tipo:'Post cierre',cta:'COMPARTIR',color:'var(--gold-dark)'},
+  {day:29,week:5,pillar:'Live',tema:'Facebook Live: preguntas en vivo',tipo:'Facebook Live',cta:'VIVO',color:'var(--purple)'},
+  {day:30,week:5,pillar:'Resumen',tema:'30 días — lo que aprendimos juntos',tipo:'Reel resumen',cta:'SIGUIENTE',color:'var(--teal)'},
+];
+
+var weekLabels = {
+  1: 'Semana 1 — 🏗️ Fundación',
+  2: 'Semana 2 — 📚 Autoridad',
+  3: 'Semana 3 — 🤝 Prueba Social',
+  4: 'Semana 4 — 🔥 Máxima Urgencia AEP',
+  5: 'Bonus — 🎤 Live y Cierre',
+};
+
+var selectedDay = null;
+
+function renderCalendar() {
+  var container = document.getElementById('cal-container');
+  var html = '';
+  [1,2,3,4,5].forEach(function(wk) {
+    var days = calData.filter(function(d){ return d.week === wk; });
+    html += '<div class="week-label">'+weekLabels[wk]+'</div>';
+    html += '<div class="week-grid">';
+    days.forEach(function(d) {
+      var sel = selectedDay === d.day;
+      var bgStyle = sel ? 'background:'+d.color+';border-color:'+d.color+';' : '';
+      var numColor = sel ? '#fff' : d.color;
+      var pillarColor = sel ? 'rgba(255,255,255,0.85)' : 'var(--text-muted)';
+      var ctaBg = sel ? 'rgba(255,255,255,0.2)' : d.color.replace('var(','').replace(')','');
+      html += '<div class="cal-day" style="'+bgStyle+'" onclick="selectDay('+d.day+')">';
+      html += '<div class="cal-num" style="color:'+numColor+'">'+d.day+'</div>';
+      html += '<div class="cal-pillar" style="color:'+pillarColor+'">'+d.pillar+'</div>';
+      html += '<div class="cal-cta" style="background:'+d.color+'22;color:'+d.color+'">'+d.cta+'</div>';
+      html += '</div>';
+    });
+    html += '</div>';
+  });
+  container.innerHTML = html;
+}
+
+function selectDay(n) {
+  if (selectedDay === n) {
+    selectedDay = null;
+    document.getElementById('day-detail').style.display = 'none';
+    renderCalendar();
+    return;
+  }
+  selectedDay = n;
+  renderCalendar();
+  var d = calData.find(function(x){ return x.day === n; });
+  if (!d) return;
+  var det = document.getElementById('day-detail');
+  det.style.display = 'block';
+  det.innerHTML =
+    '<div class="day-detail" style="border-color:'+d.color+'">' +
+      '<div class="detail-head" style="background:'+d.color+'">' +
+        '<div><div class="detail-title">Día '+d.day+' — '+d.tema+'</div>' +
+        '<div class="detail-sub">'+d.tipo+' · CTA: "'+d.cta+'"</div></div>' +
+        '<span class="badge" style="background:rgba(255,255,255,.25);color:#fff;border:1px solid rgba(255,255,255,.4)">'+d.pillar+'</span>' +
+      '</div>' +
+      '<div class="detail-body">' +
+        '<div class="detail-cell"><div class="detail-cell-label">Pilar</div><div class="detail-cell-val">'+d.pillar+'</div></div>' +
+        '<div class="detail-cell"><div class="detail-cell-label">Tipo</div><div class="detail-cell-val">'+d.tipo+'</div></div>' +
+        '<div class="detail-cell" style="background:'+d.color+'10;border-color:'+d.color+'33"><div class="detail-cell-label" style="color:'+d.color+'">Palabra CTA</div><div class="detail-cell-val" style="font-size:20px;color:'+d.color+'">"'+d.cta+'"</div></div>' +
+      '</div>' +
+    '</div>';
+  setTimeout(function(){ det.scrollIntoView({behavior:'smooth',block:'nearest'}); }, 100);
+}
+
+renderCalendar();
+</script>
+</body>
+</html>

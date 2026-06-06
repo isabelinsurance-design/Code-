@@ -1,0 +1,1122 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Isabel Fuentes — Marketing Intelligence Hub</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --bg:         #F7F3EC;
+    --bg-card:    #FDFBF8;
+    --bg-soft:    #F0EBE1;
+    --gold:       #C9A96E;
+    --gold-light: #E8D5B0;
+    --gold-dark:  #A07840;
+    --charcoal:   #2C2416;
+    --char-mid:   #5A4A38;
+    --char-lt:    #8B7355;
+    --red:        #B83C2B;
+    --red-light:  #FAF0EE;
+    --teal:       #4A7B9D;
+    --teal-light: #EBF3F8;
+    --green:      #4A8C5C;
+    --green-lt:   #EBF5EF;
+    --border:     #E8DFD0;
+    --border-lt:  #F0E8DC;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--charcoal);
+    min-height: 100vh;
+  }
+
+  .hub {
+    max-width: 480px;
+    margin: 0 auto;
+    position: relative;
+  }
+
+  /* ── HEADER ── */
+  .hub-header {
+    background: var(--bg-card);
+    border-bottom: 1px solid var(--border);
+    padding: 20px 20px 16px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+
+  .agent-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+
+  .avatar {
+    width: 44px; height: 44px;
+    background: var(--gold-light);
+    border: 1.5px solid var(--gold);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px;
+    flex-shrink: 0;
+  }
+
+  .agent-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--charcoal);
+    line-height: 1.1;
+  }
+  .agent-name em { color: var(--gold); font-style: italic; }
+
+  .agent-sub {
+    font-size: 10px;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--char-lt);
+    margin-top: 3px;
+  }
+
+  .progress-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .tag-pill {
+    background: var(--gold-light);
+    color: var(--gold-dark);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 20px;
+    border: 1px solid var(--gold);
+    white-space: nowrap;
+  }
+
+  .progress-block { text-align: right; }
+
+  .progress-pct {
+    font-family: 'Playfair Display', serif;
+    font-size: 24px;
+    color: var(--charcoal);
+    line-height: 1;
+  }
+
+  .progress-label {
+    font-size: 10px;
+    color: var(--char-lt);
+    margin-top: 2px;
+  }
+
+  .progress-track {
+    height: 4px;
+    background: var(--border);
+    border-radius: 2px;
+    margin-top: 6px;
+    overflow: hidden;
+    width: 120px;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold-dark));
+    border-radius: 2px;
+    width: 0%;
+    transition: width 0.8s ease;
+  }
+
+  /* ── ALERT ── */
+  .hub-alert {
+    margin: 16px;
+    background: var(--bg-card);
+    border: 1.5px solid var(--red);
+    border-left: 4px solid var(--red);
+    border-radius: 12px;
+    padding: 14px 16px;
+  }
+
+  .alert-title {
+    display: flex; align-items: center; gap: 8px;
+    font-weight: 600;
+    font-size: 14px;
+    color: var(--red);
+    margin-bottom: 6px;
+  }
+
+  .alert-body {
+    font-size: 13px;
+    line-height: 1.55;
+    color: var(--char-mid);
+  }
+  .alert-body strong { color: var(--charcoal); font-weight: 600; }
+
+  /* ── NAV TABS ── */
+  .hub-nav {
+    display: flex;
+    gap: 8px;
+    padding: 0 16px 16px;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .hub-nav::-webkit-scrollbar { display: none; }
+
+  .nav-btn {
+    flex-shrink: 0;
+    padding: 8px 14px;
+    border-radius: 20px;
+    border: 1.5px solid var(--border);
+    background: var(--bg-card);
+    color: var(--char-mid);
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all .2s;
+    font-family: 'DM Sans', sans-serif;
+    white-space: nowrap;
+  }
+  .nav-btn:hover { border-color: var(--gold); color: var(--gold-dark); }
+  .nav-btn.active { background: var(--charcoal); border-color: var(--charcoal); color: #fff; }
+
+  /* ── CONTENT ── */
+  .hub-content { padding: 0 16px 60px; }
+
+  .section-panel { display: none; }
+  .section-panel.visible { display: block; }
+
+  .section-heading {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--charcoal);
+    margin-bottom: 14px;
+    display: flex; align-items: center; gap: 8px;
+  }
+
+  .section-intro {
+    font-size: 12.5px;
+    color: var(--char-mid);
+    line-height: 1.55;
+    margin-bottom: 16px;
+  }
+
+  .hub-divider {
+    height: 1px;
+    background: var(--border);
+    margin: 20px 0;
+  }
+
+  /* ── ROADMAP ── */
+  .week-label {
+    font-size: 10px;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+
+  .week-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-style: italic;
+    color: var(--charcoal);
+    margin-bottom: 14px;
+  }
+
+  .task-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: all .2s;
+    position: relative;
+    overflow: hidden;
+    user-select: none;
+  }
+  .task-card:hover { border-color: var(--gold); transform: translateY(-1px); box-shadow: 0 4px 16px rgba(0,0,0,.06); }
+  .task-card.done { opacity: .65; border-color: var(--green-lt); }
+  .task-card.done::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0;
+    width: 3px; height: 100%;
+    background: var(--green);
+  }
+
+  .task-header {
+    display: flex; align-items: flex-start; gap: 10px;
+    margin-bottom: 6px;
+  }
+
+  .task-icon { font-size: 20px; flex-shrink: 0; margin-top: 1px; }
+
+  .task-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--charcoal);
+    line-height: 1.3;
+    flex: 1;
+  }
+
+  .task-check {
+    width: 22px; height: 22px;
+    border-radius: 50%;
+    border: 2px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    transition: all .2s;
+    font-size: 12px;
+    color: transparent;
+  }
+  .task-card.done .task-check {
+    background: var(--green);
+    border-color: var(--green);
+    color: #fff;
+  }
+
+  .task-body {
+    font-size: 12.5px;
+    color: var(--char-mid);
+    line-height: 1.55;
+    padding-left: 30px;
+  }
+
+  /* ── Q&A ACCORDION ── */
+  .qa-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 14px;
+    margin-bottom: 12px;
+    overflow: hidden;
+  }
+
+  .qa-header {
+    padding: 14px 16px;
+    cursor: pointer;
+    display: flex; align-items: center; gap: 10px;
+    transition: background .15s;
+  }
+  .qa-header:hover { background: var(--bg-soft); }
+
+  .qa-rank {
+    font-family: 'Playfair Display', serif;
+    font-size: 18px;
+    color: var(--gold-light);
+    font-weight: 600;
+    min-width: 26px;
+  }
+
+  .qa-q {
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--charcoal);
+    flex: 1;
+    line-height: 1.35;
+  }
+
+  .qa-chevron {
+    font-size: 10px;
+    color: var(--char-lt);
+    transition: transform .2s;
+  }
+  .qa-card.open .qa-chevron { transform: rotate(180deg); }
+
+  .qa-body {
+    display: none;
+    padding: 0 16px 14px;
+    border-top: 1px solid var(--border-lt);
+  }
+  .qa-card.open .qa-body { display: block; }
+
+  .qa-freq {
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--char-lt);
+    margin: 10px 0 6px;
+  }
+
+  .qa-answer {
+    background: var(--bg-soft);
+    border-left: 3px solid var(--gold);
+    border-radius: 0 8px 8px 0;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--char-mid);
+    font-style: italic;
+    margin-bottom: 10px;
+  }
+
+  .ci-title {
+    font-size: 10px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .ci-item {
+    display: flex; gap: 7px; align-items: flex-start;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: var(--char-mid);
+    line-height: 1.4;
+  }
+
+  .ci-badge {
+    font-size: 9px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    flex-shrink: 0;
+    margin-top: 1px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .badge-post  { background: var(--teal-light); color: var(--teal); }
+  .badge-reel  { background: var(--red-light);  color: var(--red);  }
+  .badge-email { background: var(--gold-light); color: var(--gold-dark); }
+
+  /* ── VOCABULARY ── */
+  .vocab-row {
+    display: flex; gap: 8px; align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border-lt);
+    font-size: 13px;
+  }
+  .vocab-community { flex: 1; font-style: italic; color: var(--charcoal); font-weight: 500; }
+  .vocab-arrow { color: var(--gold); font-size: 12px; flex-shrink: 0; margin-top: 2px; }
+  .vocab-tech { flex: 1; color: var(--char-mid); font-size: 12px; }
+
+  /* ── OPPORTUNITIES ── */
+  .opp-card {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-left: 4px solid var(--gold);
+    border-radius: 14px;
+    padding: 16px;
+    margin-bottom: 10px;
+  }
+
+  .opp-rank {
+    font-family: 'Playfair Display', serif;
+    font-size: 28px;
+    color: var(--gold-light);
+    line-height: 1;
+    margin-bottom: 4px;
+  }
+
+  .opp-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--charcoal);
+    margin-bottom: 6px;
+    line-height: 1.35;
+  }
+
+  .opp-why {
+    font-size: 12px;
+    color: var(--char-mid);
+    line-height: 1.5;
+    margin-bottom: 8px;
+  }
+
+  .opp-content {
+    background: var(--bg-soft);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 11.5px;
+    color: var(--teal);
+    font-weight: 500;
+    line-height: 1.4;
+  }
+
+  /* ── RESPONSE BANK ── */
+  .resp-section { margin-bottom: 20px; }
+
+  .resp-cat {
+    font-size: 11px;
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    color: var(--teal);
+    font-weight: 600;
+    margin-bottom: 8px;
+  }
+
+  .resp-trigger {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--charcoal);
+    padding: 8px 12px;
+    background: var(--bg-soft);
+    border-radius: 8px;
+    border-left: 3px solid var(--border);
+    margin-bottom: 5px;
+  }
+
+  .resp-bubble {
+    background: var(--bg-card);
+    border: 1.5px solid var(--border);
+    border-radius: 0 12px 12px 12px;
+    padding: 10px 12px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: var(--char-mid);
+    margin-bottom: 10px;
+    cursor: pointer;
+    transition: border-color .15s;
+    position: relative;
+  }
+  .resp-bubble:hover { border-color: var(--gold); }
+  .resp-bubble::after {
+    content: '⎘ copiar';
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 9px;
+    letter-spacing: .5px;
+    text-transform: uppercase;
+    color: var(--char-lt);
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .resp-bubble:hover::after { opacity: 1; }
+  .resp-bubble.copied { border-color: var(--green); }
+
+  /* ── COMPLIANCE ── */
+  .compliance-item {
+    display: flex; gap: 10px; align-items: flex-start;
+    padding: 10px 12px;
+    border-radius: 10px;
+    margin-bottom: 6px;
+    font-size: 13px;
+    line-height: 1.4;
+  }
+  .compliance-item.ok { background: var(--green-lt); }
+  .compliance-item.no { background: var(--red-light); }
+
+  .info-box {
+    margin-top: 12px;
+    padding: 14px 16px;
+    border-radius: 12px;
+    font-size: 12.5px;
+    line-height: 1.5;
+  }
+  .info-box.teal { background: var(--teal-light); border: 1.5px solid var(--teal); }
+  .info-box.neutral { background: var(--bg-soft); border: 1.5px solid var(--border); text-align: center; }
+
+  .info-box-label {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .teal .info-box-label { color: var(--teal); }
+  .neutral .info-box-label { color: var(--char-lt); }
+
+  .info-box-content { color: var(--char-mid); }
+  .neutral .info-box-content { font-size: 15px; font-weight: 600; color: var(--gold); }
+
+  /* ── TOAST ── */
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(60px);
+    background: var(--charcoal);
+    color: #fff;
+    padding: 10px 20px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0;
+    transition: all .3s ease;
+    z-index: 999;
+    white-space: nowrap;
+  }
+  .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<div class="hub">
+
+  <!-- HEADER -->
+  <div class="hub-header">
+    <div class="agent-row">
+      <div class="avatar">⭐</div>
+      <div>
+        <div class="agent-name">Isabel <em>Fuentes</em></div>
+        <div class="agent-sub">Marketing Intelligence Hub · Medicare SoCal</div>
+      </div>
+    </div>
+    <div class="progress-row">
+      <div class="tag-pill">🌴 Sur de California</div>
+      <div class="progress-block">
+        <div class="progress-pct" id="pct-num">0%</div>
+        <div class="progress-label" id="pct-label">0/12 completado</div>
+        <div class="progress-track">
+          <div class="progress-fill" id="pct-bar"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ALERT -->
+  <div class="hub-alert">
+    <div class="alert-title">🚨 Oportunidad Crítica — Mayo 2026</div>
+    <div class="alert-body">
+      215 millones de impresiones de anuncios <em>falsos</em> de Medicare llegaron a seniors hispanos este año. Tu mercado está confundido. <strong>Tú, Isabel, eres la agente legítima, bilingüe y verificable que esa audiencia necesita ahora mismo.</strong>
+    </div>
+  </div>
+
+  <!-- NAV -->
+  <div class="hub-nav">
+    <button class="nav-btn active" data-tab="roadmap">🗺️ Roadmap</button>
+    <button class="nav-btn" data-tab="preguntas">❓ Preguntas</button>
+    <button class="nav-btn" data-tab="vocabulario">🗣️ Vocabulario</button>
+    <button class="nav-btn" data-tab="oportunidades">🏆 Oportunidades</button>
+    <button class="nav-btn" data-tab="respuestas">💬 Respuestas</button>
+    <button class="nav-btn" data-tab="compliance">⚖️ Compliance</button>
+  </div>
+
+  <!-- CONTENT -->
+  <div class="hub-content">
+
+    <!-- ══ ROADMAP ══ -->
+    <div class="section-panel visible" id="tab-roadmap">
+
+      <div class="week-label">Semana 1</div>
+      <div class="week-title">Investigación y Fundación</div>
+      <div class="task-card" data-id="1" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">🕵️</span>
+          <span class="task-title">Días 1-2: Espiar Competidores</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Abre Meta Ad Library. Busca 10 palabras clave. Documenta 5 competidores en Google Sheets — sus tácticas, sus errores, tus ventajas.</div>
+      </div>
+      <div class="task-card" data-id="2" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">💬</span>
+          <span class="task-title">Días 3-4: Minería de Comentarios</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Únete a 5 grupos hispanos de Medicare en Facebook. Documenta las 20 preguntas más frecuentes. Ese es tu banco de contenido.</div>
+      </div>
+      <div class="task-card" data-id="3" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">✍️</span>
+          <span class="task-title">Días 5-7: Banco de Respuestas</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Crea 50 respuestas automáticas organizadas por categoría. Guárdalas en accesos directos del teléfono.</div>
+      </div>
+
+      <div class="hub-divider"></div>
+
+      <div class="week-label">Semana 2</div>
+      <div class="week-title">Contenido y Presencia</div>
+      <div class="task-card" data-id="4" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">📸</span>
+          <span class="task-title">Días 8-10: Fotos y Perfil</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Optimiza tu página de Facebook. Foto profesional, bio bilingüe, CTA claro al website. Activa el botón de "Llamar".</div>
+      </div>
+      <div class="task-card" data-id="5" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">🎬</span>
+          <span class="task-title">Días 11-13: Primeros 5 Reels</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Graba tus 5 primeros videos usando los temas de mayor frecuencia de la minería de comentarios.</div>
+      </div>
+      <div class="task-card" data-id="6" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">📅</span>
+          <span class="task-title">Día 14: Calendario Editorial</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Planifica 30 días de contenido. 3 posts/semana mínimo. Alterna: educativo, emocional, llamada a la acción.</div>
+      </div>
+
+      <div class="hub-divider"></div>
+
+      <div class="week-label">Semana 3</div>
+      <div class="week-title">Anuncios y Conversión</div>
+      <div class="task-card" data-id="7" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">💰</span>
+          <span class="task-title">Días 15-17: Primer Anuncio Pagado</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Audiencia: 60-75 años, LA + OC + Inland Empire, español. Budget de testing: $5-10/día.</div>
+      </div>
+      <div class="task-card" data-id="8" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">🎯</span>
+          <span class="task-title">Días 18-20: Landing Page / Lead Form</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Crea formulario de leads en Meta o conecta withisabelfuentes.com. Captura: nombre, teléfono, código postal, edad.</div>
+      </div>
+      <div class="task-card" data-id="9" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">📊</span>
+          <span class="task-title">Día 21: Revisar Métricas</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Analiza CPL, CTR, engagement. Ajusta lo que no funciona. Dobla lo que sí funciona.</div>
+      </div>
+
+      <div class="hub-divider"></div>
+
+      <div class="week-label">Semana 4</div>
+      <div class="week-title">Escalar y Sistematizar</div>
+      <div class="task-card" data-id="10" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">🔄</span>
+          <span class="task-title">Días 22-25: Automatizaciones</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Configura respuestas automáticas en Messenger. Crea secuencia de 3 mensajes para nuevos leads.</div>
+      </div>
+      <div class="task-card" data-id="11" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">📧</span>
+          <span class="task-title">Días 26-28: Email Marketing</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Construye lista de emails. Secuencia de bienvenida de 5 emails educativos. Prepara AEP desde ahora.</div>
+      </div>
+      <div class="task-card" data-id="12" onclick="toggleTask(this)">
+        <div class="task-header">
+          <span class="task-icon">🚀</span>
+          <span class="task-title">Días 29-30: Sistema Completo</span>
+          <div class="task-check">✓</div>
+        </div>
+        <div class="task-body">Documenta lo que funciona. Crea tu "playbook" de Medicare marketing. Prepara AEP Q4.</div>
+      </div>
+    </div>
+
+    <!-- ══ PREGUNTAS ══ -->
+    <div class="section-panel" id="tab-preguntas">
+      <div class="section-heading">🔍 Top 10 Preguntas Más Frecuentes</div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">01</span>
+          <span class="qa-q">¿Necesito ser ciudadano para tener Medicare?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 EXTREMADAMENTE ALTA — Urgente 2026</div>
+          <div class="qa-answer">"No tienes que ser ciudadano — PERO las reglas cambiaron en 2025 con la OBBBA. Lo que importa es si tú o tu pareja pagaron impuestos de Medicare por 10 años. Cuéntame tu situación y te digo exactamente dónde estás. Hay fechas importantes próximas."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ALERTA 2026: Las reglas de Medicare cambiaron para inmigrantes. ¿Estás protegido/a?</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> 3 cosas que DEBES saber si eres inmigrante y tienes Medicare en 2026</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> Tu Medicare podría cancelarse en enero 2027 — ¿sabes si te afecta?</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">02</span>
+          <span class="qa-q">¿Cuánto cuesta Medicare? ¿Es gratis?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 EXTREMADAMENTE ALTA</div>
+          <div class="qa-answer">"La Parte A es generalmente GRATIS si trabajaste 10 años. La Parte B cuesta $185/mes en 2025 — PERO muchos clientes en el sur de California califican para planes que cubren esa prima. Necesito tu código postal para decirte exactamente."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> Las 4 partes de Medicare y cuánto cuesta CADA UNA — sin letra chiquita 👇</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Medicare es gratis? La respuesta honesta en 60 segundos</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> ¿Cuánto vas a pagar de Medicare en 2026? [Calculadora]</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">03</span>
+          <span class="qa-q">¿Pierdo mi Medi-Cal si me meto a Medicare?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 MUY ALTA — Específica de California</div>
+          <div class="qa-answer">"No necesariamente. Muchos clientes míos tienen AMBOS a la vez — 'dual eligibility'. En California hay planes especiales que combinan Medicare y Medi-Cal. Depende 100% de tu ingreso. ¡No tomes ninguna decisión sin hablar conmigo primero!"</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ¿Tienes Medi-Cal y llegas a los 65? LEE ESTO antes de hacer cualquier cambio</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> Medi-Cal + Medicare = ¿Se pueden tener los dos? La verdad en 60 segundos</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> ¿Medicare te quita el Medi-Cal? La respuesta sorprende a mucha gente</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">04</span>
+          <span class="qa-q">¿Qué pasa si no me inscribo a tiempo? ¿Hay multa?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 ALTA — Genera urgencia real</div>
+          <div class="qa-answer">"Sí existe una penalidad DE POR VIDA — 10% extra por cada año de retraso en la Parte B. Si tienes seguro del trabajo hay excepciones. Necesito ver tu situación para darte tu fecha límite exacta."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ⚠️ La multa de Medicare que nadie te explica — y que te sigue TODA LA VIDA</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Cumples 65 pronto? Tienes una fecha límite que no puedes ignorar</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> ¿Sabes cuál es TU fecha límite de Medicare? Muchos no lo saben hasta que es tarde</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">05</span>
+          <span class="qa-q">¿Hay planes de $0 de prima? ¿Es verdad?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🟡 MUY ALTA — Escepticismo alto</div>
+          <div class="qa-answer">"Sí, los planes de $0 son REALES — tengo clientes con esos planes aquí en el sur de California. PERO: $0 de prima no significa $0 de costo total. Todavía existen copagos y redes. Mi trabajo es explicarte exactamente qué incluye, sin sorpresas."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> Sí, los planes de $0 de Medicare son reales — pero HAY COSAS que saber antes</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Plan de Medicare de $0? Te explico qué significa EXACTAMENTE</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> La verdad sobre los planes de $0 — lo que los anuncios de TV no dicen</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">06</span>
+          <span class="qa-q">¿Medicare cubre mis medicamentos?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 MUY ALTA — Comunidad con diabetes e hipertensión</div>
+          <div class="qa-answer">"Medicare original (A y B) NO cubre la mayoría de medicamentos en casa. Necesitas Parte D o Medicare Advantage con medicamentos incluidos. Y no todos los planes cubren los mismos. Dame tu lista y busco el plan que los cubra TODOS al menor costo."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ¿Tienes diabetes o presión alta? ESTO necesitas saber sobre Medicare y tus medicamentos</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Medicare cubre tus pastillas? Depende — te explico en 60 segundos</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> Medicamentos más comunes en la comunidad hispana y cómo cubrirlos con Medicare</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">07</span>
+          <span class="qa-q">¿Mi doctor acepta Medicare? ¿Tengo que cambiar?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🔴 MIEDO EMOCIONAL #1</div>
+          <div class="qa-answer">"Esta es la pregunta más importante. Antes de inscribirte en CUALQUIER plan, yo verifico si tu doctor está en la red. Si no está, buscamos uno donde sí esté. NUNCA te recomendaré un plan sin checar esto primero."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> Antes de elegir un plan de Medicare, HAZ ESTA PREGUNTA — puede cambiarlo todo</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Tu doctor acepta Medicare? Te enseño cómo verificarlo en 2 minutos</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> ¿Cambiarías de doctor por Medicare? Cómo evitarlo</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">08</span>
+          <span class="qa-q">¿Los beneficios de dentista, lentes y audífonos son reales?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🟡 ALTA — Mucho escepticismo por publicidad engañosa</div>
+          <div class="qa-answer">"Son reales — los he visto funcionar para mis propios clientes. PERO varían muchísimo por plan y código postal. Lo que me molesta de los anuncios de TV es que prometen sin decirte las condiciones. Yo te muestro QUÉ incluye exactamente, sin sorpresas."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ¿Son reales los beneficios de dental y lentes de Medicare? La verdad honesta</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> Vi un anuncio que decía dental y lentes gratis — ¿es verdad?</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> Beneficios extras de Medicare: qué es real y qué está exagerado</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">09</span>
+          <span class="qa-q">¿Medicare me cubre si viajo a México?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🟡 MEDIA — MUY específica del mercado hispano</div>
+          <div class="qa-answer">"Medicare original generalmente NO cubre atención fuera de EE.UU., incluyendo México. Algunos planes Medicare Advantage tienen cobertura de emergencias internacionales. Si viajas frecuentemente, esto DEBE considerarse al elegir tu plan."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ¿Viajas a México con Medicare? Esto DEBES saber antes de salir</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> ¿Te enfermas en México teniendo Medicare? La respuesta que muchos desconocen</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> Para los que van seguido a México: esto cubre (y no cubre) tu Medicare</div>
+        </div>
+      </div>
+
+      <div class="qa-card" onclick="toggleQA(this)">
+        <div class="qa-header">
+          <span class="qa-rank">10</span>
+          <span class="qa-q">¿Cuándo y cómo me inscribo en Medicare?</span>
+          <span class="qa-chevron">▼</span>
+        </div>
+        <div class="qa-body">
+          <div class="qa-freq">🟡 ALTA</div>
+          <div class="qa-answer">"Tu ventana personal abre 3 meses ANTES de tus 65 y cierra 3 meses DESPUÉS. El proceso no es complicado — elegir el plan CORRECTO sí requiere conocimiento. Mi servicio no te cuesta nada extra: las compañías me pagan a mí."</div>
+          <div class="ci-title">Ideas de contenido</div>
+          <div class="ci-item"><span class="ci-badge badge-post">Post</span> ¿Cómo me inscribo en Medicare? Paso a paso en español, sin complicaciones</div>
+          <div class="ci-item"><span class="ci-badge badge-reel">Reel</span> Cumples 65 en [mes] — aquí exactamente qué tienes que hacer</div>
+          <div class="ci-item"><span class="ci-badge badge-email">Email</span> Guía completa de inscripción a Medicare para hispanohablantes</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══ VOCABULARIO ══ -->
+    <div class="section-panel" id="tab-vocabulario">
+      <div class="section-heading">🗣️ Cómo Habla Tu Comunidad</div>
+      <p class="section-intro">Usa ESTAS palabras en tu contenido — no jerga técnica. Así te entienden y confían en ti.</p>
+
+      <div class="vocab-row"><span class="vocab-community">"El Medicare normal"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Medicare Original (Partes A y B)</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El Medicare privado"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Medicare Advantage (Parte C)</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El seguro de pastillas"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Parte D / Cobertura de medicamentos</span></div>
+      <div class="vocab-row"><span class="vocab-community">"La ayuda del gobierno"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Medi-Cal / Extra Help</span></div>
+      <div class="vocab-row"><span class="vocab-community">"La pensión"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Social Security / SSA benefits</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El médico de cabecera"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Primary Care Physician (PCP)</span></div>
+      <div class="vocab-row"><span class="vocab-community">"La red"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Provider Network (HMO/PPO)</span></div>
+      <div class="vocab-row"><span class="vocab-community">"La multa"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Late Enrollment Penalty</span></div>
+      <div class="vocab-row"><span class="vocab-community">"Los beneficios extras"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Supplemental benefits</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El seguro de dientes"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Dental benefit</span></div>
+      <div class="vocab-row"><span class="vocab-community">"Los audífonos"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Hearing aids benefit</span></div>
+      <div class="vocab-row"><span class="vocab-community">"Las fechas"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Enrollment periods</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El seguro del trabajo"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Employer-sponsored insurance</span></div>
+      <div class="vocab-row"><span class="vocab-community">"El plan de comida"</span><span class="vocab-arrow">→</span><span class="vocab-tech">Food/grocery allowance benefit</span></div>
+    </div>
+
+    <!-- ══ OPORTUNIDADES ══ -->
+    <div class="section-panel" id="tab-oportunidades">
+      <div class="section-heading">🏆 5 Nichos Sin Explotar</div>
+      <p class="section-intro">Preguntas que <strong>nadie está respondiendo bien</strong> en español. Tu ventana para posicionarte como la experta.</p>
+
+      <div class="opp-card">
+        <div class="opp-rank">01</div>
+        <div class="opp-title">Cambios de inmigración + Medicare 2026-2027</div>
+        <div class="opp-why">La OBBBA cancela Medicare a ciertos inmigrantes en enero 2027. Nadie lo está explicando en español sin alarmismo y con soluciones reales.</div>
+        <div class="opp-content">💡 Serie de 5 Reels: "Medicare e Inmigración 2026 — Lo que nadie te está diciendo"</div>
+      </div>
+
+      <div class="opp-card">
+        <div class="opp-rank">02</div>
+        <div class="opp-title">Medicare + Medi-Cal juntos (Dual Eligibility)</div>
+        <div class="opp-why">Los agentes evitan el tema por complejidad. Los D-SNPs de LA Care, Health Net y Molina son perfectos para tu mercado de bajos ingresos en California.</div>
+        <div class="opp-content">💡 "El secreto que los agentes no te cuentan: Medicare Y Medi-Cal juntos en California"</div>
+      </div>
+
+      <div class="opp-card">
+        <div class="opp-rank">03</div>
+        <div class="opp-title">¿Qué hago cuando mi plan cambia el próximo año?</div>
+        <div class="opp-why">Más del 33% de beneficiarios no saben que su plan cambiará significativamente. Nadie en español crea contenido sobre "qué hacer cuando recibes la carta de cambios".</div>
+        <div class="opp-content">💡 Campaña AEP: "Recibí una carta de que mi plan va a cambiar — ¿qué hago ahora?"</div>
+      </div>
+
+      <div class="opp-card">
+        <div class="opp-rank">04</div>
+        <div class="opp-title">Medicare para viajeros frecuentes a México</div>
+        <div class="opp-why">Nicho completamente desatendido. La comunidad hispana viaja frecuentemente. Puede viralizarse en grupos de viajeros y familias transnacionales.</div>
+        <div class="opp-content">💡 "¿Te enfermas en México teniendo Medicare? Lo que DEBES saber antes de viajar"</div>
+      </div>
+
+      <div class="opp-card">
+        <div class="opp-rank">05</div>
+        <div class="opp-title">"Mi mamá vino de México — ¿puede tener Medicare?"</div>
+        <div class="opp-why">Familias hispanas traen padres mayores de sus países de origen. La elegibilidad de padres inmigrantes es compleja y nadie la explica claramente en español.</div>
+        <div class="opp-content">💡 "Mi mamá llegó de México con 70 años — ¿puede tener Medicare en California?"</div>
+      </div>
+    </div>
+
+    <!-- ══ RESPUESTAS ══ -->
+    <div class="section-panel" id="tab-respuestas">
+      <div class="section-heading">💬 Banco de Respuestas</div>
+      <p class="section-intro">Toca cualquier respuesta para copiarla al portapapeles. Personaliza con [Nombre]. Nunca copies exactamente igual — Meta penaliza respuestas idénticas.</p>
+
+      <div class="resp-section">
+        <div class="resp-cat">Elegibilidad</div>
+        <div class="resp-trigger">💬 "¿Cuándo puedo inscribirme?"</div>
+        <div class="resp-bubble" onclick="copyText(this)">¡Hola [Nombre]! 👋 La elegibilidad depende de tu situación específica — hay períodos que mucha gente no conoce y pueden hacer gran diferencia. Te explico todo sin costo. ¿Me mandas un mensaje privado o prefieres que te llame? 📞 — Isabel</div>
+        <div class="resp-trigger">💬 "Tengo 64 años, ¿ya debo hacer algo?"</div>
+        <div class="resp-bubble" onclick="copyText(this)">¡[Nombre], llegaste en el momento perfecto! 🎯 A los 64 es exactamente cuando debes planificar — hay ventanas que si se pierden resultan en penalidades permanentes. No quiero que pases por eso. ¿Cuándo tienes 5 minutitos? 📲 — Isabel</div>
+      </div>
+
+      <div class="resp-section">
+        <div class="resp-cat">Costo / "¿Es gratis?"</div>
+        <div class="resp-trigger">💬 "¿Medicare es gratis?" / "¿Cuánto cuesta?"</div>
+        <div class="resp-bubble" onclick="copyText(this)">¡Hola [Nombre]! 😊 Muchas personas en California califican para planes con $0 de prima mensual — pero depende del plan y del código postal. Revisar tus opciones conmigo NO tiene ningún costo. ¿Me escribes al privado y vemos qué tienes disponible en tu área? — Isabel 📍</div>
+        <div class="resp-trigger">💬 "No tengo dinero para pagar seguro"</div>
+        <div class="resp-bubble" onclick="copyText(this)">[Nombre], entiendo perfectamente y es más común de lo que crees 💙 Hay programas en California para personas en esa situación — algunos cubren primas, copagos y hasta medicamentos. Escríbeme al privado y lo vemos juntos, sin compromiso. — Isabel</div>
+      </div>
+
+      <div class="resp-section">
+        <div class="resp-cat">Confusión / Frustración</div>
+        <div class="resp-trigger">💬 "Esto es muy confuso" / "No entiendo nada"</div>
+        <div class="resp-bubble" onclick="copyText(this)">[Nombre], ¡completamente normal sentirse así! 😅 Medicare tiene su propio idioma. Para eso estoy yo — traducirte todo en español simple para que tomes la mejor decisión. ¿Me das 10 minutos? — Isabel 🤝</div>
+        <div class="resp-trigger">💬 "Me llamaron de muchas compañías y me confunden más"</div>
+        <div class="resp-bubble" onclick="copyText(this)">[Nombre], la diferencia conmigo es que trabajo con MÚLTIPLES compañías — te muestro opciones reales con pros y contras sin favoritismos. Mi trabajo es encontrar lo mejor PARA TI, no para la compañía. ¿Hablamos? — Isabel 📞</div>
+      </div>
+
+      <div class="resp-section">
+        <div class="resp-cat">Objeciones comunes</div>
+        <div class="resp-trigger">💬 "Ya tengo Medi-Cal"</div>
+        <div class="resp-bubble" onclick="copyText(this)">¡[Nombre], qué bien! 👍 Muchas personas no saben que al llegar a Medicare, Medi-Cal puede funcionar en conjunto y darte protección DOBLE. Vale la pena revisar cómo coordinarlos. ¿Me escribes al privado? — Isabel</div>
+        <div class="resp-trigger">💬 "Ya tengo agente" / "Ya estoy inscrito"</div>
+        <div class="resp-bubble" onclick="copyText(this)">¡[Nombre], qué bueno! 😊 Recuerda que cada año hay un período donde puedes comparar si tu plan sigue siendo el mejor para ti. Si quieres una segunda opinión sin compromiso, aquí estaré. — Isabel</div>
+      </div>
+
+      <div class="resp-section">
+        <div class="resp-cat">Comentarios negativos</div>
+        <div class="resp-trigger">💬 "Esto es una estafa" / "No confío en seguros"</div>
+        <div class="resp-bubble" onclick="copyText(this)">[Nombre], entiendo la desconfianza — hay malas experiencias en el mercado y es válido ser cauteloso 🙏 Soy agente licenciada en California, regulada por el estado. Todo lo que hago es verificable. Cuando estés listo/a, aquí estoy. — Isabel Fuentes, Lic. CA</div>
+      </div>
+    </div>
+
+    <!-- ══ COMPLIANCE ══ -->
+    <div class="section-panel" id="tab-compliance">
+      <div class="section-heading">⚖️ Checklist CMS</div>
+      <p class="section-intro">Revisa esto ANTES de publicar cualquier contenido. Tu licencia y reputación valen más que cualquier anuncio.</p>
+
+      <div class="compliance-item no"><span style="font-size:16px;flex-shrink:0">🚫</span><span><strong>NUNCA:</strong> Mencionar beneficios específicos de planes en comentarios públicos</span></div>
+      <div class="compliance-item no"><span style="font-size:16px;flex-shrink:0">🚫</span><span><strong>NUNCA:</strong> Prometer montos de ahorro específicos en público</span></div>
+      <div class="compliance-item no"><span style="font-size:16px;flex-shrink:0">🚫</span><span><strong>NUNCA:</strong> Usar "el mejor plan" sin contexto o datos que lo respalden</span></div>
+      <div class="compliance-item no"><span style="font-size:16px;flex-shrink:0">🚫</span><span><strong>NUNCA:</strong> Compartir datos de salud de clientes en conversaciones públicas</span></div>
+      <div class="compliance-item ok"><span style="font-size:16px;flex-shrink:0">✅</span><span><strong>SÍ:</strong> Incluir nombre y número de licencia en respuestas relevantes</span></div>
+      <div class="compliance-item ok"><span style="font-size:16px;flex-shrink:0">✅</span><span><strong>SÍ:</strong> Mover conversaciones con datos de salud al mensaje privado</span></div>
+      <div class="compliance-item ok"><span style="font-size:16px;flex-shrink:0">✅</span><span><strong>SÍ:</strong> Incluir disclaimer en anuncios pagados cuando aplique</span></div>
+      <div class="compliance-item ok"><span style="font-size:16px;flex-shrink:0">✅</span><span><strong>SÍ:</strong> Revisar cambios de reglas CMS cada 6 meses</span></div>
+
+      <div class="info-box teal">
+        <div class="info-box-label">📞 NPN Verificable</div>
+        <div class="info-box-content" style="color:var(--char-mid)">Siempre incluye tu NPN y licencia de California en respuestas importantes. Verificable públicamente en <strong>nipr.com</strong>.</div>
+      </div>
+
+      <div class="info-box neutral">
+        <div class="info-box-label">Tu Website</div>
+        <div class="info-box-content">withisabelfuentes.com</div>
+      </div>
+    </div>
+
+  </div><!-- /hub-content -->
+</div><!-- /hub -->
+
+<!-- TOAST -->
+<div class="toast" id="toast">✓ Respuesta copiada al portapapeles</div>
+
+<script>
+  // ── PROGRESS ──────────────────────────────────────────
+  const TOTAL = 12;
+  const completed = new Set();
+
+  function updateProgress() {
+    const n = completed.size;
+    const pct = Math.round((n / TOTAL) * 100);
+    document.getElementById('pct-num').textContent = pct + '%';
+    document.getElementById('pct-label').textContent = n + '/' + TOTAL + ' completado';
+    document.getElementById('pct-bar').style.width = pct + '%';
+  }
+
+  function toggleTask(card) {
+    const id = card.dataset.id;
+    if (completed.has(id)) {
+      completed.delete(id);
+      card.classList.remove('done');
+    } else {
+      completed.add(id);
+      card.classList.add('done');
+    }
+    updateProgress();
+  }
+
+  // ── TABS ──────────────────────────────────────────────
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+      document.querySelectorAll('.section-panel').forEach(p => p.classList.remove('visible'));
+      btn.classList.add('active');
+      document.getElementById('tab-' + btn.dataset.tab).classList.add('visible');
+    });
+  });
+
+  // ── Q&A ACCORDION ─────────────────────────────────────
+  function toggleQA(card) {
+    const isOpen = card.classList.contains('open');
+    document.querySelectorAll('.qa-card').forEach(c => c.classList.remove('open'));
+    if (!isOpen) card.classList.add('open');
+  }
+
+  // ── COPY RESPONSES ────────────────────────────────────
+  function copyText(el) {
+    const text = el.innerText.replace('⎘ copiar', '').trim();
+    navigator.clipboard.writeText(text).then(() => {
+      el.classList.add('copied');
+      setTimeout(() => el.classList.remove('copied'), 1500);
+      showToast();
+    }).catch(() => {
+      // Fallback for older browsers
+      const ta = document.createElement('textarea');
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      showToast();
+    });
+  }
+
+  function showToast() {
+    const t = document.getElementById('toast');
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 2200);
+  }
+
+  // Init progress bar animation on load
+  window.addEventListener('load', () => {
+    setTimeout(() => updateProgress(), 100);
+  });
+</script>
+
+</body>
+</html>

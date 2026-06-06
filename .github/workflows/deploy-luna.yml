@@ -1,0 +1,36 @@
+name: Desplegar LUNA a Bluehost
+
+# Cada vez que se suben cambios de la carpeta luna/ a esta rama, se publican
+# automáticamente en Bluehost por FTP. También se puede correr a mano desde
+# la pestaña "Actions" (botón "Run workflow").
+on:
+  push:
+    branches:
+      - claude/happy-planck-Dtzud
+    paths:
+      - 'luna/**'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Bajar el código
+        uses: actions/checkout@v4
+
+      - name: Subir la carpeta luna/ a Bluehost (FTP)
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server:   ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          protocol: ftps           # Bluehost soporta FTPS. Si falla, cambia a: ftp
+          local-dir: ./luna/       # solo sube la carpeta luna/ (no toca marketing/root)
+          server-dir: ${{ secrets.FTP_LUNA_DIR }}   # ej: ./public_html/website_5a1c69e7/luna/
+          # IMPORTANTE: NO sobrescribe luna_config.php (ahí viven las llaves reales
+          # que Sami llenó en el servidor) ni los .md (son notas).
+          exclude: |
+            **/luna_config.php
+            **/*.md
+            **/.git*
+            **/.DS_Store
