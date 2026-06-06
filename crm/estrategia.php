@@ -26,7 +26,7 @@ $activos = (int) $pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVE
 $pct_goal = $TARGET > 0 ? min(100, round($activos / $TARGET * 100, 1)) : 0;
 
 // ── Agentes activos (para escalar metas a nivel equipo) ──────────────────
-$n_agentes = (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE activo=1 AND rol IN ('agent','admin')")->fetchColumn();
+$n_agentes = (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE activo=1 AND rol='agent'")->fetchColumn();
 $n_agentes = max(1, $n_agentes);
 
 // ── Reales del día (suma de todo el equipo) ──────────────────────────────
@@ -57,7 +57,7 @@ $stA = $pdo->prepare("
            COALESCE(rd.apps_enviadas,0)       AS enrolled
     FROM usuarios u
     LEFT JOIN reporte_diario rd ON rd.agente_id=u.id AND rd.fecha=?
-    WHERE u.activo=1 AND u.rol IN ('agent','admin')
+    WHERE u.activo=1 AND u.rol='agent'
     ORDER BY u.nombre");
 $stA->execute([$fecha]);
 $porAgente = $stA->fetchAll();
@@ -147,6 +147,31 @@ td{padding:8px 10px;border-bottom:1px solid <?=$CB?>}
   </div>
   <div style="font-size:8px;color:<?=$MU?>;margin-top:10px;text-transform:uppercase;letter-spacing:1px">
     Meta por agente/día: 50 llamadas → 15 efectivas → 5 interesados → 2 citas → 1.5 inscritos
+  </div>
+</div>
+
+<!-- TASAS DE CONVERSIÓN -->
+<?php
+$pct = fn($n,$d) => $d>0 ? round($n/$d*100) : null;
+$cv = (int)$real['calls']; $ef=(int)$real['effective']; $it=(int)($real['interested']??0); $ap=(int)$real['appts']; $en=(int)$real['enrolled'];
+$convs = [
+  ['📞→✓','Efectividad', $pct($ef,$cv)],
+  ['✓→★','Interés', $tieneInteresados ? $pct($it,$ef) : null],
+  ['★→◷','Agenda', $tieneInteresados ? $pct($ap,$it) : $pct($ap,$ef)],
+  ['◷→🎉','Cierre cita', $pct($en,$ap)],
+  ['📞→🎉','Cierre total', $pct($en,$cv)],
+];
+?>
+<div class="card">
+  <div class="lbl">📈 TASAS DE CONVERSIÓN — HOY</div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap">
+    <?php foreach($convs as [$ar,$lbl,$p]): ?>
+    <div style="flex:1;min-width:90px;text-align:center;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:11px;padding:11px">
+      <div style="font-size:11px;color:<?=$MU?>"><?=$ar?></div>
+      <div style="font-size:22px;font-weight:900;color:<?= $p===null ? $MU : ($p>=100?$G:$P1) ?>;line-height:1.1"><?= $p===null ? '—' : $p.'%' ?></div>
+      <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:3px"><?=$lbl?></div>
+    </div>
+    <?php endforeach;?>
   </div>
 </div>
 

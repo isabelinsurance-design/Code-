@@ -59,9 +59,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 $hoy = today();
 $MOODS = ['', '😰', '😐', '🙂', '😊', '🤩'];
 
-// ── Agentes activos ──────────────────────────────────────────────────────
+// ── Agentes activos (equipo que llama: rol='agent') ──────────────────────
 $agentes = $pdo->query("SELECT id,nombre,iniciales,color FROM usuarios
-                        WHERE activo=1 AND rol IN ('agent','admin') ORDER BY nombre")->fetchAll();
+                        WHERE activo=1 AND rol='agent' ORDER BY nombre")->fetchAll();
+$agenteIds = array_map(fn($a)=>(int)$a['id'], $agentes);
 
 // ── RACHAS: días consecutivos con llamadas (termina hoy o ayer) ──────────
 function calcStreak(PDO $pdo, int $agenteId): int {
@@ -80,20 +81,36 @@ function calcStreak(PDO $pdo, int $agenteId): int {
 $rachas = [];
 foreach ($agentes as $a) $rachas[] = ['a'=>$a, 'streak'=>calcStreak($pdo, (int)$a['id'])];
 usort($rachas, fn($x,$y)=> $y['streak'] <=> $x['streak']);
+$rachaMax = $rachas ? $rachas[0]['streak'] : 0;
 
-// ── MOOD de hoy ──────────────────────────────────────────────────────────
+// ── MOOD de hoy (solo agentes, para promedio consistente) ────────────────
 $st = $pdo->prepare("SELECT agente_id,valor FROM mood_diario WHERE fecha=?");
 $st->execute([$hoy]);
 $moodHoy = [];
 foreach ($st->fetchAll() as $m) $moodHoy[(int)$m['agente_id']] = (int)$m['valor'];
-$moodVals = array_values($moodHoy);
+$moodVals = [];
+foreach ($agenteIds as $aid) if (isset($moodHoy[$aid])) $moodVals[] = $moodHoy[$aid];
 $moodAvg  = $moodVals ? round(array_sum($moodVals)/count($moodVals), 1) : 0;
 $miMood   = $moodHoy[$uid] ?? 0;
 
-// ── WINS recientes ───────────────────────────────────────────────────────
+// ── MOOD promedio de los últimos 7 días (solo agentes) ───────────────────
+$moodSemana = 0;
+if ($agenteIds) {
+    $ph = implode(',', array_fill(0, count($agenteIds), '?'));
+    $st = $pdo->prepare("SELECT AVG(valor) FROM mood_diario
+                         WHERE fecha >= ? AND agente_id IN ($ph)");
+    $st->execute(array_merge([date('Y-m-d', strtotime($hoy.' -6 days'))], $agenteIds));
+    $moodSemana = round((float)$st->fetchColumn(), 1);
+}
+
+// ── WINS recientes + conteo de la semana (lun-dom) ───────────────────────
 $wins = $pdo->query("SELECT w.id,w.texto,w.fecha,u.nombre,u.iniciales,u.color,w.agente_id
                      FROM wins w LEFT JOIN usuarios u ON u.id=w.agente_id
                      ORDER BY w.created_at DESC LIMIT 30")->fetchAll();
+$lunes = date('Y-m-d', strtotime('monday this week', strtotime($hoy)));
+$st = $pdo->prepare("SELECT COUNT(*) FROM wins WHERE fecha >= ?");
+$st->execute([$lunes]);
+$winsSemana = (int)$st->fetchColumn();
 
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$FIRE='#E67E22';
 ?><!DOCTYPE html>
@@ -131,6 +148,22 @@ input[type=text]:focus{outline:none;border-color:<?=$P2?>}
     <div class="sub"><?=date('d/m/Y',strtotime($hoy))?> · Energía del equipo · Medicare with Isabel</div>
   </div>
   <a href="index.php" class="btn" style="background:rgba(255,255,255,.12);color:#fff">← CRM</a>
+</div>
+
+<!-- STATS RÁPIDAS -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:16px">
+  <div class="card" style="margin:0;text-align:center;border-top:3px solid <?=$G?>">
+    <div style="font-size:28px;font-weight:900;color:<?=$G?>"><?=$winsSemana?></div>
+    <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">🎉 Wins esta semana</div>
+  </div>
+  <div class="card" style="margin:0;text-align:center;border-top:3px solid <?=$P2?>">
+    <div style="font-size:28px;font-weight:900;color:<?=$P2?>"><?= $moodSemana>0 ? $moodSemana.'/5' : '—' ?></div>
+    <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">😊 Mood 7 días</div>
+  </div>
+  <div class="card" style="margin:0;text-align:center;border-top:3px solid <?=$FIRE?>">
+    <div style="font-size:28px;font-weight:900;color:<?=$FIRE?>"><?= $rachaMax>0 ? '🔥 '.$rachaMax : '—' ?></div>
+    <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">Racha más larga</div>
+  </div>
 </div>
 
 <!-- MOOD -->
