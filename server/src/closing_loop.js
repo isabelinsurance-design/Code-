@@ -33,7 +33,7 @@ const CLOSING_TOOLS = new Set([
   'skill_invocar',                             // skills ejecutados
   'recordar', 'entidad_anotar',                // memoria capturada
   'comprometer_entrega',                       // promesas recibidas
-  // LUNA writes (vía pilar especialista)
+  // LUNA writes (vía luna especialista)
   'luna_agregar_nota', 'luna_registrar_actividad',
   'luna_crear_miembro', 'luna_crear_ticket', 'luna_crear_cita',
   // Brand

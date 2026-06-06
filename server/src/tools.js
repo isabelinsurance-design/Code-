@@ -74,7 +74,7 @@ import {
 export const toolDefinitions = [
   {
     name: 'consultar_especialistas',
-    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel. Pasa un array \`consultas\` con una entrada por coach. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — más rápido + permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes=pilar, dinero=elena, estrés/mindset=alma, metas/visión=victoria.
+    description: `Consulta a UNA O VARIAS coachs especialistas del equipo de Isabel. Pasa un array \`consultas\` con una entrada por coach. Si una pregunta toca varios dominios (ej. salud + dinero + mindset), incluye las TRES en una sola llamada — más rápido + permite sintetizar entre vistas. Especialistas disponibles: ${specialistList()}. Routing: comida=carmen, ejercicio=rivera, sueño/energía/suplementos=sofia, Medicare/clientes/CRM=luna, piel=aurora, dinero=elena, estrés/mindset=alma, metas/visión=victoria.
 
 MODOS:
 - mode='parallel' (default): cada coach contesta en paralelo, aislada. Más rápido + barato. Bueno para preguntas que tocan dominios independientes.
@@ -88,7 +88,7 @@ MODOS:
           items: {
             type: 'object',
             properties: {
-              especialista: { type: 'string', description: 'El id de la coach (ej. carmen, rivera, pilar).' },
+              especialista: { type: 'string', description: 'El id de la coach (ej. carmen, rivera, luna, elena).' },
               tarea: { type: 'string', description: 'Lo que necesitas de ella, con contexto suficiente. Sé específica.' },
               formato_salida: { type: 'string', description: 'Opcional. Formato esperado, ej. "3 bullets máx", "1 acción concreta", "plan de 4 días".' },
               presupuesto_palabras: { type: 'integer', description: 'Opcional. Máximo de palabras de la respuesta (default 150).' },
@@ -1260,7 +1260,7 @@ MODOS:
     input_schema: {
       type: 'object',
       properties: {
-        coach: { type: 'string', description: 'ID del coach: carmen, rivera, sofia, alma, pilar, elena, victoria, marisol, beatriz, esperanza, rosa, luna, valentina, camila, lucia, catalina.' },
+        coach: { type: 'string', description: 'ID del coach: carmen, rivera, sofia, alma, luna, elena, victoria, marisol, beatriz, esperanza, rosa, aurora, valentina, camila, lucia, catalina.' },
         cadencia: { type: 'string', enum: ['diaria', 'L-V', 'lunes', 'martes', 'miércoles', 'jueves', 'viernes', 'sabado', 'domingo', '3x_semana', 'semanal', 'quincenal', 'mensual', 'trimestral', 'bajo_demanda'] },
         hora: { type: 'string', description: 'Hora sugerida HH:MM (opcional). Ej: "07:00".' },
         dia: { description: 'Para mensual: día del mes 1-31. Para semanal: nombre del día.' },
@@ -2167,7 +2167,7 @@ async function dispatchTool(name, input) {
             description: t.contexto || '',
           });
           if (r.auto_grouped) autoStr = ` · vinculada a proyecto "${r.project_nombre}".`;
-        } catch { /* ignore */ }
+        } catch (e) { console.warn('[autogroup tarea]', e.message); }
         return `Tarea creada [${t.id}] para ${t.responsable}: "${t.descripcion}".${venceStr}${autoStr}`;
       } catch (err) {
         return `Error creando tarea: ${err.message}`;
@@ -2253,7 +2253,7 @@ async function dispatchTool(name, input) {
             description: c.descripcion,
           });
           if (r.auto_grouped) autoStr = ` · vinculado a "${r.project_nombre}".`;
-        } catch { /* ignore */ }
+        } catch (e) { console.warn('[autogroup compromiso]', e.message); }
         return `Compromiso registrado [${c.id}]: ${c.persona} → "${c.descripcion}".${due}${reach}${autoStr}`;
       } catch (err) {
         return `Error: ${err.message}`;

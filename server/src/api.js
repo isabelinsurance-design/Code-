@@ -563,6 +563,9 @@ export function registerApi(app) {
       : key.length < 6
         ? '(muy corta)'
         : `${key.slice(0, 4)}…${key.slice(-2)}`;
+    // Seguridad: NO exponemos los caracteres reales de la llave aunque
+    // sea endpoint autenticado. Solo "shape" suficiente para diagnosticar
+    // problemas comunes (Railway comiendo $!, vacío, longitud mala).
     res.json({
       masked,
       length: key.length,
@@ -570,8 +573,6 @@ export function registerApi(app) {
       has_exclaim: key.includes('!'),
       dollar_count: (key.match(/\$/g) || []).length,
       exclaim_count: (key.match(/!/g) || []).length,
-      first_3_chars: key.slice(0, 3),
-      last_2_chars: key.slice(-2),
       base_url: process.env.LUNA_BASE_URL ? 'configurado' : 'falta',
     });
   });
