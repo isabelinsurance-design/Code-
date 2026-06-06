@@ -86,7 +86,7 @@ CONTEXTO AEP: estamos en o cerca de AEP. INCLUYE un mini-digest Medicare hoy. Ll
     const { buildTeamBriefingBlock } = await import('./team.js');
     const teamBlock = buildTeamBriefingBlock();
     if (teamBlock) {
-      teamHint = `\n\nEQUIPO HOY (CRÍTICO — esto es lo que ANTES Isabel andaba recordándoles ella misma; ahora lo cargas tú):\n${teamBlock}\n\nIncluye UNA card específica del equipo en el briefing, mencionando POR NOMBRE quién tiene qué pendiente. Si hay vencidos, ofrécete a recordárselo (mensaje_a_sami o ticket en LUNA vía Pilar). Isabel YA NO debería andar repitiendo cosas a su equipo.`;
+      teamHint = `\n\nEQUIPO HOY (CRÍTICO — esto es lo que ANTES Isabel andaba recordándoles ella misma; ahora lo cargas tú):\n${teamBlock}\n\nIncluye UNA card específica del equipo en el briefing, mencionando POR NOMBRE quién tiene qué pendiente. Si hay vencidos, ofrécete a recordárselo (mensaje_a_sami o ticket en LUNA vía consultar_especialistas con especialista='luna'). Isabel YA NO debería andar repitiendo cosas a su equipo.`;
     }
   } catch { /* ignore */ }
 
@@ -222,12 +222,30 @@ Sé breve, cálida, motivadora. Spanglish. Esto se manda solo — no esperes que
   });
 
   // Briefing matutino vale Opus — es el ancla del día y la calidad importa.
-  const { reply, messages: updated } = await runDirectora(messages, { tier: 'default' });
-  saveHistory(updated);
+  let reply;
+  let updated;
+  try {
+    const r = await runDirectora(messages, { tier: 'default' });
+    reply = r.reply;
+    updated = r.messages;
+    saveHistory(updated);
+  } catch (e) {
+    console.error('[briefing] runDirectora falló:', e.message);
+    // No silencio: avisa a Isabel que el briefing se cayó en vez de
+    // dejarla sin nada. Mejor SOS visible que ausencia silenciosa.
+    await sendMessage(to, `Buenos días, Isabel. Mi briefing matutino se cayó (${e.message.slice(0, 80)}). Estoy aquí — pregúntame "¿qué tengo hoy?" y te respondo manual.`);
+    return;
+  }
   // Visual cards: separar el reply en 3-4 mensajes WhatsApp.
   // Si el split no encuentra el divisor (Athena ignoró el format),
   // cae a 1 solo mensaje — fallback graceful.
   const cards = splitCards(reply);
+  if (!cards.length || cards.every((c) => !c || c.length < 10)) {
+    // Athena devolvió vacío o solo divisores. No la dejes sin briefing.
+    console.warn('[briefing] reply vacío o trivial — mandando SOS');
+    await sendMessage(to, `Buenos días, Isabel. Mi briefing salió vacío hoy — algo se cortó en el prompt. Pregúntame "¿qué tengo hoy?" y te armo el día manual.`);
+    return;
+  }
   // Persistir en disco para que el PWA lo muestre en Hoy.
   saveBriefingToDisk(cards);
   for (let i = 0; i < cards.length; i++) {

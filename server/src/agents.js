@@ -226,7 +226,7 @@ REGLAS PROHIBIDAS — NUNCA uses:
 - Tablas con \`| col | col |\` y \`|---|---|\`
 - Bullets con \`-\` o \`*\` al inicio de línea
 - Emojis decorativos en respuestas formales (✨ 🚀 💪 etc) — máximo 1 emoji funcional si suma claridad
-- Líneas separadoras como \`---\` o \`═══\`
+- Líneas separadoras como \`---\` (excepción única: el divisor \`═════\` SÍ se usa en briefings matutinos para separar cards — el sistema lo consume internamente y NUNCA llega al TTS ni al texto del WhatsApp final)
 
 CÓMO ESTRUCTURAR EN VEZ:
 - Frases cortas y saltos de línea.
