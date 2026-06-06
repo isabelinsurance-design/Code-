@@ -49,7 +49,16 @@ header('X-Content-Type-Options: nosniff');
 // los requireAdmin() la seguirían bloqueando (doble candado).
 // ───────────────────────────────────────────────────────
 $IS_SERVICE = false;
-$svcKey = $_SERVER['HTTP_X_LUNA_KEY'] ?? $_GET['service_key'] ?? $_POST['service_key'] ?? '';
+// Athena puede mandar la llave en cualquiera de estos headers (o por GET/POST).
+// TODOS se validan contra la MISMA LUNA_SERVICE_KEY y quedan limitados por el
+// allowlist de abajo (leer + crear tickets). NO hay bypass de admin.
+$svcKey = $_SERVER['HTTP_X_LUNA_KEY']
+       ?? $_SERVER['HTTP_X_ATHENA_KEY']
+       ?? $_GET['service_key'] ?? $_POST['service_key'] ?? '';
+if ($svcKey === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])
+    && preg_match('/Bearer\s+(.+)/i', $_SERVER['HTTP_AUTHORIZATION'], $m)) {
+    $svcKey = trim($m[1]);   // Authorization: Bearer <llave>
+}
 if ($svcKey !== '') {
     $expectedSvcKey = getenv('LUNA_SERVICE_KEY')
         ?: (defined('LUNA_SERVICE_KEY') ? LUNA_SERVICE_KEY : '');
