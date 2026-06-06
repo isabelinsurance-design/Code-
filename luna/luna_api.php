@@ -401,11 +401,14 @@ case 'luna_chat':
     // la plataforma (datos, junta, tareas) y recibe los reportes automáticos,
     // pero no consume el chat (que es el costo variable). Para habilitar a
     // alguien más en el futuro: agrega su user_id a $CHAT_EXTRA_UIDS.
-    $CHAT_EXTRA_UIDS = [];   // ej. [5] para permitir a Skarleth
-    if (!$admin && !in_array($uid, $CHAT_EXTRA_UIDS, true)) {
-        lunaAudit($pdo, $uid, 'CHAT_DENEGADO', 'Intento de usar el chat de IA (restringido a Isabel)');
-        err('💬 El chat con LUNA está disponible solo para Isabel. Tú sí puedes ver los datos del CRM, registrar la junta y recibir los reportes automáticos.', 403);
-    }
+    // 🔓 Candado QUITADO (decisión de Isabel, "por ahora"): el chat queda abierto
+    // a cualquier usuario con sesión en el CRM. Para volver a restringirlo solo a
+    // Isabel en el futuro, descomenta el bloque de abajo.
+    // $CHAT_EXTRA_UIDS = [];   // ej. [5] para permitir a Skarleth
+    // if (!$admin && !in_array($uid, $CHAT_EXTRA_UIDS, true)) {
+    //     lunaAudit($pdo, $uid, 'CHAT_DENEGADO', 'Intento de usar el chat de IA (restringido a Isabel)');
+    //     err('💬 El chat con LUNA está disponible solo para Isabel.', 403);
+    // }
 
     $apiKey = getenv('ANTHROPIC_API_KEY')
         ?: (defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : '');

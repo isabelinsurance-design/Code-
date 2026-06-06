@@ -3634,7 +3634,7 @@ function copyEstudio(agentId, mi) {
 
 // El chat de IA es solo para Isabel (admin). El equipo usa los datos, la
 // junta y los reportes automáticos, pero no el chat (que es el costo variable).
-function canUseChat() { return !!(currentUser?.is_admin) || location.protocol === 'file:'; }
+function canUseChat() { return true; }  // 🔓 candado quitado (por ahora): chat abierto para todos
 
 async function sendMsg() {
   const inp = document.getElementById('chatInput');
