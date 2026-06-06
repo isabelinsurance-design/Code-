@@ -1309,7 +1309,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <div style="display:flex;gap:7px;align-items:center;flex-shrink:0;position:relative">
 </div>
 <div style="display:flex;gap:7px;align-items:center;flex-shrink:0;position:relative">
-<a href="https://drive.google.com/drive/folders/YOUR_FOLDER_ID" target="_blank" class="hbtn" title="GOOGLE DRIVE" style="text-decoration:none">📁 DRIVE</a>
+
 <div style="position:relative"><button onclick="toggleDarkMode()" class="hbtn" id="dark-btn">🌙</button>
 <button class="hbtn" onclick="toggleNotifPanel()" title="Notificaciones">🔔<?php if($notif_unread>0):?><span class="hbadge"><?=$notif_unread?></span><?php endif;?></button>
 <div id="notif-dropdown" class="notif-dropdown">
