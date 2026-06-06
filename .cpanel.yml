@@ -1,0 +1,19 @@
+---
+# ═══════════════════════════════════════════════════════════════════
+#  DESPLIEGUE AUTOMÁTICO A BLUEHOST  —  Luna (Medicare with Isabel)
+#  ─────────────────────────────────────────────────────────────────
+#  Cuando pulses "Deploy HEAD Commit" en cPanel → Git Version Control,
+#  cPanel copia la carpeta luna/ del repositorio dentro de
+#  public_html/website_5a1c69e7/luna/ (donde vive Luna).
+#
+#  NOTA: luna_config.php NO está en el repositorio (lleva tus claves),
+#  así que este deploy NUNCA lo sobrescribe. El luna_config.php del
+#  servidor se queda intacto. 👍
+#  Primera vez: copia luna_config.example.php → luna_config.php en el
+#  servidor y llena los 4 valores con tus credenciales de MySQL.
+# ═══════════════════════════════════════════════════════════════════
+deployment:
+  tasks:
+    - export DEPLOYPATH=/home1/emzmuumy/public_html/website_5a1c69e7/luna
+    - /bin/mkdir -p $DEPLOYPATH
+    - /bin/cp -R luna/. $DEPLOYPATH/
