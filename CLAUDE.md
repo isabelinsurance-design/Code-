@@ -140,6 +140,31 @@ bot is reference code for one of three paths: (a) absorb into Athena on
 Railway, (b) re-implement as PHP webhook on Bluehost, (c) deploy separately on
 Railway/Replit. See `PARA-LUNA-TEAM.md` for handoff details.
 
+## Two places, two jobs (don't confuse them)
+
+This repo (`isabelinsurance-design/Code-`) and the LUNA deployment are **both
+kept** — they do different jobs:
+
+| | **This repo (GitHub)** | **LUNA (Bluehost)** |
+|---|---|---|
+| Role | Development workshop / source of truth | Production deployment |
+| What lives here | `index.html` (editable), `tools/`, all docs, full git history | One built `isabel-sistema-completo-UNICO.html` + nav link |
+| Who touches it | Devs (or AI agents) making changes | Isabel using it day to day |
+| Edit cycle | Edit `index.html` here → rebuild UNICO → push commit → upload to LUNA | Receive the built UNICO, replace the old file |
+
+**Rule:** all edits go in this repo first. After editing, regenerate the
+single-file UNICO (see "Build step" above) and Sammy uploads the new UNICO
+to LUNA. Never edit the file directly on LUNA — those changes are lost the
+next time we deploy.
+
+This repo is also Isabel's **backup**: if LUNA's server has a problem, every
+version of the system since day one is in git history here.
+
+The only future scenario where this repo could be archived is if LUNA's own
+repo eventually absorbs `index.html` + `tools/` as a sub-folder (e.g.,
+`luna-repo/agents/marketing/`) and the build pipeline runs there. Until that
+day: keep both.
+
 ## Merge runbook
 
 The step-by-step runbook for absorbing this system into LUNA as an "agent"
