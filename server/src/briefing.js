@@ -10,11 +10,22 @@ import { isAepNow } from './crm.js';
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const BRIEFING_FILE = join(__dirname, '..', 'data', 'briefing_today.json');
 
+// La fecha "hoy" tiene que ser la fecha LOCAL de Isabel (PT), no UTC.
+// Bug histórico: usar toISOString().slice(0,10) producía UTC, así que
+// después de las ~5pm PT el briefing del mismo día se marcaba stale y
+// el PWA dejaba de mostrarlo (UTC ya había cruzado a mañana).
+function todayLocal() {
+  const tz = process.env.TIMEZONE || 'America/Los_Angeles';
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone: tz, year: 'numeric', month: '2-digit', day: '2-digit',
+  }).format(new Date()); // 'YYYY-MM-DD'
+}
+
 function saveBriefingToDisk(cards) {
   try {
     if (!existsSync(dirname(BRIEFING_FILE))) mkdirSync(dirname(BRIEFING_FILE), { recursive: true });
     writeFileSync(BRIEFING_FILE, JSON.stringify({
-      date: new Date().toISOString().slice(0, 10),
+      date: todayLocal(),
       generated_at: new Date().toISOString(),
       cards,
     }, null, 2));
@@ -25,8 +36,7 @@ export function loadTodayBriefing() {
   try {
     if (!existsSync(BRIEFING_FILE)) return null;
     const data = JSON.parse(readFileSync(BRIEFING_FILE, 'utf8'));
-    const today = new Date().toISOString().slice(0, 10);
-    if (data.date !== today) return { ...data, stale: true };
+    if (data.date !== todayLocal()) return { ...data, stale: true };
     return data;
   } catch { return null; }
 }
