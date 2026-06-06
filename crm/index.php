@@ -2648,6 +2648,7 @@ $obs_q->execute([$uid]); $obs = $obs_q->fetchColumn();
 $rpt_items = [
   ['llamadas_prospectos','LLAM.PROSP.','#2876A8'],
   ['contestaron','✅ CONTS.','#1E7A5C'],
+  ['interesados','★ INTERES.','#C0392B'],
   ['buzon','📬 BUZÓN','#C07A1A'],
   ['llamadas_servicio','LLAM.SERV.','#1E7A8C'],
   ['citas_confirmadas','CITAS','#1B4A6B'],
@@ -2661,6 +2662,7 @@ foreach($rpt_items as [$n,$l,$c]):
   $val = match($n) {
     'llamadas_prospectos' => $my_reporte['llamadas_prospectos'] ?? 0,
     'contestaron'         => $my_reporte['contestaron'] ?? 0,
+    'interesados'         => $my_reporte['interesados'] ?? 0,
     'buzon'               => $my_reporte['buzon'] ?? 0,
     'llamadas_servicio'   => $my_reporte['llamadas_servicio'] ?? 0,
     'citas_confirmadas'   => $my_reporte['citas_confirmadas'] ?? 0,
@@ -2693,6 +2695,7 @@ foreach($rpt_items as [$n,$l,$c]):
   $rpt_form = [
     ['llamadas_prospectos','LLAM.PROSP.'],
     ['contestaron','✅ CONTS.'],
+    ['interesados','★ INTERES.'],
     ['buzon','📬 BUZÓN'],
     ['llamadas_servicio','LLAM.SERV.'],
     ['citas_confirmadas','CITAS'],
@@ -2705,6 +2708,7 @@ foreach($rpt_items as [$n,$l,$c]):
     $val = match($n) {
       'llamadas_prospectos' => $mis_llamadas_prospectos_hoy ?? 0,
       'contestaron'         => $mis_llamadas_prosp_conts ?? 0,
+      'interesados'         => $my_reporte['interesados'] ?? 0,
       'buzon'               => $mis_llamadas_prosp_no_conts ?? 0,
       'llamadas_servicio'   => $mis_llamadas_servicio_hoy ?? 0,
       'citas_confirmadas'   => $mis_citas_creadas_hoy ?? 0,

@@ -590,14 +590,22 @@ case 'cancel_cita':
 case 'save_reporte':
     $pdo = db();
     $d = $_POST;
+    // Asegurar columna 'interesados' (etapa del embudo de Estrategia)
+    try {
+        $cols = $pdo->query("SHOW COLUMNS FROM reporte_diario")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('interesados', $cols)) {
+            $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN interesados INT DEFAULT 0 AFTER contestaron");
+        }
+    } catch(Exception $e) {}
     $pdo->prepare("INSERT INTO reporte_diario
-        (agente_id, fecha, llamadas_prospectos, contestaron, buzon,
+        (agente_id, fecha, llamadas_prospectos, contestaron, interesados, buzon,
          llamadas_servicio, citas_confirmadas, tickets_resueltos,
          tickets_actualizados, apps_enviadas, apps_por_hacer, nota, enviado)
-        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,1)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1)
         ON DUPLICATE KEY UPDATE
             llamadas_prospectos  = VALUES(llamadas_prospectos),
             contestaron          = VALUES(contestaron),
+            interesados          = VALUES(interesados),
             buzon                = VALUES(buzon),
             llamadas_servicio    = VALUES(llamadas_servicio),
             citas_confirmadas    = VALUES(citas_confirmadas),
@@ -612,6 +620,7 @@ case 'save_reporte':
             date('Y-m-d'),
             (int)($d['llamadas_prospectos']  ?? 0),
             (int)($d['contestaron']          ?? 0),
+            (int)($d['interesados']          ?? 0),
             (int)($d['buzon']                ?? 0),
             (int)($d['llamadas_servicio']    ?? 0),
             (int)($d['citas_confirmadas']    ?? 0),

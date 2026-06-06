@@ -30,14 +30,23 @@ $n_agentes = (int) $pdo->query("SELECT COUNT(*) FROM usuarios WHERE activo=1 AND
 $n_agentes = max(1, $n_agentes);
 
 // ── Reales del día (suma de todo el equipo) ──────────────────────────────
+// ¿Existe la columna 'interesados'? (se agrega al enviar el 1er reporte)
+$tieneInteresados = false;
+try {
+    $cols = $pdo->query("SHOW COLUMNS FROM reporte_diario")->fetchAll(PDO::FETCH_COLUMN);
+    $tieneInteresados = in_array('interesados', $cols);
+} catch(Exception $e) {}
+$selInteresados = $tieneInteresados ? "COALESCE(SUM(interesados),0)" : "0";
+
 $st = $pdo->prepare("
     SELECT COALESCE(SUM(llamadas_prospectos),0) AS calls,
            COALESCE(SUM(contestaron),0)         AS effective,
+           $selInteresados                       AS interested,
            COALESCE(SUM(citas_confirmadas),0)   AS appts,
            COALESCE(SUM(apps_enviadas),0)       AS enrolled
     FROM reporte_diario WHERE fecha = ?");
 $st->execute([$fecha]);
-$real = $st->fetch() ?: ['calls'=>0,'effective'=>0,'appts'=>0,'enrolled'=>0];
+$real = $st->fetch() ?: ['calls'=>0,'effective'=>0,'interested'=>0,'appts'=>0,'enrolled'=>0];
 
 // ── Por agente (para la tabla de abajo) ──────────────────────────────────
 $stA = $pdo->prepare("
@@ -59,7 +68,7 @@ $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232
 $stages = [
   ['key'=>'calls',     'lbl'=>'LLAMADAS',   'real'=>(int)$real['calls'],     'meta'=>$META['calls']*$n_agentes,     'has'=>true,  'ic'=>'📞'],
   ['key'=>'effective', 'lbl'=>'EFECTIVAS',  'real'=>(int)$real['effective'], 'meta'=>$META['effective']*$n_agentes, 'has'=>true,  'ic'=>'✓'],
-  ['key'=>'interested','lbl'=>'INTERESADOS','real'=>null,                    'meta'=>$META['interested']*$n_agentes,'has'=>false, 'ic'=>'★'],
+  ['key'=>'interested','lbl'=>'INTERESADOS','real'=>(int)($real['interested']??0),'meta'=>$META['interested']*$n_agentes,'has'=>$tieneInteresados, 'ic'=>'★'],
   ['key'=>'appts',     'lbl'=>'CITAS',      'real'=>(int)$real['appts'],     'meta'=>$META['appts']*$n_agentes,     'has'=>true,  'ic'=>'◷'],
   ['key'=>'enrolled',  'lbl'=>'INSCRITOS',  'real'=>(int)$real['enrolled'],  'meta'=>round($META['enrolled']*$n_agentes,1),'has'=>true,'ic'=>'🎉'],
 ];
@@ -162,7 +171,7 @@ td{padding:8px 10px;border-bottom:1px solid <?=$CB?>}
 </div>
 
 <div style="font-size:8px;color:<?=$MU?>;text-align:center;letter-spacing:1px;text-transform:uppercase">
-  Embudo basado en los reportes diarios del equipo · "Interesados" se podrá registrar agregando esa columna al reporte
+  Embudo basado en los reportes diarios del equipo · <?= $tieneInteresados ? '"Interesados" se captura en el reporte diario' : '"Interesados" aparecerá cuando se envíe el primer reporte con ese campo' ?>
 </div>
 
 </body></html>
