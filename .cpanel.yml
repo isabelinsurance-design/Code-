@@ -4,11 +4,7 @@
 #  ─────────────────────────────────────────────────────────────────
 #  Cuando pulses "Deploy HEAD Commit" en cPanel → Git Version Control,
 #  cPanel ejecuta estas tareas: copia la carpeta crm/ del repositorio
-#  dentro de public_html/crm/ (donde vive tu sitio).
-#
-#  ⚠️ VERIFICA TU USUARIO DE cPANEL:
-#     En cPanel, panel derecho "General Information" → "Username".
-#     Si NO es "emzmuumy", cambia esa palabra en las 2 líneas de abajo.
+#  dentro de public_html/website_5a1c69e7/crm/ (donde vive el CRM).
 #
 #  NOTA: config.php NO está en el repositorio (lleva tus claves), así
 #  que este deploy NUNCA lo sobrescribe. El config.php del servidor
@@ -16,6 +12,6 @@
 # ═══════════════════════════════════════════════════════════════════
 deployment:
   tasks:
-    - export DEPLOYPATH=/home1/emzmuumy/public_html/crm
+    - export DEPLOYPATH=/home1/emzmuumy/public_html/website_5a1c69e7/crm
     - /bin/mkdir -p $DEPLOYPATH
     - /bin/cp -R crm/. $DEPLOYPATH/
