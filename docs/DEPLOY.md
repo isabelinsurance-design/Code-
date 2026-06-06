@@ -55,7 +55,7 @@ Opcionales (tienen default): `MAX_TOKENS`, `ANTHROPIC_BASE_URL`, `MODEL_*`.
 ```bash
 curl https://TU-DOMINIO.up.railway.app/api/health      # -> {"ok":true,...}
 ```
-- Abre `https://TU-DOMINIO.up.railway.app/samia-dashboard.html` → el panel.
+- Abre `https://TU-DOMINIO.up.railway.app/` → la escuela. `/dashboard` → el panel.
 - En el panel, seccion **Sistema**: deberias ver el scheduler **activo** y, tras unos
   minutos, ejecuciones del *task tick* horario. El briefing se genera 06:30 hora del
   servidor (UTC por defecto — ver nota de zona horaria).
