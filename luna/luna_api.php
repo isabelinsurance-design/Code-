@@ -60,9 +60,15 @@ if ($svcKey === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])
     $svcKey = trim($m[1]);   // Authorization: Bearer <llave>
 }
 if ($svcKey !== '') {
-    $expectedSvcKey = getenv('LUNA_SERVICE_KEY')
-        ?: (defined('LUNA_SERVICE_KEY') ? LUNA_SERVICE_KEY : '');
-    if ($expectedSvcKey === '' || !hash_equals($expectedSvcKey, (string)$svcKey)) {
+    // Acepta la llave bajo CUALQUIER nombre (LUNA_SERVICE_KEY del deploy nuevo,
+    // o LUNA_INTERNAL_KEY del bypass viejo de Athena) por env var o constante.
+    // trim() limpia espacios/saltos de línea invisibles (Railway a veces agrega \n).
+    $expectedSvcKey = trim((string)(getenv('LUNA_SERVICE_KEY')
+        ?: (defined('LUNA_SERVICE_KEY')  ? LUNA_SERVICE_KEY  : '')
+        ?: getenv('LUNA_INTERNAL_KEY')
+        ?: (defined('LUNA_INTERNAL_KEY') ? LUNA_INTERNAL_KEY : '')));
+    $svcKey = trim((string)$svcKey);
+    if ($expectedSvcKey === '' || !hash_equals($expectedSvcKey, $svcKey)) {
         http_response_code(403);
         echo json_encode(['ok'=>false,'error'=>'Llave de servicio inválida.']);
         exit;
