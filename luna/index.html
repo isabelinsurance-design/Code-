@@ -490,7 +490,9 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
       <div class="chat-area" id="chatArea"></div>
       <div class="chat-footer">
         <div class="chat-input-row">
-          <textarea class="chat-ta" id="chatInput" rows="1" placeholder="Escribe tu mensaje..."></textarea>
+          <textarea class="chat-ta" id="chatInput" rows="1" placeholder="Escribe tu mensaje…  (o toca 🎤)"></textarea>
+          <button class="send-btn" id="voiceBtn" onclick="toggleVoice()" title="LUNA habla / silencio" style="background:var(--ink);color:var(--t2);border:1px solid var(--border);">🔊</button>
+          <button class="send-btn" id="micBtn" onclick="startMic()" title="Hablar" style="background:var(--ink);color:var(--t2);border:1px solid var(--border);">🎤</button>
           <button class="send-btn" id="sendBtn" onclick="sendMsg()">↑</button>
         </div>
         <div class="chat-hint">Enter para enviar · Shift+Enter para nueva línea</div>
@@ -3730,6 +3732,9 @@ async function sendMsg() {
     const last = history[a.id][history[a.id].length-1];
     if (last) last.streaming = false;
 
+    // 🔊 LUNA lee su respuesta en voz (estilo Athena; respeta el botón de Silencio)
+    speak(finalText);
+
     // ── Estudio Creativo: pasa el output por Compliance antes de copiar ──
     if (a.id === 'estudio' && last && last.role === 'assistant' && last.content && last.content.length > 20) {
       reviewEstudioOutput(a.id, last);
@@ -4009,6 +4014,83 @@ meetingCheckPending();
   checkAllAlerts(false);
   // Re-render grid in case team config changed how it displays
   renderGrid();
+})();
+
+// ════════════════════════════════════════════════════════════════
+//  VOZ (estilo Athena): LUNA te habla, y tú le hablas.
+//  - Salida de voz (LUNA habla): funciona en iPhone y Android.
+//  - Entrada por micrófono propio: funciona en Chrome/Android/PC.
+//    En iPhone se oculta el 🎤 y usas el micrófono del teclado (dictado).
+// ════════════════════════════════════════════════════════════════
+let voiceOn = (localStorage.getItem('luna_voice') !== 'off');  // habla por defecto
+let lunaRecog = null;
+
+function updateVoiceBtn(){
+  const b = document.getElementById('voiceBtn');
+  if (b){ b.textContent = voiceOn ? '🔊' : '🔇';
+    b.title = voiceOn ? 'LUNA habla (toca para silenciar)' : 'Silenciado (toca para activar voz)'; }
+}
+function toggleVoice(){
+  voiceOn = !voiceOn;
+  localStorage.setItem('luna_voice', voiceOn ? 'on' : 'off');
+  if (!voiceOn && 'speechSynthesis' in window) { try { speechSynthesis.cancel(); } catch(_){} }
+  updateVoiceBtn();
+}
+function pickSpanishVoice(){
+  try {
+    const vs = speechSynthesis.getVoices() || [];
+    return vs.find(v=>/es[-_]US/i.test(v.lang)) || vs.find(v=>/es[-_]MX/i.test(v.lang))
+        || vs.find(v=>/^es/i.test(v.lang)) || null;
+  } catch(_){ return null; }
+}
+function speak(text){
+  if (!voiceOn || !('speechSynthesis' in window) || !text) return;
+  let t = String(text)
+    .replace(/\[\[[^\]]*\]\]/g, ' ')                          // tokens internos [[...]]
+    .replace(/_Consultando CRM:[^_]*_/g, ' ')                 // notas de tool-calling
+    .replace(/https?:\/\/\S+/g, ' ')                          // urls
+    .replace(/[#*`>_~|]/g, ' ')                               // markdown
+    .replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2190}-\u{21FF}]/gu, ' ') // emojis/flechas
+    .replace(/\s+/g, ' ').trim();
+  if (!t) return;
+  if (t.length > 700) t = t.slice(0, 700);                   // no leer textos enormes
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'es-US';
+    const v = pickSpanishVoice(); if (v) u.voice = v;
+    u.rate = 1.03; u.pitch = 1.0;
+    speechSynthesis.speak(u);
+  } catch(_){}
+}
+function startMic(){
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR){ toast('🎤 En iPhone usa el micrófono del teclado para dictar.'); return; }
+  const mb = document.getElementById('micBtn');
+  if (lunaRecog){ try { lunaRecog.stop(); } catch(_){} lunaRecog = null; if (mb) mb.textContent='🎤'; return; }
+  try {
+    lunaRecog = new SR();
+    lunaRecog.lang = 'es-US';
+    lunaRecog.interimResults = false;
+    lunaRecog.maxAlternatives = 1;
+    if (mb) mb.textContent = '🔴';
+    lunaRecog.onresult = (e) => {
+      const txt = e.results[0][0].transcript;
+      const inp = document.getElementById('chatInput');
+      if (inp){ inp.value = txt; }
+      sendMsg();
+    };
+    lunaRecog.onend   = () => { if (mb) mb.textContent='🎤'; lunaRecog = null; };
+    lunaRecog.onerror = () => { if (mb) mb.textContent='🎤'; lunaRecog = null; };
+    lunaRecog.start();
+  } catch(_){ toast('🎤 No pude activar el micrófono.'); if (mb) mb.textContent='🎤'; }
+}
+// Init de voz al cargar
+(function(){
+  updateVoiceBtn();
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR){ const mb = document.getElementById('micBtn'); if (mb) mb.style.display = 'none'; } // iPhone: usa el del teclado
+  if ('speechSynthesis' in window){ try { speechSynthesis.getVoices(); speechSynthesis.onvoiceschanged = function(){}; } catch(_){} }
 })();
 
 // ── PWA: registrar el service worker para poder instalar LUNA en el teléfono ──
