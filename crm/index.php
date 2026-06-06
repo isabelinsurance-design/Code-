@@ -4175,7 +4175,7 @@ $tkt_miembro_cnt = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['t
 $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['tipo'],$TIPO_MIEMBRO,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
 ?>
 
-<div class="stats-row" style="margin-bottom:14px">
+<div class="stats-row tkt-only" style="margin-bottom:14px">
   <div class="stat-card" style="color:#B83232;cursor:pointer;border-top-color:#B83232" onclick="setTktFiltro('estado','ABIERTO')">
     <div class="stat-icon">◈ ABIERTOS</div>
     <div class="stat-val" style="color:#B83232"><?=$tkt_abiertos?></div>
@@ -4210,14 +4210,19 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
     <span id="vtab-miembro-cnt" style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:8px"><?=$tkt_miembro_cnt?></span>
   </button>
   <button id="vtab-tarea" onclick="setTktVista('tarea')"
-    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;border-right:1px solid <?=$CB?>;display:flex;align-items:center;justify-content:center;gap:6px">
     ◈ TAREAS GENERALES
     <span id="vtab-tarea-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px"><?=$tkt_tarea_cnt?></span>
+  </button>
+  <button id="vtab-proyecto" onclick="setTktVista('proyecto')"
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    📁 PROYECTOS
+    <span id="vtab-proyecto-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px">0</span>
   </button>
 </div>
 
 <!-- Barra de filtros + botón nuevo -->
-<div class="card" style="padding:11px 14px;margin-bottom:13px">
+<div class="card tkt-only" style="padding:11px 14px;margin-bottom:13px">
   <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
     <!-- Búsqueda -->
     <!-- Campos señuelo: evitan que Chrome rellene el buscador con credenciales guardadas -->
@@ -4266,7 +4271,7 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
 </div>
 
 <!-- Lista de tickets -->
-<div class="card" style="overflow:hidden">
+<div class="card tkt-only" style="overflow:hidden">
 <div style="overflow-x:auto">
 <table id="tkt-list" style="width:100%;border-collapse:collapse">
 <thead>
@@ -4424,14 +4429,65 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
 </div>
 </div>
 
-<div id="tkt-count" style="padding:8px 14px;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;border-top:1px solid <?=$CB?>"></div>
-<div id="tkt-empty" style="display:none;padding:36px;text-align:center;border-top:1px solid <?=$CB?>">
+<div id="tkt-count" class="tkt-only" style="padding:8px 14px;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;border-top:1px solid <?=$CB?>"></div>
+<div id="tkt-empty" class="tkt-only" style="display:none;padding:36px;text-align:center;border-top:1px solid <?=$CB?>">
   <div style="font-size:22px;margin-bottom:6px">◈</div>
   <div style="font-size:10px;font-weight:900;color:<?=$MU?>;letter-spacing:2px;text-transform:uppercase">Sin tickets que mostrar</div>
   <div style="font-size:9px;color:<?=$MU?>;margin-top:3px">Ajusta los filtros o crea un nuevo ticket</div>
 </div>
 
+<!-- ════════ PANEL DE PROYECTOS ════════ -->
+<div id="proyectos-panel" style="display:none">
+  <div class="card" style="padding:11px 14px;margin-bottom:13px;display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+    <input type="search" id="proy-search" oninput="renderProyectos()" placeholder="🔍  Buscar proyecto…"
+      autocomplete="off" spellcheck="false"
+      style="flex:2;min-width:160px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 12px;font-size:11px;font-family:'DM Sans',sans-serif;background:<?=$BG?>;color:<?=$TX?>">
+    <div style="display:flex;gap:3px;background:<?=$BG?>;border-radius:10px;padding:3px;flex-shrink:0">
+      <button id="ppill-ACTIVOS" onclick="setProyFiltro('ACTIVOS')" class="tkt-pill tkt-pill-on">EN CURSO</button>
+      <button id="ppill-COMPLETADO" onclick="setProyFiltro('COMPLETADO')" class="tkt-pill" style="color:#1E7A5C">COMPLETADOS</button>
+      <button id="ppill-TODOS" onclick="setProyFiltro('TODOS')" class="tkt-pill">TODOS</button>
+    </div>
+    <button class="btn btn-p btn-sm" style="margin-left:auto" onclick="openProyectoForm()">+ NUEVO PROYECTO</button>
+  </div>
+  <div id="proy-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
+  <div id="proy-empty" style="display:none;padding:46px;text-align:center;background:#fff;border:1px solid <?=$CB?>;border-radius:13px">
+    <div style="font-size:30px;margin-bottom:8px">📁</div>
+    <div style="font-size:11px;font-weight:900;color:<?=$MU?>;letter-spacing:2px;text-transform:uppercase">Sin proyectos todavía</div>
+    <div style="font-size:9px;color:<?=$MU?>;margin-top:4px">Crea tu primer proyecto para llevar el registro de avances</div>
+    <button class="btn btn-p btn-sm" style="margin-top:14px" onclick="openProyectoForm()">+ CREAR PROYECTO</button>
+  </div>
+</div>
+
 </div><!-- /TICKETS -->
+
+<!-- ══ MODAL: FORM DE PROYECTO ══ -->
+<div id="modal-proyecto" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title" id="proy-modal-title">📁 NUEVO PROYECTO</div><button class="modal-close" onclick="closeModal('modal-proyecto')">✕</button></div>
+  <input type="hidden" id="proy-id">
+  <div class="form-group"><label class="form-label">TÍTULO *</label><input id="proy-titulo" class="form-input" placeholder="Nombre del proyecto" maxlength="200"></div>
+  <div class="form-group"><label class="form-label">DESCRIPCIÓN</label><textarea id="proy-desc" class="form-input" rows="3" placeholder="¿De qué trata el proyecto?"></textarea></div>
+  <div style="display:flex;gap:10px">
+    <div class="form-group" style="flex:1"><label class="form-label">ESTADO</label><select id="proy-estado" class="form-input"><option value="PLANIFICANDO">PLANIFICANDO</option><option value="EN PROGRESO">EN PROGRESO</option><option value="PAUSADO">PAUSADO</option><option value="COMPLETADO">COMPLETADO</option></select></div>
+    <div class="form-group" style="flex:1"><label class="form-label">PRIORIDAD</label><select id="proy-prio" class="form-input"><option value="ALTA">ALTA</option><option value="MEDIA" selected>MEDIA</option><option value="BAJA">BAJA</option></select></div>
+  </div>
+  <div class="form-group"><label class="form-label">PROGRESO: <span id="proy-prog-val">0%</span></label><input type="range" id="proy-prog" min="0" max="100" step="5" value="0" oninput="document.getElementById('proy-prog-val').textContent=this.value+'%'" style="width:100%"></div>
+  <div class="form-group"><label class="form-label">ASIGNAR A</label><select id="proy-asig" class="form-input"><option value="">— Sin asignar —</option><?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?></select></div>
+  <div style="display:flex;gap:10px">
+    <div class="form-group" style="flex:1"><label class="form-label">INICIO</label><input type="date" id="proy-finicio" class="form-input"></div>
+    <div class="form-group" style="flex:1"><label class="form-label">FECHA LÍMITE</label><input type="date" id="proy-flimite" class="form-input"></div>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-proyecto')">CANCELAR</button>
+    <button type="button" class="btn btn-p btn-sm" onclick="saveProyecto()">GUARDAR</button>
+  </div>
+</div></div>
+
+<!-- ══ MODAL: DETALLE DE PROYECTO ══ -->
+<div id="modal-proyecto-detail" class="modal-overlay"><div class="modal" style="max-width:680px;width:96vw">
+  <div class="modal-header"><div class="modal-title">📁 PROYECTO</div><button class="modal-close" onclick="closeModal('modal-proyecto-detail')">✕</button></div>
+  <div id="proy-detail-body"></div>
+</div></div>
+
 <!-- ASISTENCIA -->
 <!-- ASISTENCIA -->
 <div id="tab-ASISTENCIA" class="tab-pane">
@@ -6579,19 +6635,274 @@ function setTktVista(vista){
   _tktVista = vista;
   // Estilos de los tabs
   const P1 = '<?=$P1?>', MU = '<?=$MU?>', BG = '<?=$BG?>', CB = '<?=$CB?>';
-  const btnM = document.getElementById('vtab-miembro');
-  const btnT = document.getElementById('vtab-tarea');
-  if(btnM && btnT){
-    btnM.style.background = vista==='miembro' ? P1 : '#fff';
-    btnM.style.color      = vista==='miembro' ? '#fff' : MU;
-    btnT.style.background = vista==='tarea'   ? P1 : '#fff';
-    btnT.style.color      = vista==='tarea'   ? '#fff' : MU;
-    const cntM = document.getElementById('vtab-miembro-cnt');
-    const cntT = document.getElementById('vtab-tarea-cnt');
-    if(cntM){ cntM.style.background = vista==='miembro'?'rgba(255,255,255,.25)':BG; cntM.style.border = vista==='miembro'?'none':'1px solid '+CB; cntM.style.color = vista==='miembro'?'#fff':MU; }
-    if(cntT){ cntT.style.background = vista==='tarea'  ?'rgba(255,255,255,.25)':BG; cntT.style.border = vista==='tarea'  ?'none':'1px solid '+CB; cntT.style.color = vista==='tarea'  ?'#fff':MU; }
+  const tabs = {miembro:'vtab-miembro', tarea:'vtab-tarea', proyecto:'vtab-proyecto'};
+  for(const [v,id] of Object.entries(tabs)){
+    const btn = document.getElementById(id);
+    if(!btn) continue;
+    const on = (v===vista);
+    btn.style.background = on ? P1 : '#fff';
+    btn.style.color      = on ? '#fff' : MU;
+    const cnt = document.getElementById(id+'-cnt');
+    if(cnt){ cnt.style.background = on?'rgba(255,255,255,.25)':BG; cnt.style.border = on?'none':'1px solid '+CB; cnt.style.color = on?'#fff':MU; }
   }
-  filterTickets();
+  // Mostrar/ocultar bloques de tickets vs panel de proyectos
+  const esProy = (vista==='proyecto');
+  document.querySelectorAll('.tkt-only').forEach(el=>{ el.style.display = esProy ? 'none' : ''; });
+  const pp = document.getElementById('proyectos-panel');
+  if(pp) pp.style.display = esProy ? '' : 'none';
+  if(esProy){ loadProyectos(); }
+  else { filterTickets(); }
+}
+
+// ════════════════════════════════════════════════════════════════
+//  PROYECTOS  —  lógica de cliente
+// ════════════════════════════════════════════════════════════════
+let _proyData = [];
+let _proyFiltro = 'ACTIVOS';
+let _proyDetailId = null;
+const _PROY_EST_COLOR = {'PLANIFICANDO':'#8896A5','EN PROGRESO':'#1B5E8C','PAUSADO':'#C07A1A','COMPLETADO':'#1E7A5C'};
+const _PROY_PRIO_COLOR = {'ALTA':'#B83232','MEDIA':'#C07A1A','BAJA':'#2876A8'};
+
+function pEsc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function fileIcon(name){
+  const e=((name||'').split('.').pop()||'').toLowerCase();
+  if(['jpg','jpeg','png','gif','webp'].includes(e))return '🖼️';
+  if(e==='pdf')return '📄';
+  if(['doc','docx'].includes(e))return '📝';
+  if(['xls','xlsx','csv'].includes(e))return '📊';
+  if(['ppt','pptx'].includes(e))return '📑';
+  if(e==='zip')return '🗜️';
+  return '📎';
+}
+
+function loadProyectos(){
+  fetch('api.php?action=list_proyectos').then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error al cargar proyectos'); return; }
+    _proyData = d.data||[];
+    const cnt = document.getElementById('vtab-proyecto-cnt');
+    if(cnt) cnt.textContent = _proyData.filter(p=>p.estado!=='COMPLETADO').length;
+    renderProyectos();
+  }).catch(()=>toast('Error de conexión'));
+}
+
+function setProyFiltro(f){
+  _proyFiltro=f;
+  document.querySelectorAll('#proyectos-panel .tkt-pill').forEach(p=>p.classList.remove('tkt-pill-on'));
+  const b=document.getElementById('ppill-'+f); if(b)b.classList.add('tkt-pill-on');
+  renderProyectos();
+}
+
+function renderProyectos(){
+  const grid=document.getElementById('proy-grid');
+  const empty=document.getElementById('proy-empty');
+  if(!grid)return;
+  const q=(document.getElementById('proy-search')?.value||'').toLowerCase();
+  const list=_proyData.filter(p=>{
+    if(_proyFiltro==='ACTIVOS' && p.estado==='COMPLETADO') return false;
+    if(_proyFiltro==='COMPLETADO' && p.estado!=='COMPLETADO') return false;
+    if(q){ const hay=((p.titulo||'')+' '+(p.descripcion||'')+' '+(p.asig_nombre||'')).toLowerCase(); if(!hay.includes(q)) return false; }
+    return true;
+  });
+  if(!list.length){ grid.innerHTML=''; empty.style.display=''; return; }
+  empty.style.display='none';
+  grid.innerHTML=list.map(p=>{
+    const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
+    const ec=_PROY_EST_COLOR[p.estado]||'#8896A5';
+    const resp = p.asig_nombre ? p.asig_nombre.split(' ')[0] : (p.creador_nombre?p.creador_nombre.split(' ')[0]:'—');
+    const vence = p.fecha_limite ? `<span style="font-size:8px;color:#8896A5">📅 ${pEsc(p.fecha_limite)}</span>` : '';
+    return `<div onclick="openProyectoDetail(${p.id})" style="cursor:pointer;background:#fff;border:1px solid <?=$CB?>;border-left:3px solid ${_PROY_PRIO_COLOR[p.prioridad]||'#2876A8'};border-radius:13px;padding:14px;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 6px 18px rgba(27,74,107,.12)'" onmouseout="this.style.boxShadow='none'">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+        <div style="font-weight:900;font-size:12px;color:<?=$P1?>;line-height:1.25">${pEsc(p.titulo)}</div>
+        <span style="flex-shrink:0;font-size:7px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${ec};padding:3px 7px;border-radius:20px">${pEsc(p.estado)}</span>
+      </div>
+      ${p.descripcion?`<div style="font-size:9px;color:<?=$MU?>;margin-bottom:9px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${pEsc(p.descripcion)}</div>`:''}
+      <div style="height:7px;background:<?=$BG?>;border-radius:20px;overflow:hidden;margin-bottom:5px">
+        <div style="height:100%;width:${pc}%;background:${ec};border-radius:20px;transition:width .3s"></div>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:8px;font-weight:900;color:${ec}">${pc}%</span>
+        <div style="display:flex;gap:8px;align-items:center">
+          ${vence}
+          <span style="font-size:8px;color:#8896A5">👤 ${pEsc(resp)}</span>
+          ${parseInt(p.n_archivos)>0?`<span style="font-size:8px;color:#8896A5">📎 ${p.n_archivos}</span>`:''}
+          ${parseInt(p.n_avances)>0?`<span style="font-size:8px;color:#8896A5">💬 ${p.n_avances}</span>`:''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openProyectoForm(id=null){
+  const p = id ? _proyData.find(x=>x.id==id) : null;
+  document.getElementById('proy-id').value = p?p.id:'';
+  document.getElementById('proy-modal-title').textContent = p?'✏️ EDITAR PROYECTO':'📁 NUEVO PROYECTO';
+  document.getElementById('proy-titulo').value = p?(p.titulo||''):'';
+  document.getElementById('proy-desc').value = p?(p.descripcion||''):'';
+  document.getElementById('proy-estado').value = p?p.estado:'PLANIFICANDO';
+  document.getElementById('proy-prio').value = p?p.prioridad:'MEDIA';
+  const pg = p?(parseInt(p.progreso)||0):0;
+  document.getElementById('proy-prog').value = pg;
+  document.getElementById('proy-prog-val').textContent = pg+'%';
+  document.getElementById('proy-asig').value = p?(p.asignado_a||''):'';
+  document.getElementById('proy-finicio').value = p?(p.fecha_inicio||''):'';
+  document.getElementById('proy-flimite').value = p?(p.fecha_limite||''):'';
+  openModal('modal-proyecto');
+}
+
+function saveProyecto(){
+  const titulo=document.getElementById('proy-titulo').value.trim();
+  if(!titulo){ toast('Escribe un título'); return; }
+  const id=document.getElementById('proy-id').value;
+  const body=new URLSearchParams({
+    action: id?'update_proyecto':'save_proyecto',
+    id: id,
+    titulo,
+    descripcion: document.getElementById('proy-desc').value.trim(),
+    estado: document.getElementById('proy-estado').value,
+    prioridad: document.getElementById('proy-prio').value,
+    progreso: document.getElementById('proy-prog').value,
+    asignado_a: document.getElementById('proy-asig').value,
+    fecha_inicio: document.getElementById('proy-finicio').value,
+    fecha_limite: document.getElementById('proy-flimite').value
+  });
+  fetch('api.php',{method:'POST',body}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error'); return; }
+    closeModal('modal-proyecto');
+    toast('✓ Proyecto guardado');
+    loadProyectos();
+    const det=document.getElementById('modal-proyecto-detail');
+    if(det && det.classList.contains('open') && _proyDetailId) openProyectoDetail(_proyDetailId);
+  }).catch(()=>toast('Error de conexión'));
+}
+
+function openProyectoDetail(id){
+  _proyDetailId=id;
+  openModal('modal-proyecto-detail');
+  document.getElementById('proy-detail-body').innerHTML='<div style="padding:40px;text-align:center;color:#8896A5;font-size:10px">Cargando…</div>';
+  fetch('api.php?action=get_proyecto&id='+id).then(r=>r.json()).then(d=>{
+    if(!d.ok){ document.getElementById('proy-detail-body').innerHTML='<div style="padding:30px;text-align:center;color:#B83232;font-size:10px">'+pEsc(d.error||'Error')+'</div>'; return; }
+    renderProyectoDetail(d.data);
+  }).catch(()=>{ document.getElementById('proy-detail-body').innerHTML='<div style="padding:30px;text-align:center;color:#B83232;font-size:10px">Error de conexión</div>'; });
+}
+
+function renderProyectoDetail(p){
+  const ec=_PROY_EST_COLOR[p.estado]||'#8896A5';
+  const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
+  const canEdit = ADMIN || p.asignado_a==UID || p.agente_id==UID;
+  const canDel  = ADMIN || p.agente_id==UID;
+  const av=(p.avances||[]).map(a=>`
+    <div style="display:flex;gap:9px;padding:10px 0;border-bottom:1px solid <?=$BG?>">
+      <div style="flex-shrink:0;width:26px;height:26px;border-radius:50%;background:${pEsc(a.color||'#1B5E8C')};color:#fff;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:900">${pEsc(a.iniciales||'?')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;justify-content:space-between;gap:8px">
+          <span style="font-size:9px;font-weight:900;color:<?=$P1?>">${pEsc((a.nombre||'').split(' ')[0])}</span>
+          <span style="font-size:8px;color:#8896A5;white-space:nowrap">${pEsc((a.created_at||'').slice(0,16))}${(a.progreso!=null)?` · <b style="color:${ec}">${a.progreso}%</b>`:''}</span>
+        </div>
+        <div style="font-size:10px;color:<?=$TX?>;margin-top:2px;line-height:1.4;white-space:pre-wrap;word-break:break-word">${pEsc(a.nota)}</div>
+      </div>
+      ${(ADMIN||a.usuario_id==UID||p.agente_id==UID)?`<button onclick="deleteAvance(${a.id})" title="Borrar" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#C9A0A0;font-size:11px">✕</button>`:''}
+    </div>`).join('') || '<div style="padding:14px;text-align:center;color:#8896A5;font-size:9px">Aún no hay avances registrados</div>';
+
+  const ar=(p.archivos||[]).map(f=>`
+    <div style="display:flex;align-items:center;gap:8px;padding:7px 9px;background:<?=$BG?>;border-radius:8px;margin-bottom:5px">
+      <span style="font-size:14px">${fileIcon(f.nombre_original)}</span>
+      <a href="${pEsc(f.ruta)}" target="_blank" rel="noopener" style="flex:1;font-size:9px;font-weight:700;color:#1B5E8C;text-decoration:none;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${pEsc(f.nombre_original)}</a>
+      ${(ADMIN||f.usuario_id==UID||p.agente_id==UID||p.asignado_a==UID)?`<button onclick="deleteArchivo(${f.id})" title="Borrar" style="flex-shrink:0;background:none;border:none;cursor:pointer;color:#C9A0A0;font-size:11px">✕</button>`:''}
+    </div>`).join('') || '<div style="font-size:9px;color:#8896A5;padding:4px 0">Sin archivos adjuntos</div>';
+
+  document.getElementById('proy-detail-body').innerHTML = `
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:6px">
+      <div style="font-weight:900;font-size:15px;color:<?=$P1?>;line-height:1.25">${pEsc(p.titulo)}</div>
+      <span style="flex-shrink:0;font-size:8px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${ec};padding:4px 9px;border-radius:20px">${pEsc(p.estado)}</span>
+    </div>
+    ${p.descripcion?`<div style="font-size:10px;color:<?=$MU?>;margin-bottom:10px;line-height:1.45;white-space:pre-wrap;word-break:break-word">${pEsc(p.descripcion)}</div>`:''}
+    <div style="height:9px;background:<?=$BG?>;border-radius:20px;overflow:hidden;margin-bottom:4px"><div style="height:100%;width:${pc}%;background:${ec};border-radius:20px"></div></div>
+    <div style="display:flex;justify-content:space-between;font-size:8px;color:#8896A5;margin-bottom:12px">
+      <span><b style="color:${ec};font-size:10px">${pc}%</b> completado</span>
+      <span>${p.fecha_limite?'📅 Límite: '+pEsc(p.fecha_limite):''}</span>
+    </div>
+    <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:8px;color:#8896A5;padding:9px 11px;background:<?=$BG?>;border-radius:9px;margin-bottom:12px">
+      <span>👤 Responsable: <b style="color:<?=$P1?>">${pEsc(p.asig_nombre?p.asig_nombre.split(' ')[0]:(p.creador_nombre?p.creador_nombre.split(' ')[0]:'—'))}</b></span>
+      <span>✍️ Creó: <b>${pEsc(p.creador_nombre?p.creador_nombre.split(' ')[0]:'—')}</b></span>
+      ${p.prioridad?`<span>⚑ ${pEsc(p.prioridad)}</span>`:''}
+    </div>
+    ${canEdit?`<div style="display:flex;gap:7px;margin-bottom:14px">
+      <button class="btn btn-gh btn-sm" onclick="openProyectoForm(${p.id})">✏️ EDITAR</button>
+      ${canDel?`<button class="btn btn-gh btn-sm" style="color:#B83232" onclick="deleteProyecto(${p.id})">🗑 ELIMINAR</button>`:''}
+    </div>`:''}
+    ${canEdit?`<div style="border:1px solid <?=$CB?>;border-radius:11px;padding:12px;margin-bottom:14px">
+      <div style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">➕ Registrar avance</div>
+      <textarea id="av-nota" class="form-input" rows="2" placeholder="¿Qué se avanzó?" style="margin-bottom:8px"></textarea>
+      <label style="display:flex;align-items:center;gap:7px;font-size:9px;color:<?=$MU?>;margin-bottom:8px;cursor:pointer">
+        <input type="checkbox" id="av-setprog" onchange="document.getElementById('av-prog-wrap').style.display=this.checked?'flex':'none'"> Actualizar progreso del proyecto
+      </label>
+      <div id="av-prog-wrap" style="display:none;align-items:center;gap:9px;margin-bottom:9px">
+        <input type="range" id="av-prog" min="0" max="100" step="5" value="${pc}" oninput="document.getElementById('av-prog-val').textContent=this.value+'%'" style="flex:1">
+        <span id="av-prog-val" style="font-size:9px;font-weight:900;color:${ec};min-width:34px">${pc}%</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+        <label class="btn btn-gh btn-sm" style="cursor:pointer;margin:0">📎 ADJUNTAR<input type="file" onchange="uploadProyectoArchivo(this)" style="display:none"></label>
+        <button class="btn btn-p btn-sm" onclick="addAvance()">GUARDAR AVANCE</button>
+      </div>
+    </div>`:''}
+    <div style="font-size:9px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">📎 Archivos (${(p.archivos||[]).length})</div>
+    <div style="margin-bottom:14px">${ar}</div>
+    <div style="font-size:9px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">💬 Historial de avances (${(p.avances||[]).length})</div>
+    <div>${av}</div>
+  `;
+}
+
+function addAvance(){
+  const nota=document.getElementById('av-nota')?.value.trim()||'';
+  if(!nota){ toast('Escribe una nota de avance'); return; }
+  const body=new URLSearchParams({action:'add_avance',proyecto_id:_proyDetailId,nota});
+  if(document.getElementById('av-setprog')?.checked) body.set('progreso',document.getElementById('av-prog').value);
+  fetch('api.php',{method:'POST',body}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error'); return; }
+    toast('✓ Avance registrado');
+    openProyectoDetail(_proyDetailId);
+    loadProyectos();
+  }).catch(()=>toast('Error de conexión'));
+}
+
+function uploadProyectoArchivo(input){
+  if(!input.files||!input.files[0])return;
+  const f=input.files[0];
+  if(f.size>10*1024*1024){ toast('El archivo supera 10MB'); input.value=''; return; }
+  const fd=new FormData();
+  fd.append('action','upload_proyecto_archivo');
+  fd.append('proyecto_id',_proyDetailId);
+  fd.append('archivo',f);
+  toast('Subiendo…');
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error al subir'); return; }
+    toast('✓ Archivo subido');
+    openProyectoDetail(_proyDetailId);
+    loadProyectos();
+  }).catch(()=>toast('Error de conexión'));
+  input.value='';
+}
+
+function deleteProyecto(id){
+  if(!confirm('¿Eliminar este proyecto con todos sus avances y archivos? No se puede deshacer.'))return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_proyecto',id})}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error'); return; }
+    closeModal('modal-proyecto-detail'); toast('Proyecto eliminado'); loadProyectos();
+  }).catch(()=>toast('Error de conexión'));
+}
+function deleteAvance(id){
+  if(!confirm('¿Borrar este avance?'))return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_avance',id})}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error'); return; }
+    openProyectoDetail(_proyDetailId); loadProyectos();
+  }).catch(()=>toast('Error de conexión'));
+}
+function deleteArchivo(id){
+  if(!confirm('¿Borrar este archivo?'))return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_proyecto_archivo',id})}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ toast(d.error||'Error'); return; }
+    openProyectoDetail(_proyDetailId); loadProyectos();
+  }).catch(()=>toast('Error de conexión'));
 }
 
 function setTktFiltro(group, val){

@@ -1719,6 +1719,241 @@ case 'save_postcita_q':
     jsonOk();
     break;
 
+// ════════════════════════════════════════════════════════════════
+//  PROYECTOS  —  sección bajo TICKETS (proyectos + avances + archivos)
+// ════════════════════════════════════════════════════════════════
+case 'list_proyectos':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    if ($admin) {
+        $stmt = $pdo->query("SELECT p.*,
+                c.nombre creador_nombre, c.iniciales creador_ini, c.color creador_color,
+                a.nombre asig_nombre,    a.iniciales asig_ini,    a.color asig_color,
+                (SELECT COUNT(*) FROM proyecto_avances  av WHERE av.proyecto_id=p.id) n_avances,
+                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos
+            FROM proyectos p
+            LEFT JOIN usuarios c ON p.agente_id  = c.id
+            LEFT JOIN usuarios a ON p.asignado_a = a.id
+            ORDER BY (p.estado='COMPLETADO') ASC, p.prioridad='ALTA' DESC, p.fecha_limite IS NULL, p.fecha_limite ASC, p.id DESC");
+        jsonOk($stmt->fetchAll());
+    } else {
+        $stmt = $pdo->prepare("SELECT p.*,
+                c.nombre creador_nombre, c.iniciales creador_ini, c.color creador_color,
+                a.nombre asig_nombre,    a.iniciales asig_ini,    a.color asig_color,
+                (SELECT COUNT(*) FROM proyecto_avances  av WHERE av.proyecto_id=p.id) n_avances,
+                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos
+            FROM proyectos p
+            LEFT JOIN usuarios c ON p.agente_id  = c.id
+            LEFT JOIN usuarios a ON p.asignado_a = a.id
+            WHERE p.asignado_a=? OR p.agente_id=?
+            ORDER BY (p.estado='COMPLETADO') ASC, p.prioridad='ALTA' DESC, p.fecha_limite IS NULL, p.fecha_limite ASC, p.id DESC");
+        $stmt->execute([$uid, $uid]);
+        jsonOk($stmt->fetchAll());
+    }
+    break;
+
+case 'get_proyecto':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_GET['id'] ?? $_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $stmt = $pdo->prepare("SELECT p.*,
+            c.nombre creador_nombre, c.iniciales creador_ini, c.color creador_color,
+            a.nombre asig_nombre,    a.iniciales asig_ini,    a.color asig_color
+        FROM proyectos p
+        LEFT JOIN usuarios c ON p.agente_id  = c.id
+        LEFT JOIN usuarios a ON p.asignado_a = a.id
+        WHERE p.id=?");
+    $stmt->execute([$id]);
+    $p = $stmt->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+        jsonErr('Sin permiso para ver este proyecto');
+    $av = $pdo->prepare("SELECT av.*, u.nombre, u.iniciales, u.color
+                         FROM proyecto_avances av LEFT JOIN usuarios u ON av.usuario_id=u.id
+                         WHERE av.proyecto_id=? ORDER BY av.id DESC");
+    $av->execute([$id]);
+    $p['avances'] = $av->fetchAll();
+    $ar = $pdo->prepare("SELECT ar.*, u.nombre, u.iniciales
+                         FROM proyecto_archivos ar LEFT JOIN usuarios u ON ar.usuario_id=u.id
+                         WHERE ar.proyecto_id=? ORDER BY ar.id DESC");
+    $ar->execute([$id]);
+    $p['archivos'] = $ar->fetchAll();
+    jsonOk($p);
+    break;
+
+case 'save_proyecto':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $titulo = trim($_POST['titulo'] ?? '');
+    if ($titulo === '') jsonErr('El título es obligatorio');
+    $descripcion  = trim($_POST['descripcion'] ?? '');
+    $estado       = $_POST['estado'] ?? 'PLANIFICANDO';
+    $prioridad    = $_POST['prioridad'] ?? 'MEDIA';
+    $progreso     = max(0, min(100, (int)($_POST['progreso'] ?? 0)));
+    $asignado_a   = !empty($_POST['asignado_a']) ? (int)$_POST['asignado_a'] : null;
+    $fecha_inicio = !empty($_POST['fecha_inicio']) ? $_POST['fecha_inicio'] : null;
+    $fecha_limite = !empty($_POST['fecha_limite']) ? $_POST['fecha_limite'] : null;
+    $fecha_cierre = ($estado === 'COMPLETADO') ? date('Y-m-d') : null;
+    if ($estado === 'COMPLETADO') $progreso = 100;
+    $stmt = $pdo->prepare("INSERT INTO proyectos
+        (titulo, descripcion, estado, prioridad, progreso, asignado_a, agente_id, fecha_inicio, fecha_limite, fecha_cierre)
+        VALUES (?,?,?,?,?,?,?,?,?,?)");
+    $stmt->execute([$titulo, ($descripcion ?: null), $estado, $prioridad, $progreso,
+        $asignado_a, $uid, $fecha_inicio, $fecha_limite, $fecha_cierre]);
+    jsonOk(['id' => (int)$pdo->lastInsertId()]);
+    break;
+
+case 'update_proyecto':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $cur = $pdo->prepare("SELECT * FROM proyectos WHERE id=?");
+    $cur->execute([$id]);
+    $p = $cur->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+        jsonErr('Sin permiso para editar este proyecto');
+    $titulo = trim($_POST['titulo'] ?? '');
+    if ($titulo === '') jsonErr('El título es obligatorio');
+    $descripcion  = trim($_POST['descripcion'] ?? '');
+    $estado       = $_POST['estado'] ?? $p['estado'];
+    $prioridad    = $_POST['prioridad'] ?? $p['prioridad'];
+    $progreso     = max(0, min(100, (int)($_POST['progreso'] ?? $p['progreso'])));
+    $asignado_a   = !empty($_POST['asignado_a']) ? (int)$_POST['asignado_a'] : null;
+    $fecha_inicio = !empty($_POST['fecha_inicio']) ? $_POST['fecha_inicio'] : null;
+    $fecha_limite = !empty($_POST['fecha_limite']) ? $_POST['fecha_limite'] : null;
+    if ($estado === 'COMPLETADO') { $progreso = 100; $fecha_cierre = $p['fecha_cierre'] ?: date('Y-m-d'); }
+    else $fecha_cierre = null;
+    $stmt = $pdo->prepare("UPDATE proyectos SET titulo=?, descripcion=?, estado=?, prioridad=?,
+        progreso=?, asignado_a=?, fecha_inicio=?, fecha_limite=?, fecha_cierre=? WHERE id=?");
+    $stmt->execute([$titulo, ($descripcion ?: null), $estado, $prioridad, $progreso,
+        $asignado_a, $fecha_inicio, $fecha_limite, $fecha_cierre, $id]);
+    jsonOk();
+    break;
+
+case 'add_avance':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $pid = (int)($_POST['proyecto_id'] ?? 0);
+    $nota = trim($_POST['nota'] ?? '');
+    if (!$pid) jsonErr('ID inválido');
+    if ($nota === '') jsonErr('Escribe una nota de avance');
+    $cur = $pdo->prepare("SELECT * FROM proyectos WHERE id=?");
+    $cur->execute([$pid]);
+    $p = $cur->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+        jsonErr('Sin permiso para actualizar este proyecto');
+    $progreso = ($_POST['progreso'] !== '' && isset($_POST['progreso']))
+        ? max(0, min(100, (int)$_POST['progreso'])) : null;
+    $ins = $pdo->prepare("INSERT INTO proyecto_avances (proyecto_id, usuario_id, nota, progreso) VALUES (?,?,?,?)");
+    $ins->execute([$pid, $uid, $nota, $progreso]);
+    // Si el avance trae progreso, actualiza el proyecto (y lo completa si llega a 100)
+    if ($progreso !== null) {
+        if ($progreso >= 100) {
+            $pdo->prepare("UPDATE proyectos SET progreso=100, estado='COMPLETADO',
+                           fecha_cierre=COALESCE(fecha_cierre, CURDATE()) WHERE id=?")->execute([$pid]);
+        } else {
+            $nuevoEstado = ($p['estado'] === 'PLANIFICANDO') ? 'EN PROGRESO' : $p['estado'];
+            $pdo->prepare("UPDATE proyectos SET progreso=?, estado=? WHERE id=?")
+                ->execute([$progreso, $nuevoEstado, $pid]);
+        }
+    }
+    jsonOk(['avance_id' => (int)$pdo->lastInsertId()]);
+    break;
+
+case 'delete_avance':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $row = $pdo->prepare("SELECT av.usuario_id, p.agente_id FROM proyecto_avances av
+                          JOIN proyectos p ON p.id=av.proyecto_id WHERE av.id=?");
+    $row->execute([$id]);
+    $a = $row->fetch();
+    if (!$a) jsonErr('Avance no encontrado');
+    if (!$admin && $a['usuario_id'] != $uid && $a['agente_id'] != $uid)
+        jsonErr('Sin permiso');
+    $pdo->prepare("DELETE FROM proyecto_avances WHERE id=?")->execute([$id]);
+    jsonOk();
+    break;
+
+case 'delete_proyecto':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $cur = $pdo->prepare("SELECT * FROM proyectos WHERE id=?");
+    $cur->execute([$id]);
+    $p = $cur->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['agente_id'] != $uid) jsonErr('Solo el creador o un admin puede eliminar');
+    // Borrar archivos físicos
+    $ars = $pdo->prepare("SELECT ruta FROM proyecto_archivos WHERE proyecto_id=?");
+    $ars->execute([$id]);
+    foreach ($ars->fetchAll(PDO::FETCH_COLUMN) as $ruta) {
+        $fp = __DIR__ . '/' . $ruta;
+        if (is_file($fp)) @unlink($fp);
+    }
+    $pdo->prepare("DELETE FROM proyecto_avances  WHERE proyecto_id=?")->execute([$id]);
+    $pdo->prepare("DELETE FROM proyecto_archivos WHERE proyecto_id=?")->execute([$id]);
+    $pdo->prepare("DELETE FROM proyectos WHERE id=?")->execute([$id]);
+    jsonOk();
+    break;
+
+case 'upload_proyecto_archivo':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $pid = (int)($_POST['proyecto_id'] ?? 0);
+    if (!$pid) jsonErr('ID inválido');
+    $cur = $pdo->prepare("SELECT * FROM proyectos WHERE id=?");
+    $cur->execute([$pid]);
+    $p = $cur->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+        jsonErr('Sin permiso para subir archivos a este proyecto');
+    if (empty($_FILES['archivo']['tmp_name']) || !is_uploaded_file($_FILES['archivo']['tmp_name']))
+        jsonErr('No se recibió archivo');
+    if (($_FILES['archivo']['error'] ?? 1) !== UPLOAD_ERR_OK) jsonErr('Error en la subida');
+    if ($_FILES['archivo']['size'] > 10 * 1024 * 1024) jsonErr('El archivo supera 10MB');
+    $orig = $_FILES['archivo']['name'];
+    $ext  = strtolower(pathinfo($orig, PATHINFO_EXTENSION));
+    $permitidos = ['jpg','jpeg','png','gif','webp','pdf','doc','docx','xls','xlsx','ppt','pptx','txt','csv','zip'];
+    if (!in_array($ext, $permitidos, true)) jsonErr('Formato no permitido: .' . $ext);
+    $dir = __DIR__ . '/uploads/proyectos/';
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    $fname = $pid . '_' . time() . '_' . bin2hex(random_bytes(4)) . '.' . $ext;
+    if (!move_uploaded_file($_FILES['archivo']['tmp_name'], $dir . $fname))
+        jsonErr('Error al guardar archivo');
+    $ruta = 'uploads/proyectos/' . $fname;
+    $ins = $pdo->prepare("INSERT INTO proyecto_archivos
+        (proyecto_id, usuario_id, nombre_original, ruta, tipo, tamano) VALUES (?,?,?,?,?,?)");
+    $ins->execute([$pid, $uid, mb_substr($orig, 0, 255), $ruta,
+        ($_FILES['archivo']['type'] ?? null), (int)$_FILES['archivo']['size']]);
+    jsonOk(['id' => (int)$pdo->lastInsertId(), 'ruta' => $ruta, 'nombre' => $orig]);
+    break;
+
+case 'delete_proyecto_archivo':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $row = $pdo->prepare("SELECT ar.ruta, ar.usuario_id, p.agente_id, p.asignado_a
+                          FROM proyecto_archivos ar JOIN proyectos p ON p.id=ar.proyecto_id
+                          WHERE ar.id=?");
+    $row->execute([$id]);
+    $a = $row->fetch();
+    if (!$a) jsonErr('Archivo no encontrado');
+    if (!$admin && $a['usuario_id'] != $uid && $a['agente_id'] != $uid && $a['asignado_a'] != $uid)
+        jsonErr('Sin permiso');
+    $fp = __DIR__ . '/' . $a['ruta'];
+    if (is_file($fp)) @unlink($fp);
+    $pdo->prepare("DELETE FROM proyecto_archivos WHERE id=?")->execute([$id]);
+    jsonOk();
+    break;
+
 // ── DEFAULT ───────────────────────────────────────────────────
 default:
     jsonErr('Acción no válida: ' . htmlspecialchars($action));
@@ -1727,6 +1962,50 @@ default:
 } // end switch
 } catch (Exception $e) {
     jsonErr('Error del servidor: ' . $e->getMessage());
+}
+
+// ── PROYECTOS — autocreación de tablas (idempotente, barato) ─────────────────
+function ensureProyectosTables(PDO $pdo): void {
+    static $done = false;
+    if ($done) return;
+    $pdo->exec("CREATE TABLE IF NOT EXISTS proyectos (
+        id           INT AUTO_INCREMENT PRIMARY KEY,
+        titulo       VARCHAR(200) NOT NULL,
+        descripcion  TEXT,
+        estado       VARCHAR(30)  NOT NULL DEFAULT 'PLANIFICANDO',
+        prioridad    VARCHAR(10)  NOT NULL DEFAULT 'MEDIA',
+        progreso     INT          NOT NULL DEFAULT 0,
+        asignado_a   INT          DEFAULT NULL,
+        agente_id    INT          NOT NULL,
+        fecha_inicio DATE         DEFAULT NULL,
+        fecha_limite DATE         DEFAULT NULL,
+        fecha_cierre DATE         DEFAULT NULL,
+        created_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
+        updated_at   TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        INDEX idx_estado (estado),
+        INDEX idx_asig (asignado_a)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS proyecto_avances (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        proyecto_id INT NOT NULL,
+        usuario_id  INT NOT NULL,
+        nota        TEXT NOT NULL,
+        progreso    INT  DEFAULT NULL,
+        created_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_proy (proyecto_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS proyecto_archivos (
+        id              INT AUTO_INCREMENT PRIMARY KEY,
+        proyecto_id     INT NOT NULL,
+        usuario_id      INT NOT NULL,
+        nombre_original VARCHAR(255) NOT NULL,
+        ruta            VARCHAR(500) NOT NULL,
+        tipo            VARCHAR(100) DEFAULT NULL,
+        tamano          INT          DEFAULT NULL,
+        created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_proy (proyecto_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    $done = true;
 }
 
 // ── HISTORIAL DE PLANES — helper ─────────────────────────────────────────────
