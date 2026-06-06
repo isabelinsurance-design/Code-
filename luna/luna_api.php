@@ -79,9 +79,9 @@ if ($svcKey !== '') {
         'luna_retention_alerts','luna_hot_leads','luna_search_member',
         'luna_member_detail','luna_pending_soa','luna_open_tickets',
         'luna_tickets_by_agent',
-        'luna_today_appointments','luna_attendance_today',
+        'luna_today_appointments',
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
-        'luna_get_all_goals','luna_entity_search','luna_signals_list',
+        'luna_entity_search','luna_signals_list',
         'luna_skill_list','luna_gaps_overview','luna_business_health',
         // ── ESCRIBIR (aditivo, un registro a la vez — nunca editar/cerrar/borrar) ──
         'luna_create_ticket',
