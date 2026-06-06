@@ -21,59 +21,63 @@ import { listSkills } from './skills.js';
 import { computeHealth } from './health.js';
 import { rankedGaps } from '../memory/entities.js';
 import { specialistList } from '../specialists.js';
+import { openGapCount, listGaps, aggregateGaps } from './learning.js';
 
 const FILE = resolve(DATA_DIR, 'growth.json');
 const nowIso = () => new Date().toISOString();
 
-// Quien es el negocio (contexto para que la investigacion sea util, no generica).
-const NEGOCIO = `Isabel Fuentes Medicare (withisabelfuentes.com): agencia/brokerage de Medicare en EE.UU.
-enfocada en la comunidad HISPANA. Vende y da servicio a planes Medicare Advantage, mucho
-Full Dual / DSNP (miembros con Medicare + Medicaid). El equipo son agentes (muchos nuevos).
-Todo bajo reglas de marketing de CMS (compliance no opcional).`;
+// Quién es SAMIA (contexto para que la investigación sea útil, no genérica).
+// SAMIA es la ESCUELA — no vende ni hace marketing. Su Radar mantiene el CURRÍCULO
+// al día: qué cambió en Medicare que la escuela debe poder enseñar esta semana.
+const NEGOCIO = `SAMIA es la escuela de Medicare del equipo de Isabel Fuentes (withisabelfuentes.com):
+una asistente IA / maestra que entrena agentes (muchos nuevos) y los rescata en vivo. Enseña
+Medicare a un equipo de habla hispana: Medicare Advantage, mucho Full Dual / DSNP (Medicare +
+Medicaid), todo bajo reglas de CMS. NO es un CRM ni marketing — es de donde el equipo APRENDE.`;
 
-// AGENDA: cada tema con su angulo de investigacion. Rota por semana del año.
+// AGENDA / CURRÍCULO: cada lente mantiene al día un área que la escuela debe enseñar.
+// Rota por semana del año. Todo orientado a ENSEÑAR, no a vender.
 export const TOPICS = [
-  {
-    key: 'marketing-viral',
-    label: 'Marketing y contenido viral',
-    ask: `Que formatos/temas de contenido estan funcionando AHORA en redes (TikTok, Reels, YouTube)
-para llegar a adultos mayores hispanos y sus familias sobre Medicare/seguros. Tendencias virales
-recientes, ganchos, ejemplos reales. Da ideas de contenido que el equipo pueda grabar esta semana.`,
-  },
-  {
-    key: 'lead-gen',
-    label: 'Generacion de prospectos',
-    ask: `Tacticas NUEVAS y efectivas de generacion de prospectos (leads) para agentes de Medicare
-en mercados hispanos: alianzas comunitarias, eventos, referidos, canales digitales. Que estan
-haciendo las agencias que mas crecen.`,
-  },
   {
     key: 'cms-reglas',
     label: 'Reglas CMS y cumplimiento',
-    ask: `Cambios RECIENTES o proximos en las reglas de marketing/ventas de CMS para Medicare
-Advantage y DSNP (Final Rule, fechas de AEP/OEP, disclaimers, TPMO, grabacion de llamadas).
-Que debe ajustar una agencia para no arriesgarse. Solo cambios reales y verificables.`,
+    ask: `Cambios RECIENTES o próximos en las reglas de CMS para Medicare Advantage y DSNP
+(Final Rule, fechas de AEP/OEP/SEP, disclaimers, TPMO, grabación de llamadas, SOA). Qué tiene
+que aprender el equipo para no arriesgarse. Solo cambios reales y verificables, explicados simple.`,
   },
   {
     key: 'planes-beneficios',
     label: 'Planes y beneficios',
-    ask: `Tendencias en beneficios de planes Medicare Advantage / DSNP que mas le importan a
-miembros Full Dual hispanos (comida/SSBCI, transporte, dental, OTC, Part B giveback).
-Que beneficios nuevos estan destacando los planes y como explicarlos simple.`,
+    ask: `Qué cambió o es nuevo en los beneficios de planes Medicare Advantage / DSNP que más le
+importan a miembros Full Dual hispanos (comida/SSBCI, transporte, dental, OTC, Part B giveback).
+Cómo explicárselos simple a un agente nuevo y a un miembro.`,
   },
   {
-    key: 'herramientas',
-    label: 'Herramientas y automatizacion',
-    ask: `Herramientas, software o automatizaciones que ayudan a agencias de Medicare a atender
-mejor y mas rapido (CRM, quoting, recordatorios, IA para servicio al cliente). Que vale la pena
-y por que. Enfocado en equipos chicos.`,
+    key: 'aplicaciones-inscripcion',
+    label: 'Aplicaciones e inscripción',
+    ask: `Buenas prácticas y errores comunes al LLENAR aplicaciones e inscribir en Medicare
+Advantage/DSNP: ventanas (AEP/OEP/SEP), elegibilidad Full Dual, documentos, Connecture/MARx,
+qué tumba una aplicación. Material para entrenar a agentes nuevos a hacerlo bien.`,
   },
   {
-    key: 'retencion',
-    label: 'Retencion y servicio',
-    ask: `Mejores practicas RECIENTES para retener miembros de Medicare y subir satisfaccion
-(reduce disenrollment): seguimiento, educacion de beneficios, manejo de quejas, recordatorios
-de citas. Que esta moviendo la aguja en retencion.`,
+    key: 'redes-ipa',
+    label: 'Redes, IPAs y doctores',
+    ask: `Cómo enseñar redes médicas en Medicare Advantage: IPAs, grupos médicos, referidos,
+"está mi doctor en la red", diferencias HMO/PPO. Conceptos que confunden a agentes nuevos y
+cómo explicarlos claro. Cambios recientes en cómo funcionan las redes.`,
+  },
+  {
+    key: 'farmacia-partd',
+    label: 'Farmacia y Part D',
+    ask: `Qué debe saber el equipo sobre Part D / cobertura de medicamentos: formularios, tiers,
+deducible, catastrophic cap reciente, LIS/Extra Help para Full Dual, cómo revisar si un
+medicamento está cubierto. Cambios recientes y cómo enseñarlos simple.`,
+  },
+  {
+    key: 'casos-miembros',
+    label: 'Casos difíciles de miembros',
+    ask: `Situaciones difíciles de miembros que un agente debe saber manejar: bills/cobros
+inesperados, cartas de CMS/plan, apelaciones y quejas (grievances), pérdida de Medicaid,
+cambios de plan a mitad de año. Cómo guiarlas paso a paso. Material de entrenamiento real.`,
   },
 ];
 
@@ -111,14 +115,15 @@ function parseJsonLoose(text) {
   }
 }
 
-const SYS = `Eres el analista de crecimiento de ${NEGOCIO}
-Investigas con busqueda web y devuelves SOLO ideas accionables y reales, con fuente.
+const SYS = `Eres el curador de currículo de ${NEGOCIO}
+Tu trabajo: mantener al día lo que la escuela ENSEÑA. Investigas con búsqueda web qué cambió o
+es nuevo en el tema, y devuelves puntos de enseñanza concretos para el equipo, con fuente.
 Reglas:
-- USA busqueda web; NO inventes datos, fechas ni estadisticas. Si no lo verificas, no lo digas.
-- Cada idea debe ser algo que un equipo chico pueda EJECUTAR, no teoria.
+- USA búsqueda web; NO inventes datos, fechas ni reglas. En Medicare inventar es riesgo. Si no lo verificas, no lo digas.
+- Cada idea es algo que la escuela puede ENSEÑAR/agregar al material esta semana, explicado simple.
 - Responde en español.
 - Devuelve SOLO un arreglo JSON (sin texto extra) con 2 o 3 objetos:
-  [{"title": "...", "insight": "que descubriste, 1-2 frases", "action": "el paso concreto a hacer", "effort": "bajo|medio|alto", "source": "URL real"}]`;
+  [{"title": "...", "insight": "qué cambió / qué descubriste, 1-2 frases", "action": "qué enseñar o agregar al material", "effort": "bajo|medio|alto", "source": "URL real"}]`;
 
 // Corre una investigacion. Devuelve {ok, topic, ideas[]} o {ok:false, reason}.
 export async function runResearch(now = new Date(), { topicKey = null } = {}) {
@@ -250,6 +255,12 @@ function chiefObservations(s) {
   const out = [];
   const idea = (title, insight, action, effort = 'bajo') => out.push({ title, insight, action, effort });
 
+  // "Necesito aprender X" — huecos de currículo: temas donde SAMIA tuvo que decir que no sabía.
+  const lgaps = listGaps({ status: 'new' });
+  if (lgaps.length)
+    idea('La escuela tiene huecos de currículo',
+      `SAMIA tuvo que admitir que no sabía en ${lgaps.length} área(s); la más repetida: "${lgaps[0].area}" (${lgaps[0].count}x).`,
+      `Llena el material de "${lgaps[0].area}" (KB o guía/quiz). Ver la pestaña Crecimiento → "Aprender".`, 'medio');
   // "No estás usando X, pruébalo" — modos del catálogo sin uso esta semana.
   if (s.specsUnused.length)
     idea('No estás usando todo SAMIA',
@@ -325,18 +336,22 @@ function weekKey(now = new Date()) {
 export function selfGrade(now = new Date(), snap = null) {
   const s = snap || chiefSnapshot(now);
   const usedCount = s.specsUsed.length;
+  const gapsOpen = openGapCount(); // huecos de currículo abiertos (lo que no supo enseñar)
+  // SAMIA es la escuela: el CONOCIMIENTO pesa más que nada. Total = 100.
   const comps = [
-    { name: 'Uso', max: 25, score: clampN((s.chats7 / 20) * 25, 0, 25),
-      fix: `El equipo te usó poco (${s.chats7} chats). Recuérdales para qué sirves o pregunta qué les falta.` },
-    { name: 'Cobertura del menú', max: 20, score: clampN((usedCount / Math.max(1, s.catalogSize)) * 20, 0, 20),
+    { name: 'Conocimiento', max: 25, score: clampN(25 - gapsOpen * 6, 0, 25),
+      fix: gapsOpen ? `SAMIA tuvo que decir "no sé" en ${gapsOpen} área(s). Llena esos huecos de currículo (ver "Aprender").` : 'Sin huecos de currículo abiertos. Mantén el material al día con el Radar.' },
+    { name: 'Uso', max: 20, score: clampN((s.chats7 / 20) * 20, 0, 20),
+      fix: `El equipo te usó poco (${s.chats7} chats). Recuérdales que aquí se aprende Medicare.` },
+    { name: 'Cobertura del menú', max: 15, score: clampN((usedCount / Math.max(1, s.catalogSize)) * 15, 0, 15),
       fix: `Solo se usaron ${usedCount} de ${s.catalogSize} modos. Promueve los que faltan${s.specsUnused[0] ? `, empezando por "${s.specsUnused[0].label}"` : ''}.` },
-    { name: 'Skills activas', max: 15, score: s.approvedSkills ? clampN(((s.approvedSkills - s.unusedSkills.length) / s.approvedSkills) * 15, 0, 15) : 15,
+    { name: 'Skills activas', max: 10, score: s.approvedSkills ? clampN(((s.approvedSkills - s.unusedSkills.length) / s.approvedSkills) * 10, 0, 10) : 10,
       fix: s.unusedSkills.length ? `Skills aprobadas sin uso: ${s.unusedSkills.slice(0, 3).join(', ')}. Promuévelas o retíralas.` : 'Aprueba alguna propuesta de skill para automatizar lo repetido.' },
-    { name: 'Seguimiento', max: 20, score: clampN(20 - s.overdue * 5, 0, 20),
+    { name: 'Seguimiento', max: 15, score: clampN(15 - s.overdue * 5, 0, 15),
       fix: `${s.overdue} compromiso(s) vencido(s). Cierra o reagenda y ajusta el seguimiento.` },
     { name: 'Seguridad', max: 10, score: clampN(10 - s.overrides7 * 5, 0, 10),
       fix: `Hubo ${s.overrides7} override(s) de compliance. Revisa cada uno y si hace falta entrenar.` },
-    { name: 'Adopción de ideas', max: 10, score: (s.ideasNew + s.ideasDone + s.ideasDismissed) ? clampN(((s.ideasDone + s.ideasDismissed) / (s.ideasNew + s.ideasDone + s.ideasDismissed)) * 10, 0, 10) : 10,
+    { name: 'Adopción de ideas', max: 5, score: (s.ideasNew + s.ideasDone + s.ideasDismissed) ? clampN(((s.ideasDone + s.ideasDismissed) / (s.ideasNew + s.ideasDone + s.ideasDismissed)) * 5, 0, 5) : 5,
       fix: `${s.ideasNew} idea(s) del Radar sin decidir. Prioriza 1-2 o descártalas.` },
   ];
   const score = comps.reduce((a, c) => a + c.score, 0);
@@ -429,11 +444,12 @@ export async function runChiefReview(now = new Date()) {
   return { ok: true, topic: CHIEF.key, topicLabel: CHIEF.label, ideas, grade, snapshot: snap, llm: usedLLM, error };
 }
 
-// El barrido completo del Radar: la lente externa de la semana + la lente interna (CoS).
+// El barrido completo del Radar: currículo (lente externa) + jefe de gabinete + huecos de aprendizaje.
 export async function runRadar(now = new Date()) {
   const external = await runResearch(now);
-  const chief = await runChiefReview(now);
-  return { external, chief };
+  const gaps = aggregateGaps(); // refresca lo que SAMIA necesita aprender
+  const chief = await runChiefReview(now); // su self-grade ya cuenta los huecos
+  return { external, chief, learningGaps: gaps.length };
 }
 
 export function listIdeas({ status } = {}) {

@@ -267,14 +267,15 @@ Endpoints nuevos: `POST /api/chat` con `{mode:'auto'}`, `POST /api/orchestrate/r
 Endpoints nuevos: `GET /api/skills`, `POST /api/skills` (proponer),
 `POST /api/skills/{approve,reject,invoke}`.
 
-### Fase 13 — Crecimiento / Radar (investigación continua)
+### Fase 13 — Crecimiento / Radar (la escuela se mantiene al día)
 
-- **`intel/growth.js`** (patrón Athena #18: buscar antes de inventar): SAMIA no solo
-  opera el negocio, cada semana sale a **investigar cómo mejorarlo**. El Radar tiene
-  **5 lentes**. Cuatro+ miran AFUERA con **búsqueda web real** (`web_search` nativo de la
-  API, server-side) sobre una **agenda rotativa** de 6 temas (marketing/viral, generación
-  de prospectos, reglas CMS, planes/beneficios, herramientas, retención) — un tema por
-  semana. Devuelve **2-3 ideas accionables** con insight, acción, esfuerzo y **fuente (URL)**.
+- **`intel/growth.js`** (patrón Athena #18: buscar antes de inventar): SAMIA es la escuela,
+  así que su Radar mantiene el **CURRÍCULO de Medicare al día**. Las lentes externas miran
+  AFUERA con **búsqueda web real** (`web_search` nativo de la API, server-side) sobre una
+  **agenda rotativa de 6 áreas de enseñanza** (reglas CMS, planes/beneficios,
+  aplicaciones/inscripción, redes/IPAs, farmacia/Part D, casos difíciles de miembros) — un
+  área por semana. Devuelve **2-3 puntos de enseñanza** con insight, qué enseñar/agregar al
+  material, esfuerzo y **fuente (URL)**.
 - **5a lente — Jefe de gabinete (Chief of Staff)** [petición de Isabel]: mira hacia
   ADENTRO. No usa web — lee los datos PROPIOS de SAMIA y dice **qué funciona y qué cambiar**.
   Como sale de datos REALES (no inventa), **funciona aun sin key**; con key el LLM afina.
@@ -302,6 +303,25 @@ Endpoints nuevos: `GET /api/growth`, `GET /api/growth/chief`, `POST /api/growth/
 (`{topic?}` — `topic:"chief-of-staff"` corre la lente interna), `POST /api/growth/idea`
 (`{id,status}`). *Los caminos con búsqueda web solo se verifican en el deploy con key
 (ver `SMOKE-TEST.md`); la lente de jefe de gabinete sí corre sin key.*
+
+### Fase 14 — Aprendizaje: la maestra nota sus propios huecos
+
+- **`intel/learning.js`**: una buena maestra se da cuenta de lo que aún no sabe enseñar.
+  Cada vez que SAMIA tiene que **admitir honestamente que no sabe** algo ("no estoy segura",
+  "no sé", "habría que investigar") eso es un **hueco de currículo**. `noteTurn` lo detecta
+  tras cada respuesta (en el handler de chat, excepto en `practica`).
+- **Distinción honesta**: decir "verifica en Connecture si ese doctor está en la red" NO es
+  un hueco (eso es data EN VIVO del miembro, lo correcto). Los patrones son de incertidumbre
+  de **conocimiento**, no de verificación de datos.
+- **Agregación**: `aggregateGaps` agrupa los punts por área; un tema con **2+** punts se
+  vuelve un hueco con ejemplos reales y una propuesta ("agrégalo a la KB o crea guía/quiz").
+  Ciclo: new → doing → done | dismissed (respeta lo que ya marcaste).
+- **Alimenta el self-grade**: como SAMIA es la escuela, **Conocimiento** es ahora el
+  componente de **mayor peso (25/100)** de su autoevaluación; los huecos abiertos lo bajan.
+- **Surface**: línea `🎓 Aprender (...)` en el briefing, observación en la lente de jefe de
+  gabinete, y bloque **🎓 Aprender** en la pestaña Crecimiento.
+
+Endpoints nuevos: `GET /api/learning`, `POST /api/learning/gap` (`{id,status}`).
 
 ### Fase 10 — Dashboard
 

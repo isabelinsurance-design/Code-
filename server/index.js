@@ -16,6 +16,7 @@ import { SPECIALISTS, resolveSpecialist, specialistList, vozBlock } from './spec
 import { chooseSpecialists, routeDeterministic, SYNTH_SYS, buildSynthUser } from './orchestrator.js';
 import * as skills from './intel/skills.js';
 import * as growth from './intel/growth.js';
+import * as learning from './intel/learning.js';
 import { complete } from './anthropic.js';
 import * as mem from './memory/index.js';
 import * as entities from './memory/entities.js';
@@ -163,6 +164,8 @@ async function handleChat(req, res) {
     if (specId !== 'practica') {
       captureTurn({ userText, assistantText: text }).catch(() => {});
       commitments.captureCommitments(userText); // promesas con fecha (#19)
+      // La maestra nota sus propios huecos: si SAMIA admitió no saber, queda registrado.
+      try { learning.noteTurn({ userText, reply: text, specialist: specId }); } catch {}
     }
 
     // Aviso ligero de PII (#7): si el agente pego un SSN/MBI/tarjeta, recordar
@@ -312,6 +315,15 @@ const server = createServer(async (req, res) => {
     const body = await readBody(req).catch(() => ({}));
     const i = growth.setIdeaStatus(body.id, body.status);
     return i ? json(res, 200, { idea: i }) : json(res, 404, { error: 'idea no encontrada o status invalido' });
+  }
+
+  // --- APRENDIZAJE / huecos de currículo (lo que SAMIA necesita aprender) ---
+  if (path === '/api/learning' && req.method === 'GET')
+    return json(res, 200, { gaps: learning.listGaps({ status: url.searchParams.get('status') || undefined }) });
+  if (path === '/api/learning/gap' && req.method === 'POST') {
+    const body = await readBody(req).catch(() => ({}));
+    const g = learning.setGapStatus(body.id, body.status);
+    return g ? json(res, 200, { gap: g }) : json(res, 404, { error: 'hueco no encontrado o status invalido' });
   }
 
   // Vista del router determinista (sin LLM): que especialistas tocaria una pregunta.

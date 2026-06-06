@@ -348,6 +348,7 @@ async function renderSkills(){
 async function renderGrowth(){
   const {ideas=[], lastRun, topics=[], nextTopic} = await api('/api/growth');
   const chief = await api('/api/growth/chief').catch(()=>null);
+  const {gaps:lgaps=[]} = await api('/api/learning').catch(()=>({gaps:[]}));
   const CHIEF='chief-of-staff';
   const active = ideas.filter(i=>i.status==='new'||i.status==='doing');
   const chiefIdeas = active.filter(i=>i.topic===CHIEF);
@@ -381,17 +382,29 @@ async function renderGrowth(){
       </div></div>`;
   }
   const chiefBlock = (gradeBanner||chiefIdeas.length) ? gradeBanner+`<div class="card"><div class="card-head"><span class="card-title">🧭 Jefe de gabinete — cómo mejorar SAMIA y el equipo</span></div><div class="card-body">${chiefIdeas.map(card).join('')||'<p class="muted">Sin observaciones internas: todo en orden.</p>'}</div></div>` : '';
-  const extBlock = extIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">🌎 Ideas del mercado</span></div><div class="card-body">${extIdeas.map(card).join('')}</div></div>` : '';
-  $('#main').innerHTML = head('Crecimiento', 'El Radar de SAMIA: 5 lentes. Cuatro miran el mercado (búsqueda web real), y la quinta —jefe de gabinete— mira hacia adentro: qué funciona y qué cambiar.')
+  const extBlock = extIdeas.length ? `<div class="card"><div class="card-head"><span class="card-title">📚 Currículo — qué cambió en Medicare</span></div><div class="card-body">${extIdeas.map(card).join('')}</div></div>` : '';
+  // Bloque "Aprender": huecos de currículo que SAMIA detectó en sí misma.
+  const openGaps = lgaps.filter(g=>g.status==='new'||g.status==='doing');
+  const gapCard = g => `<div class="card2" data-lg="${g.id}" style="border-left:3px solid var(--amber,#c08a3e)">
+      <div class="nm">🎓 ${esc(g.area)} <span class="pill alert">${g.count}x sin saber</span>${g.status==='doing'?' <span class="pill">en curso</span>':''}</div>
+      <div class="brief" style="font-size:13px;margin-top:6px">${esc(g.proposal)}</div>
+      ${g.examples?.length?`<div class="sub" style="margin-top:6px">Ejemplos: ${g.examples.map(e=>`"${esc(e)}"`).join(' · ')}</div>`:''}
+      <div class="toolbar" style="margin-top:8px">
+        ${g.status==='new'?`<button class="btn btn-gold btn-sm" data-lgdo="${g.id}">▶ Llenándolo</button>`:''}
+        ${g.status==='doing'?`<button class="btn btn-gold btn-sm" data-lgdone="${g.id}">✓ Ya en la KB</button>`:''}
+        <button class="btn btn-ghost btn-sm" data-lgdismiss="${g.id}">Descartar</button>
+      </div></div>`;
+  const learnBlock = openGaps.length ? `<div class="card"><div class="card-head"><span class="card-title">🎓 Aprender — huecos de currículo de la escuela</span></div><div class="card-body">${openGaps.map(gapCard).join('')}</div></div>` : '';
+  $('#main').innerHTML = head('Crecimiento', 'El Radar de la escuela: mantiene el currículo de Medicare al día, vigila lo que SAMIA aún no sabe enseñar, y se autoevalúa como maestra.')
     + `<div class="card"><div class="card-body" style="font-size:13px;color:var(--text-mid)">
-        Próximo tema externo: <b>${esc(topics.find(t=>t.key===nextTopic)?.label||nextTopic)}</b> · el Radar corre los lunes 05:00 (lente externa + jefe de gabinete).<br>${lr}
+        Próximo tema del currículo: <b>${esc(topics.find(t=>t.key===nextTopic)?.label||nextTopic)}</b> · el Radar corre los lunes 05:00.<br>${lr}
         <div class="toolbar" style="margin-top:10px">
           <select id="gTopic" style="font:inherit;padding:6px 8px;border:1px solid var(--border-d);border-radius:8px;background:var(--white)">
             <option value="">Tema de esta semana</option>${topics.map(t=>`<option value="${t.key}">${esc(t.label)}</option>`).join('')}
           </select>
           <button class="btn btn-gold btn-sm" id="gRun">🔎 Investigar ahora</button>
         </div></div></div>`
-    + (active.length ? chiefBlock+extBlock : empty('🚀','Sin ideas todavía. Corre una investigación o espera al lunes.'));
+    + (chiefBlock+learnBlock+extBlock || empty('🚀','Sin nada todavía. Corre una investigación o espera al lunes.'));
   $('#gRun').onclick = async ()=>{
     const btn=$('#gRun'); const topic=$('#gTopic').value;
     btn.disabled=true; btn.textContent='Investigando… (puede tardar)';
@@ -403,6 +416,10 @@ async function renderGrowth(){
   $('#main').querySelectorAll('[data-do]').forEach(b=>b.onclick=()=>setStatus(b.dataset.do,'doing'));
   $('#main').querySelectorAll('[data-done]').forEach(b=>b.onclick=()=>setStatus(b.dataset.done,'done'));
   $('#main').querySelectorAll('[data-dismiss]').forEach(b=>b.onclick=()=>setStatus(b.dataset.dismiss,'dismissed'));
+  const setGap = (id,status)=>api('/api/learning/gap',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,status})}).then(()=>go('crecimiento'));
+  $('#main').querySelectorAll('[data-lgdo]').forEach(b=>b.onclick=()=>setGap(b.dataset.lgdo,'doing'));
+  $('#main').querySelectorAll('[data-lgdone]').forEach(b=>b.onclick=()=>setGap(b.dataset.lgdone,'done'));
+  $('#main').querySelectorAll('[data-lgdismiss]').forEach(b=>b.onclick=()=>setGap(b.dataset.lgdismiss,'dismissed'));
 }
 
 // ── SISTEMA ──
