@@ -2771,7 +2771,10 @@ async function quietLLM(systemPrompt, userText) {
     credentials:'same-origin',
     body: JSON.stringify({ system:systemPrompt, messages:[{role:'user', content:userText}], max_tokens:1200, agent:(currentAgent?.id||'')+':consulta' })
   });
-  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  if (!res.ok) {
+    let _d=''; try { const _j=await res.json(); if(_j&&_j.error) _d=' — '+_j.error; } catch(_){}
+    throw new Error(`HTTP ${res.status}${_d}`);
+  }
   const reader = res.body.getReader();
   const dec = new TextDecoder();
   let buf = '', text = '';
@@ -3700,7 +3703,10 @@ async function sendMsg() {
       credentials:'same-origin',
       body: JSON.stringify({ system:systemPrompt, messages, max_tokens:2048, web_search: !!a.webSearch, tools: tools || [], agent: a.id })
     });
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) {
+      let _d=''; try { const _j=await res.json(); if(_j&&_j.error) _d=' — '+_j.error; } catch(_){}
+      throw new Error(`HTTP ${res.status}${_d}`);
+    }
     const reader = res.body.getReader();
     const dec = new TextDecoder();
     let buf = '', text = '', stopReason = null;
