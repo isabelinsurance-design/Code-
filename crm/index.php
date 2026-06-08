@@ -6116,7 +6116,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <footer>MEDICARE WITH ISABEL · SCAN · ANTHEM · HUMANA · ALIGNMENT · LA CARE · HEALTH NET · MOLINA · UNITED HEALTHCARE · CA LIC #0D96598<?php if($admin):?><span onclick="openFinance()" style="margin-left:12px;cursor:pointer;color:rgba(200,223,240,.4)" title="Portal Financiero">◎</span><?php endif;?></footer>
 <div id="toast" class="toast"></div>
 <!-- MODALS -->
-<div class="modal-overlay" id="member-form-modal" style="z-index:1100"><div class="modal"><div id="member-form-content"></div></div></div>
+<div class="modal-overlay" id="member-form-modal" style="z-index:9600"><div class="modal"><div id="member-form-content"></div></div></div>
 <div class="modal-overlay" id="profile-modal"><div class="modal" id="profile-content"></div></div>
 <div class="modal-overlay" id="ticket-form-modal"><div class="modal" style="max-width:640px">
 <div class="modal-header">
