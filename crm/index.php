@@ -1027,7 +1027,10 @@ $apps_proceso = count(array_filter($members, function($m) use ($next_month_str) 
 // T65 próximos 90 días
 $t65_alertas=$pdo->query("SELECT id,nombre,apellido,dob,telefono,estado,carrier,DATE_ADD(dob,INTERVAL 65 YEAR) as fecha_65,DATEDIFF(DATE_ADD(dob,INTERVAL 65 YEAR),CURDATE()) as dias_restantes FROM miembros WHERE DATE_ADD(dob,INTERVAL 65 YEAR) BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 90 DAY) ORDER BY fecha_65 ASC")->fetchAll();
 // Auto-generate retention notifications
-try{generarNotificacionesRetencion($pdo,$users_all);}catch(Exception $e){}
+// Solo en navegaciones reales (no en el auto-refresco AJAX) para no repetir
+// trabajo pesado cada 30s. Internamente además corre como máximo 1 vez al día.
+$ES_REFRESCO_AJAX = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest');
+if(!$ES_REFRESCO_AJAX){ try{generarNotificacionesRetencion($pdo,$users_all);}catch(Exception $e){} }
 $ef_checks=[];
 try{foreach($pdo->query("SELECT * FROM efectivos_checks") as $e)$ef_checks[$e['miembro_id']][$e['tipo']]=$e;}catch(Exception $e){}
 // Filtro corregido: Que sea de este mes Y que el estado sea estrictamente 'ACTIVE'
@@ -1105,6 +1108,10 @@ function strftime_es(string $ym):string{
 }
 function calc_hours(?string $ci,?string $lo,?string $li,?string $co,?string $bo=null,?string $bi=null):?string{if(!$ci||!$co)return null;$s=strtotime("1970-01-01 $ci");$e=strtotime("1970-01-01 $co");$t=$e-$s;if($lo&&$li){$ls=strtotime("1970-01-01 $lo");$le=strtotime("1970-01-01 $li");$t-=($le-$ls);}if($bo&&$bi){$bs=strtotime("1970-01-01 $bo");$be=strtotime("1970-01-01 $bi");$t-=($be-$bs);}if($t<=0)return null;return floor($t/3600).'H '.floor(($t%3600)/60).'M';}
 function generarNotificacionesRetencion(PDO $pdo, array $users_all):void {
+// Candado diario: si ya se generaron hoy, no repetir el trabajo en cada carga.
+$flag = sys_get_temp_dir().'/crm_ret_'.date('Ymd').'.flag';
+if (is_file($flag)) return;
+@touch($flag); // marcar de inmediato para evitar corridas repetidas/concurrentes
 $intervalos = [7, 30, 60, 90];
 foreach ($intervalos as $d) {
 $stmt = $pdo->prepare("SELECT id,nombre,apellido,carrier FROM miembros WHERE estado='ACTIVE' AND fecha_efectiva=DATE_SUB(CURDATE(),INTERVAL ? DAY)");
