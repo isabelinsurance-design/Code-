@@ -6706,28 +6706,28 @@ function setProyFiltro(f){
   renderProyectos();
 }
 
-function renderProyectos(){
-  const grid=document.getElementById('proy-grid');
-  const empty=document.getElementById('proy-empty');
-  if(!grid)return;
-  const q=(document.getElementById('proy-search')?.value||'').toLowerCase();
-  const list=_proyData.filter(p=>{
-    if(_proyFiltro==='ACTIVOS' && p.estado==='COMPLETADO') return false;
-    if(_proyFiltro==='COMPLETADO' && p.estado!=='COMPLETADO') return false;
-    if(q){ const hay=((p.titulo||'')+' '+(p.descripcion||'')+' '+(p.asig_nombre||'')).toLowerCase(); if(!hay.includes(q)) return false; }
-    return true;
-  });
-  if(!list.length){ grid.innerHTML=''; empty.style.display=''; return; }
-  empty.style.display='none';
-  grid.innerHTML=list.map(p=>{
-    const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
-    const ec=_PROY_EST_COLOR[p.estado]||'#8896A5';
-    const resp = p.asig_nombre ? p.asig_nombre.split(' ')[0] : (p.creador_nombre?p.creador_nombre.split(' ')[0]:'—');
-    const vence = p.fecha_limite ? `<span style="font-size:8px;color:#8896A5">📅 ${pEsc(p.fecha_limite)}</span>` : '';
-    return `<div onclick="openProyectoDetail(${p.id})" style="cursor:pointer;background:#fff;border:1px solid <?=$CB?>;border-left:3px solid ${_PROY_PRIO_COLOR[p.prioridad]||'#2876A8'};border-radius:13px;padding:14px;transition:box-shadow .15s" onmouseover="this.style.boxShadow='0 6px 18px rgba(27,74,107,.12)'" onmouseout="this.style.boxShadow='none'">
+function proyOrdSort(a,b){ return ((parseInt(a.orden)||0)-(parseInt(b.orden)||0)) || (a.id-b.id); }
+
+function proyCardHTML(p, canUp, canDown){
+  const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
+  const ec=_PROY_EST_COLOR[p.estado]||'#8896A5';
+  const resp = p.asig_nombre ? p.asig_nombre.split(' ')[0] : (p.creador_nombre?p.creador_nombre.split(' ')[0]:'—');
+  const vence = p.fecha_limite ? `<span style="font-size:8px;color:#8896A5">📅 ${pEsc(p.fecha_limite)}</span>` : '';
+  const foco = parseInt(p.es_foco)===1;
+  const completed = p.estado==='COMPLETADO';
+  const btn = (label,title,extra,enabled,onclick)=>`<button title="${title}" ${enabled?'':'disabled'} onclick="${enabled?onclick:''}" style="background:#fff;border:1px solid <?=$CB?>;color:${enabled?'<?=$P2?>':'#CBD5E0'};border-radius:7px;width:22px;height:22px;cursor:${enabled?'pointer':'default'};font-size:10px;line-height:1;padding:0;${extra}">${label}</button>`;
+  const focoBtn = `<button title="${foco?'Quitar foco':'Marcar como foco actual'}" onclick="setFocoProyecto(${p.id},event)" style="background:${foco?'#C9A227':'#fff'};border:1px solid ${foco?'#C9A227':'<?=$CB?>'};color:${foco?'#fff':'#C9A227'};border-radius:7px;width:22px;height:22px;cursor:pointer;font-size:11px;line-height:1;padding:0">★</button>`;
+  const ctrl = completed ? '' : `<div style="display:flex;gap:3px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">
+      ${focoBtn}
+      ${btn('▲','Subir','',canUp,`moveProyecto(${p.id},'up',event)`)}
+      ${btn('▼','Bajar','',canDown,`moveProyecto(${p.id},'down',event)`)}
+    </div>`;
+  const borderCol = foco ? '#C9A227' : '<?=$CB?>';
+  const focoShadow = foco ? '0 0 0 2px rgba(201,162,39,.28)' : 'none';
+  return `<div onclick="openProyectoDetail(${p.id})" style="cursor:pointer;background:#fff;border:1px solid ${borderCol};border-left:3px solid ${_PROY_PRIO_COLOR[p.prioridad]||'#2876A8'};border-radius:13px;padding:14px;transition:box-shadow .15s;box-shadow:${focoShadow}" onmouseover="this.style.boxShadow='0 6px 18px rgba(27,74,107,.12)'" onmouseout="this.style.boxShadow='${focoShadow}'">
       <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-        <div style="font-weight:900;font-size:12px;color:<?=$P1?>;line-height:1.25">${pEsc(p.titulo)}</div>
-        <span style="flex-shrink:0;font-size:7px;font-weight:900;letter-spacing:.5px;text-transform:uppercase;color:#fff;background:${ec};padding:3px 7px;border-radius:20px">${pEsc(p.estado)}</span>
+        <div style="font-weight:900;font-size:12px;color:<?=$P1?>;line-height:1.25">${foco?'⭐ ':''}${pEsc(p.titulo)}</div>
+        ${ctrl}
       </div>
       ${p.descripcion?`<div style="font-size:9px;color:<?=$MU?>;margin-bottom:9px;line-height:1.4;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden">${pEsc(p.descripcion)}</div>`:''}
       <div style="height:7px;background:<?=$BG?>;border-radius:20px;overflow:hidden;margin-bottom:5px">
@@ -6743,7 +6743,80 @@ function renderProyectos(){
         </div>
       </div>
     </div>`;
-  }).join('');
+}
+
+function renderProyectos(){
+  const grid=document.getElementById('proy-grid');
+  const empty=document.getElementById('proy-empty');
+  if(!grid)return;
+  const q=(document.getElementById('proy-search')?.value||'').toLowerCase();
+  const matchQ = p => !q || ((p.titulo||'')+' '+(p.descripcion||'')+' '+(p.asig_nombre||'')).toLowerCase().includes(q);
+  const pool=_proyData.filter(p=>{
+    if(_proyFiltro==='ACTIVOS' && p.estado==='COMPLETADO') return false;
+    if(_proyFiltro==='COMPLETADO' && p.estado!=='COMPLETADO') return false;
+    return matchQ(p);
+  });
+  if(!pool.length){ grid.innerHTML=''; grid.style.display='none'; empty.style.display=''; return; }
+  empty.style.display='none';
+  grid.style.display='block';
+
+  const gridCSS='display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px';
+  let html='';
+
+  // ⭐ Foco actual arriba
+  const foco=pool.find(p=>parseInt(p.es_foco)===1 && p.estado!=='COMPLETADO');
+  if(foco){
+    html+=`<div style="margin-bottom:16px">
+      <div style="font-size:9px;font-weight:900;color:#C9A227;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px">⭐ En esto estamos ahora</div>
+      <div style="${gridCSS}">${proyCardHTML(foco,false,false)}</div>
+    </div>`;
+  }
+
+  // Secciones por estado
+  const order = _proyFiltro==='COMPLETADO'
+      ? ['COMPLETADO']
+      : (_proyFiltro==='TODOS' ? ['EN PROGRESO','PLANIFICANDO','PAUSADO','COMPLETADO'] : ['EN PROGRESO','PLANIFICANDO','PAUSADO']);
+  const labels={'EN PROGRESO':'🔵 En progreso','PLANIFICANDO':'⚪ Planificando','PAUSADO':'🟠 Pausado','COMPLETADO':'✅ Completados'};
+  order.forEach(est=>{
+    const group=pool.filter(p=>p.estado===est && !(foco&&p.id===foco.id)).sort(proyOrdSort);
+    if(!group.length) return;
+    const ec=_PROY_EST_COLOR[est]||'#8896A5';
+    html+=`<div style="margin-bottom:18px">
+      <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+        <span style="font-size:10px;font-weight:900;color:${ec};text-transform:uppercase;letter-spacing:1.5px">${labels[est]||est}</span>
+        <span style="font-size:8px;font-weight:900;color:#8896A5;background:<?=$BG?>;border-radius:20px;padding:1px 8px">${group.length}</span>
+      </div>
+      <div style="${gridCSS}">${group.map((p,i)=>proyCardHTML(p, i>0, i<group.length-1)).join('')}</div>
+    </div>`;
+  });
+  grid.innerHTML=html;
+}
+
+function moveProyecto(id, dir, ev){
+  if(ev) ev.stopPropagation();
+  const p=_proyData.find(x=>x.id==id); if(!p) return;
+  const group=_proyData.filter(x=>x.estado===p.estado).sort(proyOrdSort);
+  const idx=group.findIndex(x=>x.id==id);
+  const j = dir==='up' ? idx-1 : idx+1;
+  if(j<0 || j>=group.length) return;
+  [group[idx],group[j]]=[group[j],group[idx]];
+  group.forEach((g,i)=>{ g.orden=i; });   // mutamos los objetos de _proyData
+  renderProyectos();
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_proyecto_orden', ids:JSON.stringify(group.map(g=>g.id))})})
+    .then(r=>r.json()).then(d=>{ if(!d.ok) toast(d.error||'No se pudo guardar el orden'); })
+    .catch(()=>toast('Error de conexión'));
+}
+
+function setFocoProyecto(id, ev){
+  if(ev) ev.stopPropagation();
+  const p=_proyData.find(x=>x.id==id); if(!p) return;
+  const turningOn = parseInt(p.es_foco)!==1;
+  _proyData.forEach(x=>x.es_foco=0);     // solo uno puede ser foco
+  if(turningOn) p.es_foco=1;
+  renderProyectos();
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'set_foco_proyecto', id})})
+    .then(r=>r.json()).then(d=>{ if(!d.ok){ toast(d.error||'Error'); loadProyectos(); } })
+    .catch(()=>{ toast('Error de conexión'); loadProyectos(); });
 }
 
 function openProyectoForm(id=null){

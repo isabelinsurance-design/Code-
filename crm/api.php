@@ -1737,7 +1737,7 @@ case 'list_proyectos':
             FROM proyectos p
             LEFT JOIN usuarios c ON p.agente_id  = c.id
             LEFT JOIN usuarios a ON p.asignado_a = a.id
-            ORDER BY (p.estado='COMPLETADO') ASC, p.prioridad='ALTA' DESC, p.fecha_limite IS NULL, p.fecha_limite ASC, p.id DESC");
+            ORDER BY (p.estado='COMPLETADO') ASC, p.orden ASC, p.id DESC");
         jsonOk($stmt->fetchAll());
     } else {
         $stmt = $pdo->prepare("SELECT p.*,
@@ -1749,7 +1749,7 @@ case 'list_proyectos':
             LEFT JOIN usuarios c ON p.agente_id  = c.id
             LEFT JOIN usuarios a ON p.asignado_a = a.id
             WHERE p.asignado_a=? OR p.agente_id=?
-            ORDER BY (p.estado='COMPLETADO') ASC, p.prioridad='ALTA' DESC, p.fecha_limite IS NULL, p.fecha_limite ASC, p.id DESC");
+            ORDER BY (p.estado='COMPLETADO') ASC, p.orden ASC, p.id DESC");
         $stmt->execute([$uid, $uid]);
         jsonOk($stmt->fetchAll());
     }
@@ -1804,7 +1804,10 @@ case 'save_proyecto':
         VALUES (?,?,?,?,?,?,?,?,?,?)");
     $stmt->execute([$titulo, ($descripcion ?: null), $estado, $prioridad, $progreso,
         $asignado_a, $uid, $fecha_inicio, $fecha_limite, $fecha_cierre]);
-    jsonOk(['id' => (int)$pdo->lastInsertId()]);
+    $newId = (int)$pdo->lastInsertId();
+    // Orden inicial = id → el proyecto nuevo queda al final de su grupo
+    $pdo->prepare("UPDATE proyectos SET orden=? WHERE id=?")->execute([$newId, $newId]);
+    jsonOk(['id' => $newId]);
     break;
 
 case 'update_proyecto':
@@ -1833,6 +1836,7 @@ case 'update_proyecto':
         progreso=?, asignado_a=?, fecha_inicio=?, fecha_limite=?, fecha_cierre=? WHERE id=?");
     $stmt->execute([$titulo, ($descripcion ?: null), $estado, $prioridad, $progreso,
         $asignado_a, $fecha_inicio, $fecha_limite, $fecha_cierre, $id]);
+    if ($estado === 'COMPLETADO') $pdo->prepare("UPDATE proyectos SET es_foco=0 WHERE id=?")->execute([$id]);
     jsonOk();
     break;
 
@@ -1856,7 +1860,7 @@ case 'add_avance':
     // Si el avance trae progreso, actualiza el proyecto (y lo completa si llega a 100)
     if ($progreso !== null) {
         if ($progreso >= 100) {
-            $pdo->prepare("UPDATE proyectos SET progreso=100, estado='COMPLETADO',
+            $pdo->prepare("UPDATE proyectos SET progreso=100, estado='COMPLETADO', es_foco=0,
                            fecha_cierre=COALESCE(fecha_cierre, CURDATE()) WHERE id=?")->execute([$pid]);
         } else {
             $nuevoEstado = ($p['estado'] === 'PLANIFICANDO') ? 'EN PROGRESO' : $p['estado'];
@@ -1957,6 +1961,40 @@ case 'delete_proyecto_archivo':
     jsonOk();
     break;
 
+case 'save_proyecto_orden':
+    // Recibe lista de ids en su nuevo orden y guarda orden = posición
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $ids = json_decode($_POST['ids'] ?? '[]', true);
+    if (!is_array($ids) || !$ids) jsonErr('Lista de orden inválida');
+    $upd = $pdo->prepare("UPDATE proyectos SET orden=? WHERE id=?");
+    $pos = 0;
+    foreach ($ids as $pid) {
+        $pid = (int)$pid;
+        if ($pid > 0) { $upd->execute([$pos, $pid]); $pos++; }
+    }
+    jsonOk();
+    break;
+
+case 'set_foco_proyecto':
+    $pdo = db();
+    ensureProyectosTables($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $cur = $pdo->prepare("SELECT * FROM proyectos WHERE id=?");
+    $cur->execute([$id]);
+    $p = $cur->fetch();
+    if (!$p) jsonErr('Proyecto no encontrado');
+    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+        jsonErr('Sin permiso');
+    // Solo un proyecto puede ser el foco: limpia todos y marca este (o lo apaga si ya lo era)
+    $pdo->exec("UPDATE proyectos SET es_foco=0");
+    if (!$p['es_foco']) {
+        $pdo->prepare("UPDATE proyectos SET es_foco=1 WHERE id=?")->execute([$id]);
+    }
+    jsonOk(['es_foco' => $p['es_foco'] ? 0 : 1]);
+    break;
+
 // ── DEFAULT ───────────────────────────────────────────────────
 default:
     jsonErr('Acción no válida: ' . htmlspecialchars($action));
@@ -2008,6 +2046,18 @@ function ensureProyectosTables(PDO $pdo): void {
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_proy (proyecto_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
+    // Migración: columnas para orden manual y foco (si la tabla es de una versión previa)
+    try {
+        $pcols = $pdo->query("SHOW COLUMNS FROM proyectos")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('orden', $pcols, true)) {
+            $pdo->exec("ALTER TABLE proyectos ADD COLUMN orden INT NOT NULL DEFAULT 0");
+            // Orden inicial estable = id (los proyectos nuevos quedan al final de su grupo)
+            $pdo->exec("UPDATE proyectos SET orden = id WHERE orden = 0");
+        }
+        if (!in_array('es_foco', $pcols, true)) {
+            $pdo->exec("ALTER TABLE proyectos ADD COLUMN es_foco TINYINT(1) NOT NULL DEFAULT 0");
+        }
+    } catch (Exception $e) {}
     $done = true;
 }
 
