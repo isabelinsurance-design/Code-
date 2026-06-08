@@ -9583,26 +9583,31 @@ function setLrResult(btn) {
 
 function submitLlamadaRapida(e) {
     e.preventDefault();
-    const fd = new FormData(e.target);
     const mode = document.getElementById('lr-tipo-llamada').value;
     const btn  = document.getElementById('lr-submit-btn');
     btn.disabled = true;
     btn.textContent = 'REGISTRANDO...';
 
+    let fd;
     if (mode === 'prospecto') {
+        fd = new FormData(e.target);
         fd.append('action', 'save_llamada_prospecto');
     } else {
-        // Servicio: create a LLAMADA ticket
+        // Servicio: crear SOLO un ticket tipo LLAMADA.
+        // FormData LIMPIO: no arrastramos campos del modo prospecto
+        // (sobre todo 'resultado=Contestó', que marcaba la llamada como contestada).
         const miembroSv = document.getElementById('lr-sv-miembro').value;
         const nombreSv  = document.getElementById('lr-nombre-sv').value;
         const notasSv   = document.getElementById('lr-notas-sv').value;
+        const estadoSv  = e.target.querySelector('[name="estado_ticket"]')?.value || 'CERRADO';
+        fd = new FormData();
         fd.append('action', 'save_ticket');
         fd.append('tipo', 'LLAMADA');
         fd.append('fuente', 'CRM');
         fd.append('prioridad', 'MEDIA');
-        fd.append('estado', fd.get('estado_ticket') || 'CERRADO');
+        fd.append('estado', estadoSv);
         fd.append('descripcion', notasSv);
-        if (miembroSv) fd.set('miembro_id', miembroSv);
+        if (miembroSv) fd.append('miembro_id', miembroSv);
         else fd.append('cliente', nombreSv);
     }
 
