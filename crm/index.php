@@ -4486,7 +4486,7 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
 </div><!-- /TICKETS -->
 
 <!-- ══ MODAL: FORM DE PROYECTO ══ -->
-<div id="modal-proyecto" class="modal-overlay"><div class="modal modal-sm">
+<div id="modal-proyecto" class="modal-overlay" style="z-index:9700"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title" id="proy-modal-title">📁 NUEVO PROYECTO</div><button class="modal-close" onclick="closeModal('modal-proyecto')">✕</button></div>
   <input type="hidden" id="proy-id">
   <div class="form-group"><label class="form-label">TÍTULO *</label><input id="proy-titulo" class="form-input" placeholder="Nombre del proyecto" maxlength="200"></div>
