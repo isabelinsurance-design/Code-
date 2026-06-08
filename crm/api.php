@@ -937,11 +937,11 @@ case 'delete_pago_bono':
     jsonOk();
     break;
 
-// ── VERIFICAR VENTA → CREAR BONO ──────────────────────────────
-// Admin confirma (verificó con la persona) que una venta ACTIVE es real
-// y se registra un bono para el agente. Idempotente por miembro.
+// ── ES VENTA → MANDAR A BONOS ─────────────────────────────────
+// El agente (o admin) confirma que la venta ya está ACTIVE y la manda
+// a bonos. El agente solo puede mandar sus propios miembros.
+// Se registra como PENDIENTE; el admin la paga. Idempotente por miembro.
 case 'verificar_venta_bono':
-    if (!$admin) jsonErr('Solo admin puede verificar ventas');
     $mid = intval($_POST['miembro_id'] ?? 0);
     if (!$mid) jsonErr('ID de miembro requerido');
     $pdo = db();
@@ -954,7 +954,8 @@ case 'verificar_venta_bono':
     $m->execute([$mid]);
     $mem = $m->fetch();
     if (!$mem) jsonErr('Miembro no encontrado');
-    if ($mem['estado'] !== 'ACTIVE') jsonErr('Solo se verifican ventas ACTIVE');
+    if (!$admin && (int)$mem['agente_id'] !== (int)$uid) jsonErr('Solo puedes mandar tus propias ventas');
+    if ($mem['estado'] !== 'ACTIVE') jsonErr('La venta debe estar ACTIVE para mandarla a bonos');
     if (empty($mem['agente_id'])) jsonErr('El miembro no tiene agente asignado');
     // Evitar duplicados
     $chk = $pdo->prepare("SELECT id FROM pago_bonos WHERE miembro_id=?");

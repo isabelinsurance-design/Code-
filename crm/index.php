@@ -1494,7 +1494,14 @@ $progreso = $meta_mensual > 0 ? min(round(($apps_proceso/$meta_mensual)*100),100
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
 <div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button></div>
-<?php foreach(array_filter($members,fn($m)=>in_array($m['estado'],['SIN HACER','SIN FIRMAR'])) as $m):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),26)?><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['estado']?> · <?=h($m['ciudad'])?></div></div><?=badge($m['estado'],true)?></div><?php endforeach;?>
+<?php
+$prosp_pend = array_filter($members, function($m) use($admin,$uid){
+  if(!$admin && (int)($m['agente_id']??0)!==$uid) return false;
+  return !in_array($m['estado'], ['ACTIVE','CANCELED','DENIED','CERRADO','DISENROLLED']);
+});
+$prosp_pend = array_slice(array_values($prosp_pend), 0, 12);
+if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">✓ SIN PROSPECTOS PENDIENTES</div>
+<?php else: foreach($prosp_pend as $m):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),26)?><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>"><?=h($m['estado']?:'PROSPECT')?> · <?=h($m['ciudad'])?></div></div><?=badge($m['estado']?:'PROSPECT',true)?></div><?php endforeach; endif;?>
 </div>
 <div class="card"><div class="card-header"><div class="card-title">◈ TICKETS ABIERTOS</div><button class="btn btn-gh btn-sm" onclick="showTab('TICKETS')">VER →</button></div>
 <?php foreach(array_slice(array_values($tickets_open),0,6) as $t):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$t['miembro_id']?>)"><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($t['miembro_nombre']??'—')?></div><div style="font-size:8px;color:<?=$MU?>"><?=h(substr($t['descripcion'],0,50))?></div></div><?=badge($t['prioridad'],true)?></div><?php endforeach;?>
@@ -3711,19 +3718,19 @@ if(count($t65_pipe)>0):
                 </div>
                 <?php endif; ?>
 
-                <!-- Verificar venta → bono (solo VENDIDO + admin) -->
-                <?php if($colkey === 'sold' && $admin):
+                <!-- Es venta → mandar a bonos (VENDIDO / ACTIVE) -->
+                <?php if($colkey === 'sold'):
                     $tiene_bono = !empty($bonos_miembro_ids[(int)$m['id']]);
                 ?>
                 <div style="margin-top:7px;">
                     <?php if($tiene_bono): ?>
                     <div style="width:100%;background:#EAF5F0;border:1px solid #8DCFBA;color:#1E7A5C;font-size:8px;padding:6px;border-radius:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.5px;">
-                        ✓ BONO REGISTRADO
+                        ✓ ENVIADO A BONOS
                     </div>
                     <?php else: ?>
                     <button onclick="verificarVentaBono(<?=$m['id']?>, '<?=h(addslashes($nombre_completo))?>', this)"
                         style="width:100%;background:#5B3FAF;border:none;color:#fff;font-size:8px;padding:7px;border-radius:7px;cursor:pointer;font-weight:900;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;">
-                        💰 VERIFICAR VENTA → BONO
+                        💰 ES VENTA → MANDAR A BONOS
                     </button>
                     <?php endif; ?>
                 </div>
@@ -9727,10 +9734,10 @@ function setProsTemp(mid, temp) {
     });
 }
 
-// ── VERIFICAR VENTA → BONO (admin) ──
+// ── ES VENTA → MANDAR A BONOS (agente o admin, solo si está ACTIVE) ──
 function verificarVentaBono(mid, nombre, btn) {
-    if(!confirm('¿Confirmas que VERIFICASTE esta venta con la persona y es real?\n\n'+nombre+'\n\nSe registrará un bono para el agente.')) return;
-    if(btn){ btn.disabled = true; btn.textContent = 'REGISTRANDO...'; }
+    if(!confirm('¿Confirmas que esta venta ya está ACTIVA y quieres mandarla a BONOS?\n\n'+nombre)) return;
+    if(btn){ btn.disabled = true; btn.textContent = 'ENVIANDO...'; }
     const fd = new FormData();
     fd.append('action', 'verificar_venta_bono');
     fd.append('miembro_id', mid);
@@ -9738,17 +9745,17 @@ function verificarVentaBono(mid, nombre, btn) {
     .then(r => r.json())
     .then(d => {
         if(d.ok) {
-            toast('✓ VENTA VERIFICADA · BONO REGISTRADO');
+            toast('✓ VENTA ENVIADA A BONOS');
             if(btn){
                 const wrap = btn.parentNode;
-                wrap.innerHTML = '<div style="width:100%;background:#EAF5F0;border:1px solid #8DCFBA;color:#1E7A5C;font-size:8px;padding:6px;border-radius:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.5px;">✓ BONO REGISTRADO</div>';
+                wrap.innerHTML = '<div style="width:100%;background:#EAF5F0;border:1px solid #8DCFBA;color:#1E7A5C;font-size:8px;padding:6px;border-radius:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.5px;">✓ ENVIADO A BONOS</div>';
             }
         } else {
             toast('⚠ ' + (d.error||'Error'));
-            if(btn){ btn.disabled = false; btn.textContent = '💰 VERIFICAR VENTA → BONO'; }
+            if(btn){ btn.disabled = false; btn.textContent = '💰 ES VENTA → MANDAR A BONOS'; }
         }
     })
-    .catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='💰 VERIFICAR VENTA → BONO'; } });
+    .catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='💰 ES VENTA → MANDAR A BONOS'; } });
 }
 
 // ── MODAL REGISTRO RÁPIDO DE LLAMADAS ──
