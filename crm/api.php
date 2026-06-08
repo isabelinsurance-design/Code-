@@ -1,5 +1,8 @@
 <?php
 require_once 'config.php';
+// Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
+// y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
+ini_set('display_errors', '0');
 session_start();
 header('Content-Type: application/json');
 if (empty($_SESSION['user'])) { echo json_encode(['error'=>'No autorizado']); exit; }
@@ -1846,7 +1849,7 @@ case 'add_avance':
     if (!$p) jsonErr('Proyecto no encontrado');
     if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
         jsonErr('Sin permiso para actualizar este proyecto');
-    $progreso = ($_POST['progreso'] !== '' && isset($_POST['progreso']))
+    $progreso = (isset($_POST['progreso']) && $_POST['progreso'] !== '')
         ? max(0, min(100, (int)$_POST['progreso'])) : null;
     $ins = $pdo->prepare("INSERT INTO proyecto_avances (proyecto_id, usuario_id, nota, progreso) VALUES (?,?,?,?)");
     $ins->execute([$pid, $uid, $nota, $progreso]);
