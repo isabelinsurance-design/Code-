@@ -911,8 +911,8 @@ $mis_apps_hoy = count(array_filter($tickets, function($t) use ($uid, $hoy_fmt) {
     return $es_mio && $t['estado'] === 'CERRADO' && str_starts_with($fecha_cierre, $hoy_fmt) && ($t['tipo'] ?? '') === 'APLICACION';
 }));
 
-// Contar citas creadas por mí el día de hoy
-$stmt_citas_hoy = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE agente_id=? AND DATE(created_at)=?");
+// Contar citas creadas por mí hoy — solo tipos productivos (ENROLLMENT, AEP, T65)
+$stmt_citas_hoy = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE agente_id=? AND DATE(created_at)=? AND tipo IN ('ENROLLMENT','AEP','T65')");
 $stmt_citas_hoy->execute([$uid, $today]);
 $mis_citas_creadas_hoy = $stmt_citas_hoy->fetchColumn();
 
