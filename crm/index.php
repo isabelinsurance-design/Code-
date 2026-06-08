@@ -7725,6 +7725,36 @@ function softReload(done){
     .catch(function(){ window._softReloading=false; location.reload(); });
 }
 
+// ── AUTO-REFRESCO PERIÓDICO ─────────────────────────────────────────────
+// Refresca solo en segundo plano cada cierto tiempo para ver en vivo lo que
+// registran las compañeras, SIN interrumpir lo que estás haciendo.
+window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 30000; // 30 s
+function _canAutoRefresh(){
+  try{
+    if(localStorage.getItem('crm_autorefresh')==='off') return false;
+  }catch(e){}
+  if(window._softReloading) return false;          // ya hay un refresco en curso
+  if(document.hidden) return false;                // pestaña en segundo plano
+  if(document.querySelector('.modal-overlay.open')) return false; // hay un modal abierto
+  var ae = document.activeElement;                 // estás escribiendo/editando algo
+  if(ae){
+    var t = ae.tagName;
+    if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return false;
+    if(ae.isContentEditable) return false;
+  }
+  return true;
+}
+setInterval(function(){ if(_canAutoRefresh()) softReload(); }, window.AUTO_REFRESH_MS);
+// Al volver a la pestaña, refresca de inmediato
+document.addEventListener('visibilitychange', function(){
+  if(!document.hidden && _canAutoRefresh()) softReload();
+});
+// Permite apagar/encender desde la consola: crmAutoRefresh(false) / crmAutoRefresh(true)
+window.crmAutoRefresh = function(on){
+  try{ localStorage.setItem('crm_autorefresh', on===false?'off':'on'); }catch(e){}
+  return on===false ? 'Auto-refresco APAGADO' : 'Auto-refresco ENCENDIDO';
+};
+
 // ── Garantizar que REGISTRAR LLAMADA siempre funcione ─────────────────────
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('btn-reg-llamada');
