@@ -7751,15 +7751,20 @@ function softReload(done){
       });
       // 4) Re-inicializar lo que depende de listeners (no de onclick inline)
       try{ if(typeof window._refreshChecklist==='function'){ window._refreshChecklist(); } }catch(e){}
-      // Filtros y pills de TICKETS (el estado vive en variables JS en memoria)
+      // TICKETS: restaurar la sub-vista completa (miembro / tarea / proyecto),
+      // igual que hace showTab. Si no, reaparece "SIN TICKETS" y se pierde el
+      // conteo de proyectos al refrescar estando en la pestaña PROYECTOS.
       try{
-        if(typeof _tktFiltroEstado!=='undefined'){
-          document.querySelectorAll('.tkt-pill').forEach(function(p){
-            var pid = p.id.replace('tpill-','');
-            p.classList.toggle('tkt-pill-on', pid===_tktFiltroEstado);
-          });
+        if(active.id==='tab-TICKETS'){
+          if(typeof _tktFiltroEstado!=='undefined'){
+            document.querySelectorAll('.tkt-pill').forEach(function(p){
+              var pid = p.id.replace('tpill-','');
+              p.classList.toggle('tkt-pill-on', pid===_tktFiltroEstado);
+            });
+          }
+          if(typeof setTktVista==='function' && typeof _tktVista!=='undefined'){ setTktVista(_tktVista); }
+          else if(typeof filterTickets==='function'){ filterTickets(); }
         }
-        if(typeof filterTickets==='function'){ filterTickets(); }
       }catch(e){}
       // Reabrir acordeón recién creado de reuniones / campañas (si aplica)
       try{ var mo=sessionStorage.getItem('mtgOpen'); if(mo){ var mb=document.getElementById('mtg-body-'+mo); if(mb) mb.style.display='block'; sessionStorage.removeItem('mtgOpen'); } }catch(e){}
