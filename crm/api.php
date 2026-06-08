@@ -1859,13 +1859,14 @@ case 'add_avance':
     $ins->execute([$pid, $uid, $nota, $progreso]);
     // Si el avance trae progreso, actualiza el proyecto (y lo completa si llega a 100)
     if ($progreso !== null) {
-        if ($progreso >= 100) {
+        if ($progreso >= 100 && $p['estado'] !== 'CONTINUO') {
+            // Los proyectos CONTINUO nunca se auto-completan (son permanentes/recurrentes)
             $pdo->prepare("UPDATE proyectos SET progreso=100, estado='COMPLETADO', es_foco=0,
                            fecha_cierre=COALESCE(fecha_cierre, CURDATE()) WHERE id=?")->execute([$pid]);
         } else {
             $nuevoEstado = ($p['estado'] === 'PLANIFICANDO') ? 'EN PROGRESO' : $p['estado'];
             $pdo->prepare("UPDATE proyectos SET progreso=?, estado=? WHERE id=?")
-                ->execute([$progreso, $nuevoEstado, $pid]);
+                ->execute([min(100, $progreso), $nuevoEstado, $pid]);
         }
     }
     jsonOk(['avance_id' => (int)$pdo->lastInsertId()]);

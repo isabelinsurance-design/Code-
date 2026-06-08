@@ -4481,7 +4481,7 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
   <div class="form-group"><label class="form-label">TÍTULO *</label><input id="proy-titulo" class="form-input" placeholder="Nombre del proyecto" maxlength="200"></div>
   <div class="form-group"><label class="form-label">DESCRIPCIÓN</label><textarea id="proy-desc" class="form-input" rows="3" placeholder="¿De qué trata el proyecto?"></textarea></div>
   <div style="display:flex;gap:10px">
-    <div class="form-group" style="flex:1"><label class="form-label">ESTADO</label><select id="proy-estado" class="form-input"><option value="PLANIFICANDO">PLANIFICANDO</option><option value="EN PROGRESO">EN PROGRESO</option><option value="PAUSADO">PAUSADO</option><option value="COMPLETADO">COMPLETADO</option></select></div>
+    <div class="form-group" style="flex:1"><label class="form-label">ESTADO</label><select id="proy-estado" class="form-input"><option value="PLANIFICANDO">PLANIFICANDO</option><option value="EN PROGRESO">EN PROGRESO</option><option value="CONTINUO">CONTINUO (EN CURSO / SIEMPRE)</option><option value="PAUSADO">PAUSADO</option><option value="COMPLETADO">COMPLETADO</option></select></div>
     <div class="form-group" style="flex:1"><label class="form-label">PRIORIDAD</label><select id="proy-prio" class="form-input"><option value="ALTA">ALTA</option><option value="MEDIA" selected>MEDIA</option><option value="BAJA">BAJA</option></select></div>
   </div>
   <div class="form-group"><label class="form-label">PROGRESO: <span id="proy-prog-val">0%</span></label><input type="range" id="proy-prog" min="0" max="100" step="5" value="0" oninput="document.getElementById('proy-prog-val').textContent=this.value+'%'" style="width:100%"></div>
@@ -6674,7 +6674,7 @@ function setTktVista(vista){
 let _proyData = [];
 let _proyFiltro = 'ACTIVOS';
 let _proyDetailId = null;
-const _PROY_EST_COLOR = {'PLANIFICANDO':'#8896A5','EN PROGRESO':'#1B5E8C','PAUSADO':'#C07A1A','COMPLETADO':'#1E7A5C'};
+const _PROY_EST_COLOR = {'PLANIFICANDO':'#8896A5','EN PROGRESO':'#1B5E8C','CONTINUO':'#5B3FAF','PAUSADO':'#C07A1A','COMPLETADO':'#1E7A5C'};
 const _PROY_PRIO_COLOR = {'ALTA':'#B83232','MEDIA':'#C07A1A','BAJA':'#2876A8'};
 
 function pEsc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
@@ -6775,8 +6775,8 @@ function renderProyectos(){
   // Secciones por estado
   const order = _proyFiltro==='COMPLETADO'
       ? ['COMPLETADO']
-      : (_proyFiltro==='TODOS' ? ['EN PROGRESO','PLANIFICANDO','PAUSADO','COMPLETADO'] : ['EN PROGRESO','PLANIFICANDO','PAUSADO']);
-  const labels={'EN PROGRESO':'🔵 En progreso','PLANIFICANDO':'⚪ Planificando','PAUSADO':'🟠 Pausado','COMPLETADO':'✅ Completados'};
+      : (_proyFiltro==='TODOS' ? ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO','COMPLETADO'] : ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO']);
+  const labels={'EN PROGRESO':'🔵 En progreso','PLANIFICANDO':'⚪ Planificando','CONTINUO':'🔁 Continuo (en curso)','PAUSADO':'🟠 Pausado','COMPLETADO':'✅ Completados'};
   order.forEach(est=>{
     const group=pool.filter(p=>p.estado===est && !(foco&&p.id===foco.id)).sort(proyOrdSort);
     if(!group.length) return;
