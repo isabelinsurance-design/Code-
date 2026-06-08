@@ -937,6 +937,44 @@ case 'delete_pago_bono':
     jsonOk();
     break;
 
+// ── VERIFICAR VENTA → CREAR BONO ──────────────────────────────
+// Admin confirma (verificó con la persona) que una venta ACTIVE es real
+// y se registra un bono para el agente. Idempotente por miembro.
+case 'verificar_venta_bono':
+    if (!$admin) jsonErr('Solo admin puede verificar ventas');
+    $mid = intval($_POST['miembro_id'] ?? 0);
+    if (!$mid) jsonErr('ID de miembro requerido');
+    $pdo = db();
+    // Asegurar columna miembro_id
+    try {
+        $hasCol = $pdo->query("SHOW COLUMNS FROM pago_bonos LIKE 'miembro_id'")->fetch();
+        if (!$hasCol) $pdo->exec("ALTER TABLE pago_bonos ADD COLUMN miembro_id INT NULL");
+    } catch (Exception $e) {}
+    $m = $pdo->prepare("SELECT id,nombre,apellido,estado,agente_id FROM miembros WHERE id=?");
+    $m->execute([$mid]);
+    $mem = $m->fetch();
+    if (!$mem) jsonErr('Miembro no encontrado');
+    if ($mem['estado'] !== 'ACTIVE') jsonErr('Solo se verifican ventas ACTIVE');
+    if (empty($mem['agente_id'])) jsonErr('El miembro no tiene agente asignado');
+    // Evitar duplicados
+    $chk = $pdo->prepare("SELECT id FROM pago_bonos WHERE miembro_id=?");
+    $chk->execute([$mid]);
+    if ($chk->fetch()) jsonErr('Esta venta ya tiene un bono registrado');
+    $meses_es = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    $mes_es = $meses_es[(int)date('n')];
+    $cliente = trim(($mem['apellido']??'').', '.($mem['nombre']??''));
+    $monto = BONO_MONTO;
+    $pdo->prepare("INSERT INTO pago_bonos (agente_id,tipo,cliente,fecha,mes,cantidad,precio_unidad,total,pagado,cobro_regreso,venta_cancelada,notas,miembro_id)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        ->execute([$mem['agente_id'],'Bono por venta',$cliente,date('Y-m-d'),$mes_es,1,$monto,$monto,0,0,0,'Venta verificada con el cliente',$mid]);
+    $bid = $pdo->lastInsertId();
+    try {
+        $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion,miembro_id) VALUES (?,?,?,?)")
+            ->execute([$uid,'BONOS','VENTA VERIFICADA → BONO #'.$bid.' ('.$cliente.')',$mid]);
+    } catch (Exception $e) {}
+    jsonOk(['id'=>$bid]);
+    break;
+
 // ── BONOS INCENTIVOS ──────────────────────────────────────────
 case 'get_bonos_report':
 case 'get_bonos_incentivos':
@@ -949,17 +987,17 @@ case 'get_bonos_incentivos':
                m.fecha_efectiva as efectiva, m.estado,
                DATEDIFF(CURDATE(),m.fecha_efectiva) as dias,
                CASE
-                 WHEN m.estado='CANCELADO' AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias1 THEN 'CHARGEBACK'
-                 WHEN m.estado='ACTIVO' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias2 THEN 'CONSOLIDADO'
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias1 THEN 'CHARGEBACK'
+                 WHEN m.estado='ACTIVE' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias2 THEN 'CONSOLIDADO'
                  ELSE 'PENDIENTE'
                END as status,
                CASE
-                 WHEN m.estado='CANCELADO' AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias3 THEN :neg
-                 WHEN m.estado='ACTIVO' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias4 THEN 0
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias3 THEN :neg
+                 WHEN m.estado='ACTIVE' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias4 THEN 0
                  ELSE :pos
                END as monto
         FROM miembros m LEFT JOIN usuarios u ON m.agente_id=u.id
-        WHERE m.fecha_efectiva IS NOT NULL AND m.estado IN ('ACTIVO','CANCELADO')
+        WHERE m.fecha_efectiva IS NOT NULL AND m.estado IN ('ACTIVE','CANCELED','DENIED','CERRADO','DISENROLLED')
         ORDER BY m.fecha_efectiva DESC");
     $stmt->execute([':dias1'=>$dias_ret,':dias2'=>$dias_ret,':dias3'=>$dias_ret,':dias4'=>$dias_ret,':neg'=>-$bono,':pos'=>$bono]);
     jsonOk(['reporte'=>$stmt->fetchAll()]);

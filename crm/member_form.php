@@ -158,7 +158,6 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
         'ACTIVE'          => 'ACTIVE',
         'CANCELED'        => 'CANCELED',
         'DENIED'          => 'DENIED',
-        'DISENROLLED'     => 'DISENROLLED',
         'PENDING'         => 'PENDING'
     ];
     $est_actual = $m['estado'] ?? 'PROSPECT';

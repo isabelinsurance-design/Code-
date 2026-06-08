@@ -810,6 +810,22 @@ try {
         )
     ")->fetchColumn();
 } catch (Exception $e) { $alertas_hoy = 0; }
+
+// ─── MIGRACIONES AUTOMÁTICAS IDEMPOTENTES ────────────────────────────────────
+// Unificar DISENROLLED dentro de CANCELED (son el mismo estado)
+try { $pdo->exec("UPDATE miembros SET estado='CANCELED' WHERE estado='DISENROLLED'"); } catch (Exception $e) {}
+// Asegurar columna miembro_id en pago_bonos (para verificar ventas → bono)
+try {
+    $col = $pdo->query("SHOW COLUMNS FROM pago_bonos LIKE 'miembro_id'")->fetch();
+    if (!$col) $pdo->exec("ALTER TABLE pago_bonos ADD COLUMN miembro_id INT NULL");
+} catch (Exception $e) {}
+// IDs de miembros que ya tienen un bono de venta registrado (para no duplicar)
+$bonos_miembro_ids = [];
+try {
+    foreach ($pdo->query("SELECT DISTINCT miembro_id FROM pago_bonos WHERE miembro_id IS NOT NULL")->fetchAll(PDO::FETCH_COLUMN) as $bmid)
+        $bonos_miembro_ids[(int)$bmid] = true;
+} catch (Exception $e) {}
+
 // Members con verificación de SOA
 $members=$pdo->query("SELECT m.*,u.nombre as agente_nombre,u.color as agente_color,u.iniciales as agente_ini,
 (SELECT COUNT(*) FROM soa WHERE miembro_id=m.id AND estado='FIRMADO') as has_soa
@@ -1007,6 +1023,7 @@ $t65_count=count(array_filter($members,fn($m)=>in_array($m['estado'],['SIN HACER
 $followups=count(array_filter($members,fn($m)=>in_array($m['estado'],['IN PROCESS','READY TO ENROLL'])));
 $activos_mes=count(array_filter($members,fn($m)=>$m['estado']==='ACTIVE'&&$m['subestado']==='NEW ENROLLMENT'&&!empty($m['fecha_efectiva'])&&str_starts_with($m['fecha_efectiva'],date('Y-m'))));
 $cancelados_mes=count(array_filter($members,fn($m)=>in_array($m['estado'],['CANCELED','DENIED','CERRADO','DISENROLLED'])&&!empty($m['fecha_cancelacion'])&&str_starts_with($m['fecha_cancelacion'],date('Y-m'))));
+$cancelados_total=count(array_filter($members,fn($m)=>in_array($m['estado'],['CANCELED','DENIED','CERRADO','DISENROLLED'])));
 // String del próximo mes (ejemplo: '2026-06')
 $next_month_str = date('Y-m', strtotime('first day of next month'));
 $next_month_label = strtoupper(date('M Y', strtotime('first day of next month')));
@@ -1025,7 +1042,7 @@ $apps_proceso = count(array_filter($members, function($m) use ($next_month_str) 
     return $estado_ok && $fecha_ok && $es_new_enroll;
 }));
 // T65 próximos 90 días
-$t65_alertas=$pdo->query("SELECT id,nombre,apellido,dob,telefono,estado,carrier,DATE_ADD(dob,INTERVAL 65 YEAR) as fecha_65,DATEDIFF(DATE_ADD(dob,INTERVAL 65 YEAR),CURDATE()) as dias_restantes FROM miembros WHERE DATE_ADD(dob,INTERVAL 65 YEAR) BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 90 DAY) ORDER BY fecha_65 ASC")->fetchAll();
+$t65_alertas=$pdo->query("SELECT id,nombre,apellido,dob,telefono,estado,carrier,agente_id,DATE_ADD(dob,INTERVAL 65 YEAR) as fecha_65,DATEDIFF(DATE_ADD(dob,INTERVAL 65 YEAR),CURDATE()) as dias_restantes FROM miembros WHERE DATE_ADD(dob,INTERVAL 65 YEAR) BETWEEN CURDATE() AND DATE_ADD(CURDATE(),INTERVAL 90 DAY) ORDER BY fecha_65 ASC")->fetchAll();
 // Auto-generate retention notifications
 // Solo en navegaciones reales (no en el auto-refresco AJAX) para no repetir
 // trabajo pesado cada 30s. Internamente además corre como máximo 1 vez al día.
@@ -1403,6 +1420,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
   ['✓', $activos_total, 'ACTIVOS', 'CON PÓLIZA', $G, "irAMiembros('ACTIVE')"],
   [' ', $futuros_efectivos, 'FUTUROS', 'EFECTIVOS '.$next_month_label, '#1E7A8C', "showTab('PIPELINE')"],
   ['✗', $cancelados_mes, 'CANCELADOS', 'ESTE MES', $R, "irAMiembros('CANCELED')"],
+  ['✗', $cancelados_total, 'CANCELADOS', 'TOTAL', $R, "irAMiembros('CANCELED')"],
   [' ', $apps_proceso, 'META', 'PRÓXIMO MES', $A, "showTab('PIPELINE')"],
   ['◈', $urgent_tks, 'URGENTES', 'TICKETS', $R, "showTab('TICKETS')"],
   ['◐', $followups, 'PIPELINE', 'IN PROCESS + RTE', '#1B5E8C', "showTab('PIPELINE')"]
@@ -2804,7 +2822,6 @@ $p_pendientes= count(array_filter($portal_members,fn($m)=>$m['estado']==='IN PRO
 <option value="IN PROCESS">⚠ IN PROCESS</option>
 <option value="CANCELED"> CANCELED</option>
 <option value="DENIED"> DENIED</option>
-<option value="DISENROLLED"> DISENROLLED</option>
 <option value="CERRADO"> CERRADO</option>
 </select>
 </div>
@@ -2851,7 +2868,7 @@ if ($dias === null): ?>
 <input type="text" id="member-search" placeholder="BUSCAR POR NOMBRE, TEL, MBI, DIRECCIÓN..." onkeyup="smartSearch()" style="background:transparent;border:none;outline:none;font-size:13px;width:100%;font-family:'DM Sans',sans-serif;text-transform:uppercase;color:<?=$TX?>">
 
 </div>
-<select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach(['ACTIVE','IN PROCESS','PLAN CHANGE','SIN HACER','SIN FIRMAR','CANCELED','DENIED','CERRADO','DISENROLLED'] as $e):?><option><?=$e?></option><?php endforeach;?></select>
+<select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach(['ACTIVE','IN PROCESS','PLAN CHANGE','SIN HACER','SIN FIRMAR','CANCELED','DENIED','CERRADO'] as $e):?><option><?=$e?></option><?php endforeach;?></select>
 <button class="btn btn-b btn-sm" onclick="openMemberForm()">+ NUEVO MIEMBRO</button>
 </div>
 <div style="display:flex;gap:4px;margin-bottom:11px;flex-wrap:wrap">
@@ -2865,7 +2882,7 @@ foreach($members as $m_){
 }
 sort($meses_disponibles);
 
-$pill_list = ['TODOS','FUTUROS','ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','CANCELED','DISENROLLED'];
+$pill_list = ['TODOS','FUTUROS','ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','CANCELED'];
 foreach($pill_list as $p):
     if($p === 'TODOS'){ 
         $lbl='TODOS'; $val=''; $c=count($members); 
@@ -3510,6 +3527,48 @@ $t65_pipe_count = count(array_filter($pipe_pros, fn($m)=>strtolower($m['fuente']
     <?php $i_stat++; endforeach;?>
 </div>
 
+<!-- ALERTAS T65 — RECORDATORIOS DE LLAMADA (gente por cumplir 65 / sacar Medicare) -->
+<?php
+$t65_pipe = array_values(array_filter($t65_alertas, fn($ta)=> $admin || (int)($ta['agente_id']??0)===$uid));
+if(count($t65_pipe)>0):
+?>
+<div class="card" style="border-top:4px solid #C05C1A; background:#FFFBF5; margin-bottom:16px">
+  <div class="card-header" style="cursor:pointer" onclick="var b=document.getElementById('pipe-t65-body');b.style.display=b.style.display==='none'?'block':'none';this.querySelector('.t65-chev').textContent=b.style.display==='none'?'▸':'▾'">
+    <div>
+      <div class="card-title" style="color:#C05C1A">🎂 T65 — RECORDATORIOS DE LLAMADA</div>
+      <div class="card-sub"><?=count($t65_pipe)?> PERSONA<?=count($t65_pipe)>1?'S':''?> POR CUMPLIR 65 / SACAR MEDICARE — PRÓXIMOS 90 DÍAS</div>
+    </div>
+    <span class="t65-chev" style="font-size:13px;color:#C05C1A;font-weight:900">▾</span>
+  </div>
+  <div id="pipe-t65-body" style="padding:8px 12px;max-height:300px;overflow-y:auto">
+  <?php
+  $t65_grupos_pipe=[
+    ['label'=>'⚠ URGENTE — 0 A 30 DÍAS','color'=>'#B83232','bg'=>'#FDF0EE','border'=>'#EFA09A','min'=>0,'max'=>30],
+    ['label'=>'📅 PRÓXIMO — 31 A 60 DÍAS','color'=>'#C07A1A','bg'=>'#FDF6EC','border'=>'#F5D5A0','min'=>31,'max'=>60],
+    ['label'=>'🔭 EN HORIZONTE — 61 A 90 DÍAS','color'=>'#2876A8','bg'=>'#EBF4F9','border'=>'#C8DFF0','min'=>61,'max'=>90],
+  ];
+  foreach($t65_grupos_pipe as $grp):
+    $grp_items=array_filter($t65_pipe,fn($ta)=>$ta['dias_restantes']>=$grp['min']&&$ta['dias_restantes']<=$grp['max']);
+    if(empty($grp_items)) continue;
+  ?>
+  <div style="font-size:7px;font-weight:900;color:<?=$grp['color']?>;text-transform:uppercase;letter-spacing:1.2px;padding:3px 8px;background:<?=$grp['bg']?>;border-left:3px solid <?=$grp['border']?>;border-radius:4px;margin-bottom:5px;margin-top:10px"><?=$grp['label']?></div>
+  <?php foreach($grp_items as $ta):?>
+  <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 10px;border-bottom:1px solid #F5D5A0;gap:8px">
+    <div style="flex:1;min-width:0;cursor:pointer" onclick="openProfile(<?=$ta['id']?>)">
+      <div style="font-size:10px;font-weight:900;color:<?=$TX?>;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?=h($ta['nombre'].' '.$ta['apellido'])?></div>
+      <div style="font-size:8px;color:<?=$MU?>;margin-top:1px"><?=!empty($ta['telefono'])?'📞 '.h($ta['telefono']):''?><?=!empty($ta['carrier'])?' · '.h($ta['carrier']):''?><?=!empty($ta['estado'])?' · '.h($ta['estado']):''?></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:5px;flex-shrink:0">
+      <span style="background:<?=$grp['bg']?>;color:<?=$grp['color']?>;border:1px solid <?=$grp['border']?>;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900;white-space:nowrap"><?=($ta['dias_restantes']<=0?'¡HOY!':$ta['dias_restantes'].' DÍAS')?></span>
+      <span style="font-size:8px;color:<?=$MU?>;white-space:nowrap"><?=date('m/d/Y',strtotime($ta['fecha_65']))?></span>
+      <?php if(!empty($ta['telefono'])):?><a href="tel:<?=h($ta['telefono'])?>" style="font-size:9px;background:<?=$G?>;color:#fff;border-radius:6px;padding:2px 7px;text-decoration:none;font-weight:900" title="LLAMAR" onclick="event.stopPropagation()">📞</a><?php endif;?>
+    </div>
+  </div>
+  <?php endforeach; endforeach;?>
+  </div>
+</div>
+<?php endif;?>
+
 <!-- TEMPERATURA FILTER PILLS (only for prospectos column) -->
 <div id="pipe-temp-pills" style="display:flex; gap:6px; flex-wrap:wrap; margin-bottom:14px; align-items:center;">
     <span style="font-size:8px; font-weight:900; color:#7A90A4; text-transform:uppercase; letter-spacing:1px;">TEMPERATURA:</span>
@@ -3649,6 +3708,24 @@ $t65_pipe_count = count(array_filter($pipe_pros, fn($m)=>strtolower($m['fuente']
                         style="background:<?=$fuente===$tk?'#EBF4F9':'#F4F8FC'?>; border:1px solid <?=$fuente===$tk?'#1B4A6B':'#E2E8F0'?>; color:<?=$fuente===$tk?'#1B4A6B':$tc?>; border-radius:5px; padding:2px 5px; font-size:9px; cursor:pointer; font-weight:<?=$fuente===$tk?'900':'700'?>; font-family:'DM Sans',sans-serif; flex-shrink:0;"
                         title="<?=$tk===''?'Sin temperatura':strtoupper($tk)?>"><?=$ti?></button>
                     <?php endforeach;?>
+                </div>
+                <?php endif; ?>
+
+                <!-- Verificar venta → bono (solo VENDIDO + admin) -->
+                <?php if($colkey === 'sold' && $admin):
+                    $tiene_bono = !empty($bonos_miembro_ids[(int)$m['id']]);
+                ?>
+                <div style="margin-top:7px;">
+                    <?php if($tiene_bono): ?>
+                    <div style="width:100%;background:#EAF5F0;border:1px solid #8DCFBA;color:#1E7A5C;font-size:8px;padding:6px;border-radius:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.5px;">
+                        ✓ BONO REGISTRADO
+                    </div>
+                    <?php else: ?>
+                    <button onclick="verificarVentaBono(<?=$m['id']?>, '<?=h(addslashes($nombre_completo))?>', this)"
+                        style="width:100%;background:#5B3FAF;border:none;color:#fff;font-size:8px;padding:7px;border-radius:7px;cursor:pointer;font-weight:900;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;">
+                        💰 VERIFICAR VENTA → BONO
+                    </button>
+                    <?php endif; ?>
                 </div>
                 <?php endif; ?>
             </div>
@@ -9648,6 +9725,30 @@ function setProsTemp(mid, temp) {
         if(d.ok) { toast('✓ TEMPERATURA ACTUALIZADA'); setTimeout(()=>softReload(), 400); }
         else toast('⚠ ' + (d.error||'Error'));
     });
+}
+
+// ── VERIFICAR VENTA → BONO (admin) ──
+function verificarVentaBono(mid, nombre, btn) {
+    if(!confirm('¿Confirmas que VERIFICASTE esta venta con la persona y es real?\n\n'+nombre+'\n\nSe registrará un bono para el agente.')) return;
+    if(btn){ btn.disabled = true; btn.textContent = 'REGISTRANDO...'; }
+    const fd = new FormData();
+    fd.append('action', 'verificar_venta_bono');
+    fd.append('miembro_id', mid);
+    fetch('api.php', { method: 'POST', body: fd })
+    .then(r => r.json())
+    .then(d => {
+        if(d.ok) {
+            toast('✓ VENTA VERIFICADA · BONO REGISTRADO');
+            if(btn){
+                const wrap = btn.parentNode;
+                wrap.innerHTML = '<div style="width:100%;background:#EAF5F0;border:1px solid #8DCFBA;color:#1E7A5C;font-size:8px;padding:6px;border-radius:7px;font-weight:900;text-align:center;text-transform:uppercase;letter-spacing:.5px;">✓ BONO REGISTRADO</div>';
+            }
+        } else {
+            toast('⚠ ' + (d.error||'Error'));
+            if(btn){ btn.disabled = false; btn.textContent = '💰 VERIFICAR VENTA → BONO'; }
+        }
+    })
+    .catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='💰 VERIFICAR VENTA → BONO'; } });
 }
 
 // ── MODAL REGISTRO RÁPIDO DE LLAMADAS ──
