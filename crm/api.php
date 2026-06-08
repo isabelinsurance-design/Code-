@@ -1728,12 +1728,16 @@ case 'save_postcita_q':
 case 'list_proyectos':
     $pdo = db();
     ensureProyectosTables($pdo);
+    $equipoSel = "(SELECT GROUP_CONCAT(CONCAT(u2.iniciales,':',COALESCE(u2.color,'#1B5E8C')) SEPARATOR '|')
+                  FROM proyecto_miembros pm JOIN usuarios u2 ON u2.id=pm.usuario_id WHERE pm.proyecto_id=p.id) AS equipo,
+                 (SELECT GROUP_CONCAT(pm.usuario_id) FROM proyecto_miembros pm WHERE pm.proyecto_id=p.id) AS equipo_ids";
     if ($admin) {
         $stmt = $pdo->query("SELECT p.*,
                 c.nombre creador_nombre, c.iniciales creador_ini, c.color creador_color,
                 a.nombre asig_nombre,    a.iniciales asig_ini,    a.color asig_color,
                 (SELECT COUNT(*) FROM proyecto_avances  av WHERE av.proyecto_id=p.id) n_avances,
-                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos
+                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos,
+                $equipoSel
             FROM proyectos p
             LEFT JOIN usuarios c ON p.agente_id  = c.id
             LEFT JOIN usuarios a ON p.asignado_a = a.id
@@ -1744,13 +1748,15 @@ case 'list_proyectos':
                 c.nombre creador_nombre, c.iniciales creador_ini, c.color creador_color,
                 a.nombre asig_nombre,    a.iniciales asig_ini,    a.color asig_color,
                 (SELECT COUNT(*) FROM proyecto_avances  av WHERE av.proyecto_id=p.id) n_avances,
-                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos
+                (SELECT COUNT(*) FROM proyecto_archivos ar WHERE ar.proyecto_id=p.id) n_archivos,
+                $equipoSel
             FROM proyectos p
             LEFT JOIN usuarios c ON p.agente_id  = c.id
             LEFT JOIN usuarios a ON p.asignado_a = a.id
             WHERE p.asignado_a=? OR p.agente_id=?
+               OR EXISTS(SELECT 1 FROM proyecto_miembros pm WHERE pm.proyecto_id=p.id AND pm.usuario_id=?)
             ORDER BY (p.estado='COMPLETADO') ASC, p.orden ASC, p.id DESC");
-        $stmt->execute([$uid, $uid]);
+        $stmt->execute([$uid, $uid, $uid]);
         jsonOk($stmt->fetchAll());
     }
     break;
@@ -1770,8 +1776,13 @@ case 'get_proyecto':
     $stmt->execute([$id]);
     $p = $stmt->fetch();
     if (!$p) jsonErr('Proyecto no encontrado');
-    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+    if (!proyPuede($pdo, $p, $uid, $admin))
         jsonErr('Sin permiso para ver este proyecto');
+    $tm = $pdo->prepare("SELECT u.id, u.nombre, u.iniciales, u.color
+                         FROM proyecto_miembros pm JOIN usuarios u ON u.id=pm.usuario_id
+                         WHERE pm.proyecto_id=? ORDER BY u.nombre");
+    $tm->execute([$id]);
+    $p['equipo'] = $tm->fetchAll();
     $av = $pdo->prepare("SELECT av.*, u.nombre, u.iniciales, u.color
                          FROM proyecto_avances av LEFT JOIN usuarios u ON av.usuario_id=u.id
                          WHERE av.proyecto_id=? ORDER BY av.id DESC");
@@ -1807,6 +1818,7 @@ case 'save_proyecto':
     $newId = (int)$pdo->lastInsertId();
     // Orden inicial = id → el proyecto nuevo queda al final de su grupo
     $pdo->prepare("UPDATE proyectos SET orden=? WHERE id=?")->execute([$newId, $newId]);
+    guardarEquipoProyecto($pdo, $newId, $_POST['team'] ?? '');
     jsonOk(['id' => $newId]);
     break;
 
@@ -1819,7 +1831,7 @@ case 'update_proyecto':
     $cur->execute([$id]);
     $p = $cur->fetch();
     if (!$p) jsonErr('Proyecto no encontrado');
-    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+    if (!proyPuede($pdo, $p, $uid, $admin))
         jsonErr('Sin permiso para editar este proyecto');
     $titulo = trim($_POST['titulo'] ?? '');
     if ($titulo === '') jsonErr('El título es obligatorio');
@@ -1837,6 +1849,7 @@ case 'update_proyecto':
     $stmt->execute([$titulo, ($descripcion ?: null), $estado, $prioridad, $progreso,
         $asignado_a, $fecha_inicio, $fecha_limite, $fecha_cierre, $id]);
     if ($estado === 'COMPLETADO') $pdo->prepare("UPDATE proyectos SET es_foco=0 WHERE id=?")->execute([$id]);
+    if (isset($_POST['team'])) guardarEquipoProyecto($pdo, $id, $_POST['team']);
     jsonOk();
     break;
 
@@ -1851,7 +1864,7 @@ case 'add_avance':
     $cur->execute([$pid]);
     $p = $cur->fetch();
     if (!$p) jsonErr('Proyecto no encontrado');
-    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+    if (!proyPuede($pdo, $p, $uid, $admin))
         jsonErr('Sin permiso para actualizar este proyecto');
     $progreso = (isset($_POST['progreso']) && $_POST['progreso'] !== '')
         ? max(0, min(100, (int)$_POST['progreso'])) : null;
@@ -1907,6 +1920,7 @@ case 'delete_proyecto':
     }
     $pdo->prepare("DELETE FROM proyecto_avances  WHERE proyecto_id=?")->execute([$id]);
     $pdo->prepare("DELETE FROM proyecto_archivos WHERE proyecto_id=?")->execute([$id]);
+    $pdo->prepare("DELETE FROM proyecto_miembros WHERE proyecto_id=?")->execute([$id]);
     $pdo->prepare("DELETE FROM proyectos WHERE id=?")->execute([$id]);
     jsonOk();
     break;
@@ -1920,7 +1934,7 @@ case 'upload_proyecto_archivo':
     $cur->execute([$pid]);
     $p = $cur->fetch();
     if (!$p) jsonErr('Proyecto no encontrado');
-    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+    if (!proyPuede($pdo, $p, $uid, $admin))
         jsonErr('Sin permiso para subir archivos a este proyecto');
     if (empty($_FILES['archivo']['tmp_name']) || !is_uploaded_file($_FILES['archivo']['tmp_name']))
         jsonErr('No se recibió archivo');
@@ -1986,7 +2000,7 @@ case 'set_foco_proyecto':
     $cur->execute([$id]);
     $p = $cur->fetch();
     if (!$p) jsonErr('Proyecto no encontrado');
-    if (!$admin && $p['asignado_a'] != $uid && $p['agente_id'] != $uid)
+    if (!proyPuede($pdo, $p, $uid, $admin))
         jsonErr('Sin permiso');
     // Solo un proyecto puede ser el foco: limpia todos y marca este (o lo apaga si ya lo era)
     $pdo->exec("UPDATE proyectos SET es_foco=0");
@@ -2047,7 +2061,13 @@ function ensureProyectosTables(PDO $pdo): void {
         created_at      TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         INDEX idx_proy (proyecto_id)
     ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
-    // Migración: columnas para orden manual y foco (si la tabla es de una versión previa)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS proyecto_miembros (
+        id          INT AUTO_INCREMENT PRIMARY KEY,
+        proyecto_id INT NOT NULL,
+        usuario_id  INT NOT NULL,
+        UNIQUE KEY uniq_pm (proyecto_id, usuario_id),
+        INDEX idx_proy (proyecto_id)
+    ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4");
     try {
         $pcols = $pdo->query("SHOW COLUMNS FROM proyectos")->fetchAll(PDO::FETCH_COLUMN);
         if (!in_array('orden', $pcols, true)) {
@@ -2060,6 +2080,30 @@ function ensureProyectosTables(PDO $pdo): void {
         }
     } catch (Exception $e) {}
     $done = true;
+}
+
+// ── PROYECTOS — permiso de acceso (admin, creador, responsable o miembro del equipo)
+function proyPuede(PDO $pdo, array $p, int $uid, bool $admin): bool {
+    if ($admin) return true;
+    if ((int)$p['agente_id'] === $uid || (int)($p['asignado_a'] ?? 0) === $uid) return true;
+    $st = $pdo->prepare("SELECT 1 FROM proyecto_miembros WHERE proyecto_id=? AND usuario_id=? LIMIT 1");
+    $st->execute([(int)$p['id'], $uid]);
+    return (bool)$st->fetchColumn();
+}
+
+// ── PROYECTOS — reemplaza el equipo (colaboradores) de un proyecto
+function guardarEquipoProyecto(PDO $pdo, int $pid, $teamRaw): void {
+    $ids = is_array($teamRaw) ? $teamRaw : json_decode((string)$teamRaw, true);
+    if (!is_array($ids)) $ids = [];
+    $pdo->prepare("DELETE FROM proyecto_miembros WHERE proyecto_id=?")->execute([$pid]);
+    if ($ids) {
+        $ins = $pdo->prepare("INSERT INTO proyecto_miembros (proyecto_id, usuario_id) VALUES (?,?)");
+        $seen = [];
+        foreach ($ids as $u) {
+            $u = (int)$u;
+            if ($u > 0 && empty($seen[$u])) { $seen[$u] = 1; try { $ins->execute([$pid, $u]); } catch (Exception $e) {} }
+        }
+    }
 }
 
 // ── HISTORIAL DE PLANES — helper ─────────────────────────────────────────────

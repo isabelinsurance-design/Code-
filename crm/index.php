@@ -4485,7 +4485,17 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
     <div class="form-group" style="flex:1"><label class="form-label">PRIORIDAD</label><select id="proy-prio" class="form-input"><option value="ALTA">ALTA</option><option value="MEDIA" selected>MEDIA</option><option value="BAJA">BAJA</option></select></div>
   </div>
   <div class="form-group"><label class="form-label">PROGRESO: <span id="proy-prog-val">0%</span></label><input type="range" id="proy-prog" min="0" max="100" step="5" value="0" oninput="document.getElementById('proy-prog-val').textContent=this.value+'%'" style="width:100%"></div>
-  <div class="form-group"><label class="form-label">ASIGNAR A</label><select id="proy-asig" class="form-input"><option value="">— Sin asignar —</option><?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?></select></div>
+  <div class="form-group"><label class="form-label">RESPONSABLE PRINCIPAL</label><select id="proy-asig" class="form-input"><option value="">— Sin asignar —</option><?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?></select></div>
+  <div class="form-group">
+    <label class="form-label">EQUIPO · COLABORADORES <span style="color:#7A90A4;font-weight:400">(pueden trabajar en el proyecto)</span></label>
+    <div id="proy-team-box" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:6px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:9px;background:<?=$BG?>">
+      <?php foreach($users_all as $u):?>
+      <label style="display:flex;align-items:center;gap:6px;font-size:10px;font-weight:700;color:<?=$P2?>;cursor:pointer">
+        <input type="checkbox" class="proy-team-chk" value="<?=$u['id']?>"> <?=h(explode(' ',$u['nombre'])[0])?>
+      </label>
+      <?php endforeach;?>
+    </div>
+  </div>
   <div style="display:flex;gap:10px">
     <div class="form-group" style="flex:1"><label class="form-label">INICIO</label><input type="date" id="proy-finicio" class="form-input"></div>
     <div class="form-group" style="flex:1"><label class="form-label">FECHA LÍMITE</label><input type="date" id="proy-flimite" class="form-input"></div>
@@ -6678,6 +6688,15 @@ const _PROY_EST_COLOR = {'PLANIFICANDO':'#8896A5','EN PROGRESO':'#1B5E8C','CONTI
 const _PROY_PRIO_COLOR = {'ALTA':'#B83232','MEDIA':'#C07A1A','BAJA':'#2876A8'};
 
 function pEsc(s){return (s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function teamAvatars(equipoStr){
+  if(!equipoStr) return '';
+  const arr=String(equipoStr).split('|').filter(Boolean);
+  if(!arr.length) return '';
+  const show=arr.slice(0,4).map(s=>{const i=s.indexOf(':');const ini=i>=0?s.slice(0,i):s;const col=i>=0?s.slice(i+1):'#1B5E8C';
+    return `<span title="${pEsc(ini)}" style="display:inline-flex;width:17px;height:17px;border-radius:50%;background:${pEsc(col)};color:#fff;font-size:7px;font-weight:900;align-items:center;justify-content:center;border:1.5px solid #fff;margin-left:-5px">${pEsc(ini)}</span>`;}).join('');
+  const extra=arr.length>4?`<span style="font-size:8px;color:#8896A5;margin-left:3px">+${arr.length-4}</span>`:'';
+  return `<span style="display:inline-flex;align-items:center;margin-left:2px">${show}${extra}</span>`;
+}
 function fileIcon(name){
   const e=((name||'').split('.').pop()||'').toLowerCase();
   if(['jpg','jpeg','png','gif','webp'].includes(e))return '🖼️';
@@ -6737,7 +6756,7 @@ function proyCardHTML(p, canUp, canDown){
         <span style="font-size:8px;font-weight:900;color:${ec}">${pc}%</span>
         <div style="display:flex;gap:8px;align-items:center">
           ${vence}
-          <span style="font-size:8px;color:#8896A5">👤 ${pEsc(resp)}</span>
+          <span style="font-size:8px;color:#8896A5;display:inline-flex;align-items:center">👤 ${pEsc(resp)}${teamAvatars(p.equipo)}</span>
           ${parseInt(p.n_archivos)>0?`<span style="font-size:8px;color:#8896A5">📎 ${p.n_archivos}</span>`:''}
           ${parseInt(p.n_avances)>0?`<span style="font-size:8px;color:#8896A5">💬 ${p.n_avances}</span>`:''}
         </div>
@@ -6833,6 +6852,9 @@ function openProyectoForm(id=null){
   document.getElementById('proy-asig').value = p?(p.asignado_a||''):'';
   document.getElementById('proy-finicio').value = p?(p.fecha_inicio||''):'';
   document.getElementById('proy-flimite').value = p?(p.fecha_limite||''):'';
+  // Pre-marcar el equipo (colaboradores)
+  const teamIds = (p && p.equipo_ids) ? String(p.equipo_ids).split(',') : [];
+  document.querySelectorAll('.proy-team-chk').forEach(chk=>{ chk.checked = teamIds.includes(chk.value); });
   openModal('modal-proyecto');
 }
 
@@ -6840,6 +6862,7 @@ function saveProyecto(){
   const titulo=document.getElementById('proy-titulo').value.trim();
   if(!titulo){ toast('Escribe un título'); return; }
   const id=document.getElementById('proy-id').value;
+  const team=[...document.querySelectorAll('.proy-team-chk:checked')].map(c=>c.value);
   const body=new URLSearchParams({
     action: id?'update_proyecto':'save_proyecto',
     id: id,
@@ -6850,7 +6873,8 @@ function saveProyecto(){
     progreso: document.getElementById('proy-prog').value,
     asignado_a: document.getElementById('proy-asig').value,
     fecha_inicio: document.getElementById('proy-finicio').value,
-    fecha_limite: document.getElementById('proy-flimite').value
+    fecha_limite: document.getElementById('proy-flimite').value,
+    team: JSON.stringify(team)
   });
   fetch('api.php',{method:'POST',body}).then(r=>r.json()).then(d=>{
     if(!d.ok){ toast(d.error||'Error'); return; }
@@ -6875,7 +6899,9 @@ function openProyectoDetail(id){
 function renderProyectoDetail(p){
   const ec=_PROY_EST_COLOR[p.estado]||'#8896A5';
   const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
-  const canEdit = ADMIN || p.asignado_a==UID || p.agente_id==UID;
+  const equipo=p.equipo||[];
+  const enEquipo=equipo.some(m=>m.id==UID);
+  const canEdit = ADMIN || p.asignado_a==UID || p.agente_id==UID || enEquipo;
   const canDel  = ADMIN || p.agente_id==UID;
   const av=(p.avances||[]).map(a=>`
     <div style="display:flex;gap:9px;padding:10px 0;border-bottom:1px solid <?=$BG?>">
@@ -6913,6 +6939,14 @@ function renderProyectoDetail(p){
       <span>✍️ Creó: <b>${pEsc(p.creador_nombre?p.creador_nombre.split(' ')[0]:'—')}</b></span>
       ${p.prioridad?`<span>⚑ ${pEsc(p.prioridad)}</span>`:''}
     </div>
+    ${equipo.length?`<div style="margin-bottom:12px">
+      <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">👥 Equipo del proyecto (${equipo.length})</div>
+      <div style="display:flex;flex-wrap:wrap;gap:6px">
+        ${equipo.map(m=>`<span style="display:inline-flex;align-items:center;gap:5px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:2px 9px 2px 2px;font-size:9px;font-weight:700;color:<?=$P1?>">
+          <span style="width:18px;height:18px;border-radius:50%;background:${pEsc(m.color||'#1B5E8C')};color:#fff;font-size:7px;font-weight:900;display:inline-flex;align-items:center;justify-content:center">${pEsc(m.iniciales||'?')}</span>
+          ${pEsc((m.nombre||'').split(' ')[0])}</span>`).join('')}
+      </div>
+    </div>`:''}
     ${canEdit?`<div style="display:flex;gap:7px;margin-bottom:14px">
       <button class="btn btn-gh btn-sm" onclick="openProyectoForm(${p.id})">✏️ EDITAR</button>
       ${canDel?`<button class="btn btn-gh btn-sm" style="color:#B83232" onclick="deleteProyecto(${p.id})">🗑 ELIMINAR</button>`:''}
