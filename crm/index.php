@@ -7706,31 +7706,37 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 // reemplaza solo el contenido de los paneles, preservando scroll, pestaña
 // activa, filtros/búsqueda y secciones desplegadas. Da sensación de tiempo real.
 window._softReloading = false;
+window._lastSoftReload = 0;
 function softReload(done){
   if(window._softReloading){ return; }
+  // Solo refrescamos la pestaña ACTIVA (mucho más ligero que reconstruir las 20)
+  var active = document.querySelector('main .tab-pane.active');
+  if(!active){ if(typeof done==='function'){ try{done();}catch(e){} } return; }
   window._softReloading = true;
-  // 1) Snapshot del estado que el usuario tiene en pantalla
+  // 1) Snapshot del estado dentro del panel activo
   var scrollY = window.scrollY;
-  var vals = {};   // valores de inputs/selects/textareas con id dentro de los paneles
+  var vals = {};   // valores de inputs/selects/textareas con id
   var disp = {};   // estado de display (acordeones/paneles abiertos o cerrados)
-  document.querySelectorAll('main .tab-pane [id]').forEach(function(el){
+  active.querySelectorAll('[id]').forEach(function(el){
     var tag = el.tagName;
     if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'){
       vals[el.id] = (el.type==='checkbox'||el.type==='radio') ? el.checked : el.value;
     }
     if(el.style && el.style.display){ disp[el.id] = el.style.display; }
   });
-  // 2) Pedir la página fresca y reemplazar el contenido de cada panel
-  fetch(window.location.href, {headers:{'X-Requested-With':'XMLHttpRequest'}})
+  // 2) Pedir la página fresca con timeout (para no quedar colgados)
+  var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
+  var killer = setTimeout(function(){ try{ ctrl && ctrl.abort(); }catch(e){} }, 8000);
+  var opts = {headers:{'X-Requested-With':'XMLHttpRequest'}};
+  if(ctrl) opts.signal = ctrl.signal;
+  fetch(window.location.href, opts)
     .then(function(r){ return r.text(); })
     .then(function(html){
+      clearTimeout(killer);
       var doc = new DOMParser().parseFromString(html, 'text/html');
-      var swapped = false;
-      document.querySelectorAll('main .tab-pane').forEach(function(pane){
-        var fresh = doc.getElementById(pane.id);
-        if(fresh){ pane.innerHTML = fresh.innerHTML; swapped = true; }
-      });
-      if(!swapped){ window._softReloading=false; location.reload(); return; }
+      var fresh = doc.getElementById(active.id);
+      if(!fresh){ window._softReloading=false; return; }
+      active.innerHTML = fresh.innerHTML;
       // 3) Restaurar estado del usuario sobre el contenido fresco
       Object.keys(disp).forEach(function(id){
         var el = document.getElementById(id);
@@ -7760,16 +7766,17 @@ function softReload(done){
       try{ var co=sessionStorage.getItem('campOpen'); if(co){ var cb=document.getElementById('camp-body-'+co); if(cb) cb.style.display='block'; sessionStorage.removeItem('campOpen'); } }catch(e){}
       // 5) Restaurar scroll
       window.scrollTo(0, scrollY);
+      window._lastSoftReload = Date.now();
       window._softReloading = false;
       if(typeof done==='function'){ try{ done(); }catch(e){} }
     })
-    .catch(function(){ window._softReloading=false; location.reload(); });
+    .catch(function(){ clearTimeout(killer); window._softReloading=false; });
 }
 
 // ── AUTO-REFRESCO PERIÓDICO ─────────────────────────────────────────────
 // Refresca solo en segundo plano cada cierto tiempo para ver en vivo lo que
 // registran las compañeras, SIN interrumpir lo que estás haciendo.
-window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 30000; // 30 s
+window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 45000; // 45 s
 function _canAutoRefresh(){
   try{
     if(localStorage.getItem('crm_autorefresh')==='off') return false;
@@ -7786,9 +7793,12 @@ function _canAutoRefresh(){
   return true;
 }
 setInterval(function(){ if(_canAutoRefresh()) softReload(); }, window.AUTO_REFRESH_MS);
-// Al volver a la pestaña, refresca de inmediato
+// Al volver a la pestaña, refresca — pero con freno para evitar ráfagas
+// (al cambiar de app en el móvil, visibilitychange se dispara muy seguido).
 document.addEventListener('visibilitychange', function(){
-  if(!document.hidden && _canAutoRefresh()) softReload();
+  if(document.hidden) return;
+  if((Date.now() - (window._lastSoftReload||0)) < 20000) return; // no más de 1 cada 20s
+  if(_canAutoRefresh()) softReload();
 });
 // Permite apagar/encender desde la consola: crmAutoRefresh(false) / crmAutoRefresh(true)
 window.crmAutoRefresh = function(on){
