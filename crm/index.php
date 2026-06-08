@@ -4954,52 +4954,6 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 </div>
 </div>
 <div id="ctab-LLAMADAS" style="display:none">
-<?php if(!$admin):?><div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px"><div class="card-header"><div class="card-title">▦ MI REPORTE DEL DÍA</div><?=badge($my_reporte&&$my_reporte['enviado']?'FIRMADO':'PENDIENTE',true)?></div>
-<?php if($my_reporte&&$my_reporte['enviado']):?><div style="padding:13px 16px"><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px"><?php foreach([['LLAM.PROSP.',$my_reporte['llamadas_prospectos']??0,'#2876A8'],['✅ CONTS.',$my_reporte['contestaron']??0,'#1E7A5C'],['📬 BUZÓN',$my_reporte['buzon']??0,'#C07A1A'],['LLAM.SERV.',$my_reporte['llamadas_servicio']??0,'#1E7A8C'],['CITAS',$my_reporte['citas_confirmadas']??0,'#1E7A5C'],['TKT.CERR.',$my_reporte['tickets_resueltos']??0,'#C07A1A'],['TKT.ACT.',$my_reporte['tickets_actualizados']??0,'#7A90A4'],['APPS',$my_reporte['apps_enviadas']??0,'#1B4A6B'],['✅ CHECKLIST',$mis_ck_done.'/'.$mis_ck_total,'#1E7A5C']] as [$l,$v,$c]):?><div style="text-align:center;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px"><div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-bottom:2px"><?=$l?></div><div style="font-size:18px;font-weight:900;color:<?=$c?>"><?=$v??0?></div></div><?php endforeach;?></div></div>
-<?php else:?>
-<form style="padding:16px; background: #fff;" onsubmit="submitReporte(event)">
-    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-bottom: 16px;">
-        <?php foreach([['llamadas_prospectos','LLAM.PROSP.'],['contestaron','✅ CONTS.'],['buzon','📬 BUZÓN'],['llamadas_servicio','LLAM.SERV.'],['citas_confirmadas','CITAS'],['tickets_resueltos','TKT.CERR.'],['tickets_actualizados','TKT.ACT.'],['apps_enviadas','APPS'],['apps_por_hacer','APPS X HACER']] as [$n,$l]):?>
-        
-        <div class="reporte-box-btn" style="background:#ffffff; border: 1.5px solid <?=$CB?>; border-radius: 12px; padding: 10px 8px; text-align: center; box-shadow: 0 2px 6px rgba(27,74,107,0.08); transition: all 0.2s ease;">
-            
-            <label class="form-label" style="font-size: 8px; font-weight: 800; color: <?=$P2?>; letter-spacing: 1px; margin-bottom: 6px; display: block; text-transform: uppercase;">
-                <?=$l?>
-            </label>
-            
-            <?php
-            $sv = match($n) {
-              'llamadas_prospectos' => $mis_llamadas_prospectos_hoy ?? 0,
-              'contestaron'         => $mis_llamadas_prosp_conts ?? 0,
-              'buzon'               => $mis_llamadas_prosp_no_conts ?? 0,
-              'llamadas_servicio'   => $mis_llamadas_servicio_hoy ?? 0,
-              'citas_confirmadas'   => $mis_citas_creadas_hoy ?? 0,
-              'tickets_resueltos'   => $mis_cerrados_hoy ?? 0,
-              'tickets_actualizados'=> $tkt_act_count ?? 0,
-              'apps_enviadas'       => $mis_apps_hoy ?? 0,
-              'apps_por_hacer'      => $mis_apps_por_hacer ?? 0,
-              default               => 0
-            };
-            $ro_s = in_array($n, ['llamadas_prospectos','contestaron','buzon','llamadas_servicio','tickets_resueltos','tickets_actualizados','citas_confirmadas','apps_enviadas','apps_por_hacer']) ? 'readonly' : '';
-            ?>
-            <input type="number" name="<?=$n?>" min="0" 
-                   value="<?=$sv?>" 
-                   class="form-input" 
-                   style="text-align: center; font-size: 18px; font-weight: 900; color: <?=$P1?>; background: <?=$BG?>; border: 1px solid transparent; border-radius: 8px; padding: 4px 0; width: 85%; margin: 0 auto;" 
-                   <?=$ro_s?>>
-        </div>
-        
-        <?php endforeach;?>
-    </div>
-
-  <div class="form-group">
-    <label class="form-label">NOTA DEL DÍA</label>
-    <textarea name="nota" class="form-input" rows="2"></textarea>
-  </div>
-  <button type="submit" class="btn btn-p btn-full">▦ ENVIAR REPORTE</button>
-</form>
-<?php endif;?>
-</div><?php endif;?>
 <?php if($admin):?><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">▦ REPORTES HOY</div></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0"><?php foreach($agents as $ag):$r=null;foreach($reportes_hoy as $rr){if($rr['agente_id']==$ag['id']){$r=$rr;break;}};?><div style="padding:12px 15px;border-bottom:1px solid <?=$CB?>;border-right:1px solid <?=$CB?>;border-top:3px solid <?=$r&&$r['enviado']?'#1E7A5C':'#C07A1A'?>"><div style="display:flex;gap:7px;align-items:center;margin-bottom:8px"><?=av(h($ag['iniciales']),h($ag['color']),28)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h(explode(' ',$ag['nombre'])[0])?></div><?=badge($r&&$r['enviado']?'FIRMADO':'PENDIENTE',true)?></div></div><?php if($r):?><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px"><?php foreach([['◌',($r['llamadas_prospectos']??0)+($r['llamadas_servicio']??0),'LLAM.'],['✅',$r['contestaron']??0,'CONTS.'],['◎',$r['apps_enviadas']??0,'APPS'],['◷',$r['citas_confirmadas']??0,'CITAS'],['⊘',$r['tickets_resueltos']??0,'TKT.'],['📋',$r['apps_por_hacer']??0,'X HACER']] as [$ic,$v,$lb]):?><div style="text-align:center;background:<?=$BG?>;border-radius:7px;padding:5px"><div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase"><?=$ic?> <?=$lb?></div><div style="font-size:14px;font-weight:900;color:<?=$P1?>"><?=$v?></div></div><?php endforeach;?></div><?php else:?><div style="font-size:8px;color:#B83232;font-weight:700;text-transform:uppercase">⚠ NO ENVIADO</div><?php endif;?><?php $ck=$checklist_stats[$ag['id']]??null;$ck_total=$ck['total']??0;$ck_done=(int)($ck['completadas']??0);$ck_pct=$ck_total>0?round(($ck_done/$ck_total)*100):0;?><?php if($ck_total>0):?><div style="margin-top:8px;padding-top:8px;border-top:1px solid <?=$CB?>"><div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-bottom:4px">✅ CHECKLIST <?=$ck_done?>/<?=$ck_total?> (<?=$ck_pct?>%)</div><div style="height:5px;background:<?=$CB?>;border-radius:99px;overflow:hidden"><div style="height:100%;width:<?=$ck_pct?>%;background:<?=$ck_pct==100?'#16A34A':'#2876A8'?>;border-radius:99px"></div></div></div><?php endif;?></div><?php endforeach;?></div></div><?php endif;?>
 <div class="card"><div class="card-header"><div class="card-title"> LLAMADAS PERDIDAS</div><div class="card-sub"><?=$pending_llam?> PENDIENTES</div><button class="btn btn-b btn-sm" onclick="openModal('llamada-form-modal')">+ REGISTRAR</button></div><div style="overflow-x:auto"><table><tr><th>NÚMERO</th><th>NOMBRE</th><th>FECHA</th><th>ORIGEN</th><th>EMPLEADO</th><th>ESTADO</th><th></th></tr>
 <?php foreach($llamadas as $l):?><tr><td style="font-weight:900;color:<?=$P2?>;font-size:10px"><?=h($l['numero'])?></td><td style="font-size:9px"><?=h($l['nombre_posible'])?></td><td style="font-size:8px;color:<?=$MU?>"><?=$l['fecha']?> <?=$l['hora']?substr($l['hora'],0,5):''?></td><td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($l['origen'])?></span></td><td><?=av(h($l['iniciales']??'?'),h($l['color']??$P2),20)?></td><td><?=badge($l['estado'],true)?></td><td><div style="display:flex;gap:4px"><?php if($l['estado']==='PENDIENTE'):?><button class="btn btn-gr btn-sm" onclick="devolverLlamada(<?=$l['id']?>)">✓</button><?php endif;?><button class="btn btn-bl btn-sm" onclick="searchMember('<?=addslashes($l['numero'])?>')">◉</button></div></td></tr><?php endforeach;?>
