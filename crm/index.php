@@ -4470,6 +4470,10 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
     </div>
     <button class="btn btn-p btn-sm" style="margin-left:auto" onclick="openProyectoForm()">+ NUEVO PROYECTO</button>
   </div>
+  <?php if($admin): ?>
+  <!-- Resumen de proyectos por estado (solo admin) -->
+  <div id="proy-resumen" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:13px"></div>
+  <?php endif; ?>
   <div id="proy-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px"></div>
   <div id="proy-empty" style="display:none;padding:46px;text-align:center;background:#fff;border:1px solid <?=$CB?>;border-radius:13px">
     <div style="font-size:30px;margin-bottom:8px">📁</div>
@@ -6721,8 +6725,39 @@ function loadProyectos(){
     _proyData = d.data||[];
     const cnt = document.getElementById('vtab-proyecto-cnt');
     if(cnt) cnt.textContent = _proyData.filter(p=>p.estado!=='COMPLETADO').length;
+    renderProyResumen();
     renderProyectos();
   }).catch(()=>toast('Error de conexión'));
+}
+
+// Resumen por estado (solo admin): total, en curso y desglose por estado
+function renderProyResumen(){
+  const box = document.getElementById('proy-resumen');
+  if(!box) return;
+  const estados = ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO','COMPLETADO'];
+  const labels  = {'EN PROGRESO':'En progreso','PLANIFICANDO':'Planificando','CONTINUO':'Continuo','PAUSADO':'Pausado','COMPLETADO':'Completados'};
+  const counts = {}; estados.forEach(e=>counts[e]=0);
+  _proyData.forEach(p=>{ if(counts[p.estado]!=null) counts[p.estado]++; });
+  const total   = _proyData.length;
+  const activos = _proyData.filter(p=>p.estado!=='COMPLETADO').length;
+  let html = `<div style="display:flex;align-items:center;gap:7px;background:<?=$P1?>;color:#fff;border-radius:10px;padding:7px 13px;font-size:9px;font-weight:900;letter-spacing:.5px"><span style="font-size:13px">📁</span> ${total} PROYECTO${total!==1?'S':''} · ${activos} EN CURSO</div>`;
+  estados.forEach(e=>{
+    if(!counts[e]) return; // no mostrar estados en cero (más limpio)
+    const c = _PROY_EST_COLOR[e] || '#8896A5';
+    html += `<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid ${c}40;border-radius:10px;padding:7px 11px;font-size:9px;font-weight:800;color:<?=$TX?>;text-transform:uppercase">
+      <span style="width:9px;height:9px;border-radius:50%;background:${c};display:inline-block"></span>
+      ${labels[e]} <span style="background:${c};color:#fff;border-radius:20px;padding:1px 7px;font-weight:900">${counts[e]}</span>
+    </div>`;
+  });
+  // Cualquier proyecto con un estado fuera de la lista (no quede sin contar)
+  const otros = total - estados.reduce((s,e)=>s+counts[e],0);
+  if(otros>0){
+    html += `<div style="display:flex;align-items:center;gap:6px;background:#fff;border:1px solid #8896A540;border-radius:10px;padding:7px 11px;font-size:9px;font-weight:800;color:<?=$TX?>;text-transform:uppercase">
+      <span style="width:9px;height:9px;border-radius:50%;background:#8896A5;display:inline-block"></span>
+      Otros / sin estado <span style="background:#8896A5;color:#fff;border-radius:20px;padding:1px 7px;font-weight:900">${otros}</span>
+    </div>`;
+  }
+  box.innerHTML = html;
 }
 
 function setProyFiltro(f){
@@ -6815,6 +6850,21 @@ function renderProyectos(){
       <div style="${gridCSS}">${group.map((p,i)=>proyCardHTML(p, i>0, i<group.length-1)).join('')}</div>
     </div>`;
   });
+
+  // Catch-all: proyectos con un estado fuera de la lista, para que no queden ocultos
+  if(_proyFiltro!=='COMPLETADO'){
+    const conocidos = ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO','COMPLETADO'];
+    const otros = pool.filter(p=> conocidos.indexOf(p.estado)<0 && !(foco&&p.id===foco.id)).sort(proyOrdSort);
+    if(otros.length){
+      html+=`<div style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:7px;margin-bottom:9px">
+          <span style="font-size:10px;font-weight:900;color:#8896A5;text-transform:uppercase;letter-spacing:1.5px">◻ Otros / sin estado</span>
+          <span style="font-size:8px;font-weight:900;color:#8896A5;background:<?=$BG?>;border-radius:20px;padding:1px 8px">${otros.length}</span>
+        </div>
+        <div style="${gridCSS}">${otros.map((p,i)=>proyCardHTML(p, i>0, i<otros.length-1)).join('')}</div>
+      </div>`;
+    }
+  }
   grid.innerHTML=html;
 }
 
