@@ -653,6 +653,19 @@ try {
         agente_id INT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
+    // Migración: agrega columnas faltantes si 'campanas' viene de una versión vieja
+    $camp_cols = $pdo->query("SHOW COLUMNS FROM campanas")->fetchAll(PDO::FETCH_COLUMN);
+    $camp_add = [
+        'canal'        => "ADD COLUMN canal VARCHAR(40) DEFAULT 'FACEBOOK'",
+        'descripcion'  => "ADD COLUMN descripcion TEXT",
+        'estado'       => "ADD COLUMN estado VARCHAR(20) DEFAULT 'ACTIVA'",
+        'fecha_inicio' => "ADD COLUMN fecha_inicio DATE",
+        'costo'        => "ADD COLUMN costo DECIMAL(10,2) DEFAULT 0",
+        'agente_id'    => "ADD COLUMN agente_id INT",
+    ];
+    foreach ($camp_add as $col => $ddl) {
+        if (!in_array($col, $camp_cols, true)) { try { $pdo->exec("ALTER TABLE campanas $ddl"); } catch (Exception $e) {} }
+    }
     $pdo->exec("CREATE TABLE IF NOT EXISTS campana_contactos (
         id INT AUTO_INCREMENT PRIMARY KEY,
         campana_id INT NOT NULL,
@@ -1844,11 +1857,12 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
 <div class="card" style="padding:30px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">📣 NO HAY CAMPAÑAS — CREA UNA CON "NUEVA CAMPAÑA"</div>
 <?php endif;?>
 <?php foreach($campanas as $c):
-  $cl=$CANAL_COL[$c['canal']]??['#7A90A4','#F1F1F1'];
+  $cl=$CANAL_COL[$c['canal']??'OTRO']??['#7A90A4','#F1F1F1'];
   $contactos=$cc_by_camp[$c['id']]??[];
   $n_ct=count($contactos);
   $n_pipe=count(array_filter($contactos,fn($x)=>$x['promovido']));
-  $cpl=($c['costo']>0 && $n_ct>0)?$c['costo']/$n_ct:null;
+  $camp_costo=(float)($c['costo']??0);
+  $cpl=($camp_costo>0 && $n_ct>0)?$camp_costo/$n_ct:null;
   $est_c=$c['estado']; $estb=$est_c==='ACTIVA'?['#1E7A5C','#EAF5F0']:($est_c==='PAUSADA'?['#C07A1A','#FEF8EE']:['#7A90A4','#F1F1F1']);
 ?>
 <div class="card camp-card" data-estado="<?=h($c['estado'])?>" style="margin-bottom:10px;border-left:4px solid <?=$cl[0]?>">
@@ -1857,7 +1871,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
       <div style="min-width:0">
         <div class="card-title" style="font-size:10px;white-space:normal"><?=h($c['nombre'])?></div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px">
-          <span style="background:<?=$cl[1]?>;color:<?=$cl[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=h($c['canal'])?></span>
+          <span style="background:<?=$cl[1]?>;color:<?=$cl[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=h($c['canal']??'OTRO')?></span>
           <span style="background:<?=$estb[1]?>;color:<?=$estb[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=h($c['estado'])?></span>
           <span style="font-size:8px;color:<?=$MU?>">👥 <?=$n_ct?> CONTACTOS</span>
           <?php if($n_pipe>0):?><span style="font-size:8px;font-weight:900;color:#C07A1A">▲ <?=$n_pipe?> EN PIPELINE</span><?php endif;?>
@@ -1868,7 +1882,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
     <span style="font-size:13px;color:<?=$MU?>;flex-shrink:0">▾</span>
   </div>
   <div id="camp-body-<?=$c['id']?>" style="display:none;padding:13px 17px;border-top:1px solid <?=$CB?>">
-    <?php if($c['descripcion']):?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;margin-bottom:11px"><?=h($c['descripcion'])?></div><?php endif;?>
+    <?php if(!empty($c['descripcion'])):?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;margin-bottom:11px"><?=h($c['descripcion'])?></div><?php endif;?>
     <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
