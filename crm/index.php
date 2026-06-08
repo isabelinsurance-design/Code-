@@ -1782,7 +1782,7 @@ function mtgToggleCard(id){
   b.style.display=open?'none':'block';
   try{ if(open) sessionStorage.removeItem('mtgOpen'); else sessionStorage.setItem('mtgOpen',id); }catch(e){}
 }
-function _mtgReload(){ try{sessionStorage.setItem('pendingReload','1');sessionStorage.setItem('activeTab','REUNIONES');sessionStorage.setItem('mtgScroll',window.scrollY);}catch(e){} location.reload(); }
+function _mtgReload(){ if(typeof softReload==='function'){ softReload(); return; } try{sessionStorage.setItem('pendingReload','1');sessionStorage.setItem('activeTab','REUNIONES');sessionStorage.setItem('mtgScroll',window.scrollY);}catch(e){} location.reload(); }
 function mtgPost(params,reload){
   return fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'mtg_ajax=1&'+params})
    .then(function(r){return r.json();})
@@ -2025,7 +2025,7 @@ var CAMP_OUTCOMES={
   FLYER:['Entregado','Vio y preguntó','Sin respuesta'],
   CITA:['Cita confirmada','Muy interesado','SOA firmado','Inscrito','No le interesó']
 };
-function _campReload(){ try{sessionStorage.setItem('pendingReload','1');sessionStorage.setItem('activeTab','CAMPANAS');sessionStorage.setItem('campScroll',window.scrollY);}catch(e){} location.reload(); }
+function _campReload(){ if(typeof softReload==='function'){ softReload(); return; } try{sessionStorage.setItem('pendingReload','1');sessionStorage.setItem('activeTab','CAMPANAS');sessionStorage.setItem('campScroll',window.scrollY);}catch(e){} location.reload(); }
 function campPost(params,reload){
   return fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'camp_ajax=1&'+params})
    .then(function(r){return r.json();})
@@ -3347,7 +3347,7 @@ function saveRetSimple(resultado){
   var notas=document.getElementById('rsm-notas').value;
   var fd=new FormData();
   fd.append('action','save_retencion_llamada');fd.append('miembro_id',mid);fd.append('tipo',tipo);fd.append('resultado',resultado);fd.append('notas',notas);
-  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Llamada registrada');closeModal('ret-simple-modal');setTimeout(function(){location.reload();},500);}else if(typeof toast==='function')toast('Error: '+(d.error||'No se pudo guardar'));});
+  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Llamada registrada');closeModal('ret-simple-modal');softReload();}else if(typeof toast==='function')toast('Error: '+(d.error||'No se pudo guardar'));});
 }
 function openRetQ30(mid){
   document.getElementById('rq30-mid').value=mid;
@@ -3362,7 +3362,7 @@ function submitRetQ30(e){
   if(btn){btn.disabled=true;btn.textContent='GUARDANDO...';}
   var fd=new FormData(e.target);
   fd.append('action','save_retencion_q30');
-  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Cuestionario guardado');closeModal('ret-q30-modal');setTimeout(function(){location.reload();},500);}else{if(typeof toast==='function')toast('Error: '+(d.error||''));if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}}}).catch(function(){if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}});
+  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Cuestionario guardado');closeModal('ret-q30-modal');softReload();}else{if(typeof toast==='function')toast('Error: '+(d.error||''));if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}}}).catch(function(){if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}});
 }
 </script>
 
@@ -6550,7 +6550,7 @@ hablar(`Excelente trabajo hoy, ${NOMBRE_USUARIO}. Descansa y nos vemos mañana.`
 }
 fetch('api.php',{method:'POST',body:new URLSearchParams({action:'checkin',field})})
 .then(r=>r.json()).then(d=>{
-if(d.ok){const h=d.data?.hora||d.data?.time||'';toast('✓ '+h);setTimeout(()=>location.reload(),1200);}
+if(d.ok){const h=d.data?.hora||d.data?.time||'';toast('✓ '+h);setTimeout(()=>softReload(),400);}
 else toast(d.error||'Error');
 });
 }
@@ -7660,6 +7660,71 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
 
+// ── REFRESCO SUAVE (sin recargar la página) ─────────────────────────────
+// Reemplaza a location.reload(): vuelve a pedir la página en segundo plano y
+// reemplaza solo el contenido de los paneles, preservando scroll, pestaña
+// activa, filtros/búsqueda y secciones desplegadas. Da sensación de tiempo real.
+window._softReloading = false;
+function softReload(done){
+  if(window._softReloading){ return; }
+  window._softReloading = true;
+  // 1) Snapshot del estado que el usuario tiene en pantalla
+  var scrollY = window.scrollY;
+  var vals = {};   // valores de inputs/selects/textareas con id dentro de los paneles
+  var disp = {};   // estado de display (acordeones/paneles abiertos o cerrados)
+  document.querySelectorAll('main .tab-pane [id]').forEach(function(el){
+    var tag = el.tagName;
+    if(tag==='INPUT'||tag==='SELECT'||tag==='TEXTAREA'){
+      vals[el.id] = (el.type==='checkbox'||el.type==='radio') ? el.checked : el.value;
+    }
+    if(el.style && el.style.display){ disp[el.id] = el.style.display; }
+  });
+  // 2) Pedir la página fresca y reemplazar el contenido de cada panel
+  fetch(window.location.href, {headers:{'X-Requested-With':'XMLHttpRequest'}})
+    .then(function(r){ return r.text(); })
+    .then(function(html){
+      var doc = new DOMParser().parseFromString(html, 'text/html');
+      var swapped = false;
+      document.querySelectorAll('main .tab-pane').forEach(function(pane){
+        var fresh = doc.getElementById(pane.id);
+        if(fresh){ pane.innerHTML = fresh.innerHTML; swapped = true; }
+      });
+      if(!swapped){ window._softReloading=false; location.reload(); return; }
+      // 3) Restaurar estado del usuario sobre el contenido fresco
+      Object.keys(disp).forEach(function(id){
+        var el = document.getElementById(id);
+        if(el){ el.style.display = disp[id]; }
+      });
+      Object.keys(vals).forEach(function(id){
+        var el = document.getElementById(id);
+        if(el && (el.tagName==='INPUT'||el.tagName==='SELECT'||el.tagName==='TEXTAREA')){
+          if(el.type==='checkbox'||el.type==='radio'){ el.checked = vals[id]; }
+          else { el.value = vals[id]; }
+        }
+      });
+      // 4) Re-inicializar lo que depende de listeners (no de onclick inline)
+      try{ if(typeof window._refreshChecklist==='function'){ window._refreshChecklist(); } }catch(e){}
+      // Filtros y pills de TICKETS (el estado vive en variables JS en memoria)
+      try{
+        if(typeof _tktFiltroEstado!=='undefined'){
+          document.querySelectorAll('.tkt-pill').forEach(function(p){
+            var pid = p.id.replace('tpill-','');
+            p.classList.toggle('tkt-pill-on', pid===_tktFiltroEstado);
+          });
+        }
+        if(typeof filterTickets==='function'){ filterTickets(); }
+      }catch(e){}
+      // Reabrir acordeón recién creado de reuniones / campañas (si aplica)
+      try{ var mo=sessionStorage.getItem('mtgOpen'); if(mo){ var mb=document.getElementById('mtg-body-'+mo); if(mb) mb.style.display='block'; sessionStorage.removeItem('mtgOpen'); } }catch(e){}
+      try{ var co=sessionStorage.getItem('campOpen'); if(co){ var cb=document.getElementById('camp-body-'+co); if(cb) cb.style.display='block'; sessionStorage.removeItem('campOpen'); } }catch(e){}
+      // 5) Restaurar scroll
+      window.scrollTo(0, scrollY);
+      window._softReloading = false;
+      if(typeof done==='function'){ try{ done(); }catch(e){} }
+    })
+    .catch(function(){ window._softReloading=false; location.reload(); });
+}
+
 // ── Garantizar que REGISTRAR LLAMADA siempre funcione ─────────────────────
 document.addEventListener('DOMContentLoaded', function() {
     const btn = document.getElementById('btn-reg-llamada');
@@ -7988,7 +8053,7 @@ const res = document.getElementById('import-result');
 if(d.ok){
 if(res){res.style.display='';res.style.background='#EAF5F0';res.style.border='1px solid #8DCFBA';res.style.borderRadius='8px';res.style.padding='8px 12px';res.style.fontSize='9px';res.style.fontWeight='900';res.style.color='#1E7A5C';res.style.textTransform='uppercase';res.textContent='✓ IMPORTADOS: '+d.data.importados+' IMPORTADOS'+(d.data.duplicados?' · '+d.data.duplicados+' DUPLICADOS OMITIDOS':'');}
 toast('✓ '+d.data.importados+' PROSPECTOS IMPORTADOS');
-setTimeout(()=>location.reload(),2000);
+setTimeout(()=>softReload(),1200);
 } else {
 toast('ERROR: '+(d.error||'Fallo al importar'));
 }
@@ -8378,7 +8443,7 @@ function saveTabAndReload(){
     const searchVal = document.getElementById('tkt-search')?.value||'';
     sessionStorage.setItem('tktSearch', searchVal);
   }catch(e){}
-  setTimeout(()=>location.reload(),900);
+  setTimeout(()=>softReload(),300);
 }
 (function restoreTab(){
   try{
@@ -9284,7 +9349,7 @@ function completarPasoPipeline(pasoId, btn) {
             const card = btn.closest('.pipe-card') || btn.closest('div[style]');
             if(card){ card.style.opacity = '0.4'; card.style.transform = 'scale(0.97)'; }
             toast('✓ PASO COMPLETADO');
-            setTimeout(() => location.reload(), 600);
+            setTimeout(() => softReload(), 400);
         } else {
             btn.disabled = false; btn.textContent = '✓ LISTO';
             toast('⚠ ' + (d.error || 'Error'));
@@ -9339,7 +9404,7 @@ function aplicarPasosConfig(miembroId) {
     fetch('api.php', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
-        if(d.ok) { toast('✓ PASOS APLICADOS'); setTimeout(()=>location.reload(), 500); }
+        if(d.ok) { toast('✓ PASOS APLICADOS'); setTimeout(()=>softReload(), 400); }
         else toast('⚠ ' + (d.msg || d.error || 'Sin pasos configurados'));
     });
 }
@@ -9490,7 +9555,7 @@ function setProsTemp(mid, temp) {
     fetch('api.php', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
-        if(d.ok) { toast('✓ TEMPERATURA ACTUALIZADA'); setTimeout(()=>location.reload(), 500); }
+        if(d.ok) { toast('✓ TEMPERATURA ACTUALIZADA'); setTimeout(()=>softReload(), 400); }
         else toast('⚠ ' + (d.error||'Error'));
     });
 }
