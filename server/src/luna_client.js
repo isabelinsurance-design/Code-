@@ -229,6 +229,14 @@ export async function todayAppointments() {
   return unwrapArrayResponse(r);
 }
 
+// Cumpleaños de hoy — miembros LUNA con fecha_nacimiento que matchea
+// MM-DD de hoy. Requiere endpoint nuevo `luna_birthdays_today` del
+// lado PHP (pendiente con la sesión Claude de Bluehost).
+export async function birthdaysToday() {
+  const r = await lunaFetch('birthdays_today');
+  return unwrapArrayResponse(r);
+}
+
 export async function recentActivity({ limit = 20 } = {}) {
   return lunaFetch('recent_activity', { params: { limit } });
 }

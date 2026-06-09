@@ -405,6 +405,13 @@ scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * 2,4', sen
 import('./team_morning_email.js').then(({ sendTeamMorningEmails }) => {
   scheduleCron('team_morning_email', process.env.TEAM_MORNING_EMAIL_CRON || '0 6 * * *', sendTeamMorningEmails);
 }).catch((e) => console.warn('[cron] team_morning_email no se pudo cargar:', e.message));
+
+// Birthdays daily — 6:30am, email a todo el staff con cumpleaños del día.
+// Rutina robótica (gratis — sin LLM). Solo template + query LUNA + email.
+// Requiere endpoint luna_birthdays_today del lado PHP (request pendiente).
+import('./birthdays_daily.js').then(({ sendBirthdaysDaily }) => {
+  scheduleCron('birthdays_daily', process.env.BIRTHDAYS_DAILY_CRON || '30 6 * * *', sendBirthdaysDaily);
+}).catch((e) => console.warn('[cron] birthdays_daily no se pudo cargar:', e.message));
 // Closing the loop — 6pm-7pm, reporta lo que cerramos hoy (pattern del Elite EA SOP)
 scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', sendClosingLoop);
 // Ticket monitor — 10am y 4pm L-S, avisa tickets LUNA estancados (>2 días, >0.5 si ALTA)
