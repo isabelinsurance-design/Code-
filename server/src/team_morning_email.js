@@ -130,7 +130,13 @@ Hoy no pude conectarme a LUNA para traerte tus tickets (${lunaErrorMsg}). Por fa
 
 `;
   } else {
-    const mios = allTickets.filter((t) => t.asignado_a === person.id);
+    // Coerción numérica defensiva: PHP a veces devuelve asignado_a como
+    // string en vez de int, y === fallaba silencioso. Number(null) → 0,
+    // así que comparamos solo si el valor no es null/undefined.
+    const mios = allTickets.filter((t) => {
+      if (t.asignado_a == null) return false;
+      return Number(t.asignado_a) === person.id;
+    });
     cuerpo = `Buenos días ${person.nombre},
 
 ${ticketsBlock(mios, person.nombre)}
@@ -147,6 +153,22 @@ ${ticketsBlock(mios, person.nombre)}
       const sinAsignar = allTickets.filter((t) => t.asignado_a == null);
       if (sinAsignar.length) {
         cuerpo += `TICKETS SIN ASIGNAR (necesitan ser distribuidos) — ${sinAsignar.length}\n`;
+      }
+      // DIAGNÓSTICO al final del email de Isabel — la primera vez que
+      // veas un email vacío, esto te dice por qué. Borrar después de
+      // confirmar que funciona.
+      cuerpo += `\n---\nDIAG (solo en tu email):\n`;
+      cuerpo += `· Total tickets recibidos de LUNA: ${allTickets.length}\n`;
+      if (allTickets.length) {
+        const counts = {};
+        for (const t of allTickets) {
+          const k = t.asignado_a == null ? 'null' : `id_${t.asignado_a}`;
+          counts[k] = (counts[k] || 0) + 1;
+        }
+        cuerpo += `· Distribución asignado_a: ${JSON.stringify(counts)}\n`;
+        cuerpo += `· Roster esperado: 6=Isabel, 7=Skarleth, 8=Suri, 9=Arlette, 10=Sami\n`;
+        const muestra = allTickets[0];
+        cuerpo += `· Muestra primer ticket: ${JSON.stringify({ id: muestra.id, asignado_a: muestra.asignado_a, asignado_nombre: muestra.asignado_nombre, prioridad: muestra.prioridad, tipo: muestra.tipo })}\n`;
       }
     }
   }
