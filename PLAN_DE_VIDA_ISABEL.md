@@ -19,16 +19,17 @@ Tiene rato sin hacerse testing. El test SÍ lo cubre Medi-Cal si lo ordena un do
 - OJO: Midi y telehealth de menopausia NO toman Medi-Cal — descartados.
 - Coach: Sofía (hormonas).
 
-### 3. Dinero / taxes — ⏰ revisar si hay reloj
-Necesita hacer taxes. PREGUNTAS ABIERTAS para clasificar bien:
-- ¿Son los del 2025 (vencían 15 abril — ¿extensión a 15 oct?) o los estimados trimestrales (Q2 2026 vence ~16 junio — eso SÍ es esta semana)?
-- ¿Tiene CPA / preparador, o hay que conseguir uno?
-- Acción probable: confirmar con su CPA / agendar. Posible delegar a Sami juntar documentos.
+### 3. Dinero / taxes — 🟢 en extensión (sin prisa), pero BLOQUEADA por #4
+Taxes 2025 están en EXTENSIÓN → fecha límite ~15 octubre 2026. No hay reloj esta semana.
+- DEPENDENCIA: la decisión de la sociedad (#4) va ANTES, porque cambia cómo se declaran. No hacer taxes hasta resolver la sociedad.
+- Pendiente luego: confirmar/conseguir CPA; posible delegar a Sami juntar documentos.
 - Coach: Elena (CFO).
 
-### 4. Negocio — 🧭 decisión grande (no es tarea, es sesión)
-"Qué voy a hacer con el negocio." Esto NO se resuelve en una tarea suelta — merece una sesión de estrategia dedicada, con cabeza fresca, no a las 11pm cansada.
-- Pendiente: agendar una sesión de estrategia de negocio.
+### 4. Negocio / sociedad — 🧭 LA decisión grande (va primero)
+Isabel tiene una **sociedad (partnership)** y hay una decisión que tomar sobre ella. Esto gatea los taxes (#3). NO se resuelve en una tarea suelta ni cansada de noche — merece una sesión de estrategia con cabeza fresca.
+- Formas típicas que puede tomar la decisión: seguir igual, renegociar términos, salir/disolver, o comprar/vender participación.
+- Para decidir bien se mira: los números (Elena), la relación con el socio, y a dónde quiere llevar el negocio (Victoria). Probable input profesional: abogado de negocios + CPA.
+- Pendiente: agendar UNA sesión de estrategia dedicada a esto.
 - Coaches: Elena (finanzas), Victoria (visión), Marisol (marca/libro).
 
 ### 5. Protección / seguros — 📋 admin, mucho delegable
