@@ -4421,6 +4421,7 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
   }
 ?>
 <tr class="ticket-row<?=$is_closed?' tkt-cerrada':''?>"
+    data-id="<?=(int)$t['id']?>"
     style="border-left:3px solid <?=$left_color?>;<?=$is_closed?'opacity:.6':''?>"
     data-vista="<?=in_array($t['tipo'],$TIPO_MIEMBRO,true)?'miembro':'tarea'?>"
     data-prio="<?=h($prio)?>"
@@ -7199,7 +7200,13 @@ function filterTickets(){
 function quickTktStatus(id, newEstado){
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'update_ticket',id,estado:newEstado})})
     .then(r=>r.json()).then(d=>{
-      if(d.ok){toast('✓ ESTADO ACTUALIZADO');saveTabAndReload();}
+      if(d.ok){
+        toast('✓ ESTADO ACTUALIZADO');
+        const row=document.querySelector('.ticket-row[data-id="'+id+'"]');
+        if(row) row.dataset.estado=newEstado;
+        if(typeof filterTickets==='function') filterTickets();
+        saveTabAndReload();
+      }
       else toast('⚠ '+(d.error||'Error'));
     });
 }
@@ -7578,6 +7585,14 @@ function submitTicket(e){
     .then(r=>r.json()).then(d=>{
       if(d.ok){
         toast(isEdit ? '✓ TICKET ACTUALIZADO' : '✓ TICKET CREADO');
+        // Reflejar el nuevo estado en la fila al instante (sin esperar el refresco)
+        const _tid = document.getElementById('tkt-id').value;
+        const _newEst = document.getElementById('tkt-estado-sel')?.value || '';
+        if(isEdit && _tid && _newEst){
+          const row=document.querySelector('.ticket-row[data-id="'+_tid+'"]');
+          if(row){ row.dataset.estado=_newEst; if(_newEst==='CERRADO') row.classList.add('tkt-cerrada'); }
+          if(typeof filterTickets==='function') filterTickets();
+        }
         if(btn){ btn.disabled = false; btn.textContent = '◈ GUARDAR'; }
         closeModal('ticket-form-modal');
         saveTabAndReload();
@@ -8774,7 +8789,14 @@ function closeTicket(id){
   if(!nota||!nota.trim()){toast('⚠️ Escribe una nota para cerrar');return;}
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'close_ticket',id,nota_cierre:nota})})
     .then(r=>r.json()).then(d=>{
-      if(d.ok){toast('✓ TICKET CERRADO');saveTabAndReload();}
+      if(d.ok){
+        toast('✓ TICKET CERRADO');
+        // Actualización instantánea de la fila (no esperar al refresco completo)
+        const row=document.querySelector('.ticket-row[data-id="'+id+'"]');
+        if(row){ row.dataset.estado='CERRADO'; row.classList.add('tkt-cerrada'); }
+        if(typeof filterTickets==='function') filterTickets();
+        saveTabAndReload();
+      }
       else toast('⚠ '+(d.error||'Error'));
     });
 }
