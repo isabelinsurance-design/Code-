@@ -7795,12 +7795,25 @@ document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click
 // activa, filtros/búsqueda y secciones desplegadas. Da sensación de tiempo real.
 window._softReloading = false;
 window._lastSoftReload = 0;
+window._softReloadStart = 0;
+window._softReloadPending = false;
+// Libera el candado y, si se pidió otro refresco mientras este corría, lo lanza.
+function _softReloadDone(){
+  window._softReloading = false;
+  if(window._softReloadPending){ window._softReloadPending = false; setTimeout(function(){ softReload(); }, 80); }
+}
 function softReload(done){
-  if(window._softReloading){ return; }
+  if(window._softReloading){
+    // Si el refresco anterior quedó colgado (>10s) lo liberamos; si sigue vivo,
+    // encolamos uno más para que TU cambio sí se refleje (no se pierde el refresco).
+    if(Date.now() - (window._softReloadStart||0) < 10000){ window._softReloadPending = true; return; }
+    window._softReloading = false;
+  }
   // Solo refrescamos la pestaña ACTIVA (mucho más ligero que reconstruir las 20)
   var active = document.querySelector('main .tab-pane.active');
   if(!active){ if(typeof done==='function'){ try{done();}catch(e){} } return; }
   window._softReloading = true;
+  window._softReloadStart = Date.now();
   // 1) Snapshot del estado dentro del panel activo
   var scrollY = window.scrollY;
   var vals = {};   // valores de inputs/selects/textareas con id
@@ -7823,7 +7836,7 @@ function softReload(done){
       clearTimeout(killer);
       var doc = new DOMParser().parseFromString(html, 'text/html');
       var fresh = doc.getElementById(active.id);
-      if(!fresh){ window._softReloading=false; return; }
+      if(!fresh){ _softReloadDone(); return; }
       active.innerHTML = fresh.innerHTML;
       // 3) Restaurar estado del usuario sobre el contenido fresco
       Object.keys(disp).forEach(function(id){
@@ -7860,10 +7873,10 @@ function softReload(done){
       // 5) Restaurar scroll
       window.scrollTo(0, scrollY);
       window._lastSoftReload = Date.now();
-      window._softReloading = false;
+      _softReloadDone();
       if(typeof done==='function'){ try{ done(); }catch(e){} }
     })
-    .catch(function(){ clearTimeout(killer); window._softReloading=false; });
+    .catch(function(){ clearTimeout(killer); _softReloadDone(); });
 }
 
 // ── AUTO-REFRESCO PERIÓDICO ─────────────────────────────────────────────
