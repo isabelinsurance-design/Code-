@@ -527,6 +527,8 @@ try {
     if (!$col_sa) { $pdo->exec("ALTER TABLE miembros ADD COLUMN sales_allegation TINYINT(1) DEFAULT 0"); }
     $col_fp = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'foto_perfil'")->fetch();
     if (!$col_fp) { $pdo->exec("ALTER TABLE miembros ADD COLUMN foto_perfil VARCHAR(500) DEFAULT NULL"); }
+    $col_pa = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'pareja_id'")->fetch();
+    if (!$col_pa) { $pdo->exec("ALTER TABLE miembros ADD COLUMN pareja_id INT NULL"); }
 } catch (Exception $e) {}
 // ─── TABLA GASTOS (expense report) ───────────────────────────────────────────
 try {

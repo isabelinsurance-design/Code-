@@ -59,6 +59,12 @@ if ($m['familiar_id']) {
     $st->execute([(int)$m['familiar_id']]);
     $fam = $st->fetch();
 }
+$pareja = null;
+if (!empty($m['pareja_id'])) {
+    $stp = $pdo->prepare("SELECT id,nombre,apellido,estado,telefono FROM miembros WHERE id=?");
+    $stp->execute([(int)$m['pareja_id']]);
+    $pareja = $stp->fetch();
+}
 
 // ── RETENCIÓN: llamadas y cuestionario ───────────────────────────
 $_pr_bienvenida = null;
@@ -421,6 +427,7 @@ display: block;
       ['SEXO',             $m['sexo']],
       ['IDIOMA',           $m['idioma']],
       ['ESTADO CIVIL',     $m['estado_civil']],
+      ['PAREJA/ESPOSO(A)', $pareja ? $pareja['apellido'].', '.$pareja['nombre'] : null],
       ['SOCIAL (SS)',      $admin ? maskSS($m['ss']) : '—'],
     ]) ?>
 
@@ -627,12 +634,21 @@ display: block;
 
   <!-- =================== FAMILIA =================== -->
   <div class="tab-content" id="ptab-FAMILIA">
+    <?php if ($pareja): ?>
+    <div style="font-size:8px;font-weight:900;color:#5B3FAF;text-transform:uppercase;letter-spacing:2px;margin-bottom:5px">💞 PAREJA / ESPOSO(A)</div>
+    <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid <?= $CB ?>">
+      <div style="flex:1"><div style="font-weight:900;color:<?= $P2 ?>;font-size:10px;cursor:pointer;letter-spacing:1px" onclick="closeModal('profile-modal');openProfile(<?= $pareja['id'] ?>)"><?= h($pareja['apellido'].', '.$pareja['nombre']) ?></div><div style="font-size:8px;color:<?= $MU ?>;letter-spacing:.5px"><?= h($pareja['telefono']??'') ?></div></div>
+      <span style="background:<?= $BG ?>;color:<?= $MU ?>;border:1px solid <?= $CB ?>;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?= h($pareja['estado']) ?></span>
+    </div>
+    <?php endif; ?>
     <?php if ($fam): ?>
+    <div style="font-size:8px;font-weight:900;color:<?= $P2 ?>;text-transform:uppercase;letter-spacing:2px;margin:<?= $pareja?'12px':'0' ?> 0 5px">👨‍👩‍👧 FAMILIAR</div>
     <div style="display:flex;align-items:center;gap:8px;padding:9px 0;border-bottom:1px solid <?= $CB ?>">
       <div style="flex:1"><div style="font-weight:900;color:<?= $P2 ?>;font-size:10px;cursor:pointer;letter-spacing:1px" onclick="closeModal('profile-modal');openProfile(<?= $fam['id'] ?>)"><?= h($fam['apellido'].', '.$fam['nombre']) ?></div><div style="font-size:8px;color:<?= $MU ?>;letter-spacing:.5px"><?= h($fam['telefono']??'') ?></div></div>
       <span style="background:<?= $BG ?>;color:<?= $MU ?>;border:1px solid <?= $CB ?>;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?= h($fam['estado']) ?></span>
     </div>
-    <?php else: ?><div style="padding:16px 0;text-align:center;font-size:8px;color:<?= $MU ?>;letter-spacing:2px;text-transform:uppercase">SIN FAMILIARES VINCULADOS</div><?php endif; ?>
+    <?php endif; ?>
+    <?php if (!$pareja && !$fam): ?><div style="padding:16px 0;text-align:center;font-size:8px;color:<?= $MU ?>;letter-spacing:2px;text-transform:uppercase">SIN PAREJA NI FAMILIARES VINCULADOS</div><?php endif; ?>
   </div>
 
   <!-- =================== NOTAS =================== -->

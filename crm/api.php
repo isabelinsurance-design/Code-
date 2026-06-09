@@ -129,7 +129,7 @@ case 'save_member':
 
     $existing_cols = $pdo->query("SHOW COLUMNS FROM miembros")->fetchAll(PDO::FETCH_COLUMN);
     $all_fields = ['nombre','middle_name','apellido','telefono','telefono2','estado','subestado','agente_id',
-        'dob','sexo','idioma','estado_civil','direccion_calle','direccion_apto','ciudad','county','zip',
+        'dob','sexo','idioma','estado_civil','pareja_id','direccion_calle','direccion_apto','ciudad','county','zip',
         'mbi','member_id','parte_a','parte_b','medical','medical_nivel','ss','elegibilidad','fecha_efectiva',
         'pcp','pcp_address','pcp_city','pcp_group','pcp_phone','pcp_state','pcp_zip',
         'dentista','email','evento','razon_cancelacion','fuente','fuente_campana','referido_por','tipo_referido',

@@ -43,6 +43,24 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       <div class="form-group"><label class="form-label">ESTADO CIVIL</label><select name="estado_civil" class="form-input"><option value="">—</option><?php foreach (['SOLTERO/A','CASADO/A','DIVORCIADO/A','VIUDO/A'] as $o): ?><option<?= ($m['estado_civil']??'')===$o?' selected':'' ?>><?= $o ?></option><?php endforeach; ?></select></div>
     </div>
 
+    <?php
+    // Lista de miembros para vincular pareja/esposo(a) (excluye al miembro actual)
+    $miembros_lista = $pdo->query("SELECT id,nombre,apellido FROM miembros".($id?" WHERE id<>".(int)$id:"")." ORDER BY apellido,nombre")->fetchAll();
+    $pareja_sel = (string)($m['pareja_id'] ?? '');
+    ?>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">PAREJA / ESPOSO(A) — SI ES MIEMBRO</label>
+        <select name="pareja_id" class="form-input">
+          <option value="">— NINGUNO / NO ES MIEMBRO —</option>
+          <?php foreach ($miembros_lista as $ml): ?>
+          <option value="<?=$ml['id']?>"<?=$pareja_sel===(string)$ml['id']?' selected':''?>><?=h($ml['apellido'].', '.$ml['nombre'])?></option>
+          <?php endforeach; ?>
+        </select>
+        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;text-transform:uppercase">★ VINCULA A SU PAREJA SI TAMBIÉN ES MIEMBRO DE LA AGENCIA</div>
+      </div>
+    </div>
+
     <div class="section-divider">DIRECCIÓN</div>
     <div class="grid-2">
       <div class="form-group">
