@@ -7239,6 +7239,9 @@ function tktFuenteChange(sel){
 }
 
 function openTicketForm(mid=null, tktData=null){
+  // Reset del botón de guardar (si quedó deshabilitado de un guardado anterior)
+  const _tktSubmitBtn = document.querySelector('#ticket-form-modal [type=submit]');
+  if(_tktSubmitBtn){ _tktSubmitBtn.disabled = false; _tktSubmitBtn.textContent = '◈ GUARDAR'; }
   // Reset campos
   document.getElementById('tkt-id').value = '';
   document.getElementById('tkt-modal-title').textContent = '◈ NUEVO TICKET';
@@ -7575,6 +7578,7 @@ function submitTicket(e){
     .then(r=>r.json()).then(d=>{
       if(d.ok){
         toast(isEdit ? '✓ TICKET ACTUALIZADO' : '✓ TICKET CREADO');
+        if(btn){ btn.disabled = false; btn.textContent = '◈ GUARDAR'; }
         closeModal('ticket-form-modal');
         saveTabAndReload();
       } else {
