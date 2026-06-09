@@ -180,8 +180,11 @@ function unwrapArrayResponse(r, possibleKeys = ['tickets', 'miembros', 'leads', 
   return { ...r, data: arr };
 }
 
-// Mapa de id → nombre de agentes en LUNA (mismo que ISABEL_BASE)
-const AGENT_NAMES = { 6: 'Isabel', 7: 'Skarleth', 9: 'Arlette', 10: 'Sami' };
+// Mapa de id → nombre de agentes en LUNA (mismo que ISABEL_BASE).
+// Suri = id 8 es SUPOSICIÓN (8 está libre entre 7 Skarleth y 9 Arlette).
+// Verificar con Isabel/Sami; si el id real es otro, cambiar acá y en
+// team_morning_email.js teamRoster().
+const AGENT_NAMES = { 6: 'Isabel', 7: 'Skarleth', 8: 'Suri', 9: 'Arlette', 10: 'Sami' };
 
 function mapTicketFields(t) {
   // CRÍTICO: agente_ini/agente_nombre = QUIEN CREÓ el ticket (casi siempre IF)

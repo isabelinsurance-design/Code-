@@ -29,6 +29,7 @@ function teamRoster() {
   return [
     { id: 6,  nombre: 'Isabel',   email: usePreview ? preview : (process.env.ISABEL_EMAIL   || 'isabel.insurance@gmail.com'), is_owner: true },
     { id: 7,  nombre: 'Skarleth', email: usePreview ? preview : (process.env.SKARLETH_EMAIL || null) },
+    { id: 8,  nombre: 'Suri',     email: usePreview ? preview : (process.env.SURI_EMAIL     || null) },
     { id: 9,  nombre: 'Arlette',  email: usePreview ? preview : (process.env.ARLETTE_EMAIL  || null) },
     { id: 10, nombre: 'Sami',     email: usePreview ? preview : (process.env.SAMI_EMAIL     || null) },
   ];
