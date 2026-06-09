@@ -511,6 +511,12 @@ case 'luna_chat':
     $cerr = curl_error($ch);
     curl_close($ch);
 
+    // Registro de diagnóstico del chat (visible en luna_diag.php): qué devolvió Anthropic.
+    @file_put_contents(__DIR__ . '/luna_chat_last.log',
+        date('c') . " | http=$code | curl_err=" . ($cerr ?: '-') . " | len=" . strlen((string)$resp)
+        . " | head=" . str_replace(["\r", "\n"], ' ', mb_substr((string)$resp, 0, 600)) . "\n",
+        FILE_APPEND);
+
     if ($resp === false) {
         echo "event: error\ndata: " . json_encode(['error' => 'No se pudo conectar a Anthropic: ' . $cerr]) . "\n\n";
     } elseif ($code >= 400) {

@@ -76,4 +76,8 @@ if ($ak) {
 }
 $out['anthropic_test'] = $at;
 
+// Último registro del chat (qué devolvió Anthropic en la última llamada del chat).
+$log = __DIR__ . '/luna_chat_last.log';
+$out['ultimo_chat'] = is_file($log) ? trim(mb_substr((string) @file_get_contents($log), -900)) : 'sin registros del chat todavía';
+
 echo json_encode($out, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE | JSON_UNESCAPED_SLASHES);
