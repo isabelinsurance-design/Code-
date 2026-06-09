@@ -377,6 +377,14 @@ scheduleCron('self_grade', process.env.SELF_GRADE_CRON   || '0 20 * * 0', weekly
 // Research digest: 2x semana (martes/jueves) — overlap conceptual con
 // trend scan, no necesita ser daily. Saves ~$0.50/día.
 scheduleCron('research', process.env.RESEARCH_DIGEST_CRON || '0 12 * * 2,4', sendResearchDigest);
+// Team morning email — 6am todos los días. Manda email personalizado a
+// cada miembro del equipo (Isabel, Sami, Skarleth, Arlette) con sus
+// tickets LUNA del día. Isabel pidió esto el 6 jun 2026.
+// Emails se leen de env: ISABEL_EMAIL, SAMI_EMAIL, SKARLETH_EMAIL,
+// ARLETTE_EMAIL. Si una falta, esa persona se salta sin romper el cron.
+import('./team_morning_email.js').then(({ sendTeamMorningEmails }) => {
+  scheduleCron('team_morning_email', process.env.TEAM_MORNING_EMAIL_CRON || '0 6 * * *', sendTeamMorningEmails);
+}).catch((e) => console.warn('[cron] team_morning_email no se pudo cargar:', e.message));
 // Closing the loop — 6pm-7pm, reporta lo que cerramos hoy (pattern del Elite EA SOP)
 scheduleCron('closing_loop', process.env.CLOSING_LOOP_CRON || '0 18 * * 1-5', sendClosingLoop);
 // Ticket monitor — 10am y 4pm L-S, avisa tickets LUNA estancados (>2 días, >0.5 si ALTA)
