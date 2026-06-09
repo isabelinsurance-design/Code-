@@ -1314,7 +1314,29 @@ export function registerApi(app) {
       return res.json({ coach, reply });
     } catch (e) {
       console.error('[api/chat]', e);
-      res.status(500).json({ error: e.message });
+      // Diagnóstico inteligente igual que el handler de WhatsApp: en vez
+      // de error genérico, intenta clasificar el problema y darle a
+      // Isabel el siguiente paso concreto.
+      const msg = String(e?.message || e || '').toLowerCase();
+      let userMsg = e.message || 'error desconocido';
+      let diagnosis = null;
+      if (msg.includes('credit') || msg.includes('balance') || msg.includes('insufficient_quota') || msg.includes('billing')) {
+        diagnosis = 'anthropic_credits_empty';
+        userMsg = 'Se acabó el saldo de Anthropic. Entra a console.anthropic.com → Billing y recarga. Apenas haya saldo vuelvo a responder.';
+      } else if (msg.includes('rate_limit') || msg.includes('429')) {
+        diagnosis = 'rate_limit';
+        userMsg = 'Anthropic está rate-limited ahorita. Intenta en 1-2 minutos.';
+      } else if (msg.includes('overloaded') || msg.includes('529')) {
+        diagnosis = 'anthropic_overloaded';
+        userMsg = 'Anthropic está sobrecargada (problema de ellos, no nuestro). Intenta en 30 segundos.';
+      } else if (msg.includes('invalid_api_key') || msg.includes('401') || msg.includes('authentication')) {
+        diagnosis = 'api_key_invalid';
+        userMsg = 'La ANTHROPIC_API_KEY de Railway está inválida o se rotó. Revisa Railway → Variables.';
+      } else if (msg.includes('etimedout') || msg.includes('network') || msg.includes('econnreset')) {
+        diagnosis = 'network';
+        userMsg = 'Problema de red entre Railway y Anthropic. Intenta en 30 segundos.';
+      }
+      res.status(500).json({ error: userMsg, diagnosis, raw: e.message });
     }
   });
 

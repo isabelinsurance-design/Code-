@@ -210,7 +210,27 @@ app.post('/whatsapp', rateLimitMiddleware, twilioSignatureMiddleware, async (req
     await replyTo(from, reply, { voice: userSentVoice });
   } catch (err) {
     console.error('[whatsapp] Error procesando mensaje:', err);
-    await sendMessage(from, 'Tuve un problema técnico, Isabel. Intenta de nuevo en un momento.').catch(() => {});
+    // Diagnóstico inteligente: en vez de "problema técnico" genérico,
+    // intenta clasificar el error y darle a Isabel el siguiente paso
+    // concreto. Ahorra debugging manual.
+    const msg = String(err?.message || err || '').toLowerCase();
+    let userMsg = 'Tuve un problema técnico, Isabel. Intenta de nuevo en un momento.';
+    if (msg.includes('credit') || msg.includes('balance') || msg.includes('insufficient_quota') || msg.includes('billing')) {
+      userMsg = 'Se acabó el saldo de Anthropic, Isabel. Entra a console.anthropic.com → Billing y recarga. Apenas haya saldo vuelvo a responder.';
+    } else if (msg.includes('rate_limit') || msg.includes('429')) {
+      userMsg = 'Anthropic está rate-limited en este momento, Isabel. Intenta en 1-2 minutos.';
+    } else if (msg.includes('overloaded') || msg.includes('529')) {
+      userMsg = 'Anthropic está sobrecargada ahorita, Isabel. Es de ellos, no nuestro. Intenta en 30 segundos.';
+    } else if (msg.includes('invalid_api_key') || msg.includes('401') || msg.includes('authentication')) {
+      userMsg = 'La ANTHROPIC_API_KEY de Railway está inválida o se rotó. Necesitas revisar Railway → Variables.';
+    } else if (msg.includes('etimedout') || msg.includes('network') || msg.includes('econnreset')) {
+      userMsg = 'Problema de red entre Railway y Anthropic, Isabel. Intenta en 30 segundos.';
+    } else if (err?.message) {
+      // Para cualquier otro error: incluye el mensaje técnico real
+      // (recortado) para que se pueda diagnosticar sin tener que buscar logs.
+      userMsg = `Tuve un error: ${String(err.message).slice(0, 200)}. Si se repite, mándame screenshot y revisamos.`;
+    }
+    await sendMessage(from, userMsg).catch(() => {});
   }
 });
 
