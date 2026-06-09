@@ -496,27 +496,31 @@ case 'luna_chat':
 
     $ch = curl_init('https://api.anthropic.com/v1/messages');
     curl_setopt_array($ch, [
-        CURLOPT_POST          => true,
-        CURLOPT_POSTFIELDS    => $payload,
-        CURLOPT_HTTPHEADER    => [
+        CURLOPT_POST           => true,
+        CURLOPT_POSTFIELDS     => $payload,
+        CURLOPT_HTTPHEADER     => [
             'Content-Type: application/json',
             'x-api-key: ' . $apiKey,
             'anthropic-version: 2023-06-01',
         ],
-        CURLOPT_TIMEOUT       => 120,
-        CURLOPT_WRITEFUNCTION => function ($ch, $chunk) {
-            echo $chunk;
-            @ob_flush();
-            @flush();
-            return strlen($chunk);
-        },
+        CURLOPT_TIMEOUT        => 120,
+        CURLOPT_RETURNTRANSFER => true,   // bufferizamos para poder DETECTAR errores HTTP
     ]);
-    $okCurl = curl_exec($ch);
-    if ($okCurl === false) {
-        // Si falla antes de emitir nada, mandamos un evento de error en formato SSE.
-        echo "event: error\ndata: " . json_encode(['error' => curl_error($ch)]) . "\n\n";
-    }
+    $resp = curl_exec($ch);
+    $code = (int) curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    $cerr = curl_error($ch);
     curl_close($ch);
+
+    if ($resp === false) {
+        echo "event: error\ndata: " . json_encode(['error' => 'No se pudo conectar a Anthropic: ' . $cerr]) . "\n\n";
+    } elseif ($code >= 400) {
+        // Anthropic devolvió un error (NO es stream SSE). Lo mostramos para NO quedar en "(sin respuesta)".
+        $msg = $resp; $j = json_decode($resp, true);
+        if (isset($j['error']['message'])) $msg = $j['error']['message'];
+        echo "event: error\ndata: " . json_encode(['error' => 'Anthropic HTTP ' . $code . ': ' . mb_substr((string)$msg, 0, 300)]) . "\n\n";
+    } else {
+        echo $resp;   // éxito: reenviamos el stream SSE tal cual (el frontend lo parsea)
+    }
     exit;
 
 // ── PIPELINE SUMMARY ────────────────────────────────────
