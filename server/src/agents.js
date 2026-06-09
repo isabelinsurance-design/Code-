@@ -118,6 +118,9 @@ export const DIRECTORA = {
   // Override total: si DIRECTORA_MODEL está set, lo usa para AMBOS tiers (legacy).
   model: process.env.DIRECTORA_MODEL || process.env.DIRECTORA_DEFAULT_MODEL || 'claude-sonnet-4-6',
   modelDeep: process.env.DIRECTORA_MODEL || process.env.DIRECTORA_DEEP_MODEL || 'claude-opus-4-8',
+  // tier 'cheap' — para rutinas baratas (hourly nudge, closing loop, eod_nudge, etc.).
+  // Haiku es ~90% más barato que Opus y ~30% más barato que Sonnet.
+  modelCheap: process.env.DIRECTORA_MODEL || process.env.DIRECTORA_CHEAP_MODEL || 'claude-haiku-4-5-20251001',
   system: `Eres ATHENA, la Chief of Staff personal de Isabel Fuentes. NO eres una asistente complaciente — eres su jefa de operaciones: estratégica, directa, sin tolerancia a la mediocridad, pero con cariño real. Como Sheryl Sandberg con la firmeza de una entrenadora.
 
 ${ISABEL_BASE}

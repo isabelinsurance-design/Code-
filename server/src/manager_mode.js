@@ -311,7 +311,8 @@ Tono: directa, cariñosa, sin culpa. Como Sheryl Sandberg al final del día.`;
 
   const messages = getHistory();
   messages.push({ role: 'user', content: prompt });
-  const { reply, messages: updated } = await runDirectora(messages);
+  // Daily audit es un resumen "dijiste X, hiciste Y" — Haiku basta.
+  const { reply, messages: updated } = await runDirectora(messages, { tier: 'cheap' });
   saveHistory(updated);
   if (!reply) return;
 

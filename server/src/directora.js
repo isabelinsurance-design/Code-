@@ -65,9 +65,19 @@ export async function runDirectora(messages, opts = {}) {
   let consecutiveDupes = 0;
   const wiki = buildWikiContext();
   const tier = opts.tier || (shouldEscalate(messages) ? 'deep' : 'default');
-  const modelToUse = tier === 'deep' ? DIRECTORA.modelDeep : DIRECTORA.model;
-  if (tier === 'deep') {
-    console.log(`[directora] tier=deep model=${modelToUse}`);
+  // 3 tiers ahora:
+  //   deep    → modelDeep (Opus)   — briefings críticos, weekly review, reflect
+  //   default → model (Sonnet)     — chat normal, briefing matutino
+  //   cheap   → modelCheap (Haiku) — rutinas, nudges, closing loop, classifiers
+  // Haiku es ~90% más barato que Opus y ~30% más barato que Sonnet.
+  // Para tareas que NO requieren reasoning profundo (recordatorios,
+  // resúmenes simples, clasificación), Haiku basta sobrado.
+  let modelToUse;
+  if (tier === 'deep') modelToUse = DIRECTORA.modelDeep;
+  else if (tier === 'cheap') modelToUse = DIRECTORA.modelCheap || 'claude-haiku-4-5-20251001';
+  else modelToUse = DIRECTORA.model;
+  if (tier === 'deep' || tier === 'cheap') {
+    console.log(`[directora] tier=${tier} model=${modelToUse}`);
   }
   const system = [
     {

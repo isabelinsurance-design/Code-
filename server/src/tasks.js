@@ -263,7 +263,10 @@ Para cada una: (1) intenta avanzar usando tus herramientas (web_search, consulta
 NO mandes mensaje a Isabel — esto es trabajo silencioso tuyo. Responde con un resumen interno corto de qué hiciste con cada tarea.`,
   };
   try {
-    await runDirectora([synthetic], { maxRounds: 4, persistHistory: false });
+    // Task tick es trabajo de fondo silencioso — decisiones simples sobre
+    // qué hacer con cada tarea de la cola. Haiku basta. Sin tier='cheap'
+    // esto consumía Sonnet 3x/día = uno de los gastos mayores del mes.
+    await runDirectora([synthetic], { maxRounds: 4, persistHistory: false, tier: 'cheap' });
     logActivity({ tool: 'task_tick_work', input_summary: `tasks=${batch.map((b) => b.id).join(',')}`, result_summary: 'ok' });
   } catch (err) {
     console.error('[tasks] work session error:', err.message);
