@@ -467,6 +467,20 @@ case 'luna_chat':
         lunaAudit($pdo, $uid, 'CHAT', ($agentLabel ? "[$agentLabel] " : '') . mb_substr(trim($humanMsg), 0, 600));
     }
 
+    // Mismo problema {} -> [] de PHP, pero en el HISTORIAL: cuando una herramienta
+    // se usó SIN parámetros, su tool_use.input queda como [] y Anthropic exige objeto.
+    // Recorremos los mensajes y forzamos objeto en cualquier tool_use.input vacío.
+    foreach ($messages as &$_m) {
+        if (!is_array($_m) || !isset($_m['content']) || !is_array($_m['content'])) continue;
+        foreach ($_m['content'] as &$_b) {
+            if (is_array($_b) && ($_b['type'] ?? '') === 'tool_use' && empty($_b['input'])) {
+                $_b['input'] = new stdClass();
+            }
+        }
+        unset($_b);
+    }
+    unset($_m);
+
     $reqBody = [
         'model'      => 'claude-sonnet-4-6',
         'max_tokens' => $maxTok,
