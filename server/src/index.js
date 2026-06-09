@@ -398,8 +398,9 @@ scheduleCron('triage',  process.env.EMAIL_TRIAGE_CRON    || '0 5 * * *',  nightl
 // limitamos a horas despiertas para acotar costo.
 // Task tick: cada 3 horas en horas despiertas (vs cada hora antes).
 // taskTick adentro respeta quiet hours. Cada tick que tiene work real
-// cuesta ~$0.05-0.10. 15 ticks/día → 5 ticks/día (66% reducción).
-scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 9,12,15,18,21 * * *', taskTick);
+// cuesta ~$0.05-0.10. 5 ticks/día → 3 ticks/día (beginning, middle, end).
+// Isabel pidió expresamente 3x: 9am mañana, 1pm mediodía, 5pm tarde.
+scheduleCron('tasks',   process.env.TASK_TICK_CRON       || '0 9,13,17 * * *', taskTick);
 // Persecución de compromisos: cada 2h en horas despiertas reviso
 // promesas vencidas. Si tengo cómo, le doy un nudge cordial a la
 // persona; en cualquier caso le aviso a Isabel (una vez por compromiso).
