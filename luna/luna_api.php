@@ -476,7 +476,15 @@ case 'luna_chat':
     ];
     // Tools = las nativas de LUNA (del frontend) + web search opcional de Anthropic.
     $tools = [];
-    foreach ($clientTools as $t) { if (is_array($t)) $tools[] = $t; }
+    foreach ($clientTools as $t) {
+        if (!is_array($t)) continue;
+        // PHP convierte un objeto vacío {} en un array vacío []. Anthropic EXIGE que
+        // input_schema.properties sea un OBJETO. Si quedó vacío, lo forzamos a objeto.
+        if (isset($t['input_schema']) && is_array($t['input_schema']) && empty($t['input_schema']['properties'])) {
+            $t['input_schema']['properties'] = new stdClass();
+        }
+        $tools[] = $t;
+    }
     // #20 Web search nativo de Anthropic (solo si el agente lo pide).
     if ($useWeb) {
         $tools[] = [
