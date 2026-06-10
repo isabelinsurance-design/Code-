@@ -1676,6 +1676,26 @@ case 'luna_full_briefing':
         ")->fetchAll();
     }
 
+    // Birthdays TODAY
+    $data['cumpleanos_hoy'] = $pdo->query("
+        SELECT m.nombre, m.apellido, m.telefono, m.email, m.carrier, m.plan,
+               TIMESTAMPDIFF(YEAR, m.dob, CURDATE()) AS edad
+        FROM miembros m
+        WHERE m.dob IS NOT NULL
+          AND DATE_FORMAT(m.dob,'%m-%d') = DATE_FORMAT(CURDATE(),'%m-%d')
+        ORDER BY FIELD(m.estado,'ACTIVO','PENDIENTE','HOT LEAD'), m.apellido
+    ")->fetchAll();
+
+    // Birthdays THIS MONTH (full month, ordered by day)
+    $data['cumpleanos_mes'] = $pdo->query("
+        SELECT m.nombre, m.apellido, m.telefono, m.carrier,
+               DAY(m.dob) AS dia,
+               YEAR(CURDATE()) - YEAR(m.dob) AS edad_cumple
+        FROM miembros m
+        WHERE m.dob IS NOT NULL AND MONTH(m.dob) = MONTH(CURDATE())
+        ORDER BY DAY(m.dob), m.apellido
+    ")->fetchAll();
+
     // Today's date context
     $data['fecha'] = date('Y-m-d');
     $data['dia_semana'] = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][date('w')];
