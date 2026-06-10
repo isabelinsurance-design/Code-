@@ -691,6 +691,30 @@ case 'luna_t65_alerts':
 // ?dias=0 (default) → solo HOY.  ?dias=7 → próximos 7 días, incl. hoy.
 // Lectura pura; la usa Athena para traer la lista diaria / calendario.
 case 'luna_birthdays_today':
+    // ?mes=1..12 → todos los cumpleaños de ese mes (default: mes actual si mes=0 y se pide).
+    $mes = (int)($_GET['mes'] ?? 0);
+    if ($mes >= 1 && $mes <= 12) {
+        $stmt = $pdo->prepare("
+            SELECT m.id, m.nombre, m.apellido, m.telefono, m.email, m.ciudad,
+                   m.estado, m.carrier, m.plan, m.dob,
+                   DAY(m.dob) AS dia,
+                   YEAR(CURDATE()) - YEAR(m.dob) AS edad_cumple,
+                   u.iniciales AS agente_ini, u.nombre AS agente_nombre
+            FROM miembros m
+            LEFT JOIN usuarios u ON m.agente_id = u.id
+            WHERE m.dob IS NOT NULL AND MONTH(m.dob) = ?
+            ORDER BY DAY(m.dob), m.apellido, m.nombre
+        ");
+        $stmt->execute([$mes]);
+        $rows = $stmt->fetchAll();
+        ok([
+            'fecha'       => date('Y-m-d'),
+            'mes'         => $mes,
+            'total'       => count($rows),
+            'cumpleaneros'=> $rows,
+        ]);
+        break;
+    }
     $dias = max(0, min(60, (int)($_GET['dias'] ?? 0)));
     if ($dias === 0) {
         // Solo cumpleaños de HOY.
