@@ -12,6 +12,8 @@
  *   ven solo lo suyo o lo permitido explícitamente.
  *
  * Ubicación esperada: public_html/luna/luna_api.php
+ *
+ * Acciones recientes: luna_birthdays_today — cumpleaños de hoy (o ?dias=N).
  * ═══════════════════════════════════════════════════════
  */
 // Carga el config de LUNA buscándolo en las ubicaciones posibles (a prueba de
