@@ -85,7 +85,7 @@ if ($svcKey !== '') {
         'luna_retention_alerts','luna_hot_leads','luna_search_member',
         'luna_member_detail','luna_pending_soa','luna_open_tickets',
         'luna_tickets_by_agent',
-        'luna_today_appointments',
+        'luna_today_appointments','luna_birthdays_today',
         'luna_pending_callbacks','luna_recent_activity','luna_full_briefing',
         'luna_entity_search','luna_signals_list',
         'luna_skill_list','luna_gaps_overview','luna_business_health',
@@ -651,6 +651,51 @@ case 'luna_t65_alerts':
     ");
     $stmt->execute([$days]);
     ok(['days'=>$days, 'alerts'=>$stmt->fetchAll()]);
+    break;
+
+// ── CUMPLEAÑOS — quién cumple hoy (o en los próximos N días) ─
+// ?dias=0 (default) → solo HOY.  ?dias=7 → próximos 7 días, incl. hoy.
+// Lectura pura; la usa Athena para traer la lista diaria / calendario.
+case 'luna_birthdays_today':
+    $dias = max(0, min(60, (int)($_GET['dias'] ?? 0)));
+    if ($dias === 0) {
+        // Solo cumpleaños de HOY.
+        $stmt = $pdo->query("
+            SELECT m.id, m.nombre, m.apellido, m.telefono, m.email, m.ciudad,
+                   m.estado, m.carrier, m.plan, m.dob,
+                   TIMESTAMPDIFF(YEAR, m.dob, CURDATE()) AS edad,
+                   0 AS dias_para_cumple,
+                   u.iniciales AS agente_ini, u.nombre AS agente_nombre
+            FROM miembros m
+            LEFT JOIN usuarios u ON m.agente_id = u.id
+            WHERE m.dob IS NOT NULL
+              AND DATE_FORMAT(m.dob, '%m-%d') = DATE_FORMAT(CURDATE(), '%m-%d')
+            ORDER BY FIELD(m.estado,'ACTIVO','PENDIENTE','HOT LEAD'), m.apellido, m.nombre
+        ");
+        $rows = $stmt->fetchAll();
+    } else {
+        // Hoy + próximos N días. dias_para_cumple usa día-del-año (aprox. ±1 en años bisiestos).
+        $stmt = $pdo->prepare("
+            SELECT m.id, m.nombre, m.apellido, m.telefono, m.email, m.ciudad,
+                   m.estado, m.carrier, m.plan, m.dob,
+                   TIMESTAMPDIFF(YEAR, m.dob, CURDATE()) AS edad,
+                   (DAYOFYEAR(m.dob) - DAYOFYEAR(CURDATE()) + 366) % 366 AS dias_para_cumple,
+                   u.iniciales AS agente_ini, u.nombre AS agente_nombre
+            FROM miembros m
+            LEFT JOIN usuarios u ON m.agente_id = u.id
+            WHERE m.dob IS NOT NULL
+            HAVING dias_para_cumple <= ?
+            ORDER BY dias_para_cumple, FIELD(m.estado,'ACTIVO','PENDIENTE','HOT LEAD'), m.apellido
+        ");
+        $stmt->execute([$dias]);
+        $rows = $stmt->fetchAll();
+    }
+    ok([
+        'fecha'       => date('Y-m-d'),
+        'dias'        => $dias,
+        'total'       => count($rows),
+        'cumpleaneros'=> $rows,
+    ]);
     break;
 
 // ── RETENTION ALERTS — miembros que necesitan llamada hoy ─
