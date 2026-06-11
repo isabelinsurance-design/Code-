@@ -8148,17 +8148,24 @@ function loadGastos(){
   const cat=document.getElementById('gastos-cat')?.value||'all';
   const est=document.getElementById('gastos-est')?.value||'all';
   const yr=<?=date('Y')?>;
+  const tb=document.getElementById('gastos-tbody');
+  if(tb) tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#7A90A4;font-size:9px">CARGANDO...</td></tr>';
   fetch('api.php?action=get_gastos&mes='+mes+'&cat='+encodeURIComponent(cat)+'&est='+est+'&year='+yr)
-    .then(r=>r.json()).then(d=>{
-      if(!d.ok){document.getElementById('gastos-tbody').innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR CARGANDO DATOS</td></tr>';return;}
-      renderGastos(d.data);
-      const t=d.totales;
+    .then(r=>r.text())
+    .then(txt=>{
+      let d;
+      try{ d=JSON.parse(txt); }
+      catch(e){
+        console.error('get_gastos respuesta no-JSON:',txt);
+        if(tb) tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR: respuesta inválida del servidor. Abre F12 → Console para ver el detalle.</td></tr>';
+        return;
+      }
+      if(!d.ok){ if(tb) tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR: '+(d.error||'desconocido')+'</td></tr>'; return; }
+      renderGastos(d.data||[]);
+      const t=d.totales||{total:0,aprobado:0,pendiente:0,rechazado:0};
       const fmt=v=>'$'+parseFloat(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-      document.getElementById('gkpi-total').textContent=fmt(t.total);
-      document.getElementById('gkpi-aprobado').textContent=fmt(t.aprobado);
-      document.getElementById('gkpi-pendiente').textContent=fmt(t.pendiente);
-      document.getElementById('gkpi-rechazado').textContent=fmt(t.rechazado);
-      // Aviso de reembolsos pendientes a empleados
+      const setKpi=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt(v);};
+      setKpi('gkpi-total',t.total);setKpi('gkpi-aprobado',t.aprobado);setKpi('gkpi-pendiente',t.pendiente);setKpi('gkpi-rechazado',t.rechazado);
       const banner=document.getElementById('gastos-reembolso-banner');
       if(banner){
         const pend=(d.data||[]).filter(g=>g.reembolsar_a && g.reembolsado!='1');
@@ -8166,6 +8173,10 @@ function loadGastos(){
         if(pend.length){banner.style.display='block';banner.textContent='💵 POR REEMBOLSAR A EMPLEADOS: '+fmt(tot)+' ('+pend.length+' gasto'+(pend.length>1?'s':'')+')';}
         else banner.style.display='none';
       }
+    })
+    .catch(e=>{
+      console.error('get_gastos fetch error:',e);
+      if(tb) tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR DE CONEXIÓN: '+(e.message||e)+'</td></tr>';
     });
 }
 const GASTO_CAT_LABELS={OFFICE:'OFFICE',MEETING:'MEETING',PAYROLL:'PAYROLL',MARKETING:'MARKETING',TRAINING:'TRAINING'};
