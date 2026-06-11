@@ -1617,7 +1617,7 @@ case 'get_audit_log':
 // ── GET GASTOS (expense report) ───────────────────────────────
 case 'get_gastos':
     $pdo = db();
-    auth();
+    $gu  = auth();
     $mes  = $_GET['mes']  ?? 'all';
     $cat  = $_GET['cat']  ?? 'all';
     $est  = $_GET['est']  ?? 'all';
@@ -1626,8 +1626,10 @@ case 'get_gastos':
     if ($mes !== 'all') { $where[] = 'MONTH(g.fecha)=? AND YEAR(g.fecha)=?'; $params[] = intval($mes); $params[] = $year; }
     if ($cat !== 'all') { $where[] = 'g.categoria=?'; $params[] = $cat; }
     if ($est !== 'all') { $where[] = 'g.estado=?'; $params[] = $est; }
+    // Empleados solo ven sus propios gastos; admin ve todos
+    if (!isAdmin()) { $where[] = 'g.enviado_por=?'; $params[] = $gu['id']; }
     $wc = $where ? 'WHERE '.implode(' AND ', $where) : '';
-    $stmt = $pdo->prepare("SELECT g.*, u.nombre AS enviado_nombre FROM gastos g LEFT JOIN usuarios u ON g.enviado_por=u.id $wc ORDER BY g.fecha DESC, g.id DESC");
+    $stmt = $pdo->prepare("SELECT g.*, u.nombre AS enviado_nombre, r.nombre AS reembolsar_nombre FROM gastos g LEFT JOIN usuarios u ON g.enviado_por=u.id LEFT JOIN usuarios r ON g.reembolsar_a=r.id $wc ORDER BY g.fecha DESC, g.id DESC");
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
     // Totals without status filter for full breakdown
@@ -1655,8 +1657,20 @@ case 'save_gasto':
     $desc  = trim($_POST['descripcion'] ?? '');
     $monto = floatval($_POST['monto'] ?? 0);
     if (!$fecha || !$cat || !$desc || $monto < 0) jsonErr('Campos requeridos incompletos');
-    $pdo->prepare("INSERT INTO gastos (fecha,categoria,tipo,descripcion,vendedor,monto,metodo_pago,enviado_por,recibo,notas)
-        VALUES (?,?,?,?,?,?,?,?,?,?)")
+    // Foto de la factura/recibo (opcional)
+    $recibo_foto = null;
+    if (!empty($_FILES['recibo_foto']['tmp_name'])) {
+        $ext = strtolower(pathinfo($_FILES['recibo_foto']['name'], PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg','jpeg','png','gif','webp','pdf'])) jsonErr('Formato de factura no permitido (usa imagen o PDF)');
+        $dir = __DIR__ . '/uploads/recibos/';
+        if (!is_dir($dir)) mkdir($dir, 0755, true);
+        $fname = 'gasto_' . $u['id'] . '_' . time() . '_' . random_int(100,999) . '.' . $ext;
+        if (!move_uploaded_file($_FILES['recibo_foto']['tmp_name'], $dir . $fname)) jsonErr('Error al guardar la factura');
+        $recibo_foto = 'uploads/recibos/' . $fname;
+    }
+    $reembolsar_a = intval($_POST['reembolsar_a'] ?? 0) ?: null;
+    $pdo->prepare("INSERT INTO gastos (fecha,categoria,tipo,descripcion,vendedor,monto,metodo_pago,enviado_por,recibo,recibo_foto,reembolsar_a,notas)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?)")
         ->execute([
             $fecha, $cat,
             trim($_POST['tipo'] ?? '') ?: null,
@@ -1665,9 +1679,24 @@ case 'save_gasto':
             $monto,
             in_array($_POST['metodo_pago']??'',['CASH','CARD','CHECK','ZELLE','OTHER']) ? $_POST['metodo_pago'] : 'CARD',
             $u['id'],
-            !empty($_POST['recibo']) ? 1 : 0,
+            $recibo_foto ? 1 : 0,
+            $recibo_foto,
+            $reembolsar_a,
             trim($_POST['notas'] ?? '') ?: null
         ]);
+    jsonOk();
+    break;
+
+// ── TOGGLE REEMBOLSO A EMPLEADO (admin) ───────────────────────
+case 'toggle_gasto_reembolso':
+    $pdo = db();
+    $u   = auth();
+    if (!isAdmin()) jsonErr('Solo admin puede marcar reembolsos');
+    $id     = intval($_POST['id'] ?? 0);
+    $pagado = !empty($_POST['pagado']) ? 1 : 0;
+    if (!$id) jsonErr('ID requerido');
+    $pdo->prepare("UPDATE gastos SET reembolsado=?, reembolsado_at=".($pagado?'NOW()':'NULL')." WHERE id=?")
+        ->execute([$pagado, $id]);
     jsonOk();
     break;
 
@@ -1686,11 +1715,15 @@ case 'update_gasto_status':
 // ── DELETE GASTO ──────────────────────────────────────────────
 case 'delete_gasto':
     $pdo = db();
-    auth();
-    if (!isAdmin()) jsonErr('Sin permiso');
+    $gu  = auth();
     $id = intval($_POST['id'] ?? 0);
     if (!$id) jsonErr('ID requerido');
-    $pdo->prepare("DELETE FROM gastos WHERE id=?")->execute([$id]);
+    // Admin borra cualquiera; el empleado solo los suyos
+    if (isAdmin()) {
+        $pdo->prepare("DELETE FROM gastos WHERE id=?")->execute([$id]);
+    } else {
+        $pdo->prepare("DELETE FROM gastos WHERE id=? AND enviado_por=?")->execute([$id, $gu['id']]);
+    }
     jsonOk();
     break;
 

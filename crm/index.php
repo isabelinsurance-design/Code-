@@ -552,6 +552,16 @@ try {
         KEY idx_categoria (categoria),
         KEY idx_estado (estado)
     )");
+    // Columnas extra: foto de factura + reembolso a empleado
+    foreach ([
+        'recibo_foto'    => "ADD COLUMN recibo_foto VARCHAR(500) NULL",
+        'reembolsar_a'   => "ADD COLUMN reembolsar_a INT NULL",
+        'reembolsado'    => "ADD COLUMN reembolsado TINYINT(1) DEFAULT 0",
+        'reembolsado_at' => "ADD COLUMN reembolsado_at TIMESTAMP NULL",
+    ] as $gcol => $gddl) {
+        $ex = $pdo->query("SHOW COLUMNS FROM gastos LIKE '$gcol'")->fetch();
+        if (!$ex) $pdo->exec("ALTER TABLE gastos $gddl");
+    }
 } catch (Exception $e) {}
 // ─── TABLA ENTRENAMIENTO (progreso de la academia por agente) ────────────────
 try {
@@ -1111,7 +1121,7 @@ $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']))
 // ─────────────────────────────────────────────────────────────────────────────
 
 $tabs_admin=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO'];
+$tabs_agent=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
 $ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
 $tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
@@ -5954,8 +5964,7 @@ try {
 
 
 
-<!-- GASTOS (admin) -->
-<?php if($admin):?>
+<!-- GASTOS — admin ve todo y aprueba/reembolsa; empleados registran sus compras -->
 <div id="tab-GASTOS" class="tab-pane">
 <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;flex-wrap:wrap;gap:8px">
   <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -5986,11 +5995,12 @@ try {
   <div class="stat-card"><div class="stat-icon"> PENDIENTE</div><div class="stat-val" id="gkpi-pendiente" style="color:<?=$A?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">por aprobar</div></div>
   <div class="stat-card"><div class="stat-icon"> RECHAZADO</div><div class="stat-val" id="gkpi-rechazado" style="color:<?=$R?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">denegado</div></div>
 </div>
+<div id="gastos-reembolso-banner" style="display:none;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:10px;padding:10px 15px;margin-bottom:12px;font-size:10px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:.5px"></div>
 <div class="card">
 <div style="overflow-x:auto">
 <table>
-<thead><tr><th>FECHA</th><th>CATEGORÍA</th><th>TIPO</th><th>DESCRIPCIÓN</th><th>PROVEEDOR / PAGADO A</th><th>MONTO</th><th>MÉTODO</th><th>ENVIADO POR</th><th>RECIBO</th><th>ESTADO</th><th></th></tr></thead>
-<tbody id="gastos-tbody"><tr><td colspan="11" style="text-align:center;color:<?=$MU?>;padding:30px;font-size:9px;text-transform:uppercase">CARGANDO...</td></tr></tbody>
+<thead><tr><th>FECHA</th><th>CATEGORÍA</th><th>TIPO</th><th>DESCRIPCIÓN</th><th>PROVEEDOR / PAGADO A</th><th>MONTO</th><th>MÉTODO</th><th>ENVIADO POR</th><th>FACTURA</th><th>REEMBOLSO</th><th>ESTADO</th><th></th></tr></thead>
+<tbody id="gastos-tbody"><tr><td colspan="12" style="text-align:center;color:<?=$MU?>;padding:30px;font-size:9px;text-transform:uppercase">CARGANDO...</td></tr></tbody>
 </table>
 </div>
 </div>
@@ -6052,19 +6062,27 @@ try {
           <div style="font-size:7px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">NOTAS</div>
           <textarea name="notas" placeholder="NOTAS ADICIONALES..." style="width:100%;border:1.5px solid <?=$CB?>;border-radius:8px;padding:8px 10px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;background:#fff;min-height:55px;resize:vertical;text-transform:uppercase;box-sizing:border-box"></textarea>
         </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <input type="checkbox" name="recibo" id="gasto-recibo-chk" value="1" style="width:15px;height:15px;cursor:pointer">
-          <label for="gasto-recibo-chk" style="font-size:9px;font-weight:700;color:<?=$TX?>;cursor:pointer;text-transform:uppercase">RECIBO ADJUNTO</label>
+        <div style="grid-column:1/-1">
+          <div style="font-size:7px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:3px">📷 FOTO DE LA FACTURA / RECIBO</div>
+          <input type="file" name="recibo_foto" accept="image/*,application/pdf" capture="environment" style="width:100%;border:1.5px dashed <?=$CB?>;border-radius:8px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif;background:#F8FBFE;box-sizing:border-box">
+          <div style="font-size:7px;color:#7A90A4;margin-top:3px;text-transform:uppercase;letter-spacing:.5px">PUEDES TOMAR LA FOTO O SUBIR IMAGEN/PDF</div>
+        </div>
+        <div style="grid-column:1/-1;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:8px;padding:10px 12px">
+          <div style="font-size:7px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">💵 ¿LO PAGÓ UN EMPLEADO DE SU BOLSILLO? (PARA REEMBOLSARLE)</div>
+          <select name="reembolsar_a" style="width:100%;border:1.5px solid #F5D5A0;border-radius:8px;padding:8px 10px;font-size:11px;font-family:'DM Sans',sans-serif;background:#fff;box-sizing:border-box">
+            <option value="">— NO / LO PAGÓ LA OFICINA —</option>
+            <?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h($u['nombre'])?></option><?php endforeach;?>
+          </select>
+          <div style="font-size:7px;color:#C07A1A;margin-top:4px;text-transform:uppercase;letter-spacing:.5px">★ SI SELECCIONAS A ALGUIEN, EL GASTO QUEDA COMO "POR REEMBOLSAR" HASTA QUE SE LE PAGUE</div>
         </div>
       </div>
       <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:6px">
         <button type="button" onclick="closeGastoModal()" class="btn btn-gh btn-sm">CANCELAR</button>
-        <button type="button" onclick="saveGasto()" class="btn btn-p btn-sm">✓ GUARDAR GASTO</button>
+        <button type="button" id="gasto-save-btn" onclick="saveGasto()" class="btn btn-p btn-sm">✓ GUARDAR GASTO</button>
       </div>
     </form>
   </div>
 </div>
-<?php endif;?>
 
 <!-- ADMIN -->
 <div id="tab-ADMIN" class="tab-pane">
@@ -8140,6 +8158,14 @@ function loadGastos(){
       document.getElementById('gkpi-aprobado').textContent=fmt(t.aprobado);
       document.getElementById('gkpi-pendiente').textContent=fmt(t.pendiente);
       document.getElementById('gkpi-rechazado').textContent=fmt(t.rechazado);
+      // Aviso de reembolsos pendientes a empleados
+      const banner=document.getElementById('gastos-reembolso-banner');
+      if(banner){
+        const pend=(d.data||[]).filter(g=>g.reembolsar_a && g.reembolsado!='1');
+        const tot=pend.reduce((s,g)=>s+parseFloat(g.monto||0),0);
+        if(pend.length){banner.style.display='block';banner.textContent='💵 POR REEMBOLSAR A EMPLEADOS: '+fmt(tot)+' ('+pend.length+' gasto'+(pend.length>1?'s':'')+')';}
+        else banner.style.display='none';
+      }
     });
 }
 const GASTO_CAT_LABELS={OFFICE:'OFFICE',MEETING:'MEETING',PAYROLL:'PAYROLL',MARKETING:'MARKETING',TRAINING:'TRAINING'};
@@ -8149,10 +8175,25 @@ const GASTO_EST_BG={PENDIENTE:'#FDF6EC',APROBADO:'#EAF5F0',RECHAZADO:'#FDF0EE'};
 function renderGastos(rows){
   const tb=document.getElementById('gastos-tbody');
   if(!tb) return;
-  if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="11" style="text-align:center;color:#7A90A4;padding:30px;font-size:9px;text-transform:uppercase">SIN GASTOS EN ESTE PERÍODO</td></tr>';return;}
+  if(!rows||!rows.length){tb.innerHTML='<tr><td colspan="12" style="text-align:center;color:#7A90A4;padding:30px;font-size:9px;text-transform:uppercase">SIN GASTOS EN ESTE PERÍODO</td></tr>';return;}
   function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
   const fmt=v=>'$'+parseFloat(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
-  tb.innerHTML=rows.map(g=>`
+  tb.innerHTML=rows.map(g=>{
+    // FACTURA: link a la foto si existe
+    const factura = g.recibo_foto
+      ? `<a href="${esc(g.recibo_foto)}" target="_blank" title="VER FACTURA" style="font-size:14px;text-decoration:none">📄</a>`
+      : (g.recibo=='1'?'<span style="font-size:11px;color:#1E7A5C">✓</span>':'<span style="color:#C8DFF0">—</span>');
+    // REEMBOLSO: si hay reembolsar_a, mostrar a quién y si está pagado
+    let reemb;
+    if(g.reembolsar_a && g.reembolsar_nombre){
+      if(g.reembolsado=='1'){
+        reemb=`<span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:2px 7px;font-size:7px;font-weight:900;white-space:nowrap">✓ PAGADO A ${esc(g.reembolsar_nombre.split(' ')[0].toUpperCase())}</span>`;
+      } else {
+        reemb=`<span style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:20px;padding:2px 7px;font-size:7px;font-weight:900;white-space:nowrap">⏳ DEBE A ${esc(g.reembolsar_nombre.split(' ')[0].toUpperCase())}</span>`
+          + (ADMIN?`<button onclick="toggleGastoReembolso(${g.id},1)" title="MARCAR COMO PAGADO" class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 6px;margin-left:3px">💵 PAGAR</button>`:'');
+      }
+    } else { reemb='<span style="color:#C8DFF0;font-size:9px">—</span>'; }
+    return `
     <tr>
       <td style="font-size:9px;white-space:nowrap">${esc(g.fecha?.split('T')[0]||g.fecha||'—')}</td>
       <td><span style="background:#EBF4F9;color:${GASTO_CAT_COLORS[g.categoria]||'#1B3A5C'};border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;border:1px solid #C8DFF0;white-space:nowrap">${GASTO_CAT_LABELS[g.categoria]||esc(g.categoria)}</span></td>
@@ -8162,13 +8203,14 @@ function renderGastos(rows){
       <td style="font-size:10px;font-weight:900;color:#1B4A6B;white-space:nowrap">${fmt(g.monto)}</td>
       <td><span style="background:#F0F4F8;border-radius:4px;padding:2px 6px;font-size:7px;font-weight:700">${esc(g.metodo_pago||'—')}</span></td>
       <td style="font-size:9px;color:#1B3A5C">${esc(g.enviado_nombre||'—')}</td>
-      <td style="text-align:center;font-size:11px;color:${g.recibo=='1'?'#1E7A5C':'#C8DFF0'}">${g.recibo=='1'?'✓':'—'}</td>
+      <td style="text-align:center">${factura}</td>
+      <td style="text-align:center">${reemb}</td>
       <td><span style="background:${GASTO_EST_BG[g.estado]||'#F5F5F5'};color:${GASTO_EST_COLOR[g.estado]||'#333'};border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">${esc(g.estado||'—')}</span></td>
       <td><div style="display:flex;gap:3px;flex-wrap:nowrap">
-        ${g.estado==='PENDIENTE'?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="APROBAR" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
-        <button onclick="deleteGasto(${g.id})" title="ELIMINAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE">🗑</button>
+        ${(ADMIN&&g.estado==='PENDIENTE')?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="APROBAR" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
+        ${(ADMIN||g.enviado_por==UID)?`<button onclick="deleteGasto(${g.id})" title="ELIMINAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE">🗑</button>`:''}
       </div></td>
-    </tr>`).join('');
+    </tr>`;}).join('');
 }
 function openGastoForm(){
   document.getElementById('gasto-modal').style.display='flex';
@@ -8195,11 +8237,24 @@ async function saveGasto(){
   if(!form.checkValidity()){form.reportValidity();return;}
   const fd=new FormData(form);
   fd.append('action','save_gasto');
-  if(!form.querySelector('[name="recibo"]').checked) fd.delete('recibo');
+  const btn=document.getElementById('gasto-save-btn');
+  if(btn){btn.disabled=true;btn.textContent='GUARDANDO...';}
+  try{
+    const r=await fetch('api.php',{method:'POST',body:fd});
+    const d=await r.json();
+    if(d.ok){closeGastoModal();loadGastos();if(typeof toast==='function')toast('✓ GASTO GUARDADO');}
+    else alert(d.error||'Error al guardar');
+  }catch(e){alert('Error de conexión');}
+  if(btn){btn.disabled=false;btn.textContent='✓ GUARDAR GASTO';}
+}
+async function toggleGastoReembolso(id,pagado){
+  if(pagado && !confirm('¿Confirmas que YA le pagaste/reembolsaste este gasto al empleado?')) return;
+  const fd=new FormData();
+  fd.append('action','toggle_gasto_reembolso');fd.append('id',id);fd.append('pagado',pagado?1:0);
   const r=await fetch('api.php',{method:'POST',body:fd});
   const d=await r.json();
-  if(d.ok){closeGastoModal();loadGastos();if(typeof toast==='function')toast('✓ GASTO GUARDADO');}
-  else alert(d.error||'Error al guardar');
+  if(d.ok){loadGastos();if(typeof toast==='function')toast('✓ REEMBOLSO ACTUALIZADO');}
+  else alert(d.error||'Error');
 }
 async function updateGastoStatus(id,estado){
   const fd=new FormData();
