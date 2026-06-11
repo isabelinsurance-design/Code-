@@ -23,16 +23,54 @@ Configure below, then:
 import sys, time, json, platform, subprocess, urllib.request, base64, io, os
 
 # ───────────────────────── CONFIG ─────────────────────────
-SERVER_URL          = os.environ.get("TEMPO_SERVER", "http://localhost:8787")
-USER                = os.environ.get("TEMPO_USER", platform.node() or "agent")
-SAMPLE_INTERVAL     = 30      # seconds between activity samples
-SCREENSHOT_INTERVAL = 600     # seconds between screenshots (0 = disabled)
-IDLE_THRESHOLD      = 60      # seconds with no input == "idle/away"
-ENABLE_SCREENSHOTS  = True    # also needs mss or Pillow installed
-SCREENSHOT_QUALITY  = 35      # jpeg quality 1-95 (lower = smaller upload)
+# Defaults below are overridden by tempo_config.json (next to this script or
+# the .exe), which in turn is overridden by TEMPO_* environment variables.
+# The Windows installer writes tempo_config.json for you.
+def _agent_dir():
+    if getattr(sys, "frozen", False):        # running as a PyInstaller .exe
+        return os.path.dirname(sys.executable)
+    return os.path.dirname(os.path.abspath(__file__))
+
+def _load_config():
+    path = os.environ.get("TEMPO_CONFIG") or os.path.join(_agent_dir(), "tempo_config.json")
+    try:
+        with open(path) as f:
+            return json.load(f)
+    except Exception:
+        return {}
+
+_CFG = _load_config()
+def _opt(env, key, default):
+    if os.environ.get(env) not in (None, ""):
+        return os.environ[env]
+    return _CFG.get(key, default)
+def _bool(v):
+    return str(v).strip().lower() not in ("0", "false", "no", "off", "")
+
+SERVER_URL          = _opt("TEMPO_SERVER", "server", "http://localhost:8787")
+USER                = _opt("TEMPO_USER", "user", platform.node() or "agent")
+SAMPLE_INTERVAL     = int(_opt("TEMPO_SAMPLE", "sample_interval", 30))       # seconds between samples
+SCREENSHOT_INTERVAL = int(_opt("TEMPO_SHOT_INTERVAL", "screenshot_interval", 600))  # 0 = disabled
+IDLE_THRESHOLD      = int(_opt("TEMPO_IDLE", "idle_threshold", 60))          # no input => "idle/away"
+ENABLE_SCREENSHOTS  = _bool(_opt("TEMPO_SHOTS", "enable_screenshots", True)) # needs mss or Pillow
+SCREENSHOT_QUALITY  = int(_opt("TEMPO_SHOT_QUALITY", "screenshot_quality", 35))     # jpeg quality 1-95
+LOGFILE             = _opt("TEMPO_LOG", "logfile", "")                       # optional status log
 # ───────────────────────────────────────────────────────────
 
 OS = platform.system()  # 'Windows' | 'Darwin' | 'Linux'
+
+def log(msg):
+    line = f"{time.strftime('%Y-%m-%d %H:%M:%S')}  {msg}"
+    try:
+        print(line, flush=True)
+    except Exception:
+        pass
+    if LOGFILE:
+        try:
+            with open(LOGFILE, "a", encoding="utf-8") as f:
+                f.write(line + "\n")
+        except Exception:
+            pass
 
 
 # ═══════════════ ACTIVE WINDOW / APP / URL ═══════════════
@@ -185,15 +223,18 @@ def post(samples):
         urllib.request.urlopen(req, timeout=6).read()
         return True
     except Exception as e:
-        print(f"  ! upload failed: {e}")
+        log(f"  ! upload failed: {e}")
         return False
 
 
 def main():
-    print(f"Tempo Agent · {OS} · user={USER}")
-    print(f"  server={SERVER_URL}  sample={SAMPLE_INTERVAL}s  "
-          f"screenshots={'on' if (ENABLE_SCREENSHOTS and SCREENSHOT_INTERVAL) else 'off'}")
-    print("  Ctrl-C to stop.\n")
+    # keep an installed agent's log from growing forever
+    if LOGFILE and os.path.isfile(LOGFILE) and os.path.getsize(LOGFILE) > 1_000_000:
+        try: os.remove(LOGFILE)
+        except Exception: pass
+    log(f"Tempo Agent · {OS} · user={USER}")
+    log(f"  server={SERVER_URL}  sample={SAMPLE_INTERVAL}s  "
+        f"screenshots={'on' if (ENABLE_SCREENSHOTS and SCREENSHOT_INTERVAL) else 'off'}")
     last_shot = 0
     while True:
         loop_start = time.time()
@@ -214,9 +255,9 @@ def main():
                 sample["shot_b64"] = shot
                 last_shot = time.time()
         ok = post(sample)
-        flag = "●" if active else "○"
-        print(f"  {flag} {sample['app'][:18]:<18} {('· '+sample['url']) if sample['url'] else '':<24} "
-              f"idle={int(idle)}s {'↑' if ok else '×'}")
+        flag = "active" if active else "idle  "
+        log(f"  [{flag}] {sample['app'][:18]:<18} {('· '+sample['url']) if sample['url'] else '':<24} "
+            f"idle={int(idle)}s {'sent' if ok else 'FAILED'}")
         time.sleep(max(1, SAMPLE_INTERVAL - (time.time() - loop_start)))
 
 

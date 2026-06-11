@@ -3,3 +3,11 @@ tempo/server/categories.json
 tempo/server/shots/
 __pycache__/
 *.pyc
+
+# agent runtime / Windows build artifacts
+tempo_config.json
+*.log
+tempo/agent/windows/TempoAgent.exe
+tempo/agent/windows/build/
+tempo/agent/windows/dist/
+tempo/agent/windows/*.spec
