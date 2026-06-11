@@ -1636,6 +1636,7 @@ case 'get_gastos':
     $tp = []; $tw = [];
     if ($mes !== 'all') { $tw[] = 'MONTH(fecha)=? AND YEAR(fecha)=?'; $tp[] = intval($mes); $tp[] = $year; }
     if ($cat !== 'all') { $tw[] = 'categoria=?'; $tp[] = $cat; }
+    if (!isAdmin()) { $tw[] = 'enviado_por=?'; $tp[] = $gu['id']; }
     $twc = $tw ? 'WHERE '.implode(' AND ', $tw) : '';
     $ts = $pdo->prepare("SELECT estado, SUM(monto) AS suma FROM gastos $twc GROUP BY estado");
     $ts->execute($tp);

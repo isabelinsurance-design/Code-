@@ -8147,7 +8147,7 @@ function loadGastos(){
   const mes=document.getElementById('gastos-mes')?.value||'all';
   const cat=document.getElementById('gastos-cat')?.value||'all';
   const est=document.getElementById('gastos-est')?.value||'all';
-  const yr=new Date().getFullYear();
+  const yr=<?=date('Y')?>;
   fetch('api.php?action=get_gastos&mes='+mes+'&cat='+encodeURIComponent(cat)+'&est='+est+'&year='+yr)
     .then(r=>r.json()).then(d=>{
       if(!d.ok){document.getElementById('gastos-tbody').innerHTML='<tr><td colspan="11" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR CARGANDO DATOS</td></tr>';return;}
