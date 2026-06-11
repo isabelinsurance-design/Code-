@@ -249,12 +249,32 @@ $t = $T[$lang];
 //    Until you set this, the "Get a Quote" buttons safely scroll to the contact form.
 define('QUOTE_URL', 'YOUR_AGENT_QUOTE_URL_HERE');
 
-define('MAIL_TO',   'Connect@withisabelfuentes.com');
-define('MAIL_FROM', 'noreply@withisabelfuentes.com');
-define('SMTP_HOST', 'mail.withisabelfuentes.com');
-define('SMTP_PORT', 587);
-define('SMTP_USER', 'mail@withisabelfuentes.com');
-define('SMTP_PASS', 'YOUR_EMAIL_PASSWORD_HERE'); // <-- leave as-is to use PHP mail()
+// ── SECRETS (kept OUT of git) ─────────────────────────────────────────────────
+// Create a file named `mail-secret.php` next to this page on the server, with:
+//
+//     <?php return [
+//       'smtp_pass' => 'your-real-mailbox-password',
+//       // optional overrides:
+//       // 'mail_to'   => 'Connect@withisabelfuentes.com',
+//       // 'mail_from' => 'mail@withisabelfuentes.com',
+//     ];
+//
+// That file is git-ignored, so the password never enters the repo and is NOT
+// overwritten by deploys. When it's present, the form sends via authenticated
+// SMTP (lands in the inbox). When it's absent, the placeholder keeps PHP mail().
+$secret = [];
+$secretFile = __DIR__ . '/mail-secret.php';
+if (is_file($secretFile)) {
+    $loaded = include $secretFile;
+    if (is_array($loaded)) $secret = $loaded;
+}
+
+define('MAIL_TO',   $secret['mail_to']   ?? 'Connect@withisabelfuentes.com');
+define('MAIL_FROM', $secret['mail_from'] ?? 'noreply@withisabelfuentes.com');
+define('SMTP_HOST', $secret['smtp_host'] ?? 'mail.withisabelfuentes.com');
+define('SMTP_PORT', $secret['smtp_port'] ?? 587);
+define('SMTP_USER', $secret['smtp_user'] ?? 'mail@withisabelfuentes.com');
+define('SMTP_PASS', $secret['smtp_pass'] ?? 'YOUR_EMAIL_PASSWORD_HERE'); // set in mail-secret.php
 
 // Quote buttons point to your self-quote page once configured; otherwise to the form.
 $quoteIsExternal = (QUOTE_URL !== 'YOUR_AGENT_QUOTE_URL_HERE');
