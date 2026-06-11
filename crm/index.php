@@ -8161,14 +8161,17 @@ function loadGastos(){
         return;
       }
       if(!d.ok){ if(tb) tb.innerHTML='<tr><td colspan="12" style="text-align:center;padding:20px;color:#B83232;font-size:9px">ERROR: '+(d.error||'desconocido')+'</td></tr>'; return; }
-      renderGastos(d.data||[]);
-      const t=d.totales||{total:0,aprobado:0,pendiente:0,rechazado:0};
+      // jsonOk envuelve todo dentro de "data": { data:[gastos], totales:{} }
+      const payload = d.data||{};
+      const rows = Array.isArray(payload) ? payload : (payload.data||[]);
+      renderGastos(rows);
+      const t=payload.totales||{total:0,aprobado:0,pendiente:0,rechazado:0};
       const fmt=v=>'$'+parseFloat(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
       const setKpi=(id,v)=>{const el=document.getElementById(id);if(el)el.textContent=fmt(v);};
       setKpi('gkpi-total',t.total);setKpi('gkpi-aprobado',t.aprobado);setKpi('gkpi-pendiente',t.pendiente);setKpi('gkpi-rechazado',t.rechazado);
       const banner=document.getElementById('gastos-reembolso-banner');
       if(banner){
-        const pend=(d.data||[]).filter(g=>g.reembolsar_a && g.reembolsado!='1');
+        const pend=rows.filter(g=>g.reembolsar_a && g.reembolsado!='1');
         const tot=pend.reduce((s,g)=>s+parseFloat(g.monto||0),0);
         if(pend.length){banner.style.display='block';banner.textContent='💵 POR REEMBOLSAR A EMPLEADOS: '+fmt(tot)+' ('+pend.length+' gasto'+(pend.length>1?'s':'')+')';}
         else banner.style.display='none';
