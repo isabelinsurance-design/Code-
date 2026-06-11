@@ -101,6 +101,7 @@ $T = [
   'form_fname'    => 'First Name',
   'form_lname'    => 'Last Name',
   'form_phone'    => 'Phone Number',
+  'form_email'    => 'Email',
   'form_interest' => "I'm interested in",
   'form_msg'      => 'Message (optional)',
   'form_btn'      => 'Send Message →',
@@ -210,6 +211,7 @@ $T = [
   'form_fname'    => 'Nombre',
   'form_lname'    => 'Apellido',
   'form_phone'    => 'Número de Teléfono',
+  'form_email'    => 'Correo Electrónico',
   'form_interest' => 'Me interesa',
   'form_msg'      => 'Mensaje (opcional)',
   'form_btn'      => 'Enviar Mensaje →',
@@ -264,10 +266,10 @@ $quoteAttrs      = $quoteIsExternal ? ' target="_blank" rel="noopener noreferrer
  * BUG FIX from previous version: SMTP auth failure now correctly falls back to mail()
  * instead of returning false silently.
  */
-function sendMail(string $to, string $subject, string $body): bool {
+function sendMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
     // Try SMTP only when a real password has been entered
     if (SMTP_PASS !== 'YOUR_EMAIL_PASSWORD_HERE') {
-        if (sendSmtpMail($to, $subject, $body)) {
+        if (sendSmtpMail($to, $subject, $body, $replyTo)) {
             return true;
         }
         // If SMTP failed for any reason, fall through to mail()
@@ -275,19 +277,45 @@ function sendMail(string $to, string $subject, string $body): bool {
 
     // Native PHP mail() — reliable on Bluehost shared hosting
     $from    = MAIL_FROM;
+    $reply   = filter_var($replyTo, FILTER_VALIDATE_EMAIL) ? $replyTo : $from;
     $headers = implode("\r\n", [
         "From: Medicare with Isabel <{$from}>",
-        "Reply-To: {$from}",
+        "Reply-To: {$reply}",
         "MIME-Version: 1.0",
         "Content-Type: text/plain; charset=UTF-8",
         "X-Mailer: PHP/" . phpversion(),
     ]);
-    return (bool) @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers);
+    // The 5th arg sets the envelope sender (-f). Without it, shared hosts use a
+    // server default that fails SPF and gets the mail flagged as spam / dropped.
+    return (bool) @mail($to, '=?UTF-8?B?' . base64_encode($subject) . '?=', $body, $headers, '-f' . $from);
 }
 
-function sendSmtpMail(string $to, string $subject, string $body): bool {
+/**
+ * Appends a lead to a local backup file so no submission is ever lost — even if
+ * email delivery fails. The file starts with `<?php exit;` so it can't be read
+ * over the web (PHP runs the exit and returns nothing). We read past that line.
+ */
+function logLead(string $outcome, array $data): void {
+    $file = __DIR__ . '/leads-log.php';
+    if (!file_exists($file)) {
+        @file_put_contents($file, "<?php exit; /* Lead backup — do not delete. Not web-readable. */ ?>\n");
+    }
+    $line = sprintf(
+        "[%s] %-12s | %s %s | tel:%s | %s | email:%s | lang:%s | ip:%s",
+        date('Y-m-d H:i:s'), $outcome,
+        $data['fname'] ?? '', $data['lname'] ?? '', $data['phone'] ?? '',
+        $data['interest'] ?? '', $data['email'] ?? '-', $data['lang'] ?? '',
+        $_SERVER['REMOTE_ADDR'] ?? '-'
+    );
+    @file_put_contents($file, $line . "\n", FILE_APPEND | LOCK_EX);
+}
+
+function sendSmtpMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
     $from = MAIL_FROM; $host = SMTP_HOST; $port = SMTP_PORT;
     $user = SMTP_USER; $pass = SMTP_PASS;
+    // The envelope sender must be an address the SMTP server is authorized to send
+    // as — that's the authenticated user, not necessarily the display "From".
+    $envelope = filter_var($user, FILTER_VALIDATE_EMAIL) ? $user : $from;
     $errno = 0; $errstr = '';
     $prefix = ($port == 465) ? 'ssl://' : '';
     $sock = @fsockopen($prefix . $host, $port, $errno, $errstr, 10);
@@ -316,8 +344,9 @@ function sendSmtpMail(string $to, string $subject, string $body): bool {
         return false; // caller will fall back to mail()
     }
 
-    $headers = "From: Medicare with Isabel <{$from}>\r\nContent-Type: text/plain; charset=UTF-8";
-    $send("MAIL FROM:<{$from}>"); $read();
+    $reply   = filter_var($replyTo, FILTER_VALIDATE_EMAIL) ? $replyTo : $from;
+    $headers = "From: Medicare with Isabel <{$from}>\r\nReply-To: {$reply}\r\nContent-Type: text/plain; charset=UTF-8";
+    $send("MAIL FROM:<{$envelope}>"); $read();
     $send("RCPT TO:<{$to}>"); $read();
     $send("DATA"); $read();
     $encodedSubject = '=?UTF-8?B?' . base64_encode($subject) . '?=';
@@ -343,15 +372,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submit'])) {
     $isBot = !empty($_POST['website_url']);
 
     if (!$csrfValid || $isBot) {
-        // Silently reject — do nothing, show no error to bots
+        // Silently reject to the visitor — but log it so a stale-token / spam issue
+        // is visible instead of leads vanishing without a trace.
+        logLead($isBot ? 'BOT' : 'CSRF_FAIL', [
+            'fname' => $_POST['fname'] ?? '', 'phone' => $_POST['phone'] ?? '', 'lang' => $lang,
+        ]);
         $formMessage = ''; $formSuccess = false;
     } else {
         $fname    = htmlspecialchars(strip_tags(trim($_POST['fname']    ?? '')));
         $lname    = htmlspecialchars(strip_tags(trim($_POST['lname']    ?? '')));
         $phone    = htmlspecialchars(strip_tags(trim($_POST['phone']    ?? '')));
+        $email    = htmlspecialchars(strip_tags(trim($_POST['email']    ?? '')));
         $interest = htmlspecialchars(strip_tags(trim($_POST['interest'] ?? '')));
         $message  = htmlspecialchars(strip_tags(trim($_POST['message']  ?? '')));
         $fLang    = in_array($_POST['form_lang'] ?? '', ['en','es']) ? $_POST['form_lang'] : 'en';
+        $replyTo  = filter_var($email, FILTER_VALIDATE_EMAIL) ? $email : '';
+
+        $logData = ['fname'=>$fname,'lname'=>$lname,'phone'=>$phone,'email'=>$email,'interest'=>$interest,'lang'=>$fLang];
 
         if ($fname && $phone) {
             $subject = "Nueva consulta Medicare – {$fname} {$lname}";
@@ -360,14 +397,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submit'])) {
                      . "============================\n"
                      . "Nombre:   {$fname} {$lname}\n"
                      . "Teléfono: {$phone}\n"
+                     . "Email:    " . ($email ?: '—') . "\n"
                      . "Interés:  {$interest}\n"
                      . "Idioma:   " . strtoupper($fLang) . "\n"
                      . "Mensaje:\n{$message}\n"
                      . "============================\n"
                      . "Enviado desde withisabelfuentes.com";
-            $formSuccess = sendMail(MAIL_TO, $subject, $body);
+            $formSuccess = sendMail(MAIL_TO, $subject, $body, $replyTo);
+            // Always log the lead — so even if email delivery fails, it's captured.
+            logLead($formSuccess ? 'SENT' : 'MAIL_FAILED', $logData);
             $formMessage = $formSuccess ? $t['form_sent'] : $t['form_err'];
         } else {
+            logLead('INCOMPLETE', $logData);
             $formMessage = $lang === 'es'
                 ? '⚠️ Por favor ingresa tu nombre y teléfono.'
                 : '⚠️ Please enter your name and phone number.';
@@ -1027,9 +1068,15 @@ footer strong{color:white}
               <input type="text" id="lname" name="lname" placeholder="<?= $t['ph_lname'] ?>" autocomplete="family-name"/>
             </div>
           </div>
-          <div class="form-group">
-            <label for="phone"><?= $t['form_phone'] ?> *</label>
-            <input type="tel" id="phone" name="phone" placeholder="(310) 000-0000" required autocomplete="tel"/>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="phone"><?= $t['form_phone'] ?> *</label>
+              <input type="tel" id="phone" name="phone" placeholder="(310) 000-0000" required autocomplete="tel"/>
+            </div>
+            <div class="form-group">
+              <label for="email"><?= $t['form_email'] ?></label>
+              <input type="email" id="email" name="email" placeholder="maria@email.com" autocomplete="email"/>
+            </div>
           </div>
           <div class="form-group">
             <label for="interest"><?= $t['form_interest'] ?></label>
