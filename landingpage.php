@@ -281,6 +281,15 @@ define('SMTP_PASS', $secret['smtp_pass'] ?? 'YOUR_EMAIL_PASSWORD_HERE'); // set 
 define('RESEND_API_KEY', $secret['resend_api_key'] ?? '');
 define('RESEND_FROM',    $secret['resend_from']    ?? ('Medicare with Isabel <' . MAIL_FROM . '>'));
 
+// Database (MySQL) — leads are saved here when configured. Create the DB + user
+// in cPanel → MySQL Databases, then put the values in mail-secret.php:
+//   'db_name' => 'emzmuumy_leads', 'db_user' => 'emzmuumy_leads', 'db_pass' => '...'
+// The `leads` table is created automatically on first submission.
+define('DB_HOST', $secret['db_host'] ?? 'localhost');
+define('DB_NAME', $secret['db_name'] ?? '');
+define('DB_USER', $secret['db_user'] ?? '');
+define('DB_PASS', $secret['db_pass'] ?? '');
+
 // Quote buttons point to your self-quote page once configured; otherwise to the form.
 $quoteIsExternal = (QUOTE_URL !== 'YOUR_AGENT_QUOTE_URL_HERE');
 $quoteHref       = $quoteIsExternal ? QUOTE_URL : '#contact';
@@ -373,6 +382,52 @@ function sendResendMail(string $to, string $subject, string $body, string $reply
     $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
     curl_close($ch);
     return $code >= 200 && $code < 300;
+}
+
+/**
+ * Saves a lead to the MySQL `leads` table (created automatically if missing).
+ * Returns true on success. No-op (returns false) when the DB isn't configured.
+ */
+function saveLeadToDb(array $d): bool {
+    if (DB_NAME === '') return false;
+    try {
+        $pdo = new PDO(
+            'mysql:host=' . DB_HOST . ';dbname=' . DB_NAME . ';charset=utf8mb4',
+            DB_USER, DB_PASS,
+            [PDO::ATTR_ERRMODE => PDO::ERRMODE_EXCEPTION, PDO::ATTR_TIMEOUT => 10]
+        );
+        $pdo->exec(
+            "CREATE TABLE IF NOT EXISTS leads (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                created_at DATETIME NOT NULL,
+                fname VARCHAR(120), lname VARCHAR(120),
+                phone VARCHAR(60), email VARCHAR(190),
+                interest VARCHAR(255), message TEXT,
+                lang VARCHAR(5), ip VARCHAR(45),
+                emailed TINYINT(1) DEFAULT 0
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4"
+        );
+        $stmt = $pdo->prepare(
+            "INSERT INTO leads
+                (created_at, fname, lname, phone, email, interest, message, lang, ip, emailed)
+             VALUES (NOW(), :fname, :lname, :phone, :email, :interest, :message, :lang, :ip, :emailed)"
+        );
+        $stmt->execute([
+            ':fname'    => $d['fname']    ?? '',
+            ':lname'    => $d['lname']    ?? '',
+            ':phone'    => $d['phone']    ?? '',
+            ':email'    => $d['email']    ?? '',
+            ':interest' => $d['interest'] ?? '',
+            ':message'  => $d['message']  ?? '',
+            ':lang'     => $d['lang']     ?? '',
+            ':ip'       => $_SERVER['REMOTE_ADDR'] ?? '',
+            ':emailed'  => $d['emailed']  ?? 0,
+        ]);
+        return true;
+    } catch (Throwable $e) {
+        @error_log('Lead DB save failed: ' . $e->getMessage());
+        return false;
+    }
 }
 
 function sendSmtpMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
@@ -468,9 +523,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_submit'])) {
                      . "Mensaje:\n{$message}\n"
                      . "============================\n"
                      . "Enviado desde withisabelfuentes.com";
-            $formSuccess = sendMail(MAIL_TO, $subject, $body, $replyTo);
-            // Always log the lead — so even if email delivery fails, it's captured.
-            logLead($formSuccess ? 'SENT' : 'MAIL_FAILED', $logData);
+            $emailed   = sendMail(MAIL_TO, $subject, $body, $replyTo);
+            // Save to the database (primary store) and the file log (last-resort backup).
+            $savedToDb = saveLeadToDb($logData + ['message' => $message, 'emailed' => $emailed ? 1 : 0]);
+            logLead($emailed ? 'SENT' : ($savedToDb ? 'DB_SAVED' : 'MAIL_FAILED'), $logData);
+            // The lead is captured as long as email OR the database succeeded.
+            $formSuccess = $emailed || $savedToDb;
             $formMessage = $formSuccess ? $t['form_sent'] : $t['form_err'];
         } else {
             logLead('INCOMPLETE', $logData);
