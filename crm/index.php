@@ -922,14 +922,15 @@ $alerta_menu = count(array_filter($tickets_open, function($t) use ($hoy_fecha, $
 // Las llamadas de hoy ya fueron calculadas arriba (líneas de $stmt_llam_p)
 // No se repiten aquí para evitar queries duplicadas
 
-// Contar tickets cerrados por mí el día de hoy (solo tipo MIEMBRO, excluye LLAMADA y TASK/TAREA)
+// Contar tickets cerrados por mí el día de hoy (miembro + tareas generales).
+// Se excluyen APLICACION (se cuenta como APPS) y LLAMADAS (se cuentan aparte).
 $hoy_fmt = date('Y-m-d');
-$mis_cerrados_hoy = count(array_filter($tickets, function($t) use ($uid, $hoy_fmt, $TIPO_MIEMBRO) {
+$mis_cerrados_hoy = count(array_filter($tickets, function($t) use ($uid, $hoy_fmt) {
     $es_mio = (!empty($t['asignado_a'])) ? ($t['asignado_a'] == $uid) : ($t['agente_id'] == $uid);
     $fecha_cierre = $t['fecha_cierre'] ?? '';
+    $tipo = $t['tipo'] ?? '';
     return $es_mio && $t['estado'] === 'CERRADO' && str_starts_with($fecha_cierre, $hoy_fmt)
-           && in_array($t['tipo'] ?? '', $TIPO_MIEMBRO, true)
-           && ($t['tipo'] ?? '') !== 'LLAMADA';
+           && !in_array($tipo, ['APLICACION','LLAMADA','LLAMADA PERDIDA'], true);
 }));
 
 // Contar APPS (Tickets cerrados hoy que son de tipo 'APLICACION')
