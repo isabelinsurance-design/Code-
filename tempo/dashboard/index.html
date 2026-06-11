@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>TimeTrack — Time & Productivity Tracker</title>
+<title>Tempo — Time & Productivity Tracker</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
 <style>
@@ -160,7 +160,7 @@ select.fld{cursor:pointer}
   <aside class="sidebar">
     <div class="brand">
       <div class="brand-logo">⏱️</div>
-      <div><div class="brand-name">TimeTrack</div><div class="brand-sub">Productivity</div></div>
+      <div><div class="brand-name">Tempo</div><div class="brand-sub">Productivity</div></div>
     </div>
     <nav class="nav">
       <button class="nav-item active" data-view="dashboard"><span class="nav-ico">📊</span>Dashboard</button>
@@ -296,7 +296,7 @@ select.fld{cursor:pointer}
 
       <div class="agent-note" id="agentNote">
         <span style="font-size:17px">🛰️</span>
-        <div><b>Demo data.</b> A web page can't see other apps or sites on your computer — Time Doctor captures that with an installed <b>desktop agent</b>. This report shows the exact layout that agent would feed; see the note below to connect real data or your CRM.</div>
+        <div id="agentNoteText">Checking for the Tempo Agent…</div>
       </div>
 
       <div class="grid g4">
@@ -339,9 +339,9 @@ select.fld{cursor:pointer}
         <div class="card-pad">
           <div class="card-title" style="margin-bottom:8px">🔌 Connect real data &amp; your CRM</div>
           <p class="muted" style="font-size:13px;line-height:1.65;max-width:760px">
-            To track real computer activity you'd run a lightweight desktop agent (Windows/Mac) that records the active app, window title, URL and input level, then <code>POST</code>s it to an endpoint. This page reads from a single <code>activityFeed()</code> function — point it at that endpoint (or your CRM's API) and every chart above fills with live data. Time entries from the timer can likewise be pushed to your CRM per client/contact.
+            The <b>Tempo Agent</b> (<code>agent/tempo_agent.py</code>) runs on the tracked computer and records the active app, window title, URL, idle time and screenshots, then <code>POST</code>s them to the <b>Tempo Server</b> (<code>server/tempo_server.py</code>), which classifies and stores them. This dashboard reads the aggregated report from <code>GET /api/activity</code> — so it shows live data automatically when served by the server. To push time entries into your CRM per client/contact, forward the same samples to your CRM's API. Edit <code>categories.json</code> to tune what counts as productive vs distracting.
           </p>
-          <div style="margin-top:12px"><span class="proj-pill">POST /api/activity</span><span class="proj-pill">desktop agent → JSON</span><span class="proj-pill">CRM time-log sync</span></div>
+          <div style="margin-top:12px"><span class="proj-pill">tempo_agent.py</span><span class="proj-pill">POST /api/ingest</span><span class="proj-pill">GET /api/activity</span><span class="proj-pill">CRM time-log sync</span></div>
         </div>
       </div>
     </section>
@@ -641,7 +641,7 @@ function renderTeam(){
    This is the single data source for the activity report.
    Swap the body to fetch('/api/activity?day=…') from your
    desktop agent or CRM and every chart below fills with live data. */
-function activityFeed(dayOffset){
+function demoFeed(dayOffset){
   // deterministic demo data per day so it doesn't flicker on re-render
   const seed = (dayOffset*37+11);
   const apps = [
@@ -678,7 +678,24 @@ function activityFeed(dayOffset){
   return {apps, sites, blocks, shots, idleMin: 45 + (seed%4)*8, activityLevel: 71 - (seed%5)*4};
 }
 const PCOLOR = {productive:'var(--green)', neutral:'var(--amber)', unproductive:'var(--red)', idle:'#C6CEDF'};
-function renderActivity(){
+// normalize the server's "distracting" category to the UI's "unproductive"
+const normProd = p => p==='distracting' ? 'unproductive' : p;
+// Single data source: try the live Tempo Server, fall back to demo data offline.
+async function fetchActivity(off){
+  try{
+    const r = await fetch(`/api/activity?day=${off}`, {cache:'no-store'});
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    if(!d.live) throw 0;            // server up but no agent data for this day
+    ['apps','sites'].forEach(k => d[k] = d[k].map(x=>({...x, prod:normProd(x.prod)})));
+    d.blocks = d.blocks.map(b=>({...b, prod:normProd(b.prod)}));
+    d.shots  = d.shots.map(s=>({...s, prod:normProd(s.prod)}));
+    return {f:d, live:true};
+  }catch(e){
+    return {f: demoFeed(off), live:false};
+  }
+}
+async function renderActivity(){
   const sel = document.getElementById('activityDay');
   if(!sel.options.length){
     let html='';
@@ -687,8 +704,13 @@ function renderActivity(){
     sel.innerHTML=html;
   }
   const off = +sel.value || 0;
-  const f = activityFeed(off);
-  const activeMin = f.blocks.filter(b=>b.prod!=='idle').reduce((s,b)=>s+b.m,0);
+  const {f, live} = await fetchActivity(off);
+  document.getElementById('agentNoteText').innerHTML = live
+    ? '<b>🟢 Live data from the Tempo Agent.</b> Apps, sites, idle time and screenshots below are captured on the tracked computer.'
+    : '<b>Demo data.</b> The Tempo Agent isn\'t reporting yet. Start <code>tempo_server.py</code> and run <code>tempo_agent.py</code> on the computer to track, then this fills with real activity.';
+  document.getElementById('agentNote').style.background = live ? 'var(--green-lt)' : 'var(--blue-lt)';
+  document.getElementById('agentNote').style.borderColor = live ? '#B5E8CF' : '#C9D8FF';
+  const activeMin = Math.round(f.blocks.filter(b=>b.prod!=='idle').reduce((s,b)=>s+b.m,0));
   document.getElementById('actActive').textContent = `${Math.floor(activeMin/60)}h ${activeMin%60}m`;
   document.getElementById('actIdle').textContent = `${f.idleMin}m`;
   document.getElementById('actMouse').textContent = f.activityLevel+'%';
@@ -715,13 +737,15 @@ function renderActivity(){
       <span class="tag t-${s.prod==='unproductive'?'unprod':s.prod==='neutral'?'neutral':'prod'}">${PROD[s.prod]}</span>
       <span class="tdur">${Math.floor(s.m/60)?Math.floor(s.m/60)+'h ':''}${s.m%60}m</span></div>`).join('');
 
-  document.getElementById('shots').innerHTML = f.shots.map(sh=>{
+  document.getElementById('shots').innerHTML = f.shots.length ? f.shots.map(sh=>{
     const c = PCOLOR[sh.prod];
-    return `<div class="shot">
-      <div class="shot-img" style="background:linear-gradient(135deg,${c},#10172A)">${sh.app}</div>
-      <div class="shot-cap"><span>${sh.t}</span><span class="shot-act" style="color:${sh.act>=60?'var(--green)':sh.act>=30?'var(--amber)':'var(--red)'}">${sh.act}% active</span></div>
+    const img = sh.file
+      ? `<div class="shot-img" style="background-image:url('/shots/${sh.file}');background-color:#10172A"></div>`
+      : `<div class="shot-img" style="background:linear-gradient(135deg,${c},#10172A)">${sh.app}</div>`;
+    return `<div class="shot">${img}
+      <div class="shot-cap"><span>${sh.t}${sh.file?' · '+esc(sh.app):''}</span><span class="shot-act" style="color:${sh.act>=60?'var(--green)':sh.act>=30?'var(--amber)':'var(--red)'}">${sh.act}% active</span></div>
     </div>`;
-  }).join('');
+  }).join('') : '<div class="empty" style="grid-column:1/-1"><div class="empty-ico">📸</div>No screenshots for this day.</div>';
 }
 
 /* ════════════════ UTIL ════════════════ */
