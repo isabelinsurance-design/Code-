@@ -1,0 +1,19 @@
+---
+# ─────────────────────────────────────────────────────────────────────────────
+# Bluehost / cPanel Git™ Version Control deployment.
+# When you click "Deploy HEAD Commit" in cPanel, these tasks run and copy ONLY
+# the landing page into your site root — renamed to index.php so it becomes the
+# home page. The dashboard (index.html) and tools/ are NOT published.
+#
+# DEPLOYPATH = your site's document root. Confirm it in cPanel → Domains
+# (the "Document Root" for withisabelfuentes.com). Adjust the line below if it
+# differs from what's set here.
+# ─────────────────────────────────────────────────────────────────────────────
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/website_5a1c69e7
+    - /bin/mkdir -p "$DEPLOYPATH"
+    # One-time safety backup of whatever index.php is currently there:
+    - if [ -f "$DEPLOYPATH/index.php" ] && [ ! -f "$DEPLOYPATH/index.php.firstbak" ]; then /bin/cp "$DEPLOYPATH/index.php" "$DEPLOYPATH/index.php.firstbak"; fi
+    # Publish the landing page as the site's home page:
+    - /bin/cp -f landingpage.php "$DEPLOYPATH/index.php"
