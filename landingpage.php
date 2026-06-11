@@ -276,6 +276,11 @@ define('SMTP_PORT', $secret['smtp_port'] ?? 587);
 define('SMTP_USER', $secret['smtp_user'] ?? 'mail@withisabelfuentes.com');
 define('SMTP_PASS', $secret['smtp_pass'] ?? 'YOUR_EMAIL_PASSWORD_HERE'); // set in mail-secret.php
 
+// Resend (https://resend.com) — preferred when an API key is provided. Best
+// inbox deliverability. The "from" domain must be VERIFIED in your Resend account.
+define('RESEND_API_KEY', $secret['resend_api_key'] ?? '');
+define('RESEND_FROM',    $secret['resend_from']    ?? ('Medicare with Isabel <' . MAIL_FROM . '>'));
+
 // Quote buttons point to your self-quote page once configured; otherwise to the form.
 $quoteIsExternal = (QUOTE_URL !== 'YOUR_AGENT_QUOTE_URL_HERE');
 $quoteHref       = $quoteIsExternal ? QUOTE_URL : '#contact';
@@ -287,6 +292,14 @@ $quoteAttrs      = $quoteIsExternal ? ' target="_blank" rel="noopener noreferrer
  * instead of returning false silently.
  */
 function sendMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
+    // Prefer Resend when configured — best inbox deliverability.
+    if (RESEND_API_KEY !== '') {
+        if (sendResendMail($to, $subject, $body, $replyTo)) {
+            return true;
+        }
+        // If Resend failed, fall through to SMTP / mail().
+    }
+
     // Try SMTP only when a real password has been entered
     if (SMTP_PASS !== 'YOUR_EMAIL_PASSWORD_HERE') {
         if (sendSmtpMail($to, $subject, $body, $replyTo)) {
@@ -328,6 +341,38 @@ function logLead(string $outcome, array $data): void {
         $_SERVER['REMOTE_ADDR'] ?? '-'
     );
     @file_put_contents($file, $line . "\n", FILE_APPEND | LOCK_EX);
+}
+
+/**
+ * Sends via the Resend HTTP API (https://resend.com). Returns true on a 2xx.
+ * The "from" address domain must be verified in the Resend account.
+ */
+function sendResendMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
+    if (RESEND_API_KEY === '' || !function_exists('curl_init')) return false;
+    $payload = [
+        'from'    => RESEND_FROM,
+        'to'      => [$to],
+        'subject' => $subject,
+        'text'    => $body,
+    ];
+    if (filter_var($replyTo, FILTER_VALIDATE_EMAIL)) {
+        $payload['reply_to'] = $replyTo;
+    }
+    $ch = curl_init('https://api.resend.com/emails');
+    curl_setopt_array($ch, [
+        CURLOPT_RETURNTRANSFER => true,
+        CURLOPT_POST           => true,
+        CURLOPT_HTTPHEADER     => [
+            'Authorization: Bearer ' . RESEND_API_KEY,
+            'Content-Type: application/json',
+        ],
+        CURLOPT_POSTFIELDS     => json_encode($payload),
+        CURLOPT_TIMEOUT        => 15,
+    ]);
+    $resp = curl_exec($ch);
+    $code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+    curl_close($ch);
+    return $code >= 200 && $code < 300;
 }
 
 function sendSmtpMail(string $to, string $subject, string $body, string $replyTo = ''): bool {
