@@ -8,8 +8,8 @@
 > ✅ C1 (`usuarios_setup.php` hardened: admin-gated, env-only passwords, never echoed)
 > ✅ C2 (CSRF: per-session token, global fetch wrapper, verified on every POST to `api.php`/`api_ai.php`; plus `SameSite=Lax` cookies)
 > ✅ H1 (webhook secret: config constant first, empty/placeholder refused, `hash_equals`)
-> ✅ H2 (`save_member`: non-admin can no longer change `agente_id` on existing members; form locks the selector and always includes the current agent)
-> ✅ H3 (admin gates on the 3 pipeline-config actions)
+> ⚙️ H2 — **decisión del dueño:** cualquier usuario PUEDE crear/editar miembros y cambiar el agente responsable (restricción revertida a propósito). Se conserva el arreglo de fondo: el selector de agente **siempre incluye al responsable actual** (aunque esté inactivo) para evitar la reasignación *silenciosa* (bug Mª Lazo).
+> ⚙️ H3 — **decisión del dueño:** la configuración del pipeline queda abierta a cualquier usuario (candados de admin revertidos).
 > ✅ H4 (`'agente'`→`'agent'` queries fixed in `index.php`)
 > ✅ H6 (session cookies: `HttpOnly` + `Secure` (auto) + `SameSite=Lax` via shared `session_boot.php`; hardened logout)
 > ✅ M2 (login throttling: 8 failed attempts/10 min per user/IP; `display_errors` off in `login.php`)

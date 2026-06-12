@@ -156,10 +156,6 @@ case 'save_member':
     try {
         if (!empty($d['id'])) {
             // UPDATE EXISTENTE
-            // Solo el admin puede REASIGNAR el agente responsable de un miembro
-            // existente. Para los demás se conserva el agente actual (evita
-            // reasignaciones accidentales al guardar el formulario).
-            if (!$admin) $fields = array_values(array_diff($fields, ['agente_id']));
             // ── ANTES DEL UPDATE: obtener estado actual para comparar ──────────────
             $cambio_log = '';
             $pre = $pdo->prepare("SELECT estado, plan, carrier, tipo_plan, subestado, fecha_efectiva, fecha_cancelacion FROM miembros WHERE id=?");
@@ -1148,7 +1144,6 @@ case 'aplicar_pasos_automaticos':
         break;
 
     case 'add_pipeline_config_row':
-        if (!$admin) jsonErr('Solo admin puede modificar la configuración del pipeline');
         try {
             $pdo = db();
             $pdo->exec("INSERT INTO pipeline_config_pasos (dias_intervalo, accion) VALUES (1, 'Nueva Tarea de Seguimiento')");
@@ -1160,7 +1155,6 @@ case 'aplicar_pasos_automaticos':
         break;
 
     case 'update_pipeline_config':
-        if (!$admin) jsonErr('Solo admin puede modificar la configuración del pipeline');
         $id = (int)$_POST['id'];
         $campo = $_POST['campo']; 
         $valor = $_POST['valor'];
@@ -1175,7 +1169,6 @@ case 'aplicar_pasos_automaticos':
         break;
 
     case 'delete_pipeline_config':
-        if (!$admin) jsonErr('Solo admin puede modificar la configuración del pipeline');
         $id = (int)$_POST['id'];
         $pdo = db();
         try {
