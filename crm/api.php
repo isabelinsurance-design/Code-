@@ -77,6 +77,39 @@ case 'checkin':
     jsonOk(['time'=>$t,'hora'=>$t,'field'=>$field]);
     break;
 
+// ── CORREGIR ASISTENCIA (admin) ───────────────────────────────
+// El admin corrige check-in/out de un registro; queda en el HISTORIAL.
+case 'edit_asistencia':
+    if (!$admin) jsonErr('Solo admin puede corregir asistencia');
+    $aid = intval($_POST['id'] ?? 0);
+    if (!$aid) jsonErr('ID requerido');
+    $pdo = db();
+    $old = $pdo->prepare("SELECT a.*, u.nombre AS emp_nombre FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.id=?");
+    $old->execute([$aid]);
+    $orow = $old->fetch();
+    if (!$orow) jsonErr('Registro no encontrado');
+    $existing_cols = $pdo->query("SHOW COLUMNS FROM asistencia")->fetchAll(PDO::FETCH_COLUMN);
+    $cols = array_values(array_intersect(['check_in','lunch_out','lunch_in','break_out','break_in','check_out'], $existing_cols));
+    $sets=[]; $vals=[]; $cambios=[];
+    $lbl = ['check_in'=>'CHECK-IN','lunch_out'=>'SAL.ALM','lunch_in'=>'REG.ALM','break_out'=>'SAL.BREAK','break_in'=>'REG.BREAK','check_out'=>'CHECK-OUT'];
+    foreach($cols as $col){
+        $v = trim($_POST[$col] ?? '');
+        $norm = $v==='' ? null : (strlen($v)===5 ? $v.':00' : $v);
+        $sets[] = "$col=?"; $vals[] = $norm;
+        $oldv = !empty($orow[$col]) ? substr($orow[$col],0,5) : '—';
+        $newv = $norm ? substr($norm,0,5) : '—';
+        if ($oldv !== $newv) $cambios[] = $lbl[$col].": $oldv→$newv";
+    }
+    if (empty($sets)) jsonErr('Sin columnas válidas');
+    $vals[] = $aid;
+    $pdo->prepare("UPDATE asistencia SET ".implode(',', $sets)." WHERE id=?")->execute($vals);
+    if ($cambios) {
+        $desc = $user['nombre'].' corrigió asistencia de '.($orow['emp_nombre'] ?: ('#'.$orow['agente_id'])).' ('.$orow['fecha'].'): '.implode(' · ', $cambios);
+        try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid, 'ASISTENCIA', $desc]); } catch (Exception $e) {}
+    }
+    jsonOk(['cambios'=>count($cambios)]);
+    break;
+
 // ── MEMBERS ──────────────────────────────────────────────────
 case 'iniciar_cambio_plan':
     $pdo = db();

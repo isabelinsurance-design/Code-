@@ -4827,7 +4827,7 @@ $rows_q = $asist_q->fetchAll();
   <div style="overflow-x:auto"><table>
     <tr>
       <th>EMPLEADO</th><th>FECHA</th><th>CHECK-IN</th><th>SAL.ALM.</th>
-      <th>REG.ALM.</th><th>SAL.BREAK</th><th>REG.BREAK</th><th>CHECK-OUT</th><th>HORAS</th>
+      <th>REG.ALM.</th><th>SAL.BREAK</th><th>REG.BREAK</th><th>CHECK-OUT</th><th>HORAS</th><?php if($admin):?><th></th><?php endif;?>
     </tr>
     <?php
     $cq = $admin
@@ -4856,6 +4856,7 @@ $rows_q = $asist_q->fetchAll();
         <?=$c['check_out']?substr($c['check_out'],0,5):'ACTIVO •'?>
       </td>
       <td style="font-weight:900;color:<?=$w3?'#1E7A5C':$MU?>"><?=$w3??'—'?></td>
+      <?php if($admin):?><td onclick="event.stopPropagation()"><button onclick='openEditAsistencia(<?=htmlspecialchars(json_encode(["id"=>(int)$c["id"],"nombre"=>explode(" ",$c["nombre"]??"")[0],"fecha"=>$c["fecha"],"check_in"=>substr($c["check_in"]??"",0,5),"lunch_out"=>substr($c["lunch_out"]??"",0,5),"lunch_in"=>substr($c["lunch_in"]??"",0,5),"break_out"=>substr($c["break_out"]??"",0,5),"break_in"=>substr($c["break_in"]??"",0,5),"check_out"=>substr($c["check_out"]??"",0,5)]), ENT_QUOTES)?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Corregir">✏️</button></td><?php endif;?>
     </tr>
     <?php endforeach; ?>
   </table></div>
@@ -6215,6 +6216,33 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <div id="toast" class="toast"></div>
 <!-- MODALS -->
 <?php if($admin):?>
+<!-- MODAL: corregir asistencia (admin) -->
+<div class="modal-overlay" id="asi-edit-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">✏️ CORREGIR ASISTENCIA — <span id="asi-edit-titulo"></span></div>
+      <button type="button" class="modal-close" onclick="closeModal('asi-edit-modal')">✕</button>
+    </div>
+    <form id="asi-edit-form" onsubmit="submitEditAsistencia(event)" style="padding:4px 2px">
+      <input type="hidden" id="asi-edit-id" name="id">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <?php foreach([['check_in','CHECK-IN'],['lunch_out','SALIDA ALMUERZO'],['lunch_in','REGRESO ALMUERZO'],['break_out','SALIDA BREAK'],['break_in','REGRESO BREAK'],['check_out','CHECK-OUT']] as [$k,$lb]):?>
+        <div>
+          <label style="font-size:7px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px"><?=$lb?></label>
+          <input type="time" id="asi-<?=$k?>" name="<?=$k?>" class="form-input" style="padding:7px 9px;font-size:12px">
+        </div>
+        <?php endforeach;?>
+      </div>
+      <div style="background:#F3F0FB;border:1px solid #C2B0E8;color:#5B3FAF;border-radius:8px;padding:7px 10px;font-size:8px;font-weight:700;margin-top:10px;text-transform:uppercase;letter-spacing:.3px">
+        ⓘ Deja un campo vacío para borrarlo. Quedará registrado en el HISTORIAL que tú corregiste esta asistencia.
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:12px">
+        <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('asi-edit-modal')">CANCELAR</button>
+        <button type="submit" class="btn btn-p btn-sm">✓ GUARDAR</button>
+      </div>
+    </form>
+  </div>
+</div>
 <!-- MODAL: editar reporte como admin -->
 <div class="modal-overlay" id="admin-rep-edit-modal">
   <div class="modal modal-sm">
@@ -7723,6 +7751,29 @@ function reabrirReporte(aid, nombre, fecha){
         else if(typeof softReload==='function'){ softReload(); }
       } else toast('⚠ '+(d.error||'Error'));
     }).catch(()=>toast('⚠ Error de conexión'));
+}
+// Admin corrige la asistencia (check-in/out) de un registro
+function openEditAsistencia(d){
+  if(!d) return;
+  document.getElementById('asi-edit-id').value = d.id;
+  document.getElementById('asi-edit-titulo').textContent = (d.nombre||'') + ' · ' + (d.fecha||'');
+  ['check_in','lunch_out','lunch_in','break_out','break_in','check_out'].forEach(k=>{
+    const el=document.getElementById('asi-'+k); if(el) el.value = d[k]||'';
+  });
+  openModal('asi-edit-modal');
+}
+function submitEditAsistencia(e){
+  e.preventDefault();
+  const fd=new FormData(e.target);
+  fd.append('action','edit_asistencia');
+  const btn=e.target.querySelector('[type=submit]');
+  if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ ASISTENCIA CORREGIDA'); closeModal('asi-edit-modal'); if(typeof softReload==='function') softReload(); }
+      else toast('⚠ '+(d.error||'Error'));
+      if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR'; }
+    }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR'; } });
 }
 // Admin edita directamente el reporte de un agente (abre modal prellenado)
 function openAdminRepEditData(r){
