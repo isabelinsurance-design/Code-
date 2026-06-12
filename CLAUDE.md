@@ -20,8 +20,8 @@ her finished files over technical steps.
 | File | Purpose |
 |------|---------|
 | `index.html` | **The shell / source of truth.** Single-page app. Edit THIS. Loads tools from `tools/` via iframe `src`. |
-| `tools/` (18 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
-| `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 18 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
+| `tools/` (19 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
+| `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 19 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
 | `bot/` | Telegram bot (Python). Same `ISABEL_SYSTEM` prompt as the web app. Deployable to Railway/Replit/Render. See `bot/README.md`. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -65,6 +65,8 @@ send the rebuilt UNICO file to Isabel after changes.
 - `isabel_memoria_hechos` / `_personas` / `_tareas` / `_compromisos` — layered memory (Athena-style)
 - `isabel_intel_runs` — Radar run history; each entry includes the structured `snapshot` data used at run time so the next run can self-grade against it
 - `isabel_audit_log` — last 500 user-action events `{ts,event,details}` (debounced 30s per event key) used by `getUsageStats(daysBack)` to feed the Radar's "uso del sistema" snapshot
+- `isabel_calendar` — weekly calendar items (sanitized on load)
+- `isabel_t65_leads` / `isabel_t65_spend` — T65 DIY lead tracker (written by `tools/t65-lead-machine.html`, which runs same-origin so it shares the shell's localStorage; included in backup via `BACKUP_SCHEMA`)
 
 ### Athena patterns adopted
 The `🧠 Memoria` tab uses **layered memory** (separate stores for facts about

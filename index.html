@@ -689,12 +689,16 @@ tr:hover td{background:var(--surface)}
     <button class="sidebar-toggle" id="toolsToggle" onclick="toggleToolsSection()">
       <span>🔧 Herramientas Avanzadas</span>
       <span style="display:flex;align-items:center;gap:8px">
-        <span class="sidebar-toggle-count">18</span>
+        <span class="sidebar-toggle-count">19</span>
         <span class="sidebar-toggle-caret">▶</span>
       </span>
     </button>
     <div class="sidebar-label-desc" id="toolsToggleDesc" style="display:none">Dashboards completos por si quieres profundidad</div>
     <div class="sidebar-collapsible sidebar-section" id="toolsCollapsible">
+      <button class="nav-item" onclick="openTool('t65-lead-machine.html',this,'Máquina de Leads T65')">
+        <span class="nav-icon">🎂</span><span class="nav-label">Leads T65 DIY</span>
+        <span class="nav-badge">NEW</span>
+      </button>
       <button class="nav-item" onclick="openTool('isabel-marketing-dashboard.html',this,'Centro de Comando Medicare')">
         <span class="nav-icon">🎛️</span><span class="nav-label">Centro de Comando</span>
       </button>
@@ -3626,6 +3630,8 @@ const BACKUP_SCHEMA = {
   isabel_audit_log:           { type: 'array',  itemFields: ['ts','event','details'] },
   isabel_calendar:            { type: 'object' },
   isabel_tools_section_open:  { type: 'string-bool' },
+  isabel_t65_leads:           { type: 'array',  itemFields: ['name','source','month','status','date'] },
+  isabel_t65_spend:           { type: 'string-num' },
 };
 
 function _validateBackupValue(key, value){
@@ -3663,6 +3669,10 @@ function _validateBackupValue(key, value){
   }
   if(spec.type === 'string-bool'){
     return (parsed === '1' || parsed === 1 || parsed === true) ? '1' : '0';
+  }
+  if(spec.type === 'string-num'){
+    const n = parseFloat(parsed);
+    return isFinite(n) ? String(n) : null;
   }
   return null;
 }

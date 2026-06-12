@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Máquina de Leads T65 — Isabel Fuentes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;
+  --border:#E8E0D0;--border-d:#D4C9B5;
+  --gold:#C9A96E;--gold-lt:#F0E6D0;--gold-dk:#A07840;
+  --gold-g:linear-gradient(135deg,#C9A96E,#E8C98E 50%,#C9A96E);
+  --teal:#4A7B9D;--teal-lt:#EBF3F8;--teal-dk:#2E5F7A;
+  --red:#C0392B;--red-lt:#FDEDEB;
+  --green:#2E7D55;--green-lt:#EAF5EE;
+  --amber:#D97706;--amber-lt:#FEF3C7;
+  --purple:#7B5EA7;--purple-lt:#F0EBF8;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
+  --tag:#F5EFE3;
+  --sh:0 1px 10px rgba(44,36,22,.07);--sh2:0 4px 24px rgba(44,36,22,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;padding-bottom:60px}
+::-webkit-scrollbar{width:5px}
+::-webkit-scrollbar-thumb{background:var(--border-d);border-radius:3px}
+
+.hero{background:var(--white);border-bottom:1.5px solid var(--border);padding:28px 24px;text-align:center}
+.hero h1{font-family:'Fraunces',serif;font-weight:400;font-size:28px}
+.hero h1 em{font-style:italic;color:var(--gold-dk)}
+.hero .sub{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--text-muted);margin-top:6px}
+.hero .pitch{max-width:680px;margin:14px auto 0;font-size:14px;color:var(--text-mid);line-height:1.65}
+.hero .pitch strong{color:var(--gold-dk)}
+
+.tabs{display:flex;gap:8px;justify-content:center;flex-wrap:wrap;padding:16px 20px;position:sticky;top:0;background:var(--bg);z-index:50;border-bottom:1px solid var(--border)}
+.tab{font-family:'DM Mono',monospace;font-size:11px;letter-spacing:.05em;padding:8px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--white);color:var(--text-mid);cursor:pointer;transition:all .15s;font-weight:500}
+.tab:hover{border-color:var(--gold)}
+.tab.active{background:var(--gold-lt);border-color:var(--gold);color:var(--gold-dk);font-weight:700}
+
+.wrap{max-width:860px;margin:0 auto;padding:24px 20px}
+.panel{display:none}
+.panel.active{display:block;animation:fade .25s ease}
+@keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;padding:20px;margin-bottom:16px;box-shadow:var(--sh)}
+.card h2{font-family:'Fraunces',serif;font-weight:500;font-size:19px;margin-bottom:10px}
+.card h3{font-size:14px;font-weight:700;color:var(--gold-dk);margin:14px 0 6px}
+.card p,.card li{font-size:13.5px;line-height:1.7;color:var(--text-mid)}
+.card ul,.card ol{padding-left:22px;margin:6px 0}
+.card li{margin-bottom:5px}
+.card strong{color:var(--text)}
+
+.callout{border-radius:12px;padding:14px 16px;margin:12px 0;font-size:13px;line-height:1.65;border:1.5px solid}
+.callout.gold{background:var(--gold-lt);border-color:var(--gold);color:var(--gold-dk)}
+.callout.red{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+.callout.green{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.callout.teal{background:var(--teal-lt);border-color:var(--teal);color:var(--teal-dk)}
+
+.step{display:flex;gap:14px;margin-bottom:14px}
+.step-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--gold-g);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:14px;box-shadow:0 2px 8px rgba(201,169,110,.35)}
+.step-body h4{font-size:14px;font-weight:700;margin-bottom:3px}
+.step-body p{font-size:13px;color:var(--text-mid);line-height:1.65}
+
+.adcopy{background:var(--surface);border:1.5px dashed var(--border-d);border-radius:12px;padding:16px;margin:12px 0;position:relative}
+.adcopy .label{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:8px;font-weight:500}
+.adcopy pre{font-family:'DM Sans',sans-serif;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap}
+.copy-btn{position:absolute;top:12px;right:12px;font-family:'DM Mono',monospace;font-size:10px;padding:4px 12px;border-radius:14px;border:1.5px solid var(--gold);background:var(--white);color:var(--gold-dk);cursor:pointer;font-weight:500}
+.copy-btn:hover{background:var(--gold-lt)}
+
+table{width:100%;border-collapse:collapse;font-size:13px;margin:10px 0}
+th{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:8px 10px;border-bottom:1.5px solid var(--border)}
+td{padding:9px 10px;border-bottom:1px solid var(--border);color:var(--text-mid);line-height:1.5}
+td strong{color:var(--text)}
+
+/* tracker */
+.goal-bar{height:26px;background:var(--tag);border-radius:14px;overflow:hidden;border:1.5px solid var(--border);margin:10px 0}
+.goal-fill{height:100%;background:var(--gold-g);border-radius:14px;transition:width .4s ease;display:flex;align-items:center;justify-content:flex-end;padding-right:10px;color:#fff;font-family:'DM Mono',monospace;font-size:11px;font-weight:700;min-width:0}
+.lead-form{display:grid;grid-template-columns:1fr 1fr 1fr auto;gap:8px;margin:12px 0}
+.lead-form input,.lead-form select,.calc input{font-family:'DM Sans',sans-serif;font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface);color:var(--text);outline:none;width:100%}
+.lead-form input:focus,.calc input:focus{border-color:var(--gold)}
+.btn{font-family:'DM Sans',sans-serif;font-size:13px;font-weight:700;padding:8px 18px;border-radius:8px;border:none;background:var(--gold-g);color:#fff;cursor:pointer;box-shadow:0 2px 8px rgba(201,169,110,.35)}
+.btn:hover{filter:brightness(1.05)}
+.lead-row{display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--border);font-size:13px}
+.lead-row .name{font-weight:600;flex:1}
+.lead-row .src{font-family:'DM Mono',monospace;font-size:10px;background:var(--tag);padding:2px 8px;border-radius:10px;color:var(--text-muted)}
+.lead-row select{font-size:12px;border:1px solid var(--border);border-radius:6px;padding:3px 6px;background:var(--white)}
+.lead-row .del{background:none;border:none;color:var(--red);cursor:pointer;font-size:14px}
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin:12px 0}
+.stat{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:12px;text-align:center}
+.stat .num{font-family:'Fraunces',serif;font-size:24px;color:var(--gold-dk)}
+.stat .lbl{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);margin-top:3px}
+
+.calc{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:12px 0}
+.calc label{font-size:12px;font-weight:600;color:var(--text-mid);display:block;margin-bottom:4px}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:14px}
+.vs-card{border-radius:12px;padding:16px;text-align:center;border:1.5px solid}
+.vs-card.them{background:var(--red-lt);border-color:var(--red)}
+.vs-card.you{background:var(--green-lt);border-color:var(--green)}
+.vs-card .t{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;font-weight:500}
+.vs-card.them .t{color:var(--red)}
+.vs-card.you .t{color:var(--green)}
+.vs-card .v{font-family:'Fraunces',serif;font-size:30px;margin-top:6px}
+.vs-card.them .v{color:var(--red)}
+.vs-card.you .v{color:var(--green)}
+.savings{text-align:center;margin-top:14px;font-size:15px;color:var(--green);font-weight:700}
+@media(max-width:640px){.lead-form{grid-template-columns:1fr 1fr}.calc{grid-template-columns:1fr}.vs{grid-template-columns:1fr}}
+</style>
+<script>
+/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+(function(){
+  var KEY='isabel_anthropic_key';
+  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  window.addEventListener('message',function(e){
+    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+  });
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  if(!window.__isabelFetchPatched){
+    window.__isabelFetchPatched=true;
+    var of=window.fetch.bind(window);
+    window.fetch=function(u,o){
+      o=o||{};
+      var url=(typeof u==='string')?u:((u&&u.url)||'');
+      if(url.indexOf('api.anthropic.com')>-1){
+        var h=Object.assign({},o.headers||{});
+        h['x-api-key']=_k;
+        h['anthropic-version']='2023-06-01';
+        h['anthropic-dangerous-direct-browser-access']='true';
+        o.headers=h;
+      }
+      return of(u,o);
+    };
+  }
+})();
+</script>
+</head>
+<body>
+
+<header class="hero">
+  <h1>Máquina de Leads <em>T65</em></h1>
+  <div class="sub">HAZLO TÚ MISMA · SIN AGENCIAS · SIN PAGAR POR LEADS</div>
+  <p class="pitch">Agencias como "Medicare Masters" cobran <strong>$25–$75 por lead T65</strong> (o retainers de $1,000+/mes) por algo que tú puedes hacer con <strong>~$10/día en Meta Ads</strong> y los métodos gratis de esta guía. Aquí está el sistema completo para generar tus propios 10 leads T65.</p>
+</header>
+
+<nav class="tabs">
+  <button class="tab active" onclick="showTab('secret',this)">🔍 Su Secreto</button>
+  <button class="tab" onclick="showTab('diy',this)">🚀 Plan DIY</button>
+  <button class="tab" onclick="showTab('ads',this)">📝 Anuncios Listos</button>
+  <button class="tab" onclick="showTab('free',this)">💸 Métodos $0</button>
+  <button class="tab" onclick="showTab('comp',this)">⚖️ Compliance</button>
+  <button class="tab" onclick="showTab('track',this)">🎯 Tracker 10 Leads</button>
+  <button class="tab" onclick="showTab('calc',this)">🧮 Ahorro</button>
+</nav>
+
+<div class="wrap">
+
+<!-- ══════ SU SECRETO ══════ -->
+<section class="panel active" id="p-secret">
+  <div class="card">
+    <h2>Qué hace realmente esa agencia (y por qué no la necesitas)</h2>
+    <p>El anuncio que viste ("80+ agentes consiguieron leads T65 sin correr sus propios ads") es un funnel clásico de agencia. Su modelo entero es esto:</p>
+    <table>
+      <tr><th>Lo que hacen</th><th>Lo que te cobran</th><th>Costo real</th></tr>
+      <tr><td><strong>Meta Lead Ads</strong> dirigidos a personas de 64 años</td><td>$25–$75 por lead o retainer mensual</td><td>$6–$15 por lead en ad spend</td></tr>
+      <tr><td><strong>Formulario instantáneo</strong> en Facebook (nombre, teléfono, mes de cumpleaños 65)</td><td>Incluido en el "sistema"</td><td>$0 — herramienta gratis de Meta</td></tr>
+      <tr><td><strong>Calendario de citas</strong> (Calendly o similar)</td><td>"Funnel premium"</td><td>$0–$12/mes</td></tr>
+      <tr><td><strong>Mensajes de seguimiento</strong> automatizados</td><td>"Nurture system"</td><td>$0 — lo haces tú con plantillas</td></tr>
+    </table>
+    <div class="callout gold"><strong>La verdad:</strong> no tienen acceso a nada que tú no tengas. Usan tu mismo Facebook Ads Manager, con tu misma audiencia. La diferencia es que ellos le ponen su margen encima — y además los leads que te venden muchas veces son <em>compartidos</em> con otros agentes o re-vendidos.</div>
+    <div class="callout teal"><strong>Ventaja tuya que ellos NO tienen:</strong> tú hablas español, conoces LA / OC / Inland Empire, y el lead que se genera con TU cara y TU nombre ya confía en ti antes de la primera llamada. Un lead propio cierra 2–3x mejor que un lead comprado.</div>
+  </div>
+  <div class="card">
+    <h2>¿Qué significa "10 T65"?</h2>
+    <p>Leads de personas que cumplen 65 años pronto ("Turning 65"). Son el lead más valioso de Medicare porque están en su <strong>Período Inicial de Inscripción (IEP)</strong>: 3 meses antes del cumpleaños 65, el mes del cumpleaños, y 3 meses después. No tienen plan todavía, no hay que "robarle" el cliente a nadie, y la comisión de una inscripción nueva es la más alta.</p>
+    <p>Con $10–15/día en Meta Ads, 10 leads T65 se generan típicamente en <strong>7–14 días</strong> (~$100–200 total). La misma agencia te cobraría $250–$750 por esos mismos 10 leads.</p>
+  </div>
+</section>
+
+<!-- ══════ PLAN DIY ══════ -->
+<section class="panel" id="p-diy">
+  <div class="card">
+    <h2>Tu campaña T65 en Meta — paso a paso (60 min de setup)</h2>
+    <div class="step"><div class="step-num">1</div><div class="step-body">
+      <h4>Abre Meta Ads Manager → Crear campaña → Objetivo "Clientes potenciales" (Leads)</h4>
+      <p>Usa tu página de Facebook de negocio. El objetivo "Leads" con <strong>formularios instantáneos</strong> significa que NO necesitas página web ni landing page — Facebook captura el lead adentro de la app, igual que hace la agencia.</p>
+    </div></div>
+    <div class="step"><div class="step-num">2</div><div class="step-body">
+      <h4>Audiencia: edad 63–64, tu zona, español</h4>
+      <p>Ubicación: Los Ángeles, Orange County, Inland Empire (o radio de 25 millas de donde trabajas). Edad: <strong>63–64</strong> (son los que cumplen 65 pronto). Idioma: español. No agregues intereses al principio — con la edad y la zona es suficiente; Meta optimiza solo.</p>
+    </div></div>
+    <div class="step"><div class="step-num">3</div><div class="step-body">
+      <h4>Presupuesto: $10–15/día · ubicaciones automáticas</h4>
+      <p>Empieza con $10/día por 7 días. Si el costo por lead sale arriba de $20 después de 3 días, cambia el creativo (la imagen/video), no la audiencia.</p>
+    </div></div>
+    <div class="step"><div class="step-num">4</div><div class="step-body">
+      <h4>Creativo: tu cara &gt; cualquier diseño</h4>
+      <p>Un video selfie de 30–45 segundos hablando directo a cámara rinde mejor que cualquier gráfico. Guion en la pestaña <strong>📝 Anuncios Listos</strong>. Si prefieres imagen: foto tuya real, sonriendo, con texto grande encima ("¿Cumples 65 este año?").</p>
+    </div></div>
+    <div class="step"><div class="step-num">5</div><div class="step-body">
+      <h4>Formulario instantáneo: 4 preguntas + permiso de contacto</h4>
+      <p>Nombre · Teléfono · "¿En qué mes cumples 65?" · "¿Prefieres llamada o texto?". En el texto del formulario incluye el consentimiento de contacto (está en la pestaña Compliance). Eso te da el <strong>Permission to Contact</strong> que exige CMS.</p>
+    </div></div>
+    <div class="step"><div class="step-num">6</div><div class="step-body">
+      <h4>Seguimiento: llama en los primeros 5 minutos</h4>
+      <p>El 78% de los leads se cierran con quien llama primero. Activa las notificaciones de leads en la app de Meta Business Suite, o conecta el formulario a tu teléfono. Si no contesta: texto inmediato + llamada al día siguiente + texto al tercer día.</p>
+    </div></div>
+    <div class="callout green"><strong>Meta total para 10 leads:</strong> ~$100–200 de ad spend + 1 hora de setup. Cero pagos a agencias, y los leads son 100% tuyos, exclusivos, con tu marca.</div>
+  </div>
+</section>
+
+<!-- ══════ ANUNCIOS LISTOS ══════ -->
+<section class="panel" id="p-ads">
+  <div class="card">
+    <h2>Copy listo para pegar (revisado para compliance)</h2>
+    <p>Tres ángulos probados para T65 hispano. Cópialos, ponles tu toque, y recuerda el disclaimer obligatorio (pestaña Compliance) en el formulario o página de destino.</p>
+
+    <div class="adcopy">
+      <div class="label">ANUNCIO 1 · ÁNGULO: CUMPLEAÑOS 65</div>
+      <button class="copy-btn" onclick="copyAd(this)">Copiar</button>
+      <pre>🎂 ¿Cumples 65 este año o conoces a alguien que sí?
+
+Los 3 meses ANTES de tu cumpleaños 65 son clave para elegir tu cobertura de Medicare — y la mayoría no sabe que esperar puede costarle penalidades de por vida.
+
+Soy Isabel Fuentes, agente local con licencia aquí en el sur de California, y te explico tus opciones en español, sin costo y sin compromiso.
+
+👇 Deja tus datos y te llamo cuando te quede bien.</pre>
+    </div>
+
+    <div class="adcopy">
+      <div class="label">ANUNCIO 2 · ÁNGULO: CONFUSIÓN / CARTAS EN INGLÉS</div>
+      <button class="copy-btn" onclick="copyAd(this)">Copiar</button>
+      <pre>📬 ¿Te están llegando cartas de Medicare que no entiendes?
+
+Si estás por cumplir 65, vas a recibir un montón de correo confuso — y mucho viene de compañías, no del gobierno.
+
+Yo te ayudo a separar lo importante de la basura, EN ESPAÑOL. Soy agente local con licencia, la consulta no cuesta nada, y tú decides.
+
+👇 Mándame tus datos y platicamos.</pre>
+    </div>
+
+    <div class="adcopy">
+      <div class="label">ANUNCIO 3 · GUION VIDEO SELFIE (30–45 SEG)</div>
+      <button class="copy-btn" onclick="copyAd(this)">Copiar</button>
+      <pre>[Mirando a cámara, natural, sin leer]
+
+"Si tú o alguien de tu familia cumple 65 este año, escúchame 30 segundos.
+
+Tienes una ventana de 7 meses para inscribirte en Medicare — y si la dejas pasar, puedes quedarte con penalidades para siempre.
+
+Yo soy Isabel Fuentes, agente con licencia aquí en [tu ciudad], y todos los días ayudo a familias hispanas a entender sus opciones — en español y sin costo.
+
+No tienes que firmar nada. Solo deja tu nombre y tu número aquí abajo, y yo personalmente te llamo.
+
+Tu tranquilidad no cuesta nada. Esperarte, sí."</pre>
+    </div>
+
+    <div class="adcopy">
+      <div class="label">PREGUNTAS DEL FORMULARIO INSTANTÁNEO</div>
+      <button class="copy-btn" onclick="copyAd(this)">Copiar</button>
+      <pre>1. Nombre completo (autocompletado)
+2. Número de teléfono (autocompletado)
+3. ¿En qué mes cumples 65? [lista: Enero–Diciembre / Ya los cumplí]
+4. ¿Cómo prefieres que te contacte? [Llamada / Mensaje de texto]
+
+Texto de consentimiento (obligatorio, va en el formulario):
+"Al enviar este formulario, aceptas que un agente de seguros con licencia te contacte por teléfono o mensaje de texto sobre opciones de planes Medicare. Esto es una solicitud de seguro. No estamos conectados con ni respaldados por el gobierno de los EE. UU. ni el programa federal de Medicare."</pre>
+    </div>
+
+    <div class="adcopy">
+      <div class="label">TEXTO DE SEGUIMIENTO (PRIMEROS 5 MIN)</div>
+      <button class="copy-btn" onclick="copyAd(this)">Copiar</button>
+      <pre>Hola [Nombre], soy Isabel Fuentes 👋 Vi que dejaste tus datos en Facebook sobre tus opciones de Medicare al cumplir 65. ¿Te queda bien si te llamo hoy, o prefieres que te mande la información por aquí? — Isabel, agente con licencia</pre>
+    </div>
+  </div>
+</section>
+
+<!-- ══════ MÉTODOS $0 ══════ -->
+<section class="panel" id="p-free">
+  <div class="card">
+    <h2>5 maneras de conseguir leads T65 con $0 de inversión</h2>
+    <h3>1. El "pedido de cumpleaños" a tu cartera actual</h3>
+    <p>Tus clientes actuales conocen gente que cumple 65. Mándales este texto: <em>"¿Conoces a alguien que cumpla 65 este año? El papeleo de Medicare confunde mucho y yo lo explico gratis en español. Si me lo presentas, le ahorro dolores de cabeza."</em> Con 30 clientes, esto solo suele dar 3–5 referidos al mes.</p>
+    <h3>2. Contenido orgánico T65 (usa tu Sistema Viral)</h3>
+    <p>Un post/reel semanal con gancho T65: "3 errores al cumplir 65", "La carta que NO debes ignorar", "¿Medicare es gratis? La verdad". Ya tienes el generador viral en tu sistema — pídele variantes T65.</p>
+    <h3>3. Facebook Lives mensuales: "Cumples 65: qué hacer mes por mes"</h3>
+    <p>Ya tienes guiones de FB Live en tu sistema. Un Live educativo T65, compartido en grupos locales hispanos (con permiso de los admins), genera comentarios = leads orgánicos con permiso de contacto si te escriben primero.</p>
+    <h3>4. Alianzas locales</h3>
+    <p>Farmacias independientes, clínicas comunitarias, iglesias, centros para adultos mayores. Ofrece una charla gratuita "Medicare 101 en español". Una charla al mes con 15 asistentes = 3–6 citas.</p>
+    <h3>5. Listas de correo T65 (casi gratis)</h3>
+    <p>Vendedores de datos (ListShack, Exact Data, DataAxle) venden listas de personas que cumplen 65 en tu código postal por ~$25–50 el millar. <strong>OJO:</strong> esas listas son solo para <em>correo directo</em> — NO puedes llamarlas ni tocar puertas en frío para Medicare Advantage (ver Compliance). Una postal sencilla con tu foto y número, donde ELLOS te llaman a ti, es 100% legal.</p>
+    <div class="callout gold"><strong>Combo recomendado:</strong> Meta Ads ($10/día) como motor principal + referidos de cartera + un FB Live al mes. Eso solo ya supera los "10 T65" que te ofrecían vender.</div>
+  </div>
+</section>
+
+<!-- ══════ COMPLIANCE ══════ -->
+<section class="panel" id="p-comp">
+  <div class="card">
+    <h2>Reglas CMS para leads T65 — lo que la agencia no te cuenta</h2>
+    <div class="callout red"><strong>Importante:</strong> cuando una agencia te vende leads, TÚ sigues siendo responsable ante CMS de cómo se generaron. Si los generaron sin permiso de contacto válido, el riesgo regulatorio es tuyo. Generarlos tú misma es más seguro precisamente por eso.</div>
+    <h3>✅ Permitido</h3>
+    <ul>
+      <li>Anuncios en Facebook/Meta donde la persona deja sus datos voluntariamente (eso ES el Permission to Contact).</li>
+      <li>Correo directo a listas T65 (postales donde ellos te llaman).</li>
+      <li>Contenido educativo, Lives, charlas comunitarias.</li>
+      <li>Referidos — pero el referido debe contactarte a ti, o darte permiso por escrito antes de que tú lo llames para hablar de planes MA/PDP.</li>
+    </ul>
+    <h3>🚫 Prohibido (multas serias)</h3>
+    <ul>
+      <li><strong>Llamadas en frío</strong> a personas que no te dieron permiso, para hablar de Medicare Advantage o Part D.</li>
+      <li><strong>Tocar puertas</strong> sin cita previa.</li>
+      <li>Decir o implicar que llamas "de Medicare" o del gobierno.</li>
+      <li>Usar el logo de Medicare o tarjetas que parezcan oficiales.</li>
+    </ul>
+    <h3>📋 Checklist por lead</h3>
+    <ul>
+      <li><strong>PTC</strong> (Permission to Contact): el formulario de Meta con el texto de consentimiento lo cumple. Guarda la exportación del lead como evidencia. El PTC es válido 12 meses.</li>
+      <li><strong>SOA</strong> (Scope of Appointment): firmado <strong>al menos 48 horas antes</strong> de la cita de ventas (regla CMS vigente; hay excepciones para walk-ins y fin de período de inscripción).</li>
+      <li><strong>Grabación de llamadas</strong>: las llamadas de ventas/inscripción de MA y PDP deben grabarse y guardarse 10 años.</li>
+      <li><strong>Disclaimer TPMO</strong> en tu marketing: <em>"No ofrecemos todos los planes disponibles en tu área. Cualquier información que proporcionemos se limita a los planes que ofrecemos en tu área. Comunícate con Medicare.gov o al 1-800-MEDICARE para obtener información sobre todas tus opciones."</em></li>
+      <li><strong>Disclaimer de no afiliación</strong>: "No estamos conectados con ni respaldados por el gobierno de los EE. UU. ni el programa federal de Medicare."</li>
+    </ul>
+    <div class="callout teal">Tu sistema ya tiene el módulo <strong>CMS Compliance</strong> — úsalo para verificar cada pieza antes de publicarla. Y confirma los textos exactos con tu upline/FMO, porque los carriers a veces piden lenguaje adicional aprobado.</div>
+  </div>
+</section>
+
+<!-- ══════ TRACKER ══════ -->
+<section class="panel" id="p-track">
+  <div class="card">
+    <h2>Meta: 10 leads T65</h2>
+    <div class="goal-bar"><div class="goal-fill" id="goalFill" style="width:0%"><span id="goalPct"></span></div></div>
+    <div class="stat-grid">
+      <div class="stat"><div class="num" id="stLeads">0</div><div class="lbl">Leads</div></div>
+      <div class="stat"><div class="num" id="stCitas">0</div><div class="lbl">Citas</div></div>
+      <div class="stat"><div class="num" id="stVentas">0</div><div class="lbl">Inscritos</div></div>
+      <div class="stat"><div class="num" id="stCPL">—</div><div class="lbl">Costo / Lead</div></div>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;margin:8px 0 14px">
+      <label style="font-size:12px;font-weight:600;color:var(--text-mid)">Gasto en ads hasta hoy: $</label>
+      <input type="number" id="adSpend" style="width:100px;font-size:13px;border:1.5px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--surface)" placeholder="0" oninput="saveSpend()"/>
+    </div>
+    <div class="lead-form">
+      <input type="text" id="leadName" placeholder="Nombre del lead"/>
+      <select id="leadSource">
+        <option value="Meta Ads">Meta Ads</option>
+        <option value="Referido">Referido</option>
+        <option value="FB Live">FB Live</option>
+        <option value="Correo">Correo directo</option>
+        <option value="Evento">Evento/Charla</option>
+        <option value="Otro">Otro</option>
+      </select>
+      <input type="text" id="leadMonth" placeholder="Mes que cumple 65"/>
+      <button class="btn" onclick="addLead()">+ Agregar</button>
+    </div>
+    <div id="leadList"></div>
+  </div>
+</section>
+
+<!-- ══════ CALCULADORA ══════ -->
+<section class="panel" id="p-calc">
+  <div class="card">
+    <h2>¿Cuánto te ahorras haciéndolo tú misma?</h2>
+    <div class="calc">
+      <div><label>Leads que quieres al mes</label><input type="number" id="cLeads" value="10" oninput="calcSave()"/></div>
+      <div><label>Precio por lead de la agencia ($)</label><input type="number" id="cAgency" value="50" oninput="calcSave()"/></div>
+      <div><label>Tu costo por lead DIY estimado ($)</label><input type="number" id="cDiy" value="15" oninput="calcSave()"/></div>
+      <div><label>Meses</label><input type="number" id="cMonths" value="12" oninput="calcSave()"/></div>
+    </div>
+    <div class="vs">
+      <div class="vs-card them"><div class="t">Pagando a la agencia</div><div class="v" id="vThem">$6,000</div></div>
+      <div class="vs-card you"><div class="t">Haciéndolo tú</div><div class="v" id="vYou">$1,800</div></div>
+    </div>
+    <div class="savings" id="vSave">Te ahorras $4,200 al año 💰</div>
+    <p style="margin-top:14px">Y eso sin contar que el lead propio cierra mejor: te conoce a TI desde el anuncio, no llenó un formulario genérico que se revendió a 5 agentes.</p>
+  </div>
+</section>
+
+</div>
+
+<script>
+function showTab(id, btn){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  document.getElementById('p-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+function copyAd(btn){
+  const text = btn.parentElement.querySelector('pre').innerText;
+  navigator.clipboard.writeText(text).then(()=>{
+    btn.textContent='✓ Copiado'; setTimeout(()=>btn.textContent='Copiar',1500);
+  });
+}
+
+// ─── TRACKER (localStorage) ───
+const LS_KEY='isabel_t65_leads', LS_SPEND='isabel_t65_spend', GOAL=10;
+let leads = JSON.parse(localStorage.getItem(LS_KEY)||'[]');
+
+function persist(){ localStorage.setItem(LS_KEY, JSON.stringify(leads)); render(); }
+function saveSpend(){ localStorage.setItem(LS_SPEND, document.getElementById('adSpend').value||'0'); render(); }
+
+function addLead(){
+  const name=document.getElementById('leadName').value.trim();
+  if(!name) return;
+  leads.push({name, source:document.getElementById('leadSource').value,
+    month:document.getElementById('leadMonth').value.trim(), status:'Nuevo',
+    date:new Date().toISOString().slice(0,10)});
+  document.getElementById('leadName').value=''; document.getElementById('leadMonth').value='';
+  persist();
+}
+function setStatus(i,v){ leads[i].status=v; persist(); }
+function delLead(i){ leads.splice(i,1); persist(); }
+
+function render(){
+  const n=leads.length;
+  const citas=leads.filter(l=>l.status==='Cita'||l.status==='Inscrito').length;
+  const ventas=leads.filter(l=>l.status==='Inscrito').length;
+  const spend=parseFloat(localStorage.getItem(LS_SPEND)||'0');
+  const metaLeads=leads.filter(l=>l.source==='Meta Ads').length;
+  document.getElementById('stLeads').textContent=n;
+  document.getElementById('stCitas').textContent=citas;
+  document.getElementById('stVentas').textContent=ventas;
+  document.getElementById('stCPL').textContent=(spend>0&&metaLeads>0)?'$'+(spend/metaLeads).toFixed(0):'—';
+  const pct=Math.min(100, n/GOAL*100);
+  const fill=document.getElementById('goalFill');
+  fill.style.width=Math.max(pct,8)+'%';
+  document.getElementById('goalPct').textContent=n+'/'+GOAL+(n>=GOAL?' 🎉':'');
+  const STATUSES=['Nuevo','Contactado','Cita','Inscrito','Perdido'];
+  const esc=s=>String(s||'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
+  document.getElementById('leadList').innerHTML=leads.map((l,i)=>`
+    <div class="lead-row">
+      <span class="name">${esc(l.name)}${l.month?' · 🎂 '+esc(l.month):''}</span>
+      <span class="src">${esc(l.source)}</span>
+      <select onchange="setStatus(${i},this.value)">${STATUSES.map(s=>`<option ${s===l.status?'selected':''}>${s}</option>`).join('')}</select>
+      <button class="del" onclick="delLead(${i})" title="Eliminar">✕</button>
+    </div>`).join('') || '<p style="font-size:13px;color:var(--text-muted);padding:10px 4px">Todavía no hay leads. Lanza tu campaña y agrégalos aquí. 🚀</p>';
+}
+document.getElementById('adSpend').value=localStorage.getItem(LS_SPEND)||'';
+render();
+
+// ─── CALCULADORA ───
+function calcSave(){
+  const L=+document.getElementById('cLeads').value||0,
+        A=+document.getElementById('cAgency').value||0,
+        D=+document.getElementById('cDiy').value||0,
+        M=+document.getElementById('cMonths').value||0;
+  const them=L*A*M, you=L*D*M;
+  const fmt=v=>'$'+v.toLocaleString('en-US');
+  document.getElementById('vThem').textContent=fmt(them);
+  document.getElementById('vYou').textContent=fmt(you);
+  document.getElementById('vSave').textContent= them>you ? `Te ahorras ${fmt(them-you)} 💰` : 'Ajusta los números para comparar';
+}
+calcSave();
+</script>
+</body>
+</html>
