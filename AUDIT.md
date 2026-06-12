@@ -183,25 +183,40 @@ gone from history if the repo is ever made public.
 
 ## 7. Prioritized task list (with effort)
 
-| # | Task | Severity | Effort |
-|---|---|---|---|
-| 1 | Escape `escapeHtml()` on all CRM + calendar render fields | 🔴 H-1 | **S** (~30 min) |
-| 2 | Render AI/web-search output as text or sanitized markdown | 🟠 M-1 | **M** (~2 h) |
-| 3 | Validate + shape-check `importDataFromFile` | 🔴 H-2 | **S** (~45 min) |
-| 4 | Pin bot deps + add `ISABEL_CHAT_ID` allowlist | 🟠 M-3 | **S** (~30 min) |
-| 5 | `postMessage` explicit origin + `event.origin` check | 🟠 M-2 | **M** (~1.5 h) |
-| 6 | Persist calendar to localStorage | 🟡 L-1 | **S** (~20 min) |
-| 7 | Commit the UNICO build script (`build.py`) to the repo | (maintainability) | **S** (~30 min) |
-| 8 | Add a tiny smoke test + (optional) GitHub Action | (maintainability) | **M** (~2-3 h) |
-| 9 | Single `const MODEL` + key-cap helptext | 🟡 L-3/M-4 | **S** (~30 min) |
-| 10 | Version + migrate localStorage stores | 🟡 L-2 | **M** (~2 h) |
+| # | Task | Severity | Effort | Status |
+|---|---|---|---|---|
+| 1 | Escape `escapeHtml()` on all CRM + calendar render fields | 🔴 H-1 | **S** (~30 min) | ✅ **DONE** |
+| 2 | Render AI/web-search output as text or sanitized markdown | 🟠 M-1 | **M** (~2 h) | ☐ |
+| 3 | Validate + shape-check `importDataFromFile` | 🔴 H-2 | **S** (~45 min) | ✅ **DONE** |
+| 4 | Pin bot deps + add `ISABEL_CHAT_ID` allowlist | 🟠 M-3 | **S** (~30 min) | ☐ |
+| 5 | `postMessage` explicit origin + `event.origin` check | 🟠 M-2 | **M** (~1.5 h) | ☐ |
+| 6 | Persist calendar to localStorage | 🟡 L-1 | **S** (~20 min) | ✅ **DONE** |
+| 7 | Commit the UNICO build script (`build.py`) to the repo | (maintainability) | **S** (~30 min) | ✅ **DONE** |
+| 8 | Add a tiny smoke test + (optional) GitHub Action | (maintainability) | **M** (~2-3 h) | ☐ |
+| 9 | Single `const MODEL` + key-cap helptext | 🟡 L-3/M-4 | **S** (~30 min) | ☐ |
+| 10 | Version + migrate localStorage stores | 🟡 L-2 | **M** (~2 h) | ☐ |
 
 **Effort key:** S ≤ 1h · M = 1-3h · L > 3h.
 
-### Recommended first pass (≈2 hours, kills the real risk)
-Tasks **1, 3, 6, 7** — eliminates the only stored-XSS path Isabel can actually
-trigger from real-world pasted content, makes restore safe, stops calendar data
-loss, and removes the "build script lives nowhere" bus-factor risk.
+### First-pass status — DONE (commit 2026-06-12)
+Tasks **1, 3, 6, 7** are complete. 28/28 verification tests pass on both
+`index.html` and `isabel-sistema-completo-UNICO.html`, including direct XSS
+payload attempts (`<img onerror=…>` injected via lead name/notes and calendar
+text — neither fires), malicious-backup restore (unknown keys dropped,
+wrong-type values rejected, API key cannot be overwritten, extra fields
+stripped from items), calendar persistence across reload, and the bug build.py
+exposed: the previous UNICO was missing the `logEvent('tool', file)` audit
+line, which is now baked into the canonical build.
+
+### Remaining (recommended order for a second pass)
+- **Task 4** (S) — bot allowlist + pinned deps. Important once Sammy actually
+  deploys the bot.
+- **Task 9** (S) — single `const MODEL` and a "set a spend cap" note next to
+  the API-key input. Quick wins.
+- **Task 2** (M) — sanitize AI/web-search HTML output.
+- **Task 5** (M) — postMessage origin checks.
+- **Task 10** (M) — localStorage schema versioning + migrations.
+- **Task 8** (M) — port the audit test into a checked-in smoke test.
 
 ---
 

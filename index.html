@@ -514,10 +514,13 @@ textarea{resize:vertical;line-height:1.55}
   background:var(--gold-lt);border-left:3px solid var(--gold);
   border-radius:0 6px 6px 0;padding:6px 8px;margin-bottom:5px;
   font-size:11px;color:var(--gold-dk);font-weight:600;cursor:pointer;
+  display:flex;align-items:center;gap:4px;
 }
 .cal-item.live{background:var(--red-lt);border-left-color:var(--red);color:var(--red)}
 .cal-item.reel{background:var(--purple-lt);border-left-color:var(--purple);color:var(--purple)}
 .cal-item.story{background:var(--teal-lt);border-left-color:var(--teal);color:var(--teal-dk)}
+.cal-del{margin-left:auto;background:none;border:0;color:currentColor;opacity:.55;cursor:pointer;font-size:14px;line-height:1;padding:0 2px}
+.cal-del:hover{opacity:1}
 .cal-add{
   width:100%;border:1.5px dashed var(--border);border-radius:7px;
   padding:5px;background:none;cursor:pointer;font-size:11px;
@@ -2678,26 +2681,64 @@ El guión debe sentirse como una conversación natural entre amigas, no como una
 }
 
 // ─── CALENDAR ───
+const CAL_TYPES = ['post','reel','live','story'];
+const CAL_STORE = 'isabel_calendar';
+
+function saveCalendar(){
+  try { localStorage.setItem(CAL_STORE, JSON.stringify(calendarItems)); } catch(_){}
+}
+function loadCalendar(){
+  try {
+    const raw = localStorage.getItem(CAL_STORE);
+    if(raw){
+      const parsed = JSON.parse(raw);
+      if(parsed && typeof parsed === 'object'){
+        // sanitize: only known days, items must be {type, text} strings
+        const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+        const clean = {};
+        for(const d of days){
+          const items = Array.isArray(parsed[d]) ? parsed[d] : [];
+          clean[d] = items.filter(it => it && typeof it.text === 'string').map(it => ({
+            type: CAL_TYPES.includes(it.type) ? it.type : 'post',
+            text: String(it.text).slice(0, 200),
+          }));
+        }
+        calendarItems = clean;
+      }
+    }
+  } catch(_){}
+}
+
 function renderCalendar(){
   const days = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
   const grid = document.getElementById('calGrid');
   grid.innerHTML = days.map(day=>`
     <div class="cal-day">
-      <div class="cal-day-name">${day}</div>
-      ${(calendarItems[day]||[]).map(item=>`
-        <div class="cal-item ${item.type}">${item.text}</div>
+      <div class="cal-day-name">${escapeHtml(day)}</div>
+      ${(calendarItems[day]||[]).map((item,i)=>`
+        <div class="cal-item ${CAL_TYPES.includes(item.type)?item.type:'post'}">${escapeHtml(item.text)} <button class="cal-del" onclick="removeCalItem('${escapeHtml(day)}',${i})" title="Quitar" aria-label="Quitar">×</button></div>
       `).join('')}
-      <button class="cal-add" onclick="addCalItem('${day}')">+ Agregar</button>
+      <button class="cal-add" onclick="addCalItem('${escapeHtml(day)}')">+ Agregar</button>
     </div>
   `).join('');
 }
 
 function addCalItem(day){
-  const text = prompt(`Nuevo item para ${day}:`);
+  const text = (prompt(`Nuevo item para ${day}:`) || '').trim();
   if(!text)return;
-  const type = prompt('Tipo (post/reel/live/story):') || 'post';
+  const rawType = (prompt('Tipo (post/reel/live/story):') || 'post').toLowerCase().trim();
+  const type = CAL_TYPES.includes(rawType) ? rawType : 'post';
   if(!calendarItems[day]) calendarItems[day]=[];
-  calendarItems[day].push({type,text});
+  calendarItems[day].push({type, text: text.slice(0, 200)});
+  saveCalendar();
+  renderCalendar();
+  try { renderDashUpcoming(); } catch(_){}
+}
+
+function removeCalItem(day, idx){
+  if(!calendarItems[day]) return;
+  calendarItems[day].splice(idx, 1);
+  saveCalendar();
   renderCalendar();
   try { renderDashUpcoming(); } catch(_){}
 }
@@ -2817,22 +2858,33 @@ function renderLeads(){
   }
   document.getElementById('leadsCount').textContent = leads.length+' leads';
   document.getElementById('crmBadge').textContent = leads.filter(l=>l.status.includes('Hot')).length;
-  list.innerHTML = leads.slice().reverse().map(l=>`
-    <div class="lead-row" onclick="selectLead(${l.id})">
-      <div class="lead-avatar">${l.name.charAt(0)}</div>
+  list.innerHTML = leads.slice().reverse().map(l=>{
+    const id = Number(l.id) || 0;
+    const name = String(l.name || '');
+    const phone = String(l.phone || '');
+    const zone = String(l.zone || '');
+    const date = String(l.date || '');
+    const notes = String(l.notes || '').slice(0, 60);
+    const status = String(l.status || '');
+    const pillCls = status.includes('Hot') ? 'pill-red'
+      : status.includes('Warm') ? 'pill-amber'
+      : status.includes('Futuro') ? 'pill-teal' : 'pill-gold';
+    return `
+    <div class="lead-row" onclick="selectLead(${id})">
+      <div class="lead-avatar">${escapeHtml(name.charAt(0))}</div>
       <div class="lead-info">
-        <div class="lead-name">${l.name}</div>
-        <div class="lead-detail">${l.phone||'Sin teléfono'} · ${l.zone} · ${l.date}</div>
-        ${l.notes?'<div class="lead-detail" style="margin-top:2px;font-style:italic">"'+l.notes.substring(0,60)+'"</div>':''}
+        <div class="lead-name">${escapeHtml(name)}</div>
+        <div class="lead-detail">${escapeHtml(phone||'Sin teléfono')} · ${escapeHtml(zone)} · ${escapeHtml(date)}</div>
+        ${notes ? '<div class="lead-detail" style="margin-top:2px;font-style:italic">"'+escapeHtml(notes)+'"</div>' : ''}
       </div>
       <div class="lead-status">
-        <span class="pill ${l.status.includes('Hot')?'pill-red':l.status.includes('Warm')?'pill-amber':l.status.includes('Futuro')?'pill-teal':'pill-gold'}">${l.status.split('—')[0].trim()}</span>
+        <span class="pill ${pillCls}">${escapeHtml(status.split('—')[0].trim())}</span>
         <div style="margin-top:4px;font-size:10px;text-align:right">
-          <button onclick="event.stopPropagation();removeLead(${l.id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px">🗑️</button>
+          <button onclick="event.stopPropagation();removeLead(${id})" style="background:none;border:none;color:var(--text-muted);cursor:pointer;font-size:11px" aria-label="Eliminar lead">🗑️</button>
         </div>
       </div>
-    </div>
-  `).join('');
+    </div>`;
+  }).join('');
 }
 
 function selectLead(id){
@@ -3560,25 +3612,105 @@ function exportAllData(){
   window.__toastTimer = setTimeout(()=>{ t.classList.remove('show'); t.style.background=''; }, 3000);
 }
 
+// Known backup keys + the JSON shape we accept for each. Anything not in
+// this map is silently dropped on restore so a tampered file can't poison
+// localStorage with surprise keys/types.
+const BACKUP_SCHEMA = {
+  isabel_crm_leads:           { type: 'array',  itemFields: ['id','name','phone','status','zone','notes','date'] },
+  isabel_plan_progress:       { type: 'object' },
+  isabel_memoria_hechos:      { type: 'array',  itemFields: ['id','text','date'] },
+  isabel_memoria_personas:    { type: 'array',  itemFields: ['id','name','role','notes','date'] },
+  isabel_memoria_tareas:      { type: 'array',  itemFields: ['id','text','due','done','date'] },
+  isabel_memoria_compromisos: { type: 'array',  itemFields: ['id','who','what','due','fulfilled','date'] },
+  isabel_intel_runs:          { type: 'array',  itemFields: ['id','date','text','snapshot'] },
+  isabel_audit_log:           { type: 'array',  itemFields: ['ts','event','details'] },
+  isabel_calendar:            { type: 'object' },
+  isabel_tools_section_open:  { type: 'string-bool' },
+};
+
+function _validateBackupValue(key, value){
+  const spec = BACKUP_SCHEMA[key];
+  if(!spec) return null;
+  // Backup may have stored values as JSON strings; try to parse first.
+  let parsed = value;
+  if(typeof value === 'string'){
+    try { parsed = JSON.parse(value); } catch(_) { /* keep as string */ }
+  }
+  if(spec.type === 'array'){
+    if(!Array.isArray(parsed)) return null;
+    // Keep only items that are plain objects, then keep only the allowed
+    // fields, coerced to safe primitive types (no nested objects / no
+    // arbitrary shapes that could ride through render-as-HTML sinks).
+    const clean = [];
+    for(const item of parsed){
+      if(!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const out = {};
+      for(const field of spec.itemFields){
+        const v = item[field];
+        if(v === undefined || v === null) continue;
+        if(typeof v === 'string')  out[field] = v.slice(0, 20000);
+        else if(typeof v === 'number')  out[field] = v;
+        else if(typeof v === 'boolean') out[field] = v;
+        else if(typeof v === 'object')  out[field] = v;  // snapshot blob, etc.
+      }
+      clean.push(out);
+    }
+    return JSON.stringify(clean);
+  }
+  if(spec.type === 'object'){
+    if(!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return null;
+    return JSON.stringify(parsed);
+  }
+  if(spec.type === 'string-bool'){
+    return (parsed === '1' || parsed === 1 || parsed === true) ? '1' : '0';
+  }
+  return null;
+}
+
 async function importDataFromFile(){
   const inp = document.createElement('input');
   inp.type = 'file'; inp.accept = 'application/json';
   inp.onchange = async () => {
     const f = inp.files[0]; if(!f) return;
-    try {
-      const text = await f.text();
-      const data = JSON.parse(text);
-      if(!data.store) throw new Error('Archivo no tiene la forma esperada');
-      if(!confirm('¿Sobrescribir tus datos actuales con el respaldo? (la API key actual se mantiene)')) return;
-      Object.entries(data.store).forEach(([k,v]) => {
-        if(k === 'isabel_anthropic_key') return;
-        localStorage.setItem(k, typeof v === 'string' ? v : JSON.stringify(v));
-      });
-      alert('Respaldo restaurado. La página se va a recargar.');
-      location.reload();
-    } catch(e) {
-      alert('No pude leer el archivo: ' + e.message);
+    if(f.size > 5 * 1024 * 1024){
+      alert('El archivo es muy grande (>5MB). Un respaldo válido es mucho más pequeño.');
+      return;
     }
+    let data;
+    try {
+      data = JSON.parse(await f.text());
+    } catch(e) {
+      alert('No pude leer el archivo: no es JSON válido.');
+      return;
+    }
+    if(!data || typeof data !== 'object' || !data.store || typeof data.store !== 'object'){
+      alert('El archivo no parece un respaldo válido (falta el campo "store").');
+      return;
+    }
+    const acceptedKeys = [];
+    const droppedKeys = [];
+    const sanitized = {};
+    for(const [k, v] of Object.entries(data.store)){
+      if(k === 'isabel_anthropic_key') continue;  // never restored, on purpose
+      const clean = _validateBackupValue(k, v);
+      if(clean === null){ droppedKeys.push(k); continue; }
+      sanitized[k] = clean;
+      acceptedKeys.push(k);
+    }
+    if(!acceptedKeys.length){
+      alert('El respaldo no tiene datos reconocidos. Nada que restaurar.');
+      return;
+    }
+    const msg = `¿Sobrescribir tus datos actuales con el respaldo?\n\n` +
+      `• Voy a restaurar: ${acceptedKeys.length} categoría(s)\n` +
+      (droppedKeys.length ? `• Voy a ignorar (formato desconocido): ${droppedKeys.length}\n` : '') +
+      `• Tu API Key actual se mantiene intacta.`;
+    if(!confirm(msg)) return;
+    for(const [k, v] of Object.entries(sanitized)){
+      try { localStorage.setItem(k, v); } catch(_){}
+    }
+    alert('Respaldo restaurado. La página se va a recargar.');
+    location.reload();
   };
   inp.click();
 }
@@ -3708,6 +3840,7 @@ function restoreToolsToggle(){
 }
 
 // ─── INIT ───
+loadCalendar();
 renderCalendar();
 loadApiKey();
 loadLeads();

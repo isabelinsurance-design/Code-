@@ -27,16 +27,23 @@ her finished files over technical steps.
 
 ## Build step — IMPORTANT
 
-After **any** change to `index.html` or `tools/`, regenerate the single-file build.
-It is produced by a small Python script that:
-1. Reads `index.html` + every file in `tools/`.
-2. Replaces the iframe `openTool()` function with a blob-URL version.
-3. Embeds tools as `const TOOL_DATA = {...}`, escaping `</` → `<\/` and `<!--` → `<\!--`.
-4. Writes `isabel-sistema-completo-UNICO.html`.
+After **any** change to `index.html` or `tools/`, regenerate the single-file
+build by running:
+
+```
+python3 build.py
+```
+
+`build.py` (committed in the repo root) reads `index.html` + every file in
+`tools/`, replaces the iframe `openTool()` function with a blob-URL version,
+embeds the tools as `const TOOL_DATA = {...}` (escaping `</` → `<\/` and
+`<!--` → `<\!--`), and writes `isabel-sistema-completo-UNICO.html`. **Do not
+edit the UNICO file by hand** — any change made directly there will be
+overwritten on the next build.
 
 Then **verify in a real browser** with Playwright (installed globally at
-`/opt/node22/lib/node_modules/playwright`) + `python3 -m http.server`. Always send the
-rebuilt UNICO file to Isabel after changes.
+`/opt/node22/lib/node_modules/playwright`) + `python3 -m http.server`. Always
+send the rebuilt UNICO file to Isabel after changes.
 
 ## Architecture
 
