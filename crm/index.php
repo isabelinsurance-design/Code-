@@ -5163,32 +5163,47 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
   <div id="rec-list">
   <?php if(!count($recordatorios)): ?>
     <div style="padding:26px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1.5px;background:#fff;border:1px dashed <?=$CB?>;border-radius:12px">📌 AÚN NO HAY NOTAS NI RECORDATORIOS</div>
-  <?php else: foreach($recordatorios as $r):
-    $r_fecha = $r['fecha_recordatorio'];
-    $r_vencido = $r_fecha && $r_fecha <= $_hoy_rec && !$r['completado'];
-    $r_hoy     = $r_fecha === $_hoy_rec;
-    $r_comp    = (int)$r['completado'] === 1;
-    $rec_json = htmlspecialchars(json_encode(['id'=>(int)$r['id'],'titulo'=>$r['titulo'],'nota'=>$r['nota'],'categoria'=>$r['categoria'],'fecha_recordatorio'=>$r_fecha]), ENT_QUOTES);
+  <?php else:
+    // Agrupar por categoría
+    $rec_by_cat = [];
+    foreach($recordatorios as $r){ $rec_by_cat[trim($r['categoria'] ?: 'GENERAL')][] = $r; }
+    ksort($rec_by_cat);
+    foreach($rec_by_cat as $catName=>$items):
+      $cat_pend = count(array_filter($items, fn($x)=>!$x['completado']));
   ?>
-    <div class="rec-item" data-cat="<?=h($r['categoria'])?>" style="background:#fff;border:1px solid <?=$r_vencido?'#EFA09A':$CB?>;border-left:4px solid <?=$r_comp?'#8DCFBA':($r_vencido?'#B83232':($r_fecha?'#2876A8':'#C07A1A'))?>;border-radius:11px;padding:11px 14px;margin-bottom:8px;<?=$r_comp?'opacity:.55':''?>">
-      <div style="display:flex;align-items:flex-start;gap:10px">
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px">
-            <span style="font-weight:900;font-size:11px;color:<?=$P1?>;<?=$r_comp?'text-decoration:line-through':''?>"><?=h($r['titulo'])?></span>
-            <span style="background:#EBF4F9;color:#1B4A6B;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($r['categoria'])?></span>
-            <?php if($r_fecha): ?>
-            <span style="background:<?=$r_vencido?'#FDF0EE':($r_comp?'#EAF5F0':'#EBF5FB')?>;color:<?=$r_vencido?'#B83232':($r_comp?'#1E7A5C':'#1B5E8C')?>;border:1px solid <?=$r_vencido?'#EFA09A':($r_comp?'#8DCFBA':'#A9D0E8')?>;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900;white-space:nowrap"><?=$r_vencido?'⏰ ':'📅 '?><?=$r_hoy?'HOY':date('d M Y',strtotime($r_fecha))?></span>
-            <?php endif; ?>
+    <div class="rec-group" data-cat="<?=h($catName)?>" style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:7px;padding-bottom:5px;border-bottom:2px solid <?=$CB?>">
+        <span style="font-size:11px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px">📂 <?=h($catName)?></span>
+        <span style="background:<?=$P1?>;color:#fff;border-radius:20px;padding:1px 9px;font-size:8px;font-weight:900"><?=$cat_pend?></span>
+        <?php if(count($items)>$cat_pend): ?><span style="font-size:8px;color:<?=$MU?>;text-transform:uppercase"><?=count($items)-$cat_pend?> hecho<?=(count($items)-$cat_pend)>1?'s':''?></span><?php endif; ?>
+      </div>
+    <?php foreach($items as $r):
+      $r_fecha = $r['fecha_recordatorio'];
+      $r_vencido = $r_fecha && $r_fecha <= $_hoy_rec && !$r['completado'];
+      $r_hoy     = $r_fecha === $_hoy_rec;
+      $r_comp    = (int)$r['completado'] === 1;
+      $rec_json = htmlspecialchars(json_encode(['id'=>(int)$r['id'],'titulo'=>$r['titulo'],'nota'=>$r['nota'],'categoria'=>$r['categoria'],'fecha_recordatorio'=>$r_fecha]), ENT_QUOTES);
+    ?>
+      <div class="rec-item" data-cat="<?=h($r['categoria'])?>" style="background:#fff;border:1px solid <?=$r_vencido?'#EFA09A':$CB?>;border-left:4px solid <?=$r_comp?'#8DCFBA':($r_vencido?'#B83232':($r_fecha?'#2876A8':'#C07A1A'))?>;border-radius:11px;padding:11px 14px;margin-bottom:8px;<?=$r_comp?'opacity:.55':''?>">
+        <div style="display:flex;align-items:flex-start;gap:10px">
+          <div style="flex:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px">
+              <span style="font-weight:900;font-size:11px;color:<?=$P1?>;<?=$r_comp?'text-decoration:line-through':''?>"><?=h($r['titulo'])?></span>
+              <?php if($r_fecha): ?>
+              <span style="background:<?=$r_vencido?'#FDF0EE':($r_comp?'#EAF5F0':'#EBF5FB')?>;color:<?=$r_vencido?'#B83232':($r_comp?'#1E7A5C':'#1B5E8C')?>;border:1px solid <?=$r_vencido?'#EFA09A':($r_comp?'#8DCFBA':'#A9D0E8')?>;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900;white-space:nowrap"><?=$r_vencido?'⏰ ':'📅 '?><?=$r_hoy?'HOY':date('d M Y',strtotime($r_fecha))?></span>
+              <?php endif; ?>
+            </div>
+            <?php if(!empty($r['nota'])): ?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:3px"><?=h($r['nota'])?></div><?php endif; ?>
+            <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:5px"><?=h(explode(' ',$r['creador']??'—')[0])?> · <?=date('d/m',strtotime($r['created_at']))?></div>
           </div>
-          <?php if(!empty($r['nota'])): ?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:3px"><?=h($r['nota'])?></div><?php endif; ?>
-          <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:5px"><?=h(explode(' ',$r['creador']??'—')[0])?> · <?=date('d/m',strtotime($r['created_at']))?></div>
-        </div>
-        <div style="display:flex;gap:4px;flex-shrink:0">
-          <button onclick="toggleRecordatorio(<?=(int)$r['id']?>,<?=$r_comp?0:1?>)" class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="<?=$r_comp?'Reabrir':'Marcar hecho'?>"><?=$r_comp?'↺':'✓'?></button>
-          <button onclick='openRecEdit(<?=$rec_json?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Editar">✏️</button>
-          <?php if($admin || (int)$r['creado_por']===$uid): ?><button onclick="deleteRecordatorio(<?=(int)$r['id']?>)" class="btn btn-sm" style="font-size:8px;padding:3px 8px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE" title="Borrar">🗑</button><?php endif; ?>
+          <div style="display:flex;gap:4px;flex-shrink:0">
+            <button onclick="toggleRecordatorio(<?=(int)$r['id']?>,<?=$r_comp?0:1?>)" class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="<?=$r_comp?'Reabrir':'Marcar hecho'?>"><?=$r_comp?'↺':'✓'?></button>
+            <button onclick='openRecEdit(<?=$rec_json?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Editar">✏️</button>
+            <?php if($admin || (int)$r['creado_por']===$uid): ?><button onclick="deleteRecordatorio(<?=(int)$r['id']?>)" class="btn btn-sm" style="font-size:8px;padding:3px 8px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE" title="Borrar">🗑</button><?php endif; ?>
+          </div>
         </div>
       </div>
+    <?php endforeach; ?>
     </div>
   <?php endforeach; endif; ?>
   </div>
@@ -6806,7 +6821,7 @@ function deleteRecordatorio(id){
 function recFilter(btn){
   const cat=btn.dataset.cat||'';
   document.querySelectorAll('.rec-cat-pill').forEach(b=>{const on=(b.dataset.cat||'')===cat;b.style.background=on?'<?=$P1?>':'#fff';b.style.color=on?'#fff':'<?=$MU?>';b.style.borderColor=on?'<?=$P1?>':'<?=$CB?>';});
-  document.querySelectorAll('.rec-item').forEach(it=>{ it.style.display=(!cat||it.dataset.cat===cat)?'':'none'; });
+  document.querySelectorAll('.rec-group').forEach(g=>{ g.style.display=(!cat||g.dataset.cat===cat)?'':'none'; });
 }
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
 function showAdminTab(id){
