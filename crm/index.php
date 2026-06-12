@@ -4768,7 +4768,7 @@ $rows_q = $asist_q->fetchAll();
         <th>EMPLEADO</th><th>FECHA</th><th>DÍA</th>
         <th>CHECK-IN</th><th>SAL.ALM.</th><th>REG.ALM.</th>
         <th>SAL.BREAK</th><th>REG.BREAK</th><th>CHECK-OUT</th>
-        <th>HORAS</th><th>ESTADO</th>
+        <th>HORAS</th><th>ESTADO</th><th></th>
       </tr>
       <?php
       $dias_es = ['','Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
@@ -4807,10 +4807,11 @@ $rows_q = $asist_q->fetchAll();
             <span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;padding:2px 8px;border-radius:20px;font-size:7px;font-weight:900">— AUSENTE</span>
           <?php endif; ?>
         </td>
+        <td><button onclick='openEditAsistencia(<?=htmlspecialchars(json_encode(["id"=>(int)$c["id"],"nombre"=>explode(" ",$c["nombre"]??"")[0],"fecha"=>$c["fecha"],"check_in"=>substr($c["check_in"]??"",0,5),"lunch_out"=>substr($c["lunch_out"]??"",0,5),"lunch_in"=>substr($c["lunch_in"]??"",0,5),"break_out"=>substr($c["break_out"]??"",0,5),"break_in"=>substr($c["break_in"]??"",0,5),"check_out"=>substr($c["check_out"]??"",0,5)]), ENT_QUOTES)?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Corregir">✏️</button></td>
       </tr>
       <?php endforeach; ?>
       <?php if(!count($rows_q)): ?>
-      <tr><td colspan="11" style="text-align:center;padding:20px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN REGISTROS EN ESTE PERÍODO</td></tr>
+      <tr><td colspan="12" style="text-align:center;padding:20px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN REGISTROS EN ESTE PERÍODO</td></tr>
       <?php endif; ?>
     </table>
   </div>
