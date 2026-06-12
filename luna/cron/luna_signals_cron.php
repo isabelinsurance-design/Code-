@@ -16,6 +16,7 @@
    señales en sync con computeSignals() de luna_api.php.
 ════════════════════════════════════════════════════════════════ */
 
+require_once __DIR__ . '/_cron_guard.php';  // 🔒 bloquea disparo por HTTP sin LUNA_CRON_TOKEN
 require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 
 $TZ = 'America/Los_Angeles';

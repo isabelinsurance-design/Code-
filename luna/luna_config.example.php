@@ -56,6 +56,19 @@ if (!function_exists('db')) {
 // Si no coinciden, LUNA responde 403 "Llave de servicio inválida" en TODO.
 define('LUNA_SERVICE_KEY', 'PON_AQUI_LA_MISMA_LLAVE_QUE_USA_ATHENA');
 
+// ── TOKEN DE CRONS (recomendado) ───────────────────────────────
+// Los crons corren por CLI (cPanel → Cron Jobs) sin necesitar esto.
+// Pero si quieres dispararlos desde el navegador (pruebas manuales),
+// inventa un string largo aquí y mándalo como ?cron_token=ESE_STRING.
+// Sin esta constante, el disparo por HTTP queda BLOQUEADO (seguro).
+// define('LUNA_CRON_TOKEN', 'INVENTA_UN_STRING_LARGO_AQUI');
+
+// ── SECRET DEL WEBHOOK DE TELEGRAM (si usas el bot) ────────────
+// Inventa un string largo, ponlo aquí Y regístralo con Telegram:
+//   .../setWebhook?url=...&secret_token=EL_MISMO_STRING
+// Así nadie puede forjar botonazos del bot.
+// define('TELEGRAM_WEBHOOK_SECRET', 'INVENTA_OTRO_STRING_LARGO');
+
 // ── OPCIONALES (dejar comentados hasta necesitarlos) ───────────
 // define('LUNA_SERVICE_AGENT_ID', 1);          // id de Isabel en tabla usuarios
 // define('LUNA_DEFAULT_TICKET_MEMBER', 0);     // id del miembro "OTRO"

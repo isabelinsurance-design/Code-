@@ -54,9 +54,11 @@ $IS_SERVICE = false;
 // Athena puede mandar la llave en cualquiera de estos headers (o por GET/POST).
 // TODOS se validan contra la MISMA LUNA_SERVICE_KEY y quedan limitados por el
 // allowlist de abajo (leer + crear tickets). NO hay bypass de admin.
+// 🔒 SOLO headers — ya NO se acepta ?service_key= por GET/POST: la llave
+// quedaba grabada en los access logs del servidor y en cachés intermedios.
 $svcKey = $_SERVER['HTTP_X_LUNA_KEY']
        ?? $_SERVER['HTTP_X_ATHENA_KEY']
-       ?? $_GET['service_key'] ?? $_POST['service_key'] ?? '';
+       ?? '';
 if ($svcKey === '' && !empty($_SERVER['HTTP_AUTHORIZATION'])
     && preg_match('/Bearer\s+(.+)/i', $_SERVER['HTTP_AUTHORIZATION'], $m)) {
     $svcKey = trim($m[1]);   // Authorization: Bearer <llave>
@@ -2650,14 +2652,15 @@ default:
 }
 
 } catch (PDOException $e) {
-    error_log('[luna_api] PDO: ' . $e->getMessage());
-    err('Error de base de datos. Revisa el log del servidor.', 500);
-} catch (Exception $e) {
-    error_log('[luna_api] ' . $e->getMessage());
-    err('Error inesperado: ' . $e->getMessage(), 500);
+    $eid = substr(md5($e->getMessage() . microtime()), 0, 8);
+    error_log("[luna_api][$eid] PDO: " . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
+    err("Error de base de datos. Revisa el log del servidor (ID: $eid).", 500);
 } catch (\Throwable $e) {
-    error_log('[luna_api] Throwable: ' . $e->getMessage());
+    // 🔒 El detalle de la excepción va SOLO al log del servidor (con un ID
+    // para encontrarlo); al cliente nunca — filtraba esquema/credenciales.
+    $eid = substr(md5($e->getMessage() . microtime()), 0, 8);
+    error_log("[luna_api][$eid] " . get_class($e) . ': ' . $e->getMessage() . ' @ ' . $e->getFile() . ':' . $e->getLine());
     err((isset($pdo) && $pdo === null)
         ? 'La base de datos de LUNA no está conectada (faltan credenciales reales en luna_config.php).'
-        : 'Error inesperado: ' . $e->getMessage(), 500);
+        : "Ocurrió un error inesperado (ID: $eid). Revisa el log del servidor.", 500);
 }

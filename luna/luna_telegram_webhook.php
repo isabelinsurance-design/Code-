@@ -13,10 +13,27 @@
    3. URL del webhook: https://withisabelfuentes.com/luna/luna_telegram_webhook.php
 
    REGISTRAR WEBHOOK (solo una vez, copiar y abrir en navegador):
-   https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://withisabelfuentes.com/luna/luna_telegram_webhook.php
+   https://api.telegram.org/bot{TOKEN}/setWebhook?url=https://withisabelfuentes.com/luna/luna_telegram_webhook.php&secret_token={EL_MISMO_TELEGRAM_WEBHOOK_SECRET}
+
+   ⚠️ SEGURIDAD: define TELEGRAM_WEBHOOK_SECRET en luna_config.php (un string
+   largo que inventes) y regístralo con &secret_token= como arriba. Telegram
+   lo mandará en cada request y aquí lo verificamos — sin eso, cualquiera
+   que conozca la URL podría forjar botonazos.
 ════════════════════════════════════════════════════════════════ */
 
 require_once __DIR__ . '/luna_config.php';  // ← config propio de LUNA
+
+// 🔒 Verificación del secret del webhook (header oficial de Telegram).
+// Si TELEGRAM_WEBHOOK_SECRET está definido, TODO request debe traerlo.
+$__tg_secret = trim((string)(getenv('TELEGRAM_WEBHOOK_SECRET')
+    ?: (defined('TELEGRAM_WEBHOOK_SECRET') ? TELEGRAM_WEBHOOK_SECRET : '')));
+if ($__tg_secret !== '') {
+    $__tg_recibido = (string)($_SERVER['HTTP_X_TELEGRAM_BOT_API_SECRET_TOKEN'] ?? '');
+    if (!hash_equals($__tg_secret, $__tg_recibido)) {
+        http_response_code(403);
+        exit('forbidden');
+    }
+}
 
 define('TG_TOKEN', 'XXXX:YYYY');           // ← mismo token del BotFather
 define('ISABEL_CHAT_ID', '0');             // ← chat_id de Isabel

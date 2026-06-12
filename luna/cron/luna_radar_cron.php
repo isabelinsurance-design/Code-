@@ -14,6 +14,7 @@
    ANTHROPIC_API_KEY o la búsqueda web falla, guarda un run marcado y sale.
 ════════════════════════════════════════════════════════════════ */
 
+require_once __DIR__ . '/_cron_guard.php';  // 🔒 bloquea disparo por HTTP sin LUNA_CRON_TOKEN
 require_once __DIR__ . '/../luna_config.php';  // ← config propio de LUNA
 require_once __DIR__ . '/../luna_radar.php';
 
