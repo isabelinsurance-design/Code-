@@ -531,6 +531,13 @@ try {
     $col_pa = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'pareja_id'")->fetch();
     if (!$col_pa) { $pdo->exec("ALTER TABLE miembros ADD COLUMN pareja_id INT NULL"); }
 } catch (Exception $e) {}
+// ─── REPORTE_DIARIO: quién/ cuándo lo editó un admin (auditoría) ──────────────
+try {
+    if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_por'")->fetch())
+        $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_por INT NULL");
+    if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_at'")->fetch())
+        $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_at TIMESTAMP NULL");
+} catch (Exception $e) {}
 // ─── TABLA GASTOS (expense report) ───────────────────────────────────────────
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS gastos (
@@ -6198,6 +6205,48 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <footer>MEDICARE WITH ISABEL · SCAN · ANTHEM · HUMANA · ALIGNMENT · LA CARE · HEALTH NET · MOLINA · UNITED HEALTHCARE · CA LIC #0D96598<?php if($admin):?><span onclick="openFinance()" style="margin-left:12px;cursor:pointer;color:rgba(200,223,240,.4)" title="Portal Financiero">◎</span><?php endif;?></footer>
 <div id="toast" class="toast"></div>
 <!-- MODALS -->
+<?php if($admin):?>
+<!-- MODAL: editar reporte como admin -->
+<div class="modal-overlay" id="admin-rep-edit-modal">
+  <div class="modal modal-sm">
+    <div class="modal-header">
+      <div class="modal-title">✏️ EDITAR REPORTE — <span id="are-titulo"></span></div>
+      <button type="button" class="modal-close" onclick="closeModal('admin-rep-edit-modal')">✕</button>
+    </div>
+    <form id="admin-rep-edit-form" onsubmit="submitAdminRepEdit(event)" style="padding:4px 2px">
+      <input type="hidden" id="are-agente" name="agente_id">
+      <input type="hidden" id="are-fecha" name="fecha">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+        <?php
+        $are_fields = [
+          ['llamadas_prospectos','LLAM. PROSPECTOS'],['contestaron','CONTESTARON'],
+          ['interesados','INTERESADOS'],['buzon','BUZÓN'],
+          ['llamadas_servicio','LLAM. SERVICIO'],['citas_confirmadas','CITAS'],
+          ['tickets_resueltos','TICKETS CERRADOS'],['tickets_actualizados','TICKETS ACTUALIZADOS'],
+          ['apps_enviadas','APPS ENVIADAS'],['apps_por_hacer','APPS X HACER'],
+        ];
+        foreach($are_fields as [$k,$lb]):?>
+        <div>
+          <label style="font-size:7px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px"><?=$lb?></label>
+          <input type="number" min="0" id="are-<?=$k?>" name="<?=$k?>" class="form-input" style="padding:7px 9px;font-size:11px" value="0">
+        </div>
+        <?php endforeach;?>
+      </div>
+      <div style="margin-top:9px">
+        <label style="font-size:7px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:.5px;display:block;margin-bottom:3px">NOTA</label>
+        <textarea id="are-nota" name="nota" class="form-input" style="min-height:60px;resize:vertical;font-size:11px"></textarea>
+      </div>
+      <div style="background:#F3F0FB;border:1px solid #C2B0E8;color:#5B3FAF;border-radius:8px;padding:7px 10px;font-size:8px;font-weight:700;margin-top:10px;text-transform:uppercase;letter-spacing:.3px">
+        ⓘ Quedará registrado en el HISTORIAL que tú editaste este reporte.
+      </div>
+      <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:12px">
+        <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('admin-rep-edit-modal')">CANCELAR</button>
+        <button type="submit" class="btn btn-p btn-sm">✓ GUARDAR CAMBIOS</button>
+      </div>
+    </form>
+  </div>
+</div>
+<?php endif;?>
 <div class="modal-overlay" id="member-form-modal" style="z-index:9600"><div class="modal"><div id="member-form-content"></div></div></div>
 <div class="modal-overlay" id="profile-modal"><div class="modal" id="profile-content"></div></div>
 <div class="modal-overlay" id="ticket-form-modal"><div class="modal" style="max-width:640px">
@@ -7666,6 +7715,36 @@ function reabrirReporte(aid, nombre, fecha){
       } else toast('⚠ '+(d.error||'Error'));
     }).catch(()=>toast('⚠ Error de conexión'));
 }
+// Admin edita directamente el reporte de un agente (abre modal prellenado)
+function openAdminRepEdit(aid, fecha){
+  const rows = window._repHistRows || [];
+  const r = rows.find(x => String(x.agente_id)===String(aid) && String(x.fecha)===String(fecha));
+  if(!r){ toast('⚠ No se encontró el reporte'); return; }
+  document.getElementById('are-agente').value = aid;
+  document.getElementById('are-fecha').value  = fecha;
+  document.getElementById('are-titulo').textContent = (r.nombre||'') + ' · ' + fecha;
+  ['llamadas_prospectos','contestaron','interesados','buzon','llamadas_servicio','citas_confirmadas','tickets_resueltos','tickets_actualizados','apps_enviadas','apps_por_hacer'].forEach(k=>{
+    const el=document.getElementById('are-'+k); if(el) el.value = parseInt(r[k]||0);
+  });
+  document.getElementById('are-nota').value = r.nota || '';
+  openModal('admin-rep-edit-modal');
+}
+function submitAdminRepEdit(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  fd.append('action','admin_edit_reporte');
+  const btn = e.target.querySelector('[type=submit]');
+  if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){
+        toast('✓ REPORTE ACTUALIZADO');
+        closeModal('admin-rep-edit-modal');
+        if(typeof buscarHistorial==='function') buscarHistorial();
+      } else toast('⚠ '+(d.error||'Error'));
+      if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; }
+    }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; } });
+}
 function filterHist(){const ag=document.getElementById('hist-ag')?.value||'';const tipo=document.getElementById('hist-tipo')?.value||'';document.querySelectorAll('.hist-row').forEach(r=>{r.style.display=(!ag||r.dataset.ag===ag)&&(!tipo||r.dataset.tipo===tipo)?'':'none';});}
 
 function buscarHistorial() {
@@ -7692,6 +7771,7 @@ function buscarHistorial() {
         load.style.display = 'none';
         if (!d.ok) { tabla.innerHTML = '<div style="color:#B83232;font-size:9px;padding:20px;text-align:center">⚠ ' + (d.error||'Error') + '</div>'; return; }
         const rows = d.data;
+        window._repHistRows = rows; // para edición del admin
         if (!rows.length) {
             tabla.innerHTML = '<div style="text-align:center;padding:30px;font-size:9px;color:#7A90A4;font-weight:900;text-transform:uppercase">Sin reportes en ese período</div>';
             return;
@@ -7724,10 +7804,14 @@ function buscarHistorial() {
                         <div style="flex:1">
                             <div style="font-size:10px;font-weight:900;color:#1B4A6B">${r.nombre||'—'}</div>
                             <div style="font-size:7px;color:${r.enviado==1?'#7A90A4':'#C07A1A'};text-transform:uppercase;margin-top:1px">${r.enviado==1?'REPORTE ENVIADO':'REABIERTO — PENDIENTE DE REENVÍO'}</div>
+                            ${r.editado_por ? `<div style="font-size:7px;color:#5B3FAF;text-transform:uppercase;margin-top:1px">✏️ EDITADO POR ${(r.editor_nombre||'ADMIN').split(' ')[0].toUpperCase()}${r.editado_at?(' · '+String(r.editado_at).substr(0,16).replace('T',' ')):''}</div>` : ''}
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
                             ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:220px;text-align:right;font-style:italic" title="${r.nota}">"${r.nota}"</div>` : ''}
-                            ${r.enviado==1 ? `<button onclick="reabrirReporte(${r.agente_id}, ${JSON.stringify(r.nombre||'')}, '${r.fecha}')" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">🔓 REABRIR</button>` : ''}
+                            <div style="display:flex;gap:5px">
+                              <button onclick="openAdminRepEdit(${r.agente_id}, '${r.fecha}')" style="background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">✏️ EDITAR</button>
+                              ${r.enviado==1 ? `<button onclick="reabrirReporte(${r.agente_id}, ${JSON.stringify(r.nombre||'')}, '${r.fecha}')" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">🔓 REABRIR</button>` : ''}
+                            </div>
                         </div>
                     </div>
 

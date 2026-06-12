@@ -637,6 +637,60 @@ case 'save_reporte':
     jsonOk();
     break;
 
+// ── EDITAR REPORTE COMO ADMIN ─────────────────────────────────
+// El admin edita directamente el reporte de un agente (sin reabrir) y queda
+// registrado en el HISTORIAL que el admin hizo el cambio.
+case 'admin_edit_reporte':
+    if (!$admin) jsonErr('Solo admin puede editar reportes de otros');
+    $aid   = intval($_POST['agente_id'] ?? 0);
+    $fecha = $_POST['fecha'] ?? '';
+    if (!$aid || !$fecha) jsonErr('Agente y fecha requeridos');
+    $pdo = db();
+    // Asegurar columnas de auditoría
+    try {
+        if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_por'")->fetch())
+            $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_por INT NULL");
+        if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_at'")->fetch())
+            $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_at TIMESTAMP NULL");
+    } catch (Exception $e) {}
+    $d = $_POST;
+    $pdo->prepare("INSERT INTO reporte_diario
+        (agente_id, fecha, llamadas_prospectos, contestaron, interesados, buzon,
+         llamadas_servicio, citas_confirmadas, tickets_resueltos,
+         tickets_actualizados, apps_enviadas, apps_por_hacer, nota, enviado, editado_por, editado_at)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,NOW())
+        ON DUPLICATE KEY UPDATE
+            llamadas_prospectos=VALUES(llamadas_prospectos), contestaron=VALUES(contestaron),
+            interesados=VALUES(interesados), buzon=VALUES(buzon),
+            llamadas_servicio=VALUES(llamadas_servicio), citas_confirmadas=VALUES(citas_confirmadas),
+            tickets_resueltos=VALUES(tickets_resueltos), tickets_actualizados=VALUES(tickets_actualizados),
+            apps_enviadas=VALUES(apps_enviadas), apps_por_hacer=VALUES(apps_por_hacer),
+            nota=VALUES(nota), enviado=1, editado_por=VALUES(editado_por), editado_at=NOW()")
+        ->execute([
+            $aid, $fecha,
+            (int)($d['llamadas_prospectos']  ?? 0),
+            (int)($d['contestaron']          ?? 0),
+            (int)($d['interesados']          ?? 0),
+            (int)($d['buzon']                ?? 0),
+            (int)($d['llamadas_servicio']    ?? 0),
+            (int)($d['citas_confirmadas']    ?? 0),
+            (int)($d['tickets_resueltos']    ?? 0),
+            (int)($d['tickets_actualizados'] ?? 0),
+            (int)($d['apps_enviadas']        ?? 0),
+            (int)($d['apps_por_hacer']       ?? 0),
+            trim($d['nota'] ?? ''),
+            $uid,
+        ]);
+    // Registrar en el HISTORIAL (actividad) que fue el admin
+    try {
+        $ag = $pdo->prepare("SELECT nombre FROM usuarios WHERE id=?"); $ag->execute([$aid]);
+        $agn = $ag->fetchColumn() ?: ('agente #'.$aid);
+        $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
+            ->execute([$uid, 'REPORTE', $user['nombre'].' editó el reporte de '.$agn.' del '.$fecha]);
+    } catch (Exception $e) {}
+    jsonOk();
+    break;
+
 // ── REABRIR REPORTE (admin) — habilita de nuevo el reporte de un agente ──
 // para reconteo (p.ej. ticket cerrado tras enviar) o para agregar notas.
 case 'reabrir_reporte':
@@ -1280,9 +1334,10 @@ case 'get_reportes_historicos':
     $ag_id = !empty($_POST['agente_id']) ? (int)$_POST['agente_id'] : null;
 
     // Reportes diarios
-    $sql = "SELECT r.*, u.nombre, u.color, u.iniciales
+    $sql = "SELECT r.*, u.nombre, u.color, u.iniciales, ue.nombre AS editor_nombre
             FROM reporte_diario r
-            LEFT JOIN usuarios u ON r.agente_id = u.id
+            LEFT JOIN usuarios u  ON r.agente_id   = u.id
+            LEFT JOIN usuarios ue ON r.editado_por = ue.id
             WHERE r.fecha BETWEEN ? AND ?";
     $params = [$from, $to];
     if ($ag_id) { $sql .= " AND r.agente_id = ?"; $params[] = $ag_id; }
