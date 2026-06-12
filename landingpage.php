@@ -120,7 +120,7 @@ $T = [
   // 1. Not affiliated / not endorsed by U.S. Government
   // 2. "We do not offer every plan" limitation
   // 3. Reference to Medicare.gov / 1-800-MEDICARE / SHIP
-  'footer_lic'  => 'Licensed Insurance Agent · Southern California · NPN: [⚠️ INSERT YOUR NPN HERE]',
+  'footer_lic'  => 'Licensed Insurance Agent · Southern California · NPN: 7643864',
   'footer_disc' => 'We are not connected with or endorsed by the U.S. Government or the federal Medicare program. We do not offer every plan available in your area. Any information we provide is limited to those plans we do offer in your area. Please contact Medicare.gov, 1-800-MEDICARE (1-800-633-4227), or your local State Health Insurance Assistance Program (SHIP) to get information on all of your options. TTY users: 1-877-486-2048. Our agent services are provided at no cost to you.',
   // CMS: This notice bar MUST appear prominently on every page. (CSS-only previously — now rendered in HTML.)
   'cms_notice'  => '⚠️ We do not offer every plan available in your area. Please contact <a href="https://www.medicare.gov" target="_blank" rel="noopener">Medicare.gov</a> or call <strong>1-800-MEDICARE (1-800-633-4227)</strong> to compare all available options. TTY: 1-877-486-2048.',
@@ -225,7 +225,7 @@ $T = [
   'opt3'          => 'Entender mis beneficios',
   'opt4'          => 'Ayuda con una factura o farmacia',
   'opt5'          => 'Otro',
-  'footer_lic'  => 'Agente de Seguros Licenciada · Sur de California · NPN: [⚠️ INGRESA TU NPN AQUÍ]',
+  'footer_lic'  => 'Agente de Seguros Licenciada · Sur de California · NPN: 7643864',
   'footer_disc' => 'No estamos afiliados ni respaldados por el gobierno de los EE. UU. ni por el programa federal de Medicare. No ofrecemos todos los planes disponibles en su área. Cualquier información que proporcionamos se limita a los planes que ofrecemos en su área. Comuníquese con Medicare.gov, llame al 1-800-MEDICARE (1-800-633-4227) o contacte a su Programa Estatal de Asistencia de Seguro de Salud (SHIP) local para obtener información sobre todas sus opciones. Usuarios de TTY: 1-877-486-2048. Nuestros servicios de agente se prestan sin costo para usted.',
   'cms_notice'  => '⚠️ No ofrecemos todos los planes disponibles en su área. Comuníquese con <a href="https://www.medicare.gov" target="_blank" rel="noopener">Medicare.gov</a> o llame al <strong>1-800-MEDICARE (1-800-633-4227)</strong> para comparar todas las opciones disponibles. TTY: 1-877-486-2048.',
 ],
