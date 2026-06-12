@@ -1312,8 +1312,13 @@ document.querySelectorAll('[data-count]').forEach(el => {
     }
   }
   function render(){
-    index = Math.min(index, maxIndex());
-    track.style.transform = 'translateX(-' + (index * (100 / perView())) + '%)';
+    index = Math.min(Math.max(index, 0), maxIndex());
+    // Measure the real pixel position of the target card so it always aligns
+    // to the left edge — no fractional/percentage drift.
+    const base = track.children[0] ? track.children[0].offsetLeft : 0;
+    const target = track.children[index];
+    const x = target ? (target.offsetLeft - base) : 0;
+    track.style.transform = 'translateX(-' + x + 'px)';
     [...dotsWrap.children].forEach((d,i) => d.classList.toggle('active', i === index));
   }
   function next(){ index = index >= maxIndex() ? 0 : index + 1; render(); }
