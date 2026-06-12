@@ -852,7 +852,7 @@ $members=$pdo->query("SELECT m.*,u.nombre as agente_nombre,u.color as agente_col
 FROM miembros m LEFT JOIN usuarios u ON m.agente_id=u.id ORDER BY m.apellido,m.nombre")->fetchAll();
 
 // ─── RECORDATORIOS Y NOTAS (equipo) ──────────────────────────────────────────
-$recordatorios = []; $rec_cats = []; $rec_due = 0; $_hoy_rec = date('Y-m-d');
+$recordatorios = []; $rec_cats = []; $rec_due = 0; $rec_dash = []; $_hoy_rec = date('Y-m-d');
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorios (
         id INT AUTO_INCREMENT PRIMARY KEY,
@@ -866,13 +866,24 @@ try {
         KEY idx_rec_fecha (fecha_recordatorio),
         KEY idx_rec_cat (categoria)
     )");
+    // Marcas "ya lo vi" por agente (silencia el aviso solo para esa persona)
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorio_visto (
+        recordatorio_id INT NOT NULL, agente_id INT NOT NULL,
+        visto_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (recordatorio_id, agente_id))");
+    $_rec_vistos = [];
+    foreach($pdo->query("SELECT recordatorio_id FROM recordatorio_visto WHERE agente_id=".(int)$uid) as $v){ $_rec_vistos[(int)$v['recordatorio_id']]=true; }
     $recordatorios = $pdo->query("SELECT r.*, u.nombre AS creador, u.iniciales AS cre_ini, u.color AS cre_color
         FROM recordatorios r LEFT JOIN usuarios u ON r.creado_por=u.id
         ORDER BY r.completado ASC, (r.fecha_recordatorio IS NULL) ASC, r.fecha_recordatorio ASC, r.created_at DESC")->fetchAll();
     foreach($recordatorios as $r){
         $c = trim($r['categoria'] ?: 'GENERAL');
         if(!in_array($c,$rec_cats,true)) $rec_cats[] = $c;
-        if(!empty($r['fecha_recordatorio']) && $r['fecha_recordatorio'] <= $_hoy_rec && !$r['completado']) $rec_due++;
+        // Vencido/hoy, no completado y que ESTE agente no haya marcado como visto
+        if(!empty($r['fecha_recordatorio']) && $r['fecha_recordatorio'] <= $_hoy_rec && !$r['completado'] && empty($_rec_vistos[(int)$r['id']])){
+            $rec_due++;
+            $rec_dash[] = $r;
+        }
     }
     sort($rec_cats);
 } catch (Exception $e) {}
@@ -1430,7 +1441,26 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 </div>
 <?php endif;?>
 <?php $aitems=array_filter([$urgent_tks>0?" $urgent_tks URGENTE".($urgent_tks>1?'S':''):null,$mis_tickets_abiertos>0?"◈ $mis_tickets_abiertos TICKETS ABIERTOS":null,$pending_llam>0?"◌ $pending_llam LLAMADAS PENDIENTES":null,$t65_count>0?" $t65_count T65 URGENTE":null,$apps_proceso>0?" $apps_proceso APPS EN PROCESO":null]);if($aitems):?><div class="alert-bar"><?php foreach($aitems as $a)echo"<span>$a</span>";?></div><?php endif;?>
-<?php if($rec_due>0):?><div class="alert-bar" style="background:#FDF0EE;border-left-color:#B83232;color:#B83232;cursor:pointer" onclick="showTab('RECURSOS')"><span>📌 <?=$rec_due?> RECORDATORIO<?=$rec_due>1?'S':''?> PARA HOY O VENCIDO<?=$rec_due>1?'S':''?> — VER →</span></div><?php endif;?>
+<?php if(!empty($rec_dash)): ?>
+<div class="card" style="margin-bottom:13px;border-left:4px solid #B83232">
+  <div class="card-header"><div class="card-title" style="color:#B83232">📌 RECORDATORIOS PARA HOY (<?=count($rec_dash)?>)</div><button onclick="showTab('RECURSOS')" class="btn btn-gh btn-sm">VER TODOS →</button></div>
+  <div style="padding:6px 14px 10px">
+  <?php foreach($rec_dash as $r): $r_venc = $r['fecha_recordatorio'] < $_hoy_rec; ?>
+    <div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid <?=$CB?>">
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap">
+          <span style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($r['titulo'])?></span>
+          <span style="background:#EBF4F9;color:#1B4A6B;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 7px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($r['categoria'])?></span>
+          <span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:1px 7px;font-size:7px;font-weight:900;white-space:nowrap"><?=$r_venc?'⏰ VENCIÓ '.date('d M',strtotime($r['fecha_recordatorio'])):'⏰ HOY'?></span>
+        </div>
+        <?php if(!empty($r['nota'])): ?><div style="font-size:8px;color:<?=$MU?>;margin-top:3px;white-space:pre-wrap"><?=h($r['nota'])?></div><?php endif; ?>
+      </div>
+      <button onclick="recVisto(<?=(int)$r['id']?>)" class="btn btn-gh btn-sm" style="white-space:nowrap;flex-shrink:0" title="No volver a mostrármelo a mí">✓ YA LO VI</button>
+    </div>
+  <?php endforeach; ?>
+  </div>
+</div>
+<?php endif; ?>
 <?php if($cue_alerta_count > 0): ?>
 <div class="alert-bar" style="background:#F0EBF8;border-left-color:#7B2D8B;color:#7B2D8B;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="showTab('CONTACTOS')">
   <span>🤝 <?=$cue_alerta_count?> CUENTA<?=$cue_alerta_count>1?'S':''?> SIN VISITAR — REVISAR →</span>
@@ -6812,6 +6842,10 @@ function openRecEdit(r){
 function toggleRecordatorio(id,val){
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'toggle_recordatorio',id,completado:val})})
     .then(r=>r.json()).then(d=>{ if(d.ok){ if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
+}
+function recVisto(id){
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'recordatorio_visto',id})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ LISTO — NO TE SALDRÁ DE NUEVO'); if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
 }
 function deleteRecordatorio(id){
   if(!confirm('¿Borrar esta nota/recordatorio?')) return;

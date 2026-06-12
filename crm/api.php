@@ -127,6 +127,8 @@ case 'save_recordatorio':
     if ($rid) {
         $pdo->prepare("UPDATE recordatorios SET titulo=?, nota=?, categoria=?, fecha_recordatorio=? WHERE id=?")
             ->execute([$titulo, $nota, $cat, $fecha, $rid]);
+        // Al editar, se reinician los "ya lo vi" para que vuelva a avisar a todos
+        try { $pdo->prepare("DELETE FROM recordatorio_visto WHERE recordatorio_id=?")->execute([$rid]); } catch (Exception $e) {}
     } else {
         $pdo->prepare("INSERT INTO recordatorios (titulo,nota,categoria,fecha_recordatorio,creado_por) VALUES (?,?,?,?,?)")
             ->execute([$titulo, $nota, $cat, $fecha, $uid]);
@@ -140,6 +142,16 @@ case 'toggle_recordatorio':
     $val = !empty($_POST['completado']) ? 1 : 0;
     if (!$rid) jsonErr('ID requerido');
     $pdo->prepare("UPDATE recordatorios SET completado=? WHERE id=?")->execute([$val, $rid]);
+    jsonOk();
+    break;
+
+case 'recordatorio_visto':
+    // El agente marca "ya lo vi" → se silencia el aviso solo para él
+    $pdo = db();
+    $rid = intval($_POST['id'] ?? 0);
+    if (!$rid) jsonErr('ID requerido');
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorio_visto (recordatorio_id INT NOT NULL, agente_id INT NOT NULL, visto_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, PRIMARY KEY (recordatorio_id, agente_id))");
+    $pdo->prepare("INSERT IGNORE INTO recordatorio_visto (recordatorio_id, agente_id) VALUES (?,?)")->execute([$rid, $uid]);
     jsonOk();
     break;
 
