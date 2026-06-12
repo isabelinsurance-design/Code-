@@ -1680,6 +1680,30 @@ let loading      = false;
 // ── CRM API base — adjust if LUNA is in a different folder ──
 const CRM_BASE = 'luna_api.php';  // misma carpeta que index.html (/luna/)
 
+// 🔒 CSRF: el servidor deja el token en la cookie LUNA_CSRF (la pone en el
+// primer GET). Aquí parchamos fetch UNA vez para inyectarlo como header
+// X-CSRF-Token en TODO POST a luna_api.php — así ningún POST se queda fuera.
+const __origFetch = window.fetch.bind(window);
+function __csrfToken() {
+  const m = document.cookie.match(/(?:^|;\s*)LUNA_CSRF=([^;]+)/);
+  return m ? decodeURIComponent(m[1]) : '';
+}
+window.fetch = (input, init) => {
+  try {
+    const url = typeof input === 'string' ? input : ((input && input.url) || '');
+    const method = (((init && init.method) || (typeof input === 'object' && input && input.method) || 'GET') + '').toUpperCase();
+    if (method === 'POST' && url.indexOf('luna_api.php') !== -1) {
+      const tok = __csrfToken();
+      if (tok) {
+        init = init || {};
+        if (init.headers instanceof Headers) init.headers.set('X-CSRF-Token', tok);
+        else init.headers = Object.assign({}, init.headers || {}, { 'X-CSRF-Token': tok });
+      }
+    }
+  } catch (_) { /* nunca romper un fetch por el parche */ }
+  return __origFetch(input, init);
+};
+
 const HIST_KEY = 'luna-history-v1';
 const TEAM_KEY   = 'luna-team-config-v1';
 const MEMORY_KEY = 'luna-memory-v1';
@@ -3907,7 +3931,11 @@ function cancelPlan(planId) {
 }
 
 function esc(s) {
-  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>');
+  // 🔒 También comillas: hay datos interpolados DENTRO de atributos
+  // (value="${esc(...)}") y sin esto una comilla en el dato inyecta HTML.
+  return String(s ?? '')
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;').replace(/'/g,'&#39;').replace(/\n/g,'<br>');
 }
 
 // Render bubble content — basic markdown: **bold**, `code`, and tool call placeholders hidden

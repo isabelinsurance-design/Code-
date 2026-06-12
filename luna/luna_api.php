@@ -28,6 +28,15 @@ if ($__luna_cfg === null) {
     die(json_encode(['ok'=>false,'error'=>'LUNA: no se encontró luna_config.php. Súbelo a la carpeta luna/ con las credenciales de la base de datos.']));
 }
 require_once $__luna_cfg;
+// 🔒 Cookie de sesión endurecida: SameSite=Lax bloquea POSTs desde otros
+// sitios (primera capa anti-CSRF), HttpOnly evita robo por JS.
+if (session_status() === PHP_SESSION_NONE) {
+    session_set_cookie_params([
+        'lifetime' => 0, 'path' => '/',
+        'secure'   => !empty($_SERVER['HTTPS']),
+        'httponly' => true, 'samesite' => 'Lax',
+    ]);
+}
 session_start();
 header('Content-Type: application/json; charset=utf-8');
 header('X-Content-Type-Options: nosniff');
@@ -155,6 +164,40 @@ try { $pdo = db(); } catch (\Throwable $e) { $pdo = null; error_log('[luna_api] 
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $method = $_SERVER['REQUEST_METHOD'];
 
+// ═══ CSRF + RATE LIMIT (solo sesiones humanas; Athena autentica por
+// header X-LUNA-Key sin cookies, así que CSRF no le aplica) ═══════
+if (!$IS_SERVICE) {
+    // Token CSRF de la sesión, expuesto en cookie legible (double-submit):
+    // el PWA lo lee y lo manda de vuelta en el header X-CSRF-Token.
+    if (empty($_SESSION['csrf'])) $_SESSION['csrf'] = bin2hex(random_bytes(32));
+    if (($_COOKIE['LUNA_CSRF'] ?? '') !== $_SESSION['csrf']) {
+        setcookie('LUNA_CSRF', $_SESSION['csrf'], [
+            'path' => '/', 'secure' => !empty($_SERVER['HTTPS']),
+            'httponly' => false, 'samesite' => 'Lax',
+        ]);
+    }
+    if ($method === 'POST') {
+        $__csrf = (string)($_SERVER['HTTP_X_CSRF_TOKEN'] ?? $_POST['csrf_token'] ?? '');
+        if (!hash_equals($_SESSION['csrf'], $__csrf)) {
+            http_response_code(403);
+            echo json_encode(['ok' => false, 'csrf' => true,
+                'error' => 'Sesión de seguridad caducada (CSRF). Recarga la página de LUNA e intenta de nuevo.']);
+            exit;
+        }
+    }
+    // Rate limit básico por sesión: 120 req/min (el loop agéntico hace
+    // varias llamadas por pregunta; 120 da holgura sin permitir abuso).
+    $__now = time();
+    $_SESSION['_rl'] = array_values(array_filter((array)($_SESSION['_rl'] ?? []),
+        fn($t) => $__now - (int)$t < 60));
+    if (count($_SESSION['_rl']) >= 120) {
+        http_response_code(429);
+        echo json_encode(['ok' => false, 'error' => 'Demasiadas solicitudes (límite 120/min). Espera un momento.']);
+        exit;
+    }
+    $_SESSION['_rl'][] = $__now;
+}
+
 // ── Helpers ─────────────────────────────────────────────
 function ok($data = []) { echo json_encode(['ok'=>true, 'data'=>$data]); exit; }
 function err($msg, $code = 400) {
@@ -179,7 +222,9 @@ function logActivity(PDO $pdo, int $agente_id, ?int $miembro_id, string $tipo, s
     lunaAudit($pdo, $agente_id, 'WRITE:' . $tipo, $desc);
 }
 function intOrNull($v) { return ($v === '' || $v === null) ? null : (int)$v; }
-function strOrNull($v) { $v = trim((string)$v); return $v === '' ? null : $v; }
+// 🔒 Tope de longitud en textos libres (notas, descripciones, memoria):
+// 20 000 chars es muchísimo para uso real y frena payloads de megas.
+function strOrNull($v) { $v = mb_substr(trim((string)$v), 0, 20000); return $v === '' ? null : $v; }
 
 // ── Esquema adaptable: evita "Data truncated" (error 1265) ───
 // Lee del INFORMATION_SCHEMA qué valores acepta REALMENTE una columna
@@ -409,19 +454,36 @@ case 'luna_whoami':
 case 'luna_chat':
     requirePost();
 
-    // ── Chat de IA: SOLO Isabel (admin) ──────────────────────
-    // Decisión de Isabel: el chat con IA queda solo para ella; el equipo usa
-    // la plataforma (datos, junta, tareas) y recibe los reportes automáticos,
-    // pero no consume el chat (que es el costo variable). Para habilitar a
-    // alguien más en el futuro: agrega su user_id a $CHAT_EXTRA_UIDS.
-    // 🔓 Candado QUITADO (decisión de Isabel, "por ahora"): el chat queda abierto
-    // a cualquier usuario con sesión en el CRM. Para volver a restringirlo solo a
-    // Isabel en el futuro, descomenta el bloque de abajo.
-    // $CHAT_EXTRA_UIDS = [];   // ej. [5] para permitir a Skarleth
-    // if (!$admin && !in_array($uid, $CHAT_EXTRA_UIDS, true)) {
-    //     lunaAudit($pdo, $uid, 'CHAT_DENEGADO', 'Intento de usar el chat de IA (restringido a Isabel)');
-    //     err('💬 El chat con LUNA está disponible solo para Isabel.', 403);
-    // }
+    // ── Candado del chat: ahora por CONFIG, no por comentario ──
+    // LUNA_CHAT_ALLOWED (env o constante en luna_config.php):
+    //   'all'   → abierto a todo usuario con sesión (default; decisión
+    //             vigente de Isabel "por ahora")
+    //   'admin' → solo Isabel
+    //   '5,7'   → Isabel + esos user_ids
+    $chatAllowed = strtolower(trim((string)(getenv('LUNA_CHAT_ALLOWED')
+        ?: (defined('LUNA_CHAT_ALLOWED') ? LUNA_CHAT_ALLOWED : 'all'))));
+    if (!$admin && $chatAllowed !== 'all') {
+        $okChat = false;
+        if ($chatAllowed !== 'admin') {
+            $idsPermitidos = array_map('intval', array_filter(array_map('trim', explode(',', $chatAllowed)), 'strlen'));
+            $okChat = in_array($uid, $idsPermitidos, true);
+        }
+        if (!$okChat) {
+            lunaAudit($pdo, $uid, 'CHAT_DENEGADO', 'Chat restringido por LUNA_CHAT_ALLOWED');
+            err('💬 El chat con LUNA no está habilitado para tu usuario. Pídele acceso a Isabel.', 403);
+        }
+    }
+    // Tope diario de consultas IA por usuario (protege el gasto de Anthropic).
+    // Ajustable con LUNA_CHAT_DAILY_CAP (0 = sin tope). Default: 300.
+    $chatCap = (int)(getenv('LUNA_CHAT_DAILY_CAP')
+        ?: (defined('LUNA_CHAT_DAILY_CAP') ? LUNA_CHAT_DAILY_CAP : 300));
+    if ($chatCap > 0) {
+        $cd = date('Y-m-d');
+        if (($_SESSION['_chat_day'] ?? '') !== $cd) { $_SESSION['_chat_day'] = $cd; $_SESSION['_chat_n'] = 0; }
+        if (++$_SESSION['_chat_n'] > $chatCap) {
+            err("Se alcanzó el límite diario del chat ($chatCap consultas). Vuelve mañana o ajusta LUNA_CHAT_DAILY_CAP.", 429);
+        }
+    }
 
     $apiKey = getenv('ANTHROPIC_API_KEY')
         ?: (defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : '');
@@ -429,11 +491,15 @@ case 'luna_chat':
         err('Falta ANTHROPIC_API_KEY en el servidor (env var o constante en config.php).', 500);
     }
 
-    $body = json_decode(file_get_contents('php://input'), true);
+    $rawBody = file_get_contents('php://input');
+    if (strlen($rawBody) > 800000) err('Solicitud demasiado grande (máx 800 KB).', 413);
+    $body = json_decode($rawBody, true);
     if (!is_array($body) || empty($body['messages']) || !is_array($body['messages'])) {
         err('Body inválido: se requiere messages[].');
     }
-    $system   = (string)($body['system'] ?? '');
+    // Tope del system prompt: las personas de los agentes son largas pero
+    // nunca de megas — esto frena abuso de cuota sin tocar el uso normal.
+    $system   = mb_substr((string)($body['system'] ?? ''), 0, 24000);
     $messages = $body['messages'];
     $maxTok   = min(4096, max(256, (int)($body['max_tokens'] ?? 1800)));
     $useWeb   = !empty($body['web_search']);
@@ -1879,6 +1945,7 @@ case 'luna_memory_set':
     $type  = trim($_POST['type'] ?? '');
     $key   = $_POST['key'] ?? null;
     $value = $_POST['value'] ?? null;
+    if (is_string($value) && strlen($value) > 200000) err('Valor de memoria demasiado grande (máx 200 KB).', 413);
 
     $valid_types = ['business_goals','remember','monthly_snapshot','session_summary','lesson','team_config','dismissed_alert'];
     if (!in_array($type, $valid_types)) {
@@ -2148,8 +2215,8 @@ case 'luna_meeting_action':
 // Útil para el botón "copiar" de Estudio Creativo: revisa antes de mostrar.
 case 'luna_review_outbound':
     requirePost();
-    $body    = (string)($_POST['body'] ?? '');
-    $subject = (string)($_POST['subject'] ?? '');
+    $body    = mb_substr((string)($_POST['body'] ?? ''), 0, 50000);
+    $subject = mb_substr((string)($_POST['subject'] ?? ''), 0, 500);
     if ($body === '') err('Falta body.');
     ok(reviewOutbound($body, $subject));
     break;

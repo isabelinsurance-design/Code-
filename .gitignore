@@ -1,2 +1,15 @@
 # Credentials — never commit real config
 luna/luna_config.php
+
+# Logs, respaldos y entornos — nunca al repo
+*.log
+luna/*.log
+luna/cron/*.log
+*.sql
+*.sql.gz
+.env
+.env.*
+!.env.example
+**/.env
+!**/.env.example
+.DS_Store

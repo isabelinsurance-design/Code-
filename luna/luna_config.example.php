@@ -69,6 +69,15 @@ define('LUNA_SERVICE_KEY', 'PON_AQUI_LA_MISMA_LLAVE_QUE_USA_ATHENA');
 // Así nadie puede forjar botonazos del bot.
 // define('TELEGRAM_WEBHOOK_SECRET', 'INVENTA_OTRO_STRING_LARGO');
 
+// ── CANDADO Y TOPE DEL CHAT IA (opcional) ──────────────────────
+// LUNA_CHAT_ALLOWED: quién puede usar el chat con IA.
+//   'all' (default) = todos los usuarios con sesión · 'admin' = solo Isabel
+//   '5,7' = Isabel + esos user_ids de la tabla usuarios.
+// define('LUNA_CHAT_ALLOWED', 'all');
+// LUNA_CHAT_DAILY_CAP: consultas IA máximas por usuario al día (protege
+// el gasto de Anthropic). 0 = sin tope. Default si no se define: 300.
+// define('LUNA_CHAT_DAILY_CAP', 300);
+
 // ── OPCIONALES (dejar comentados hasta necesitarlos) ───────────
 // define('LUNA_SERVICE_AGENT_ID', 1);          // id de Isabel en tabla usuarios
 // define('LUNA_DEFAULT_TICKET_MEMBER', 0);     // id del miembro "OTRO"
