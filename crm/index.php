@@ -851,6 +851,32 @@ $members=$pdo->query("SELECT m.*,u.nombre as agente_nombre,u.color as agente_col
 (SELECT COUNT(*) FROM soa WHERE miembro_id=m.id AND estado='FIRMADO') as has_soa
 FROM miembros m LEFT JOIN usuarios u ON m.agente_id=u.id ORDER BY m.apellido,m.nombre")->fetchAll();
 
+// ─── RECORDATORIOS Y NOTAS (equipo) ──────────────────────────────────────────
+$recordatorios = []; $rec_cats = []; $rec_due = 0; $_hoy_rec = date('Y-m-d');
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorios (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        titulo VARCHAR(255) NOT NULL,
+        nota TEXT,
+        categoria VARCHAR(80) DEFAULT 'GENERAL',
+        fecha_recordatorio DATE NULL,
+        completado TINYINT(1) DEFAULT 0,
+        creado_por INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_rec_fecha (fecha_recordatorio),
+        KEY idx_rec_cat (categoria)
+    )");
+    $recordatorios = $pdo->query("SELECT r.*, u.nombre AS creador, u.iniciales AS cre_ini, u.color AS cre_color
+        FROM recordatorios r LEFT JOIN usuarios u ON r.creado_por=u.id
+        ORDER BY r.completado ASC, (r.fecha_recordatorio IS NULL) ASC, r.fecha_recordatorio ASC, r.created_at DESC")->fetchAll();
+    foreach($recordatorios as $r){
+        $c = trim($r['categoria'] ?: 'GENERAL');
+        if(!in_array($c,$rec_cats,true)) $rec_cats[] = $c;
+        if(!empty($r['fecha_recordatorio']) && $r['fecha_recordatorio'] <= $_hoy_rec && !$r['completado']) $rec_due++;
+    }
+    sort($rec_cats);
+} catch (Exception $e) {}
+
 // Tickets — admin ve todos, agente ve SOLO donde es responsable (asignado_a)
 // Si no hay asignado_a, fallback a agente_id (creador) para no perder tickets antiguos
 $tkt_select = "SELECT t.*,
@@ -1389,6 +1415,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <?php elseif($t==='MIEMBROS'):?><span class="nbadge" style="background:<?=$BG?>;color:<?=$MU?>;border:1px solid <?=$CB?>"><?=count($members)?></span>
 <?php elseif($t==='RETENCION'&&$alertas_hoy>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$alertas_hoy?></span>
 <?php elseif($t==='COMUNICACION'&&$chat_unread>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$chat_unread?></span>
+<?php elseif($t==='RECURSOS'&&$rec_due>0):?><span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A"><?=$rec_due?></span>
 <?php endif;?>
 </button>
 <?php endforeach;?>
@@ -1403,6 +1430,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 </div>
 <?php endif;?>
 <?php $aitems=array_filter([$urgent_tks>0?" $urgent_tks URGENTE".($urgent_tks>1?'S':''):null,$mis_tickets_abiertos>0?"◈ $mis_tickets_abiertos TICKETS ABIERTOS":null,$pending_llam>0?"◌ $pending_llam LLAMADAS PENDIENTES":null,$t65_count>0?" $t65_count T65 URGENTE":null,$apps_proceso>0?" $apps_proceso APPS EN PROCESO":null]);if($aitems):?><div class="alert-bar"><?php foreach($aitems as $a)echo"<span>$a</span>";?></div><?php endif;?>
+<?php if($rec_due>0):?><div class="alert-bar" style="background:#FDF0EE;border-left-color:#B83232;color:#B83232;cursor:pointer" onclick="showTab('RECURSOS')"><span>📌 <?=$rec_due?> RECORDATORIO<?=$rec_due>1?'S':''?> PARA HOY O VENCIDO<?=$rec_due>1?'S':''?> — VER →</span></div><?php endif;?>
 <?php if($cue_alerta_count > 0): ?>
 <div class="alert-bar" style="background:#F0EBF8;border-left-color:#7B2D8B;color:#7B2D8B;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="showTab('CONTACTOS')">
   <span>🤝 <?=$cue_alerta_count?> CUENTA<?=$cue_alerta_count>1?'S':''?> SIN VISITAR — REVISAR →</span>
@@ -5090,9 +5118,84 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
-<?php foreach(['SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='SCRIPTS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt?></button><?php endforeach;?>
+<?php foreach(['RECORDATORIOS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':$rt?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?></button><?php endforeach;?>
 </div>
-<div id="rtab-SCRIPTS">
+
+<!-- ══════════ RECORDATORIOS Y NOTAS ══════════ -->
+<div id="rtab-RECORDATORIOS">
+  <div class="card" style="margin-bottom:13px">
+    <div class="card-header"><div class="card-title">📌 NUEVA NOTA / RECORDATORIO</div></div>
+    <div style="padding:13px 16px">
+      <form onsubmit="submitRecordatorio(event)">
+        <input type="hidden" id="rec-id" name="id">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1.1fr;gap:9px;margin-bottom:9px">
+          <div>
+            <label class="form-label">TÍTULO *</label>
+            <input id="rec-titulo" name="titulo" class="form-input" required placeholder="Ej: Después de cada aplicación: hacer HRA y actualizar CRM">
+          </div>
+          <div>
+            <label class="form-label">CATEGORÍA</label>
+            <input id="rec-cat" name="categoria" class="form-input" list="rec-cat-list" placeholder="Ej: APLICACIONES, AEP…" style="text-transform:uppercase">
+            <datalist id="rec-cat-list"><?php foreach($rec_cats as $rc):?><option value="<?=h($rc)?>"></option><?php endforeach;?></datalist>
+          </div>
+          <div>
+            <label class="form-label">FECHA (OPCIONAL — CREA ALERTA)</label>
+            <input type="date" id="rec-fecha" name="fecha_recordatorio" class="form-input">
+          </div>
+        </div>
+        <textarea id="rec-nota" name="nota" class="form-input" placeholder="Detalle / nota (opcional)…" style="min-height:48px;resize:vertical"></textarea>
+        <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:9px">
+          <button type="button" id="rec-cancel-btn" class="btn btn-gh btn-sm" style="display:none" onclick="resetRecForm()">CANCELAR EDICIÓN</button>
+          <button type="submit" id="rec-save-btn" class="btn btn-p btn-sm">+ AGREGAR</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:11px;align-items:center">
+    <span style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">CATEGORÍA:</span>
+    <button class="rec-cat-pill" data-cat="" onclick="recFilter(this)" style="padding:3px 10px;border-radius:20px;border:1px solid <?=$P1?>;background:<?=$P1?>;color:#fff;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">TODAS</button>
+    <?php foreach($rec_cats as $rc):?>
+    <button class="rec-cat-pill" data-cat="<?=h($rc)?>" onclick="recFilter(this)" style="padding:3px 10px;border-radius:20px;border:1px solid <?=$CB?>;background:#fff;color:<?=$MU?>;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase"><?=h($rc)?></button>
+    <?php endforeach;?>
+  </div>
+
+  <div id="rec-list">
+  <?php if(!count($recordatorios)): ?>
+    <div style="padding:26px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1.5px;background:#fff;border:1px dashed <?=$CB?>;border-radius:12px">📌 AÚN NO HAY NOTAS NI RECORDATORIOS</div>
+  <?php else: foreach($recordatorios as $r):
+    $r_fecha = $r['fecha_recordatorio'];
+    $r_vencido = $r_fecha && $r_fecha <= $_hoy_rec && !$r['completado'];
+    $r_hoy     = $r_fecha === $_hoy_rec;
+    $r_comp    = (int)$r['completado'] === 1;
+    $rec_json = htmlspecialchars(json_encode(['id'=>(int)$r['id'],'titulo'=>$r['titulo'],'nota'=>$r['nota'],'categoria'=>$r['categoria'],'fecha_recordatorio'=>$r_fecha]), ENT_QUOTES);
+  ?>
+    <div class="rec-item" data-cat="<?=h($r['categoria'])?>" style="background:#fff;border:1px solid <?=$r_vencido?'#EFA09A':$CB?>;border-left:4px solid <?=$r_comp?'#8DCFBA':($r_vencido?'#B83232':($r_fecha?'#2876A8':'#C07A1A'))?>;border-radius:11px;padding:11px 14px;margin-bottom:8px;<?=$r_comp?'opacity:.55':''?>">
+      <div style="display:flex;align-items:flex-start;gap:10px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin-bottom:3px">
+            <span style="font-weight:900;font-size:11px;color:<?=$P1?>;<?=$r_comp?'text-decoration:line-through':''?>"><?=h($r['titulo'])?></span>
+            <span style="background:#EBF4F9;color:#1B4A6B;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($r['categoria'])?></span>
+            <?php if($r_fecha): ?>
+            <span style="background:<?=$r_vencido?'#FDF0EE':($r_comp?'#EAF5F0':'#EBF5FB')?>;color:<?=$r_vencido?'#B83232':($r_comp?'#1E7A5C':'#1B5E8C')?>;border:1px solid <?=$r_vencido?'#EFA09A':($r_comp?'#8DCFBA':'#A9D0E8')?>;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900;white-space:nowrap"><?=$r_vencido?'⏰ ':'📅 '?><?=$r_hoy?'HOY':date('d M Y',strtotime($r_fecha))?></span>
+            <?php endif; ?>
+          </div>
+          <?php if(!empty($r['nota'])): ?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:3px"><?=h($r['nota'])?></div><?php endif; ?>
+          <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:5px"><?=h(explode(' ',$r['creador']??'—')[0])?> · <?=date('d/m',strtotime($r['created_at']))?></div>
+        </div>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick="toggleRecordatorio(<?=(int)$r['id']?>,<?=$r_comp?0:1?>)" class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="<?=$r_comp?'Reabrir':'Marcar hecho'?>"><?=$r_comp?'↺':'✓'?></button>
+          <button onclick='openRecEdit(<?=$rec_json?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Editar">✏️</button>
+          <?php if($admin || (int)$r['creado_por']===$uid): ?><button onclick="deleteRecordatorio(<?=(int)$r['id']?>)" class="btn btn-sm" style="font-size:8px;padding:3px 8px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE" title="Borrar">🗑</button><?php endif; ?>
+        </div>
+      </div>
+    </div>
+  <?php endforeach; endif; ?>
+  </div>
+</div>
+<!-- ══════════ /RECORDATORIOS ══════════ -->
+
+<div id="rtab-SCRIPTS" style="display:none">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto">
 <?php foreach(['RETENCIÓN','AEP','PROSPECTOS','GUIONES','OBJECIONES','COMPLIANCE'] as $st):?><button class="ntab<?=$st==='RETENCIÓN'?' active':''?>" onclick="showScriptTab('<?=$st?>')" data-stab="<?=$st?>"><?=$st?></button><?php endforeach;?>
 </div>
@@ -6656,7 +6759,55 @@ function irAMiembros(estado) {
     }
 }
 function showComTab(id){['SMS','LLAMADAS','EMAILS','HISTORIAL'].forEach(t=>{const el=document.getElementById('ctab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-ctab]').forEach(b=>b.classList.toggle('active',b.dataset.ctab===id));}
-function showRecTab(id){['SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));}
+function showRecTab(id){['RECORDATORIOS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));}
+// ── RECORDATORIOS Y NOTAS ──
+function submitRecordatorio(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); fd.append('action','save_recordatorio');
+  const btn=document.getElementById('rec-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ GUARDADO'); resetRecForm(); if(typeof softReload==='function') softReload(); }
+      else toast('⚠ '+(d.error||'Error'));
+      if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; }
+    }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; } });
+}
+function resetRecForm(){
+  document.getElementById('rec-id').value='';
+  document.getElementById('rec-titulo').value='';
+  document.getElementById('rec-cat').value='';
+  document.getElementById('rec-fecha').value='';
+  document.getElementById('rec-nota').value='';
+  const cb=document.getElementById('rec-cancel-btn'); if(cb) cb.style.display='none';
+  const sb=document.getElementById('rec-save-btn'); if(sb) sb.textContent='+ AGREGAR';
+}
+function openRecEdit(r){
+  if(!r) return;
+  document.getElementById('rec-id').value=r.id;
+  document.getElementById('rec-titulo').value=r.titulo||'';
+  document.getElementById('rec-cat').value=r.categoria||'';
+  document.getElementById('rec-fecha').value=r.fecha_recordatorio||'';
+  document.getElementById('rec-nota').value=r.nota||'';
+  const cb=document.getElementById('rec-cancel-btn'); if(cb) cb.style.display='';
+  const sb=document.getElementById('rec-save-btn'); if(sb) sb.textContent='✓ GUARDAR CAMBIOS';
+  document.getElementById('rec-titulo').scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('rec-titulo').focus();
+}
+function toggleRecordatorio(id,val){
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'toggle_recordatorio',id,completado:val})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
+}
+function deleteRecordatorio(id){
+  if(!confirm('¿Borrar esta nota/recordatorio?')) return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_recordatorio',id})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ BORRADO'); if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
+}
+function recFilter(btn){
+  const cat=btn.dataset.cat||'';
+  document.querySelectorAll('.rec-cat-pill').forEach(b=>{const on=(b.dataset.cat||'')===cat;b.style.background=on?'<?=$P1?>':'#fff';b.style.color=on?'#fff':'<?=$MU?>';b.style.borderColor=on?'<?=$P1?>':'<?=$CB?>';});
+  document.querySelectorAll('.rec-item').forEach(it=>{ it.style.display=(!cat||it.dataset.cat===cat)?'':'none'; });
+}
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
 function showAdminTab(id){
   if(id==='INCENTIVOS') loadBonosIncentivos();

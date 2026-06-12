@@ -110,6 +110,49 @@ case 'edit_asistencia':
     jsonOk(['cambios'=>count($cambios)]);
     break;
 
+// ── RECORDATORIOS Y NOTAS (equipo) ────────────────────────────
+case 'save_recordatorio':
+    $pdo = db();
+    $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorios (
+        id INT AUTO_INCREMENT PRIMARY KEY, titulo VARCHAR(255) NOT NULL, nota TEXT,
+        categoria VARCHAR(80) DEFAULT 'GENERAL', fecha_recordatorio DATE NULL,
+        completado TINYINT(1) DEFAULT 0, creado_por INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        KEY idx_rec_fecha (fecha_recordatorio), KEY idx_rec_cat (categoria))");
+    $titulo = trim($_POST['titulo'] ?? '');
+    if ($titulo === '') jsonErr('El título es obligatorio');
+    $cat   = strtoupper(trim($_POST['categoria'] ?? '')) ?: 'GENERAL';
+    $nota  = trim($_POST['nota'] ?? '') ?: null;
+    $fecha = trim($_POST['fecha_recordatorio'] ?? '') ?: null;
+    $rid   = intval($_POST['id'] ?? 0);
+    if ($rid) {
+        $pdo->prepare("UPDATE recordatorios SET titulo=?, nota=?, categoria=?, fecha_recordatorio=? WHERE id=?")
+            ->execute([$titulo, $nota, $cat, $fecha, $rid]);
+    } else {
+        $pdo->prepare("INSERT INTO recordatorios (titulo,nota,categoria,fecha_recordatorio,creado_por) VALUES (?,?,?,?,?)")
+            ->execute([$titulo, $nota, $cat, $fecha, $uid]);
+    }
+    jsonOk();
+    break;
+
+case 'toggle_recordatorio':
+    $pdo = db();
+    $rid = intval($_POST['id'] ?? 0);
+    $val = !empty($_POST['completado']) ? 1 : 0;
+    if (!$rid) jsonErr('ID requerido');
+    $pdo->prepare("UPDATE recordatorios SET completado=? WHERE id=?")->execute([$val, $rid]);
+    jsonOk();
+    break;
+
+case 'delete_recordatorio':
+    $pdo = db();
+    $rid = intval($_POST['id'] ?? 0);
+    if (!$rid) jsonErr('ID requerido');
+    // Admin borra cualquiera; el resto solo los que creó
+    if (isAdmin()) $pdo->prepare("DELETE FROM recordatorios WHERE id=?")->execute([$rid]);
+    else $pdo->prepare("DELETE FROM recordatorios WHERE id=? AND creado_por=?")->execute([$rid, $uid]);
+    jsonOk();
+    break;
+
 // ── MEMBERS ──────────────────────────────────────────────────
 case 'iniciar_cambio_plan':
     $pdo = db();
