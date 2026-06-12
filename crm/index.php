@@ -2919,7 +2919,7 @@ foreach($members as $m_){
     $mes = substr($m_['fecha_efectiva']??'',0,7);
     if($mes && !in_array($mes,$meses_disponibles)) $meses_disponibles[] = $mes;
 }
-sort($meses_disponibles);
+rsort($meses_disponibles); // más reciente primero (los meses actuales adelante)
 
 // Pills dinámicas: TODOS + FUTUROS + un pill por cada estado realmente presente.
 // Así la suma de los pills de estado = TODOS y los contadores siempre cuadran.
