@@ -2673,19 +2673,19 @@ async function refreshSecurityBadge() {
 const AGENT_TOOLS = {
   // ── 🌙 LUNA — Cerebro principal con acceso completo ────
   'luna_main':   ['briefing','health','pipeline','t65','retention','hotleads','search','detail','soa',
-                  'tickets_all','today_appts','birthdays','attendance','commissions','carriers','activity',
+                  'tickets_all','tickets_agent','today_appts','birthdays','attendance','commissions','carriers','activity',
                   'log','note','create_member','update_status','create_ticket','create_appt',
                   'notif','batch_tickets','all_goals','memory_view','team_config',
                   'signals','gaps','entities','entity_save','skill_list','audit_struct',
                   'consult_specialists'],
   // ── 🎛️ Centro de Comando ────────────────────────────
-  'comando':     ['briefing','health','pipeline','t65','retention','hotleads','search','tickets_all',
+  'comando':     ['briefing','health','pipeline','t65','retention','hotleads','search','tickets_all','tickets_agent',
                   'attendance','commissions','carriers','activity','batch_tickets',
                   'create_ticket','update_status','notif','create_appt','all_goals',
                   'today_appts','birthdays','log','signals','gaps','skill_list'],
   // ── 📊 Analista (datos consolidados) ────────────────
   'analista':    ['pipeline','health','t65','retention','hotleads','carriers','commissions',
-                  'attendance','activity','all_goals','briefing','tickets_all','gaps','signals','audit_struct','birthdays'],
+                  'attendance','activity','all_goals','briefing','tickets_all','tickets_agent','gaps','signals','audit_struct','birthdays'],
   // ── ✍️ Estudio Creativo ─────────────────────────────
   'estudio':     ['pipeline','carriers','create_member','search'],
   // ── ⚖️ Compliance ───────────────────────────────────
@@ -2718,7 +2718,8 @@ const TOOL_SCHEMAS = {
   search:       {desc:'Busca un miembro por nombre, teléfono o MBI.', props:{q:{type:'string',description:'Término de búsqueda'}}, req:['q']},
   detail:       {desc:'Detalle completo de un miembro por id.', props:{id:{type:'integer'}}, req:['id']},
   soa:          {desc:'Miembros activos sin SOA firmado.', props:{}, req:[]},
-  tickets_all:  {desc:'Tickets abiertos del equipo.', props:{priority:{type:'string',enum:['ALTA','MEDIA','BAJA']}}, req:[]},
+  tickets_all:  {desc:'LISTA de tickets abiertos del equipo (máx 50, con descripción y miembro). Úsalo para VER o detallar tickets — NO para contar: viene capada a 50, no cuentes esta lista.', props:{priority:{type:'string',enum:['ALTA','MEDIA','BAJA']}}, req:[]},
+  tickets_agent:{desc:'Conteo EXACTO de tickets POR AGENTE (total, abiertos, cerrados, de alta prioridad y vencidos). Úsalo SIEMPRE que pregunten "cuántos tickets tiene X" o pidan el desglose del equipo. Trae números ya calculados por la base — nunca cuentes listas a mano.', props:{}, req:[]},
   my_tickets:   {desc:'Tickets asignados al usuario logueado.', props:{}, req:[]},
   today_appts:  {desc:'Citas de hoy.', props:{}, req:[]},
   birthdays:    {desc:'Cumpleaños de miembros. Sin parámetros = quién cumple HOY. Con "mes" (1-12) = todos los cumpleaños de ese mes. Con "dias" = hoy + próximos N días. Devuelve nombre, edad, teléfono, email, carrier, plan.', props:{mes:{type:'integer',description:'Mes 1-12 para ver todos los cumpleaños de ese mes'},dias:{type:'integer',description:'Hoy + próximos N días'}}, req:[]},
@@ -2847,6 +2848,8 @@ async function callTool(toolName, params = {}) {
         return await (await fetch(CRM_BASE + qs('pending_soa'))).json();
       case 'tickets_all':
         return await (await fetch(CRM_BASE + qs('open_tickets', {priority: params.priority||''}))).json();
+      case 'tickets_agent':
+        return await (await fetch(CRM_BASE + qs('tickets_by_agent'))).json();
       case 'my_tickets':
         return await (await fetch(CRM_BASE + qs('my_tickets'))).json();
       case 'today_appts':
