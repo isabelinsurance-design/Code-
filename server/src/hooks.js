@@ -98,7 +98,7 @@ export async function reviewOutbound({ toolName, input }) {
 
   // 3. SOA gate para planes específicos a un cliente
   if (PLAN_DETAIL_KEYWORDS.test(text) && target && typeof target === 'string') {
-    const soaCheck = checkSoaFor(target);
+    const soaCheck = await checkSoaFor(target);
     if (soaCheck && soaCheck.ok === false) {
       flags.push({
         severidad: 'alto',
@@ -185,13 +185,35 @@ export async function reviewOutbound({ toolName, input }) {
   };
 }
 
-function checkSoaFor(target) {
-  // target podría ser teléfono o email
+async function checkSoaFor(target) {
+  // target podría ser teléfono o email.
+  // 1. CRM local (legacy — vacío desde el retiro en Fase 13.5, pero barato).
   const matches = findClient(target);
-  if (!matches?.length) return null;
-  const c = matches[0];
-  const estado = c.soa?.status || 'none';
-  return { ok: estado === 'signed', estado, nombre: c.nombre };
+  if (matches?.length) {
+    const c = matches[0];
+    const estado = c.soa?.status || 'none';
+    return { ok: estado === 'signed', estado, nombre: c.nombre };
+  }
+  // 2. LUNA — la fuente REAL de SOAs. Sin esto el gate de CMS era un no-op
+  //    con el crm.json vacío (AUDIT.md H2). Excepción de infraestructura al
+  //    boundary "LUNA solo vía coach luna", igual que voice.js: esto es un
+  //    gate de compliance, no capa conversacional.
+  try {
+    const { lunaConfigured, searchMember } = await import('./luna_client.js');
+    if (!lunaConfigured()) return null;
+    const r = await searchMember(target);
+    if (!r.ok || !Array.isArray(r.data) || !r.data.length) return null;
+    const m = r.data[0];
+    const estado = String(m.soa_status || 'none');
+    return {
+      ok: /signed|firmad/i.test(estado),
+      estado,
+      nombre: `${m.nombre || ''} ${m.apellido || ''}`.trim() || `miembro ${m.id}`,
+    };
+  } catch (e) {
+    console.warn('[hooks] SOA check vía LUNA falló:', e.message);
+    return null;
+  }
 }
 
 async function toneReview(text, toolName, target) {

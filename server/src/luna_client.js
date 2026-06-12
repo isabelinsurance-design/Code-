@@ -176,7 +176,24 @@ function unwrapArrayResponse(r, possibleKeys = ['tickets', 'miembros', 'leads', 
       if (Array.isArray(arr[k])) { arr = arr[k]; break; }
     }
   }
-  if (!Array.isArray(arr)) arr = [];
+  if (!Array.isArray(arr)) {
+    // data es un objeto cuya forma NO reconocemos → eso es un ERROR de
+    // shape, no una lista vacía. Antes esto regresaba [] silencioso y el
+    // caller mostraba "no hay nada" cuando en realidad LUNA sí mandó data
+    // (mismo patrón que vació el team email — AUDIT.md H1).
+    if (arr != null && typeof arr === 'object') {
+      const keys = Object.keys(arr).slice(0, 8).join(',');
+      console.warn(`[luna] respuesta con forma desconocida — keys: ${keys}`);
+      return {
+        ok: false,
+        kind: 'shape_error',
+        error: `LUNA respondió con una forma que no reconozco (keys: ${keys}). No es lista vacía — es formato inesperado.`,
+        elapsed_ms: r.elapsed_ms,
+      };
+    }
+    // null/undefined → legítimamente vacío
+    arr = [];
+  }
   return { ...r, data: arr };
 }
 

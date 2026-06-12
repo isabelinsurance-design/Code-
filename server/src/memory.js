@@ -44,8 +44,9 @@ const PROACTIVE_FILE = join(DATA_DIR, 'proactive_counter.json');
 function load(file, fallback) {
   try {
     if (existsSync(file)) return JSON.parse(readFileSync(file, 'utf8'));
-  } catch {
-    /* archivo corrupto o vacío — usamos el fallback */
+  } catch (e) {
+    // Archivo corrupto ≠ inexistente — gritar, no tragar (AUDIT.md P1).
+    console.error(`[memory] ${file} ilegible (${e.message}) — usando fallback. Hay backup horario en R2.`);
   }
   return fallback;
 }

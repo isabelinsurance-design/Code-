@@ -25,7 +25,9 @@ const CHANNELS = ['email', 'sms', 'whatsapp', 'callback', 'reporte', 'otro'];
 function load() {
   try {
     if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8'));
-  } catch { /* ignore */ }
+  } catch (e) {
+    console.error(`[commitments] commitments.json ilegible (${e.message}) — usando lista vacía. Hay backup horario en R2.`);
+  }
   return [];
 }
 function save(rows) {

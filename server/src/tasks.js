@@ -28,8 +28,9 @@ const PRIORITIES = ['alta', 'media', 'baja'];
 function loadAll() {
   try {
     if (existsSync(TASKS_FILE)) return JSON.parse(readFileSync(TASKS_FILE, 'utf8'));
-  } catch {
-    /* ignore */
+  } catch (e) {
+    // Archivo corrupto ≠ archivo vacío — gritar, no tragar (AUDIT.md P1).
+    console.error(`[tasks] tasks.json ilegible (${e.message}) — usando lista vacía. Hay backup horario en R2.`);
   }
   return [];
 }
