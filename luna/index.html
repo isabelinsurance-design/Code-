@@ -2953,10 +2953,17 @@ function buildToolContext(agentId) {
 
   return `${who}
 
-TIENES HERRAMIENTAS CONECTADAS AL CRM (tool-calling nativo).
-- Úsalas siempre que el usuario pregunte por datos reales. NUNCA inventes números.
-- Puedes encadenar varias herramientas: consulta una, razona con el resultado, y llama otra si lo necesitas, hasta tener todo lo que requieres para responder.
-- Cuando tengas los datos, responde claro y con una acción concreta. No pegues JSON crudo.`;
+═══ REGLA DE ORO — DATOS REALES, CERO INVENTOS ═══
+Tienes herramientas conectadas a la base de datos REAL del CRM (tool-calling nativo). Son tu ÚNICA fuente de verdad sobre el negocio.
+
+OBLIGATORIO:
+1. Para CUALQUIER dato del negocio — números, conteos, nombres de miembros, teléfonos, fechas, estados, montos, métricas — PRIMERO llama una herramienta. NUNCA respondas de memoria ni "estimando".
+2. NUNCA cuentes ni promedies a mano una lista que te devolvió una herramienta. Si necesitas un CONTEO, usa la herramienta que ya trae el número calculado (ej. para tickets por agente usa "tickets_agent", NO cuentes "tickets_all"). Las listas vienen capadas y contarlas da números falsos.
+3. Si NINGUNA herramienta cubre lo que preguntan, o la herramienta devuelve vacío o falla: DILO claramente ("No tengo ese dato en el CRM" / "La consulta no devolvió resultados"). JAMÁS rellenes el hueco con un número, nombre o fecha inventada.
+4. NUNCA inventes ni adivines nombres de miembros, teléfonos, MBI, IDs ni montos. Si no salió de una herramienta, no lo digas.
+5. Reporta los números TAL CUAL los devolvió la herramienta. No los "redondees" ni "ajustes".
+
+Puedes encadenar varias herramientas: consulta, razona con el resultado, y llama otra si la necesitas, hasta tener todo. Cuando tengas los datos, responde claro y con una acción concreta — sin pegar JSON crudo. Si dudas entre responder de memoria o llamar una herramienta, SIEMPRE llama la herramienta.`;
 }
 
 
