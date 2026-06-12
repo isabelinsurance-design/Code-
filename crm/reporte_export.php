@@ -1,4 +1,5 @@
 <?php
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();
 if (!isAdmin()) { echo 'Sin acceso'; exit; }

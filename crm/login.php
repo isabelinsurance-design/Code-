@@ -1,9 +1,9 @@
 <?php
-ini_set('display_errors', 1);
-ini_set('display_startup_errors', 1);
+// Producción: los errores se loguean, no se muestran (no filtrar rutas/SQL)
+ini_set('display_errors', 0);
 error_reporting(E_ALL);
+require_once 'session_boot.php';
 require_once 'config.php';
-session_start();
 if (!empty($_SESSION['user'])) { header('Location: index.php'); exit; }
 
 $error = '';
@@ -11,7 +11,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $username = strtolower(trim($_POST['username'] ?? ''));
     $password = trim($_POST['password'] ?? '');
     try {
-        $stmt = db()->prepare("SELECT * FROM usuarios WHERE username=? AND activo=1");
+        $pdo_l = db();
+        // ── Freno anti fuerza-bruta: máx 8 intentos fallidos por usuario/IP en 10 min ──
+        $ip = $_SERVER['REMOTE_ADDR'] ?? '';
+        try {
+            $pdo_l->exec("CREATE TABLE IF NOT EXISTS login_intentos (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                username VARCHAR(100), ip VARCHAR(45), exito TINYINT(1) DEFAULT 0,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                KEY idx_li_user (username, created_at), KEY idx_li_ip (ip, created_at))");
+        } catch (Exception $e) {}
+        $bloqueado = false;
+        try {
+            $st = $pdo_l->prepare("SELECT COUNT(*) FROM login_intentos
+                WHERE (username=? OR ip=?) AND exito=0 AND created_at > DATE_SUB(NOW(), INTERVAL 10 MINUTE)");
+            $st->execute([$username, $ip]);
+            $bloqueado = ((int)$st->fetchColumn()) >= 8;
+        } catch (Exception $e) {}
+        if ($bloqueado) {
+            $error = 'DEMASIADOS INTENTOS — ESPERA 10 MINUTOS E INTENTA DE NUEVO.';
+            $matched = false; $user = null;
+        } else {
+        $stmt = $pdo_l->prepare("SELECT * FROM usuarios WHERE username=? AND activo=1");
         $stmt->execute([$username]);
         $user = $stmt->fetch();
         // Try exact, trimmed, and common mobile autocorrect variants
@@ -29,6 +50,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
         }
+        try {
+            $pdo_l->prepare("INSERT INTO login_intentos (username, ip, exito) VALUES (?,?,?)")
+                  ->execute([$username, $ip, $matched ? 1 : 0]);
+        } catch (Exception $e) {}
+        }
         if ($matched) {
             session_regenerate_id(true); // Previene fijación de sesión
             $_SESSION['user'] = [
@@ -40,7 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 'iniciales'=> $user['iniciales'],
             ];
             header('Location: index.php'); exit;
-        } else {
+        } elseif ($error === '') {
             $error = 'DATOS INCORRECTOS: Respeta mayúsculas y minúsculas.';
         }
     } catch (Exception $e) {

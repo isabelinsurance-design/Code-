@@ -5,6 +5,7 @@
 //  anteriores. Es idempotente: si lo corres de nuevo, NO duplica.
 //  Cuando termines, puedes borrar este archivo.
 // ─────────────────────────────────────────────────────────────────────────
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();
 if (($user['rol'] ?? '') !== 'admin') { die('Solo un administrador puede importar gastos.'); }

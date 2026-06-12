@@ -4,6 +4,7 @@
  * Reporte de nómina por quincena — Medicare with Isabel CRM
  * Admin-only · calcula horas trabajadas vs esperadas y pago proporcional
  */
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();
 $admin = isAdmin();

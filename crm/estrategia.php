@@ -6,6 +6,7 @@
  * (50 llamadas → 15 efectivas → 5 interesados → 2 citas → 1.5 inscritos),
  * comparando META vs. REAL con los datos de reporte_diario y miembros.
  */
+require_once 'session_boot.php';
 require_once 'config.php';
 $user  = auth();
 $admin = isAdmin();

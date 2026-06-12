@@ -16,6 +16,7 @@
  *
  * Cuando termine y todo diga "creado / ya existía", puedes BORRAR este archivo.
  */
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();                 // exige sesión iniciada (si no, redirige a login)
 if (!isAdmin()) { http_response_code(403); exit('Solo administradores pueden ejecutar esta migración.'); }

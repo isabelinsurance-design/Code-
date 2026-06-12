@@ -15,11 +15,13 @@ error_reporting(E_ALL);
  * Para usar: renombrar a api_ai.php o reemplazar contenido
  */
 
+require_once 'session_boot.php';
 require_once 'config.php';
 $user  = auth();
 $admin = isAdmin();
 $uid   = $user['id'];
 header('Content-Type: application/json');
+if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5)']); exit; }
 
 if (!defined('ANTHROPIC_API_KEY') || !ANTHROPIC_API_KEY || strpos(ANTHROPIC_API_KEY, 'PON_TU_KEY') !== false) {
     echo json_encode(['ok'=>false,'error'=>'API key no configurada.']); exit;

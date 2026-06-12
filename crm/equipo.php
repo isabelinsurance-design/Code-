@@ -7,6 +7,7 @@
  *   • WINS    → feed de logros del equipo (tabla wins)
  *   • MOOD    → ánimo diario 1-5 por agente + promedio (tabla mood_diario)
  */
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();
 $pdo  = db();

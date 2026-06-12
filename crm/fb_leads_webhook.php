@@ -12,9 +12,13 @@
  */
 
 require_once __DIR__ . '/config.php';
-// El secreto del webhook vive en config.php (fuera de Git), nunca en el código.
+// El secreto del webhook vive en config.php (constante WEBHOOK_SECRET_FB,
+// fuera de Git). Antes se leía solo getenv(), que en cPanel suele venir
+// vacío → el webhook aceptaba un secreto VACÍO. Ahora: constante primero,
+// y si no hay secreto configurado, el webhook se NIEGA a operar.
 if (!defined('WEBHOOK_SECRET')) {
-    define('WEBHOOK_SECRET', getenv('WEBHOOK_SECRET_FB') ?: '');
+    $ws = (defined('WEBHOOK_SECRET_FB') ? WEBHOOK_SECRET_FB : '') ?: (getenv('WEBHOOK_SECRET_FB') ?: '');
+    define('WEBHOOK_SECRET', $ws);
 }
 
 header('Content-Type: application/json; charset=utf-8');
@@ -25,13 +29,17 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 // ─── Autenticación ───────────────────────────────────────────────────────────
+if (WEBHOOK_SECRET === '' || WEBHOOK_SECRET === 'CAMBIA_ESTE_SECRETO') {
+    http_response_code(503);
+    echo json_encode(['ok' => false, 'error' => 'Webhook sin secreto configurado (WEBHOOK_SECRET_FB en config.php)']); exit;
+}
 $raw       = file_get_contents('php://input');
 $json_body = json_decode($raw, true);
 $secret    = $_SERVER['HTTP_X_WEBHOOK_SECRET']
           ?? ($_POST['secret']         ?? '')
           ?: ($json_body['secret']     ?? '');
 
-if ($secret !== WEBHOOK_SECRET) {
+if (!is_string($secret) || !hash_equals(WEBHOOK_SECRET, $secret)) {
     http_response_code(401);
     echo json_encode(['ok' => false, 'error' => 'No autorizado']); exit;
 }

@@ -1,0 +1,6 @@
+# Las subidas (fotos, recibos, archivos de proyectos) son SOLO archivos
+# estáticos. Nunca ejecutar código aquí aunque alguien logre subir un .php.
+<FilesMatch "\.(?i:php|phar|phtml|php[0-9]|pht|cgi|pl|py|sh)$">
+  Require all denied
+</FilesMatch>
+Options -ExecCGI -Indexes

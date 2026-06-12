@@ -1,4 +1,5 @@
 <?php
+require_once 'session_boot.php';
 require_once 'config.php';
 $user = auth();
 $admin = isAdmin();
@@ -205,16 +206,29 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
 </select>
       </div>
 
-      <!-- AGENTE RESPONSABLE — visible para todos los usuarios -->
-      <?php $agente_sel = ($m['agente_id'] ?? '') ?: $uid; ?>
+      <!-- AGENTE RESPONSABLE — todos lo ven; en EDICIÓN solo admin lo cambia -->
+      <?php
+      $agente_sel = ($m['agente_id'] ?? '') ?: $uid;
+      // Incluir SIEMPRE al agente actual aunque esté inactivo o fuera de la
+      // lista — si faltara, el navegador preseleccionaría al primero y un
+      // guardado posterior reasignaría al miembro en silencio.
+      if ($agente_sel && !in_array((string)$agente_sel, array_map(fn($a)=>(string)$a['id'], $agents), true)) {
+          $agx = $pdo->prepare("SELECT id,nombre FROM usuarios WHERE id=?");
+          $agx->execute([(int)$agente_sel]);
+          if ($agr = $agx->fetch()) $agents[] = ['id'=>$agr['id'], 'nombre'=>$agr['nombre'].' (INACTIVO)'];
+      }
+      $agente_lock = $id && !$admin; // empleados no reasignan miembros existentes
+      ?>
       <div class="form-group">
         <label class="form-label">AGENTE RESPONSABLE</label>
-        <select name="agente_id" id="mf-agente-id" class="form-input">
+        <select name="agente_id" id="mf-agente-id" class="form-input"<?= $agente_lock ? ' disabled' : '' ?>>
           <?php foreach ($agents as $ag): ?>
           <option value="<?=$ag['id']?>"<?=$agente_sel==$ag['id']?' selected':''?>><?=h($ag['nombre'])?></option>
           <?php endforeach; ?>
         </select>
-        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;text-transform:uppercase">★ APARECERÁ EN EL PIPELINE Y REPORTES DE ESTE AGENTE</div>
+        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;text-transform:uppercase">
+          <?= $agente_lock ? '🔒 SOLO UN ADMIN PUEDE CAMBIAR EL AGENTE DE UN MIEMBRO EXISTENTE' : '★ APARECERÁ EN EL PIPELINE Y REPORTES DE ESTE AGENTE' ?>
+        </div>
       </div>
     </div>
 

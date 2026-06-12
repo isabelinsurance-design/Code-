@@ -2,6 +2,7 @@
 ini_set('display_errors', 1); error_reporting(E_ALL);
 ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
+require_once 'session_boot.php';
 require_once 'config.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
@@ -4891,7 +4892,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
     <?php if($admin):?>
     <select id="bonos-agente" onchange="loadBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
       <option value="all">TODAS LAS AGENTES</option>
-      <?php foreach($pdo->query("SELECT id,nombre FROM usuarios WHERE rol='agente' AND activo=1 ORDER BY nombre")->fetchAll() as $ag):?>
+      <?php foreach($pdo->query("SELECT id,nombre FROM usuarios WHERE rol='agent' AND activo=1 ORDER BY nombre")->fetchAll() as $ag):?>
       <option value="<?=$ag['id']?>"><?=strtoupper(h($ag['nombre']))?></option>
       <?php endforeach;?>
     </select>
@@ -4949,7 +4950,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <div class="form-group">
         <label class="form-label">AGENTE</label>
         <select name="agente_id" id="bf-agente" class="form-input" required>
-          <?php foreach($pdo->query("SELECT id,nombre FROM usuarios WHERE rol='agente' AND activo=1 ORDER BY nombre")->fetchAll() as $ag):?>
+          <?php foreach($pdo->query("SELECT id,nombre FROM usuarios WHERE rol='agent' AND activo=1 ORDER BY nombre")->fetchAll() as $ag):?>
           <option value="<?=$ag['id']?>"><?=h($ag['nombre'])?></option>
           <?php endforeach;?>
         </select>
@@ -6526,6 +6527,21 @@ foreach($acts as $i=>$a):?>
 
 <script>
 const ADMIN=<?=$admin?'true':'false'?>;const UID=<?=$uid?>;
+// ── CSRF: todo POST por fetch lleva el token de la sesión (api.php lo verifica) ──
+const CSRF_TOKEN='<?=h($_SESSION['csrf_token'] ?? '')?>';
+(function(){
+  const _fetch = window.fetch;
+  window.fetch = function(input, init){
+    init = init || {};
+    if ((init.method||'GET').toUpperCase() === 'POST') {
+      try {
+        if (init.headers instanceof Headers) init.headers.set('X-CSRF-Token', CSRF_TOKEN);
+        else init.headers = Object.assign({}, init.headers||{}, {'X-CSRF-Token': CSRF_TOKEN});
+      } catch(e){}
+    }
+    return _fetch.call(this, input, init);
+  };
+})();
 let chatLastId=<?=count($chat_msgs)&&end($chat_msgs)?end($chat_msgs)['id']:0?>;
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
 function showTab(id){

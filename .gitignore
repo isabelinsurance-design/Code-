@@ -7,7 +7,9 @@ crm/prompts__1_.php
 *.env
 
 # ─── Datos / subidas de clientes ──────────────────────────
-crm/uploads/
+# (se ignora el contenido, pero el .htaccess de seguridad SÍ se versiona)
+crm/uploads/*
+!crm/uploads/.htaccess
 crm/fotos/
 crm/docs/
 *.sql.gz
