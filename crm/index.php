@@ -6374,8 +6374,8 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <!-- ══════════ MODAL: VER TICKET CERRADO ══════════ -->
 <div class="modal-overlay" id="ticket-cerrado-modal">
   <div class="modal" style="max-width:640px">
-    <div class="modal-header" style="background:#EAF5F0;border-bottom:2px solid #8DCFBA">
-      <div class="modal-title" style="color:#1E7A5C">✓ TICKET CERRADO — <span id="tktc-id-lbl"></span></div>
+    <div class="modal-header" style="background:#EBF4F9;border-bottom:2px solid #A9D0E8">
+      <div class="modal-title" style="color:#1B4A6B">👁 DETALLE DEL TICKET — <span id="tktc-id-lbl"></span></div>
       <button class="modal-close" onclick="closeModal('ticket-cerrado-modal')">✕</button>
     </div>
     <div style="padding:18px 22px;display:flex;flex-direction:column;gap:12px;max-height:75vh;overflow-y:auto">
@@ -6383,6 +6383,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
       <!-- Encabezado: cliente + badges -->
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div style="font-size:14px;font-weight:900;color:#1B3A5C" id="tktc-nombre-lbl">—</div>
+        <span id="tktc-estado-badge"></span>
         <span id="tktc-tipo-badge"></span>
         <span id="tktc-prio-badge"></span>
       </div>
@@ -7464,6 +7465,7 @@ function verTicketCerrado(id){
 
     document.getElementById('tktc-id-lbl').textContent      = '#' + t.id;
     document.getElementById('tktc-nombre-lbl').textContent  = t.miembro_nombre || t.cliente || '—';
+    const _eb = document.getElementById('tktc-estado-badge'); if(_eb) _eb.innerHTML = badgeJS(t.estado || 'ABIERTO', true);
     document.getElementById('tktc-tipo-badge').innerHTML    = badgeJS(t.tipo    || 'OTRO', true);
     document.getElementById('tktc-prio-badge').innerHTML    = badgeJS(t.prioridad|| 'MEDIA', true);
     document.getElementById('tktc-fuente-lbl').textContent  = t.fuente || '—';

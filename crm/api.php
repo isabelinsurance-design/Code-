@@ -391,10 +391,8 @@ case 'get_ticket':
     $t = $stmt->fetch();
     if (!$t) jsonErr('Ticket no encontrado');
 
-    // Permiso: admin ve todo; agente solo si es responsable o creador
-    if (!$admin && $t['asignado_a'] != $uid && $t['agente_id'] != $uid) {
-        jsonErr('Sin permiso para ver este ticket');
-    }
+    // Lectura abierta: cualquier usuario puede VER cualquier ticket (para tener
+    // contexto del miembro). La EDICIÓN sigue protegida en update_ticket.
 
     $ns = $pdo->prepare("SELECT ns.*, u.nombre as agente_nombre, u.iniciales as agente_ini FROM ticket_next_steps ns LEFT JOIN usuarios u ON ns.agente_id = u.id WHERE ns.ticket_id=? ORDER BY ns.completado ASC, CASE WHEN ns.fecha_programada IS NULL THEN 1 ELSE 0 END, ns.fecha_programada ASC, ns.id ASC");
     $ns->execute([$id]);

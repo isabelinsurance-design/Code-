@@ -599,12 +599,13 @@ display: block;
   <div class="tab-content" id="ptab-TICKETS (<?= count($tickets_m) ?>)">
     <?php if (count($tickets_m)):
       foreach ($tickets_m as $t): ?>
-      <div style="background:<?= $BG ?>;border:1px solid <?= $CB ?>;border-radius:8px;padding:10px 12px;margin-bottom:7px;border-left:3px solid <?= $t['prioridad']==='ALTA'?$R:$A ?>">
+      <div onclick="verTicketCerrado(<?= (int)$t['id'] ?>)" title="Ver detalle (solo lectura)" style="background:<?= $BG ?>;border:1px solid <?= $CB ?>;border-radius:8px;padding:10px 12px;margin-bottom:7px;border-left:3px solid <?= $t['prioridad']==='ALTA'?$R:$A ?>;cursor:pointer">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
           <div style="font-weight:900;font-size:10px;color:<?= $P1 ?>;letter-spacing:.5px"><?= h($t['descripcion']) ?></div>
-          <div style="display:flex;gap:5px">
+          <div style="display:flex;gap:5px;align-items:center">
             <span style="background:#fff;color:<?= $t['prioridad']==='ALTA'?$R:$A ?>;border-radius:20px;padding:1px 6px;font-size:8px;font-weight:900;border:1px solid <?= $t['prioridad']==='ALTA'?'#EFA09A':'#F5D5A0' ?>"><?= h($t['prioridad']) ?></span>
             <span style="background:<?= $t['estado']==='ABIERTO'?'#FDF0EE':($t['estado']==='CERRADO'?'#EAF5F0':'#FEF8EE') ?>;color:<?= $t['estado']==='ABIERTO'?$R:($t['estado']==='CERRADO'?$G:$A) ?>;border-radius:20px;padding:1px 6px;font-size:8px;font-weight:900;border:1px solid"><?= h($t['estado']) ?></span>
+            <span style="font-size:9px;color:<?= $P2 ?>;font-weight:900">👁</span>
           </div>
         </div>
         <div style="font-size:8px;color:<?= $MU ?>;letter-spacing:.5px"><?= h($t['tipo']) ?> · F/U: <?= fdate($t['fecha_seguimiento']) ?></div>
