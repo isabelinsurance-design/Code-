@@ -7823,12 +7823,14 @@ function buscarHistorial() {
                                 ${[
                                     ['LLAM.PROSP.', parseInt(r.llamadas_prospectos||0), '#2876A8'],
                                     ['✅ CONTS.',   parseInt(r.contestaron||0),           '#1E7A5C'],
+                                    ['🔥 INTERES.', parseInt(r.interesados||0),           '#C0392B'],
                                     ['📬 BUZÓN',    parseInt(r.buzon||0),                 '#C07A1A'],
                                     ['LLAM.SERV.',  parseInt(r.llamadas_servicio||0),     '#1E7A8C'],
-                                    ['APPS',        r.apps_enviadas||0,                   '#1B4A6B'],
                                     ['CITAS',       r.citas_confirmadas||0,               '#1E7A5C'],
-                                    ['TKS.CERR',    r.tickets_resueltos||0,               '#1E7A8C'],
+                                    ['APPS',        r.apps_enviadas||0,                   '#1B4A6B'],
                                     ['APPS X HACER', r.apps_por_hacer||0,                '#5B3FAF'],
+                                    ['TKS.CERR',    r.tickets_resueltos||0,               '#1E7A8C'],
+                                    ['TKS.ACT.',    r.tickets_actualizados||0,            '#2876A8'],
                                 ].map(([lb,v,c]) => `
                                     <div style="text-align:center;background:#EBF4F9;border-radius:8px;padding:7px 4px">
                                         <div style="font-size:6px;font-weight:900;color:#7A90A4;text-transform:uppercase;margin-bottom:2px">${lb}</div>
