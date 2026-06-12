@@ -82,7 +82,8 @@ if ($detalle) {
     $ak = defined('ANTHROPIC_API_KEY') ? ANTHROPIC_API_KEY : (getenv('ANTHROPIC_API_KEY') ?: '');
     if ($ak) {
         $payload = json_encode([
-            'model'      => 'claude-sonnet-4-6',
+            'model'      => trim((string)(getenv('LUNA_AI_MODEL')
+                ?: (defined('LUNA_AI_MODEL') ? LUNA_AI_MODEL : ''))) ?: 'claude-sonnet-4-6',
             'max_tokens' => 16,
             'messages'   => [['role' => 'user', 'content' => 'hola']],
         ]);

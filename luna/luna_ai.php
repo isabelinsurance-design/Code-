@@ -31,6 +31,16 @@ if (!function_exists('lunaAIEnabled')) {
   function lunaAIEnabled(): bool { return lunaAIKey() !== ''; }
 }
 
+if (!function_exists('lunaAIModel')) {
+  // Modelo configurable con LUNA_AI_MODEL (env var o constante en
+  // luna_config.php) sin tocar código. Default: el de siempre.
+  function lunaAIModel(): string {
+    $m = trim((string)(getenv('LUNA_AI_MODEL')
+      ?: (defined('LUNA_AI_MODEL') ? LUNA_AI_MODEL : '')));
+    return $m !== '' ? $m : 'claude-sonnet-4-6';
+  }
+}
+
 if (!function_exists('lunaAI')) {
   /**
    * Llama a Claude (sin streaming) y devuelve el texto generado, o null si falla.
@@ -45,7 +55,7 @@ if (!function_exists('lunaAI')) {
     if ($apiKey === '') return null;
 
     $payload = json_encode([
-      'model'      => 'claude-sonnet-4-6',   // mismo modelo que luna_chat
+      'model'      => lunaAIModel(),   // configurable con LUNA_AI_MODEL
       'max_tokens' => max(256, min(4096, $maxTokens)),
       'system'     => $system,
       'messages'   => [['role' => 'user', 'content' => $user]],
@@ -94,7 +104,7 @@ if (!function_exists('lunaAIWeb')) {
     if ($apiKey === '') return null;
 
     $payload = json_encode([
-      'model'      => 'claude-sonnet-4-6',
+      'model'      => lunaAIModel(),
       'max_tokens' => max(256, min(4096, $maxTokens)),
       'system'     => $system,
       'messages'   => [['role' => 'user', 'content' => $user]],

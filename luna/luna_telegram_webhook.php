@@ -145,6 +145,19 @@ if (!isAuthorizedChat($incomingChatId)) {
   exit('unauthorized');
 }
 
+// 🔒 Rate limit por chat: máx 20 acciones/minuto. Frena ráfagas de
+// botonazos (tickets duplicados) y abuso si un chat se viera comprometido.
+$__rlFile = sys_get_temp_dir() . '/luna_tg_rl_' . preg_replace('/\D/', '', (string)$incomingChatId);
+$__hits = is_file($__rlFile)
+  ? array_values(array_filter(array_map('intval', explode(',', (string)@file_get_contents($__rlFile))), fn($t) => time() - $t < 60))
+  : [];
+if (count($__hits) >= 20) {
+  http_response_code(200); // 200 para que Telegram no reintente
+  exit('rate limited');
+}
+$__hits[] = time();
+@file_put_contents($__rlFile, implode(',', $__hits));
+
 // ─── HANDLE INLINE BUTTON TAPS ───────────────────────────────
 if ($callback) {
   $action     = $callback['data'];         // e.g. 'create_retencion_tickets'

@@ -551,8 +551,11 @@ case 'luna_chat':
     }
     unset($_m);
 
+    // Modelo configurable con LUNA_AI_MODEL (env o constante) sin tocar código.
+    $aiModel = trim((string)(getenv('LUNA_AI_MODEL')
+        ?: (defined('LUNA_AI_MODEL') ? LUNA_AI_MODEL : ''))) ?: 'claude-sonnet-4-6';
     $reqBody = [
-        'model'      => 'claude-sonnet-4-6',
+        'model'      => $aiModel,
         'max_tokens' => $maxTok,
         'system'     => $system,
         'stream'     => true,
@@ -1829,6 +1832,7 @@ case 'luna_update_goal':
         $pdo->prepare("INSERT INTO metas (agente_id,mes,anio,llamadas_dia,citas_mes,apps_mes,polizas_mes) VALUES (?,?,?,?,?,?,?)")
             ->execute([$agente_id, $mes, $anio, $llamadas, $citas, $apps, $polizas]);
     }
+    lunaAudit($pdo, $uid, 'WRITE:META', "Metas de agente #$agente_id ($mes/$anio): llamadas/día=$llamadas, citas=$citas, apps=$apps, pólizas=$polizas");
     ok(['updated'=>true]);
     break;
 
@@ -2564,6 +2568,7 @@ case 'luna_signal_dismiss':
     if ($id)        $pdo->prepare("UPDATE luna_senales SET status='dismissed' WHERE id=?")->execute([$id]);
     elseif ($skey)  $pdo->prepare("UPDATE luna_senales SET status='dismissed' WHERE skey=?")->execute([$skey]);
     else            err('Falta id o skey.');
+    lunaAudit($pdo, $uid, 'WRITE:SENAL_DESCARTADA', 'Señal descartada: ' . ($id ? "id=$id" : "skey=$skey"));
     ok(['dismissed'=>true]);
     break;
 

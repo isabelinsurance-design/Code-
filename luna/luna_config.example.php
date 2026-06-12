@@ -78,6 +78,11 @@ define('LUNA_SERVICE_KEY', 'PON_AQUI_LA_MISMA_LLAVE_QUE_USA_ATHENA');
 // el gasto de Anthropic). 0 = sin tope. Default si no se define: 300.
 // define('LUNA_CHAT_DAILY_CAP', 300);
 
+// ── MODELO DE IA (opcional) ────────────────────────────────────
+// Cambia el modelo de Claude sin tocar código (chat, crons y diagnóstico).
+// Si no se define, usa 'claude-sonnet-4-6'.
+// define('LUNA_AI_MODEL', 'claude-sonnet-4-6');
+
 // ── OPCIONALES (dejar comentados hasta necesitarlos) ───────────
 // define('LUNA_SERVICE_AGENT_ID', 1);          // id de Isabel en tabla usuarios
 // define('LUNA_DEFAULT_TICKET_MEMBER', 0);     // id del miembro "OTRO"

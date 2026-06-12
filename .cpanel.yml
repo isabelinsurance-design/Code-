@@ -1,5 +1,10 @@
 ---
 # ═══════════════════════════════════════════════════════════════════
+#  ⚠️⚠️ NO USAR ESTE DEPLOY — SOLO EMERGENCIAS ⚠️⚠️
+#  El deploy OFICIAL es GitHub Actions (push a claude/happy-planck-Dtzud).
+#  Este botón despliega la HEAD que tenga cPanel (puede ser main, vieja)
+#  y haría ROLLBACK silencioso de producción. Ver README.md del repo.
+# ═══════════════════════════════════════════════════════════════════
 #  DESPLIEGUE AUTOMÁTICO A BLUEHOST  —  Luna (Medicare with Isabel)
 #  ─────────────────────────────────────────────────────────────────
 #  Cuando pulses "Deploy HEAD Commit" en cPanel → Git Version Control,
