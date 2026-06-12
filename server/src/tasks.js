@@ -8,9 +8,10 @@
 //  vence para Isabel o Sami, la avisa (respetando quiet hours +
 //  cap diario).
 // ============================================================
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { canSendProactive } from './proactive.js';
@@ -34,8 +35,7 @@ function loadAll() {
 }
 
 function saveAll(tasks) {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(TASKS_FILE, JSON.stringify(tasks, null, 2));
+  atomicWriteJson(TASKS_FILE, tasks);
 }
 
 function newId() {

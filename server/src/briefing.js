@@ -214,7 +214,7 @@ NUEVAS SKILLS AUTO-PROPUESTAS (anoche detecté patrones y armé drafts — menci
 
 PRIMERO consulta senales_de_hoy (yo las computé anoche a las 2am — incluyen umbrales como "no peso en 4 días", patrones como "cansada x3 esta semana" y estados como "5 renovaciones en 30 días"). Trae arriba LAS DOS o TRES más relevantes — no todas. Usa las severidades alto > aviso > info para decidir.
 
-SEGUNDO, consulta gaps_overview con solo_severidad="alto" — son cosas QUE NO SÉ todavía pero debería (MBI no verificado, SOA faltante, TCPA sin consentir, sin touchpoint en 12+ meses). Si hay 1-3 huecos altos, méteme UNO como propuesta de "cerralo hoy" — concreto, específico, con la persona y la acción. No me leas la lista — escoge el más doloroso.
+SEGUNDO, del contexto del equipo y las señales, escoge LO MÁS ACCIONABLE de hoy (un pendiente de compliance, un cliente sin seguimiento, una cita que necesita prep) y méteme UNA propuesta de "ciérralo hoy" — concreta, específica, con la persona y la acción. No me leas listas — escoge lo más doloroso. Si necesitas detalle del CRM, consulta a la coach luna vía consultar_especialistas.
 
 TERCERO, recuérdame mis prioridades pendientes (tareas mías abiertas) y los compromisos que me deben.
 
@@ -224,7 +224,7 @@ FORMATO — VISUAL CARDS (importante):
 Quiero el briefing dividido en 3-4 CARDS scannable, separadas por el divisor exacto "═════". Cada card es UN tema, máx 4 líneas:
   Card 1: Saludo + estado (1-3 líneas, lectura de cómo estoy o cómo viene el día)
   Card 2: Señales destacadas (1-3 señales prioritarias)
-  Card 3: El gap más doloroso + propuesta para cerrarlo HOY
+  Card 3: Lo más accionable de hoy + propuesta para cerrarlo HOY
   Card 4: Tareas pendientes + tu pregunta "¿Top 3?"
 Usa el divisor "═════" (5 carácteres ═) literal entre cada card. NADA antes de Card 1, NADA después de Card 4.
 

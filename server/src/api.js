@@ -17,8 +17,18 @@ import crypto from 'node:crypto';
 const COOKIE_NAME = 'athena_session';
 const SESSION_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 días
 
+// Si no hay APP_SECRET, generamos uno aleatorio POR ARRANQUE en vez de usar
+// una constante conocida del código (cookies forjables — AUDIT.md H3). Costo
+// del fallback: las sesiones se cierran en cada deploy hasta configurar el env.
+let bootSecret = null;
 function getSecret() {
-  return process.env.APP_SECRET || process.env.SESSION_SECRET || 'dev-only-secret-NOT-for-prod';
+  const s = process.env.APP_SECRET || process.env.SESSION_SECRET;
+  if (s) return s;
+  if (!bootSecret) {
+    bootSecret = crypto.randomBytes(32).toString('hex');
+    console.error('[api] ⚠️ APP_SECRET/SESSION_SECRET no configurado — usando secreto aleatorio de arranque. Configura APP_SECRET en Railway.');
+  }
+  return bootSecret;
 }
 
 function signSession(payload) {

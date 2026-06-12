@@ -1,6 +1,7 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 import { redactPII } from './security.js';
 import { buildSkillsContext } from './skills.js';
 import { buildSayDoInline } from './saydo.js';
@@ -50,8 +51,9 @@ function load(file, fallback) {
 }
 
 function save(file, data) {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(file, JSON.stringify(data, null, 2));
+  // Escritura atómica (temp + rename) — un crash a mitad de escritura ya
+  // no puede dejar el archivo truncado. Ver storage.js / AUDIT.md C1.
+  atomicWriteJson(file, data);
 }
 
 // ---- Isabel Wiki: memoria de largo plazo compartida ----

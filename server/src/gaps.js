@@ -199,7 +199,7 @@ export function buildGapsSummary() {
     .slice(0, 3)
     .map(([f, n]) => `${n}× ${f}`)
     .join(', ');
-  return `KNOWN-UNKNOWNS: ${counts.alto} altas · ${counts.aviso} avisos · ${counts.info} info. Top campos faltantes: ${top3Fields}. Llama gaps_overview para detalle.`;
+  return `KNOWN-UNKNOWNS: ${counts.alto} altas · ${counts.aviso} avisos · ${counts.info} info. Top campos faltantes: ${top3Fields}.`;
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

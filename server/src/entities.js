@@ -13,9 +13,10 @@
 //  expediente CRM (linkClient) para que Athena cruce las dos
 //  vistas sin duplicar info.
 // ============================================================
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const DATA_DIR = join(__dirname, '..', 'data');
@@ -30,8 +31,7 @@ function load() {
   return [];
 }
 function save(rows) {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify(rows, null, 2));
+  atomicWriteJson(FILE, rows);
 }
 function newId() {
   return `ent_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;

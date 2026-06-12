@@ -6,9 +6,10 @@
 //  ELLA: reportes, follow-ups, callbacks, entregas. Si la fecha
 //  pasa y no llegó la evidencia, Athena se la cobra y la avisa.
 // ============================================================
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 import { sendMessage } from './whatsapp.js';
 import { sendEmail } from './email.js';
 import { canSendProactive } from './proactive.js';
@@ -28,8 +29,7 @@ function load() {
   return [];
 }
 function save(rows) {
-  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify(rows, null, 2));
+  atomicWriteJson(FILE, rows);
 }
 function newId() {
   return `c${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;

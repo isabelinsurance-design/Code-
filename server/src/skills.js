@@ -22,9 +22,10 @@
 //  Las skills viven en data/skills/<nombre>.json. Una por archivo
 //  para que Isabel o Sami las puedan abrir, leer, borrar manual.
 // ============================================================
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
+import { readFileSync, existsSync, mkdirSync, readdirSync, unlinkSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const SKILLS_DIR = join(__dirname, '..', 'data', 'skills');
@@ -83,7 +84,7 @@ export function proposeSkill({ nombre, descripcion, cuerpo, trigger = '', inputs
     invocaciones: 0,
     ultima_invocacion: null,
   };
-  writeFileSync(pathFor(slug), JSON.stringify(skill, null, 2));
+  atomicWriteJson(pathFor(slug), skill);
   return skill;
 }
 
@@ -94,7 +95,7 @@ export function approveSkill(nombre, aprobado_por = 'isabel') {
   s.status = 'active';
   s.aprobado_at = nowIso();
   s.aprobado_por = aprobado_por;
-  writeFileSync(pathFor(slug), JSON.stringify(s, null, 2));
+  atomicWriteJson(pathFor(slug), s);
   return s;
 }
 
@@ -103,7 +104,7 @@ export function retireSkill(nombre) {
   const s = loadSkill(slug);
   if (!s) return null;
   s.status = 'retired';
-  writeFileSync(pathFor(slug), JSON.stringify(s, null, 2));
+  atomicWriteJson(pathFor(slug), s);
   return s;
 }
 
@@ -145,7 +146,7 @@ export function markInvoked(nombre) {
   if (!s) return null;
   s.invocaciones = (s.invocaciones || 0) + 1;
   s.ultima_invocacion = nowIso();
-  writeFileSync(pathFor(slug), JSON.stringify(s, null, 2));
+  atomicWriteJson(pathFor(slug), s);
   return s;
 }
 
