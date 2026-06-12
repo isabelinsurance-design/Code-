@@ -7652,12 +7652,18 @@ function searchMember(num){document.getElementById('member-search').value=num;fi
 function submitReporte(e){e.preventDefault();const fd=new FormData(e.target);fd.append('action','save_reporte');const btn=e.target.querySelector('[type=submit]');if(btn){btn.disabled=true;btn.textContent='ENVIANDO...';}fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ REPORTE ENVIADO — BUEN TRABAJO! ✓');// Reload so the page shows the submitted summary instead of the form
 saveTabAndReload();}else{toast(d.error||'Error al enviar');if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}}}).catch(()=>{if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}toast('⚠ Error de red');});}
 // Admin reabre el reporte de un agente (reconteo / agregar notas)
-function reabrirReporte(aid, nombre){
+function reabrirReporte(aid, nombre, fecha){
   if(!confirm('¿Reabrir el reporte de '+(nombre||'este agente')+'?\n\nPodrá editarlo de nuevo (se recuentan los tickets cerrados) y reenviarlo.')) return;
-  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'reabrir_reporte',agente_id:aid})})
+  const body={action:'reabrir_reporte', agente_id:aid};
+  if(fecha) body.fecha=fecha;
+  fetch('api.php',{method:'POST',body:new URLSearchParams(body)})
     .then(r=>r.json()).then(d=>{
-      if(d.ok){ toast('✓ REPORTE REABIERTO'); if(typeof softReload==='function') softReload(); }
-      else toast('⚠ '+(d.error||'Error'));
+      if(d.ok){
+        toast('✓ REPORTE REABIERTO');
+        const tabla=document.getElementById('rep-hist-tabla');
+        if(typeof buscarHistorial==='function' && tabla && tabla.innerHTML.trim()){ buscarHistorial(); }
+        else if(typeof softReload==='function'){ softReload(); }
+      } else toast('⚠ '+(d.error||'Error'));
     }).catch(()=>toast('⚠ Error de conexión'));
 }
 function filterHist(){const ag=document.getElementById('hist-ag')?.value||'';const tipo=document.getElementById('hist-tipo')?.value||'';document.querySelectorAll('.hist-row').forEach(r=>{r.style.display=(!ag||r.dataset.ag===ag)&&(!tipo||r.dataset.tipo===tipo)?'':'none';});}
@@ -7717,9 +7723,12 @@ function buscarHistorial() {
                         <div style="width:34px;height:34px;border-radius:50%;background:${r.color||'#2876A8'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0">${r.iniciales||'?'}</div>
                         <div style="flex:1">
                             <div style="font-size:10px;font-weight:900;color:#1B4A6B">${r.nombre||'—'}</div>
-                            <div style="font-size:7px;color:#7A90A4;text-transform:uppercase;margin-top:1px">REPORTE ENVIADO</div>
+                            <div style="font-size:7px;color:${r.enviado==1?'#7A90A4':'#C07A1A'};text-transform:uppercase;margin-top:1px">${r.enviado==1?'REPORTE ENVIADO':'REABIERTO — PENDIENTE DE REENVÍO'}</div>
                         </div>
-                        ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:200px;text-align:right;font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${r.nota}">"${r.nota}"</div>` : ''}
+                        <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
+                            ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:220px;text-align:right;font-style:italic" title="${r.nota}">"${r.nota}"</div>` : ''}
+                            ${r.enviado==1 ? `<button onclick="reabrirReporte(${r.agente_id}, ${JSON.stringify(r.nombre||'')}, '${r.fecha}')" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">🔓 REABRIR</button>` : ''}
+                        </div>
                     </div>
 
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:0">
