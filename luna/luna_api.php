@@ -978,33 +978,71 @@ case 'luna_pending_soa':
 // ── OPEN TICKETS ────────────────────────────────────────
 case 'luna_open_tickets':
     $priority = strtoupper(trim($_GET['priority'] ?? ''));
+    $agenteQ  = trim($_GET['agente'] ?? $_GET['agent'] ?? '');
     $where = "t.estado != 'CERRADO'";
     $params = [];
     if (in_array($priority, ['ALTA','MEDIA','BAJA'])) {
         $where .= " AND t.prioridad = ?";
         $params[] = $priority;
     }
-    // Agents only see their own tickets (assigned or created by them)
+
+    // Filtro opcional por agente RESPONSABLE (nombre, iniciales o id). Se
+    // resuelve el id aquí en el servidor para que el chat no tenga que pedirlo.
+    $filtAgente = null;
+    if ($agenteQ !== '') {
+        if (ctype_digit($agenteQ)) {
+            $aid = (int)$agenteQ;
+        } else {
+            $look = $pdo->prepare("SELECT id, nombre FROM usuarios
+                WHERE nombre LIKE ? OR iniciales = ?
+                ORDER BY (iniciales = ?) DESC, nombre LIMIT 1");
+            $look->execute(['%'.$agenteQ.'%', strtoupper($agenteQ), strtoupper($agenteQ)]);
+            $r = $look->fetch();
+            if (!$r) err("No encontré ningún agente que coincida con \"$agenteQ\".", 404);
+            $aid = (int)$r['id']; $filtAgente = $r['nombre'];
+        }
+        // Responsable = asignado_a; si no hay asignado, el creador; o en la
+        // tabla de responsables. (NO el creador cuando ya hay un asignado.)
+        $where .= " AND ( t.asignado_a = ?
+                          OR (t.asignado_a IS NULL AND t.agente_id = ?)
+                          OR t.id IN (SELECT ticket_id FROM ticket_responsables WHERE user_id = ?) )";
+        $params[] = $aid; $params[] = $aid; $params[] = $aid;
+    }
+
+    // Agentes normales: solo lo suyo (además del filtro de arriba).
     if (!$admin) {
         $where .= " AND (t.agente_id = ? OR t.asignado_a = ?
                     OR t.id IN (SELECT ticket_id FROM ticket_responsables WHERE user_id = ?))";
         $params[] = $uid; $params[] = $uid; $params[] = $uid;
     }
+    // 🔧 Se resuelve CREADOR y ASIGNADO por separado. 'responsable' (= asignado
+    // si existe, si no el creador) es el campo correcto de "de quién es".
     $sql = "
         SELECT t.id, t.tipo, t.prioridad, t.estado, t.descripcion,
                t.fecha_creacion, t.fecha_seguimiento,
-               u.iniciales AS agente_ini, u.nombre AS agente_nombre,
-               CONCAT(m.apellido,', ',m.nombre) AS miembro_nombre
+               COALESCE(au.nombre, cu.nombre)       AS responsable,
+               COALESCE(au.nombre, cu.nombre)       AS agente_nombre,
+               COALESCE(au.iniciales, cu.iniciales) AS agente_ini,
+               cu.nombre AS creador,
+               au.nombre AS asignado_a,
+               CONCAT(m.apellido,', ',m.nombre)     AS miembro_nombre
         FROM tickets t
-        LEFT JOIN usuarios u ON t.agente_id = u.id
-        LEFT JOIN miembros m ON t.miembro_id = m.id
+        LEFT JOIN usuarios cu ON t.agente_id  = cu.id
+        LEFT JOIN usuarios au ON t.asignado_a = au.id
+        LEFT JOIN miembros m  ON t.miembro_id = m.id
         WHERE $where
         ORDER BY FIELD(t.prioridad,'ALTA','MEDIA','BAJA'), t.created_at DESC
-        LIMIT 50
+        LIMIT 200
     ";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
-    ok(['tickets'=>$stmt->fetchAll()]);
+    $rows = $stmt->fetchAll();
+    ok([
+        'tickets'         => $rows,
+        'total'           => count($rows),
+        'agente_filtrado' => $filtAgente,
+        'capado'          => count($rows) >= 200,
+    ]);
     break;
 
 // ── TICKETS POR AGENTE — desglose de todo el equipo ─────

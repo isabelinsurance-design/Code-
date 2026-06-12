@@ -2718,7 +2718,7 @@ const TOOL_SCHEMAS = {
   search:       {desc:'Busca un miembro por nombre, teléfono o MBI.', props:{q:{type:'string',description:'Término de búsqueda'}}, req:['q']},
   detail:       {desc:'Detalle completo de un miembro por id.', props:{id:{type:'integer'}}, req:['id']},
   soa:          {desc:'Miembros activos sin SOA firmado.', props:{}, req:[]},
-  tickets_all:  {desc:'LISTA de tickets abiertos del equipo (máx 50, con descripción y miembro). Úsalo para VER o detallar tickets — NO para contar: viene capada a 50, no cuentes esta lista.', props:{priority:{type:'string',enum:['ALTA','MEDIA','BAJA']}}, req:[]},
+  tickets_all:  {desc:'LISTA de tickets abiertos (hasta 200, con descripción, miembro y RESPONSABLE). Pasa "agente" (nombre, ej. "Samia") para ver SOLO los tickets de esa persona — el servidor resuelve su id. Cada ticket trae "responsable" (a quién está asignado = quién lo debe atender), "creador" (quién lo abrió) y "asignado_a". Para decir de quién es un ticket, usa SIEMPRE "responsable"/"asignado_a", NUNCA el creador. Para CONTAR usa tickets_agent, no esta lista.', props:{priority:{type:'string',enum:['ALTA','MEDIA','BAJA']},agente:{type:'string',description:'Nombre, iniciales o id del agente para filtrar sus tickets'}}, req:[]},
   tickets_agent:{desc:'Conteo EXACTO de tickets POR AGENTE (total, abiertos, cerrados, de alta prioridad y vencidos). Úsalo SIEMPRE que pregunten "cuántos tickets tiene X" o pidan el desglose del equipo. Trae números ya calculados por la base — nunca cuentes listas a mano.', props:{}, req:[]},
   my_tickets:   {desc:'Tickets asignados al usuario logueado.', props:{}, req:[]},
   today_appts:  {desc:'Citas de hoy.', props:{}, req:[]},
@@ -2847,7 +2847,7 @@ async function callTool(toolName, params = {}) {
       case 'soa':
         return await (await fetch(CRM_BASE + qs('pending_soa'))).json();
       case 'tickets_all':
-        return await (await fetch(CRM_BASE + qs('open_tickets', {priority: params.priority||''}))).json();
+        return await (await fetch(CRM_BASE + qs('open_tickets', {priority: params.priority||'', agente: params.agente||''}))).json();
       case 'tickets_agent':
         return await (await fetch(CRM_BASE + qs('tickets_by_agent'))).json();
       case 'my_tickets':
