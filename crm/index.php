@@ -2890,13 +2890,24 @@ if ($dias === null): ?>
 </div><!-- /PORTALES -->
 <!-- MIEMBROS -->
 <div id="tab-MIEMBROS" class="tab-pane">
+<?php
+// Estados realmente presentes en los miembros, para que pills/dropdown/contadores cuadren
+$estados_presentes = [];
+foreach($members as $m_){ $e = trim($m_['estado']??''); if($e==='') $e='(SIN ESTADO)'; $estados_presentes[$e] = ($estados_presentes[$e]??0)+1; }
+$orden_pref = ['ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','PROSPECT','PENDING','CANCELED','DENIED','CERRADO','DISENROLLED'];
+uksort($estados_presentes, function($a,$b) use($orden_pref){
+  $ia=array_search($a,$orden_pref); $ib=array_search($b,$orden_pref);
+  if($ia===false)$ia=999; if($ib===false)$ib=999;
+  return $ia===$ib ? strcmp($a,$b) : $ia<=>$ib;
+});
+?>
 <div style="display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap;align-items:center">
 <div style="display:flex;align-items:center;gap:10px;background:#fff;border:2px solid <?=$CB?>;border-radius:12px;padding:10px 15px;flex:1;max-width:400px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
 <span style="font-size:16px;color:<?=$P2?>"> </span>
 <input type="text" id="member-search" placeholder="BUSCAR POR NOMBRE, TEL, MBI, DIRECCIÓN..." onkeyup="smartSearch()" style="background:transparent;border:none;outline:none;font-size:13px;width:100%;font-family:'DM Sans',sans-serif;text-transform:uppercase;color:<?=$TX?>">
 
 </div>
-<select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach(['ACTIVE','IN PROCESS','PLAN CHANGE','SIN HACER','SIN FIRMAR','CANCELED','DENIED','CERRADO'] as $e):?><option><?=$e?></option><?php endforeach;?></select>
+<select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach($estados_presentes as $e=>$c): if($e==='(SIN ESTADO)') continue; ?><option value="<?=h($e)?>"><?=h($e)?> (<?=$c?>)</option><?php endforeach;?></select>
 <button class="btn btn-b btn-sm" onclick="openMemberForm()">+ NUEVO MIEMBRO</button>
 </div>
 <div style="display:flex;gap:4px;margin-bottom:11px;flex-wrap:wrap">
@@ -2910,23 +2921,19 @@ foreach($members as $m_){
 }
 sort($meses_disponibles);
 
-$pill_list = ['TODOS','FUTUROS','ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','CANCELED'];
-foreach($pill_list as $p):
-    if($p === 'TODOS'){ 
-        $lbl='TODOS'; $val=''; $c=count($members); 
-    } elseif($p === 'FUTUROS'){ 
-        $lbl='FUTUROS EFECTIVOS'; $val='FUTUROS';
-        // Cualquier estado con fecha_efectiva el próximo mes
-        $c=count(array_filter($members, fn($m)=>
-            str_starts_with($m['fecha_efectiva']??'', $next_month_str)
-        ));
-    } else { 
-        $lbl=$p; $val=$p; 
-        $c=count(array_filter($members, fn($m)=>$m['estado']===$p)); 
-    }
+// Pills dinámicas: TODOS + FUTUROS + un pill por cada estado realmente presente.
+// Así la suma de los pills de estado = TODOS y los contadores siempre cuadran.
+$pill_items = [['TODOS','',count($members)]];
+$fut_c = count(array_filter($members, fn($m)=>str_starts_with($m['fecha_efectiva']??'', $next_month_str)));
+if($fut_c>0) $pill_items[] = ['FUTUROS EFECTIVOS','FUTUROS',$fut_c];
+foreach($estados_presentes as $e=>$c){
+    if($e==='(SIN ESTADO)') { $pill_items[] = ['SIN ESTADO','__EMPTY__',$c]; }
+    else { $pill_items[] = [$e,$e,$c]; }
+}
+foreach($pill_items as [$lbl,$val,$c]):
 ?>
-<button class="pill-btn<?=$p==='TODOS'?' active':''?>" data-estado="<?=$val?>" onclick="setPill(this)" style="padding:4px 11px;border-radius:20px;border:1px solid <?=$CB?>;background:#fff;color:<?=$MU?>;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-    <?=$lbl?> <span style="opacity:.6">(<?=$c?>)</span>
+<button class="pill-btn<?=$val===''?' active':''?>" data-estado="<?=h($val)?>" onclick="setPill(this)" style="padding:4px 11px;border-radius:20px;border:1px solid <?=$val===''?$P1:$CB?>;background:<?=$val===''?$P1:'#fff'?>;color:<?=$val===''?'#fff':$MU?>;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
+    <?=h($lbl)?> <span style="opacity:.6">(<?=$c?>)</span>
 </button>
 <?php endforeach;?>
 <!-- Filtro por mes de efectividad -->
@@ -6723,68 +6730,59 @@ msg+=`Tienes ${follows} prospectos en seguimiento esperando tu llamada. No los d
 hablar(msg);
 }
 }, 300000); // 5 minutos
-function smartSearch(){
-const filter=document.getElementById('member-search')?.value.toLowerCase().trim()||'';
-const rows=document.querySelectorAll('.member-row');
-let count=0;
-rows.forEach(r=>{
-const searchText=r.getAttribute('data-search')||'';
-const est=document.getElementById('filter-estado')?.value||'';
-const ag='';
-const match=(!filter||searchText.includes(filter))&&(!est||r.dataset.estado===est);
-r.style.display=match?'':'none';
-if(match){count++;if(filter)r.classList.add('search-match');setTimeout(()=>r.classList.remove('search-match'),600);}
-});
-const mc=document.getElementById('member-count');if(mc)mc.textContent=count;
-}
-function filterMembers(){smartSearch();}
-function filterMembers(){const q=document.getElementById('member-search')?.value.toLowerCase()||'';const est=document.getElementById('filter-estado')?.value||'';const ag='';let c=0;document.querySelectorAll('.member-row').forEach(r=>{const m=(!q||r.dataset.search.includes(q))&&(!est||r.dataset.estado===est)&&(!ag||r.dataset.agente===ag);r.style.display=m?'':'none';if(m)c++;});const mc=document.getElementById('member-count');if(mc)mc.textContent=c;}
-// Estado del filtro de mes
-let _currentMes = '';
+// ── FILTRO DE MIEMBROS UNIFICADO ──────────────────────────────────────────
+// Un solo lugar decide la visibilidad: búsqueda + estado (pill o dropdown) + mes.
+// Antes había 3 funciones que se pisaban entre sí y descuadraban los contadores.
+let _mEstado = '';   // '' = todos · 'FUTUROS' · '__EMPTY__' · o un estado
+let _mMes    = '';   // mes de efectividad (YYYY-MM)
+const _M_NEXT_MONTH = '<?= date('Y-m', strtotime('first day of next month')) ?>';
 
-function setMesPill(btn) {
-    _currentMes = btn.dataset.mes || '';
-    document.querySelectorAll('.mes-pill').forEach(b => {
-        const on = b.dataset.mes === _currentMes;
+function applyMemberFilters(){
+    const q = (document.getElementById('member-search')?.value||'').toLowerCase().trim();
+    let count = 0;
+    document.querySelectorAll('.member-row').forEach(r=>{
+        let m = true;
+        if(q && !((r.dataset.search||'').includes(q))) m = false;
+        if(m && _mEstado){
+            if(_mEstado === 'FUTUROS')      m = !!(r.dataset.fecha && r.dataset.fecha.startsWith(_M_NEXT_MONTH));
+            else if(_mEstado === '__EMPTY__') m = !r.dataset.estado;
+            else                            m = (r.dataset.estado === _mEstado);
+        }
+        if(m && _mMes) m = (r.dataset.mes === _mMes);
+        r.style.display = m ? '' : 'none';
+        if(m){ count++; if(q){ r.classList.add('search-match'); setTimeout(()=>r.classList.remove('search-match'),600); } }
+    });
+    const mc = document.getElementById('member-count'); if(mc) mc.textContent = count;
+}
+function _setPillVisual(est){
+    document.querySelectorAll('.pill-btn').forEach(b=>{
+        const on = (b.dataset.estado||'') === (est||'');
+        b.style.background  = on ? '<?=$P1?>' : '#fff';
+        b.style.color       = on ? '#fff'    : '<?=$MU?>';
+        b.style.borderColor = on ? '<?=$P1?>' : '<?=$CB?>';
+    });
+}
+function smartSearch(){ applyMemberFilters(); }
+function filterMembers(){
+    _mEstado = document.getElementById('filter-estado')?.value || '';
+    _setPillVisual(_mEstado);
+    applyMemberFilters();
+}
+function setPill(btn){
+    _mEstado = btn.dataset.estado || '';
+    _setPillVisual(_mEstado);
+    const fe = document.getElementById('filter-estado');
+    if(fe) fe.value = (_mEstado==='FUTUROS' || _mEstado==='__EMPTY__') ? '' : _mEstado;
+    applyMemberFilters();
+}
+function setMesPill(btn){
+    _mMes = btn.dataset.mes || '';
+    document.querySelectorAll('.mes-pill').forEach(b=>{
+        const on = b.dataset.mes === _mMes;
         b.style.background = on ? '<?=$P1?>' : '#fff';
         b.style.color      = on ? '#fff' : '<?=$MU?>';
     });
-    // Re-aplicar filtro de estado actual
-    const activePill = document.querySelector('.pill-btn.active');
-    if (activePill) setPill(activePill);
-}
-
-function setPill(btn){
-    document.querySelectorAll('.pill-btn').forEach(b=>{b.style.background='#fff';b.style.color='#7A90A4';b.style.borderColor='#C8DFF0';});
-    btn.style.background='#1B4A6B';btn.style.color='#fff';btn.style.borderColor='#1B4A6B';
-    
-    const est = btn.dataset.estado;
-    const nextMonth = '<?= date('Y-m', strtotime('first day of next month')) ?>';
-    let count = 0;
-
-    document.querySelectorAll('.member-row').forEach(r=>{
-        let match = false;
-        if(est === 'FUTUROS'){
-            // Cualquier estado con fecha_efectiva el próximo mes
-            match = r.dataset.fecha && r.dataset.fecha.startsWith(nextMonth);
-        } else {
-            // Lógica normal para el resto de botones
-            match = (!est || r.dataset.estado === est);
-        }
-        
-        // También aplicar filtro de mes si está activo
-        if (match && _currentMes) {
-            match = r.dataset.mes === _currentMes;
-        }
-        r.style.display = match ? '' : 'none';
-        if(match) count++;
-    });
-
-    const mc = document.getElementById('member-count');
-    if(mc) mc.textContent = count;
-    
-    const fe = document.getElementById('filter-estado');
-    if(fe) fe.value = est === 'FUTUROS' ? '' : est;
+    applyMemberFilters();
 }
 function filterPolizas(){const c=document.getElementById('pol-carrier')?.value.toLowerCase()||'';const e=document.getElementById('pol-estado')?.value.toLowerCase()||'';document.querySelectorAll('.pol-row').forEach(r=>{r.style.display=(!c||r.dataset.carrier.includes(c))&&(!e||r.dataset.estado.includes(e))?'':'none';});}
 // ── TICKETS FILTROS Y VISTA ───────────────────────────────────────────
