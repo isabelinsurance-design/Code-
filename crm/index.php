@@ -3130,7 +3130,7 @@ foreach($_ret_stats as $_rs) {
 
 <div style="display:flex;gap:7px;margin-bottom:13px;align-items:center;flex-wrap:wrap">
 <span style="font-size:9px;font-weight:900;color:#7A90A4;text-transform:uppercase;letter-spacing:.7px">FILTRAR:</span>
-<?php foreach(['TODOS','URGENTES','BIENVENIDA','30 DÍAS','60 DÍAS','90 DÍAS','✓ CON CUESTIONARIO','○ SIN CUESTIONARIO'] as $_rf): ?>
+<?php foreach(['TODOS','✓ CON CUESTIONARIO','○ SIN CUESTIONARIO'] as $_rf): ?>
 <button class="btn btn-gh btn-sm ret-fb" data-rf="<?=htmlspecialchars($_rf)?>" onclick="retFilter('<?=htmlspecialchars($_rf)?>')" style="<?=$_rf==='TODOS'?'background:#1B4A6B;color:#fff':''?>"><?=htmlspecialchars($_rf)?></button>
 <?php endforeach; ?>
 <input id="ret-search" type="text" placeholder="Buscar miembro..." class="form-input" style="max-width:200px;margin-left:auto" oninput="retFilter()">
