@@ -2936,24 +2936,26 @@ foreach($pill_items as [$lbl,$val,$c]):
     <?=h($lbl)?> <span style="opacity:.6">(<?=$c?>)</span>
 </button>
 <?php endforeach;?>
-<!-- Filtro por mes de efectividad -->
-<?php if(!empty($meses_disponibles)): ?>
+<!-- Filtro por mes/año de efectividad -->
+<?php
+// Años realmente presentes (con su conteo) para el selector
+$anios_disponibles = [];
+foreach($members as $m_){ $y = substr($m_['fecha_efectiva']??'',0,4); if($y) $anios_disponibles[$y]=($anios_disponibles[$y]??0)+1; }
+krsort($anios_disponibles); // más reciente primero
+$MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MAYO','06'=>'JUNIO','07'=>'JULIO','08'=>'AGOSTO','09'=>'SEPTIEMBRE','10'=>'OCTUBRE','11'=>'NOVIEMBRE','12'=>'DICIEMBRE'];
+?>
+<?php if(!empty($anios_disponibles)): ?>
 <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px">
   <span style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">📅 EFECTIVO:</span>
-  <button class="mes-pill active" data-mes="" onclick="setMesPill(this)"
-    style="padding:3px 10px;border-radius:20px;border:1px solid <?=$CB?>;background:<?=$P1?>;color:#fff;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-    TODOS
-  </button>
-  <?php foreach($meses_disponibles as $ms): 
-    $dt = DateTime::createFromFormat('Y-m', $ms);
-    $lbl_mes = $dt ? strtoupper($dt->format('M Y')) : $ms;
-    $cnt_mes = count(array_filter($members, fn($m_)=>substr($m_['fecha_efectiva']??'',0,7)===$ms));
-  ?>
-  <button class="mes-pill" data-mes="<?=$ms?>" onclick="setMesPill(this)"
-    style="padding:3px 10px;border-radius:20px;border:1px solid <?=$CB?>;background:#fff;color:<?=$MU?>;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:1px;text-transform:uppercase">
-    <?=$lbl_mes?> <span style="opacity:.6">(<?=$cnt_mes?>)</span>
-  </button>
-  <?php endforeach; ?>
+  <select id="mes-num" onchange="setMesAnio()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 10px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
+    <option value="">TODOS LOS MESES</option>
+    <?php foreach($MESES_ES as $n=>$nm):?><option value="<?=$n?>"><?=$nm?></option><?php endforeach;?>
+  </select>
+  <select id="mes-anio" onchange="setMesAnio()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 10px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
+    <option value="">TODOS LOS AÑOS</option>
+    <?php foreach($anios_disponibles as $y=>$c):?><option value="<?=$y?>"><?=$y?> (<?=$c?>)</option><?php endforeach;?>
+  </select>
+  <button onclick="limpiarMesAnio()" style="border:1px solid <?=$CB?>;border-radius:9px;padding:6px 11px;font-size:8px;font-weight:900;background:#fff;color:<?=$MU?>;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px">✕ LIMPIAR</button>
 </div>
 <?php endif; ?>
 </div>
@@ -6734,7 +6736,8 @@ hablar(msg);
 // Un solo lugar decide la visibilidad: búsqueda + estado (pill o dropdown) + mes.
 // Antes había 3 funciones que se pisaban entre sí y descuadraban los contadores.
 let _mEstado = '';   // '' = todos · 'FUTUROS' · '__EMPTY__' · o un estado
-let _mMes    = '';   // mes de efectividad (YYYY-MM)
+let _mAnio   = '';   // año de efectividad (YYYY)
+let _mMesNum = '';   // mes de efectividad (MM)
 const _M_NEXT_MONTH = '<?= date('Y-m', strtotime('first day of next month')) ?>';
 
 function applyMemberFilters(){
@@ -6748,7 +6751,11 @@ function applyMemberFilters(){
             else if(_mEstado === '__EMPTY__') m = !r.dataset.estado;
             else                            m = (r.dataset.estado === _mEstado);
         }
-        if(m && _mMes) m = (r.dataset.mes === _mMes);
+        if(m && (_mAnio || _mMesNum)){
+            const dm = r.dataset.mes || '';            // "YYYY-MM"
+            if(_mAnio   && dm.substring(0,4) !== _mAnio)   m = false;
+            if(m && _mMesNum && dm.substring(5,7) !== _mMesNum) m = false;
+        }
         r.style.display = m ? '' : 'none';
         if(m){ count++; if(q){ r.classList.add('search-match'); setTimeout(()=>r.classList.remove('search-match'),600); } }
     });
@@ -6775,13 +6782,15 @@ function setPill(btn){
     if(fe) fe.value = (_mEstado==='FUTUROS' || _mEstado==='__EMPTY__') ? '' : _mEstado;
     applyMemberFilters();
 }
-function setMesPill(btn){
-    _mMes = btn.dataset.mes || '';
-    document.querySelectorAll('.mes-pill').forEach(b=>{
-        const on = b.dataset.mes === _mMes;
-        b.style.background = on ? '<?=$P1?>' : '#fff';
-        b.style.color      = on ? '#fff' : '<?=$MU?>';
-    });
+function setMesAnio(){
+    _mMesNum = document.getElementById('mes-num')?.value || '';
+    _mAnio   = document.getElementById('mes-anio')?.value || '';
+    applyMemberFilters();
+}
+function limpiarMesAnio(){
+    const mn=document.getElementById('mes-num'); if(mn) mn.value='';
+    const ma=document.getElementById('mes-anio'); if(ma) ma.value='';
+    _mMesNum=''; _mAnio='';
     applyMemberFilters();
 }
 function filterPolizas(){const c=document.getElementById('pol-carrier')?.value.toLowerCase()||'';const e=document.getElementById('pol-estado')?.value.toLowerCase()||'';document.querySelectorAll('.pol-row').forEach(r=>{r.style.display=(!c||r.dataset.carrier.includes(c))&&(!e||r.dataset.estado.includes(e))?'':'none';});}
