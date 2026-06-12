@@ -2953,7 +2953,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
   </select>
   <select id="mes-anio" onchange="setMesAnio()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 10px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
     <option value="">TODOS LOS AÑOS</option>
-    <?php foreach($anios_disponibles as $y=>$c):?><option value="<?=$y?>"><?=$y?> (<?=$c?>)</option><?php endforeach;?>
+    <?php foreach($anios_disponibles as $y=>$c):?><option value="<?=$y?>"><?=$y?></option><?php endforeach;?>
   </select>
   <button onclick="limpiarMesAnio()" style="border:1px solid <?=$CB?>;border-radius:9px;padding:6px 11px;font-size:8px;font-weight:900;background:#fff;color:<?=$MU?>;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px">✕ LIMPIAR</button>
 </div>
