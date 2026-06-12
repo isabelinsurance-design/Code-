@@ -247,7 +247,7 @@ $t = $T[$lang];
 //      'https://isabelfuentes.medicareful.com'
 //      'https://your-name.mymedicarebot.com'
 //    Until you set this, the "Get a Quote" buttons safely scroll to the contact form.
-define('QUOTE_URL', 'YOUR_AGENT_QUOTE_URL_HERE');
+define('QUOTE_URL', 'https://my.destinationrx.com/hub/s/SD7R6MZPA');
 
 // ── SECRETS (kept OUT of git) ─────────────────────────────────────────────────
 // Create a file named `mail-secret.php` next to this page on the server, with:
