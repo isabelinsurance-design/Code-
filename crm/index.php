@@ -6003,7 +6003,7 @@ try {
     <select id="gastos-est" onchange="loadGastos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
       <option value="all">TODOS LOS ESTADOS</option>
       <option value="PENDIENTE">PENDIENTE</option>
-      <option value="APROBADO">APROBADO</option>
+      <option value="APROBADO">PAGADO</option>
       <option value="RECHAZADO">RECHAZADO</option>
     </select>
   </div>
@@ -6011,7 +6011,7 @@ try {
 </div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px">
   <div class="stat-card"><div class="stat-icon">💰 TOTAL MES</div><div class="stat-val" id="gkpi-total" style="color:<?=$P1?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">todos los estados</div></div>
-  <div class="stat-card"><div class="stat-icon"> APROBADO</div><div class="stat-val" id="gkpi-aprobado" style="color:<?=$G?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">confirmado</div></div>
+  <div class="stat-card"><div class="stat-icon"> PAGADO</div><div class="stat-val" id="gkpi-aprobado" style="color:<?=$G?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">pagado</div></div>
   <div class="stat-card"><div class="stat-icon"> PENDIENTE</div><div class="stat-val" id="gkpi-pendiente" style="color:<?=$A?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">por aprobar</div></div>
   <div class="stat-card"><div class="stat-icon"> RECHAZADO</div><div class="stat-val" id="gkpi-rechazado" style="color:<?=$R?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">denegado</div></div>
 </div>
@@ -8369,6 +8369,7 @@ const GASTO_CAT_LABELS={OFFICE:'OFFICE',MEETING:'MEETING',PAYROLL:'PAYROLL',MARK
 const GASTO_CAT_COLORS={OFFICE:'#1B4A6B',MEETING:'#1E7A5C',PAYROLL:'#7A90A4',MARKETING:'#C07A1A',TRAINING:'#2876A8'};
 const GASTO_EST_COLOR={PENDIENTE:'#C07A1A',APROBADO:'#1E7A5C',RECHAZADO:'#B83232'};
 const GASTO_EST_BG={PENDIENTE:'#FDF6EC',APROBADO:'#EAF5F0',RECHAZADO:'#FDF0EE'};
+const GASTO_EST_LABEL={PENDIENTE:'PENDIENTE',APROBADO:'PAGADO',RECHAZADO:'RECHAZADO'};
 function renderGastos(rows){
   const tb=document.getElementById('gastos-tbody');
   if(!tb) return;
@@ -8402,9 +8403,9 @@ function renderGastos(rows){
       <td style="font-size:9px;color:#1B3A5C">${esc(g.enviado_nombre||'—')}</td>
       <td style="text-align:center">${factura}</td>
       <td style="text-align:center">${reemb}</td>
-      <td><span style="background:${GASTO_EST_BG[g.estado]||'#F5F5F5'};color:${GASTO_EST_COLOR[g.estado]||'#333'};border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">${esc(g.estado||'—')}</span></td>
+      <td><span style="background:${GASTO_EST_BG[g.estado]||'#F5F5F5'};color:${GASTO_EST_COLOR[g.estado]||'#333'};border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">${esc(GASTO_EST_LABEL[g.estado]||g.estado||'—')}</span></td>
       <td><div style="display:flex;gap:3px;flex-wrap:nowrap">
-        ${(ADMIN&&g.estado==='PENDIENTE')?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="APROBAR" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
+        ${(ADMIN&&g.estado==='PENDIENTE')?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="MARCAR COMO PAGADO" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
         ${(ADMIN||g.enviado_por==UID)?`<button onclick="deleteGasto(${g.id})" title="ELIMINAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE">🗑</button>`:''}
       </div></td>
     </tr>`;}).join('');
