@@ -5060,7 +5060,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 </div>
 </div>
 <div id="ctab-LLAMADAS" style="display:none">
-<?php if($admin):?><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">▦ REPORTES HOY</div></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0"><?php foreach($agents as $ag):$r=null;foreach($reportes_hoy as $rr){if($rr['agente_id']==$ag['id']){$r=$rr;break;}};?><div style="padding:12px 15px;border-bottom:1px solid <?=$CB?>;border-right:1px solid <?=$CB?>;border-top:3px solid <?=$r&&$r['enviado']?'#1E7A5C':'#C07A1A'?>"><div style="display:flex;gap:7px;align-items:center;margin-bottom:8px"><?=av(h($ag['iniciales']),h($ag['color']),28)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h(explode(' ',$ag['nombre'])[0])?></div><?=badge($r&&$r['enviado']?'FIRMADO':'PENDIENTE',true)?></div></div><?php if($r):?><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px"><?php foreach([['◌',($r['llamadas_prospectos']??0)+($r['llamadas_servicio']??0),'LLAM.'],['✅',$r['contestaron']??0,'CONTS.'],['◎',$r['apps_enviadas']??0,'APPS'],['◷',$r['citas_confirmadas']??0,'CITAS'],['⊘',$r['tickets_resueltos']??0,'TKT.'],['📋',$r['apps_por_hacer']??0,'X HACER']] as [$ic,$v,$lb]):?><div style="text-align:center;background:<?=$BG?>;border-radius:7px;padding:5px"><div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase"><?=$ic?> <?=$lb?></div><div style="font-size:14px;font-weight:900;color:<?=$P1?>"><?=$v?></div></div><?php endforeach;?></div><?php if(!empty($r['nota'])):?><div style="margin-top:8px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:7px;padding:7px 9px;font-size:8px;color:#7A5B12;line-height:1.5"><span style="font-size:6px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px">📝 NOTA</span><?=nl2br(h($r['nota']))?></div><?php endif;?><?php if($r['enviado']):?><button onclick="reabrirReporte(<?=$ag['id']?>,'<?=h(explode(' ',$ag['nombre'])[0])?>')" style="margin-top:8px;width:100%;background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:7px;padding:5px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px">🔓 REABRIR PARA RECONTEO / NOTAS</button><?php endif;?><?php else:?><div style="font-size:8px;color:#B83232;font-weight:700;text-transform:uppercase">⚠ NO ENVIADO</div><?php endif;?><?php $ck=$checklist_stats[$ag['id']]??null;$ck_total=$ck['total']??0;$ck_done=(int)($ck['completadas']??0);$ck_pct=$ck_total>0?round(($ck_done/$ck_total)*100):0;?><?php if($ck_total>0):?><div style="margin-top:8px;padding-top:8px;border-top:1px solid <?=$CB?>"><div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-bottom:4px">✅ CHECKLIST <?=$ck_done?>/<?=$ck_total?> (<?=$ck_pct?>%)</div><div style="height:5px;background:<?=$CB?>;border-radius:99px;overflow:hidden"><div style="height:100%;width:<?=$ck_pct?>%;background:<?=$ck_pct==100?'#16A34A':'#2876A8'?>;border-radius:99px"></div></div></div><?php endif;?></div><?php endforeach;?></div></div><?php endif;?>
+<?php if($admin):?><div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">▦ REPORTES HOY</div></div><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:0"><?php foreach($agents as $ag):$r=null;foreach($reportes_hoy as $rr){if($rr['agente_id']==$ag['id']){$r=$rr;break;}};?><div style="padding:12px 15px;border-bottom:1px solid <?=$CB?>;border-right:1px solid <?=$CB?>;border-top:3px solid <?=$r&&$r['enviado']?'#1E7A5C':'#C07A1A'?>"><div style="display:flex;gap:7px;align-items:center;margin-bottom:8px"><?=av(h($ag['iniciales']),h($ag['color']),28)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h(explode(' ',$ag['nombre'])[0])?></div><?=badge($r&&$r['enviado']?'FIRMADO':'PENDIENTE',true)?></div></div><?php if($r):?><div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px"><?php foreach([['◌',($r['llamadas_prospectos']??0)+($r['llamadas_servicio']??0),'LLAM.'],['✅',$r['contestaron']??0,'CONTS.'],['◎',$r['apps_enviadas']??0,'APPS'],['◷',$r['citas_confirmadas']??0,'CITAS'],['⊘',$r['tickets_resueltos']??0,'TKT.'],['📋',$r['apps_por_hacer']??0,'X HACER']] as [$ic,$v,$lb]):?><div style="text-align:center;background:<?=$BG?>;border-radius:7px;padding:5px"><div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase"><?=$ic?> <?=$lb?></div><div style="font-size:14px;font-weight:900;color:<?=$P1?>"><?=$v?></div></div><?php endforeach;?></div><?php if(!empty($r['nota'])):?><div style="margin-top:8px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:7px;padding:7px 9px;font-size:8px;color:#7A5B12;line-height:1.5"><span style="font-size:6px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px">📝 NOTA</span><?=nl2br(h($r['nota']))?></div><?php endif;?><button onclick='openAdminRepEditData(<?=htmlspecialchars(json_encode(array_merge($r,["nombre"=>explode(" ",$ag["nombre"])[0]])), ENT_QUOTES)?>)' style="margin-top:8px;width:100%;background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:7px;padding:5px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px">✏️ EDITAR REPORTE</button><?php else:?><div style="font-size:8px;color:#B83232;font-weight:700;text-transform:uppercase">⚠ NO ENVIADO</div><?php endif;?><?php $ck=$checklist_stats[$ag['id']]??null;$ck_total=$ck['total']??0;$ck_done=(int)($ck['completadas']??0);$ck_pct=$ck_total>0?round(($ck_done/$ck_total)*100):0;?><?php if($ck_total>0):?><div style="margin-top:8px;padding-top:8px;border-top:1px solid <?=$CB?>"><div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-bottom:4px">✅ CHECKLIST <?=$ck_done?>/<?=$ck_total?> (<?=$ck_pct?>%)</div><div style="height:5px;background:<?=$CB?>;border-radius:99px;overflow:hidden"><div style="height:100%;width:<?=$ck_pct?>%;background:<?=$ck_pct==100?'#16A34A':'#2876A8'?>;border-radius:99px"></div></div></div><?php endif;?></div><?php endforeach;?></div></div><?php endif;?>
 <div class="card"><div class="card-header"><div class="card-title"> LLAMADAS PERDIDAS</div><div class="card-sub"><?=$pending_llam?> PENDIENTES</div><button class="btn btn-b btn-sm" onclick="openModal('llamada-form-modal')">+ REGISTRAR</button></div><div style="overflow-x:auto"><table><tr><th>NÚMERO</th><th>NOMBRE</th><th>FECHA</th><th>ORIGEN</th><th>EMPLEADO</th><th>ESTADO</th><th></th></tr>
 <?php foreach($llamadas as $l):?><tr><td style="font-weight:900;color:<?=$P2?>;font-size:10px"><?=h($l['numero'])?></td><td style="font-size:9px"><?=h($l['nombre_posible'])?></td><td style="font-size:8px;color:<?=$MU?>"><?=$l['fecha']?> <?=$l['hora']?substr($l['hora'],0,5):''?></td><td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($l['origen'])?></span></td><td><?=av(h($l['iniciales']??'?'),h($l['color']??$P2),20)?></td><td><?=badge($l['estado'],true)?></td><td><div style="display:flex;gap:4px"><?php if($l['estado']==='PENDIENTE'):?><button class="btn btn-gr btn-sm" onclick="devolverLlamada(<?=$l['id']?>)">✓</button><?php endif;?><button class="btn btn-bl btn-sm" onclick="searchMember('<?=addslashes($l['numero'])?>')">◉</button></div></td></tr><?php endforeach;?>
 </table></div></div>
@@ -7716,18 +7716,20 @@ function reabrirReporte(aid, nombre, fecha){
     }).catch(()=>toast('⚠ Error de conexión'));
 }
 // Admin edita directamente el reporte de un agente (abre modal prellenado)
-function openAdminRepEdit(aid, fecha){
-  const rows = window._repHistRows || [];
-  const r = rows.find(x => String(x.agente_id)===String(aid) && String(x.fecha)===String(fecha));
+function openAdminRepEditData(r){
   if(!r){ toast('⚠ No se encontró el reporte'); return; }
-  document.getElementById('are-agente').value = aid;
-  document.getElementById('are-fecha').value  = fecha;
-  document.getElementById('are-titulo').textContent = (r.nombre||'') + ' · ' + fecha;
+  document.getElementById('are-agente').value = r.agente_id;
+  document.getElementById('are-fecha').value  = r.fecha;
+  document.getElementById('are-titulo').textContent = (r.nombre||'') + ' · ' + r.fecha;
   ['llamadas_prospectos','contestaron','interesados','buzon','llamadas_servicio','citas_confirmadas','tickets_resueltos','tickets_actualizados','apps_enviadas','apps_por_hacer'].forEach(k=>{
     const el=document.getElementById('are-'+k); if(el) el.value = parseInt(r[k]||0);
   });
   document.getElementById('are-nota').value = r.nota || '';
   openModal('admin-rep-edit-modal');
+}
+function openAdminRepEdit(aid, fecha){
+  const r = (window._repHistRows||[]).find(x => String(x.agente_id)===String(aid) && String(x.fecha)===String(fecha));
+  openAdminRepEditData(r);
 }
 function submitAdminRepEdit(e){
   e.preventDefault();
@@ -7740,7 +7742,9 @@ function submitAdminRepEdit(e){
       if(d.ok){
         toast('✓ REPORTE ACTUALIZADO');
         closeModal('admin-rep-edit-modal');
-        if(typeof buscarHistorial==='function') buscarHistorial();
+        const tabla=document.getElementById('rep-hist-tabla');
+        if(typeof buscarHistorial==='function' && tabla && tabla.innerHTML.trim()){ buscarHistorial(); }
+        else if(typeof softReload==='function'){ softReload(); }
       } else toast('⚠ '+(d.error||'Error'));
       if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; }
     }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; } });
@@ -7808,10 +7812,7 @@ function buscarHistorial() {
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
                             ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:220px;text-align:right;font-style:italic" title="${r.nota}">"${r.nota}"</div>` : ''}
-                            <div style="display:flex;gap:5px">
-                              <button onclick="openAdminRepEdit(${r.agente_id}, '${r.fecha}')" style="background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">✏️ EDITAR</button>
-                              ${r.enviado==1 ? `<button onclick="reabrirReporte(${r.agente_id}, ${JSON.stringify(r.nombre||'')}, '${r.fecha}')" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">🔓 REABRIR</button>` : ''}
-                            </div>
+                            <button onclick="openAdminRepEdit(${r.agente_id}, '${r.fecha}')" style="background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">✏️ EDITAR</button>
                         </div>
                     </div>
 
