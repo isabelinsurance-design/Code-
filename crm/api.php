@@ -637,6 +637,20 @@ case 'save_reporte':
     jsonOk();
     break;
 
+// ── REABRIR REPORTE (admin) — habilita de nuevo el reporte de un agente ──
+// para reconteo (p.ej. ticket cerrado tras enviar) o para agregar notas.
+case 'reabrir_reporte':
+    if (!$admin) jsonErr('Solo admin puede reabrir reportes');
+    $aid   = intval($_POST['agente_id'] ?? 0);
+    $fecha = $_POST['fecha'] ?? date('Y-m-d');
+    if (!$aid) jsonErr('Agente requerido');
+    $pdo = db();
+    $st = $pdo->prepare("UPDATE reporte_diario SET enviado=0 WHERE agente_id=? AND fecha=?");
+    $st->execute([$aid, $fecha]);
+    if ($st->rowCount() === 0) jsonErr('No hay reporte enviado de ese agente para reabrir');
+    jsonOk();
+    break;
+
 // ── LLAMADAS ──────────────────────────────────────────────────
 case 'save_llamada':
     $pdo = db();
