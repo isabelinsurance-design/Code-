@@ -93,7 +93,6 @@ secreto de sesión seguro, el briefing ya no llama una tool que no existía,
 el bridge ya distingue "error de formato" de "vacío", el gate de compliance
 (SOA) volvió a funcionar consultando LUNA, los crons ya no mueren callados, y
 los archivos corruptos ahora avisan en el log. Detalle completo en AUDIT.md.
-</content>
 
 ---
 
