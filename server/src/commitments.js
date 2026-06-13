@@ -38,7 +38,7 @@ function newId() {
 }
 const nowIso = () => new Date().toISOString();
 
-function parseDue({ vence, vence_en_horas, vence_en_dias }) {
+export function parseDue({ vence, vence_en_horas, vence_en_dias }) {
   if (vence) {
     const d = new Date(vence);
     if (!isNaN(d.getTime())) return d.toISOString();
