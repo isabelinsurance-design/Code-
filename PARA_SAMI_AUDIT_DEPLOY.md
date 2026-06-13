@@ -20,9 +20,11 @@ Cómo confirmar que quedó: después del deploy, en los Logs de Railway debe apa
 `[persistencia] OK — data/ sobrevivió un reinicio` en el SEGUNDO arranque. Si en cada
 deploy sale `[persistencia] ⚠️ data/ parece EFÍMERO`, el volumen NO está montado bien.
 
-(Nota: hay backup horario a R2 pero NO hay restore automático todavía — así que la
-memoria perdida antes de montar el volumen no se recupera sola. Por eso el volumen es
-lo primero.)
+(Buena noticia: ahora Athena tiene RESTORE automático. Si arranca con la memoria vacía
+y hay un backup en R2 (o local), se recupera sola antes de empezar — verás
+`[restore] ✅ memoria recuperada` en los logs. El candado: solo restaura si data/ está
+vacío, nunca encima de datos vivos. Aun así, el volumen sigue siendo el paso 0: el
+restore es la red de seguridad, el volumen es lo que evita perderla de entrada.)
 
 ## 1. Desplegar el código nuevo (Sami)
 

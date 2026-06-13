@@ -555,6 +555,16 @@ const httpServer = app.listen(port, async () => {
   } catch (e) {
     console.error('[persistencia] check falló:', e.message);
   }
+  // Auto-restore: si la memoria arranca VACÍA (volumen recién montado o disco
+  // efímero) pero hay backup en R2/local, recupérala ANTES de que algo la lea.
+  // Candado: solo restaura si data/ está vacío — nunca encima de datos vivos.
+  try {
+    const { restoreIfEmpty } = await import('./backup.js');
+    const rr = await restoreIfEmpty();
+    if (rr.restored) console.log(`[restore] ✅ memoria recuperada desde ${rr.source} (${rr.file}).`);
+  } catch (e) {
+    console.error('[restore] falló:', e.message);
+  }
   // Corre migraciones de data al boot (rename pilar→luna, luna→aurora, etc).
   // Idempotente — si ya corrió, no hace nada.
   try {

@@ -15,10 +15,10 @@
 // ============================================================
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
-import { existsSync, mkdirSync, readdirSync, readFileSync, statSync, unlinkSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync, statSync, unlinkSync } from 'node:fs';
 import { basename, dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, ListObjectsV2Command, GetObjectCommand } from '@aws-sdk/client-s3';
 
 const execP = promisify(exec);
 const __dirname = dirname(fileURLToPath(import.meta.url));
@@ -64,6 +64,71 @@ export async function snapshot() {
     }
   }
   return { ok: true, file, synced };
+}
+
+// ============================================================
+//  Restore — si la memoria de Athena arranca VACÍA (volumen recién
+//  montado, o disco efímero que se borró en el deploy) pero hay un
+//  backup, lo recupera. Candado: SOLO restaura si data/ está vacío —
+//  nunca encima de datos vivos.
+// ============================================================
+
+// ¿data/ está "vacío" de estado real? El marcador de persistencia no cuenta.
+export function isDataEmpty(dir = DATA_DIR) {
+  if (!existsSync(dir)) return true;
+  const meaningful = readdirSync(dir)
+    .filter((f) => f.endsWith('.json') && f !== '.persistence_marker.json');
+  return meaningful.length === 0;
+}
+
+// De una lista de nombres/keys, devuelve el snapshot más reciente.
+// El timestamp va en el nombre (YYYYMMDD_HHMM, cero-padded) → orden léxico = cronológico.
+export function pickLatestSnapshotName(names) {
+  const snaps = (names || [])
+    .filter((n) => /snapshot_\d{8}_\d{4}\.tar\.gz$/.test((n || '').split('/').pop() || ''));
+  if (!snaps.length) return null;
+  return snaps.sort().pop();
+}
+
+function s3Configured() {
+  return Boolean(process.env.BACKUP_S3_BUCKET && process.env.BACKUP_S3_ACCESS_KEY_ID);
+}
+
+async function downloadLatestFromS3() {
+  const Bucket = process.env.BACKUP_S3_BUCKET;
+  const prefix = (process.env.BACKUP_S3_PREFIX || 'athena').replace(/\/+$/, '');
+  const list = await getS3Client().send(new ListObjectsV2Command({ Bucket, Prefix: `${prefix}/` }));
+  const latest = pickLatestSnapshotName((list.Contents || []).map((o) => o.Key));
+  if (!latest) throw new Error('sin snapshots en R2');
+  const obj = await getS3Client().send(new GetObjectCommand({ Bucket, Key: latest }));
+  const bytes = await obj.Body.transformToByteArray();
+  if (!existsSync(BACKUP_DIR)) mkdirSync(BACKUP_DIR, { recursive: true });
+  const dest = join(BACKUP_DIR, basename(latest));
+  writeFileSync(dest, Buffer.from(bytes));
+  return dest;
+}
+
+export async function restoreIfEmpty() {
+  if (!isDataEmpty()) return { restored: false, reason: 'data/ ya tiene contenido — no se toca' };
+
+  let tarPath = null;
+  let source = null;
+  // 1. R2 es la fuente durable (sobrevive aunque el disco sea efímero).
+  if (s3Configured()) {
+    try { tarPath = await downloadLatestFromS3(); source = 'r2'; }
+    catch (e) { console.warn('[restore] R2 no disponible:', e.message); }
+  }
+  // 2. Fallback: snapshot local más reciente (si el volumen de backups persistió).
+  if (!tarPath && existsSync(BACKUP_DIR)) {
+    const local = pickLatestSnapshotName(readdirSync(BACKUP_DIR));
+    if (local) { tarPath = join(BACKUP_DIR, local); source = 'local'; }
+  }
+  if (!tarPath) return { restored: false, reason: 'no hay backup disponible (ni R2 ni local)' };
+
+  // 3. Extrae dentro del padre de data/ — el tarball ya contiene "data/...".
+  if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
+  await execP(`tar xzf "${tarPath}" -C "${dirname(DATA_DIR)}"`);
+  return { restored: true, source, file: basename(tarPath) };
 }
 
 let _s3 = null;
