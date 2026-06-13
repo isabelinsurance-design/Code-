@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Estudio de Baile — Isabel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F7F3EC;--surface:#FAF8F4;--white:#FFFFFF;
+  --border:#E8E0D0;--border-d:#D4C9B5;
+  --gold:#C9A96E;--gold-lt:#F0E6D0;--gold-dk:#A07840;
+  --gold-g:linear-gradient(135deg,#C9A96E,#E8C98E 50%,#C9A96E);
+  --teal:#4A7B9D;--teal-lt:#EBF3F8;--teal-dk:#2E5F7A;
+  --red:#C0392B;--red-lt:#FDEDEB;
+  --green:#2E7D55;--green-lt:#EAF5EE;
+  --amber:#D97706;--amber-lt:#FEF3C7;
+  --purple:#7B5EA7;--purple-lt:#F0EBF8;
+  --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
+  --tag:#F5EFE3;
+  --sh:0 1px 10px rgba(44,36,22,.07);--sh2:0 4px 24px rgba(44,36,22,.12);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:var(--border-d);border-radius:3px}
+
+.header{
+  background:var(--white);border-bottom:1.5px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;gap:14px;flex-wrap:wrap;
+  position:sticky;top:0;z-index:100;box-shadow:var(--sh);
+}
+.logo-icon{
+  width:42px;height:42px;border-radius:11px;background:var(--gold-g);
+  display:flex;align-items:center;justify-content:center;font-size:21px;
+  box-shadow:0 2px 8px rgba(201,169,110,.35);flex-shrink:0;
+}
+.htitle{font-family:'Fraunces',serif;font-size:20px;line-height:1.1}
+.htitle em{font-style:italic;color:var(--gold-dk)}
+.hsub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.2em;text-transform:uppercase;color:var(--text-muted);margin-top:3px}
+.hspacer{flex:1}
+.tv-btn{
+  border:none;cursor:pointer;font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;
+  background:var(--teal);color:#fff;padding:10px 16px;border-radius:10px;
+  display:flex;align-items:center;gap:7px;
+}
+.tv-btn:hover{background:var(--teal-dk)}
+
+.stats{display:flex;gap:10px;padding:16px 20px 0;flex-wrap:wrap}
+.stat{
+  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
+  padding:12px 18px;min-width:130px;flex:1;max-width:220px;box-shadow:var(--sh);
+}
+.stat .num{font-family:'Fraunces',serif;font-size:26px;color:var(--gold-dk)}
+.stat .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
+
+.filters{display:flex;gap:8px;padding:16px 20px 4px;flex-wrap:wrap;align-items:center}
+.chip{
+  border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;
+  padding:8px 15px;border-radius:99px;cursor:pointer;
+}
+.chip.active{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.add-btn{
+  margin-left:auto;border:1.5px dashed var(--gold-dk);background:var(--gold-lt);color:var(--gold-dk);
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;padding:8px 15px;border-radius:99px;cursor:pointer;
+}
+
+.grid{
+  display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
+  gap:16px;padding:16px 20px 40px;
+}
+.card{
+  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
+  overflow:hidden;cursor:pointer;box-shadow:var(--sh);transition:transform .15s,box-shadow .15s;
+  position:relative;
+}
+.card:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
+.card .thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--tag)}
+.card .body{padding:12px 14px 14px}
+.card .title{font-weight:600;font-size:14px;line-height:1.35;margin-bottom:8px}
+.card .meta{display:flex;gap:6px;flex-wrap:wrap}
+.badge{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.05em;padding:3px 8px;border-radius:6px;text-transform:uppercase}
+.b-style{background:var(--purple-lt);color:var(--purple)}
+.b-facil{background:var(--green-lt);color:var(--green)}
+.b-medio{background:var(--amber-lt);color:var(--amber)}
+.b-reto{background:var(--red-lt);color:var(--red)}
+.b-mia{background:var(--teal-lt);color:var(--teal-dk)}
+.card .status-dot{
+  position:absolute;top:10px;left:10px;font-size:18px;
+  background:rgba(255,255,255,.92);border-radius:99px;padding:4px 9px;
+  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;box-shadow:var(--sh);
+}
+.card .del{
+  position:absolute;top:10px;right:10px;border:none;cursor:pointer;
+  background:rgba(255,255,255,.92);border-radius:99px;width:30px;height:30px;font-size:14px;
+  color:var(--red);box-shadow:var(--sh);display:none;
+}
+.card.mine .del{display:block}
+.empty{padding:40px 20px;text-align:center;color:var(--text-muted);grid-column:1/-1;font-size:14px}
+
+/* ─── PLAYER VIEW ─── */
+.player-view{display:none;padding:16px 20px 40px;max-width:1100px;margin:0 auto}
+.player-view.active{display:block}
+.grid-view.hidden,.stats.hidden,.filters.hidden{display:none}
+.back-btn{
+  border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  padding:9px 16px;border-radius:10px;cursor:pointer;margin-bottom:14px;
+}
+.player-title{font-family:'Fraunces',serif;font-size:22px;margin-bottom:12px}
+.stage{
+  position:relative;background:#000;border-radius:14px;overflow:hidden;
+  box-shadow:var(--sh2);
+}
+.stage .frame-wrap{position:relative;width:100%;aspect-ratio:16/9}
+.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.stage.mirrored .frame-wrap{transform:scaleX(-1)}
+.mirror-flag{
+  position:absolute;top:12px;left:12px;z-index:5;display:none;
+  background:var(--purple);color:#fff;font-weight:700;font-size:12px;
+  padding:5px 12px;border-radius:99px;box-shadow:var(--sh2);
+}
+.stage.mirrored .mirror-flag{display:block}
+
+.controls{
+  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
+  margin-top:14px;padding:16px;box-shadow:var(--sh);
+}
+.ctl-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.ctl-row + .ctl-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.ctl-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);width:100%;margin-bottom:2px}
+.cbtn{
+  border:1.5px solid var(--border-d);background:var(--surface);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
+  padding:11px 16px;border-radius:10px;cursor:pointer;min-width:54px;
+}
+.cbtn:active{transform:scale(.96)}
+.cbtn.primary{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15);font-size:15px;padding:11px 22px}
+.cbtn.on{background:var(--purple);border-color:var(--purple);color:#fff}
+.cbtn.loop-on{background:var(--teal);border-color:var(--teal);color:#fff}
+.loop-info{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted)}
+
+.progress-box{
+  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
+  margin-top:14px;padding:16px;box-shadow:var(--sh);
+  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+}
+.pstate{
+  border:1.5px solid var(--border-d);background:var(--surface);color:var(--text-mid);
+  font-weight:600;font-size:13px;padding:9px 15px;border-radius:99px;cursor:pointer;
+  font-family:'DM Sans',sans-serif;
+}
+.pstate.sel-practicando{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
+.pstate.sel-dominada{background:var(--green-lt);border-color:var(--green);color:var(--green)}
+.practice-count{font-size:13px;color:var(--text-muted);margin-left:auto}
+
+/* ─── MODALS ─── */
+.overlay{
+  position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:500;
+  display:none;align-items:center;justify-content:center;padding:20px;
+}
+.overlay.open{display:flex}
+.modal{
+  background:var(--white);border-radius:16px;max-width:520px;width:100%;
+  max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--sh2);
+}
+.modal h2{font-family:'Fraunces',serif;font-size:20px;margin-bottom:4px}
+.modal .msub{font-size:13px;color:var(--text-muted);margin-bottom:16px}
+.modal label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin:14px 0 5px}
+.modal input,.modal select{
+  width:100%;border:1.5px solid var(--border-d);border-radius:10px;padding:11px 13px;
+  font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);
+}
+.modal input:focus,.modal select:focus{outline:none;border-color:var(--gold-dk)}
+.modal .mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
+.tv-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
+.tv-step .ico{font-size:22px;flex-shrink:0;width:34px;text-align:center}
+.tv-step b{display:block;font-size:14px;margin-bottom:2px}
+.tv-step p{font-size:13px;color:var(--text-mid);line-height:1.5}
+.tv-tip{background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text-mid);line-height:1.5;margin-top:6px}
+
+@media(max-width:560px){
+  .stats{gap:8px}.stat{min-width:100px;padding:10px 12px}.stat .num{font-size:21px}
+  .cbtn{flex:1}
+}
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="logo-icon">💃</div>
+  <div>
+    <div class="htitle">Estudio de <em>Baile</em></div>
+    <div class="hsub">Coreografías · Práctica · Tu Ritmo</div>
+  </div>
+  <div class="hspacer"></div>
+  <button class="tv-btn" onclick="openModal('tvModal')">📺 Ver en la TV</button>
+</header>
+
+<section class="stats" id="statsBar">
+  <div class="stat"><div class="num" id="stTotal">0</div><div class="lbl">Coreografías</div></div>
+  <div class="stat"><div class="num" id="stDominadas">0</div><div class="lbl">Dominadas</div></div>
+  <div class="stat"><div class="num" id="stSesiones">0</div><div class="lbl">Prácticas</div></div>
+  <div class="stat"><div class="num" id="stRacha">0</div><div class="lbl">Días de racha</div></div>
+</section>
+
+<section class="filters" id="filterBar">
+  <button class="chip active" data-f="all" onclick="setFilter('all',this)">Todas</button>
+  <button class="chip" data-f="Salsa" onclick="setFilter('Salsa',this)">Salsa</button>
+  <button class="chip" data-f="Bachata" onclick="setFilter('Bachata',this)">Bachata</button>
+  <button class="chip" data-f="Merengue" onclick="setFilter('Merengue',this)">Merengue</button>
+  <button class="chip" data-f="Cumbia" onclick="setFilter('Cumbia',this)">Cumbia</button>
+  <button class="chip" data-f="Hip-Hop" onclick="setFilter('Hip-Hop',this)">Hip-Hop</button>
+  <button class="chip" data-f="Fiesta" onclick="setFilter('Fiesta',this)">Fiesta / Línea</button>
+  <button class="add-btn" onclick="openModal('addModal')">＋ Agregar video</button>
+</section>
+
+<main class="grid grid-view" id="grid"></main>
+
+<!-- ─── PLAYER ─── -->
+<section class="player-view" id="playerView">
+  <button class="back-btn" onclick="closePlayer()">← Volver a la biblioteca</button>
+  <h1 class="player-title" id="pTitle"></h1>
+  <div class="stage" id="stage">
+    <div class="mirror-flag">🪞 Modo Espejo</div>
+    <div class="frame-wrap"><div id="ytPlayer"></div></div>
+  </div>
+
+  <div class="controls">
+    <div class="ctl-row">
+      <button class="cbtn primary" id="btnPlay" onclick="togglePlay()">▶ Reproducir</button>
+      <button class="cbtn" onclick="seekRel(-10)">↺ 10s</button>
+      <button class="cbtn" onclick="seekRel(10)">10s ↻</button>
+      <button class="cbtn" onclick="restart()">⏮ Inicio</button>
+      <button class="cbtn" onclick="goFullscreen()">⛶ Pantalla completa</button>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Velocidad — ponla lenta mientras aprendes los pasos</span>
+      <button class="cbtn spd" data-s="0.5" onclick="setSpeed(0.5,this)">0.5×</button>
+      <button class="cbtn spd" data-s="0.75" onclick="setSpeed(0.75,this)">0.75×</button>
+      <button class="cbtn spd on" data-s="1" onclick="setSpeed(1,this)">1×</button>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Repetir sección — marca el inicio y el fin del paso que estás practicando</span>
+      <button class="cbtn" id="btnA" onclick="setPointA()">🅰 Marcar inicio</button>
+      <button class="cbtn" id="btnB" onclick="setPointB()">🅱 Marcar fin</button>
+      <button class="cbtn" id="btnLoop" onclick="toggleLoop()">🔁 Repetir</button>
+      <span class="loop-info" id="loopInfo">Sin sección marcada</span>
+    </div>
+    <div class="ctl-row">
+      <span class="ctl-label">Modo espejo — voltea el video para que su derecha sea tu derecha, como en un espejo</span>
+      <button class="cbtn" id="btnMirror" onclick="toggleMirror()">🪞 Activar espejo</button>
+    </div>
+  </div>
+
+  <div class="progress-box">
+    <span style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid)">Mi progreso:</span>
+    <button class="pstate" id="psPracticando" onclick="setProgress('practicando')">🔥 Practicando</button>
+    <button class="pstate" id="psDominada" onclick="setProgress('dominada')">⭐ ¡Dominada!</button>
+    <span class="practice-count" id="practiceCount"></span>
+  </div>
+</section>
+
+<!-- ─── ADD VIDEO MODAL ─── -->
+<div class="overlay" id="addModal" onclick="if(event.target===this)closeModal('addModal')">
+  <div class="modal">
+    <h2>Agregar una coreografía</h2>
+    <div class="msub">Pega el enlace de cualquier video de YouTube que quieras aprender.</div>
+    <label>Enlace de YouTube</label>
+    <input id="addUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."/>
+    <label>Nombre</label>
+    <input id="addTitle" type="text" placeholder="Ej. Coreografía de cumbia para la boda"/>
+    <label>Estilo</label>
+    <select id="addStyle">
+      <option>Salsa</option><option>Bachata</option><option>Merengue</option>
+      <option>Cumbia</option><option>Hip-Hop</option><option>Fiesta</option>
+    </select>
+    <label>Nivel</label>
+    <select id="addLevel">
+      <option value="facil">Fácil</option>
+      <option value="medio">Medio</option>
+      <option value="reto">Reto</option>
+    </select>
+    <div class="mrow">
+      <button class="cbtn" onclick="closeModal('addModal')">Cancelar</button>
+      <button class="cbtn primary" onclick="addVideo()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ─── TV MODAL ─── -->
+<div class="overlay" id="tvModal" onclick="if(event.target===this)closeModal('tvModal')">
+  <div class="modal">
+    <h2>📺 Cómo verlo en tu TV</h2>
+    <div class="msub">Para bailar con espacio, manda la pantalla de tu teléfono a la televisión.</div>
+    <div class="tv-step"><div class="ico">🍎</div><div>
+      <b>iPhone / iPad (AirPlay)</b>
+      <p>Desliza desde la esquina superior derecha para abrir el Centro de Control, toca <b>Duplicar pantalla</b> y elige tu Apple TV o TV compatible con AirPlay.</p>
+    </div></div>
+    <div class="tv-step"><div class="ico">🤖</div><div>
+      <b>Android (Smart View / Transmitir)</b>
+      <p>Desliza hacia abajo para abrir los ajustes rápidos y toca <b>Smart View</b> (Samsung) o <b>Transmitir pantalla</b>, luego elige tu TV o Chromecast.</p>
+    </div></div>
+    <div class="tv-step"><div class="ico">🌐</div><div>
+      <b>Navegador de la Smart TV</b>
+      <p>Si tu TV tiene navegador de internet, abre esta misma página directamente en la TV y controla todo con el control remoto.</p>
+    </div></div>
+    <div class="tv-tip">💡 <b>Tip:</b> activa el <b>Modo Espejo</b> 🪞 y baja la velocidad a <b>0.5×</b> las primeras veces. Cuando te salga el paso, sube poco a poco hasta 1×.</div>
+    <div class="mrow">
+      <button class="cbtn primary" onclick="closeModal('tvModal')">¡Entendido!</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ─── BIBLIOTECA BASE (videos reales de YouTube con instructores) ───
+const SEED = [
+  // Salsa
+  {id:'wV8cDpJa2f4', title:'Salsa — Paso básico desde cero (muy detallado)', style:'Salsa', level:'facil'},
+  {id:'7XgmAPCX85A', title:'Salsa — Pasos básicos para principiantes', style:'Salsa', level:'facil'},
+  {id:'jpIJMKjxkQ0', title:'Salsa — Básicos y vueltas (sin pareja)', style:'Salsa', level:'medio'},
+  {id:'C4MAFLeWY7c', title:'Salsa — Guía completa: 2 pasos y cómo combinarlos', style:'Salsa', level:'medio'},
+  // Bachata
+  {id:'SWrsMw0Da7Q', title:'Bachata — Pasos básicos para principiantes', style:'Bachata', level:'facil'},
+  {id:'xhrdh-uFkog', title:'Bachata — Básicos con Demetrio y Nicole', style:'Bachata', level:'facil'},
+  {id:'QmWRe4GRH8k', title:'Bachata — Clase de paso básico', style:'Bachata', level:'facil'},
+  {id:'npA-foACPJ0', title:'Bachata — 15 movimientos básicos', style:'Bachata', level:'medio'},
+  // Merengue
+  {id:'BZ4dlwtFJZM', title:'Merengue — 5 pasos sencillos que cualquiera puede hacer', style:'Merengue', level:'facil'},
+  {id:'7nEOMuWrj2Y', title:'Merengue — Patrones básicos 1 al 3', style:'Merengue', level:'facil'},
+  {id:'fd2mO_eF34k', title:'Merengue — 3 vueltas básicas paso a paso', style:'Merengue', level:'medio'},
+  {id:'Tei3iLluPHE', title:'Merengue — Coreografía fácil para fiestas y bodas', style:'Merengue', level:'medio'},
+  // Cumbia
+  {id:'fjnJpezcw9c', title:'Cumbia — Pasos básicos', style:'Cumbia', level:'facil'},
+  {id:'zVi2p5aXsEk', title:'Cumbia mexicana — Aprende en minutos (3 pasos fáciles)', style:'Cumbia', level:'facil'},
+  {id:'6ncfaU4RiSQ', title:'Cumbia — Tutorial para empezar hoy mismo', style:'Cumbia', level:'medio'},
+  {id:'l5SjNK-Gi_4', title:'Cumbia — 5 formas de mejorar al instante', style:'Cumbia', level:'medio'},
+  // Hip-Hop
+  {id:'DEWpw4n8Lkw', title:'Hip-Hop — 5 movimientos fáciles para principiantes', style:'Hip-Hop', level:'facil'},
+  {id:'Z3Z6Qii-g2Y', title:'Hip-Hop — 5 pasos básicos', style:'Hip-Hop', level:'facil'},
+  {id:'1sD51hC0yRg', title:'Hip-Hop — Coreografía paso a paso', style:'Hip-Hop', level:'medio'},
+  {id:'1WIA6Yvj8Yg', title:'Hip-Hop — Clase completa de coreografía en casa', style:'Hip-Hop', level:'reto'},
+  // Fiesta / Línea
+  {id:'G8OaCz-l9MM', title:'Payaso de Rodeo — Tutorial paso a paso (¡muy fácil!)', style:'Fiesta', level:'facil'},
+  {id:'vel13ZENYPA', title:'Payaso de Rodeo — Desde cero', style:'Fiesta', level:'facil'},
+  {id:'6Y2iExJY14A', title:'Payaso de Rodeo — En pareja (abrazados)', style:'Fiesta', level:'medio'},
+];
+
+const LS_VIDEOS='isabel_dance_videos', LS_PROGRESS='isabel_dance_progress', LS_DAYS='isabel_dance_days';
+const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(_){return d}};
+const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}};
+
+let myVideos=load(LS_VIDEOS,[]);          // [{id,title,style,level,mine:true}]
+let progress=load(LS_PROGRESS,{});        // {videoId:{state:'practicando'|'dominada', count:N}}
+let practiceDays=load(LS_DAYS,[]);        // ['2026-06-13',...]
+let filter='all', current=null;
+
+const LEVEL_LABEL={facil:'Fácil',medio:'Medio',reto:'Reto'};
+const allVideos=()=>SEED.concat(myVideos);
+
+// ─── GRID ───
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  const list=allVideos().filter(v=>filter==='all'||v.style===filter);
+  if(!list.length){grid.innerHTML='<div class="empty">No hay videos en esta categoría todavía. ¡Agrega uno con el botón ＋!</div>';return;}
+  grid.innerHTML=list.map(v=>{
+    const p=progress[v.id]||{};
+    const dot=p.state==='dominada'?'⭐ Dominada':p.state==='practicando'?'🔥 Practicando':'';
+    return `<div class="card${v.mine?' mine':''}" onclick="openPlayer('${v.id}')">
+      <img class="thumb" loading="lazy" src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""/>
+      ${dot?`<span class="status-dot">${dot}</span>`:''}
+      ${v.mine?`<button class="del" onclick="event.stopPropagation();removeVideo('${v.id}')">✕</button>`:''}
+      <div class="body">
+        <div class="title">${v.title}</div>
+        <div class="meta">
+          <span class="badge b-style">${v.style}</span>
+          <span class="badge b-${v.level}">${LEVEL_LABEL[v.level]||v.level}</span>
+          ${v.mine?'<span class="badge b-mia">Mío</span>':''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  renderStats();
+}
+function setFilter(f,btn){
+  filter=f;
+  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===btn));
+  renderGrid();
+}
+function renderStats(){
+  const vids=allVideos();
+  document.getElementById('stTotal').textContent=vids.length;
+  document.getElementById('stDominadas').textContent=vids.filter(v=>(progress[v.id]||{}).state==='dominada').length;
+  document.getElementById('stSesiones').textContent=Object.values(progress).reduce((a,p)=>a+(p.count||0),0);
+  document.getElementById('stRacha').textContent=streak();
+}
+function streak(){
+  const set=new Set(practiceDays);
+  let n=0, d=new Date();
+  if(!set.has(dayKey(d))) d.setDate(d.getDate()-1); // la racha sigue viva si bailaste ayer
+  while(set.has(dayKey(d))){n++;d.setDate(d.getDate()-1);}
+  return n;
+}
+const dayKey=d=>d.toISOString().slice(0,10);
+
+// ─── MIS VIDEOS ───
+function parseYouTubeId(url){
+  const m=url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
+  return m?m[1]:null;
+}
+function addVideo(){
+  const url=document.getElementById('addUrl').value.trim();
+  const title=document.getElementById('addTitle').value.trim();
+  const id=parseYouTubeId(url);
+  if(!id){alert('No pude leer ese enlace. Copia el enlace del video de YouTube e inténtalo de nuevo.');return;}
+  if(allVideos().some(v=>v.id===id)){alert('Ese video ya está en tu biblioteca.');return;}
+  myVideos.push({
+    id, title:title||'Mi coreografía',
+    style:document.getElementById('addStyle').value,
+    level:document.getElementById('addLevel').value,
+    mine:true
+  });
+  save(LS_VIDEOS,myVideos);
+  document.getElementById('addUrl').value='';
+  document.getElementById('addTitle').value='';
+  closeModal('addModal');
+  renderGrid();
+}
+function removeVideo(id){
+  if(!confirm('¿Quitar este video de tu biblioteca?'))return;
+  myVideos=myVideos.filter(v=>v.id!==id);
+  save(LS_VIDEOS,myVideos);
+  renderGrid();
+}
+
+// ─── PLAYER (YouTube IFrame API) ───
+let yt=null, ytReady=false, pointA=null, pointB=null, looping=false, loopTimer=null, sessionCounted=false;
+const tag=document.createElement('script');
+tag.src='https://www.youtube.com/iframe_api';
+document.head.appendChild(tag);
+function onYouTubeIframeAPIReady(){ytReady=true;}
+
+function openPlayer(id){
+  current=allVideos().find(v=>v.id===id);
+  if(!current)return;
+  pointA=pointB=null;looping=false;sessionCounted=false;
+  clearInterval(loopTimer);
+  document.getElementById('pTitle').textContent=current.title;
+  document.getElementById('grid').classList.add('hidden');
+  document.getElementById('statsBar').classList.add('hidden');
+  document.getElementById('filterBar').classList.add('hidden');
+  document.getElementById('playerView').classList.add('active');
+  document.getElementById('stage').classList.remove('mirrored');
+  document.getElementById('btnMirror').classList.remove('on');
+  document.getElementById('btnMirror').textContent='🪞 Activar espejo';
+  updateLoopUI();updateProgressUI();
+  document.querySelectorAll('.spd').forEach(b=>b.classList.toggle('on',b.dataset.s==='1'));
+  window.scrollTo({top:0});
+
+  const make=()=>{
+    if(yt){yt.loadVideoById(id);yt.setPlaybackRate(1);return;}
+    yt=new YT.Player('ytPlayer',{
+      videoId:id,
+      playerVars:{rel:0,modestbranding:1,playsinline:1},
+      events:{
+        onStateChange:e=>{
+          const btn=document.getElementById('btnPlay');
+          if(e.data===YT.PlayerState.PLAYING){
+            btn.textContent='⏸ Pausa';
+            countSession();
+          } else {
+            btn.textContent='▶ Reproducir';
+          }
+        }
+      }
+    });
+  };
+  if(ytReady)make();
+  else{const w=setInterval(()=>{if(ytReady){clearInterval(w);make();}},150);}
+}
+function closePlayer(){
+  if(yt&&yt.pauseVideo)try{yt.pauseVideo()}catch(_){}
+  clearInterval(loopTimer);looping=false;
+  document.getElementById('playerView').classList.remove('active');
+  document.getElementById('grid').classList.remove('hidden');
+  document.getElementById('statsBar').classList.remove('hidden');
+  document.getElementById('filterBar').classList.remove('hidden');
+  renderGrid();
+}
+function togglePlay(){
+  if(!yt)return;
+  const s=yt.getPlayerState();
+  s===1?yt.pauseVideo():yt.playVideo();
+}
+function seekRel(sec){if(yt)yt.seekTo(Math.max(0,yt.getCurrentTime()+sec),true);}
+function restart(){if(yt){yt.seekTo(pointA!=null&&looping?pointA:0,true);yt.playVideo();}}
+function setSpeed(s,btn){
+  if(yt)yt.setPlaybackRate(s);
+  document.querySelectorAll('.spd').forEach(b=>b.classList.toggle('on',b===btn));
+}
+function goFullscreen(){
+  const el=document.getElementById('stage');
+  if(document.fullscreenElement){document.exitFullscreen();return;}
+  (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
+}
+
+// A-B loop
+function setPointA(){
+  if(!yt)return;
+  pointA=yt.getCurrentTime();
+  if(pointB!=null&&pointB<=pointA)pointB=null;
+  updateLoopUI();
+}
+function setPointB(){
+  if(!yt)return;
+  const t=yt.getCurrentTime();
+  if(pointA==null||t<=pointA){alert('Primero marca el inicio 🅰 y deja correr el video hasta donde termina el paso.');return;}
+  pointB=t;updateLoopUI();
+}
+function toggleLoop(){
+  if(pointA==null||pointB==null){alert('Marca el inicio 🅰 y el fin 🅱 de la sección que quieres repetir.');return;}
+  looping=!looping;
+  clearInterval(loopTimer);
+  if(looping){
+    yt.seekTo(pointA,true);yt.playVideo();
+    loopTimer=setInterval(()=>{
+      if(yt&&yt.getCurrentTime&&yt.getCurrentTime()>=pointB)yt.seekTo(pointA,true);
+    },250);
+  }
+  updateLoopUI();
+}
+const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
+function updateLoopUI(){
+  document.getElementById('btnA').textContent=pointA!=null?`🅰 ${fmt(pointA)}`:'🅰 Marcar inicio';
+  document.getElementById('btnB').textContent=pointB!=null?`🅱 ${fmt(pointB)}`:'🅱 Marcar fin';
+  const lb=document.getElementById('btnLoop');
+  lb.classList.toggle('loop-on',looping);
+  lb.textContent=looping?'🔁 Repitiendo…':'🔁 Repetir';
+  document.getElementById('loopInfo').textContent=
+    pointA!=null&&pointB!=null?`Sección: ${fmt(pointA)} → ${fmt(pointB)}`:
+    pointA!=null?'Ahora marca el fin 🅱':'Sin sección marcada';
+}
+
+// Mirror
+function toggleMirror(){
+  const st=document.getElementById('stage'),btn=document.getElementById('btnMirror');
+  st.classList.toggle('mirrored');
+  const on=st.classList.contains('mirrored');
+  btn.classList.toggle('on',on);
+  btn.textContent=on?'🪞 Quitar espejo':'🪞 Activar espejo';
+}
+
+// ─── PROGRESO ───
+function countSession(){
+  if(sessionCounted||!current)return;
+  sessionCounted=true;
+  const p=progress[current.id]||(progress[current.id]={count:0});
+  p.count=(p.count||0)+1;
+  const today=dayKey(new Date());
+  if(!practiceDays.includes(today))practiceDays.push(today);
+  save(LS_PROGRESS,progress);save(LS_DAYS,practiceDays);
+  updateProgressUI();
+}
+function setProgress(state){
+  if(!current)return;
+  const p=progress[current.id]||(progress[current.id]={count:0});
+  p.state=p.state===state?null:state; // tocar de nuevo lo desmarca
+  save(LS_PROGRESS,progress);
+  updateProgressUI();
+}
+function updateProgressUI(){
+  if(!current)return;
+  const p=progress[current.id]||{};
+  document.getElementById('psPracticando').classList.toggle('sel-practicando',p.state==='practicando');
+  document.getElementById('psDominada').classList.toggle('sel-dominada',p.state==='dominada');
+  document.getElementById('practiceCount').textContent=
+    p.count?`Has practicado esta coreografía ${p.count} ${p.count===1?'vez':'veces'} 💪`:'';
+}
+
+// ─── MODALS ───
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+
+renderGrid();
+</script>
+</body>
+</html>
