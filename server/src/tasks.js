@@ -50,7 +50,7 @@ function nowIso() {
 
 // Acepta ISO, o un offset en días/horas desde ahora. Devuelve ISO o null.
 // vence_en_dias defaultea a 9am en la TZ de Isabel (no UTC).
-function parseDueDate({ vence, vence_en_horas, vence_en_dias }) {
+export function parseDueDate({ vence, vence_en_horas, vence_en_dias }) {
   if (vence) {
     const d = new Date(vence);
     if (!isNaN(d.getTime())) return d.toISOString();
@@ -64,7 +64,7 @@ function parseDueDate({ vence, vence_en_horas, vence_en_dias }) {
   return null;
 }
 
-function nineAmLocalInDays(days) {
+export function nineAmLocalInDays(days) {
   const tz = process.env.TIMEZONE || 'America/Los_Angeles';
   // 1) Tomamos "hoy" expresado en la TZ destino.
   const todayInTz = new Intl.DateTimeFormat('en-CA', {
