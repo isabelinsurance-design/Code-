@@ -23,7 +23,7 @@ import { todayAppointments, hotLeads, pendingSoa, lunaConfigured } from './luna_
 // probamos varios. Si NINGÚN item trae agente, el resumen es del
 // equipo completo (igual para todos) y el DIAG lo avisa.
 const AGENT_FIELDS = ['asignado_a', 'agente_id', 'agente', 'user_id', 'asignado', 'asesor_id'];
-function agentIdOf(item) {
+export function agentIdOf(item) {
   for (const f of AGENT_FIELDS) {
     if (item && item[f] != null && item[f] !== '') return Number(item[f]);
   }
@@ -32,7 +32,7 @@ function agentIdOf(item) {
 function listHasAgentField(list) {
   return Array.isArray(list) && list.some((it) => agentIdOf(it) != null);
 }
-function forPerson(list, personId, agentMode) {
+export function forPerson(list, personId, agentMode) {
   if (!Array.isArray(list)) return [];
   if (!agentMode) return list; // LUNA no trae agente → resumen del equipo
   return list.filter((it) => agentIdOf(it) === personId);
@@ -77,13 +77,13 @@ function fechaEspanol() {
 }
 
 // Hora legible de una cita (LUNA puede mandar fecha_hora ISO o hora suelta)
-function horaCita(c) {
+export function horaCita(c) {
   const raw = c.fecha_hora || c.hora || c.fecha || '';
   if (/\d{4}-\d{2}-\d{2}T/.test(raw)) return raw.slice(11, 16);
   if (/^\d{2}:\d{2}/.test(raw)) return raw.slice(0, 5);
   return '';
 }
-function nombreCliente(x) {
+export function nombreCliente(x) {
   return (
     x.miembro_nombre ||
     [x.nombre, x.apellido].filter(Boolean).join(' ').trim() ||
@@ -93,7 +93,7 @@ function nombreCliente(x) {
 
 // Compone "cómo se ve tu día" para UNA persona, a partir del CRM real.
 // citas = citas de hoy · leads = seguimientos pendientes · soas = compliance
-function daySummary({ citas, leads, soas, nombre }) {
+export function daySummary({ citas, leads, soas, nombre }) {
   const nCitas = citas.length;
   const nLeads = leads.length;
   const nSoas = soas.length;
