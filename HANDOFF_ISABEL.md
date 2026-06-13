@@ -44,6 +44,27 @@ preguntar. Hecho = commit + push sin preguntar. Filosofía: máx 3 prioridades/d
   Tonal mar/vie. Calendarios en su cuenta: principal, "ISABEL APPOINTMENTS MEDICARE" (trabajo,
   lo usa el equipo), Family. Falta crear un "super calendario" dedicado a Athena.
 
+## Auditoría + endurecimiento (13 jun 2026)
+
+Se auditó todo el codebase → AUDIT.md (severidad + esfuerzo + lista P0-P3). Hecho hoy
+(pusheado, último commit 066b2f1; FALTA que Sami despliegue — ver PARA_SAMI_AUDIT_DEPLOY.md):
+- P0: escritura atómica de los JSON (storage.js — ya no se truncan en un crash); secreto de
+  sesión seguro (api.js ya no usa la constante 'dev-only'); quitado `gaps_overview` del briefing
+  (tool que no existía).
+- P1: el bridge ya distingue "forma rara" de "vacío" (luna_shape.js); el gate de SOA consulta
+  LUNA cuando el CRM local está vacío; crons en async/try-catch; lecturas corruptas avisan.
+- P2: red de seguridad → `npm test` (8 pruebas, node:test, 0 deps) que blindan la escritura
+  atómica y la regresión del bug de forma de LUNA; rate-limit en /api/login; timeout en
+  /api/transcribe; SSN redactado en logs; .env.example corregido.
+- NO tocado a propósito (riesgo de producción, coordinar con sesión LUNA): forzar firma de voz
+  Twilio, single-header LUNA. Y web-push NO se quitó (sí se usa en push.js — el audit erró).
+
+**Próxima fase — cimientos (de "segura" a "sólida"), con calma y con los tests de respaldo:**
+- Partir el god file tools.js (3,579 líneas) en módulos por dominio.
+- Cambiar los JSON de data/ por una base de datos real (el patrón archivo-como-DB es el techo).
+- Refrescar CLAUDE.md (dice 17 coaches/10 crons; hay ~21/33).
+- Ampliar la red de seguridad: más pruebas conforme se toque cada módulo.
+
 ## Pendientes abiertos (los reales)
 
 1. ANTHROPIC SIN SALDO (bloqueador #1, probable): Athena decía "tuve un problema técnico".
