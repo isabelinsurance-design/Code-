@@ -94,3 +94,34 @@ el bridge ya distingue "error de formato" de "vacío", el gate de compliance
 (SOA) volvió a funcionar consultando LUNA, los crons ya no mueren callados, y
 los archivos corruptos ahora avisan en el log. Detalle completo en AUDIT.md.
 </content>
+
+---
+
+## ✅ ACTUALIZACIÓN FINAL (13 jun 2026) — checklist limpio para Sami
+
+Todo el código está listo y pusheado a `claude/sleepy-darwin-P4k2z` (54 pruebas en verde + CI).
+Sami: estos pasos, EN ESTE ORDEN.
+
+1. **Desplegar** — Railway → Athena → Deployments. Confirma que el último deploy sea de hoy;
+   si no, Redeploy desde `claude/sleepy-darwin-P4k2z`. Revisa Logs: arranca sin crash.
+
+2. **EL VOLUMEN (lo más importante — por esto Athena olvidaba todo)** — Railway → Volumes.
+   Debe haber un volumen montado EXACTAMENTE en `/app/server/data` (y otro en `/app/server/backups`),
+   1 GB c/u. Si no están, créalos y redeploy. En el 2º arranque, los Logs deben decir
+   `[persistencia] OK`. Si dicen `[persistencia] ⚠️ EFÍMERO`, el volumen quedó mal.
+
+3. **Variables (Railway → Variables):**
+   - `APP_SECRET` = texto largo al azar (`openssl rand -hex 32`).
+   - `LUNA_API_KEY` = ROTAR: nueva de 64 hex, misma en Railway y en Bluehost `luna_config.php`
+     (`LUNA_SERVICE_KEY`). Verifica en `withisabelfuentes.com/luna/luna_diag.php` → conecta: true.
+   - `SAMI_ON_LEAVE_UNTIL` = fecha de regreso de Sami (ej. `2026-07-13`). Pausa sus emails/tareas
+     mientras se recupera; se reactiva sola.
+
+4. **Verificar en Logs:** `[config]` (qué está configurado), `[persistencia] OK`, y el email de
+   equipo de las 6am ya NO dice "tickets" (dice citas/seguimientos/SOAs).
+
+5. **(LADO LUNA, no Athena — Bluehost/MySQL):** Skarleth (agente id 7) salió del equipo. Hay que
+   reasignar sus clientes/trabajo en LUNA a otro agente, o quedan huérfanos (riesgo de retención).
+
+**(ISABEL, no Sami):** recargar Anthropic en console.anthropic.com → Billing. Sin saldo Athena
+no contesta nada conversacional.
