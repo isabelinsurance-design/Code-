@@ -120,15 +120,20 @@ export function upsertEntity({ canonical_name, type = 'other', alias = null, not
   return e;
 }
 
-export function findEntity(query) {
-  const rows = load();
+// Matching puro (testeable): dado un set de entidades y una búsqueda,
+// devuelve las que coinciden por nombre canónico o alias, ignorando
+// acentos/mayúsculas/puntuación. Es el corazón de "¿quién es Alan?".
+export function matchEntities(rows, query) {
   const n = norm(query);
   if (!n) return [];
-  const matches = rows.filter((e) =>
+  return (rows || []).filter((e) =>
     norm(e.canonical_name).includes(n) ||
     (e.aliases || []).some((a) => norm(a).includes(n)),
   );
-  return matches;
+}
+
+export function findEntity(query) {
+  return matchEntities(load(), query);
 }
 
 export function getEntity(id) {
