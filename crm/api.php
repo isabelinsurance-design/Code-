@@ -165,6 +165,23 @@ case 'delete_recordatorio':
     jsonOk();
     break;
 
+// ── SALARIO / HORAS DE NÓMINA (admin) ─────────────────────────
+case 'save_salario':
+    if (!$admin) jsonErr('Solo admin puede configurar salarios');
+    $aid = intval($_POST['agente_id'] ?? 0);
+    if (!$aid) jsonErr('Empleado requerido');
+    $pdo = db();
+    foreach (['salario_quincenal'=>'DECIMAL(10,2) NULL','horas_semana'=>'DECIMAL(5,2) NULL','horas_sabado'=>'DECIMAL(5,2) NULL'] as $col=>$ddl) {
+        if (!$pdo->query("SHOW COLUMNS FROM usuarios LIKE '$col'")->fetch()) $pdo->exec("ALTER TABLE usuarios ADD COLUMN $col $ddl");
+    }
+    $sal  = trim($_POST['salario_quincenal'] ?? ''); $sal  = $sal===''  ? null : floatval($sal);
+    $hs   = trim($_POST['horas_semana'] ?? '');      $hs   = $hs===''   ? null : floatval($hs);
+    $hsab = trim($_POST['horas_sabado'] ?? '');      $hsab = $hsab===''? null : floatval($hsab);
+    $pdo->prepare("UPDATE usuarios SET salario_quincenal=?, horas_semana=?, horas_sabado=? WHERE id=?")
+        ->execute([$sal, $hs, $hsab, $aid]);
+    jsonOk();
+    break;
+
 // ── MEMBERS ──────────────────────────────────────────────────
 case 'iniciar_cambio_plan':
     $pdo = db();

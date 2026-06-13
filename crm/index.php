@@ -538,6 +538,13 @@ try {
     if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_at'")->fetch())
         $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_at TIMESTAMP NULL");
 } catch (Exception $e) {}
+// ─── USUARIOS: salario/horas para la nómina ──────────────────────────────────
+try {
+    foreach (['salario_quincenal'=>'DECIMAL(10,2) NULL','horas_semana'=>'DECIMAL(5,2) NULL','horas_sabado'=>'DECIMAL(5,2) NULL'] as $ucol=>$uddl) {
+        if (!$pdo->query("SHOW COLUMNS FROM usuarios LIKE '$ucol'")->fetch())
+            $pdo->exec("ALTER TABLE usuarios ADD COLUMN $ucol $uddl");
+    }
+} catch (Exception $e) {}
 // ─── TABLA GASTOS (expense report) ───────────────────────────────────────────
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS gastos (
@@ -6257,7 +6264,7 @@ try {
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
 <?php foreach(['EMPLEADOS','CERTIFICACIONES','CONTRASEÑAS','METAS','NOTIFICACIONES','INCENTIVOS','IMPORTAR','HISTORIAL'] as $at):?><button class="ntab<?=$at==='EMPLEADOS'?' active':''?>" onclick="showAdminTab('<?=$at?>')" data-atab="<?=$at?>"><?=$at?></button><?php endforeach;?>
 </div>
-<div id="atab-EMPLEADOS"><div class="card"><div class="card-header"><div class="card-title">EMPLEADOS</div></div><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>EMAIL</th></tr><?php foreach($users_all as $u):?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u['rol']==='admin'?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><td style="font-size:8px;color:<?=$MU?>"><?=h($u['email']??'—')?></td></tr><?php endforeach;?></table></div></div>
+<div id="atab-EMPLEADOS"><div class="card"><div class="card-header"><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal y horas para que aparezcan en la NÓMINA</div></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th></th></tr><?php foreach($users_all as $u): $u_es_admin=$u['rol']==='admin'; ?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><?php if($u_es_admin):?><td colspan="4" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><button onclick="saveSalario(<?=$u['id']?>)" class="btn btn-p btn-sm" style="font-size:8px;padding:5px 11px">GUARDAR</button></td><?php endif;?></tr><?php endforeach;?></table></div><div style="padding:8px 14px;font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;background:<?=$BG?>;border-top:1px solid <?=$CB?>">⚠ Quien no tenga SALARIO QUINCENAL (borde rojo) NO aparece en la nómina</div></div></div>
 <div id="atab-CERTIFICACIONES" style="display:none">
 <div style="background:#EBF5FB;border:1px solid #A9D0E8;border-radius:10px;padding:9px 14px;font-size:8px;color:#1B5E8C;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">◎ SOLO ISABEL FUENTES LLEVA CERTIFICACIONES · CA LIC #0D96598</div>
 <?php $isabel=current(array_filter($users_all,fn($u)=>$u['rol']==='admin'));if($isabel):?><div style="background:#fff;border:1px solid <?=$CB?>;border-radius:13px;overflow:hidden;max-width:480px"><div style="padding:14px 16px;border-bottom:1px solid <?=$CB?>;display:flex;gap:9px;align-items:center"><?=av(h($isabel['iniciales']),h($isabel['color']),40)?><div><div style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($isabel['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>">BROKER · CA LIC #0D96598</div></div></div><div style="padding:13px 16px"><?php foreach([['AHIP',$isabel['ahip_date']??'—'],['LICENCIA CA','#0D96598'],['SCAN','2025-09-30'],['ANTHEM','2025-09-30'],['HUMANA','2025-09-30'],['ALIGNMENT','2025-09-30'],['LA CARE','2025-09-30'],['HEALTH NET','2025-09-30'],['MOLINA','2025-09-30'],['UHC','2025-09-30']] as [$l,$v]):?><div style="display:flex;justify-content:space-between;padding:6px 0;font-size:9px;border-bottom:1px solid <?=$BG?>"><span style="color:<?=$MU?>;font-weight:700;text-transform:uppercase"><?=$l?></span><span style="font-weight:900;color:<?=$P1?>"><?=$v?></span></div><?php endforeach;?></div></div><?php endif;?>
@@ -6858,6 +6865,16 @@ function recFilter(btn){
   document.querySelectorAll('.rec-group').forEach(g=>{ g.style.display=(!cat||g.dataset.cat===cat)?'':'none'; });
 }
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
+function saveSalario(id){
+  const sal=document.getElementById('sal-'+id)?.value||'';
+  const hs=document.getElementById('hs-'+id)?.value||'';
+  const hsab=document.getElementById('hsab-'+id)?.value||'';
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_salario',agente_id:id,salario_quincenal:sal,horas_semana:hs,horas_sabado:hsab})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ GUARDADO — YA APARECERÁ EN NÓMINA'); const el=document.getElementById('sal-'+id); if(el) el.style.borderColor = (sal===''?'#EFA09A':'#8DCFBA'); }
+      else toast('⚠ '+(d.error||'Error'));
+    }).catch(()=>toast('⚠ Error de conexión'));
+}
 function showAdminTab(id){
   if(id==='INCENTIVOS') loadBonosIncentivos();
   if(id==='HISTORIAL') loadAuditLog();
