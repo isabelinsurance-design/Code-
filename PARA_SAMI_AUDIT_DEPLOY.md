@@ -4,6 +4,26 @@
 > Esto es lo que falta para que los arreglos de hoy queden VIVOS en producción.
 > Hay 4 cosas. Tres son de Sami; una es de Isabel (la marco).
 
+## 0. ⚠️ LO MÁS IMPORTANTE — el volumen (por qué Athena no guarda las cosas)
+
+Athena guarda TODO (wiki, tareas, memoria, entidades) en `/app/server/data`. En Railway
+el disco del contenedor es EFÍMERO: si NO hay un volumen persistente montado en esa ruta,
+**cada deploy borra toda la memoria de Athena**. Esa es la causa más probable de que "no
+haya guardado mucho".
+
+Verificar en Railway → proyecto Athena → pestaña **Volumes**:
+- Debe existir un volumen montado EXACTAMENTE en `/app/server/data` (y otro en
+  `/app/server/backups`). Ver DEPLOY.md, paso de Volumes.
+- Si NO existe, créalo (1 GB) y redeploy. Sin esto, todo lo demás es en vano.
+
+Cómo confirmar que quedó: después del deploy, en los Logs de Railway debe aparecer
+`[persistencia] OK — data/ sobrevivió un reinicio` en el SEGUNDO arranque. Si en cada
+deploy sale `[persistencia] ⚠️ data/ parece EFÍMERO`, el volumen NO está montado bien.
+
+(Nota: hay backup horario a R2 pero NO hay restore automático todavía — así que la
+memoria perdida antes de montar el volumen no se recupera sola. Por eso el volumen es
+lo primero.)
+
 ## 1. Desplegar el código nuevo (Sami)
 
 Railway corre desde la rama `claude/sleepy-darwin-P4k2z`. Asegúrate de que

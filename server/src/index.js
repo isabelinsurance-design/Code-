@@ -547,6 +547,14 @@ scheduleCron('eod_nudge', process.env.EOD_NUDGE_CRON || '0 18 * * 1-5', async ()
 const port = process.env.PORT || 3000;
 const httpServer = app.listen(port, async () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
+  // ¿data/ sobrevive deploys? Si el volumen de Railway no está montado,
+  // Athena pierde memoria en cada deploy — esto lo hace visible en el log.
+  try {
+    const { logPersistenceStatus } = await import('./persistence_check.js');
+    logPersistenceStatus();
+  } catch (e) {
+    console.error('[persistencia] check falló:', e.message);
+  }
   // Corre migraciones de data al boot (rename pilar→luna, luna→aurora, etc).
   // Idempotente — si ya corrió, no hace nada.
   try {
