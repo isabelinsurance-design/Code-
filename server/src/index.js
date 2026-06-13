@@ -549,6 +549,14 @@ const httpServer = app.listen(port, async () => {
   console.log(`👑 Athena escuchando en el puerto ${port}`);
   // ¿data/ sobrevive deploys? Si el volumen de Railway no está montado,
   // Athena pierde memoria en cada deploy — esto lo hace visible en el log.
+  // Autodiagnóstico de config: qué está configurado y qué falta (visible
+  // para Isabel sin necesitar un técnico).
+  try {
+    const { logConfigStatus } = await import('./config_check.js');
+    logConfigStatus();
+  } catch (e) {
+    console.error('[config] check falló:', e.message);
+  }
   try {
     const { logPersistenceStatus } = await import('./persistence_check.js');
     logPersistenceStatus();
