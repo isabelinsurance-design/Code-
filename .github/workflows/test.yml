@@ -1,0 +1,24 @@
+name: tests
+
+# Guardia automático: corre las pruebas en cada push y cada Pull Request.
+# Si un cambio rompe algo (la escritura atómica, la memoria, el bridge, el
+# email de equipo, etc.), esto sale ROJO antes de que llegue a Athena.
+on:
+  push:
+  pull_request:
+
+jobs:
+  server-tests:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: server
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # --ignore-scripts salta el build del PWA (app-v2) — para los tests del
+      # server no hace falta y evita que un fallo de build tape un test rojo.
+      - run: npm install --ignore-scripts --no-audit --no-fund
+      - run: npm test
