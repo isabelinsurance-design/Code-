@@ -37,6 +37,28 @@ function signSession(payload) {
   return `${body}.${sig}`;
 }
 
+// Anti-fuerza-bruta en /api/login (AUDIT.md M3): por IP, máx N fallos en una
+// ventana → 429. En RAM (se limpia en cada deploy — suficiente como freno).
+const loginFails = new Map(); // ip -> { count, firstAt }
+const LOGIN_MAX = 8;
+const LOGIN_WINDOW_MS = 15 * 60 * 1000;
+function clientIp(req) {
+  return (req.headers['x-forwarded-for'] || '').split(',')[0].trim()
+    || req.socket?.remoteAddress || 'unknown';
+}
+function loginBlocked(ip) {
+  const e = loginFails.get(ip);
+  if (!e) return false;
+  if (Date.now() - e.firstAt > LOGIN_WINDOW_MS) { loginFails.delete(ip); return false; }
+  return e.count >= LOGIN_MAX;
+}
+function noteLoginFail(ip) {
+  let e = loginFails.get(ip);
+  if (!e || Date.now() - e.firstAt > LOGIN_WINDOW_MS) e = { count: 0, firstAt: Date.now() };
+  e.count += 1;
+  loginFails.set(ip, e);
+}
+
 function verifySession(cookie) {
   if (!cookie || typeof cookie !== 'string') return null;
   const [body, sig] = cookie.split('.');
@@ -130,6 +152,11 @@ async function buildHoyState() {
 export function registerApi(app) {
   // Login
   app.post('/api/login', (req, res) => {
+    const ip = clientIp(req);
+    if (loginBlocked(ip)) {
+      res.status(429).json({ error: 'demasiados intentos — espera unos minutos' });
+      return;
+    }
     const expected = process.env.APP_PASSWORD;
     if (!expected) {
       res.status(503).json({ error: 'APP_PASSWORD no configurado' });
@@ -137,9 +164,11 @@ export function registerApi(app) {
     }
     const provided = (req.body && req.body.password) || '';
     if (!provided || provided !== expected) {
+      noteLoginFail(ip);
       res.status(401).json({ error: 'password incorrecto' });
       return;
     }
+    loginFails.delete(ip); // login bueno → limpia el contador
     setSessionCookie(res, { user: 'isabel', exp: Date.now() + SESSION_TTL_MS });
     res.json({ user: 'isabel' });
   });
@@ -163,6 +192,12 @@ export function registerApi(app) {
   // El body llega como raw bytes con Content-Type del MediaRecorder.
   app.post('/api/transcribe', requireAuth, async (req, res) => {
     try {
+      // Timeout: un cliente lento no debe colgar el handler para siempre
+      // (AUDIT.md M4). 2 min cubre varios minutos de audio.
+      req.setTimeout(120_000, () => {
+        if (!res.headersSent) res.status(408).json({ error: 'timeout subiendo audio' });
+        req.destroy();
+      });
       const chunks = [];
       let total = 0;
       const MAX_BYTES = 10 * 1024 * 1024; // 10 MB ~ varios minutos

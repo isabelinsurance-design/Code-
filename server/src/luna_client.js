@@ -26,6 +26,7 @@
 // ============================================================
 
 import { logActivity } from './memory.js';
+import { unwrapArrayResponse } from './luna_shape.js';
 
 const TIMEOUT_MS = 12_000;
 
@@ -41,6 +42,7 @@ function baseUrl() {
 function redactPii(s) {
   if (!s) return s;
   return String(s)
+    .replace(/\b\d{3}-\d{2}-\d{4}\b/g, '<SSN>')
     .replace(/\b[A-Z0-9]{4,5}-?[A-Z0-9]{3}-?[A-Z0-9]{2,4}\b/gi, '<MBI>')
     .replace(/\b\d{3}[-.]?\d{3}[-.]?\d{4}\b/g, '<phone>')
     .replace(/[\w.+-]+@[\w-]+\.[\w.-]+/g, '<email>');
@@ -164,38 +166,9 @@ export async function retentionAlerts() {
   return lunaFetch('retention_alerts');
 }
 
-// Normaliza respuestas de LUNA: desempaca data.tickets / data.miembros /
-// data.citas / data.leads / data.soas etc → array directo. Y mapea
-// nombres de campo del PHP (agente_nombre) a los que espera Athena
-// (asignado_nombre).
-function unwrapArrayResponse(r, possibleKeys = ['tickets', 'miembros', 'leads', 'soas', 'citas', 'items', 'data']) {
-  if (!r || !r.ok) return r;
-  let arr = r.data;
-  if (arr && !Array.isArray(arr)) {
-    for (const k of possibleKeys) {
-      if (Array.isArray(arr[k])) { arr = arr[k]; break; }
-    }
-  }
-  if (!Array.isArray(arr)) {
-    // data es un objeto cuya forma NO reconocemos → eso es un ERROR de
-    // shape, no una lista vacía. Antes esto regresaba [] silencioso y el
-    // caller mostraba "no hay nada" cuando en realidad LUNA sí mandó data
-    // (mismo patrón que vació el team email — AUDIT.md H1).
-    if (arr != null && typeof arr === 'object') {
-      const keys = Object.keys(arr).slice(0, 8).join(',');
-      console.warn(`[luna] respuesta con forma desconocida — keys: ${keys}`);
-      return {
-        ok: false,
-        kind: 'shape_error',
-        error: `LUNA respondió con una forma que no reconozco (keys: ${keys}). No es lista vacía — es formato inesperado.`,
-        elapsed_ms: r.elapsed_ms,
-      };
-    }
-    // null/undefined → legítimamente vacío
-    arr = [];
-  }
-  return { ...r, data: arr };
-}
+// unwrapArrayResponse vive en luna_shape.js (pura, sin deps, testeable).
+// Se importa arriba para uso interno y se re-exporta para no romper imports.
+export { unwrapArrayResponse };
 
 // Mapa de id → nombre de agentes en LUNA (mismo que ISABEL_BASE).
 // Suri = id 8 es SUPOSICIÓN (8 está libre entre 7 Skarleth y 9 Arlette).
