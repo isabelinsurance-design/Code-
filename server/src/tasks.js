@@ -12,6 +12,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { atomicWriteJson } from './storage.js';
+import { reassignIfOnLeave } from './team_status.js';
 import { runDirectora } from './directora.js';
 import { sendMessage } from './whatsapp.js';
 import { canSendProactive } from './proactive.js';
@@ -100,15 +101,23 @@ export function createTask(input) {
   if (!PRIORITIES.includes(prioridad)) {
     throw new Error(`Prioridad inválida. Usa: ${PRIORITIES.join(', ')}.`);
   }
+  // Opción A: si la tarea iba a alguien de licencia (ej. Sami operada),
+  // rebota a Isabel con una nota — así nada se queda colgado un mes.
+  const leave = reassignIfOnLeave(responsable);
+  const responsableFinal = leave.responsable;
+  const notas = notas_iniciales ? [{ ts: nowIso(), texto: notas_iniciales }] : [];
+  if (leave.note) notas.push({ ts: nowIso(), texto: leave.note });
+
   const tasks = loadAll();
   const t = {
     id: newId(),
     descripcion: String(descripcion).trim(),
-    responsable,
+    responsable: responsableFinal,
+    reasignado_de: leave.reasignado_de,
     prioridad,
     status: 'pendiente',
     vence: parseDueDate(input),
-    notas: notas_iniciales ? [{ ts: nowIso(), texto: notas_iniciales }] : [],
+    notas,
     resultado: null,
     created_at: nowIso(),
     updated_at: nowIso(),

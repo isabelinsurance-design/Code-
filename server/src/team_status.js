@@ -28,3 +28,18 @@ export function isOnLeave(nombre, env = process.env, now = new Date()) {
 export function leaveUntil(nombre, env = process.env) {
   return env[leaveKey(nombre)] || null;
 }
+
+// Opción A: lo que iría a un miembro de licencia REBOTA a Isabel con nota,
+// para que nada se quede colgado. Devuelve a quién va y la nota a agregar.
+// (El responsable de tareas 'sami' mapea al nombre de roster 'Sami'.)
+export function reassignIfOnLeave(responsable, env = process.env, now = new Date()) {
+  if (responsable === 'sami' && isOnLeave('Sami', env, now)) {
+    const hasta = leaveUntil('Sami', env);
+    return {
+      responsable: 'isabel',
+      reasignado_de: 'sami',
+      note: `↪️ Era para Sami (de licencia${hasta ? ` hasta ${hasta}` : ''}). Decide: hazlo tú, espera, o pásalo a Skarleth/Arlette.`,
+    };
+  }
+  return { responsable, reasignado_de: null, note: null };
+}

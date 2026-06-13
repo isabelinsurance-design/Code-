@@ -1,7 +1,7 @@
 // Modo "de licencia": pausa temporal de un miembro, con auto-reactivación.
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { isOnLeave, leaveUntil } from '../src/team_status.js';
+import { isOnLeave, leaveUntil, reassignIfOnLeave } from '../src/team_status.js';
 
 const ENV = { SAMI_ON_LEAVE_UNTIL: '2026-07-13' };
 
@@ -25,4 +25,23 @@ test('fecha mal escrita → no se trata como licencia (no rompe)', () => {
 test('leaveUntil devuelve la fecha o null', () => {
   assert.equal(leaveUntil('Sami', ENV), '2026-07-13');
   assert.equal(leaveUntil('Arlette', ENV), null);
+});
+
+test('reassignIfOnLeave: tarea para Sami de licencia → rebota a Isabel con nota', () => {
+  const r = reassignIfOnLeave('sami', ENV, new Date('2026-06-20'));
+  assert.equal(r.responsable, 'isabel');
+  assert.equal(r.reasignado_de, 'sami');
+  assert.match(r.note, /Sami.*licencia/i);
+});
+
+test('reassignIfOnLeave: Sami ya regresó → tarea se queda con Sami', () => {
+  const r = reassignIfOnLeave('sami', ENV, new Date('2026-07-20'));
+  assert.equal(r.responsable, 'sami');
+  assert.equal(r.reasignado_de, null);
+});
+
+test('reassignIfOnLeave: tareas de otros no se tocan', () => {
+  const r = reassignIfOnLeave('athena', ENV, new Date('2026-06-20'));
+  assert.equal(r.responsable, 'athena');
+  assert.equal(r.note, null);
 });

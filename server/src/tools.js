@@ -2050,6 +2050,19 @@ async function dispatchTool(name, input) {
       return results.map((r) => `${r.name} dice:\n${r.answer}`).join('\n\n---\n\n');
     }
     case 'mensaje_a_sami': {
+      // Opción A: si Sami está de licencia (cirugía/baja), no la molestamos —
+      // el mensaje rebota a Isabel para que ella decida.
+      const { isOnLeave, leaveUntil } = await import('./team_status.js');
+      if (isOnLeave('Sami')) {
+        const hasta = leaveUntil('Sami');
+        const isabelNum = process.env.ISABEL_WHATSAPP;
+        if (isabelNum) {
+          try {
+            await sendMessage(isabelNum, `↪️ Esto era para Sami, pero está de licencia${hasta ? ` hasta ${hasta}` : ''}:\n\n"${input.mensaje}"\n\nTú decides: hazlo, espera, o pásalo a Skarleth/Arlette.`);
+          } catch { /* si falla el rebote, igual avisamos abajo */ }
+        }
+        return `Sami está de licencia${hasta ? ` hasta ${hasta}` : ''} — no le mandé el mensaje. Te lo reboté a ti para que decidas.`;
+      }
       const to = process.env.SAMI_WHATSAPP;
       if (!to) return 'No hay número de Sami configurado (SAMI_WHATSAPP en el .env).';
       // Sami se manda solo (humano-en-el-loop) → revisamos ANTES de mandar.
