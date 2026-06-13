@@ -182,7 +182,7 @@ export const LUNA_TOOL_DEFINITIONS = [
 - Si el ticket NO es sobre ningún cliente específico (tarea interna del equipo: marketing, entrenamiento, proyecto), DEJA miembro_id vacío. Mejor sin id que con uno inventado.
 
 🚨 REGLA — asignado_a también debe ser real:
-- 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel — esos sí son válidos.
+- 9=Arlette, 10=Samia, 6=Isabel — esos sí son válidos. (Skarleth/7 ya NO está en el equipo — no la uses.)
 - Si Isabel dice "para alguien" sin nombre, pregúntale a quién específicamente.
 
 Un ticket orfano (con miembro_id inexistente) NO aparece en el CRM del equipo. Es como no haberlo creado.`,
@@ -211,7 +211,7 @@ Un ticket orfano (con miembro_id inexistente) NO aparece en el CRM del equipo. E
         },
         asignado_a: {
           type: 'string',
-          description: 'User ID del responsable: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel. Si no sabes a quién, pregunta antes de crear.',
+          description: 'User ID del responsable: 9=Arlette, 10=Samia, 6=Isabel. (Skarleth/7 ya no está en el equipo.) Si no sabes a quién, pregunta antes de crear.',
         },
       },
       required: ['descripcion'],

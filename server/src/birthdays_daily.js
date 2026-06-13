@@ -42,7 +42,7 @@ function staffEmails() {
   const list = [
     process.env.ISABEL_EMAIL   || 'isabel.insurance@gmail.com',
     process.env.SAMI_EMAIL,
-    process.env.SKARLETH_EMAIL,
+    // Skarleth ya no está en el equipo (jun 2026) — removida.
     process.env.SURI_EMAIL,
     process.env.ARLETTE_EMAIL,
   ].filter(Boolean);

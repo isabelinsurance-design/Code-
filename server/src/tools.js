@@ -2058,7 +2058,7 @@ async function dispatchTool(name, input) {
         const isabelNum = process.env.ISABEL_WHATSAPP;
         if (isabelNum) {
           try {
-            await sendMessage(isabelNum, `↪️ Esto era para Sami, pero está de licencia${hasta ? ` hasta ${hasta}` : ''}:\n\n"${input.mensaje}"\n\nTú decides: hazlo, espera, o pásalo a Skarleth/Arlette.`);
+            await sendMessage(isabelNum, `↪️ Esto era para Sami, pero está de licencia${hasta ? ` hasta ${hasta}` : ''}:\n\n"${input.mensaje}"\n\nTú decides: hazlo, espera, o pásalo a Arlette.`);
           } catch { /* si falla el rebote, igual avisamos abajo */ }
         }
         return `Sami está de licencia${hasta ? ` hasta ${hasta}` : ''} — no le mandé el mensaje. Te lo reboté a ti para que decidas.`;

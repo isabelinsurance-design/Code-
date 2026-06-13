@@ -26,10 +26,10 @@ Si Isabel dice "mándame SMS" / "text me" → enviar_sms al +13102700626.
 
 ⚠️ JERARQUÍA DE DELEGACIÓN (default cuando Isabel no especifica a quién):
 1. **Sami (=Samia, id 10)** = la PRIMARY. Default para CUALQUIER delegación o tarea sin dueño específico. Si Isabel dice "que alguien corra X / haga Y / me llame Z", asume Sami.
-2. **Skarleth (id 7)** y **Arlette (id 9)** son miembros del equipo, pero NO son el default. Solo asignar a ellas si Isabel las nombra explícitamente o si la tarea es de su especialidad conocida.
-3. **NUNCA** sugieras Skarleth o Arlette por encima de Sami a menos que Isabel lo pida.
+2. **Arlette (id 9)** es miembro del equipo, pero NO es el default. Solo asignar a ella si Isabel la nombra explícitamente o si la tarea es de su especialidad conocida.
+3. **NUNCA** sugieras Arlette por encima de Sami a menos que Isabel lo pida.
 
-IDs del equipo Medicare en LUNA: 6=Isabel, 7=Skarleth, 9=Arlette, **10=Samia (=Sami, PRIMARY)**.
+IDs del equipo Medicare en LUNA: 6=Isabel, 9=Arlette, **10=Samia (=Sami, PRIMARY)**. (Skarleth, id 7, ya NO está en el equipo — no la asignes ni la propongas.)
 
 Cualquier pregunta tuya tipo "¿a qué número?" / "¿confirmas tu teléfono?" / "what's your phone?" es un BUG tuyo. La info ya la tienes acá arriba — léela otra vez antes de preguntar.`;
 
@@ -542,7 +542,7 @@ ESCRITURA — úsalas cuando Isabel (vía Athena) dicte algo accionable:
 - luna_agregar_nota(miembro_id, nota) — cuando Isabel dicta "Carlos prefiere 3pm", Skarleth lo ve en segundos
 - luna_registrar_actividad(tipo, descripcion, miembro_id) — registrar llamadas, decisiones
 - luna_crear_miembro(...) — capturar lead nuevo de la calle (default estado=PROSPECTO)
-- luna_crear_ticket(asignado_a, ...) — delegar al equipo. **DEFAULT asignado_a=10 (Sami=Samia, la primary)** a menos que Isabel nombre a Skarleth (7) o Arlette (9) explícitamente. Sami es la mano derecha — siempre primero.
+- luna_crear_ticket(asignado_a, ...) — delegar al equipo. **DEFAULT asignado_a=10 (Sami=Samia, la primary)** a menos que Isabel nombre a Arlette (9) explícitamente. Sami es la mano derecha — siempre primero. (Skarleth/7 ya no está en el equipo.)
 - luna_crear_cita(...) — cita interna en agenda del equipo (distinta a Google Calendar)
 
 REGLAS DE USO:
@@ -594,9 +594,9 @@ REGLA CLAVE: NUNCA inventar miembro_id (12345, 123, etc). Pero TAMPOCO te quedes
 3. SOLO si NINGUNA de las opciones de arriba aplica claramente → preguntar a Isabel "¿quieres que lo clasifique como [tu mejor guess] o lo dejo en OTRO?". OTRO debe ser ULTIMA opción consensuada, NUNCA default automático.
 
 4. ¿A QUIÉN se le asigna?
-   - 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel
+   - 9=Arlette, 10=Samia, 6=Isabel (Skarleth/7 ya NO está en el equipo)
    - Si Isabel dice "para el equipo" sin nombre → preguntar para quién específicamente
-   - Default si Isabel no especifica: 7 (Skarleth) para llamadas/seguimientos clientes, 6 (Isabel) para decisiones
+   - Default si Isabel no especifica: 10 (Samia/Sami) para llamadas/seguimientos clientes, 6 (Isabel) para decisiones
 
 5. ¿Qué PRIORIDAD?
    - ALTA = pasa hoy o mañana

@@ -38,7 +38,7 @@ export function reassignIfOnLeave(responsable, env = process.env, now = new Date
     return {
       responsable: 'isabel',
       reasignado_de: 'sami',
-      note: `↪️ Era para Sami (de licencia${hasta ? ` hasta ${hasta}` : ''}). Decide: hazlo tú, espera, o pásalo a Skarleth/Arlette.`,
+      note: `↪️ Era para Sami (de licencia${hasta ? ` hasta ${hasta}` : ''}). Decide: hazlo tú, espera, o pásalo a Arlette.`,
     };
   }
   return { responsable, reasignado_de: null, note: null };
