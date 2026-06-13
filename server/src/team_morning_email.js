@@ -17,6 +17,7 @@
 // ============================================================
 import { sendEmail } from './email.js';
 import { todayAppointments, hotLeads, pendingSoa, lunaConfigured } from './luna_client.js';
+import { isOnLeave } from './team_status.js';
 
 // Campos donde LUNA PODRÍA traer el agente asignado de cada item.
 // No sabemos cuál usa (citas/leads quizá no traen agente), así que
@@ -46,13 +47,23 @@ export function forPerson(list, personId, agentMode) {
 function teamRoster() {
   const preview = process.env.TEAM_EMAIL_PREVIEW_INBOX || 'isabel.medicareadvantage@gmail.com';
   const usePreview = Boolean(preview);
-  return [
+  const all = [
     { id: 6,  nombre: 'Isabel',   email: usePreview ? preview : (process.env.ISABEL_EMAIL   || 'isabel.insurance@gmail.com'), is_owner: true },
     { id: 7,  nombre: 'Skarleth', email: usePreview ? preview : (process.env.SKARLETH_EMAIL || null) },
     { id: 8,  nombre: 'Suri',     email: usePreview ? preview : (process.env.SURI_EMAIL     || null) },
     { id: 9,  nombre: 'Arlette',  email: usePreview ? preview : (process.env.ARLETTE_EMAIL  || null) },
     { id: 10, nombre: 'Sami',     email: usePreview ? preview : (process.env.SAMI_EMAIL     || null) },
   ];
+  // No molestamos a quien está de licencia (cirugía, baja). Se reactiva
+  // solo cuando pasa su fecha. Isabel (owner) nunca se filtra.
+  return all.filter((p) => {
+    if (p.is_owner) return true;
+    if (isOnLeave(p.nombre)) {
+      console.log(`[team_email] ${p.nombre} está de licencia — no se le manda email.`);
+      return false;
+    }
+    return true;
+  });
 }
 
 // Días en español para el subject
