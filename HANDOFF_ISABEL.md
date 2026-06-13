@@ -53,17 +53,24 @@ Se auditó todo el codebase → AUDIT.md (severidad + esfuerzo + lista P0-P3). H
   (tool que no existía).
 - P1: el bridge ya distingue "forma rara" de "vacío" (luna_shape.js); el gate de SOA consulta
   LUNA cuando el CRM local está vacío; crons en async/try-catch; lecturas corruptas avisan.
-- P2: red de seguridad → `npm test` (8 pruebas, node:test, 0 deps) que blindan la escritura
-  atómica y la regresión del bug de forma de LUNA; rate-limit en /api/login; timeout en
-  /api/transcribe; SSN redactado en logs; .env.example corregido.
-- NO tocado a propósito (riesgo de producción, coordinar con sesión LUNA): forzar firma de voz
-  Twilio, single-header LUNA. Y web-push NO se quitó (sí se usa en push.js — el audit erró).
+- P2: rate-limit en /api/login; timeout en /api/transcribe; SSN redactado en logs;
+  .env.example corregido. NO tocado a propósito (riesgo prod, coordinar con LUNA): firma de
+  voz Twilio, single-header LUNA. web-push NO se quitó (sí se usa en push.js — el audit erró).
+- PERSISTENCIA (la causa real de "Athena no guarda mis cosas"): `persistence_check.js` detecta
+  y grita si data/ es efímero (volumen de Railway mal montado); `restoreIfEmpty()` en backup.js
+  auto-recupera la memoria del último backup (R2 o local) si arranca vacía — candado: solo si
+  data/ está vacío, nunca encima de datos vivos. Paso 0 de Sami: montar el volumen en
+  /app/server/data (ver PARA_SAMI_AUDIT_DEPLOY.md).
+- CLAUDE.md refrescado a la realidad (21 coaches, 33 crons, LUNA sin tickets).
+- RED DE SEGURIDAD: `cd server && npm test` → 22 pruebas (node:test, 0 deps de prod) cubriendo
+  storage atómico, persistencia, restore, forma de LUNA, y la lógica del team email. Para correr
+  los tests/verificar refactors: `npm install --ignore-scripts` (node_modules está gitignored).
 
-**Próxima fase — cimientos (de "segura" a "sólida"), con calma y con los tests de respaldo:**
-- Partir el god file tools.js (3,579 líneas) en módulos por dominio.
-- Cambiar los JSON de data/ por una base de datos real (el patrón archivo-como-DB es el techo).
-- Refrescar CLAUDE.md (dice 17 coaches/10 crons; hay ~21/33).
-- Ampliar la red de seguridad: más pruebas conforme se toque cada módulo.
+**Lo que QUEDA (deuda estructural, no urgente — la reliability ya está sólida):**
+- Partir el god file tools.js (3,579 líneas) — maintainability, NO mejora la experiencia de
+  Isabel; riesgo real; hacerlo en entorno donde la app corra y con los tests creciendo.
+- ¿JSON→DB? Marginal para una sola usuaria ahora que la escritura es atómica + hay restore;
+  agrega dep nativa (riesgo en Railway). Reconsiderar solo si crece el volumen de datos.
 
 ## Pendientes abiertos (los reales)
 
