@@ -6,10 +6,12 @@
 
 She lives in two places:
 
-- **`app/todoisabel.html`** — a single-file static HTML app (no build step) Isabel can open in a browser to chat with any of the 17 coaches directly.
+- **`app/todoisabel.html`** — a single-file static HTML app (no build step) Isabel can open in a browser to chat with any of the coaches directly.
 - **`server/`** — a Node.js ESM WhatsApp server that runs Athena autonomously. This is the production deployment surface. It owns proactive briefings, memory, the CRM, voice calls, email, and everything else listed below.
 
 "Athena" is the user-facing brand AND the name of the chief-of-staff coach. The HTML file is still `todoisabel.html` and the repo is still `Code-` — legacy naming preserved on purpose.
+
+> **Estado real (reconciliado 2026-06-13).** Este doc tenía drift; lo más reciente y veraz vive en `HANDOFF_ISABEL.md` (handoff canónico) y `AUDIT.md` (auditoría con severidad). Correcciones clave: hay **21 coaches** (no 17) y **33 crons** (no 10). **LUNA NO maneja "tickets"** pese a que el código aún tenga tools `luna_*_ticket` — el email de equipo se reescribió para jalar de citas/leads/SOAs (ver `team_morning_email.js`). Persistencia: los JSON de `data/` ahora se escriben atómico vía `storage.js`. Hay pruebas: `cd server && npm test`.
 
 ---
 
@@ -44,7 +46,7 @@ Pilar reads/writes LUNA via `luna_api.php` using shared-secret auth (X-Athena-Ke
 ## What's been built
 
 ### Phase 1 — original Athena
-Static HTML app with the 17 coaches as direct conversation partners.
+Static HTML app with the 21 coaches as direct conversation partners.
 
 ### Phase 2 — Athena chief-of-staff
 WhatsApp server with parallel coach consultation (Anthropic multi-agent pattern). One Opus orchestrator (Athena) consults Sonnet workers in parallel via `consultar_especialistas`.
@@ -120,7 +122,7 @@ server/
 ├─ src/
 │  ├─ index.js                     Express server, all HTTP/WS endpoints, cron scheduling
 │  ├─ claude.js                    Anthropic SDK client
-│  ├─ agents.js                    The 17 coach personas + ISABEL_FILOSOFIA + ISABEL_BASE
+│  ├─ agents.js                    The 21 coach personas + ISABEL_FILOSOFIA + ISABEL_BASE
 │  ├─ directora.js                 Athena's main run loop (Opus 4.8 + tools + memory context)
 │  ├─ tools.js                     49 tools — definitions + dispatcher (directora-level)
 │  ├─ luna_tools.js                14 luna_* tools — Pilar-only via consultar_especialistas
@@ -170,9 +172,9 @@ server/
 
 ---
 
-## The 17 coaches
+## The coaches (21: Athena + 20 specialists)
 
-Each coach has a stable `id` used for routing throughout the app — **never rename them**. The `name` field is user-facing.
+Each coach has a stable `id` used for routing throughout the app — **never rename them**. The `name` field is user-facing. (Source of truth: `SPECIALISTS` in `server/src/agents.js`. Last reconciled 2026-06-13.)
 
 | id | name | role |
 |---|---|---|
@@ -180,19 +182,25 @@ Each coach has a stable `id` used for routing throughout the app — **never ren
 | `carmen` | Chef Carmen | Nutrition |
 | `rivera` | Coach Rivera | Strength / fitness |
 | `sofia` | Dra. Sofía | Hormones / wellness |
-| `luna` | Beauty Luna | Skin / beauty |
+| `luna` | LUNA | Medicare / clients (bridge to the LUNA CRM; this id was `pilar`) |
+| `aurora` | Aurora | Skin / beauty (this role was `luna` / "Beauty Luna") |
 | `valentina` | Estilo Valentina | Style |
-| `pilar` | Pilar Medicare | Medicare / clients |
 | `elena` | CFO Elena | Finances |
 | `alma` | Mente Alma | Mindset |
 | `rosa` | Casa Rosa | Home / organizing |
-| `camila` | Decor Camila | Interior design |
 | `marisol` | Brand Marisol | Brand / marketing |
 | `lucia` | Voz Lucía | Voice / speaking |
 | `catalina` | Viajes Catalina | Travel / lifestyle |
 | `beatriz` | Network Beatriz | Networking / PR |
 | `esperanza` | Guía Esperanza | Faith / spiritual |
 | `victoria` | Visión Victoria | Vision / goals |
+| `dolores` | Cuidadora Dolores | Caregiving for aging parents (sandwich generation) |
+| `paloma` | Intimidad Paloma | Intimacy / sexual health (peri/menopause) |
+| `nora` | Negocia Nora | Sales / negotiation |
+| `vida` | Vida | Life coaching / behavioral activation |
+| `ines` | Maestra Inés | Learning architect (how to learn, not a single domain) |
+
+Renames vs early docs: `pilar` → `luna` (Medicare); old `luna` "Beauty Luna" → `aurora` (skin). `camila` (Decor Camila / interior design) was retired. New since: `dolores`, `paloma`, `nora`, `vida`, `ines`.
 
 Athena consults the others in parallel via the `consultar_especialistas` tool when the request spans multiple domains. Each specialist runs on Sonnet 4.6.
 
@@ -200,10 +208,10 @@ Athena consults the others in parallel via the `consultar_especialistas` tool wh
 
 ## ISABEL_FILOSOFIA — the source of Athena's voice
 
-All 17 coaches reason from Isabel's framework, condensed from *Más completa, no más perfecta*. Defined as a constant called `ISABEL_FILOSOFIA`:
+All 21 coaches reason from Isabel's framework, condensed from *Más completa, no más perfecta*. Defined as a constant called `ISABEL_FILOSOFIA`:
 
 - **Server:** `server/src/agents.js` — exported constant, injected after `${ISABEL_BASE}` in all 8 server prompts.
-- **App:** `app/todoisabel.html` — `const ISABEL_FILOSOFIA` declared just before `const AGENTS`, interpolated at the end of every coach's `system:` template literal (all 17 coaches).
+- **App:** `app/todoisabel.html` — `const ISABEL_FILOSOFIA` declared just before `const AGENTS`, interpolated at the end of every coach's `system:` template literal (all 21 coaches).
 
 The block covers:
 
@@ -258,7 +266,7 @@ Writes: `luna_agregar_nota`, `luna_registrar_actividad`, `luna_crear_miembro`, `
 
 ---
 
-## Cron jobs (10 in process)
+## Cron jobs (33 in process)
 
 | Label | Default cron | What it does |
 |---|---|---|
@@ -484,7 +492,7 @@ All work happens on this branch. Sami deploys from here.
 - **MCP client** — would give Athena Canva / OpenTable / Instacart / Zapier-class integrations for free. Not urgent.
 - **Live observability dashboard** — small SQLite log + web view of every tool call (IndyDevDan's pattern). Half-day add.
 - **Slash command library for Sami** — wrap the 10 crons as on-demand commands (Cole Medin's pattern).
-- **Anthropic Skills reformulation** — restructure the 17 coaches as filesystem Skills for progressive disclosure / cheaper context. Big refactor.
+- **Anthropic Skills reformulation** — restructure the 21 coaches as filesystem Skills for progressive disclosure / cheaper context. Big refactor.
 - **WhatsApp Business Calling for live conversations** (vs current async voice notes + ConversationRelay phone calls) — Twilio API exists, integration is non-trivial.
 
 ---
