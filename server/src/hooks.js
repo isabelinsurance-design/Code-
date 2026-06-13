@@ -37,7 +37,7 @@ const FORBIDDEN_PHRASES = [
 // CMS / TPMO marketing forbidden absolute claims — usar SIN evidencia
 // concreta es agente-killer. Si Athena los emite a un cliente Medicare,
 // CMS audit los puede usar para revocar la licencia de Isabel.
-const CMS_FORBIDDEN_CLAIMS = /\b(?:el\s+mejor\s+plan|the\s+best\s+plan|cheapest|el\s+más\s+barato|garantizad[oa]\s+(?:ahorro|cobertura)|guaranteed\s+(?:savings|coverage)|100\s*%\s+(?:cubierto|covered|free)|gratis\s+(?:totalmente|completo)|absolutely\s+free|sin\s+costo\s+(?:ninguno|alguno))\b/i;
+const CMS_FORBIDDEN_CLAIMS = /\b(?:el\s+mejor\s+plan|the\s+best\s+plan|cheapest|el\s+más\s+barato|garantizad[oa]\s+(?:ahorro|cobertura)|(?:ahorro|cobertura)\s+garantizad[oa]|guaranteed\s+(?:savings|coverage)|100\s*%\s+(?:cubierto|covered|free|gratis)|(?:totalmente|completamente)\s+gratis|gratis\s+(?:totalmente|completo)|absolutely\s+free|sin\s+costo\s+(?:ninguno|alguno))\b/i;
 
 // Disclaimer CMS requerido en material promocional dirigido a Medicare-eligibles:
 // "Not connected with or endorsed by the U.S. government or the federal Medicare program."
@@ -61,17 +61,11 @@ function extractText(toolName, input) {
   }
 }
 
-// Revisión completa. Devuelve { ok, severidad_max, flags }.
-// flags: [{ severidad, kind, nota, sugerencia? }]
-export async function reviewOutbound({ toolName, input }) {
-  const ext = extractText(toolName, input);
-  if (!ext) return { ok: true, severidad_max: null, flags: [] };
-  const { text, target } = ext;
-  if (!text || text.length < 5) return { ok: true, severidad_max: null, flags: [] };
-
+// Checks deterministas (regex/longitud, SIN API ni red) — función pura,
+// testeable en aislamiento. El gate de SOA (consulta LUNA, async) y el de
+// tono (Haiku) se quedan en reviewOutbound.
+export function deterministicFlags(text, toolName) {
   const flags = [];
-
-  // ---- Checks deterministas (no API) ----
 
   // 1. Consejo médico — solo si NO incluye el disclaimer
   if (MEDICAL_KEYWORDS.test(text)) {
@@ -94,19 +88,6 @@ export async function reviewOutbound({ toolName, input }) {
       nota: 'Suena a consejo de inversión. Isabel es Medicare agent, no asesora financiera.',
       sugerencia: 'Reformula evitando "invertir", "rendimiento", porcentajes garantizados.',
     });
-  }
-
-  // 3. SOA gate para planes específicos a un cliente
-  if (PLAN_DETAIL_KEYWORDS.test(text) && target && typeof target === 'string') {
-    const soaCheck = await checkSoaFor(target);
-    if (soaCheck && soaCheck.ok === false) {
-      flags.push({
-        severidad: 'alto',
-        kind: 'soa_missing',
-        nota: `Mensaje habla de detalles de plan a ${soaCheck.nombre} pero su SOA está "${soaCheck.estado}". CMS lo prohíbe.`,
-        sugerencia: 'Pide la SOA firmada primero. No mandes detalles de plan hasta que esté.',
-      });
-    }
   }
 
   // 4. Vocabulario que Isabel no usa
@@ -132,9 +113,8 @@ export async function reviewOutbound({ toolName, input }) {
     });
   }
 
-  // 6. Disclaimer CMS — si el mensaje habla de planes específicos a un cliente
-  // Y va por email (material promocional escrito), debe incluir el disclaimer
-  // de no afiliación con el gobierno o nota de agente independiente licenciada.
+  // 6. Disclaimer CMS — email con detalles de plan a un cliente debe incluir
+  // el disclaimer de no afiliación / agente independiente licenciada.
   if (toolName === 'enviar_email' && PLAN_DETAIL_KEYWORDS.test(text) && text.length > 200) {
     if (!CMS_DISCLAIMER_FRAGMENTS.test(text)) {
       flags.push({
@@ -146,22 +126,39 @@ export async function reviewOutbound({ toolName, input }) {
     }
   }
 
-  // 7. Longitud — emails kilométricos son red flag
+  // 7. Longitud — emails kilométricos / SMS de varios segmentos
   if (toolName === 'enviar_email' && text.length > 1500) {
-    flags.push({
-      severidad: 'info',
-      kind: 'length',
-      nota: 'Email muy largo (>1500 chars). Isabel escribe corto.',
-      sugerencia: 'Cortarlo a párrafos esenciales.',
-    });
+    flags.push({ severidad: 'info', kind: 'length', nota: 'Email muy largo (>1500 chars). Isabel escribe corto.', sugerencia: 'Cortarlo a párrafos esenciales.' });
   }
   if (toolName === 'enviar_sms' && text.length > 320) {
-    flags.push({
-      severidad: 'aviso',
-      kind: 'length',
-      nota: 'SMS más de 2 segmentos (>320 chars). Costo dobla y se ve raro.',
-      sugerencia: 'Cortar a 320 chars max.',
-    });
+    flags.push({ severidad: 'aviso', kind: 'length', nota: 'SMS más de 2 segmentos (>320 chars). Costo dobla y se ve raro.', sugerencia: 'Cortar a 320 chars max.' });
+  }
+
+  return flags;
+}
+
+// Revisión completa. Devuelve { ok, severidad_max, flags }.
+// flags: [{ severidad, kind, nota, sugerencia? }]
+export async function reviewOutbound({ toolName, input }) {
+  const ext = extractText(toolName, input);
+  if (!ext) return { ok: true, severidad_max: null, flags: [] };
+  const { text, target } = ext;
+  if (!text || text.length < 5) return { ok: true, severidad_max: null, flags: [] };
+
+  // Checks deterministas (puros) + el gate de SOA (async, consulta LUNA).
+  const flags = deterministicFlags(text, toolName);
+
+  // 3. SOA gate para planes específicos a un cliente
+  if (PLAN_DETAIL_KEYWORDS.test(text) && target && typeof target === 'string') {
+    const soaCheck = await checkSoaFor(target);
+    if (soaCheck && soaCheck.ok === false) {
+      flags.push({
+        severidad: 'alto',
+        kind: 'soa_missing',
+        nota: `Mensaje habla de detalles de plan a ${soaCheck.nombre} pero su SOA está "${soaCheck.estado}". CMS lo prohíbe.`,
+        sugerencia: 'Pide la SOA firmada primero. No mandes detalles de plan hasta que esté.',
+      });
+    }
   }
 
   // ---- Tono check con Haiku (solo si no hay alto crítico ya) ----
