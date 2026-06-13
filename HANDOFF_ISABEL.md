@@ -62,13 +62,25 @@ Se auditó todo el codebase → AUDIT.md (severidad + esfuerzo + lista P0-P3). H
   data/ está vacío, nunca encima de datos vivos. Paso 0 de Sami: montar el volumen en
   /app/server/data (ver PARA_SAMI_AUDIT_DEPLOY.md).
 - CLAUDE.md refrescado a la realidad (21 coaches, 33 crons, LUNA sin tickets).
-- RED DE SEGURIDAD: `cd server && npm test` → 22 pruebas (node:test, 0 deps de prod) cubriendo
-  storage atómico, persistencia, restore, forma de LUNA, y la lógica del team email. Para correr
-  los tests/verificar refactors: `npm install --ignore-scripts` (node_modules está gitignored).
+- CONFIG self-check: al arrancar, Athena imprime qué integraciones tiene/le faltan (config_check.js).
+- EQUIPO: modo "de licencia" (team_status.js) — SAMI_ON_LEAVE_UNTIL=YYYY-MM-DD pausa a Sami
+  (cirugía, ~1 mes) y se reactiva sola; sus tareas/mensajes rebotan a Isabel (Opción A).
+  Skarleth (id 7) REMOVIDA del roster/delegación — ya no está en el equipo. PENDIENTE (lado LUNA,
+  no Athena): reasignar los clientes/trabajo de Skarleth en LUNA (agente 7) o quedan huérfanos.
+- COMPLIANCE: extraída deterministicFlags (testeable); cerrado hueco de claims CMS en español
+  ("100% gratis", "ahorro garantizado").
+- tools.js PARTIDO: definiciones (1,718 líneas) → tool_definitions.js; tools.js de 3,579 → 1,884.
+  Verificado: 142 tools intactas. Falta el dispatcher (el "cómo") — NO partir a ciegas, requiere
+  correr la app de punta a punta.
+- CI: `.github/workflows/test.yml` corre `npm test` en cada push/PR.
+- RED DE SEGURIDAD: `cd server && npm test` → **48 pruebas** (node:test, 0 deps de prod) cubriendo
+  storage atómico, persistencia, restore, forma de LUNA, team email, compliance CMS, superficie de
+  tools (142), modo de licencia, y fechas/recordatorios (9am local robusto a DST). Para correr:
+  `npm install --ignore-scripts` (node_modules está gitignored).
 
 **Lo que QUEDA (deuda estructural, no urgente — la reliability ya está sólida):**
-- Partir el god file tools.js (3,579 líneas) — maintainability, NO mejora la experiencia de
-  Isabel; riesgo real; hacerlo en entorno donde la app corra y con los tests creciendo.
+- Partir el dispatcher de tools.js (~1,650 líneas, el "cómo") — maintainability; riesgo real;
+  hacerlo en entorno donde la app corra y con tests que ejerciten cada tool.
 - ¿JSON→DB? Marginal para una sola usuaria ahora que la escritura es atómica + hay restore;
   agrega dep nativa (riesgo en Railway). Reconsiderar solo si crece el volumen de datos.
 
