@@ -171,14 +171,19 @@ case 'save_salario':
     $aid = intval($_POST['agente_id'] ?? 0);
     if (!$aid) jsonErr('Empleado requerido');
     $pdo = db();
-    foreach (['salario_quincenal'=>'DECIMAL(10,2) NULL','horas_semana'=>'DECIMAL(5,2) NULL','horas_sabado'=>'DECIMAL(5,2) NULL'] as $col=>$ddl) {
+    foreach (['salario_quincenal'=>'DECIMAL(10,2) NULL','horas_semana'=>'DECIMAL(5,2) NULL','horas_sabado'=>'DECIMAL(5,2) NULL',
+              'trabaja_lunes'=>'TINYINT(1) DEFAULT 1','trabaja_martes'=>'TINYINT(1) DEFAULT 1','trabaja_miercoles'=>'TINYINT(1) DEFAULT 1',
+              'trabaja_jueves'=>'TINYINT(1) DEFAULT 1','trabaja_viernes'=>'TINYINT(1) DEFAULT 1','trabaja_sabado'=>'TINYINT(1) DEFAULT 0'] as $col=>$ddl) {
         if (!$pdo->query("SHOW COLUMNS FROM usuarios LIKE '$col'")->fetch()) $pdo->exec("ALTER TABLE usuarios ADD COLUMN $col $ddl");
     }
     $sal  = trim($_POST['salario_quincenal'] ?? ''); $sal  = $sal===''  ? null : floatval($sal);
     $hs   = trim($_POST['horas_semana'] ?? '');      $hs   = $hs===''   ? null : floatval($hs);
     $hsab = trim($_POST['horas_sabado'] ?? '');      $hsab = $hsab===''? null : floatval($hsab);
-    $pdo->prepare("UPDATE usuarios SET salario_quincenal=?, horas_semana=?, horas_sabado=? WHERE id=?")
-        ->execute([$sal, $hs, $hsab, $aid]);
+    $dl = !empty($_POST['trabaja_lunes'])?1:0;     $dm = !empty($_POST['trabaja_martes'])?1:0;
+    $dx = !empty($_POST['trabaja_miercoles'])?1:0; $dj = !empty($_POST['trabaja_jueves'])?1:0;
+    $dv = !empty($_POST['trabaja_viernes'])?1:0;   $ds = !empty($_POST['trabaja_sabado'])?1:0;
+    $pdo->prepare("UPDATE usuarios SET salario_quincenal=?, horas_semana=?, horas_sabado=?, trabaja_lunes=?, trabaja_martes=?, trabaja_miercoles=?, trabaja_jueves=?, trabaja_viernes=?, trabaja_sabado=? WHERE id=?")
+        ->execute([$sal, $hs, $hsab, $dl, $dm, $dx, $dj, $dv, $ds, $aid]);
     jsonOk();
     break;
 
