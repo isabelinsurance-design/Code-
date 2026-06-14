@@ -20,6 +20,7 @@
   --text:#2C2416;--text-mid:#5C4A30;--text-muted:#8C7A60;
   --tag:#F5EFE3;
   --sh:0 1px 10px rgba(44,36,22,.07);--sh2:0 4px 24px rgba(44,36,22,.12);
+  --av-skin:#E6C9A0;--av-hair:#5C3A1E;--av-outfit:#EDE6D6;
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh}
@@ -46,6 +47,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
   display:flex;align-items:center;gap:7px;
 }
 .tv-btn:hover{background:var(--teal-dk)}
+.av-btn{background:var(--purple)}
+.av-btn:hover{background:#664d91}
+/* personalizador de avatar */
+.av-preview{display:flex;justify-content:center;align-items:flex-end;height:160px;background:linear-gradient(160deg,#2C2416,#4A3A22);border-radius:14px;margin-bottom:14px}
+.swatches{display:flex;gap:8px;flex-wrap:wrap}
+.swatch{width:34px;height:34px;border-radius:50%;cursor:pointer;border:3px solid transparent;box-shadow:var(--sh)}
+.swatch.sel{border-color:var(--text);transform:scale(1.08)}
+.facebtn{display:inline-block;border:1.5px dashed var(--purple);background:var(--purple-lt);color:var(--purple);font-weight:700;font-size:13px;padding:9px 14px;border-radius:10px;cursor:pointer}
+.facebtn input{display:none}
 .key-dot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px var(--red-lt)}
 .key-dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-lt)}
 
@@ -142,10 +152,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 .dancer-wrap{display:flex;justify-content:center;align-items:flex-end;height:150px;margin:0 auto 6px}
 .dancer-wrap.hidden{display:none}
 .dancer{position:relative;width:90px;height:140px;--beat:.5s;transform-origin:bottom center}
-.dancer .d-head{position:absolute;left:50%;top:2px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:#F2DDBE;border:2px solid #C9A96E;z-index:3}
-.dancer .d-head:after{content:"";position:absolute;left:50%;top:-7px;width:30px;height:16px;margin-left:-15px;border-radius:50% 50% 40% 40%;background:#3A2A18}
-.dancer .d-torso{position:absolute;left:50%;top:30px;width:30px;height:46px;margin-left:-15px;border-radius:12px 12px 8px 8px;background:linear-gradient(160deg,#E0556B,#C0392B);z-index:2}
-.dancer .d-arm{position:absolute;top:34px;width:10px;height:38px;border-radius:6px;background:#F2DDBE;transform-origin:top center;z-index:1}
+.dancer .d-head{position:absolute;left:50%;top:2px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:var(--av-skin);border:2px solid rgba(0,0,0,.12);z-index:3;background-size:cover;background-position:center top}
+.dancer .d-head:after{content:"";position:absolute;left:50%;top:-7px;width:30px;height:16px;margin-left:-15px;border-radius:50% 50% 40% 40%;background:var(--av-hair)}
+.dancer .d-head:before{content:"";position:absolute;display:none;background:var(--av-hair)}
+/* peinados */
+.dancer[data-hair="largo"] .d-head:before{display:block;left:50%;top:0;width:38px;height:44px;margin-left:-19px;border-radius:50% 50% 42% 42%;z-index:-1}
+.dancer[data-hair="recogido"] .d-head:before{display:block;left:50%;top:-12px;width:15px;height:15px;margin-left:-7.5px;border-radius:50%}
+.dancer.has-photo .d-head:after,.dancer.has-photo .d-head:before{display:none}
+.dancer.has-photo .d-head{background-position:center center;border-color:rgba(0,0,0,.18)}
+.dancer .d-torso{position:absolute;left:50%;top:30px;width:30px;height:46px;margin-left:-15px;border-radius:12px 12px 8px 8px;background:var(--av-outfit);z-index:2}
+.dancer .d-arm{position:absolute;top:34px;width:10px;height:38px;border-radius:6px;background:var(--av-skin);transform-origin:top center;z-index:1}
 .dancer .d-arm.left{left:50%;margin-left:-23px}
 .dancer .d-arm.right{left:50%;margin-left:13px}
 .dancer .d-leg{position:absolute;top:72px;width:11px;height:46px;border-radius:6px 6px 5px 5px;background:#4A3A22;transform-origin:top center;z-index:1}
@@ -298,6 +314,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
   </div>
   <div class="hspacer"></div>
   <span class="key-dot" id="keyDot" title="Estado de conexión con la IA"></span>
+  <button class="tv-btn av-btn" onclick="openAvatarModal()">🎨 Mi avatar</button>
   <button class="tv-btn" onclick="openModal('tvModal')">📺 Ver en la TV</button>
 </header>
 
@@ -467,6 +484,45 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
     <label>Nivel</label>
     <select id="addLevel"><option value="facil">Fácil</option><option value="medio">Medio</option><option value="reto">Reto</option></select>
     <div class="mrow"><button class="cbtn" onclick="closeModal('addModal')">Cancelar</button><button class="cbtn primary" style="flex:0" onclick="addVideo()">Guardar</button></div>
+  </div>
+</div>
+
+<!-- ─── AVATAR MODAL ─── -->
+<div class="overlay" id="avatarModal" onclick="if(event.target===this)closeModal('avatarModal')">
+  <div class="modal">
+    <h2>🎨 Tu avatar</h2>
+    <div class="msub">Haz que se parezca a ti. Se guarda en tu teléfono.</div>
+    <div class="av-preview">
+      <div class="dancer" id="dancerPreview" data-move="rebote" style="--beat:.5s">
+        <div class="d-arm left"></div><div class="d-arm right"></div>
+        <div class="d-leg left"></div><div class="d-leg right"></div>
+        <div class="d-torso"></div><div class="d-head"></div>
+      </div>
+    </div>
+
+    <label>📸 Tu foto (opcional) — pon tu carita en el avatar</label>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <label class="facebtn">Subir foto<input type="file" accept="image/*" onchange="setFacePhoto(event)"/></label>
+      <button class="cbtn" style="flex:0" onclick="removeFace()">Quitar foto</button>
+    </div>
+
+    <label>Tono de piel</label>
+    <div class="swatches" id="swSkin"></div>
+
+    <label>Color de cabello</label>
+    <div class="swatches" id="swHair"></div>
+
+    <label>Peinado</label>
+    <div class="pillrow" id="hairStyle">
+      <button class="pill sel" onclick="setHair('corto',this)">Corto</button>
+      <button class="pill" onclick="setHair('largo',this)">Largo</button>
+      <button class="pill" onclick="setHair('recogido',this)">Recogido</button>
+    </div>
+
+    <label>Color de ropa</label>
+    <div class="swatches" id="swOutfit"></div>
+
+    <div class="mrow"><button class="cbtn primary" style="flex:0" onclick="closeModal('avatarModal')">¡Listo!</button></div>
   </div>
 </div>
 
@@ -914,10 +970,76 @@ function removeVideo(id){
   renderGrid();
 }
 
+/* ════════════ PERSONALIZAR AVATAR ════════════ */
+const SKIN_TONES=['#F7E4CE','#F2DDBE','#E6C9A0','#C9A07A','#A6754F','#6F4A2E'];
+const HAIR_COLORS=['#15100B','#3A2A18','#5C3A1E','#8B5A2B','#C9A96E','#7A1E1E'];
+const OUTFIT_COLORS=['#EDE6D6','#C0392B','#4A7B9D','#7B5EA7','#C9A96E','#2E7D55','#D14D8B','#2C2416'];
+let avatarCfg={skin:'#E6C9A0',hair:'#5C3A1E',outfit:'#EDE6D6',hairStyle:'largo'};
+let facePhoto='';
+try{const s=JSON.parse(localStorage.getItem('isabel_dance_avatar'));if(s)avatarCfg=Object.assign(avatarCfg,s);}catch(_){}
+try{facePhoto=localStorage.getItem('isabel_dance_face')||'';}catch(_){}
+
+function applyAvatar(){
+  const r=document.documentElement.style;
+  r.setProperty('--av-skin',avatarCfg.skin);
+  r.setProperty('--av-hair',avatarCfg.hair);
+  r.setProperty('--av-outfit',avatarCfg.outfit);
+  document.querySelectorAll('.dancer').forEach(d=>{
+    d.setAttribute('data-hair',avatarCfg.hairStyle);
+    d.classList.toggle('has-photo',!!facePhoto);
+  });
+  document.querySelectorAll('.dancer .d-head').forEach(h=>{ h.style.backgroundImage=facePhoto?`url(${facePhoto})`:''; });
+}
+function saveAvatar(){try{localStorage.setItem('isabel_dance_avatar',JSON.stringify(avatarCfg));}catch(_){}}
+function buildSwatches(){
+  const mk=(cont,colors,key)=>{
+    const box=document.getElementById(cont);if(!box)return;box.innerHTML='';
+    colors.forEach(c=>{
+      const s=document.createElement('div');
+      s.className='swatch'+(avatarCfg[key]===c?' sel':'');
+      s.style.background=c;
+      s.onclick=()=>{avatarCfg[key]=c;saveAvatar();applyAvatar();buildSwatches();};
+      box.appendChild(s);
+    });
+  };
+  mk('swSkin',SKIN_TONES,'skin');
+  mk('swHair',HAIR_COLORS,'hair');
+  mk('swOutfit',OUTFIT_COLORS,'outfit');
+}
+function setHair(style,btn){
+  avatarCfg.hairStyle=style;saveAvatar();applyAvatar();
+  btn.parentElement.querySelectorAll('.pill').forEach(p=>p.classList.toggle('sel',p===btn));
+}
+function setFacePhoto(e){
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const rd=new FileReader();
+  rd.onload=()=>{
+    const img=new Image();
+    img.onload=()=>{
+      const S=256,c=document.createElement('canvas');c.width=S;c.height=S;
+      const cx=c.getContext('2d');
+      const m=Math.min(img.width,img.height);
+      cx.drawImage(img,(img.width-m)/2,(img.height-m)/2,m,m,0,0,S,S);
+      facePhoto=c.toDataURL('image/jpeg',0.82);
+      try{localStorage.setItem('isabel_dance_face',facePhoto);}catch(_){alert('La foto pesó mucho para guardarla, intenta con otra.');}
+      applyAvatar();
+    };
+    img.src=rd.result;
+  };
+  rd.readAsDataURL(f);
+}
+function removeFace(){facePhoto='';try{localStorage.removeItem('isabel_dance_face');}catch(_){}applyAvatar();}
+function openAvatarModal(){
+  buildSwatches();
+  document.querySelectorAll('#hairStyle .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim().toLowerCase()===avatarCfg.hairStyle));
+  openModal('avatarModal');
+}
+
 /* ════════════ MODALS ════════════ */
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
+applyAvatar();
 renderGrid();
 </script>
 </body>
