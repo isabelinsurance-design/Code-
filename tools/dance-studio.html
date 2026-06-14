@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>Estudio de Baile — Isabel</title>
+<title>Estudio de Baile — Instructor IA</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <style>
@@ -46,134 +46,179 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
   display:flex;align-items:center;gap:7px;
 }
 .tv-btn:hover{background:var(--teal-dk)}
+.key-dot{width:9px;height:9px;border-radius:50%;background:var(--red);box-shadow:0 0 0 3px var(--red-lt)}
+.key-dot.ok{background:var(--green);box-shadow:0 0 0 3px var(--green-lt)}
 
-.stats{display:flex;gap:10px;padding:16px 20px 0;flex-wrap:wrap}
-.stat{
-  background:var(--white);border:1.5px solid var(--border);border-radius:12px;
-  padding:12px 18px;min-width:130px;flex:1;max-width:220px;box-shadow:var(--sh);
-}
-.stat .num{font-family:'Fraunces',serif;font-size:26px;color:var(--gold-dk)}
-.stat .lbl{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em;margin-top:2px}
-
-.filters{display:flex;gap:8px;padding:16px 20px 4px;flex-wrap:wrap;align-items:center}
-.chip{
-  border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);
-  font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;
-  padding:8px 15px;border-radius:99px;cursor:pointer;
-}
-.chip.active{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15)}
-.add-btn{
-  margin-left:auto;border:1.5px dashed var(--gold-dk);background:var(--gold-lt);color:var(--gold-dk);
-  font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;padding:8px 15px;border-radius:99px;cursor:pointer;
-}
-
-.grid{
-  display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
-  gap:16px;padding:16px 20px 40px;
-}
-.card{
-  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
-  overflow:hidden;cursor:pointer;box-shadow:var(--sh);transition:transform .15s,box-shadow .15s;
-  position:relative;
-}
-.card:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
-.card .thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--tag)}
-.card .body{padding:12px 14px 14px}
-.card .title{font-weight:600;font-size:14px;line-height:1.35;margin-bottom:8px}
-.card .meta{display:flex;gap:6px;flex-wrap:wrap}
-.badge{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.05em;padding:3px 8px;border-radius:6px;text-transform:uppercase}
-.b-style{background:var(--purple-lt);color:var(--purple)}
-.b-facil{background:var(--green-lt);color:var(--green)}
-.b-medio{background:var(--amber-lt);color:var(--amber)}
-.b-reto{background:var(--red-lt);color:var(--red)}
-.b-mia{background:var(--teal-lt);color:var(--teal-dk)}
-.card .status-dot{
-  position:absolute;top:10px;left:10px;font-size:18px;
-  background:rgba(255,255,255,.92);border-radius:99px;padding:4px 9px;
-  font-family:'DM Sans',sans-serif;font-size:12px;font-weight:700;box-shadow:var(--sh);
-}
-.card .del{
-  position:absolute;top:10px;right:10px;border:none;cursor:pointer;
-  background:rgba(255,255,255,.92);border-radius:99px;width:30px;height:30px;font-size:14px;
-  color:var(--red);box-shadow:var(--sh);display:none;
-}
-.card.mine .del{display:block}
-.empty{padding:40px 20px;text-align:center;color:var(--text-muted);grid-column:1/-1;font-size:14px}
-
-/* ─── PLAYER VIEW ─── */
-.player-view{display:none;padding:16px 20px 40px;max-width:1100px;margin:0 auto}
-.player-view.active{display:block}
-.grid-view.hidden,.stats.hidden,.filters.hidden{display:none}
-.back-btn{
+/* ─── TOP TABS ─── */
+.maintabs{display:flex;gap:6px;padding:14px 20px 0;flex-wrap:wrap}
+.mtab{
   border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);
   font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
-  padding:9px 16px;border-radius:10px;cursor:pointer;margin-bottom:14px;
+  padding:10px 18px;border-radius:11px 11px 0 0;cursor:pointer;display:flex;gap:7px;align-items:center;
 }
-.player-title{font-family:'Fraunces',serif;font-size:22px;margin-bottom:12px}
-.stage{
-  position:relative;background:#000;border-radius:14px;overflow:hidden;
-  box-shadow:var(--sh2);
-}
-.stage .frame-wrap{position:relative;width:100%;aspect-ratio:16/9}
-.stage iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
-.stage.mirrored .frame-wrap{transform:scaleX(-1)}
-.mirror-flag{
-  position:absolute;top:12px;left:12px;z-index:5;display:none;
-  background:var(--purple);color:#fff;font-weight:700;font-size:12px;
-  padding:5px 12px;border-radius:99px;box-shadow:var(--sh2);
-}
-.stage.mirrored .mirror-flag{display:block}
+.mtab.active{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.view{display:none}
+.view.active{display:block}
 
-.controls{
-  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
-  margin-top:14px;padding:16px;box-shadow:var(--sh);
+/* ─── INSTRUCTOR: SETUP ─── */
+.wrap{max-width:1000px;margin:0 auto;padding:18px 20px 48px}
+.hero{
+  background:var(--white);border:1.5px solid var(--border);border-radius:16px;
+  padding:22px;box-shadow:var(--sh);
+}
+.hero h2{font-family:'Fraunces',serif;font-size:23px;margin-bottom:5px}
+.hero p{font-size:14px;color:var(--text-mid);line-height:1.55;margin-bottom:18px}
+.field-label{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin:16px 0 7px;display:block}
+.pillrow{display:flex;gap:8px;flex-wrap:wrap}
+.pill{
+  border:1.5px solid var(--border-d);background:var(--surface);color:var(--text);
+  font-family:'DM Sans',sans-serif;font-weight:600;font-size:13.5px;
+  padding:9px 15px;border-radius:99px;cursor:pointer;
+}
+.pill.sel{background:var(--purple);border-color:var(--purple);color:#fff}
+.hero input,.hero textarea{
+  width:100%;border:1.5px solid var(--border-d);border-radius:11px;padding:12px 14px;
+  font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);resize:vertical;
+}
+.hero input:focus,.hero textarea:focus{outline:none;border-color:var(--gold-dk)}
+.go-btn{
+  margin-top:20px;width:100%;border:none;cursor:pointer;
+  font-family:'DM Sans',sans-serif;font-weight:700;font-size:16px;
+  background:var(--gold-g);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15);
+  padding:15px;border-radius:12px;box-shadow:var(--sh);
+}
+.go-btn:disabled{opacity:.55;cursor:default}
+.suggest{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.suggest .s{
+  border:1.5px dashed var(--gold-dk);background:var(--gold-lt);color:var(--gold-dk);
+  font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:99px;cursor:pointer;
+}
+
+.keybox{
+  background:var(--amber-lt);border:1.5px solid var(--amber);border-radius:12px;
+  padding:14px 16px;margin-bottom:16px;display:none;
+}
+.keybox.show{display:block}
+.keybox b{color:var(--amber)}
+.keybox p{font-size:13px;color:var(--text-mid);line-height:1.5;margin:4px 0 10px}
+.keybox input{width:100%;border:1.5px solid var(--border-d);border-radius:10px;padding:10px 12px;font-family:'DM Mono',monospace;font-size:13px;background:#fff}
+
+.loadbox{text-align:center;padding:40px 20px;display:none}
+.loadbox.show{display:block}
+.spinner{
+  width:46px;height:46px;border:4px solid var(--gold-lt);border-top-color:var(--gold-dk);
+  border-radius:50%;animation:spin 0.9s linear infinite;margin:0 auto 16px;
+}
+@keyframes spin{to{transform:rotate(360deg)}}
+.loadbox p{font-family:'Fraunces',serif;font-size:18px;color:var(--text-mid)}
+
+.errbox{background:var(--red-lt);border:1.5px solid var(--red);color:var(--red);border-radius:12px;padding:14px 16px;margin-top:16px;font-size:14px;line-height:1.5;display:none}
+.errbox.show{display:block}
+
+/* ─── CLASS / LESSON ─── */
+.lesson{display:none}
+.lesson.active{display:block}
+.lesson-head{
+  background:var(--white);border:1.5px solid var(--border);border-radius:16px;
+  padding:20px 22px;box-shadow:var(--sh);margin-bottom:14px;
+}
+.lesson-head .meta{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.badge{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.05em;padding:4px 10px;border-radius:7px;text-transform:uppercase}
+.b-style{background:var(--purple-lt);color:var(--purple)}
+.b-level{background:var(--teal-lt);color:var(--teal-dk)}
+.b-bpm{background:var(--green-lt);color:var(--green)}
+.lesson-head h2{font-family:'Fraunces',serif;font-size:24px;line-height:1.15;margin-bottom:8px}
+.lesson-head .intro{font-size:14.5px;color:var(--text-mid);line-height:1.6;font-style:italic}
+
+/* STAGE — big, TV-friendly */
+.stage{
+  background:linear-gradient(160deg,#2C2416,#4A3A22);color:#fff;
+  border-radius:18px;padding:28px 24px;box-shadow:var(--sh2);text-align:center;
+  position:relative;overflow:hidden;
+}
+.stage .step-count{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.9}
+.stage .move-name{font-family:'Fraunces',serif;font-size:clamp(28px,6vw,46px);line-height:1.1;margin:10px 0 6px}
+.stage .counts{font-family:'DM Mono',monospace;font-size:clamp(16px,3vw,22px);color:var(--gold-lt);letter-spacing:.12em;margin-bottom:18px}
+.stage .move-desc{font-size:clamp(15px,2.4vw,19px);line-height:1.6;max-width:640px;margin:0 auto;color:#F0E9DC}
+.stage .tip{
+  margin-top:18px;background:rgba(201,169,110,.18);border:1px solid rgba(201,169,110,.4);
+  border-radius:12px;padding:12px 16px;font-size:14.5px;line-height:1.55;max-width:640px;margin-left:auto;margin-right:auto;color:#FBF6EC;
+}
+.stage .tip b{color:var(--gold)}
+/* beat dots */
+.beats{display:flex;gap:9px;justify-content:center;margin:20px 0 4px}
+.beat{width:15px;height:15px;border-radius:50%;background:rgba(255,255,255,.18);transition:transform .08s,background .08s}
+.beat.lit{background:var(--gold);transform:scale(1.45)}
+.beat.accent{box-shadow:0 0 0 2px rgba(255,255,255,.4)}
+
+.progressbar{height:7px;background:var(--border);border-radius:99px;overflow:hidden;margin:14px 0}
+.progressbar .fill{height:100%;background:var(--gold-g);width:0;transition:width .3s}
+
+.lesson-ctl{
+  background:var(--white);border:1.5px solid var(--border);border-radius:16px;
+  padding:16px;box-shadow:var(--sh);margin-top:14px;
 }
 .ctl-row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .ctl-row + .ctl-row{margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
-.ctl-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--text-muted);width:100%;margin-bottom:2px}
+.ctl-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);width:100%;margin-bottom:2px}
 .cbtn{
   border:1.5px solid var(--border-d);background:var(--surface);color:var(--text);
   font-family:'DM Sans',sans-serif;font-weight:600;font-size:14px;
-  padding:11px 16px;border-radius:10px;cursor:pointer;min-width:54px;
+  padding:11px 16px;border-radius:11px;cursor:pointer;min-width:54px;
 }
 .cbtn:active{transform:scale(.96)}
-.cbtn.primary{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15);font-size:15px;padding:11px 22px}
+.cbtn.primary{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15);font-size:15px;padding:11px 22px;flex:1}
 .cbtn.on{background:var(--purple);border-color:var(--purple);color:#fff}
-.cbtn.loop-on{background:var(--teal);border-color:var(--teal);color:#fff}
-.loop-info{font-family:'DM Mono',monospace;font-size:12px;color:var(--text-muted)}
+.cbtn.beat-on{background:var(--teal);border-color:var(--teal);color:#fff}
+.bpm-val{font-family:'DM Mono',monospace;font-size:15px;font-weight:500;min-width:78px;text-align:center}
 
-.progress-box{
-  background:var(--white);border:1.5px solid var(--border);border-radius:14px;
-  margin-top:14px;padding:16px;box-shadow:var(--sh);
-  display:flex;gap:10px;flex-wrap:wrap;align-items:center;
+/* CHAT */
+.chat{
+  background:var(--white);border:1.5px solid var(--border);border-radius:16px;
+  box-shadow:var(--sh);margin-top:14px;overflow:hidden;
 }
-.pstate{
-  border:1.5px solid var(--border-d);background:var(--surface);color:var(--text-mid);
-  font-weight:600;font-size:13px;padding:9px 15px;border-radius:99px;cursor:pointer;
-  font-family:'DM Sans',sans-serif;
-}
-.pstate.sel-practicando{background:var(--amber-lt);border-color:var(--amber);color:var(--amber)}
-.pstate.sel-dominada{background:var(--green-lt);border-color:var(--green);color:var(--green)}
-.practice-count{font-size:13px;color:var(--text-muted);margin-left:auto}
+.chat-head{padding:13px 18px;border-bottom:1.5px solid var(--border);font-weight:700;font-size:14px;display:flex;align-items:center;gap:8px}
+.chat-log{max-height:340px;overflow-y:auto;padding:16px 18px;display:flex;flex-direction:column;gap:12px}
+.msg{max-width:85%;padding:11px 14px;border-radius:14px;font-size:14px;line-height:1.55;white-space:pre-wrap}
+.msg.user{align-self:flex-end;background:var(--purple);color:#fff;border-bottom-right-radius:4px}
+.msg.bot{align-self:flex-start;background:var(--surface);border:1.5px solid var(--border);border-bottom-left-radius:4px}
+.msg.bot b{color:var(--gold-dk)}
+.chat-input{display:flex;gap:8px;padding:12px 14px;border-top:1.5px solid var(--border)}
+.chat-input input{flex:1;border:1.5px solid var(--border-d);border-radius:11px;padding:11px 14px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface)}
+.chat-input input:focus{outline:none;border-color:var(--gold-dk)}
+.chat-input button{border:none;background:var(--gold-g);color:#fff;font-weight:700;padding:0 18px;border-radius:11px;cursor:pointer;font-size:18px}
+
+/* ─── VIDEO LIBRARY ─── */
+.filters{display:flex;gap:8px;padding:4px 0 4px;flex-wrap:wrap;align-items:center}
+.chip{border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);font-family:'DM Sans',sans-serif;font-weight:600;font-size:13px;padding:8px 15px;border-radius:99px;cursor:pointer}
+.chip.active{background:var(--gold-g);border-color:var(--gold-dk);color:#fff;text-shadow:0 1px 2px rgba(0,0,0,.15)}
+.add-btn{margin-left:auto;border:1.5px dashed var(--gold-dk);background:var(--gold-lt);color:var(--gold-dk);font-family:'DM Sans',sans-serif;font-weight:700;font-size:13px;padding:8px 15px;border-radius:99px;cursor:pointer}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px;padding:16px 0 20px}
+.card{background:var(--white);border:1.5px solid var(--border);border-radius:14px;overflow:hidden;cursor:pointer;box-shadow:var(--sh);transition:transform .15s;position:relative}
+.card:hover{transform:translateY(-3px);box-shadow:var(--sh2)}
+.card .thumb{width:100%;aspect-ratio:16/9;object-fit:cover;display:block;background:var(--tag)}
+.card .body{padding:11px 13px 13px}
+.card .title{font-weight:600;font-size:13.5px;line-height:1.35;margin-bottom:8px}
+.card .meta{display:flex;gap:6px;flex-wrap:wrap}
+.b-facil{background:var(--green-lt);color:var(--green)}
+.b-medio{background:var(--amber-lt);color:var(--amber)}
+.b-reto{background:var(--red-lt);color:var(--red)}
+.card .del{position:absolute;top:10px;right:10px;border:none;cursor:pointer;background:rgba(255,255,255,.92);border-radius:99px;width:30px;height:30px;font-size:14px;color:var(--red);box-shadow:var(--sh);display:none}
+.card.mine .del{display:block}
+.vplayer{position:relative;background:#000;border-radius:14px;overflow:hidden;box-shadow:var(--sh2);margin-bottom:12px;display:none}
+.vplayer.show{display:block}
+.vplayer .fw{position:relative;width:100%;aspect-ratio:16/9}
+.vplayer iframe{position:absolute;inset:0;width:100%;height:100%;border:0}
+.vclose{border:1.5px solid var(--border-d);background:var(--white);color:var(--text-mid);font-weight:600;font-size:13px;padding:8px 14px;border-radius:10px;cursor:pointer;margin-bottom:10px}
 
 /* ─── MODALS ─── */
-.overlay{
-  position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:500;
-  display:none;align-items:center;justify-content:center;padding:20px;
-}
+.overlay{position:fixed;inset:0;background:rgba(44,36,22,.45);z-index:500;display:none;align-items:center;justify-content:center;padding:20px}
 .overlay.open{display:flex}
-.modal{
-  background:var(--white);border-radius:16px;max-width:520px;width:100%;
-  max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--sh2);
-}
+.modal{background:var(--white);border-radius:16px;max-width:520px;width:100%;max-height:85vh;overflow-y:auto;padding:24px;box-shadow:var(--sh2)}
 .modal h2{font-family:'Fraunces',serif;font-size:20px;margin-bottom:4px}
 .modal .msub{font-size:13px;color:var(--text-muted);margin-bottom:16px}
 .modal label{display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid);margin:14px 0 5px}
-.modal input,.modal select{
-  width:100%;border:1.5px solid var(--border-d);border-radius:10px;padding:11px 13px;
-  font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text);
-}
-.modal input:focus,.modal select:focus{outline:none;border-color:var(--gold-dk)}
+.modal input,.modal select{width:100%;border:1.5px solid var(--border-d);border-radius:10px;padding:11px 13px;font-family:'DM Sans',sans-serif;font-size:14px;background:var(--surface);color:var(--text)}
 .modal .mrow{display:flex;gap:10px;justify-content:flex-end;margin-top:20px}
 .tv-step{display:flex;gap:12px;margin-bottom:14px;align-items:flex-start}
 .tv-step .ico{font-size:22px;flex-shrink:0;width:34px;text-align:center}
@@ -181,10 +226,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 .tv-step p{font-size:13px;color:var(--text-mid);line-height:1.5}
 .tv-tip{background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;font-size:13px;color:var(--text-mid);line-height:1.5;margin-top:6px}
 
-@media(max-width:560px){
-  .stats{gap:8px}.stat{min-width:100px;padding:10px 12px}.stat .num{font-size:21px}
-  .cbtn{flex:1}
-}
+@media(max-width:560px){.cbtn{flex:1 1 auto}.wrap{padding:14px}}
 </style>
 </head>
 <body>
@@ -193,73 +235,147 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
   <div class="logo-icon">💃</div>
   <div>
     <div class="htitle">Estudio de <em>Baile</em></div>
-    <div class="hsub">Coreografías · Práctica · Tu Ritmo</div>
+    <div class="hsub">Tu instructor de baile con IA</div>
   </div>
   <div class="hspacer"></div>
+  <span class="key-dot" id="keyDot" title="Estado de conexión con la IA"></span>
   <button class="tv-btn" onclick="openModal('tvModal')">📺 Ver en la TV</button>
 </header>
 
-<section class="stats" id="statsBar">
-  <div class="stat"><div class="num" id="stTotal">0</div><div class="lbl">Coreografías</div></div>
-  <div class="stat"><div class="num" id="stDominadas">0</div><div class="lbl">Dominadas</div></div>
-  <div class="stat"><div class="num" id="stSesiones">0</div><div class="lbl">Prácticas</div></div>
-  <div class="stat"><div class="num" id="stRacha">0</div><div class="lbl">Días de racha</div></div>
+<div class="maintabs">
+  <button class="mtab active" id="tab-ia" onclick="showView('ia',this)">🤖 Instructor IA</button>
+  <button class="mtab" id="tab-videos" onclick="showView('videos',this)">📺 Videos</button>
+</div>
+
+<!-- ═══════════ INSTRUCTOR IA ═══════════ -->
+<section class="view active" id="view-ia">
+  <div class="wrap">
+
+    <!-- SETUP -->
+    <div id="setup">
+      <div class="keybox" id="keyBox">
+        <b>🔑 Conecta la IA</b>
+        <p>Para que tu instructor cree las clases necesita tu API Key de Anthropic (la misma de tus otras herramientas). Pégala aquí una vez y queda guardada.</p>
+        <input id="manualKey" type="password" placeholder="sk-ant-..." oninput="saveManualKey()"/>
+      </div>
+
+      <div class="hero">
+        <h2>¡Hola! Soy tu instructor de baile 💃</h2>
+        <p>Dime qué quieres aprender y te armo una clase paso a paso: te explico cada movimiento, te cuento el ritmo en voz alta y vamos a tu velocidad. Sin videos, sin enredos — solo tú y yo.</p>
+
+        <span class="field-label">¿Qué estilo quieres bailar?</span>
+        <div class="pillrow" id="stylePills">
+          <button class="pill sel" onclick="pick('style',this)">Bachata</button>
+          <button class="pill" onclick="pick('style',this)">Salsa</button>
+          <button class="pill" onclick="pick('style',this)">Merengue</button>
+          <button class="pill" onclick="pick('style',this)">Cumbia</button>
+          <button class="pill" onclick="pick('style',this)">Hip-Hop</button>
+          <button class="pill" onclick="pick('style',this)">Reguetón</button>
+        </div>
+
+        <span class="field-label">¿Cuál es tu nivel?</span>
+        <div class="pillrow" id="levelPills">
+          <button class="pill sel" onclick="pick('level',this)">Principiante total</button>
+          <button class="pill" onclick="pick('level',this)">Ya sé lo básico</button>
+          <button class="pill" onclick="pick('level',this)">Intermedio</button>
+        </div>
+
+        <span class="field-label">¿Algo en especial? (opcional)</span>
+        <input id="goalInput" type="text" placeholder="Ej. una coreografía para una boda, pasos para una fiesta, perder la pena..."/>
+
+        <div class="suggest">
+          <button class="s" onclick="quickStart('Bachata','Principiante total','Quiero aprender el paso básico y sentirme segura en una fiesta')">✨ Bachata para fiestas</button>
+          <button class="s" onclick="quickStart('Salsa','Principiante total','Enséñame el paso básico de salsa desde cero')">✨ Salsa desde cero</button>
+          <button class="s" onclick="quickStart('Cumbia','Ya sé lo básico','Una coreografía divertida de cumbia')">✨ Coreografía de cumbia</button>
+        </div>
+
+        <button class="go-btn" id="goBtn" onclick="createLesson()">Crear mi clase ✨</button>
+      </div>
+
+      <div class="loadbox" id="loadBox">
+        <div class="spinner"></div>
+        <p id="loadMsg">Tu instructor está armando la clase…</p>
+      </div>
+
+      <div class="errbox" id="errBox"></div>
+    </div>
+
+    <!-- LESSON -->
+    <div class="lesson" id="lesson">
+      <div class="lesson-head">
+        <div class="meta" id="lessonMeta"></div>
+        <h2 id="lessonTitle"></h2>
+        <div class="intro" id="lessonIntro"></div>
+      </div>
+
+      <div class="progressbar"><div class="fill" id="progressFill"></div></div>
+
+      <div class="stage" id="stageEl">
+        <div class="step-count" id="stepCount"></div>
+        <div class="move-name" id="moveName"></div>
+        <div class="counts" id="moveCounts"></div>
+        <div class="move-desc" id="moveDesc"></div>
+        <div class="beats" id="beatsRow"></div>
+        <div class="tip" id="moveTip"></div>
+      </div>
+
+      <div class="lesson-ctl">
+        <div class="ctl-row">
+          <button class="cbtn" onclick="prevMove()">⬅ Anterior</button>
+          <button class="cbtn primary" id="practiceBtn" onclick="togglePractice()">▶ Practicar este paso</button>
+          <button class="cbtn" onclick="nextMove()">Siguiente ➡</button>
+        </div>
+        <div class="ctl-row">
+          <span class="ctl-label">Ritmo (BPM) — bájalo para aprender, súbelo cuando ya te salga</span>
+          <button class="cbtn" onclick="changeBpm(-6)">－</button>
+          <span class="bpm-val" id="bpmVal">120 BPM</span>
+          <button class="cbtn" onclick="changeBpm(6)">＋</button>
+          <button class="cbtn beat-on" id="metroBtn" onclick="toggleMetro()">🥁 Metrónomo</button>
+        </div>
+        <div class="ctl-row">
+          <span class="ctl-label">Tu instructor en voz alta — te cuenta y te guía sin que sueltes el teléfono</span>
+          <button class="cbtn on" id="voiceBtn" onclick="toggleVoice()">🔊 Voz activada</button>
+          <button class="cbtn" onclick="speakCurrentMove()">🗣 Explícame este paso</button>
+          <button class="cbtn" onclick="fullscreenStage()">⛶ Pantalla completa</button>
+        </div>
+        <div class="ctl-row">
+          <button class="cbtn" onclick="restartLesson()">↺ Empezar de nuevo</button>
+          <button class="cbtn" onclick="newLesson()">＋ Otra clase</button>
+        </div>
+      </div>
+
+      <!-- CHAT with instructor -->
+      <div class="chat">
+        <div class="chat-head">💬 Pregúntale a tu instructor</div>
+        <div class="chat-log" id="chatLog"></div>
+        <div class="chat-input">
+          <input id="chatInput" type="text" placeholder="Ej. ¿qué hago con los brazos? ¿puedes ir más lento?" onkeydown="if(event.key==='Enter')sendChat()"/>
+          <button onclick="sendChat()">➤</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
 </section>
 
-<section class="filters" id="filterBar">
-  <button class="chip active" data-f="all" onclick="setFilter('all',this)">Todas</button>
-  <button class="chip" data-f="Salsa" onclick="setFilter('Salsa',this)">Salsa</button>
-  <button class="chip" data-f="Bachata" onclick="setFilter('Bachata',this)">Bachata</button>
-  <button class="chip" data-f="Merengue" onclick="setFilter('Merengue',this)">Merengue</button>
-  <button class="chip" data-f="Cumbia" onclick="setFilter('Cumbia',this)">Cumbia</button>
-  <button class="chip" data-f="Hip-Hop" onclick="setFilter('Hip-Hop',this)">Hip-Hop</button>
-  <button class="chip" data-f="Fiesta" onclick="setFilter('Fiesta',this)">Fiesta / Línea</button>
-  <button class="add-btn" onclick="openModal('addModal')">＋ Agregar video</button>
-</section>
-
-<main class="grid grid-view" id="grid"></main>
-
-<!-- ─── PLAYER ─── -->
-<section class="player-view" id="playerView">
-  <button class="back-btn" onclick="closePlayer()">← Volver a la biblioteca</button>
-  <h1 class="player-title" id="pTitle"></h1>
-  <div class="stage" id="stage">
-    <div class="mirror-flag">🪞 Modo Espejo</div>
-    <div class="frame-wrap"><div id="ytPlayer"></div></div>
-  </div>
-
-  <div class="controls">
-    <div class="ctl-row">
-      <button class="cbtn primary" id="btnPlay" onclick="togglePlay()">▶ Reproducir</button>
-      <button class="cbtn" onclick="seekRel(-10)">↺ 10s</button>
-      <button class="cbtn" onclick="seekRel(10)">10s ↻</button>
-      <button class="cbtn" onclick="restart()">⏮ Inicio</button>
-      <button class="cbtn" onclick="goFullscreen()">⛶ Pantalla completa</button>
+<!-- ═══════════ VIDEOS ═══════════ -->
+<section class="view" id="view-videos">
+  <div class="wrap">
+    <div class="vplayer" id="vplayer">
+      <div class="fw"><iframe id="vframe" allow="autoplay; fullscreen" allowfullscreen></iframe></div>
     </div>
-    <div class="ctl-row">
-      <span class="ctl-label">Velocidad — ponla lenta mientras aprendes los pasos</span>
-      <button class="cbtn spd" data-s="0.5" onclick="setSpeed(0.5,this)">0.5×</button>
-      <button class="cbtn spd" data-s="0.75" onclick="setSpeed(0.75,this)">0.75×</button>
-      <button class="cbtn spd on" data-s="1" onclick="setSpeed(1,this)">1×</button>
+    <button class="vclose" id="vclose" style="display:none" onclick="closeVideo()">← Cerrar video</button>
+    <div class="filters" id="filterBar">
+      <button class="chip active" onclick="setFilter('all',this)">Todas</button>
+      <button class="chip" onclick="setFilter('Salsa',this)">Salsa</button>
+      <button class="chip" onclick="setFilter('Bachata',this)">Bachata</button>
+      <button class="chip" onclick="setFilter('Merengue',this)">Merengue</button>
+      <button class="chip" onclick="setFilter('Cumbia',this)">Cumbia</button>
+      <button class="chip" onclick="setFilter('Hip-Hop',this)">Hip-Hop</button>
+      <button class="chip" onclick="setFilter('Fiesta',this)">Fiesta</button>
+      <button class="add-btn" onclick="openModal('addModal')">＋ Agregar video</button>
     </div>
-    <div class="ctl-row">
-      <span class="ctl-label">Repetir sección — marca el inicio y el fin del paso que estás practicando</span>
-      <button class="cbtn" id="btnA" onclick="setPointA()">🅰 Marcar inicio</button>
-      <button class="cbtn" id="btnB" onclick="setPointB()">🅱 Marcar fin</button>
-      <button class="cbtn" id="btnLoop" onclick="toggleLoop()">🔁 Repetir</button>
-      <span class="loop-info" id="loopInfo">Sin sección marcada</span>
-    </div>
-    <div class="ctl-row">
-      <span class="ctl-label">Modo espejo — voltea el video para que su derecha sea tu derecha, como en un espejo</span>
-      <button class="cbtn" id="btnMirror" onclick="toggleMirror()">🪞 Activar espejo</button>
-    </div>
-  </div>
-
-  <div class="progress-box">
-    <span style="font-weight:700;font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--text-mid)">Mi progreso:</span>
-    <button class="pstate" id="psPracticando" onclick="setProgress('practicando')">🔥 Practicando</button>
-    <button class="pstate" id="psDominada" onclick="setProgress('dominada')">⭐ ¡Dominada!</button>
-    <span class="practice-count" id="practiceCount"></span>
+    <div class="grid" id="grid"></div>
   </div>
 </section>
 
@@ -267,26 +383,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 <div class="overlay" id="addModal" onclick="if(event.target===this)closeModal('addModal')">
   <div class="modal">
     <h2>Agregar una coreografía</h2>
-    <div class="msub">Pega el enlace de cualquier video de YouTube que quieras aprender.</div>
+    <div class="msub">Pega el enlace de cualquier video de YouTube que quieras guardar.</div>
     <label>Enlace de YouTube</label>
     <input id="addUrl" type="url" placeholder="https://www.youtube.com/watch?v=..."/>
     <label>Nombre</label>
     <input id="addTitle" type="text" placeholder="Ej. Coreografía de cumbia para la boda"/>
     <label>Estilo</label>
-    <select id="addStyle">
-      <option>Salsa</option><option>Bachata</option><option>Merengue</option>
-      <option>Cumbia</option><option>Hip-Hop</option><option>Fiesta</option>
-    </select>
+    <select id="addStyle"><option>Salsa</option><option>Bachata</option><option>Merengue</option><option>Cumbia</option><option>Hip-Hop</option><option>Fiesta</option></select>
     <label>Nivel</label>
-    <select id="addLevel">
-      <option value="facil">Fácil</option>
-      <option value="medio">Medio</option>
-      <option value="reto">Reto</option>
-    </select>
-    <div class="mrow">
-      <button class="cbtn" onclick="closeModal('addModal')">Cancelar</button>
-      <button class="cbtn primary" onclick="addVideo()">Guardar</button>
-    </div>
+    <select id="addLevel"><option value="facil">Fácil</option><option value="medio">Medio</option><option value="reto">Reto</option></select>
+    <div class="mrow"><button class="cbtn" onclick="closeModal('addModal')">Cancelar</button><button class="cbtn primary" style="flex:0" onclick="addVideo()">Guardar</button></div>
   </div>
 </div>
 
@@ -294,292 +400,411 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 <div class="overlay" id="tvModal" onclick="if(event.target===this)closeModal('tvModal')">
   <div class="modal">
     <h2>📺 Cómo verlo en tu TV</h2>
-    <div class="msub">Para bailar con espacio, manda la pantalla de tu teléfono a la televisión.</div>
-    <div class="tv-step"><div class="ico">🍎</div><div>
-      <b>iPhone / iPad (AirPlay)</b>
-      <p>Desliza desde la esquina superior derecha para abrir el Centro de Control, toca <b>Duplicar pantalla</b> y elige tu Apple TV o TV compatible con AirPlay.</p>
-    </div></div>
-    <div class="tv-step"><div class="ico">🤖</div><div>
-      <b>Android (Smart View / Transmitir)</b>
-      <p>Desliza hacia abajo para abrir los ajustes rápidos y toca <b>Smart View</b> (Samsung) o <b>Transmitir pantalla</b>, luego elige tu TV o Chromecast.</p>
-    </div></div>
-    <div class="tv-step"><div class="ico">🌐</div><div>
-      <b>Navegador de la Smart TV</b>
-      <p>Si tu TV tiene navegador de internet, abre esta misma página directamente en la TV y controla todo con el control remoto.</p>
-    </div></div>
-    <div class="tv-tip">💡 <b>Tip:</b> activa el <b>Modo Espejo</b> 🪞 y baja la velocidad a <b>0.5×</b> las primeras veces. Cuando te salga el paso, sube poco a poco hasta 1×.</div>
-    <div class="mrow">
-      <button class="cbtn primary" onclick="closeModal('tvModal')">¡Entendido!</button>
-    </div>
+    <div class="msub">Manda la pantalla de tu teléfono a la televisión para bailar con espacio.</div>
+    <div class="tv-step"><div class="ico">🍎</div><div><b>iPhone / iPad (AirPlay)</b><p>Abre el Centro de Control (desliza desde la esquina superior derecha), toca <b>Duplicar pantalla</b> y elige tu Apple TV o TV compatible.</p></div></div>
+    <div class="tv-step"><div class="ico">🤖</div><div><b>Android (Smart View / Transmitir)</b><p>Desliza hacia abajo, toca <b>Smart View</b> (Samsung) o <b>Transmitir pantalla</b> y elige tu TV o Chromecast.</p></div></div>
+    <div class="tv-step"><div class="ico">⛶</div><div><b>Pantalla completa</b><p>Dentro de una clase, toca <b>Pantalla completa</b> para que los pasos se vean enormes en la tele.</p></div></div>
+    <div class="tv-tip">💡 <b>Tip:</b> activa la <b>voz</b> 🔊 y pon el ritmo en <b>0.5×</b> las primeras veces. Tu instructor te cuenta el paso en voz alta mientras bailas — no necesitas tocar nada.</div>
+    <div class="mrow"><button class="cbtn primary" style="flex:0" onclick="closeModal('tvModal')">¡Entendido!</button></div>
   </div>
 </div>
 
 <script>
-// ─── BIBLIOTECA BASE (videos reales de YouTube con instructores) ───
-const SEED = [
-  // Salsa
-  {id:'wV8cDpJa2f4', title:'Salsa — Paso básico desde cero (muy detallado)', style:'Salsa', level:'facil'},
-  {id:'7XgmAPCX85A', title:'Salsa — Pasos básicos para principiantes', style:'Salsa', level:'facil'},
-  {id:'jpIJMKjxkQ0', title:'Salsa — Básicos y vueltas (sin pareja)', style:'Salsa', level:'medio'},
-  {id:'C4MAFLeWY7c', title:'Salsa — Guía completa: 2 pasos y cómo combinarlos', style:'Salsa', level:'medio'},
-  // Bachata
-  {id:'SWrsMw0Da7Q', title:'Bachata — Pasos básicos para principiantes', style:'Bachata', level:'facil'},
-  {id:'xhrdh-uFkog', title:'Bachata — Básicos con Demetrio y Nicole', style:'Bachata', level:'facil'},
-  {id:'QmWRe4GRH8k', title:'Bachata — Clase de paso básico', style:'Bachata', level:'facil'},
-  {id:'npA-foACPJ0', title:'Bachata — 15 movimientos básicos', style:'Bachata', level:'medio'},
-  // Merengue
-  {id:'BZ4dlwtFJZM', title:'Merengue — 5 pasos sencillos que cualquiera puede hacer', style:'Merengue', level:'facil'},
-  {id:'7nEOMuWrj2Y', title:'Merengue — Patrones básicos 1 al 3', style:'Merengue', level:'facil'},
-  {id:'fd2mO_eF34k', title:'Merengue — 3 vueltas básicas paso a paso', style:'Merengue', level:'medio'},
-  {id:'Tei3iLluPHE', title:'Merengue — Coreografía fácil para fiestas y bodas', style:'Merengue', level:'medio'},
-  // Cumbia
-  {id:'fjnJpezcw9c', title:'Cumbia — Pasos básicos', style:'Cumbia', level:'facil'},
-  {id:'zVi2p5aXsEk', title:'Cumbia mexicana — Aprende en minutos (3 pasos fáciles)', style:'Cumbia', level:'facil'},
-  {id:'6ncfaU4RiSQ', title:'Cumbia — Tutorial para empezar hoy mismo', style:'Cumbia', level:'medio'},
-  {id:'l5SjNK-Gi_4', title:'Cumbia — 5 formas de mejorar al instante', style:'Cumbia', level:'medio'},
-  // Hip-Hop
-  {id:'DEWpw4n8Lkw', title:'Hip-Hop — 5 movimientos fáciles para principiantes', style:'Hip-Hop', level:'facil'},
-  {id:'Z3Z6Qii-g2Y', title:'Hip-Hop — 5 pasos básicos', style:'Hip-Hop', level:'facil'},
-  {id:'1sD51hC0yRg', title:'Hip-Hop — Coreografía paso a paso', style:'Hip-Hop', level:'medio'},
-  {id:'1WIA6Yvj8Yg', title:'Hip-Hop — Clase completa de coreografía en casa', style:'Hip-Hop', level:'reto'},
-  // Fiesta / Línea
-  {id:'G8OaCz-l9MM', title:'Payaso de Rodeo — Tutorial paso a paso (¡muy fácil!)', style:'Fiesta', level:'facil'},
-  {id:'vel13ZENYPA', title:'Payaso de Rodeo — Desde cero', style:'Fiesta', level:'facil'},
-  {id:'6Y2iExJY14A', title:'Payaso de Rodeo — En pareja (abrazados)', style:'Fiesta', level:'medio'},
-];
-
-const LS_VIDEOS='isabel_dance_videos', LS_PROGRESS='isabel_dance_progress', LS_DAYS='isabel_dance_days';
-const load=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(_){return d}};
-const save=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(_){}};
-
-let myVideos=load(LS_VIDEOS,[]);          // [{id,title,style,level,mine:true}]
-let progress=load(LS_PROGRESS,{});        // {videoId:{state:'practicando'|'dominada', count:N}}
-let practiceDays=load(LS_DAYS,[]);        // ['2026-06-13',...]
-let filter='all', current=null;
-
-const LEVEL_LABEL={facil:'Fácil',medio:'Medio',reto:'Reto'};
-const allVideos=()=>SEED.concat(myVideos);
-
-// ─── GRID ───
-function renderGrid(){
-  const grid=document.getElementById('grid');
-  const list=allVideos().filter(v=>filter==='all'||v.style===filter);
-  if(!list.length){grid.innerHTML='<div class="empty">No hay videos en esta categoría todavía. ¡Agrega uno con el botón ＋!</div>';return;}
-  grid.innerHTML=list.map(v=>{
-    const p=progress[v.id]||{};
-    const dot=p.state==='dominada'?'⭐ Dominada':p.state==='practicando'?'🔥 Practicando':'';
-    return `<div class="card${v.mine?' mine':''}" onclick="openPlayer('${v.id}')">
-      <img class="thumb" loading="lazy" src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""/>
-      ${dot?`<span class="status-dot">${dot}</span>`:''}
-      ${v.mine?`<button class="del" onclick="event.stopPropagation();removeVideo('${v.id}')">✕</button>`:''}
-      <div class="body">
-        <div class="title">${v.title}</div>
-        <div class="meta">
-          <span class="badge b-style">${v.style}</span>
-          <span class="badge b-${v.level}">${LEVEL_LABEL[v.level]||v.level}</span>
-          ${v.mine?'<span class="badge b-mia">Mío</span>':''}
-        </div>
-      </div>
-    </div>`;
-  }).join('');
-  renderStats();
+/* ════════════ API KEY (compartida con el Sistema Maestro) ════════════ */
+const KEY_STORE='isabel_anthropic_key';
+let apiKey='';
+function readKey(){try{return localStorage.getItem(KEY_STORE)||''}catch(_){return ''}}
+function setKey(k){
+  apiKey=(k||'').trim();
+  try{apiKey?localStorage.setItem(KEY_STORE,apiKey):0}catch(_){}
+  const ok=apiKey.length>20;
+  document.getElementById('keyDot').classList.toggle('ok',ok);
+  document.getElementById('keyBox').classList.toggle('show',!ok);
+  const mk=document.getElementById('manualKey');
+  if(ok&&mk&&!mk.value)mk.value=apiKey;
 }
-function setFilter(f,btn){
-  filter=f;
-  document.querySelectorAll('.chip').forEach(c=>c.classList.toggle('active',c===btn));
-  renderGrid();
-}
-function renderStats(){
-  const vids=allVideos();
-  document.getElementById('stTotal').textContent=vids.length;
-  document.getElementById('stDominadas').textContent=vids.filter(v=>(progress[v.id]||{}).state==='dominada').length;
-  document.getElementById('stSesiones').textContent=Object.values(progress).reduce((a,p)=>a+(p.count||0),0);
-  document.getElementById('stRacha').textContent=streak();
-}
-function streak(){
-  const set=new Set(practiceDays);
-  let n=0, d=new Date();
-  if(!set.has(dayKey(d))) d.setDate(d.getDate()-1); // la racha sigue viva si bailaste ayer
-  while(set.has(dayKey(d))){n++;d.setDate(d.getDate()-1);}
-  return n;
-}
-const dayKey=d=>d.toISOString().slice(0,10);
+function saveManualKey(){setKey(document.getElementById('manualKey').value);}
+apiKey=readKey();setKey(apiKey);
+// Pide la llave al Sistema Maestro (padre) y escucha su respuesta
+window.addEventListener('message',e=>{
+  if(e&&e.data&&e.data.type==='ISABEL_API_KEY'&&e.data.key)setKey(e.data.key);
+});
+try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
 
-// ─── MIS VIDEOS ───
-function parseYouTubeId(url){
-  const m=url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);
-  return m?m[1]:null;
-}
-function addVideo(){
-  const url=document.getElementById('addUrl').value.trim();
-  const title=document.getElementById('addTitle').value.trim();
-  const id=parseYouTubeId(url);
-  if(!id){alert('No pude leer ese enlace. Copia el enlace del video de YouTube e inténtalo de nuevo.');return;}
-  if(allVideos().some(v=>v.id===id)){alert('Ese video ya está en tu biblioteca.');return;}
-  myVideos.push({
-    id, title:title||'Mi coreografía',
-    style:document.getElementById('addStyle').value,
-    level:document.getElementById('addLevel').value,
-    mine:true
+/* ════════════ LLAMADA A CLAUDE ════════════ */
+async function askClaude(messages,system,maxTokens){
+  if(!apiKey||apiKey.length<20){throw new Error('NO_KEY');}
+  const res=await fetch('https://api.anthropic.com/v1/messages',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
+    body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:maxTokens||1600,system,messages})
   });
-  save(LS_VIDEOS,myVideos);
-  document.getElementById('addUrl').value='';
-  document.getElementById('addTitle').value='';
-  closeModal('addModal');
-  renderGrid();
-}
-function removeVideo(id){
-  if(!confirm('¿Quitar este video de tu biblioteca?'))return;
-  myVideos=myVideos.filter(v=>v.id!==id);
-  save(LS_VIDEOS,myVideos);
-  renderGrid();
+  const data=await res.json();
+  if(data.error)throw new Error(data.error.message||'Error de la IA');
+  return (data.content||[]).map(b=>b.text||'').join('');
 }
 
-// ─── PLAYER (YouTube IFrame API) ───
-let yt=null, ytReady=false, pointA=null, pointB=null, looping=false, loopTimer=null, sessionCounted=false;
-const tag=document.createElement('script');
-tag.src='https://www.youtube.com/iframe_api';
-document.head.appendChild(tag);
-function onYouTubeIframeAPIReady(){ytReady=true;}
+/* ════════════ SETUP ════════════ */
+const sel={style:'Bachata',level:'Principiante total'};
+function pick(group,btn){
+  const box=btn.parentElement;
+  box.querySelectorAll('.pill').forEach(p=>p.classList.toggle('sel',p===btn));
+  sel[group]=btn.textContent.trim();
+}
+function quickStart(style,level,goal){
+  document.querySelectorAll('#stylePills .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim()===style));
+  document.querySelectorAll('#levelPills .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim()===level));
+  sel.style=style;sel.level=level;
+  document.getElementById('goalInput').value=goal;
+  createLesson();
+}
 
-function openPlayer(id){
-  current=allVideos().find(v=>v.id===id);
-  if(!current)return;
-  pointA=pointB=null;looping=false;sessionCounted=false;
-  clearInterval(loopTimer);
-  document.getElementById('pTitle').textContent=current.title;
-  document.getElementById('grid').classList.add('hidden');
-  document.getElementById('statsBar').classList.add('hidden');
-  document.getElementById('filterBar').classList.add('hidden');
-  document.getElementById('playerView').classList.add('active');
-  document.getElementById('stage').classList.remove('mirrored');
-  document.getElementById('btnMirror').classList.remove('on');
-  document.getElementById('btnMirror').textContent='🪞 Activar espejo';
-  updateLoopUI();updateProgressUI();
-  document.querySelectorAll('.spd').forEach(b=>b.classList.toggle('on',b.dataset.s==='1'));
-  window.scrollTo({top:0});
+const LESSON_SYSTEM=`Eres "Profe", un instructor de baile latino cálido, paciente y muy alentador que habla español de México/EE.UU. Tu alumna es una persona adulta principiante que quiere aprender a bailar en casa, sin pareja, mirando una pantalla (a veces en su TV). Diseñas una mini-clase clara y realista.
 
-  const make=()=>{
-    if(yt){yt.loadVideoById(id);yt.setPlaybackRate(1);return;}
-    yt=new YT.Player('ytPlayer',{
-      videoId:id,
-      playerVars:{rel:0,modestbranding:1,playsinline:1},
-      events:{
-        onStateChange:e=>{
-          const btn=document.getElementById('btnPlay');
-          if(e.data===YT.PlayerState.PLAYING){
-            btn.textContent='⏸ Pausa';
-            countSession();
-          } else {
-            btn.textContent='▶ Reproducir';
-          }
-        }
-      }
-    });
-  };
-  if(ytReady)make();
-  else{const w=setInterval(()=>{if(ytReady){clearInterval(w);make();}},150);}
+Responde ÚNICAMENTE con un objeto JSON válido (sin texto antes ni después, sin markdown, sin comillas triples) con esta forma exacta:
+{
+  "titulo": "string corto y atractivo",
+  "estilo": "string",
+  "nivel": "string",
+  "bpm": número entero entre 70 y 130 (tempo cómodo para practicar este estilo),
+  "intro": "2-3 frases dando la bienvenida y diciendo qué van a lograr",
+  "pasos": [
+    {
+      "nombre": "nombre corto del movimiento",
+      "conteo": "el conteo rítmico, ej. '1-2-3 (pausa), 5-6-7 (pausa)'",
+      "descripcion": "2-4 frases explicando EXACTAMENTE qué hacen los pies y el cuerpo, en segunda persona ('das un paso a la derecha...'). Claro y concreto.",
+      "voz": "una sola frase corta y motivadora para decir en voz alta al empezar el paso",
+      "tip": "un consejo práctico o un error común que evitar"
+    }
+  ],
+  "cierre": "1-2 frases de felicitación y ánimo"
 }
-function closePlayer(){
-  if(yt&&yt.pauseVideo)try{yt.pauseVideo()}catch(_){}
-  clearInterval(loopTimer);looping=false;
-  document.getElementById('playerView').classList.remove('active');
-  document.getElementById('grid').classList.remove('hidden');
-  document.getElementById('statsBar').classList.remove('hidden');
-  document.getElementById('filterBar').classList.remove('hidden');
-  renderGrid();
+
+Reglas: incluye entre 4 y 6 pasos que progresen de lo más simple a combinarlos. Empieza siempre por la postura/base. Usa lenguaje sencillo, nada de jerga sin explicar. Adapta la dificultad al nivel indicado. NO incluyas nada fuera del JSON.`;
+
+function showLoading(on,msg){
+  document.getElementById('loadBox').classList.toggle('show',on);
+  if(msg)document.getElementById('loadMsg').textContent=msg;
+  document.getElementById('goBtn').disabled=on;
 }
-function togglePlay(){
-  if(!yt)return;
-  const s=yt.getPlayerState();
-  s===1?yt.pauseVideo():yt.playVideo();
+function showError(msg){
+  const e=document.getElementById('errBox');
+  e.textContent=msg;e.classList.add('show');
 }
-function seekRel(sec){if(yt)yt.seekTo(Math.max(0,yt.getCurrentTime()+sec),true);}
-function restart(){if(yt){yt.seekTo(pointA!=null&&looping?pointA:0,true);yt.playVideo();}}
-function setSpeed(s,btn){
-  if(yt)yt.setPlaybackRate(s);
-  document.querySelectorAll('.spd').forEach(b=>b.classList.toggle('on',b===btn));
+function clearError(){document.getElementById('errBox').classList.remove('show');}
+
+function extractJSON(text){
+  let t=text.trim();
+  // quita fences de markdown si los hubiera
+  t=t.replace(/^```(?:json)?/i,'').replace(/```$/,'').trim();
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');
+  if(a>=0&&b>a)t=t.slice(a,b+1);
+  return JSON.parse(t);
 }
-function goFullscreen(){
-  const el=document.getElementById('stage');
+
+async function createLesson(){
+  clearError();
+  if(!apiKey||apiKey.length<20){
+    document.getElementById('keyBox').classList.add('show');
+    showError('Primero conecta tu API Key de Anthropic arriba para que tu instructor pueda crear la clase.');
+    return;
+  }
+  const goal=document.getElementById('goalInput').value.trim();
+  const userMsg=`Quiero una clase de ${sel.style}. Mi nivel: ${sel.level}.`+(goal?` Objetivo especial: ${goal}.`:'')+` Arma la mini-clase en el formato JSON indicado.`;
+  showLoading(true,'Tu instructor está armando tu clase de '+sel.style+'…');
+  try{
+    const raw=await askClaude([{role:'user',content:userMsg}],LESSON_SYSTEM,1800);
+    const data=extractJSON(raw);
+    if(!data.pasos||!data.pasos.length)throw new Error('La clase llegó vacía, intenta de nuevo.');
+    startLesson(data);
+  }catch(err){
+    showLoading(false);
+    if(err.message==='NO_KEY'){document.getElementById('keyBox').classList.add('show');showError('Conecta tu API Key para empezar.');}
+    else showError('No pude crear la clase: '+err.message+'. Inténtalo otra vez.');
+  }finally{showLoading(false);}
+}
+
+/* ════════════ LECCIÓN / CLASE ════════════ */
+let lesson=null, moveIdx=0, bpm=120, practicing=false;
+let chatHistory=[];
+
+function startLesson(data){
+  lesson=data;moveIdx=0;
+  bpm=Math.min(130,Math.max(70,parseInt(data.bpm)||110));
+  document.getElementById('setup').style.display='none';
+  document.getElementById('lesson').classList.add('active');
+  document.getElementById('lessonTitle').textContent=data.titulo||'Tu clase';
+  document.getElementById('lessonIntro').textContent=data.intro||'';
+  document.getElementById('lessonMeta').innerHTML=
+    `<span class="badge b-style">${data.estilo||sel.style}</span>`+
+    `<span class="badge b-level">${data.nivel||sel.level}</span>`+
+    `<span class="badge b-bpm" id="metaBpm">${bpm} BPM</span>`;
+  updateBpmUI();
+  // contexto para el chat
+  chatHistory=[];
+  document.getElementById('chatLog').innerHTML='';
+  addChatMsg('bot',(data.intro||'¡Vamos a bailar!')+'\n\nCuando quieras, pregúntame lo que sea. 💛');
+  renderMove();
+  window.scrollTo({top:0,behavior:'smooth'});
+  if(voiceOn)setTimeout(()=>speakCurrentMove(),400);
+}
+
+function renderMove(){
+  if(!lesson)return;
+  const m=lesson.pasos[moveIdx];
+  document.getElementById('stepCount').textContent=`Paso ${moveIdx+1} de ${lesson.pasos.length}`;
+  document.getElementById('moveName').textContent=m.nombre||'';
+  document.getElementById('moveCounts').textContent=m.conteo||'';
+  document.getElementById('moveDesc').textContent=m.descripcion||'';
+  document.getElementById('moveTip').innerHTML=m.tip?`<b>💡 Tip:</b> ${m.tip}`:'';
+  document.getElementById('moveTip').style.display=m.tip?'block':'none';
+  document.getElementById('progressFill').style.width=((moveIdx+1)/lesson.pasos.length*100)+'%';
+  buildBeats();
+}
+function nextMove(){
+  if(!lesson)return;
+  if(moveIdx<lesson.pasos.length-1){moveIdx++;renderMove();if(voiceOn)speakCurrentMove();}
+  else{ // final
+    stopPractice();
+    if(voiceOn)speak(lesson.cierre||'¡Lo lograste! Muy bien.');
+    addChatMsg('bot','🎉 '+(lesson.cierre||'¡Terminaste la clase! Muy bien hecho.'));
+  }
+}
+function prevMove(){if(lesson&&moveIdx>0){moveIdx--;renderMove();if(voiceOn)speakCurrentMove();}}
+function restartLesson(){if(lesson){moveIdx=0;renderMove();if(voiceOn)speakCurrentMove();}}
+function newLesson(){
+  stopPractice();stopMetro();
+  lesson=null;
+  document.getElementById('lesson').classList.remove('active');
+  document.getElementById('setup').style.display='block';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ── BEATS / METRÓNOMO (Web Audio) ── */
+let audioCtx=null, metroOn=false, beatTimer=null, beatNum=0;
+const BEATS_PER_BAR=8;
+function buildBeats(){
+  const row=document.getElementById('beatsRow');
+  row.innerHTML='';
+  for(let i=0;i<BEATS_PER_BAR;i++){
+    const d=document.createElement('div');
+    d.className='beat'+(i===0||i===4?' accent':'');
+    row.appendChild(d);
+  }
+}
+function litBeat(i){
+  const dots=document.querySelectorAll('#beatsRow .beat');
+  dots.forEach((d,j)=>d.classList.toggle('lit',j===i));
+}
+function click(accent){
+  try{
+    if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();
+    const o=audioCtx.createOscillator(),g=audioCtx.createGain();
+    o.frequency.value=accent?1400:900;
+    g.gain.setValueAtTime(accent?0.5:0.3,audioCtx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+0.06);
+    o.connect(g);g.connect(audioCtx.destination);
+    o.start();o.stop(audioCtx.currentTime+0.06);
+  }catch(_){}
+}
+function beatTick(){
+  const i=beatNum%BEATS_PER_BAR;
+  litBeat(i);
+  if(metroOn)click(i===0||i===4);
+  // la voz cuenta los tiempos fuertes del baile latino (1-2-3, 5-6-7)
+  if(voiceOn&&voiceCount&&i!==3&&i!==7)speakNum(i+1);
+  beatNum++;
+}
+function startBeatLoop(){
+  stopBeatLoop();
+  beatNum=0;
+  const ms=60000/bpm/2; // cada "tiempo" = una corchea para que 1-8 calce con el compás
+  beatTick();
+  beatTimer=setInterval(beatTick,ms);
+}
+function stopBeatLoop(){if(beatTimer){clearInterval(beatTimer);beatTimer=null;}document.querySelectorAll('#beatsRow .beat').forEach(d=>d.classList.remove('lit'));}
+
+function togglePractice(){practicing?stopPractice():startPractice();}
+function startPractice(){
+  practicing=true;
+  document.getElementById('practiceBtn').textContent='⏸ Pausar';
+  document.getElementById('practiceBtn').classList.add('on');
+  if(audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+  if(voiceOn){const m=lesson.pasos[moveIdx];speak((m.voz||m.nombre)+'. ¡Vamos!',()=>{if(practicing)startBeatLoop();});}
+  else startBeatLoop();
+}
+function stopPractice(){
+  practicing=false;
+  const b=document.getElementById('practiceBtn');
+  if(b){b.textContent='▶ Practicar este paso';b.classList.remove('on');}
+  stopBeatLoop();
+}
+let voiceCount=true; // contar los tiempos en voz
+function toggleMetro(){
+  metroOn=!metroOn;
+  document.getElementById('metroBtn').classList.toggle('beat-on',metroOn);
+  if(metroOn&&!audioCtx){try{audioCtx=new (window.AudioContext||window.webkitAudioContext)();}catch(_){}}
+  if(metroOn&&audioCtx&&audioCtx.state==='suspended')audioCtx.resume();
+}
+function stopMetro(){metroOn=false;document.getElementById('metroBtn').classList.remove('beat-on');}
+function changeBpm(d){bpm=Math.min(160,Math.max(50,bpm+d));updateBpmUI();if(practicing)startBeatLoop();}
+function updateBpmUI(){
+  document.getElementById('bpmVal').textContent=bpm+' BPM';
+  const mb=document.getElementById('metaBpm');if(mb)mb.textContent=bpm+' BPM';
+}
+
+/* ── VOZ (Speech Synthesis) ── */
+let voiceOn=true, esVoice=null;
+function loadVoices(){
+  const vs=speechSynthesis.getVoices();
+  esVoice=vs.find(v=>/es-MX|es-US/i.test(v.lang))||vs.find(v=>/^es/i.test(v.lang))||null;
+}
+if('speechSynthesis' in window){loadVoices();speechSynthesis.onvoiceschanged=loadVoices;}
+function speak(text,onEnd){
+  if(!voiceOn||!('speechSynthesis' in window)){if(onEnd)onEnd();return;}
+  try{
+    speechSynthesis.cancel();
+    const u=new SpeechSynthesisUtterance(text);
+    u.lang='es-MX';if(esVoice)u.voice=esVoice;u.rate=0.98;u.pitch=1.05;
+    if(onEnd)u.onend=onEnd;
+    speechSynthesis.speak(u);
+  }catch(_){if(onEnd)onEnd();}
+}
+const NUM_ES=['','uno','dos','tres','cuatro','cinco','seis','siete','ocho'];
+function speakNum(n){
+  if(!voiceOn||!('speechSynthesis' in window))return;
+  try{
+    const u=new SpeechSynthesisUtterance(NUM_ES[n]||String(n));
+    u.lang='es-MX';if(esVoice)u.voice=esVoice;u.rate=1.25;u.pitch=1.1;u.volume=0.9;
+    speechSynthesis.speak(u);
+  }catch(_){}
+}
+function toggleVoice(){
+  voiceOn=!voiceOn;
+  const b=document.getElementById('voiceBtn');
+  b.classList.toggle('on',voiceOn);
+  b.textContent=voiceOn?'🔊 Voz activada':'🔇 Voz apagada';
+  if(!voiceOn&&'speechSynthesis' in window)speechSynthesis.cancel();
+}
+function speakCurrentMove(){
+  if(!lesson)return;
+  const m=lesson.pasos[moveIdx];
+  // despierta la síntesis (requiere gesto del usuario en algunos navegadores)
+  speak(`${m.nombre}. ${m.descripcion} ${m.tip?('Tip: '+m.tip):''}`);
+}
+
+function fullscreenStage(){
+  const el=document.getElementById('stageEl');
   if(document.fullscreenElement){document.exitFullscreen();return;}
   (el.requestFullscreen||el.webkitRequestFullscreen||function(){}).call(el);
 }
 
-// A-B loop
-function setPointA(){
-  if(!yt)return;
-  pointA=yt.getCurrentTime();
-  if(pointB!=null&&pointB<=pointA)pointB=null;
-  updateLoopUI();
+/* ════════════ CHAT con el instructor ════════════ */
+function addChatMsg(role,text){
+  const log=document.getElementById('chatLog');
+  const d=document.createElement('div');
+  d.className='msg '+(role==='user'?'user':'bot');
+  d.textContent=text;
+  log.appendChild(d);log.scrollTop=log.scrollHeight;
+  return d;
 }
-function setPointB(){
-  if(!yt)return;
-  const t=yt.getCurrentTime();
-  if(pointA==null||t<=pointA){alert('Primero marca el inicio 🅰 y deja correr el video hasta donde termina el paso.');return;}
-  pointB=t;updateLoopUI();
-}
-function toggleLoop(){
-  if(pointA==null||pointB==null){alert('Marca el inicio 🅰 y el fin 🅱 de la sección que quieres repetir.');return;}
-  looping=!looping;
-  clearInterval(loopTimer);
-  if(looping){
-    yt.seekTo(pointA,true);yt.playVideo();
-    loopTimer=setInterval(()=>{
-      if(yt&&yt.getCurrentTime&&yt.getCurrentTime()>=pointB)yt.seekTo(pointA,true);
-    },250);
+async function sendChat(){
+  const input=document.getElementById('chatInput');
+  const q=input.value.trim();
+  if(!q)return;
+  if(!apiKey||apiKey.length<20){addChatMsg('bot','Necesito que conectes tu API Key arriba para poder responderte. 🔑');return;}
+  input.value='';
+  addChatMsg('user',q);
+  chatHistory.push({role:'user',content:q});
+  const thinking=addChatMsg('bot','…');
+  const ctx=lesson?`Estás dando esta clase: "${lesson.titulo}" (${lesson.estilo}, ${lesson.nivel}). Pasos: ${lesson.pasos.map(p=>p.nombre).join(', ')}. El alumno está en el paso ${moveIdx+1}: "${lesson.pasos[moveIdx].nombre}".`:'';
+  const sys=`Eres "Profe", instructor de baile latino cálido y motivador. Hablas español sencillo. Respondes corto (2-4 frases), práctico y con ánimo. ${ctx} Si te piden ir más lento, sugiere bajar los BPM con el botón. No uses markdown.`;
+  try{
+    const reply=await askClaude(chatHistory.slice(-8),sys,500);
+    thinking.textContent=reply;
+    chatHistory.push({role:'assistant',content:reply});
+    if(voiceOn)speak(reply);
+  }catch(err){
+    thinking.textContent=err.message==='NO_KEY'?'Conecta tu API Key arriba para que pueda responderte. 🔑':'Uy, no pude responder ahora. Inténtalo de nuevo.';
   }
-  updateLoopUI();
-}
-const fmt=t=>`${Math.floor(t/60)}:${String(Math.floor(t%60)).padStart(2,'0')}`;
-function updateLoopUI(){
-  document.getElementById('btnA').textContent=pointA!=null?`🅰 ${fmt(pointA)}`:'🅰 Marcar inicio';
-  document.getElementById('btnB').textContent=pointB!=null?`🅱 ${fmt(pointB)}`:'🅱 Marcar fin';
-  const lb=document.getElementById('btnLoop');
-  lb.classList.toggle('loop-on',looping);
-  lb.textContent=looping?'🔁 Repitiendo…':'🔁 Repetir';
-  document.getElementById('loopInfo').textContent=
-    pointA!=null&&pointB!=null?`Sección: ${fmt(pointA)} → ${fmt(pointB)}`:
-    pointA!=null?'Ahora marca el fin 🅱':'Sin sección marcada';
 }
 
-// Mirror
-function toggleMirror(){
-  const st=document.getElementById('stage'),btn=document.getElementById('btnMirror');
-  st.classList.toggle('mirrored');
-  const on=st.classList.contains('mirrored');
-  btn.classList.toggle('on',on);
-  btn.textContent=on?'🪞 Quitar espejo':'🪞 Activar espejo';
+/* ════════════ VISTAS / TABS ════════════ */
+function showView(v,btn){
+  document.querySelectorAll('.view').forEach(x=>x.classList.remove('active'));
+  document.getElementById('view-'+v).classList.add('active');
+  document.querySelectorAll('.mtab').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  if(v!=='ia'){stopPractice();if('speechSynthesis' in window)speechSynthesis.cancel();}
 }
 
-// ─── PROGRESO ───
-function countSession(){
-  if(sessionCounted||!current)return;
-  sessionCounted=true;
-  const p=progress[current.id]||(progress[current.id]={count:0});
-  p.count=(p.count||0)+1;
-  const today=dayKey(new Date());
-  if(!practiceDays.includes(today))practiceDays.push(today);
-  save(LS_PROGRESS,progress);save(LS_DAYS,practiceDays);
-  updateProgressUI();
+/* ════════════ VIDEOS (biblioteca de respaldo) ════════════ */
+const SEED=[
+  {id:'wV8cDpJa2f4',title:'Salsa — Paso básico desde cero',style:'Salsa',level:'facil'},
+  {id:'7XgmAPCX85A',title:'Salsa — Pasos básicos para principiantes',style:'Salsa',level:'facil'},
+  {id:'jpIJMKjxkQ0',title:'Salsa — Básicos y vueltas (sin pareja)',style:'Salsa',level:'medio'},
+  {id:'SWrsMw0Da7Q',title:'Bachata — Pasos básicos para principiantes',style:'Bachata',level:'facil'},
+  {id:'xhrdh-uFkog',title:'Bachata — Básicos con Demetrio y Nicole',style:'Bachata',level:'facil'},
+  {id:'npA-foACPJ0',title:'Bachata — 15 movimientos básicos',style:'Bachata',level:'medio'},
+  {id:'BZ4dlwtFJZM',title:'Merengue — 5 pasos sencillos',style:'Merengue',level:'facil'},
+  {id:'7nEOMuWrj2Y',title:'Merengue — Patrones básicos 1 al 3',style:'Merengue',level:'facil'},
+  {id:'Tei3iLluPHE',title:'Merengue — Coreografía fácil para fiestas',style:'Merengue',level:'medio'},
+  {id:'fjnJpezcw9c',title:'Cumbia — Pasos básicos',style:'Cumbia',level:'facil'},
+  {id:'zVi2p5aXsEk',title:'Cumbia mexicana — Aprende en minutos',style:'Cumbia',level:'facil'},
+  {id:'6ncfaU4RiSQ',title:'Cumbia — Para empezar hoy mismo',style:'Cumbia',level:'medio'},
+  {id:'DEWpw4n8Lkw',title:'Hip-Hop — 5 movimientos fáciles',style:'Hip-Hop',level:'facil'},
+  {id:'Z3Z6Qii-g2Y',title:'Hip-Hop — 5 pasos básicos',style:'Hip-Hop',level:'facil'},
+  {id:'1sD51hC0yRg',title:'Hip-Hop — Coreografía paso a paso',style:'Hip-Hop',level:'medio'},
+  {id:'G8OaCz-l9MM',title:'Payaso de Rodeo — Paso a paso (¡fácil!)',style:'Fiesta',level:'facil'},
+  {id:'vel13ZENYPA',title:'Payaso de Rodeo — Desde cero',style:'Fiesta',level:'facil'},
+  {id:'6Y2iExJY14A',title:'Payaso de Rodeo — En pareja',style:'Fiesta',level:'medio'},
+];
+const LS_VIDEOS='isabel_dance_videos';
+let myVideos=[];try{myVideos=JSON.parse(localStorage.getItem(LS_VIDEOS))||[]}catch(_){myVideos=[]}
+let vfilter='all';
+const LEVEL_LABEL={facil:'Fácil',medio:'Medio',reto:'Reto'};
+const allVideos=()=>SEED.concat(myVideos);
+function renderGrid(){
+  const grid=document.getElementById('grid');
+  const list=allVideos().filter(v=>vfilter==='all'||v.style===vfilter);
+  grid.innerHTML=list.map(v=>`<div class="card${v.mine?' mine':''}" onclick="playVideo('${v.id}')">
+    <img class="thumb" loading="lazy" src="https://i.ytimg.com/vi/${v.id}/hqdefault.jpg" alt=""/>
+    ${v.mine?`<button class="del" onclick="event.stopPropagation();removeVideo('${v.id}')">✕</button>`:''}
+    <div class="body"><div class="title">${v.title}</div>
+    <div class="meta"><span class="badge b-style">${v.style}</span><span class="badge b-${v.level}">${LEVEL_LABEL[v.level]||v.level}</span></div></div></div>`).join('');
 }
-function setProgress(state){
-  if(!current)return;
-  const p=progress[current.id]||(progress[current.id]={count:0});
-  p.state=p.state===state?null:state; // tocar de nuevo lo desmarca
-  save(LS_PROGRESS,progress);
-  updateProgressUI();
+function setFilter(f,btn){vfilter=f;document.querySelectorAll('#filterBar .chip').forEach(c=>c.classList.toggle('active',c===btn));renderGrid();}
+function playVideo(id){
+  document.getElementById('vframe').src=`https://www.youtube.com/embed/${id}?rel=0&modestbranding=1&autoplay=1`;
+  document.getElementById('vplayer').classList.add('show');
+  document.getElementById('vclose').style.display='inline-block';
+  window.scrollTo({top:0,behavior:'smooth'});
 }
-function updateProgressUI(){
-  if(!current)return;
-  const p=progress[current.id]||{};
-  document.getElementById('psPracticando').classList.toggle('sel-practicando',p.state==='practicando');
-  document.getElementById('psDominada').classList.toggle('sel-dominada',p.state==='dominada');
-  document.getElementById('practiceCount').textContent=
-    p.count?`Has practicado esta coreografía ${p.count} ${p.count===1?'vez':'veces'} 💪`:'';
+function closeVideo(){
+  document.getElementById('vframe').src='';
+  document.getElementById('vplayer').classList.remove('show');
+  document.getElementById('vclose').style.display='none';
+}
+function parseYouTubeId(url){const m=url.match(/(?:youtube\.com\/(?:watch\?.*v=|shorts\/|embed\/)|youtu\.be\/)([\w-]{11})/);return m?m[1]:null;}
+function addVideo(){
+  const url=document.getElementById('addUrl').value.trim();
+  const title=document.getElementById('addTitle').value.trim();
+  const id=parseYouTubeId(url);
+  if(!id){alert('No pude leer ese enlace. Copia el enlace del video de YouTube.');return;}
+  if(allVideos().some(v=>v.id===id)){alert('Ese video ya está en tu biblioteca.');return;}
+  myVideos.push({id,title:title||'Mi coreografía',style:document.getElementById('addStyle').value,level:document.getElementById('addLevel').value,mine:true});
+  try{localStorage.setItem(LS_VIDEOS,JSON.stringify(myVideos))}catch(_){}
+  document.getElementById('addUrl').value='';document.getElementById('addTitle').value='';
+  closeModal('addModal');renderGrid();
+}
+function removeVideo(id){
+  if(!confirm('¿Quitar este video?'))return;
+  myVideos=myVideos.filter(v=>v.id!==id);
+  try{localStorage.setItem(LS_VIDEOS,JSON.stringify(myVideos))}catch(_){}
+  renderGrid();
 }
 
-// ─── MODALS ───
+/* ════════════ MODALS ════════════ */
 function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
