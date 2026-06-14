@@ -151,6 +151,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 /* ── AVATAR BAILARÍN ── */
 .dancer-wrap{display:flex;justify-content:center;align-items:flex-end;height:150px;margin:0 auto 6px}
 .dancer-wrap.hidden{display:none}
+.video-avatar{display:none;justify-content:center;align-items:center;margin:0 auto 8px}
+.video-avatar.show{display:flex}
+.video-avatar video{width:160px;height:214px;object-fit:cover;border-radius:18px;background:#000;box-shadow:0 6px 22px rgba(0,0,0,.45)}
+.stage.video-on .dancer-wrap{display:none}
 .dancer{position:relative;width:90px;height:140px;--beat:.5s;transform-origin:bottom center}
 .dancer .d-head{position:absolute;left:50%;top:2px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:var(--av-skin);border:2px solid rgba(0,0,0,.12);z-index:3;background-size:cover;background-position:center top}
 .dancer .d-head:after{content:"";position:absolute;left:50%;top:-7px;width:30px;height:16px;margin-left:-15px;border-radius:50% 50% 40% 40%;background:var(--av-hair)}
@@ -391,6 +395,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
       <div class="progressbar"><div class="fill" id="progressFill"></div></div>
 
       <div class="stage" id="stageEl">
+        <div class="video-avatar" id="videoAvatarWrap"><video id="videoAvatar" muted loop playsinline autoplay></video></div>
         <div class="dancer-wrap" id="dancerWrap">
           <div class="dancer" id="dancer" data-move="rebote">
             <div class="d-arm left"></div>
@@ -497,6 +502,15 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
         <div class="d-arm left"></div><div class="d-arm right"></div>
         <div class="d-leg left"></div><div class="d-leg right"></div>
         <div class="d-torso"></div><div class="d-head"></div>
+      </div>
+    </div>
+
+    <div style="background:var(--purple-lt);border:1.5px solid var(--purple);border-radius:12px;padding:12px 14px;margin-bottom:6px">
+      <label style="margin-top:0;color:var(--purple)">🎬 Avatar en video — ¡lo más realista!</label>
+      <p style="font-size:12.5px;color:var(--text-mid);line-height:1.5;margin:4px 0 10px">Sube un video tuyo bailando y se verá una <b>persona real</b> (tú) en vez de la caricatura. Grábate con el teléfono, o crea el video desde tu foto con una app de IA (te paso cuáles).</p>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+        <label class="facebtn" style="border-color:var(--purple);color:var(--purple)">Subir video<input type="file" accept="video/*" onchange="setVideoAvatar(event)"/></label>
+        <button class="cbtn" style="flex:0" onclick="removeVideoAvatar()">Quitar video</button>
       </div>
     </div>
 
@@ -1029,6 +1043,39 @@ function setFacePhoto(e){
   rd.readAsDataURL(f);
 }
 function removeFace(){facePhoto='';try{localStorage.removeItem('isabel_dance_face');}catch(_){}applyAvatar();}
+
+/* ── AVATAR EN VIDEO (guardado en IndexedDB) ── */
+function idb(){return new Promise((res,rej)=>{try{const r=indexedDB.open('isabelDance',1);r.onupgradeneeded=()=>r.result.createObjectStore('kv');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function idbSet(k,v){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+async function idbGet(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readonly');const q=t.objectStore('kv').get(k);q.onsuccess=()=>res(q.result);q.onerror=()=>rej(q.error);});}
+async function idbDel(k){const db=await idb();return new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=()=>res();t.onerror=()=>rej(t.error);});}
+let videoActive=false;
+function showVideoAvatar(blob){
+  const v=document.getElementById('videoAvatar');
+  if(v._url)try{URL.revokeObjectURL(v._url);}catch(_){}
+  const url=URL.createObjectURL(blob);v._url=url;v.src=url;
+  v.play().catch(()=>{});
+  document.getElementById('videoAvatarWrap').classList.add('show');
+  document.getElementById('stageEl').classList.add('video-on');
+  videoActive=true;
+}
+function setVideoAvatar(e){
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  if(f.size>80*1024*1024){alert('Ese video pesa mucho (más de 80MB). Usa uno más corto, de unos segundos.');return;}
+  showVideoAvatar(f);
+  idbSet('danceVideo',f).catch(()=>{});
+}
+function removeVideoAvatar(){
+  const v=document.getElementById('videoAvatar');
+  try{v.pause();}catch(_){}
+  if(v._url){try{URL.revokeObjectURL(v._url);}catch(_){}v._url=null;}
+  v.removeAttribute('src');
+  document.getElementById('videoAvatarWrap').classList.remove('show');
+  document.getElementById('stageEl').classList.remove('video-on');
+  videoActive=false;
+  idbDel('danceVideo').catch(()=>{});
+}
+function loadVideoAvatar(){idbGet('danceVideo').then(b=>{if(b)showVideoAvatar(b);}).catch(()=>{});}
 function openAvatarModal(){
   buildSwatches();
   document.querySelectorAll('#hairStyle .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim().toLowerCase()===avatarCfg.hairStyle));
@@ -1040,6 +1087,7 @@ function openModal(id){document.getElementById(id).classList.add('open');}
 function closeModal(id){document.getElementById(id).classList.remove('open');}
 
 applyAvatar();
+loadVideoAvatar();
 renderGrid();
 </script>
 </body>
