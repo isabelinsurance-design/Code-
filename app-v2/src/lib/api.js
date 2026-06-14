@@ -217,8 +217,10 @@ export const api = {
   lunaHealth: () => request('/luna/health'),
   // Diagnóstico global — status de cada integración
   diagnostico: () => request('/diagnostico'),
-  // Uso / costos — estimación en vivo
+  // Uso / costos — estimación en vivo + costo real por tokens
   usage: () => request('/usage'),
+  // Errores recientes — qué se ha roto (visibilidad de fallas)
+  errors: () => request('/errors'),
   // Bandeja operacional — drafts + alertas + triage + team en una sola llamada
   bandeja: () => request('/bandeja'),
   // Triage del día (snapshot del batch 5am)

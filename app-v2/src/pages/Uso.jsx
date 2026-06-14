@@ -125,6 +125,30 @@ export default function Uso() {
 
       {err && <p className="text-red font-mono text-xs uppercase mb-4">{err}</p>}
 
+      {/* COSTO REAL — tokens exactos (cuando hay datos) */}
+      {data?.real?.has_data && (
+        <section className="border border-lino-400 p-4 mb-10">
+          <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-ink-3 mb-3">
+            Costo real · tokens exactos
+          </p>
+          <div className="grid grid-cols-3 gap-3">
+            {[['Hoy', 'today'], ['Semana', 'week'], ['Mes', 'month']].map(([lbl, k]) => (
+              <div key={k}>
+                <div className="font-serif text-[1.5rem] leading-none text-ink-1 font-light">
+                  {money(data.real[k]?.cost)}
+                </div>
+                <div className="font-mono text-[9px] uppercase tracking-wider text-ink-3 mt-1">
+                  {lbl} · {data.real[k]?.count || 0} llamadas
+                </div>
+              </div>
+            ))}
+          </div>
+          <p className="font-serif italic text-[11px] text-ink-3 mt-3 leading-relaxed">
+            Números exactos de los tokens cobrados. Lo de abajo es la estimación por tipo de tarea.
+          </p>
+        </section>
+      )}
+
       <Period title="Hoy" period={data?.today} />
       <Period title="Esta semana" period={data?.week} />
       <Period title="Este mes" period={data?.month} />

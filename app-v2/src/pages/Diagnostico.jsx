@@ -34,6 +34,7 @@ const KIND_LABEL = {
 export default function Diagnostico() {
   const [diag, setDiag] = useState(null);
   const [lunaHealth, setLunaHealth] = useState(null);
+  const [fallas, setFallas] = useState(null);
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState('');
 
@@ -41,12 +42,14 @@ export default function Diagnostico() {
     setLoading(true);
     setErr('');
     try {
-      const [d, lh] = await Promise.all([
+      const [d, lh, fx] = await Promise.all([
         api.diagnostico().catch(() => ({ services: [] })),
         api.lunaHealth().catch(() => ({ ok: false, actions: [] })),
+        api.errors().catch(() => ({ total: 0, today: 0, last24h: 0, recent: [] })),
       ]);
       setDiag(d);
       setLunaHealth(lh);
+      setFallas(fx);
     } catch (e) { setErr(e.message); }
     finally { setLoading(false); }
   }
@@ -146,6 +149,33 @@ export default function Diagnostico() {
           )}
         </section>
       )}
+
+      {/* FALLAS RECIENTES */}
+      <section className="border-t border-ink-1 pt-6 mb-12">
+        <p className="font-mono text-[10px] tracking-[0.22em] uppercase text-ink-3 mb-2">
+          Fallas recientes
+        </p>
+        <h2 className="font-serif text-[1.4rem] leading-tight text-ink-1 mb-4">
+          {fallas?.today > 0
+            ? <span><span className="font-light text-red">{fallas.today}</span> hoy<span className="text-ink-3"> · {fallas.last24h} en 24h</span></span>
+            : <span><em className="italic font-light">Sin fallas hoy.</em> Todo en orden.</span>}
+        </h2>
+        {fallas?.recent?.length > 0 && (
+          <div className="space-y-1.5">
+            {fallas.recent.map((f, i) => (
+              <article key={i} className="grid grid-cols-[1fr_auto] gap-3 items-baseline border-b border-lino-300 pb-1.5">
+                <div>
+                  <p className="font-serif text-sm text-ink-1 leading-tight">{f.message}</p>
+                  <p className="font-mono text-[9px] tracking-wide text-ink-3">{f.source}</p>
+                </div>
+                <div className="font-mono text-[9px] text-ink-3 text-right whitespace-nowrap">
+                  {f.ts ? new Date(f.ts).toLocaleString('es-MX', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '—'}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
 
       {!loading && services.length === 0 && (
         <p className="font-serif italic text-ink-3 text-center py-12">
