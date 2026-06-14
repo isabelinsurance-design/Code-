@@ -97,6 +97,12 @@ export async function askSpecialist(specialist, question, wikiContext = '', opts
 }
 
 function extractText(res) {
+  // Costo REAL del especialista (fire-and-forget — nunca tumba la respuesta).
+  if (res?.usage) {
+    import('./usage.js')
+      .then((m) => m.recordUsage({ model: res.model, usage: res.usage, label: 'especialista' }))
+      .catch(() => {});
+  }
   return res.content
     .filter((b) => b.type === 'text')
     .map((b) => b.text)
