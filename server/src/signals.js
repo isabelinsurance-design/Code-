@@ -16,6 +16,7 @@
 //  La salida vive en data/signals.json y la lee briefing.js.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { getHistory, getWiki } from './memory.js';
@@ -36,7 +37,7 @@ const FILE = join(DATA_DIR, 'signals.json');
 
 function save(signals) {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify({ ts: new Date().toISOString(), signals }, null, 2));
+  atomicWriteJson(FILE, { ts: new Date().toISOString(), signals });
 }
 
 export function loadSignals() {

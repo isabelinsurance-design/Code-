@@ -1,4 +1,5 @@
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runDirectora } from './directora.js';
@@ -24,11 +25,11 @@ function todayLocal() {
 function saveBriefingToDisk(cards) {
   try {
     if (!existsSync(dirname(BRIEFING_FILE))) mkdirSync(dirname(BRIEFING_FILE), { recursive: true });
-    writeFileSync(BRIEFING_FILE, JSON.stringify({
+    atomicWriteJson(BRIEFING_FILE, {
       date: todayLocal(),
       generated_at: new Date().toISOString(),
       cards,
-    }, null, 2));
+    });
   } catch (e) { console.warn('[briefing] no se pudo guardar a disco:', e.message); }
 }
 

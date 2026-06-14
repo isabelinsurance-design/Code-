@@ -19,6 +19,7 @@
 //  en reflexión nocturna para cerrar lo que se quedó suelto.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,7 +40,7 @@ function load() {
 
 function save(data) {
   ensureDir();
-  writeFileSync(FILE, JSON.stringify(data.slice(-300), null, 2));
+  atomicWriteJson(FILE, data.slice(-300));
 }
 
 function newId() {

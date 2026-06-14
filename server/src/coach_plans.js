@@ -19,6 +19,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, readdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -61,7 +62,7 @@ function savePlan(coachId, plan) {
   ensureDir();
   const f = fileFor(coachId);
   plan.actualizado = new Date().toISOString();
-  writeFileSync(f, JSON.stringify(plan, null, 2));
+  atomicWriteJson(f, plan);
   return plan;
 }
 

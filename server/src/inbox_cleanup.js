@@ -25,6 +25,7 @@ import { ImapFlow } from 'imapflow';
 import { simpleParser } from 'mailparser';
 import nodemailer from 'nodemailer';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,7 +53,7 @@ function loadSuppress() {
 
 function saveSuppress(data) {
   ensureDir();
-  writeFileSync(SUPPRESS_FILE, JSON.stringify(data, null, 2));
+  atomicWriteJson(SUPPRESS_FILE, data);
 }
 
 function normalizeEmail(e) {

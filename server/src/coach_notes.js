@@ -23,6 +23,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync, readdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -68,7 +69,7 @@ export function saveCoachNotes(coachId, notes) {
     notes: trimmed,
     actualizado: new Date().toISOString(),
   };
-  writeFileSync(f, JSON.stringify(data, null, 2));
+  atomicWriteJson(f, data);
   return data;
 }
 

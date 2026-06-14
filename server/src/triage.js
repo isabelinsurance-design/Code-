@@ -11,6 +11,7 @@
 //      lo mencione.
 // ============================================================
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { runDirectora } from './directora.js';
@@ -24,7 +25,7 @@ const TRIAGE_LIMIT = parseInt(process.env.TRIAGE_EMAIL_LIMIT || '25', 10);
 function saveTriageBatch(batch) {
   try {
     if (!existsSync(dirname(TRIAGE_FILE))) mkdirSync(dirname(TRIAGE_FILE), { recursive: true });
-    writeFileSync(TRIAGE_FILE, JSON.stringify(batch, null, 2));
+    atomicWriteJson(TRIAGE_FILE, batch);
   } catch (e) { console.warn('[triage] save falló:', e.message); }
 }
 

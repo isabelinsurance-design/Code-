@@ -16,6 +16,7 @@
 //  Storage: data/standing_orders.json
 // ============================================================
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -42,7 +43,7 @@ function load() {
 function save(list) {
   try {
     if (!existsSync(dirname(FILE))) mkdirSync(dirname(FILE), { recursive: true });
-    writeFileSync(FILE, JSON.stringify(list, null, 2));
+    atomicWriteJson(FILE, list);
   } catch (e) { console.warn('[standing_orders] save falló:', e.message); }
 }
 

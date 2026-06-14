@@ -17,6 +17,7 @@
 //  Athena solo lee tu IG (DMs/comentarios) — Phase 5.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,7 +27,7 @@ const FILE = join(DATA_DIR, 'research_topics.json');
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function load() { try { if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8')); } catch {} return []; }
-function save(d) { ensureDir(); writeFileSync(FILE, JSON.stringify(d.slice(-50), null, 2)); }
+function save(d) { ensureDir(); atomicWriteJson(FILE, d.slice(-50)); }
 function newId() { return `rt_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
 // Crear / actualizar tema. queries es array de strings — Athena los rotará.

@@ -17,6 +17,7 @@
 //  explícitamente. Pasa el ruido, queda lo importante.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -51,7 +52,7 @@ function load() {
 
 function save(data) {
   ensureDir();
-  writeFileSync(FILE, JSON.stringify(data.slice(-500), null, 2));
+  atomicWriteJson(FILE, data.slice(-500));
 }
 
 function newId() {

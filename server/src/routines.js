@@ -16,6 +16,7 @@
 //  Al final: registra completion + felicita.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -26,9 +27,9 @@ const COMPLETIONS_FILE = join(DATA_DIR, 'routine_completions.json');
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function loadR() { try { if (existsSync(ROUTINES_FILE)) return JSON.parse(readFileSync(ROUTINES_FILE, 'utf8')); } catch {} return []; }
-function saveR(d) { ensureDir(); writeFileSync(ROUTINES_FILE, JSON.stringify(d.slice(-100), null, 2)); }
+function saveR(d) { ensureDir(); atomicWriteJson(ROUTINES_FILE, d.slice(-100)); }
 function loadC() { try { if (existsSync(COMPLETIONS_FILE)) return JSON.parse(readFileSync(COMPLETIONS_FILE, 'utf8')); } catch {} return []; }
-function saveC(d) { ensureDir(); writeFileSync(COMPLETIONS_FILE, JSON.stringify(d.slice(-500), null, 2)); }
+function saveC(d) { ensureDir(); atomicWriteJson(COMPLETIONS_FILE, d.slice(-500)); }
 function newId(prefix) { return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
 export function crearRutina({ nombre, pasos, recurrencia, hora_inicio = null }) {

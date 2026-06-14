@@ -19,6 +19,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync, unlinkSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -62,7 +63,7 @@ export function appendCoachTurn(coachId, role, content) {
   const thread = loadCoachThread(coachId);
   thread.push({ role, content: String(content || ''), ts: new Date().toISOString() });
   const trimmed = thread.slice(-MAX_TURNS);
-  writeFileSync(f, JSON.stringify(trimmed, null, 2));
+  atomicWriteJson(f, trimmed);
   return trimmed;
 }
 

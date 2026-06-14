@@ -16,6 +16,7 @@
 // ============================================================
 import webpush from 'web-push';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,7 +31,7 @@ function loadSubs() {
 }
 function saveSubs(subs) {
   ensureDir();
-  writeFileSync(FILE, JSON.stringify(subs, null, 2));
+  atomicWriteJson(FILE, subs);
 }
 
 let configured = false;

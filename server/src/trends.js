@@ -20,6 +20,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { anthropic } from './claude.js';
@@ -250,7 +251,7 @@ function load() {
   } catch { /* ignore */ }
   return { items: [], topics: DEFAULT_TOPICS, updated: null };
 }
-function save(d) { ensureDir(); writeFileSync(FILE, JSON.stringify(d, null, 2)); }
+function save(d) { ensureDir(); atomicWriteJson(FILE, d); }
 function newId() { return `trend_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
 export function getTrendTopics() {

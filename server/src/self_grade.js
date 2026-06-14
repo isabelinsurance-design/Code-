@@ -22,6 +22,7 @@
 // ───────────────────────────────────────────────────────────────────
 
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { anthropic } from './claude.js';
@@ -32,7 +33,7 @@ const FILE = join(DATA_DIR, 'self_grades.json');
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function load() { try { if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8')); } catch {} return []; }
-function save(d) { ensureDir(); writeFileSync(FILE, JSON.stringify(d.slice(-52), null, 2)); }
+function save(d) { ensureDir(); atomicWriteJson(FILE, d.slice(-52)); }
 
 function isoWeek(d = new Date()) {
   const x = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));

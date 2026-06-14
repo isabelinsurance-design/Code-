@@ -7,6 +7,7 @@
 //  lo que importa para una agente Medicare.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,7 +26,7 @@ function load() {
 }
 function save(rows) {
   if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true });
-  writeFileSync(FILE, JSON.stringify(rows, null, 2));
+  atomicWriteJson(FILE, rows);
 }
 function newId() {
   return `cl${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`;

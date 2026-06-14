@@ -18,6 +18,7 @@
 //  o vía UI en /configura.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -52,7 +53,7 @@ function load() {
   try { if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8')); } catch {}
   return DEFAULT_TEMPLATE;
 }
-function save(t) { ensureDir(); writeFileSync(FILE, JSON.stringify(t, null, 2)); }
+function save(t) { ensureDir(); atomicWriteJson(FILE, t); }
 
 export function getPerfectWeek() { return load(); }
 

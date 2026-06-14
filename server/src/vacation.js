@@ -15,6 +15,7 @@
 //  vacation_modo(activar=false) → vuelve a normal
 // ============================================================
 import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -31,7 +32,7 @@ function load() {
 function save(state) {
   try {
     if (!existsSync(dirname(VACATION_FILE))) mkdirSync(dirname(VACATION_FILE), { recursive: true });
-    writeFileSync(VACATION_FILE, JSON.stringify(state, null, 2));
+    atomicWriteJson(VACATION_FILE, state);
   } catch (e) { console.warn('[vacation] save falló:', e.message); }
 }
 

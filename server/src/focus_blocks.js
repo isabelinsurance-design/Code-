@@ -14,6 +14,7 @@
 //  queda en cola y se entrega cuando el bloque cierra.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -25,7 +26,7 @@ export const MODOS = ['silencio', 'lectura', 'recording', 'piano', 'gym'];
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function load() { try { if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8')); } catch {} return []; }
-function save(d) { ensureDir(); writeFileSync(FILE, JSON.stringify(d.slice(-200), null, 2)); }
+function save(d) { ensureDir(); atomicWriteJson(FILE, d.slice(-200)); }
 function newId() { return `fb_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
 // Crear bloque. recurrencia opcional: 'dias' (lun-mar-mié) o 'semanal' (cada lun)

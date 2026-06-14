@@ -22,6 +22,7 @@
 //  mejorar) para que Isabel lo vea en weekly review.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -196,7 +197,7 @@ function loadInit() {
 
 function saveInit(data) {
   ensureDir();
-  writeFileSync(INIT_FILE, JSON.stringify(data.slice(-300), null, 2));
+  atomicWriteJson(INIT_FILE, data.slice(-300));
 }
 
 function newInitId() {

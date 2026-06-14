@@ -17,6 +17,7 @@
 //  Cron diario 7am: detecta los que tocan + agrega al briefing.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -43,10 +44,10 @@ function loadAll() {
 }
 function saveAll(d) {
   ensureDir();
-  writeFileSync(FILE, JSON.stringify({
+  atomicWriteJson(FILE, {
     cadences: d.cadences || [],
     history: (d.history || []).slice(-500),
-  }, null, 2));
+  });
 }
 function newId(prefix) { return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 

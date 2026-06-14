@@ -18,6 +18,7 @@
 //  ingresos.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -30,7 +31,7 @@ export const CATEGORIAS_INGRESO = ['comision', 'salario', 'bonus', 'otro'];
 
 function ensureDir() { if (!existsSync(DATA_DIR)) mkdirSync(DATA_DIR, { recursive: true }); }
 function load() { try { if (existsSync(FILE)) return JSON.parse(readFileSync(FILE, 'utf8')); } catch {} return []; }
-function save(d) { ensureDir(); writeFileSync(FILE, JSON.stringify(d.slice(-3000), null, 2)); }
+function save(d) { ensureDir(); atomicWriteJson(FILE, d.slice(-3000)); }
 function newId() { return `f_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 function monthKey(d = new Date()) { return d.toISOString().slice(0, 7); }
 function dayKey(d = new Date()) { return d.toISOString().slice(0, 10); }

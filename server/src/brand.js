@@ -15,6 +15,7 @@
 //  pega métricas → Marisol detecta qué funciona.
 // ============================================================
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
+import { atomicWriteJson } from './storage.js';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -39,7 +40,7 @@ function save(d) {
     calendar: (d.calendar || []).slice(-300),
     posts: (d.posts || []).slice(-500),
   };
-  writeFileSync(FILE, JSON.stringify(trimmed, null, 2));
+  atomicWriteJson(FILE, trimmed);
 }
 function newId(prefix) { return `${prefix}_${Date.now().toString(36)}${Math.random().toString(36).slice(2, 5)}`; }
 
