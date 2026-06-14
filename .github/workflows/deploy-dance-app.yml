@@ -1,0 +1,57 @@
+name: Publicar Estudio de Baile
+
+# Publica SOLO el Estudio de Baile en GitHub Pages.
+# Las herramientas de negocio (Medicare, CRM, etc.) NO se publican.
+
+on:
+  push:
+    branches:
+      - claude/dance-choreography-app-bf8ilx
+    paths:
+      - tools/dance-studio.html
+      - .github/workflows/deploy-dance-app.yml
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# Permite un solo despliegue a la vez.
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Obtener el código
+        uses: actions/checkout@v4
+
+      - name: Preparar el sitio (solo el Estudio de Baile)
+        run: |
+          mkdir -p _site
+          # La página principal del sitio ES el Estudio de Baile.
+          cp tools/dance-studio.html _site/index.html
+
+      - name: Configurar Pages
+        uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: Subir el sitio
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Desplegar a GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4
