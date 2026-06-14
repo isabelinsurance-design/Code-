@@ -798,6 +798,14 @@ export function registerApi(app) {
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 
+  // === ERRORES — qué se ha roto (visibilidad de fallas) ===
+  app.get('/api/errors', requireAuth, async (_req, res) => {
+    try {
+      const { errorsSummary } = await import('./errors.js');
+      res.json(errorsSummary());
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   // === DIAGNÓSTICO GLOBAL — status de cada integración ===
   app.get('/api/diagnostico', requireAuth, async (_req, res) => {
     const result = { services: [] };

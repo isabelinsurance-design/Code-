@@ -359,7 +359,16 @@ function scheduleCron(label, expr, fn) {
   // async + try/catch: el patrón viejo `() => fn().catch(...)` no atrapaba
   // throws síncronos ni funciones que no devuelven promesa (AUDIT.md M5).
   cron.schedule(expr, async () => {
-    try { await fn(); } catch (e) { console.error(`[${label}] error:`, e); }
+    try {
+      await fn();
+    } catch (e) {
+      console.error(`[${label}] error:`, e);
+      // Hacer la falla VISIBLE (no solo en console.log de Railway).
+      try {
+        const { logError } = await import('./errors.js');
+        logError({ source: `cron:${label}`, message: e?.message, detail: e?.stack });
+      } catch { /* el log de errores nunca tumba el cron */ }
+    }
   }, { timezone: tz });
   console.log(`[cron] ${label} programado: "${expr}" (${tz})`);
 }
