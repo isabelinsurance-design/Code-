@@ -127,8 +127,10 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 .b-style{background:var(--purple-lt);color:var(--purple)}
 .b-level{background:var(--teal-lt);color:var(--teal-dk)}
 .b-bpm{background:var(--green-lt);color:var(--green)}
+.b-song{background:var(--red-lt);color:var(--red);text-transform:none;letter-spacing:0}
 .lesson-head h2{font-family:'Fraunces',serif;font-size:24px;line-height:1.15;margin-bottom:8px}
 .lesson-head .intro{font-size:14.5px;color:var(--text-mid);line-height:1.6;font-style:italic}
+.song-note{margin-top:10px;background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:10px;padding:10px 13px;font-size:13.5px;color:var(--text-mid);line-height:1.5;font-style:normal}
 
 /* STAGE — big, TV-friendly */
 .stage{
@@ -261,7 +263,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
 
       <div class="hero">
         <h2>¡Hola! Soy tu instructor de baile 💃</h2>
-        <p>Dime qué quieres aprender y te armo una clase paso a paso: te explico cada movimiento, te cuento el ritmo en voz alta y vamos a tu velocidad. Sin videos, sin enredos — solo tú y yo.</p>
+        <p>Dime qué quieres aprender y te armo una clase paso a paso: te explico cada movimiento, te cuento el ritmo en voz alta y vamos a tu velocidad. <b>¿Quieres una canción?</b> Escríbela y te armo una coreografía para bailarla por partes (intro, coro…).</p>
 
         <span class="field-label">¿Qué estilo quieres bailar?</span>
         <div class="pillrow" id="stylePills">
@@ -280,13 +282,17 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
           <button class="pill" onclick="pick('level',this)">Intermedio</button>
         </div>
 
-        <span class="field-label">¿Algo en especial? (opcional)</span>
-        <input id="goalInput" type="text" placeholder="Ej. una coreografía para una boda, pasos para una fiesta, perder la pena..."/>
+        <span class="field-label">🎵 ¿Quieres bailar una canción? (opcional)</span>
+        <input id="songInput" type="text" placeholder="Ej. Waka Waka — Shakira, Hips Don't Lie, La Bicicleta..."/>
+
+        <span class="field-label">¿Algo más en especial? (opcional)</span>
+        <input id="goalInput" type="text" placeholder="Ej. para una boda, para una fiesta, perder la pena..."/>
 
         <div class="suggest">
-          <button class="s" onclick="quickStart('Bachata','Principiante total','Quiero aprender el paso básico y sentirme segura en una fiesta')">✨ Bachata para fiestas</button>
-          <button class="s" onclick="quickStart('Salsa','Principiante total','Enséñame el paso básico de salsa desde cero')">✨ Salsa desde cero</button>
-          <button class="s" onclick="quickStart('Cumbia','Ya sé lo básico','Una coreografía divertida de cumbia')">✨ Coreografía de cumbia</button>
+          <button class="s" onclick="quickStart('Reguetón','Ya sé lo básico','','Waka Waka — Shakira')">✨ Coreo: Waka Waka</button>
+          <button class="s" onclick="quickStart('Reguetón','Intermedio','','Hips Don\'t Lie — Shakira')">✨ Coreo: Hips Don't Lie</button>
+          <button class="s" onclick="quickStart('Bachata','Principiante total','Quiero aprender el paso básico y sentirme segura en una fiesta','')">✨ Bachata para fiestas</button>
+          <button class="s" onclick="quickStart('Salsa','Principiante total','Enséñame el paso básico de salsa desde cero','')">✨ Salsa desde cero</button>
         </div>
 
         <button class="go-btn" id="goBtn" onclick="createLesson()">Crear mi clase ✨</button>
@@ -451,28 +457,34 @@ function pick(group,btn){
   box.querySelectorAll('.pill').forEach(p=>p.classList.toggle('sel',p===btn));
   sel[group]=btn.textContent.trim();
 }
-function quickStart(style,level,goal){
+function quickStart(style,level,goal,song){
   document.querySelectorAll('#stylePills .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim()===style));
   document.querySelectorAll('#levelPills .pill').forEach(p=>p.classList.toggle('sel',p.textContent.trim()===level));
   sel.style=style;sel.level=level;
-  document.getElementById('goalInput').value=goal;
+  document.getElementById('goalInput').value=goal||'';
+  document.getElementById('songInput').value=song||'';
   createLesson();
 }
 
 const LESSON_SYSTEM=`Eres "Profe", un instructor de baile latino cálido, paciente y muy alentador que habla español de México/EE.UU. Tu alumna es una persona adulta principiante que quiere aprender a bailar en casa, sin pareja, mirando una pantalla (a veces en su TV). Diseñas una mini-clase clara y realista.
+
+Si la alumna pide una CANCIÓN específica: tú "te aprendes" la canción y le diseñas una coreografía ORIGINAL pensada para esa canción, dividida según las partes de la canción (intro, verso, coro/estribillo, puente). No copias el video oficial (no lo tienes); creas pasos que combinan bien con el ritmo y el ánimo de esa canción y que ella pueda bailar mientras la canción suena de verdad en su teléfono o bocina. Ajusta el "bpm" al tempo aproximado real de esa canción.
 
 Responde ÚNICAMENTE con un objeto JSON válido (sin texto antes ni después, sin markdown, sin comillas triples) con esta forma exacta:
 {
   "titulo": "string corto y atractivo",
   "estilo": "string",
   "nivel": "string",
-  "bpm": número entero entre 70 y 130 (tempo cómodo para practicar este estilo),
+  "cancion": "nombre de la canción y artista si la alumna pidió una; si no, null",
+  "como_practicar": "1-2 frases. Si hay canción: dile que ponga la canción en YouTube/Spotify y baile cada parte cuando llegue. Si no hay canción: dile que use el metrónomo de la app.",
+  "bpm": número entero entre 60 y 140 (tempo cómodo; si hay canción, acércate a su tempo real),
   "intro": "2-3 frases dando la bienvenida y diciendo qué van a lograr",
   "pasos": [
     {
+      "seccion": "a qué parte va: 'Base', 'Intro', 'Verso', 'Coro', 'Puente'... (si hay canción úsalo; si no, pon 'Paso N')",
       "nombre": "nombre corto del movimiento",
       "conteo": "el conteo rítmico, ej. '1-2-3 (pausa), 5-6-7 (pausa)'",
-      "descripcion": "2-4 frases explicando EXACTAMENTE qué hacen los pies y el cuerpo, en segunda persona ('das un paso a la derecha...'). Claro y concreto.",
+      "descripcion": "2-4 frases explicando EXACTAMENTE qué hacen los pies, las caderas y los brazos, en segunda persona ('das un paso a la derecha...'). Claro y concreto.",
       "voz": "una sola frase corta y motivadora para decir en voz alta al empezar el paso",
       "tip": "un consejo práctico o un error común que evitar"
     }
@@ -480,7 +492,7 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin texto antes ni después, si
   "cierre": "1-2 frases de felicitación y ánimo"
 }
 
-Reglas: incluye entre 4 y 6 pasos que progresen de lo más simple a combinarlos. Empieza siempre por la postura/base. Usa lenguaje sencillo, nada de jerga sin explicar. Adapta la dificultad al nivel indicado. NO incluyas nada fuera del JSON.`;
+Reglas: incluye entre 4 y 7 pasos. Sin canción: empieza por la postura/base y progresa de lo simple a combinarlo. Con canción: el primer paso es la base/postura y los siguientes siguen el orden de la canción (intro → verso → coro…). Usa lenguaje sencillo, nada de jerga sin explicar. Adapta la dificultad al nivel indicado. NO incluyas nada fuera del JSON.`;
 
 function showLoading(on,msg){
   document.getElementById('loadBox').classList.toggle('show',on);
@@ -510,10 +522,11 @@ async function createLesson(){
     return;
   }
   const goal=document.getElementById('goalInput').value.trim();
-  const userMsg=`Quiero una clase de ${sel.style}. Mi nivel: ${sel.level}.`+(goal?` Objetivo especial: ${goal}.`:'')+` Arma la mini-clase en el formato JSON indicado.`;
-  showLoading(true,'Tu instructor está armando tu clase de '+sel.style+'…');
+  const song=document.getElementById('songInput').value.trim();
+  const userMsg=`Quiero una clase de ${sel.style}. Mi nivel: ${sel.level}.`+(song?` Quiero bailar esta canción: ${song}. Apréndetela y arma una coreografía por partes para ella.`:'')+(goal?` Objetivo especial: ${goal}.`:'')+` Arma la mini-clase en el formato JSON indicado.`;
+  showLoading(true, song?('La Profe está aprendiéndose "'+song+'" para ti…'):('Tu instructor está armando tu clase de '+sel.style+'…'));
   try{
-    const raw=await askClaude([{role:'user',content:userMsg}],LESSON_SYSTEM,1800);
+    const raw=await askClaude([{role:'user',content:userMsg}],LESSON_SYSTEM,2600);
     const data=extractJSON(raw);
     if(!data.pasos||!data.pasos.length)throw new Error('La clase llegó vacía, intenta de nuevo.');
     startLesson(data);
@@ -534,16 +547,19 @@ function startLesson(data){
   document.getElementById('setup').style.display='none';
   document.getElementById('lesson').classList.add('active');
   document.getElementById('lessonTitle').textContent=data.titulo||'Tu clase';
-  document.getElementById('lessonIntro').textContent=data.intro||'';
+  const note=data.como_practicar?`<div class="song-note">${data.cancion?'🎵':'💡'} ${data.como_practicar}</div>`:'';
+  document.getElementById('lessonIntro').innerHTML=(data.intro||'')+note;
   document.getElementById('lessonMeta').innerHTML=
     `<span class="badge b-style">${data.estilo||sel.style}</span>`+
+    (data.cancion?`<span class="badge b-song">🎵 ${data.cancion}</span>`:'')+
     `<span class="badge b-level">${data.nivel||sel.level}</span>`+
     `<span class="badge b-bpm" id="metaBpm">${bpm} BPM</span>`;
   updateBpmUI();
   // contexto para el chat
   chatHistory=[];
   document.getElementById('chatLog').innerHTML='';
-  addChatMsg('bot',(data.intro||'¡Vamos a bailar!')+'\n\nCuando quieras, pregúntame lo que sea. 💛');
+  const hi=(data.intro||'¡Vamos a bailar!')+(data.cancion?`\n\n🎵 Pon "${data.cancion}" en tu teléfono y bailamos cada parte cuando llegue.`:'')+'\n\nCuando quieras, pregúntame lo que sea. 💛';
+  addChatMsg('bot',hi);
   renderMove();
   window.scrollTo({top:0,behavior:'smooth'});
   if(voiceOn)setTimeout(()=>speakCurrentMove(),400);
@@ -552,7 +568,8 @@ function startLesson(data){
 function renderMove(){
   if(!lesson)return;
   const m=lesson.pasos[moveIdx];
-  document.getElementById('stepCount').textContent=`Paso ${moveIdx+1} de ${lesson.pasos.length}`;
+  const sec=(m.seccion&&!/^paso\s*\d+$/i.test(m.seccion.trim()))?m.seccion.trim().toUpperCase()+' · ':'';
+  document.getElementById('stepCount').textContent=`${sec}Paso ${moveIdx+1} de ${lesson.pasos.length}`;
   document.getElementById('moveName').textContent=m.nombre||'';
   document.getElementById('moveCounts').textContent=m.conteo||'';
   document.getElementById('moveDesc').textContent=m.descripcion||'';
@@ -717,7 +734,7 @@ async function sendChat(){
   addChatMsg('user',q);
   chatHistory.push({role:'user',content:q});
   const thinking=addChatMsg('bot','…');
-  const ctx=lesson?`Estás dando esta clase: "${lesson.titulo}" (${lesson.estilo}, ${lesson.nivel}). Pasos: ${lesson.pasos.map(p=>p.nombre).join(', ')}. El alumno está en el paso ${moveIdx+1}: "${lesson.pasos[moveIdx].nombre}".`:'';
+  const ctx=lesson?`Estás dando esta clase: "${lesson.titulo}" (${lesson.estilo}, ${lesson.nivel})${lesson.cancion?', coreografía para la canción "'+lesson.cancion+'"':''}. Pasos: ${lesson.pasos.map(p=>p.nombre).join(', ')}. El alumno está en el paso ${moveIdx+1}: "${lesson.pasos[moveIdx].nombre}".`:'';
   const sys=`Eres "Profe", instructor de baile latino cálido y motivador. Hablas español sencillo. Respondes corto (2-4 frases), práctico y con ánimo. ${ctx} Si te piden ir más lento, sugiere bajar los BPM con el botón. No uses markdown.`;
   try{
     const reply=await askClaude(chatHistory.slice(-8),sys,500);
