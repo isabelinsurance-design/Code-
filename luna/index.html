@@ -1688,11 +1688,23 @@ function __csrfToken() {
   const m = document.cookie.match(/(?:^|;\s*)LUNA_CSRF=([^;]+)/);
   return m ? decodeURIComponent(m[1]) : '';
 }
-window.fetch = (input, init) => {
+// Si aún no hay cookie (carga en frío), pide UN GET barato para que el
+// servidor emita LUNA_CSRF antes del primer POST. Evita el falso
+// "Sesión de seguridad caducada" sin que el usuario tenga que recargar.
+let __csrfPriming = null;
+async function __ensureCsrf() {
+  if (__csrfToken()) return;
+  if (!__csrfPriming) {
+    __csrfPriming = __origFetch('luna_api.php?action=luna_whoami', { credentials: 'same-origin' }).catch(() => {});
+  }
+  try { await __csrfPriming; } catch (_) {}
+}
+window.fetch = async (input, init) => {
   try {
     const url = typeof input === 'string' ? input : ((input && input.url) || '');
     const method = (((init && init.method) || (typeof input === 'object' && input && input.method) || 'GET') + '').toUpperCase();
     if (method === 'POST' && url.indexOf('luna_api.php') !== -1) {
+      if (!__csrfToken()) await __ensureCsrf();   // prepara la cookie si falta
       const tok = __csrfToken();
       if (tok) {
         init = init || {};
