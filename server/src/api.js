@@ -793,8 +793,9 @@ export function registerApi(app) {
   // === USO / COSTOS — estimación en vivo ===
   app.get('/api/usage', requireAuth, async (_req, res) => {
     try {
-      const { usageSnapshot } = await import('./usage.js');
-      res.json(usageSnapshot());
+      const { usageSnapshot, realCostSummary } = await import('./usage.js');
+      // estimación (por activity log) + costo REAL (por tokens, cuando hay datos).
+      res.json({ ...usageSnapshot(), real: realCostSummary() });
     } catch (e) { res.status(500).json({ error: e.message }); }
   });
 

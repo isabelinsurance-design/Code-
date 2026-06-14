@@ -122,6 +122,12 @@ export async function runDirectora(messages, opts = {}) {
       ...(mcpServers.length ? { mcp_servers: mcpServers } : {}),
     });
 
+    // Costo REAL: registramos los tokens exactos de esta respuesta.
+    try {
+      const { recordUsage } = await import('./usage.js');
+      recordUsage({ model: res.model, usage: res.usage, label: `directora:${tier || 'default'}` });
+    } catch { /* el tracking nunca tumba la respuesta */ }
+
     // Guardamos la respuesta completa (incluye bloques de tool_use).
     messages.push({ role: 'assistant', content: res.content });
 

@@ -12,6 +12,10 @@
 //  Isabel sigue yendo a anthropic.com/usage. Pero esto le da
 //  visibilidad en vivo en el PWA sin salir.
 // ============================================================
+import { readFileSync, existsSync } from 'node:fs';
+import { dirname, join } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { atomicWriteJson } from './storage.js';
 import { getActivity } from './memory.js';
 
 // Costos promedio por tipo de operación (en USD), basados en
@@ -140,4 +144,81 @@ export function usageSnapshot() {
   month.top = fillPct(topTools(month.by_tool), month.cost);
 
   return { today, week, month, disclaimer: 'estimación basada en activity log + precios junio 2026. Para número exacto: anthropic.com/usage' };
+}
+
+// ============================================================
+//  COSTO REAL — basado en tokens de verdad (no estimación)
+//  ────────────────────────────────────────────────────────
+//  claude.js/directora.js llaman recordUsage() con res.usage y res.model
+//  después de cada respuesta de Anthropic. Aquí se calcula el costo REAL
+//  con los tokens exactos × precios por modelo. Editar PRICING si cambia.
+// ============================================================
+const __dirname2 = dirname(fileURLToPath(import.meta.url));
+const USAGE_FILE = join(__dirname2, '..', 'data', 'usage_log.json');
+
+// USD por millón de tokens (junio 2026). cache_write asume TTL 1h (~2× input).
+const PRICING = {
+  opus:   { in: 15,  out: 75, cache_read: 1.5,  cache_write: 30 },
+  sonnet: { in: 3,   out: 15, cache_read: 0.3,  cache_write: 6 },
+  haiku:  { in: 0.8, out: 4,  cache_read: 0.08, cache_write: 1.6 },
+};
+function pricingFor(model) {
+  const m = String(model || '').toLowerCase();
+  if (m.includes('opus')) return PRICING.opus;
+  if (m.includes('haiku')) return PRICING.haiku;
+  return PRICING.sonnet; // default
+}
+
+// Función PURA: tokens + modelo → costo USD real.
+export function costFromTokens(model, usage = {}) {
+  const p = pricingFor(model);
+  const inTok = usage.input_tokens || 0;
+  const outTok = usage.output_tokens || 0;
+  const cacheRead = usage.cache_read_input_tokens || 0;
+  const cacheWrite = usage.cache_creation_input_tokens || 0;
+  const usd = (inTok * p.in + outTok * p.out + cacheRead * p.cache_read + cacheWrite * p.cache_write) / 1_000_000;
+  return Math.round(usd * 1e6) / 1e6;
+}
+
+function loadUsageLog() {
+  try { if (existsSync(USAGE_FILE)) return JSON.parse(readFileSync(USAGE_FILE, 'utf8')); }
+  catch (e) { console.error('[usage] usage_log.json ilegible:', e.message); }
+  return [];
+}
+
+// Registra el uso real de una llamada. Nunca tumba la respuesta del LLM.
+export function recordUsage({ model, usage, label = '' }) {
+  try {
+    if (!usage) return;
+    const log = loadUsageLog();
+    log.unshift({
+      ts: new Date().toISOString(),
+      model: String(model || '').slice(0, 40),
+      label: String(label || '').slice(0, 40),
+      in: usage.input_tokens || 0,
+      out: usage.output_tokens || 0,
+      cache_read: usage.cache_read_input_tokens || 0,
+      cache_write: usage.cache_creation_input_tokens || 0,
+      cost: costFromTokens(model, usage),
+    });
+    atomicWriteJson(USAGE_FILE, log.slice(0, 3000));
+  } catch { /* el tracking nunca tumba la llamada al LLM */ }
+}
+
+// Resumen de costo REAL (testeable): suma de hoy/semana/mes desde el usage log.
+export function realCostSummary(rows = loadUsageLog(), now = new Date()) {
+  const list = Array.isArray(rows) ? rows : [];
+  const bucket = () => ({ count: 0, cost: 0, tokens_in: 0, tokens_out: 0 });
+  const out = { today: bucket(), week: bucket(), month: bucket(), has_data: list.length > 0 };
+  const nowMs = now.getTime();
+  for (const r of list) {
+    const t = r?.ts ? new Date(r.ts) : null;
+    if (!t || Number.isNaN(t.getTime())) continue;
+    const add = (b) => { b.count++; b.cost += r.cost || 0; b.tokens_in += r.in || 0; b.tokens_out += r.out || 0; };
+    if (isToday(r.ts)) add(out.today);
+    if (nowMs - t.getTime() < 7 * 86_400_000) add(out.week);
+    if (isThisMonth(r.ts)) add(out.month);
+  }
+  for (const k of ['today', 'week', 'month']) out[k].cost = Math.round(out[k].cost * 1e4) / 1e4;
+  return out;
 }
