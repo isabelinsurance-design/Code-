@@ -138,6 +138,63 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
   border-radius:18px;padding:28px 24px;box-shadow:var(--sh2);text-align:center;
   position:relative;overflow:hidden;
 }
+/* ── AVATAR BAILARÍN ── */
+.dancer-wrap{display:flex;justify-content:center;align-items:flex-end;height:150px;margin:0 auto 6px}
+.dancer-wrap.hidden{display:none}
+.dancer{position:relative;width:90px;height:140px;--beat:.5s;transform-origin:bottom center}
+.dancer .d-head{position:absolute;left:50%;top:2px;width:28px;height:28px;margin-left:-14px;border-radius:50%;background:#F2DDBE;border:2px solid #C9A96E;z-index:3}
+.dancer .d-head:after{content:"";position:absolute;left:50%;top:-7px;width:30px;height:16px;margin-left:-15px;border-radius:50% 50% 40% 40%;background:#3A2A18}
+.dancer .d-torso{position:absolute;left:50%;top:30px;width:30px;height:46px;margin-left:-15px;border-radius:12px 12px 8px 8px;background:linear-gradient(160deg,#E0556B,#C0392B);z-index:2}
+.dancer .d-arm{position:absolute;top:34px;width:10px;height:38px;border-radius:6px;background:#F2DDBE;transform-origin:top center;z-index:1}
+.dancer .d-arm.left{left:50%;margin-left:-23px}
+.dancer .d-arm.right{left:50%;margin-left:13px}
+.dancer .d-leg{position:absolute;top:72px;width:11px;height:46px;border-radius:6px 6px 5px 5px;background:#4A3A22;transform-origin:top center;z-index:1}
+.dancer .d-leg.left{left:50%;margin-left:-13px}
+.dancer .d-leg.right{left:50%;margin-left:2px}
+
+@keyframes dc-bounce{0%,100%{transform:translateY(0)}50%{transform:translateY(10px)}}
+@keyframes dc-sway{0%{transform:translateX(-13px)}50%{transform:translateX(13px)}100%{transform:translateX(-13px)}}
+@keyframes dc-hips{0%,100%{transform:translateX(0) rotate(0)}25%{transform:translateX(9px) rotate(5deg)}75%{transform:translateX(-9px) rotate(-5deg)}}
+@keyframes da-swing{0%{transform:rotate(20deg)}50%{transform:rotate(-18deg)}100%{transform:rotate(20deg)}}
+@keyframes da-swingR{0%{transform:rotate(-20deg)}50%{transform:rotate(18deg)}100%{transform:rotate(-20deg)}}
+@keyframes da-upL{0%,100%{transform:rotate(168deg)}50%{transform:rotate(150deg)}}
+@keyframes da-upR{0%,100%{transform:rotate(-168deg)}50%{transform:rotate(-150deg)}}
+@keyframes da-waistL{0%,100%{transform:rotate(48deg)}50%{transform:rotate(40deg)}}
+@keyframes da-waistR{0%,100%{transform:rotate(-48deg)}50%{transform:rotate(-40deg)}}
+@keyframes dl-bend{0%,100%{transform:scaleY(1)}50%{transform:scaleY(.86)}}
+@keyframes dl-walk{0%{transform:rotate(20deg)}50%{transform:rotate(-20deg)}100%{transform:rotate(20deg)}}
+@keyframes dl-walkR{0%{transform:rotate(-20deg)}50%{transform:rotate(20deg)}100%{transform:rotate(-20deg)}}
+
+/* rebote / base */
+.dancer[data-move="rebote"]{animation:dc-bounce var(--beat) ease-in-out infinite}
+.dancer[data-move="rebote"] .d-leg{animation:dl-bend var(--beat) ease-in-out infinite}
+.dancer[data-move="rebote"] .d-arm.left{animation:da-swing calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="rebote"] .d-arm.right{animation:da-swingR calc(var(--beat)*2) ease-in-out infinite}
+/* lateral */
+.dancer[data-move="lateral"]{animation:dc-sway calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="lateral"] .d-arm.left{animation:da-swing calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="lateral"] .d-arm.right{animation:da-swingR calc(var(--beat)*2) ease-in-out infinite}
+/* caminata */
+.dancer[data-move="caminata"]{animation:dc-bounce calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="caminata"] .d-leg.left{animation:dl-walk calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="caminata"] .d-leg.right{animation:dl-walkR calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="caminata"] .d-arm.left{animation:da-swingR calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="caminata"] .d-arm.right{animation:da-swing calc(var(--beat)*2) ease-in-out infinite}
+/* brazos arriba */
+.dancer[data-move="brazos"]{animation:dc-bounce var(--beat) ease-in-out infinite}
+.dancer[data-move="brazos"] .d-leg{animation:dl-bend var(--beat) ease-in-out infinite}
+.dancer[data-move="brazos"] .d-arm.left{animation:da-upL var(--beat) ease-in-out infinite}
+.dancer[data-move="brazos"] .d-arm.right{animation:da-upR var(--beat) ease-in-out infinite}
+/* cadera */
+.dancer[data-move="cadera"]{animation:dc-hips calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="cadera"] .d-arm.left{animation:da-waistL calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="cadera"] .d-arm.right{animation:da-waistR calc(var(--beat)*2) ease-in-out infinite}
+/* libre / todo junto */
+.dancer[data-move="libre"]{animation:dc-hips calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="libre"] .d-leg{animation:dl-bend var(--beat) ease-in-out infinite}
+.dancer[data-move="libre"] .d-arm.left{animation:da-upL calc(var(--beat)*2) ease-in-out infinite}
+.dancer[data-move="libre"] .d-arm.right{animation:da-swingR var(--beat) ease-in-out infinite}
+
 .stage .step-count{font-family:'DM Mono',monospace;font-size:13px;letter-spacing:.2em;text-transform:uppercase;color:var(--gold);opacity:.9}
 .stage .move-name{font-family:'Fraunces',serif;font-size:clamp(28px,6vw,46px);line-height:1.1;margin:10px 0 6px}
 .stage .counts{font-family:'DM Mono',monospace;font-size:clamp(16px,3vw,22px);color:var(--gold-lt);letter-spacing:.12em;margin-bottom:18px}
@@ -317,6 +374,16 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
       <div class="progressbar"><div class="fill" id="progressFill"></div></div>
 
       <div class="stage" id="stageEl">
+        <div class="dancer-wrap" id="dancerWrap">
+          <div class="dancer" id="dancer" data-move="rebote">
+            <div class="d-arm left"></div>
+            <div class="d-arm right"></div>
+            <div class="d-leg left"></div>
+            <div class="d-leg right"></div>
+            <div class="d-torso"></div>
+            <div class="d-head"></div>
+          </div>
+        </div>
         <div class="step-count" id="stepCount"></div>
         <div class="move-name" id="moveName"></div>
         <div class="counts" id="moveCounts"></div>
@@ -341,6 +408,7 @@ body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);-we
         <div class="ctl-row">
           <span class="ctl-label">Tu instructor en voz alta — te cuenta y te guía sin que sueltes el teléfono</span>
           <button class="cbtn on" id="voiceBtn" onclick="toggleVoice()">🔊 Voz activada</button>
+          <button class="cbtn on" id="avatarBtn" onclick="toggleAvatar()">🕺 Avatar</button>
           <button class="cbtn" onclick="speakCurrentMove()">🗣 Explícame este paso</button>
           <button class="cbtn" onclick="fullscreenStage()">⛶ Pantalla completa</button>
         </div>
@@ -482,6 +550,7 @@ Responde ÚNICAMENTE con un objeto JSON válido (sin texto antes ni después, si
   "pasos": [
     {
       "seccion": "a qué parte va: 'Base', 'Intro', 'Verso', 'Coro', 'Puente'... (si hay canción úsalo; si no, pon 'Paso N')",
+      "animacion": "UNA de estas según el movimiento principal del paso: 'rebote' (rebotar en el sitio), 'lateral' (paso de lado a lado), 'caminata' (caminar adelante/atrás), 'brazos' (brazos arriba), 'cadera' (mover la cadera), 'libre' (combinar todo)",
       "nombre": "nombre corto del movimiento",
       "conteo": "el conteo rítmico, ej. '1-2-3 (pausa), 5-6-7 (pausa)'",
       "descripcion": "2-4 frases explicando EXACTAMENTE qué hacen los pies, las caderas y los brazos, en segunda persona ('das un paso a la derecha...'). Claro y concreto.",
@@ -577,6 +646,29 @@ function renderMove(){
   document.getElementById('moveTip').style.display=m.tip?'block':'none';
   document.getElementById('progressFill').style.width=((moveIdx+1)/lesson.pasos.length*100)+'%';
   buildBeats();
+  setAvatar(m);
+}
+
+/* ── AVATAR ── */
+const AVATAR_MOVES=['rebote','lateral','caminata','brazos','cadera','libre'];
+function avatarMoveFor(m){
+  if(m.animacion && AVATAR_MOVES.indexOf(m.animacion)>=0) return m.animacion;
+  const t=((m.seccion||'')+' '+(m.nombre||'')+' '+(m.descripcion||'')).toLowerCase();
+  if(/brazo|arriba|mano|alza|levanta|waka|cielo|aplaud/.test(t)) return 'brazos';
+  if(/cadera|hip|cintura|ondula/.test(t)) return 'cadera';
+  if(/camin|adelante|atr[áa]s|avanza|marcha|pasarela/.test(t)) return 'caminata';
+  if(/lateral|lado|toque|izquierda|derecha/.test(t)) return 'lateral';
+  if(/combina|todo junto|completa|libre|encadena|final/.test(t)) return 'libre';
+  return 'rebote';
+}
+function setAvatar(m){const d=document.getElementById('dancer');if(d)d.setAttribute('data-move',avatarMoveFor(m));}
+function updateAvatarTempo(){const d=document.getElementById('dancer');if(d)d.style.setProperty('--beat',(60/Math.max(1,bpm)).toFixed(3)+'s');}
+function toggleAvatar(){
+  const w=document.getElementById('dancerWrap');
+  const hidden=w.classList.toggle('hidden');
+  const b=document.getElementById('avatarBtn');
+  b.classList.toggle('on',!hidden);
+  b.textContent=hidden?'🕺 Mostrar':'🕺 Avatar';
 }
 function nextMove(){
   if(!lesson)return;
@@ -668,6 +760,7 @@ function changeBpm(d){bpm=Math.min(160,Math.max(50,bpm+d));updateBpmUI();if(prac
 function updateBpmUI(){
   document.getElementById('bpmVal').textContent=bpm+' BPM';
   const mb=document.getElementById('metaBpm');if(mb)mb.textContent=bpm+' BPM';
+  updateAvatarTempo();
 }
 
 /* ── VOZ (Speech Synthesis) ── */
