@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Tempo — Time & Productivity Tracker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F4F6FB;--surface:#FFFFFF;--surface-2:#F8FAFD;
+  --border:#E6EAF2;--border-d:#D4DBE8;
+  --ink:#1A2236;--ink-mid:#5A6478;--ink-soft:#94A0B4;
+  --blue:#3361FF;--blue-dk:#2348C8;--blue-lt:#EAF0FF;
+  --green:#11A66B;--green-lt:#E5F7EF;
+  --red:#E5484D;--red-lt:#FDECEC;
+  --amber:#E0921A;--amber-lt:#FDF3E2;
+  --purple:#7C5CFC;--purple-lt:#F0ECFF;
+  --sh:0 1px 3px rgba(26,34,54,.06),0 1px 2px rgba(26,34,54,.04);
+  --sh2:0 8px 30px rgba(26,34,54,.10);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;font-size:14px}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-thumb{background:var(--border-d);border-radius:4px}
+::-webkit-scrollbar-track{background:transparent}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+.mono{font-family:'JetBrains Mono',monospace}
+
+/* ─── LAYOUT ─── */
+.app{display:grid;grid-template-columns:236px 1fr;min-height:100vh}
+.sidebar{background:#10172A;color:#C6CEDF;display:flex;flex-direction:column;padding:20px 14px;position:sticky;top:0;height:100vh}
+.brand{display:flex;align-items:center;gap:11px;padding:4px 8px 22px}
+.brand-logo{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#3361FF,#7C5CFC);display:flex;align-items:center;justify-content:center;font-size:18px;box-shadow:0 4px 14px rgba(51,97,255,.45)}
+.brand-name{font-weight:800;font-size:16px;color:#fff;letter-spacing:-.01em}
+.brand-sub{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:#6B7691;margin-top:1px}
+.nav{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.nav-label{font-size:9.5px;letter-spacing:.14em;text-transform:uppercase;color:#5A6485;padding:14px 10px 6px;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:9px;color:#AEB8CE;font-size:13.5px;font-weight:500;text-align:left;width:100%;transition:.12s}
+.nav-item:hover{background:#1B2540;color:#fff}
+.nav-item.active{background:var(--blue);color:#fff;box-shadow:0 4px 12px rgba(51,97,255,.4)}
+.nav-ico{width:18px;text-align:center;font-size:15px}
+.sidebar-foot{margin-top:auto;padding:14px 10px 4px;border-top:1px solid #232E4A}
+.me{display:flex;align-items:center;gap:10px}
+.avatar{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#7C5CFC,#3361FF);display:flex;align-items:center;justify-content:center;font-weight:700;color:#fff;font-size:13px;flex-shrink:0}
+.me-name{font-size:13px;font-weight:600;color:#fff;line-height:1.2}
+.me-role{font-size:10.5px;color:#6B7691}
+
+.main{padding:26px 32px 60px;max-width:1180px;width:100%}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:22px;gap:16px;flex-wrap:wrap}
+.page-title{font-size:23px;font-weight:800;letter-spacing:-.02em}
+.page-sub{color:var(--ink-mid);font-size:13.5px;margin-top:3px}
+
+/* ─── TIMER BAR ─── */
+.timerbar{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:var(--sh);display:flex;align-items:center;gap:18px;margin-bottom:22px;flex-wrap:wrap}
+.timer-display{font-family:'JetBrains Mono',monospace;font-size:38px;font-weight:600;letter-spacing:-.02em;font-variant-numeric:tabular-nums;min-width:170px}
+.timer-display.running{color:var(--blue)}
+.timer-meta{flex:1;min-width:180px}
+.timer-meta label{display:block;font-size:11px;color:var(--ink-soft);font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px}
+.timer-row{display:flex;gap:8px}
+.fld{flex:1;border:1.5px solid var(--border);border-radius:10px;padding:9px 12px;font-size:13.5px;font-family:inherit;color:var(--ink);background:var(--surface-2);transition:.12s;min-width:0}
+.fld:focus{outline:none;border-color:var(--blue);background:#fff}
+select.fld{cursor:pointer}
+.btn{border-radius:11px;padding:11px 22px;font-weight:700;font-size:14px;display:inline-flex;align-items:center;gap:8px;transition:.12s;white-space:nowrap}
+.btn-start{background:var(--blue);color:#fff;box-shadow:0 4px 14px rgba(51,97,255,.35)}
+.btn-start:hover{background:var(--blue-dk)}
+.btn-stop{background:var(--red);color:#fff;box-shadow:0 4px 14px rgba(229,72,77,.32)}
+.btn-stop:hover{filter:brightness(.94)}
+.btn-ghost{background:var(--surface-2);color:var(--ink-mid);border:1.5px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border-d);color:var(--ink)}
+.btn-sm{padding:7px 14px;font-size:12.5px;border-radius:9px}
+.live-dot{width:9px;height:9px;border-radius:50%;background:var(--green);box-shadow:0 0 0 0 rgba(17,166,107,.5);animation:pulse 1.6s infinite}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(17,166,107,.5)}70%{box-shadow:0 0 0 9px rgba(17,166,107,0)}100%{box-shadow:0 0 0 0 rgba(17,166,107,0)}}
+
+/* ─── CARDS / GRID ─── */
+.grid{display:grid;gap:16px}
+.g4{grid-template-columns:repeat(4,1fr)}
+.g3{grid-template-columns:repeat(3,1fr)}
+.g2{grid-template-columns:1fr 1fr}
+@media(max-width:1000px){.g4{grid-template-columns:1fr 1fr}.g3,.g2{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:15px;box-shadow:var(--sh)}
+.card-pad{padding:18px 20px}
+.card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 20px;border-bottom:1px solid var(--border)}
+.card-title{font-weight:700;font-size:15px;display:flex;align-items:center;gap:8px}
+
+.stat{padding:18px 20px}
+.stat-top{display:flex;align-items:center;justify-content:space-between}
+.stat-ico{width:38px;height:38px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:18px}
+.i-blue{background:var(--blue-lt)}.i-green{background:var(--green-lt)}.i-amber{background:var(--amber-lt)}.i-purple{background:var(--purple-lt)}.i-red{background:var(--red-lt)}
+.stat-val{font-size:28px;font-weight:800;letter-spacing:-.02em;margin-top:12px;font-variant-numeric:tabular-nums}
+.stat-label{font-size:12.5px;color:var(--ink-mid);margin-top:2px;font-weight:500}
+.delta{font-size:11.5px;font-weight:700;padding:3px 8px;border-radius:20px}
+.delta.up{background:var(--green-lt);color:var(--green)}
+.delta.down{background:var(--red-lt);color:var(--red)}
+
+/* ─── BARS / PRODUCTIVITY ─── */
+.pbar{height:10px;border-radius:6px;background:var(--surface-2);overflow:hidden;display:flex}
+.pbar span{height:100%;display:block}
+.s-prod{background:var(--green)}.s-neutral{background:var(--amber)}.s-unprod{background:var(--red)}.s-idle{background:#C6CEDF}
+.legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:12px;font-size:12px;color:var(--ink-mid)}
+.legend i{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:5px;vertical-align:middle}
+
+.weekchart{display:flex;align-items:flex-end;gap:14px;height:170px;padding-top:10px}
+.wc-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;height:100%;justify-content:flex-end}
+.wc-bar-wrap{width:100%;max-width:42px;flex:1;display:flex;flex-direction:column;justify-content:flex-end;background:var(--surface-2);border-radius:8px;overflow:hidden}
+.wc-bar{width:100%;background:linear-gradient(180deg,#5A82FF,#3361FF);border-radius:8px 8px 0 0;transition:height .5s cubic-bezier(.2,.8,.2,1);min-height:3px;position:relative}
+.wc-bar.today{background:linear-gradient(180deg,#8E72FF,#7C5CFC)}
+.wc-day{font-size:11.5px;color:var(--ink-mid);font-weight:600}
+.wc-val{font-size:11px;color:var(--ink-soft);font-weight:600}
+
+/* ─── TABLES / LISTS ─── */
+.tlist{display:flex;flex-direction:column}
+.trow{display:flex;align-items:center;gap:14px;padding:13px 20px;border-bottom:1px solid var(--border);font-size:13.5px}
+.trow:last-child{border-bottom:none}
+.trow:hover{background:var(--surface-2)}
+.tdot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.tmain{flex:1;min-width:0}
+.tmain b{font-weight:600}
+.tmain small{display:block;color:var(--ink-soft);font-size:11.5px;margin-top:1px}
+.tdur{font-family:'JetBrains Mono',monospace;font-weight:600;font-size:14px}
+.tag{font-size:11px;font-weight:700;padding:3px 9px;border-radius:7px}
+.t-prod{background:var(--green-lt);color:var(--green)}
+.t-neutral{background:var(--amber-lt);color:var(--amber)}
+.t-unprod{background:var(--red-lt);color:var(--red)}
+
+.empty{padding:40px 20px;text-align:center;color:var(--ink-soft)}
+.empty-ico{font-size:34px;margin-bottom:8px}
+
+/* member */
+.member{display:flex;align-items:center;gap:13px;padding:14px 20px;border-bottom:1px solid var(--border)}
+.member:last-child{border-bottom:none}
+.m-bars{flex:1;max-width:280px}
+.icon-btn{width:30px;height:30px;border-radius:8px;display:flex;align-items:center;justify-content:center;color:var(--ink-soft);font-size:15px}
+.icon-btn:hover{background:var(--red-lt);color:var(--red)}
+
+.view{display:none}.view.active{display:block}
+.section-gap{margin-top:22px}
+.flex-between{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.muted{color:var(--ink-mid)}
+.proj-pill{display:inline-flex;align-items:center;gap:7px;background:var(--surface-2);border:1px solid var(--border);border-radius:20px;padding:5px 12px;font-size:12px;font-weight:600;margin:0 6px 6px 0;font-family:'JetBrains Mono',monospace}
+
+/* ─── ACTIVITY ─── */
+.agent-note{display:flex;gap:12px;align-items:flex-start;background:var(--blue-lt);border:1px solid #C9D8FF;border-radius:13px;padding:14px 16px;font-size:13px;line-height:1.55;color:#2A3A66;margin-bottom:20px}
+.timeline{display:flex;height:42px;border-radius:9px;overflow:hidden;border:1px solid var(--border)}
+.timeline span{height:100%;transition:.3s}
+.timeline span:hover{filter:brightness(1.08)}
+.app-ico{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:17px;background:var(--surface-2);flex-shrink:0}
+.shots{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:14px}
+.shot{border:1px solid var(--border);border-radius:11px;overflow:hidden;background:var(--surface-2)}
+.shot-img{height:108px;display:flex;align-items:center;justify-content:center;font-size:13px;color:#fff;font-weight:600;background-size:cover;position:relative}
+.shot-cap{padding:8px 11px;font-size:11.5px;color:var(--ink-mid);display:flex;justify-content:space-between;align-items:center}
+.shot-act{font-family:'JetBrains Mono',monospace;font-weight:600}
+.connect code{font-family:'JetBrains Mono',monospace;background:var(--surface-2);border:1px solid var(--border);border-radius:5px;padding:1px 6px;font-size:12px;color:var(--blue-dk)}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ───────── SIDEBAR ───────── -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="brand-logo">⏱️</div>
+      <div><div class="brand-name">Tempo</div><div class="brand-sub">Productivity</div></div>
+    </div>
+    <nav class="nav">
+      <button class="nav-item active" data-view="dashboard"><span class="nav-ico">📊</span>Dashboard</button>
+      <button class="nav-item" data-view="timesheet"><span class="nav-ico">🕒</span>Timesheet</button>
+      <button class="nav-item" data-view="projects"><span class="nav-ico">📁</span>Projects</button>
+      <button class="nav-item" data-view="activity"><span class="nav-ico">🖥️</span>Computer Activity</button>
+      <button class="nav-item" data-view="reports"><span class="nav-ico">📈</span>Reports</button>
+      <button class="nav-item" data-view="team"><span class="nav-ico">👥</span>Team</button>
+    </nav>
+    <div class="sidebar-foot">
+      <div class="me">
+        <div class="avatar">ME</div>
+        <div><div class="me-name">My Workspace</div><div class="me-role">Owner</div></div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ───────── MAIN ───────── -->
+  <main class="main">
+    <!-- live timer (always visible) -->
+    <div class="timerbar">
+      <div class="timer-display" id="timerDisplay">00:00:00</div>
+      <div class="timer-meta">
+        <label>What are you working on?</label>
+        <div class="timer-row">
+          <input class="fld" id="taskInput" placeholder="Task description…" />
+          <select class="fld" id="projectSelect" style="max-width:170px"></select>
+        </div>
+      </div>
+      <button class="btn btn-start" id="toggleBtn" onclick="toggleTimer()">▶ Start</button>
+    </div>
+
+    <!-- ===== DASHBOARD ===== -->
+    <section class="view active" id="view-dashboard">
+      <div class="page-head">
+        <div><div class="page-title">Dashboard</div><div class="page-sub" id="todayLabel"></div></div>
+      </div>
+      <div class="grid g4">
+        <div class="card stat">
+          <div class="stat-top"><div class="stat-ico i-blue">⏱️</div><span class="delta up">today</span></div>
+          <div class="stat-val" id="kpiTracked">0h 0m</div><div class="stat-label">Time tracked</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-top"><div class="stat-ico i-green">⚡</div><span class="delta up" id="kpiProdDelta">0%</span></div>
+          <div class="stat-val" id="kpiProd">0%</div><div class="stat-label">Productivity</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-top"><div class="stat-ico i-purple">📁</div></div>
+          <div class="stat-val" id="kpiProjects">0</div><div class="stat-label">Active projects</div>
+        </div>
+        <div class="card stat">
+          <div class="stat-top"><div class="stat-ico i-amber">🗂️</div></div>
+          <div class="stat-val" id="kpiEntries">0</div><div class="stat-label">Entries today</div>
+        </div>
+      </div>
+
+      <div class="grid g2 section-gap">
+        <div class="card">
+          <div class="card-head"><div class="card-title">⚖️ Productivity breakdown</div><span class="muted" style="font-size:12.5px" id="prodTotal"></span></div>
+          <div class="card-pad">
+            <div class="pbar" id="prodBar"></div>
+            <div class="legend">
+              <span><i class="s-prod"></i>Productive</span>
+              <span><i class="s-neutral"></i>Neutral</span>
+              <span><i class="s-unprod"></i>Distracting</span>
+            </div>
+            <div id="prodByApp" style="margin-top:18px"></div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">📁 Time by project (today)</div></div>
+          <div class="card-pad" id="byProject"></div>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-head"><div class="card-title">🕒 Recent activity</div><button class="btn btn-ghost btn-sm" onclick="go('timesheet')">View all →</button></div>
+        <div class="tlist" id="recentList"></div>
+      </div>
+    </section>
+
+    <!-- ===== TIMESHEET ===== -->
+    <section class="view" id="view-timesheet">
+      <div class="page-head">
+        <div><div class="page-title">Timesheet</div><div class="page-sub">Every time entry, grouped by day</div></div>
+        <button class="btn btn-ghost btn-sm" onclick="addManual()">＋ Add entry manually</button>
+      </div>
+      <div id="timesheetDays"></div>
+    </section>
+
+    <!-- ===== PROJECTS ===== -->
+    <section class="view" id="view-projects">
+      <div class="page-head">
+        <div><div class="page-title">Projects</div><div class="page-sub">Organize tracked time by client or project</div></div>
+      </div>
+      <div class="card card-pad" style="margin-bottom:18px">
+        <div class="timer-row" style="max-width:540px">
+          <input class="fld" id="newProjName" placeholder="New project name…" />
+          <input class="fld" id="newProjColor" type="color" value="#3361FF" style="max-width:54px;padding:4px;cursor:pointer" />
+          <button class="btn btn-start btn-sm" onclick="addProject()">Add</button>
+        </div>
+      </div>
+      <div class="card"><div class="tlist" id="projectList"></div></div>
+    </section>
+
+    <!-- ===== REPORTS ===== -->
+    <section class="view" id="view-reports">
+      <div class="page-head">
+        <div><div class="page-title">Reports</div><div class="page-sub">Last 7 days overview</div></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title">📈 Hours tracked per day</div><span class="muted" style="font-size:12.5px" id="weekTotal"></span></div>
+        <div class="card-pad"><div class="weekchart" id="weekChart"></div></div>
+      </div>
+      <div class="grid g2 section-gap">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🏆 Top projects (7 days)</div></div>
+          <div class="card-pad" id="topProjects"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">🎯 Focus score</div></div>
+          <div class="card-pad" id="focusScore"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== COMPUTER ACTIVITY ===== -->
+    <section class="view" id="view-activity">
+      <div class="page-head">
+        <div><div class="page-title">Computer Activity</div><div class="page-sub">Apps, websites, screenshots &amp; idle time — like Time Doctor's web &amp; app report</div></div>
+        <select class="fld" id="activityDay" style="max-width:170px" onchange="renderActivity()"></select>
+      </div>
+
+      <div class="agent-note" id="agentNote">
+        <span style="font-size:17px">🛰️</span>
+        <div id="agentNoteText">Checking for the Tempo Agent…</div>
+      </div>
+
+      <div class="grid g4">
+        <div class="card stat"><div class="stat-top"><div class="stat-ico i-green">🟢</div></div><div class="stat-val" id="actActive">0h 0m</div><div class="stat-label">Active time</div></div>
+        <div class="card stat"><div class="stat-top"><div class="stat-ico i-amber">💤</div></div><div class="stat-val" id="actIdle">0m</div><div class="stat-label">Idle time</div></div>
+        <div class="card stat"><div class="stat-top"><div class="stat-ico i-blue">🖱️</div></div><div class="stat-val" id="actMouse">0%</div><div class="stat-label">Activity level</div></div>
+        <div class="card stat"><div class="stat-top"><div class="stat-ico i-purple">📸</div></div><div class="stat-val" id="actShots">0</div><div class="stat-label">Screenshots</div></div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-head"><div class="card-title">⏱️ Activity timeline</div><span class="muted" style="font-size:12.5px">9:00 — 18:00</span></div>
+        <div class="card-pad">
+          <div class="timeline" id="timeline"></div>
+          <div class="legend" style="margin-top:10px">
+            <span><i class="s-prod"></i>Productive</span>
+            <span><i class="s-neutral"></i>Neutral</span>
+            <span><i class="s-unprod"></i>Distracting</span>
+            <span><i class="s-idle"></i>Idle / away</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="grid g2 section-gap">
+        <div class="card">
+          <div class="card-head"><div class="card-title">🖥️ Applications used</div></div>
+          <div class="tlist" id="appList"></div>
+        </div>
+        <div class="card">
+          <div class="card-head"><div class="card-title">🌐 Websites visited</div></div>
+          <div class="tlist" id="siteList"></div>
+        </div>
+      </div>
+
+      <div class="card section-gap">
+        <div class="card-head"><div class="card-title">📸 Screenshots</div><span class="muted" style="font-size:12.5px">Captured every 10 min while active</span></div>
+        <div class="card-pad"><div class="shots" id="shots"></div></div>
+      </div>
+
+      <div class="card section-gap connect">
+        <div class="card-pad">
+          <div class="card-title" style="margin-bottom:8px">🔌 Connect real data &amp; your CRM</div>
+          <p class="muted" style="font-size:13px;line-height:1.65;max-width:760px">
+            The <b>Tempo Agent</b> (<code>agent/tempo_agent.py</code>) runs on the tracked computer and records the active app, window title, URL, idle time and screenshots, then <code>POST</code>s them to the <b>Tempo Server</b> (<code>server/tempo_server.py</code>), which classifies and stores them. This dashboard reads the aggregated report from <code>GET /api/activity</code> — so it shows live data automatically when served by the server. To push time entries into your CRM per client/contact, forward the same samples to your CRM's API. Edit <code>categories.json</code> to tune what counts as productive vs distracting.
+          </p>
+          <div style="margin-top:12px"><span class="proj-pill">tempo_agent.py</span><span class="proj-pill">POST /api/ingest</span><span class="proj-pill">GET /api/activity</span><span class="proj-pill">CRM time-log sync</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===== TEAM ===== -->
+    <section class="view" id="view-team">
+      <div class="page-head">
+        <div><div class="page-title">Team</div><div class="page-sub">Member activity &amp; productivity (demo data)</div></div>
+      </div>
+      <div class="card"><div id="teamList"></div></div>
+    </section>
+  </main>
+</div>
+
+<script>
+/* ════════════════ STATE ════════════════ */
+const LS = 'timetrack.v1';
+const PROD = {productive:'Productive', neutral:'Neutral', unproductive:'Distracting'};
+const seedProjects = [
+  {id:'p1', name:'Client Work', color:'#3361FF'},
+  {id:'p2', name:'Internal', color:'#7C5CFC'},
+  {id:'p3', name:'Admin', color:'#E0921A'},
+];
+let state = load();
+let timer = state.timer || null;   // {start, task, projectId}
+let tick = null;
+
+function load(){
+  try{ const s = JSON.parse(localStorage.getItem(LS)); if(s&&s.projects) return s; }catch(e){}
+  return { projects: seedProjects.slice(), entries: seedEntries(), timer:null };
+}
+function save(){ localStorage.setItem(LS, JSON.stringify({...state, timer})); }
+
+function seedEntries(){
+  // a little realistic demo history so the dashboard isn't empty on first run
+  const now = Date.now(), H = 3600e3, M = 60e3;
+  const mk = (ago, dur, task, pid, prod) => ({id:uid(), start: now-ago, end: now-ago+dur, task, projectId:pid, prod});
+  return [
+    mk(2*H, 75*M, 'Landing page revisions', 'p1', 'productive'),
+    mk(4.5*H, 50*M, 'Email + Slack catch-up', 'p3', 'neutral'),
+    mk(6*H, 90*M, 'Quarterly roadmap doc', 'p2', 'productive'),
+    mk(26*H, 110*M, 'Bug fixes — checkout', 'p1', 'productive'),
+    mk(28*H, 35*M, 'YouTube research', 'p2', 'unproductive'),
+    mk(30*H, 65*M, 'Invoicing', 'p3', 'neutral'),
+    mk(50*H, 140*M, 'Design system audit', 'p1', 'productive'),
+    mk(74*H, 95*M, 'Sprint planning', 'p2', 'productive'),
+    mk(98*H, 80*M, 'Client call + notes', 'p1', 'neutral'),
+  ];
+}
+function uid(){ return Math.random().toString(36).slice(2,9); }
+
+/* ════════════════ TIMER ════════════════ */
+function fmt(ms){
+  const t = Math.max(0, Math.floor(ms/1000));
+  const h = String(Math.floor(t/3600)).padStart(2,'0');
+  const m = String(Math.floor(t%3600/60)).padStart(2,'0');
+  const s = String(t%60).padStart(2,'0');
+  return `${h}:${m}:${s}`;
+}
+function hm(ms){
+  const t = Math.floor(ms/60000); return `${Math.floor(t/60)}h ${t%60}m`;
+}
+function toggleTimer(){ timer ? stopTimer() : startTimer(); }
+function startTimer(){
+  const task = document.getElementById('taskInput').value.trim() || 'Untitled task';
+  const projectId = document.getElementById('projectSelect').value;
+  timer = { start: Date.now(), task, projectId };
+  save(); renderTimer(); runTick();
+}
+function stopTimer(){
+  const end = Date.now();
+  if(end - timer.start > 1000){
+    state.entries.unshift({ id:uid(), start:timer.start, end, task:timer.task, projectId:timer.projectId, prod:'productive' });
+  }
+  timer = null; clearInterval(tick); tick=null;
+  document.getElementById('taskInput').value='';
+  save(); renderTimer(); renderAll();
+}
+function runTick(){ clearInterval(tick); tick = setInterval(renderTimer, 1000); }
+function renderTimer(){
+  const d = document.getElementById('timerDisplay');
+  const btn = document.getElementById('toggleBtn');
+  if(timer){
+    d.textContent = fmt(Date.now()-timer.start); d.classList.add('running');
+    btn.textContent = '■ Stop'; btn.className='btn btn-stop';
+    document.getElementById('taskInput').value = timer.task;
+    document.getElementById('projectSelect').value = timer.projectId;
+  }else{
+    d.textContent = '00:00:00'; d.classList.remove('running');
+    btn.textContent = '▶ Start'; btn.className='btn btn-start';
+  }
+}
+
+/* ════════════════ HELPERS ════════════════ */
+const dur = e => (e.end||Date.now()) - e.start;
+const proj = id => state.projects.find(p=>p.id===id) || {name:'No project', color:'#C6CEDF'};
+const startOfDay = ts => { const d=new Date(ts); d.setHours(0,0,0,0); return d.getTime(); };
+const todayEntries = () => state.entries.filter(e=>startOfDay(e.start)===startOfDay(Date.now()));
+
+/* ════════════════ NAV ════════════════ */
+function go(view){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active', n.dataset.view===view));
+  document.querySelectorAll('.view').forEach(v=>v.classList.toggle('active', v.id==='view-'+view));
+  renderAll();
+}
+document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>go(n.dataset.view));
+
+/* ════════════════ PROJECTS ════════════════ */
+function fillProjectSelect(){
+  const sel = document.getElementById('projectSelect');
+  const cur = sel.value;
+  sel.innerHTML = state.projects.map(p=>`<option value="${p.id}">${p.name}</option>`).join('');
+  if(cur) sel.value = cur;
+}
+function addProject(){
+  const name = document.getElementById('newProjName').value.trim();
+  if(!name) return;
+  const color = document.getElementById('newProjColor').value;
+  state.projects.push({id:uid(), name, color});
+  document.getElementById('newProjName').value='';
+  save(); fillProjectSelect(); renderProjects();
+}
+function delProject(id){
+  if(!confirm('Delete this project? Its time entries will be kept but unassigned.')) return;
+  state.projects = state.projects.filter(p=>p.id!==id);
+  state.entries.forEach(e=>{ if(e.projectId===id) e.projectId=null; });
+  save(); fillProjectSelect(); renderAll();
+}
+function renderProjects(){
+  const totals = {};
+  state.entries.forEach(e=> totals[e.projectId] = (totals[e.projectId]||0)+dur(e));
+  document.getElementById('projectList').innerHTML = state.projects.map(p=>`
+    <div class="trow">
+      <span class="tdot" style="background:${p.color}"></span>
+      <div class="tmain"><b>${p.name}</b><small>${state.entries.filter(e=>e.projectId===p.id).length} entries</small></div>
+      <span class="tdur">${hm(totals[p.id]||0)}</span>
+      <button class="icon-btn" onclick="delProject('${p.id}')" title="Delete">🗑</button>
+    </div>`).join('') || '<div class="empty"><div class="empty-ico">📁</div>No projects yet.</div>';
+}
+
+/* ════════════════ TIMESHEET ════════════════ */
+function cycleProd(id){
+  const e = state.entries.find(x=>x.id===id); if(!e) return;
+  const order=['productive','neutral','unproductive'];
+  e.prod = order[(order.indexOf(e.prod)+1)%3];
+  save(); renderAll();
+}
+function delEntry(id){
+  state.entries = state.entries.filter(e=>e.id!==id); save(); renderAll();
+}
+function addManual(){
+  const task = prompt('Task description:'); if(task===null) return;
+  const mins = parseInt(prompt('Duration in minutes:', '30'),10);
+  if(!mins || mins<=0) return;
+  const end = Date.now(), start = end - mins*60000;
+  state.entries.unshift({id:uid(), start, end, task:task||'Untitled task', projectId: state.projects[0]?.id||null, prod:'productive'});
+  save(); renderAll();
+}
+function entryRow(e){
+  const p = proj(e.projectId);
+  const t = new Date(e.start).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
+  return `<div class="trow">
+    <span class="tdot" style="background:${p.color}"></span>
+    <div class="tmain"><b>${esc(e.task)}</b><small>${p.name} · ${t}</small></div>
+    <span class="tag t-${e.prod==='unproductive'?'unprod':e.prod==='neutral'?'neutral':'prod'}" onclick="cycleProd('${e.id}')" style="cursor:pointer" title="Click to change">${PROD[e.prod]}</span>
+    <span class="tdur">${hm(dur(e))}</span>
+    <button class="icon-btn" onclick="delEntry('${e.id}')" title="Delete">🗑</button>
+  </div>`;
+}
+function renderTimesheet(){
+  const byDay = {};
+  state.entries.slice().sort((a,b)=>b.start-a.start).forEach(e=>{
+    const k = startOfDay(e.start); (byDay[k]=byDay[k]||[]).push(e);
+  });
+  const days = Object.keys(byDay).sort((a,b)=>b-a);
+  const host = document.getElementById('timesheetDays');
+  if(!days.length){ host.innerHTML='<div class="card"><div class="empty"><div class="empty-ico">🕒</div>No time tracked yet. Hit Start above!</div></div>'; return; }
+  host.innerHTML = days.map(k=>{
+    const total = byDay[k].reduce((s,e)=>s+dur(e),0);
+    const label = dayLabel(+k);
+    return `<div class="card" style="margin-bottom:16px">
+      <div class="card-head"><div class="card-title">${label}</div><span class="tdur">${hm(total)}</span></div>
+      <div class="tlist">${byDay[k].map(entryRow).join('')}</div>
+    </div>`;
+  }).join('');
+}
+function dayLabel(ts){
+  const today=startOfDay(Date.now()), d=startOfDay(ts);
+  if(d===today) return 'Today';
+  if(d===today-86400e3) return 'Yesterday';
+  return new Date(ts).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'});
+}
+
+/* ════════════════ DASHBOARD ════════════════ */
+function renderDashboard(){
+  const today = todayEntries();
+  const total = today.reduce((s,e)=>s+dur(e),0);
+  document.getElementById('todayLabel').textContent =
+    new Date().toLocaleDateString([], {weekday:'long', month:'long', day:'numeric'});
+  document.getElementById('kpiTracked').textContent = hm(total);
+  document.getElementById('kpiEntries').textContent = today.length;
+  document.getElementById('kpiProjects').textContent = state.projects.length;
+
+  const buckets = {productive:0, neutral:0, unproductive:0};
+  today.forEach(e=> buckets[e.prod]+=dur(e));
+  const prodPct = total ? Math.round(buckets.productive/total*100) : 0;
+  document.getElementById('kpiProd').textContent = prodPct+'%';
+  document.getElementById('kpiProdDelta').textContent = (prodPct>=70?'on track':'focus');
+  document.getElementById('kpiProdDelta').className = 'delta '+(prodPct>=70?'up':'down');
+
+  const seg = k => total? (buckets[k]/total*100):0;
+  document.getElementById('prodBar').innerHTML =
+    `<span class="s-prod" style="width:${seg('productive')}%"></span>
+     <span class="s-neutral" style="width:${seg('neutral')}%"></span>
+     <span class="s-unprod" style="width:${seg('unproductive')}%"></span>`;
+  document.getElementById('prodTotal').textContent = hm(total)+' today';
+  document.getElementById('prodByApp').innerHTML = ['productive','neutral','unproductive'].map(k=>
+    `<div class="flex-between" style="padding:7px 0"><span class="muted">${PROD[k]}</span><b>${hm(buckets[k])} · ${Math.round(seg(k))}%</b></div>`).join('');
+
+  // by project today
+  const pj={}; today.forEach(e=> pj[e.projectId]=(pj[e.projectId]||0)+dur(e));
+  const rows = Object.entries(pj).sort((a,b)=>b[1]-a[1]);
+  document.getElementById('byProject').innerHTML = rows.length ? rows.map(([id,ms])=>{
+    const p=proj(id), pct = total?Math.round(ms/total*100):0;
+    return `<div style="margin-bottom:13px">
+      <div class="flex-between" style="margin-bottom:5px"><span><span class="tdot" style="background:${p.color};display:inline-block;margin-right:7px"></span>${p.name}</span><b>${hm(ms)}</b></div>
+      <div class="pbar"><span style="width:${pct}%;background:${p.color}"></span></div>
+    </div>`;
+  }).join('') : '<div class="empty" style="padding:20px"><div class="empty-ico">📂</div>Nothing tracked today yet.</div>';
+
+  document.getElementById('recentList').innerHTML =
+    state.entries.slice(0,6).map(entryRow).join('') || '<div class="empty"><div class="empty-ico">🕒</div>No activity yet.</div>';
+}
+
+/* ════════════════ REPORTS ════════════════ */
+function renderReports(){
+  const days=[]; const now=startOfDay(Date.now());
+  for(let i=6;i>=0;i--){ days.push(now - i*86400e3); }
+  const totals = days.map(d=> state.entries.filter(e=>startOfDay(e.start)===d).reduce((s,e)=>s+dur(e),0));
+  const max = Math.max(...totals, 3600e3);
+  const weekTotal = totals.reduce((a,b)=>a+b,0);
+  document.getElementById('weekTotal').textContent = hm(weekTotal)+' total';
+  document.getElementById('weekChart').innerHTML = days.map((d,i)=>{
+    const h = Math.round(totals[i]/max*100);
+    const isToday = d===now;
+    return `<div class="wc-col">
+      <span class="wc-val">${totals[i]?hm(totals[i]):''}</span>
+      <div class="wc-bar-wrap"><div class="wc-bar ${isToday?'today':''}" style="height:${h}%"></div></div>
+      <span class="wc-day">${new Date(d).toLocaleDateString([], {weekday:'short'})}</span>
+    </div>`;
+  }).join('');
+
+  const weekEntries = state.entries.filter(e=> startOfDay(e.start) >= now-6*86400e3);
+  const pj={}; weekEntries.forEach(e=> pj[e.projectId]=(pj[e.projectId]||0)+dur(e));
+  const rows = Object.entries(pj).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  document.getElementById('topProjects').innerHTML = rows.length? rows.map(([id,ms])=>{
+    const p=proj(id), pct = weekTotal?Math.round(ms/weekTotal*100):0;
+    return `<div style="margin-bottom:13px"><div class="flex-between" style="margin-bottom:5px"><span><span class="tdot" style="background:${p.color};display:inline-block;margin-right:7px"></span>${p.name}</span><b>${hm(ms)}</b></div><div class="pbar"><span style="width:${pct}%;background:${p.color}"></span></div></div>`;
+  }).join('') : '<div class="empty">No data this week.</div>';
+
+  const prodMs = weekEntries.filter(e=>e.prod==='productive').reduce((s,e)=>s+dur(e),0);
+  const score = weekTotal? Math.round(prodMs/weekTotal*100):0;
+  document.getElementById('focusScore').innerHTML = `
+    <div style="text-align:center;padding:6px 0 14px">
+      <div style="font-size:52px;font-weight:800;letter-spacing:-.03em;color:${score>=70?'var(--green)':score>=40?'var(--amber)':'var(--red)'}">${score}%</div>
+      <div class="muted">of tracked time was productive</div>
+    </div>
+    <div class="pbar" style="height:12px"><span class="s-prod" style="width:${score}%"></span></div>
+    <p class="muted" style="margin-top:14px;font-size:12.5px;line-height:1.6">${
+      score>=70?'Strong focus week. Keep protecting your deep-work blocks. 🎯'
+      :score>=40?'Decent, but distractions are creeping in. Try batching email/Slack. ⚡'
+      :'A lot of distracting time. Consider time-blocking your calendar. 🧭'}</p>`;
+}
+
+/* ════════════════ TEAM (demo) ════════════════ */
+const team = [
+  {name:'Sofia Reyes', role:'Designer', init:'SR', h:6.4, prod:82, neutral:12, unprod:6},
+  {name:'Marcus Lee', role:'Developer', init:'ML', h:7.1, prod:74, neutral:15, unprod:11},
+  {name:'Aisha Khan', role:'PM', init:'AK', h:5.2, prod:68, neutral:24, unprod:8},
+  {name:'Tom Becker', role:'Support', init:'TB', h:6.9, prod:61, neutral:28, unprod:11},
+];
+function renderTeam(){
+  document.getElementById('teamList').innerHTML = team.map(m=>`
+    <div class="member">
+      <div class="avatar">${m.init}</div>
+      <div style="width:150px"><div style="font-weight:600">${m.name}</div><div class="muted" style="font-size:12px">${m.role}</div></div>
+      <div class="m-bars">
+        <div class="pbar"><span class="s-prod" style="width:${m.prod}%"></span><span class="s-neutral" style="width:${m.neutral}%"></span><span class="s-unprod" style="width:${m.unprod}%"></span></div>
+        <div class="muted" style="font-size:11.5px;margin-top:6px">${m.prod}% productive</div>
+      </div>
+      <span class="tdur" style="margin-left:auto">${m.h}h</span>
+      <span class="live-dot" title="Active now"></span>
+    </div>`).join('');
+}
+
+/* ════════════════ COMPUTER ACTIVITY ════════════════
+   This is the single data source for the activity report.
+   Swap the body to fetch('/api/activity?day=…') from your
+   desktop agent or CRM and every chart below fills with live data. */
+function demoFeed(dayOffset){
+  // deterministic demo data per day so it doesn't flicker on re-render
+  const seed = (dayOffset*37+11);
+  const apps = [
+    {name:'VS Code', ico:'🟦', prod:'productive', m:142},
+    {name:'Google Chrome', ico:'🌐', prod:'productive', m:96},
+    {name:'Slack', ico:'💬', prod:'neutral', m:54},
+    {name:'Figma', ico:'🎨', prod:'productive', m:48},
+    {name:'Mail', ico:'✉️', prod:'neutral', m:33},
+    {name:'YouTube', ico:'▶️', prod:'unproductive', m:26},
+    {name:'Zoom', ico:'🎥', prod:'productive', m:40},
+  ].map(a=>({...a, m: Math.max(5, a.m - (seed%9)*3)}));
+  const sites = [
+    {name:'github.com', ico:'🐙', prod:'productive', m:74},
+    {name:'docs.google.com', ico:'📄', prod:'productive', m:41},
+    {name:'figma.com', ico:'🎨', prod:'productive', m:38},
+    {name:'gmail.com', ico:'✉️', prod:'neutral', m:29},
+    {name:'youtube.com', ico:'▶️', prod:'unproductive', m:26},
+    {name:'twitter.com', ico:'🐦', prod:'unproductive', m:14},
+  ].map(s=>({...s, m: Math.max(4, s.m - (seed%7)*2)}));
+  // timeline blocks across the work day
+  const blocks = [
+    {prod:'productive',m:55},{prod:'neutral',m:20},{prod:'idle',m:10},{prod:'productive',m:70},
+    {prod:'unproductive',m:18},{prod:'neutral',m:25},{prod:'idle',m:35},{prod:'productive',m:80},
+    {prod:'neutral',m:15},{prod:'unproductive',m:12},{prod:'productive',m:45},
+  ];
+  const shots = [
+    {t:'09:40', act:92, prod:'productive', app:'VS Code'},
+    {t:'10:10', act:81, prod:'productive', app:'Chrome — github'},
+    {t:'11:20', act:34, prod:'neutral', app:'Slack'},
+    {t:'13:05', act:12, prod:'unproductive', app:'YouTube'},
+    {t:'14:30', act:88, prod:'productive', app:'Figma'},
+    {t:'16:15', act:76, prod:'productive', app:'VS Code'},
+  ];
+  return {apps, sites, blocks, shots, idleMin: 45 + (seed%4)*8, activityLevel: 71 - (seed%5)*4};
+}
+const PCOLOR = {productive:'var(--green)', neutral:'var(--amber)', unproductive:'var(--red)', idle:'#C6CEDF'};
+// normalize the server's "distracting" category to the UI's "unproductive"
+const normProd = p => p==='distracting' ? 'unproductive' : p;
+// Single data source: try the live Tempo Server, fall back to demo data offline.
+async function fetchActivity(off){
+  try{
+    const r = await fetch(`/api/activity?day=${off}`, {cache:'no-store'});
+    if(!r.ok) throw 0;
+    const d = await r.json();
+    if(!d.live) throw 0;            // server up but no agent data for this day
+    ['apps','sites'].forEach(k => d[k] = d[k].map(x=>({...x, prod:normProd(x.prod)})));
+    d.blocks = d.blocks.map(b=>({...b, prod:normProd(b.prod)}));
+    d.shots  = d.shots.map(s=>({...s, prod:normProd(s.prod)}));
+    return {f:d, live:true};
+  }catch(e){
+    return {f: demoFeed(off), live:false};
+  }
+}
+async function renderActivity(){
+  const sel = document.getElementById('activityDay');
+  if(!sel.options.length){
+    let html='';
+    for(let i=0;i<7;i++){ const d=startOfDay(Date.now())-i*86400e3;
+      html+=`<option value="${i}">${i===0?'Today':i===1?'Yesterday':new Date(d).toLocaleDateString([], {weekday:'long', month:'short', day:'numeric'})}</option>`; }
+    sel.innerHTML=html;
+  }
+  const off = +sel.value || 0;
+  const {f, live} = await fetchActivity(off);
+  document.getElementById('agentNoteText').innerHTML = live
+    ? '<b>🟢 Live data from the Tempo Agent.</b> Apps, sites, idle time and screenshots below are captured on the tracked computer.'
+    : '<b>Demo data.</b> The Tempo Agent isn\'t reporting yet. Start <code>tempo_server.py</code> and run <code>tempo_agent.py</code> on the computer to track, then this fills with real activity.';
+  document.getElementById('agentNote').style.background = live ? 'var(--green-lt)' : 'var(--blue-lt)';
+  document.getElementById('agentNote').style.borderColor = live ? '#B5E8CF' : '#C9D8FF';
+  const activeMin = Math.round(f.blocks.filter(b=>b.prod!=='idle').reduce((s,b)=>s+b.m,0));
+  document.getElementById('actActive').textContent = `${Math.floor(activeMin/60)}h ${activeMin%60}m`;
+  document.getElementById('actIdle').textContent = `${f.idleMin}m`;
+  document.getElementById('actMouse').textContent = f.activityLevel+'%';
+  document.getElementById('actShots').textContent = f.shots.length;
+
+  const totalM = f.blocks.reduce((s,b)=>s+b.m,0);
+  document.getElementById('timeline').innerHTML = f.blocks.map(b=>
+    `<span style="width:${b.m/totalM*100}%;background:${PCOLOR[b.prod]}" title="${b.prod} · ${b.m}m"></span>`).join('');
+
+  const maxApp = Math.max(...f.apps.map(a=>a.m));
+  document.getElementById('appList').innerHTML = f.apps.sort((a,b)=>b.m-a.m).map(a=>`
+    <div class="trow"><div class="app-ico">${a.ico}</div>
+      <div class="tmain"><b>${a.name}</b>
+        <div class="pbar" style="margin-top:6px;height:6px"><span style="width:${a.m/maxApp*100}%;background:${PCOLOR[a.prod]}"></span></div>
+      </div>
+      <span class="tag t-${a.prod==='unproductive'?'unprod':a.prod==='neutral'?'neutral':'prod'}">${PROD[a.prod]}</span>
+      <span class="tdur">${Math.floor(a.m/60)?Math.floor(a.m/60)+'h ':''}${a.m%60}m</span></div>`).join('');
+  const maxSite = Math.max(...f.sites.map(s=>s.m));
+  document.getElementById('siteList').innerHTML = f.sites.sort((a,b)=>b.m-a.m).map(s=>`
+    <div class="trow"><div class="app-ico">${s.ico}</div>
+      <div class="tmain"><b>${s.name}</b>
+        <div class="pbar" style="margin-top:6px;height:6px"><span style="width:${s.m/maxSite*100}%;background:${PCOLOR[s.prod]}"></span></div>
+      </div>
+      <span class="tag t-${s.prod==='unproductive'?'unprod':s.prod==='neutral'?'neutral':'prod'}">${PROD[s.prod]}</span>
+      <span class="tdur">${Math.floor(s.m/60)?Math.floor(s.m/60)+'h ':''}${s.m%60}m</span></div>`).join('');
+
+  document.getElementById('shots').innerHTML = f.shots.length ? f.shots.map(sh=>{
+    const c = PCOLOR[sh.prod];
+    const img = sh.file
+      ? `<div class="shot-img" style="background-image:url('/shots/${sh.file}');background-color:#10172A"></div>`
+      : `<div class="shot-img" style="background:linear-gradient(135deg,${c},#10172A)">${sh.app}</div>`;
+    return `<div class="shot">${img}
+      <div class="shot-cap"><span>${sh.t}${sh.file?' · '+esc(sh.app):''}</span><span class="shot-act" style="color:${sh.act>=60?'var(--green)':sh.act>=30?'var(--amber)':'var(--red)'}">${sh.act}% active</span></div>
+    </div>`;
+  }).join('') : '<div class="empty" style="grid-column:1/-1"><div class="empty-ico">📸</div>No screenshots for this day.</div>';
+}
+
+/* ════════════════ UTIL ════════════════ */
+function esc(s){ return (s||'').replace(/[&<>"]/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function renderAll(){ fillProjectSelect(); renderDashboard(); renderTimesheet(); renderProjects(); renderReports(); renderActivity(); renderTeam(); }
+
+/* ════════════════ INIT ════════════════ */
+fillProjectSelect();
+renderTimer();
+if(timer) runTick();
+renderAll();
+</script>
+</body>
+</html>
