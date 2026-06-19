@@ -11,9 +11,9 @@ async function loadTools() {
   return import('../src/tools.js');
 }
 
-test('superficie: exactamente 142 tools, nombres únicos', async () => {
+test('superficie: exactamente 143 tools, nombres únicos', async () => {
   const { toolDefinitions } = await loadTools();
-  assert.equal(toolDefinitions.length, 142, 'el número de tools no debe cambiar con el refactor');
+  assert.equal(toolDefinitions.length, 143, 'el número de tools no debe cambiar con el refactor');
   const names = toolDefinitions.map((t) => t.name);
   assert.equal(new Set(names).size, names.length, 'nombres deben ser únicos');
   for (const t of toolDefinitions) assert.ok(typeof t.name === 'string' && t.name.length, 'cada tool con name');

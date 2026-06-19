@@ -1878,6 +1878,18 @@ Empieza ya. No le mandes mensaje a Isabel hasta el resumen final.`;
         return `Template "${t.slug}" creado y aprobado. Lo puedes usar con template_usar(slug="${t.slug}", destinatario=..., vars={...}).`;
       } catch (err) { return `No pude crear template: ${err.message}`; }
     }
+    case 'buscar_vuelos': {
+      const { searchFlights, formatFlights } = await import('./travel.js');
+      const r = await searchFlights({
+        origin: input.origen,
+        destination: input.destino,
+        date: input.fecha,
+        adults: parseInt(input.adultos, 10) || 1,
+        cabin: input.cabina,
+      });
+      if (!r.ok) return `No pude buscar vuelos: ${r.error}`;
+      return formatFlights(r.flights, { origin: input.origen, destination: input.destino, date: input.fecha, host: r.host });
+    }
     default:
       return `Herramienta desconocida: ${name}`;
   }

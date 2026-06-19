@@ -1717,4 +1717,19 @@ REGLAS:
       required: ['nombre', 'canal', 'cuerpo'],
     },
   },
+  {
+    name: 'buscar_vuelos',
+    description: 'Busca vuelos con PRECIOS REALES vía Amadeus. Úsala cuando Isabel pida buscar/comparar pasajes para una fecha específica ("búscame vuelos LAX a Honduras el 30 de junio"). Inputs: origen y destino en código IATA (LAX, XPL=Palmerola Honduras, SAP=San Pedro Sula, TGU=Tegucigalpa), fecha YYYY-MM-DD, número de adultos, cabina opcional. Devuelve la lista de vuelos del MÁS BARATO al más caro, con precio real, aerolínea, escalas y duración. SOLO busca — NO reserva. Si Amadeus no está configurado, dilo claro (no inventes precios).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        origen: { type: 'string', description: 'Código IATA de origen. Ej. LAX.' },
+        destino: { type: 'string', description: 'Código IATA de destino. Ej. XPL (Palmerola), SAP (San Pedro Sula), TGU (Tegucigalpa).' },
+        fecha: { type: 'string', description: 'Fecha de salida en formato YYYY-MM-DD.' },
+        adultos: { type: 'integer', description: 'Número de pasajeros adultos. Default 1.' },
+        cabina: { type: 'string', enum: ['ECONOMY', 'PREMIUM_ECONOMY', 'BUSINESS', 'FIRST'], description: 'Clase. Default ECONOMY.' },
+      },
+      required: ['origen', 'destino', 'fecha'],
+    },
+  },
 ];
