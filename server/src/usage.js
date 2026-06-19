@@ -206,18 +206,25 @@ export function recordUsage({ model, usage, label = '' }) {
 }
 
 // Resumen de costo REAL (testeable): suma de hoy/semana/mes desde el usage log.
+// Usa `now` de forma CONSISTENTE para los tres periodos (determinista/testeable).
 export function realCostSummary(rows = loadUsageLog(), now = new Date()) {
+  const TZ = process.env.TIMEZONE || 'America/Los_Angeles';
+  const dayKey = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit' }).format(d);
+  const monthKey = (d) => new Intl.DateTimeFormat('en-CA', { timeZone: TZ, year: 'numeric', month: '2-digit' }).format(d);
+  const todayKey = dayKey(now);
+  const thisMonthKey = monthKey(now);
+  const nowMs = now.getTime();
   const list = Array.isArray(rows) ? rows : [];
   const bucket = () => ({ count: 0, cost: 0, tokens_in: 0, tokens_out: 0 });
   const out = { today: bucket(), week: bucket(), month: bucket(), has_data: list.length > 0 };
-  const nowMs = now.getTime();
   for (const r of list) {
     const t = r?.ts ? new Date(r.ts) : null;
     if (!t || Number.isNaN(t.getTime())) continue;
     const add = (b) => { b.count++; b.cost += r.cost || 0; b.tokens_in += r.in || 0; b.tokens_out += r.out || 0; };
-    if (isToday(r.ts)) add(out.today);
-    if (nowMs - t.getTime() < 7 * 86_400_000) add(out.week);
-    if (isThisMonth(r.ts)) add(out.month);
+    if (dayKey(t) === todayKey) add(out.today);
+    const diff = nowMs - t.getTime();
+    if (diff >= 0 && diff < 7 * 86_400_000) add(out.week);
+    if (monthKey(t) === thisMonthKey) add(out.month);
   }
   for (const k of ['today', 'week', 'month']) out[k].cost = Math.round(out[k].cost * 1e4) / 1e4;
   return out;

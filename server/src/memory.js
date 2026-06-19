@@ -459,18 +459,42 @@ function dropOrphanToolBlocks(messages) {
   });
 }
 
+// Las built-in/server tools de Anthropic (web_search, etc.) devuelven
+// bloques `server_tool_use` y `web_search_tool_result` dentro del turno
+// del assistant. Esos NO deben persistir ni re-enviarse en el historial:
+// el modelo ya usó la búsqueda para producir su texto, y replayearlos
+// (o que el corte de 24 turnos parta el par) hace que la API rechace con
+//   "unexpected tool_use_id found in web_search_tool_result blocks".
+// Esta función los quita del historial (deja el texto y los client tools).
+function isServerToolBlock(type) {
+  if (type === 'server_tool_use') return true;
+  // web_search_tool_result, code_execution_tool_result, etc. (NO el client 'tool_result')
+  if (type && type !== 'tool_result' && /_tool_result$/.test(type)) return true;
+  return false;
+}
+export function stripServerToolBlocks(messages) {
+  if (!Array.isArray(messages)) return messages;
+  return messages
+    .map((m) => {
+      if (!m || !Array.isArray(m.content)) return m;
+      return { ...m, content: m.content.filter((b) => !isServerToolBlock(b?.type)) };
+    })
+    .filter((m) => !(m && Array.isArray(m.content) && m.content.length === 0));
+}
+
 // La API de Anthropic es sin estado: hay que mandarle el historial
 // completo cada vez. Lo guardamos aquí entre mensajes.
 export function getHistory() {
-  return dropOrphanToolBlocks(sanitizeToolNames(load(HISTORY_FILE, [])));
+  return dropOrphanToolBlocks(stripServerToolBlocks(sanitizeToolNames(load(HISTORY_FILE, []))));
 }
 
 export function saveHistory(messages) {
   // Cortamos primero a los últimos 24 turnos (optimización de costo —
-  // menos tokens por turno), luego renombramos tools y
-  // limpiamos huérfanos (incluyendo los creados por el corte mismo).
+  // menos tokens por turno), quitamos bloques de server tools (búsqueda
+  // web), renombramos tools y limpiamos huérfanos (incluyendo los creados
+  // por el corte mismo).
   const trimmed = Array.isArray(messages) ? messages.slice(-24) : messages;
-  save(HISTORY_FILE, dropOrphanToolBlocks(sanitizeToolNames(trimmed)));
+  save(HISTORY_FILE, dropOrphanToolBlocks(stripServerToolBlocks(sanitizeToolNames(trimmed))));
 }
 
 // ---- Audit log: TODA acción de Athena queda registrada ----
