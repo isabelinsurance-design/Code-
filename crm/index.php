@@ -3227,7 +3227,9 @@ foreach($_ret_stats as $_rs) {
     // 30 días chip
     $_c30ts = $_rm['call30'] ? $_rm['call30']['completada_at'] : null;
     if($_c30ts) {
-        $_chip_30 = "<div style='text-align:center'><div style='display:inline-block;padding:2px 8px;background:#EAF5F0;color:#1E7A5C;border:1.5px solid #8DCFBA;border-radius:20px;font-size:8px;font-weight:900'>✓ OK</div><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c30ts))."</div></div>";
+        $_r = $_rm['call30']['resultado'] ?? 'COMPLETADA';
+        $_st = $_r==='NO CONTESTÓ'?['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']:($_r==='BUZÓN'?['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']:['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ']);
+        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetQ30({$_mid})' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c30ts))."</div></div>";
     } elseif($_dias < 25) {
         $_chip_30 = "<div style='text-align:center;font-size:8px;color:#94A3B8'>en ".(25-$_dias)."d</div>";
     } elseif($_dias <= 40) {
@@ -3239,7 +3241,9 @@ foreach($_ret_stats as $_rs) {
     // 60 días chip
     $_c60ts = $_rm['call60'] ? $_rm['call60']['completada_at'] : null;
     if($_c60ts) {
-        $_chip_60 = "<div style='text-align:center'><div style='display:inline-block;padding:2px 8px;background:#EAF5F0;color:#1E7A5C;border:1.5px solid #8DCFBA;border-radius:20px;font-size:8px;font-weight:900'>✓ OK</div><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c60ts))."</div></div>";
+        $_r = $_rm['call60']['resultado'] ?? 'COMPLETADA';
+        $_st = $_r==='NO CONTESTÓ'?['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']:($_r==='BUZÓN'?['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']:['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ']);
+        $_chip_60 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"60\")' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c60ts))."</div></div>";
     } elseif($_dias < 55) {
         $_chip_60 = "<div style='text-align:center;font-size:8px;color:#94A3B8'>en ".(55-$_dias)."d</div>";
     } elseif($_dias <= 70) {
@@ -3251,7 +3255,9 @@ foreach($_ret_stats as $_rs) {
     // 90 días chip
     $_c90ts = $_rm['call90'] ? $_rm['call90']['completada_at'] : null;
     if($_c90ts) {
-        $_chip_90 = "<div style='text-align:center'><div style='display:inline-block;padding:2px 8px;background:#EAF5F0;color:#1E7A5C;border:1.5px solid #8DCFBA;border-radius:20px;font-size:8px;font-weight:900'>✓ OK</div><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c90ts))."</div></div>";
+        $_r = $_rm['call90']['resultado'] ?? 'COMPLETADA';
+        $_st = $_r==='NO CONTESTÓ'?['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']:($_r==='BUZÓN'?['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']:['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ']);
+        $_chip_90 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"90\")' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c90ts))."</div></div>";
     } elseif($_dias < 85) {
         $_chip_90 = "<div style='text-align:center;font-size:8px;color:#94A3B8'>en ".(85-$_dias)."d</div>";
     } elseif($_dias <= 100) {
