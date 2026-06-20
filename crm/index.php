@@ -3164,21 +3164,23 @@ foreach($members as $m) {
     $dias = (int)round(($_today_ts - strtotime($m['fecha_efectiva'])) / 86400);
     if($dias < 0) continue;
     $bienvenida_done = isset($_ret_bienvenidas[$m['id']]);
+    $callB  = $_ret_calls[$m['id']]['BIENVENIDA'] ?? null;
     $call30 = $_ret_calls[$m['id']]['30'] ?? null;
     $call60 = $_ret_calls[$m['id']]['60'] ?? null;
     $call90 = $_ret_calls[$m['id']]['90'] ?? null;
+    $bienv_ok = $bienvenida_done || $callB; // hecho por dashboard O por llamada registrada
     $urgente = false;
-    if(!$bienvenida_done && $dias <= 14) $urgente = true;
-    if(!$bienvenida_done && $dias > 14)  $urgente = true;
+    if(!$bienv_ok && $dias <= 14) $urgente = true;
+    if(!$bienv_ok && $dias > 14)  $urgente = true;
     if(!$call30 && $dias >= 25) $urgente = true;
     if(!$call60 && $dias >= 55) $urgente = true;
     if(!$call90 && $dias >= 85) $urgente = true;
-    $_ret_list[] = ['id'=>$m['id'],'nombre'=>$m['nombre'],'apellido'=>$m['apellido'],'telefono'=>$m['telefono']??'','carrier'=>$m['carrier']??'','fecha_efe'=>$m['fecha_efectiva'],'dias'=>$dias,'bienvenida'=>$bienvenida_done?($_ret_bienvenidas[$m['id']]??''):null,'call30'=>$call30,'call60'=>$call60,'call90'=>$call90,'q30'=>isset($_ret_q30_ids[$m['id']])?$_ret_q30_ids[$m['id']]:null,'urgente'=>$urgente];
+    $_ret_list[] = ['id'=>$m['id'],'nombre'=>$m['nombre'],'apellido'=>$m['apellido'],'telefono'=>$m['telefono']??'','carrier'=>$m['carrier']??'','fecha_efe'=>$m['fecha_efectiva'],'dias'=>$dias,'bienvenida'=>$bienvenida_done?($_ret_bienvenidas[$m['id']]??''):null,'callB'=>$callB,'call30'=>$call30,'call60'=>$call60,'call90'=>$call90,'q30'=>isset($_ret_q30_ids[$m['id']])?$_ret_q30_ids[$m['id']]:null,'urgente'=>$urgente];
 }
 usort($_ret_list, function($a,$b){ return $b['urgente']<=>$a['urgente'] ?: $a['dias']<=>$b['dias']; });
 $_st_total   = count($_ret_list);
 $_st_urgente = count(array_filter($_ret_list, function($m){ return $m['urgente']; }));
-$_st_bienok  = count(array_filter($_ret_list, function($m){ return $m['bienvenida']; }));
+$_st_bienok  = count(array_filter($_ret_list, function($m){ return $m['bienvenida'] || $m['callB']; }));
 $_st_30ok    = count(array_filter($_ret_list, function($m){ return $m['call30']; }));
 $_st_60ok    = count(array_filter($_ret_list, function($m){ return $m['call60']; }));
 $_st_90ok    = count(array_filter($_ret_list, function($m){ return $m['call90']; }));
@@ -3214,14 +3216,17 @@ foreach($_ret_stats as $_rs) {
 
     // Helper: render chip inline
     // Bienvenida chip
-    if($_rm['bienvenida']) {
-        $_chip_b = "<div style='text-align:center'><div style='display:inline-block;padding:2px 8px;background:#EAF5F0;color:#1E7A5C;border:1.5px solid #8DCFBA;border-radius:20px;font-size:8px;font-weight:900'>✓ OK</div><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_rm['bienvenida']))."</div></div>";
+    $_cBts = $_rm['callB'] ? $_rm['callB']['completada_at'] : null;
+    if($_cBts) {
+        $_r = $_rm['callB']['resultado'] ?? 'COMPLETADA';
+        $_st = $_r==='NO CONTESTÓ'?['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']:($_r==='BUZÓN'?['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']:['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ']);
+        $_chip_b = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"BIENVENIDA\")' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_cBts))."</div></div>";
+    } elseif($_rm['bienvenida']) {
+        $_chip_b = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"BIENVENIDA\")' title='Registrar resultado' style='background:#EAF5F0;color:#1E7A5C;border:1.5px solid #8DCFBA;font-size:8px;font-weight:900;padding:3px 8px'>✓ OK</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_rm['bienvenida']))."</div></div>";
     } elseif($_dias <= 14) {
-        $_chip_b = "<div style='text-align:center'><div style='font-size:8px;color:#C07A1A;font-weight:700'>📋 Dashboard</div><div style='font-size:7px;color:#94A3B8'>Ef. del Mes</div></div>";
-    } elseif($_dias > 14) {
-        $_chip_b = "<div style='text-align:center'><div style='font-size:8px;color:#B83232;font-weight:700'>🚨 Sin marcar</div><div style='font-size:7px;color:#94A3B8'>→ Dashboard</div></div>";
+        $_chip_b = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"BIENVENIDA\")' style='background:#FEF8EE;color:#C07A1A;border:1.5px solid #F5D5A0;font-size:8px;font-weight:900;padding:3px 8px'>📞 HOY</button></div>";
     } else {
-        $_chip_b = "<div style='text-align:center;font-size:8px;color:#94A3B8'>—</div>";
+        $_chip_b = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"BIENVENIDA\")' style='background:#FDF0EE;color:#B83232;border:1.5px solid #EFA09A;font-size:8px;font-weight:900;padding:3px 8px'>🚨 VENCIDA</button></div>";
     }
 
     // 30 días chip
@@ -3272,7 +3277,7 @@ foreach($_ret_stats as $_rs) {
  data-ur="<?=$_ur?>"
  data-dias="<?=$_dias?>"
  data-search="<?=htmlspecialchars($_srch)?>"
- data-pend-b="<?=($_rm['bienvenida']?'0':'1')?>"
+ data-pend-b="<?=(($_rm['bienvenida']||$_rm['callB'])?'0':'1')?>"
  data-pend-30="<?=(!$_rm['call30']&&$_dias>=25?'1':'0')?>"
  data-pend-60="<?=(!$_rm['call60']&&$_dias>=55?'1':'0')?>"
  data-pend-90="<?=(!$_rm['call90']&&$_dias>=85?'1':'0')?>"
@@ -3471,7 +3476,7 @@ function openRetSimple(mid,tipo){
   document.getElementById('rsm-mid').value=mid;
   document.getElementById('rsm-tipo').value=tipo;
   document.getElementById('rsm-notas').value='';
-  var labels={BIENVENIDA:'BIENVENIDA',60:'60 DIAS',90:'90 DIAS'};
+  var labels={BIENVENIDA:'BIENVENIDA',30:'30 DÍAS',60:'60 DÍAS',90:'90 DÍAS'};
   document.getElementById('rsm-title').textContent='Llamada '+( labels[tipo]||tipo);
   openModal('ret-simple-modal');
 }
