@@ -1271,6 +1271,16 @@ export function registerApi(app) {
     res.json(coaches);
   });
 
+  // Limpiar el chat de Athena (directora) — reinicia conversation.json.
+  // La memoria real (wiki/entidades/tareas) NO se toca.
+  app.post('/api/chat/clear', requireAuth, async (_req, res) => {
+    try {
+      const { clearHistory } = await import('./memory.js');
+      clearHistory();
+      res.json({ ok: true });
+    } catch (e) { res.status(500).json({ error: e.message }); }
+  });
+
   app.post('/api/chat', requireAuth, async (req, res) => {
     const { coach = 'directora', message = '' } = req.body || {};
     if (!message || !message.trim()) {

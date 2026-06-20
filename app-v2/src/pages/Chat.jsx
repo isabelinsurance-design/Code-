@@ -232,10 +232,11 @@ export default function Chat() {
   }, [coach]);
 
   async function clearThread() {
-    if (coach === 'directora') return;
-    if (!confirm(`¿Borrar el historial completo con ${coaches.find((c) => c.id === coach)?.name || coach}? Esta acción no se puede deshacer.`)) return;
+    const who = coach === 'directora' ? 'Athena' : (coaches.find((c) => c.id === coach)?.name || coach);
+    if (!confirm(`¿Limpiar el chat con ${who}? Borra solo la conversación reciente — tu memoria (lo que ${who} recuerda de ti) NO se borra.`)) return;
     try {
-      await api.coachThreadClear(coach);
+      if (coach === 'directora') await api.clearChat();
+      else await api.coachThreadClear(coach);
       setMessages([]);
     } catch (e) {
       setErr(e.message);
@@ -353,11 +354,11 @@ export default function Chat() {
               <option key={c.id} value={c.id}>{c.name}{c.role ? ` — ${c.role}` : ''}</option>
             ))}
           </select>
-          {coach !== 'directora' && messages.length > 0 && (
+          {messages.length > 0 && (
             <button
               onClick={clearThread}
               className="text-xs text-ink-3 hover:text-red underline"
-              title="Borrar el historial completo con esta coach"
+              title="Limpiar el chat (no borra tu memoria)"
             >
               limpiar
             </button>

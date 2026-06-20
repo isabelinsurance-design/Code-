@@ -500,6 +500,14 @@ export function saveHistory(messages) {
   save(HISTORY_FILE, dropOrphanToolBlocks(stripEphemeralBlocks(sanitizeToolNames(trimmed))));
 }
 
+// Reinicia SOLO el hilo de conversación (conversation.json). La memoria real
+// de Isabel (wiki, entidades, tareas) vive en otros archivos y NO se toca.
+// Usado por el botón "Limpiar chat" del PWA — destraba el chat sin servidor.
+export function clearHistory() {
+  save(HISTORY_FILE, []);
+  return { ok: true };
+}
+
 // ---- Audit log: TODA acción de Athena queda registrada ----
 // Esto da trazabilidad ("¿qué hiciste hoy en mi nombre, Athena?") y
 // es el backbone del comando /historial.

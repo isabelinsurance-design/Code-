@@ -193,6 +193,8 @@ export const api = {
   // el history de WhatsApp). Devuelve { coach, messages: [{ role, content, ts }] }.
   coachThread: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`),
   coachThreadClear: (coach) => request(`/coach_thread/${encodeURIComponent(coach)}`, { method: 'DELETE' }),
+  // Limpiar el chat de Athena (directora) — reinicia el hilo, no la memoria.
+  clearChat: () => request('/chat/clear', { method: 'POST' }),
   // Historial de Athena (compartido con WhatsApp). Devuelve {messages:[{role,content}]}.
   chatHistory: (limit = 40) => request(`/chat/history?limit=${limit}`),
   // Briefing del día (cards generadas por el cron 6:30am).
