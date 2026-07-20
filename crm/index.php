@@ -8455,7 +8455,7 @@ function softReload(done){
 // ── AUTO-REFRESCO PERIÓDICO ─────────────────────────────────────────────
 // Refresca solo en segundo plano cada cierto tiempo para ver en vivo lo que
 // registran las compañeras, SIN interrumpir lo que estás haciendo.
-window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 45000; // 45 s
+window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 8000; // 8 s — para que varios agentes vean los cambios de los demás casi al instante
 function _canAutoRefresh(){
   try{
     if(localStorage.getItem('crm_autorefresh')==='off') return false;
