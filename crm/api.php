@@ -133,6 +133,7 @@ case 'save_recordatorio':
         $pdo->prepare("INSERT INTO recordatorios (titulo,nota,categoria,fecha_recordatorio,creado_por) VALUES (?,?,?,?,?)")
             ->execute([$titulo, $nota, $cat, $fecha, $uid]);
     }
+    notify_relay('RECURSOS');
     jsonOk();
     break;
 
@@ -142,6 +143,7 @@ case 'toggle_recordatorio':
     $val = !empty($_POST['completado']) ? 1 : 0;
     if (!$rid) jsonErr('ID requerido');
     $pdo->prepare("UPDATE recordatorios SET completado=? WHERE id=?")->execute([$val, $rid]);
+    notify_relay('RECURSOS');
     jsonOk();
     break;
 
@@ -342,6 +344,7 @@ case 'save_member':
             $tipo_act = $cambio_log ? 'PLAN CHANGE' : 'SISTEMA';
             $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
                 ->execute([$uid,$d['id'],$tipo_act,$desc_act]);
+            notify_relay('MIEMBROS');
             jsonOk(['id'=>$d['id'],'msg'=>'Miembro actualizado','cambio_plan'=>!empty($cambio_log)]);
         } else {
             // INSERT NUEVO PROSPECTO
@@ -389,6 +392,7 @@ case 'save_member':
             }
             // =========================================================
 
+            notify_relay('MIEMBROS');
             jsonOk(['id'=>$newId,'msg'=>'Prospecto guardado y Pipeline generado según configuración']);
         }
     } catch (PDOException $e) {
@@ -420,6 +424,7 @@ case 'close_ticket':
         ->execute([$notas_final ?: null, $tres, $id]);
 
     completarNextStepsDelTicket($pdo, $id, $uid);
+    notify_relay('TICKETS');
     jsonOk();
     break;
 
@@ -523,6 +528,7 @@ case 'save_ticket':
     }
 
     if ($estado === 'CERRADO') completarNextStepsDelTicket($pdo, $new_id, $uid);
+    notify_relay('TICKETS');
     jsonOk(['id' => $new_id]);
     break;
 
@@ -589,6 +595,7 @@ case 'update_ticket':
         if ($new_estado === 'CERRADO' && $prev_data['estado'] !== 'CERRADO') {
             completarNextStepsDelTicket($pdo, $id, $uid);
         }
+        notify_relay('TICKETS');
         jsonOk();
     }
 
@@ -649,6 +656,7 @@ case 'update_ticket':
         }
     }
 
+    notify_relay('TICKETS');
     jsonOk();
     break;
 
@@ -669,6 +677,7 @@ case 'save_cita':
     $pdo->prepare("INSERT INTO citas (miembro_id,agente_id,cliente,tipo,modalidad,fecha,hora,estado,notas)
                    VALUES (?,?,?,?,?,?,?,?,?)")
         ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, 'PENDIENTE', $notas]);
+    notify_relay('CITAS');
     jsonOk(['id'=>$pdo->lastInsertId()]);
     break;
 
@@ -695,6 +704,7 @@ case 'update_cita':
 
     $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=IF(estado='CANCELADA','PENDIENTE',estado) WHERE id=?")
         ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $id]);
+    notify_relay('CITAS');
     jsonOk();
     break;
 
@@ -726,6 +736,7 @@ case 'complete_cita':
     if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='COMPLETADA', completada_por=?, completada_at=NOW() WHERE id=?")
         ->execute([$uid, $id]);
+    notify_relay('CITAS');
     jsonOk();
     break;
 
@@ -739,6 +750,7 @@ case 'cancel_cita':
     if (!$row) jsonErr('Cita no encontrada');
     if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='CANCELADA' WHERE id=?")->execute([$id]);
+    notify_relay('CITAS');
     jsonOk();
     break;
 
@@ -981,6 +993,7 @@ case 'toggle_efectivo':
         } catch (Exception $e) {}
     }
 
+    notify_relay('DASHBOARD');
     jsonOk(['done'=>$newDone]);
     break;
 
@@ -1608,6 +1621,7 @@ case 'save_retencion_llamada':
         } catch (Exception $e) {}
     }
 
+    notify_relay('RETENCION');
     jsonOk();
     break;
 
@@ -1803,6 +1817,7 @@ case 'save_retencion_q30':
     $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
         ->execute([$uid, $mid, 'RETENCION', "Cuestionario 30 días completado"]);
 
+    notify_relay('RETENCION');
     jsonOk();
     break;
 
@@ -1924,6 +1939,7 @@ case 'save_gasto':
             $reembolsar_a,
             trim($_POST['notas'] ?? '') ?: null
         ]);
+    notify_relay('GASTOS');
     jsonOk();
     break;
 

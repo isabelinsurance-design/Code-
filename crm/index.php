@@ -6871,6 +6871,14 @@ foreach($acts as $i=>$a):?>
 const ADMIN=<?=$admin?'true':'false'?>;const UID=<?=$uid?>;
 // ── CSRF: todo POST por fetch lleva el token de la sesión (api.php lo verifica) ──
 const CSRF_TOKEN='<?=h($_SESSION['csrf_token'] ?? '')?>';
+// ── AVISOS EN VIVO: URL del ws-relay (vacío si no está configurado en config.php) ──
+<?php
+$_relay_ws_url = '';
+if (defined('RELAY_URL') && RELAY_URL && defined('RELAY_SECRET') && RELAY_SECRET) {
+    $_relay_ws_url = preg_replace('#^http#', 'ws', rtrim(RELAY_URL, '/')) . '/ws?token=' . urlencode(RELAY_SECRET);
+}
+?>
+const RELAY_WS_URL='<?=h($_relay_ws_url)?>';
 (function(){
   const _fetch = window.fetch;
   window.fetch = function(input, init){
@@ -8419,9 +8427,51 @@ function softReload(done){
     .catch(function(){ clearTimeout(killer); _softReloadDone(); });
 }
 
-// ── AUTO-REFRESCO PERIÓDICO ─────────────────────────────────────────────
+// ── AVISOS EN VIVO (ws-relay) ────────────────────────────────────────────
+// Si config.php tiene RELAY_URL/RELAY_SECRET configurados, nos conectamos a
+// un servidor pequeño (Railway) que avisa AL INSTANTE cuando alguien más
+// guarda algo — en vez de esperar el refresco automático de abajo. Si el
+// relay no está configurado, o se cae, o hay un problema de red, esta parte
+// simplemente no hace nada: el refresco automático (más abajo, cada 8s)
+// sigue funcionando igual que siempre como respaldo. Nunca reemplaza al
+// refresco automático, solo lo adelanta cuando puede.
+(function(){
+  if (!RELAY_WS_URL) return; // no configurado — el CRM sigue funcionando normal
+  let ws = null;
+  let reconnectDelay = 1000; // empieza en 1s, sube hasta 20s si sigue fallando
+  function conectar(){
+    try { ws = new WebSocket(RELAY_WS_URL); } catch(e){ programarReconexion(); return; }
+    ws.onopen = function(){ reconnectDelay = 1000; };
+    ws.onmessage = function(ev){
+      try {
+        const msg = JSON.parse(ev.data);
+        if (msg && msg.type === 'changed') {
+          // Mismo freno que el refresco automático: no interrumpe si estás
+          // escribiendo, tienes un modal abierto, o la pestaña no está visible.
+          if (typeof _canAutoRefresh === 'function' && _canAutoRefresh()) softReload();
+        }
+      } catch(e){}
+    };
+    ws.onclose = function(){ programarReconexion(); };
+    ws.onerror = function(){ try{ ws.close(); }catch(e){} };
+  }
+  function programarReconexion(){
+    setTimeout(conectar, reconnectDelay);
+    reconnectDelay = Math.min(reconnectDelay * 1.6, 20000);
+  }
+  conectar();
+  // Si la pestaña estuvo dormida (móvil, minimizada) y el socket se cayó sin
+  // avisar, al volver reconecta enseguida en vez de esperar el backoff.
+  document.addEventListener('visibilitychange', function(){
+    if (!document.hidden && (!ws || ws.readyState === WebSocket.CLOSED)) conectar();
+  });
+})();
+
+// ── AUTO-REFRESCO PERIÓDICO (respaldo) ───────────────────────────────────
 // Refresca solo en segundo plano cada cierto tiempo para ver en vivo lo que
-// registran las compañeras, SIN interrumpir lo que estás haciendo.
+// registran las compañeras, SIN interrumpir lo que estás haciendo. Es el
+// respaldo por si los avisos en vivo de arriba no están configurados, se
+// cortan, o el relay está caído — así nunca dependemos de una sola vía.
 window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 8000; // 8 s — para que varios agentes vean los cambios de los demás casi al instante
 function _canAutoRefresh(){
   try{

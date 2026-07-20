@@ -1,0 +1,16 @@
+{
+  "name": "crm-ws-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor pequeño de WebSockets: avisa al instante a los navegadores del CRM cuando alguien guarda algo. NO toca datos reales (miembros, tickets, etc.) — solo reenvia una señal 'algo cambió' para que el CRM se refresque solo.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  }
+}
