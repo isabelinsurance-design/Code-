@@ -187,6 +187,50 @@ case 'save_salario':
     jsonOk();
     break;
 
+// ── GESTOR DE TAREAS PERSONALIZADAS (checklist de MI DÍA) ─────
+// Antes se guardaba con un <form> nativo que recargaba TODA la página
+// (te mandaba de vuelta al Dashboard, perdiendo dónde estabas). Ahora es
+// AJAX como el resto de la app: se guarda en silencio y softReload()
+// refresca solo la pestaña activa, sin sacarte de donde estás.
+case 'save_gestor_tareas':
+    $pdo = db();
+    if (!empty($_POST['task_delete'])) {
+        $del = $pdo->prepare("DELETE FROM tareas_personalizadas WHERE id=? AND agente_id=?");
+        foreach ($_POST['task_delete'] as $del_id) {
+            $del->execute([$del_id, $uid]);
+        }
+    }
+    if (!empty($_POST['task_id'])) {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS tareas_personalizadas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            agente_id INT NOT NULL,
+            item_key VARCHAR(64) NOT NULL,
+            item_texto VARCHAR(255) NOT NULL,
+            orden INT DEFAULT 0,
+            frecuencia VARCHAR(30) DEFAULT 'DIARIA',
+            dias_semana VARCHAR(20) DEFAULT '',
+            dia_mes INT DEFAULT 1
+        )");
+        foreach ($_POST['task_id'] as $tid) {
+            $orden   = $_POST['task_orden'][$tid] ?? 0;
+            $frec    = $_POST['task_frec'][$tid] ?? 'DIARIA';
+            $dia_mes = $_POST['task_dia_mes'][$tid] ?? 1;
+            $dias    = isset($_POST['task_dias'][$tid]) ? implode(',', $_POST['task_dias'][$tid]) : '';
+            $texto   = $_POST['task_texto'][$tid] ?? 'Nueva Tarea';
+
+            if (str_starts_with($tid, 'new_')) {
+                $item_key = uniqid('task_');
+                $pdo->prepare("INSERT INTO tareas_personalizadas (agente_id, item_key, item_texto, orden, frecuencia, dias_semana, dia_mes) VALUES (?, ?, ?, ?, ?, ?, ?)")
+                    ->execute([$uid, $item_key, $texto, $orden, $frec, $dias, $dia_mes]);
+            } else {
+                $pdo->prepare("UPDATE tareas_personalizadas SET item_texto=?, orden=?, frecuencia=?, dias_semana=?, dia_mes=? WHERE id=? AND agente_id=?")
+                    ->execute([$texto, $orden, $frec, $dias, $dia_mes, $tid, $uid]);
+            }
+        }
+    }
+    jsonOk();
+    break;
+
 // ── MEMBERS ──────────────────────────────────────────────────
 case 'iniciar_cambio_plan':
     $pdo = db();

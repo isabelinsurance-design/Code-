@@ -788,42 +788,9 @@ $mis_llamadas_servicio_hoy = $stmt_llam_s->fetchColumn();
 // ----------------------------------------------------------------
 
 
-// NUEVO: Guardar cambios del Gestor de Tareas Masivo (Crear, Editar, Eliminar)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['guardar_gestor_tareas'])) {
-    
-    // 1. Eliminar tareas seleccionadas
-    if (!empty($_POST['task_delete'])) {
-        foreach ($_POST['task_delete'] as $del_id) {
-            $del = $pdo->prepare("DELETE FROM tareas_personalizadas WHERE id=? AND agente_id=?");
-            $del->execute([$del_id, $uid]);
-        }
-    }
-
-    // 2. Actualizar existentes y crear nuevas
-    if (!empty($_POST['task_id'])) {
-        foreach ($_POST['task_id'] as $tid) {
-            $orden = $_POST['task_orden'][$tid] ?? 0;
-            $frec = $_POST['task_frec'][$tid] ?? 'DIARIA';
-            $dia_mes = $_POST['task_dia_mes'][$tid] ?? 1;
-            $dias = isset($_POST['task_dias'][$tid]) ? implode(',', $_POST['task_dias'][$tid]) : '';
-            $texto = $_POST['task_texto'][$tid] ?? 'Nueva Tarea';
-
-            if (str_starts_with($tid, 'new_')) {
-                // Es una tarea nueva (INSERT)
-                $item_key = uniqid('task_'); // Genera un ID único para el checklist
-                $ins = $pdo->prepare("INSERT INTO tareas_personalizadas (agente_id, item_key, item_texto, orden, frecuencia, dias_semana, dia_mes) VALUES (?, ?, ?, ?, ?, ?, ?)");
-                $ins->execute([$uid, $item_key, $texto, $orden, $frec, $dias, $dia_mes]);
-            } else {
-                // Es una tarea existente (UPDATE)
-                $upd = $pdo->prepare("UPDATE tareas_personalizadas SET item_texto=?, orden=?, frecuencia=?, dias_semana=?, dia_mes=? WHERE id=? AND agente_id=?");
-                $upd->execute([$texto, $orden, $frec, $dias, $dia_mes, $tid, $uid]);
-            }
-        }
-    }
-    // Recargar página para ver los cambios
-    header("Location: index.php");
-    exit;
-}
+// El Gestor de Tareas Masivo ahora se guarda por AJAX (action=save_gestor_tareas
+// en api.php) en vez de un <form> nativo que recargaba toda la página y
+// mandaba de vuelta al Dashboard. Ver api.php.
 $users_all=$pdo->query("SELECT * FROM usuarios WHERE activo=1 ORDER BY rol DESC,nombre")->fetchAll();
 $agents=array_filter($users_all,fn($u)=>$u['rol']==='agent');
 // Alertas de retención: miembros que necesitan llamada — excluyendo las ya completadas
@@ -9966,13 +9933,6 @@ document.addEventListener('DOMContentLoaded', function(){
             <button type="button" class="gm-btn-cancel" onclick="cerrarGestorTareas()">Cancelar</button>
             <button type="button" class="gm-btn-save" style="flex:0; min-width:180px;" onclick="gmGuardar()">💾 Guardar cambios</button>
         </div>
-        
-        
-        <!-- Form oculto que se envía -->
-        <form id="form-gestor-tareas" method="POST" style="display:none;">
-            <input type="hidden" name="guardar_gestor_tareas" value="1">
-            <div id="form-gestor-inputs"></div>
-        </form>
     </div>
 </div>
 
@@ -10091,6 +10051,7 @@ function gmAgregarTarea() {
     gmRenumber();
 }
 
+window._gmPendingDeletes = window._gmPendingDeletes || [];
 function gmEliminarTarea(btn, tid) {
     if (!confirm('¿Seguro que deseas eliminar esta tarea?')) return;
     const card = btn.closest('.gm-task-card');
@@ -10098,19 +10059,19 @@ function gmEliminarTarea(btn, tid) {
     setTimeout(() => {
         card.remove();
         gmRenumber();
-        // Si no es una tarea recién creada, la agregamos a la lista de borrado para PHP
-        if (!tid.startsWith('new_')) {
-            const container = document.getElementById('form-gestor-inputs');
-            const i = document.createElement('input');
-            i.type = 'hidden'; i.name = 'task_delete[]'; i.value = tid;
-            container.appendChild(i);
-        }
+        // Si no es una tarea recién creada, se guarda en memoria hasta que se
+        // pulse GUARDAR (se manda por AJAX, ya no en un <form> oculto).
+        if (!tid.startsWith('new_')) window._gmPendingDeletes.push(tid);
     }, 200);
 }
 
 function gmGuardar() {
-    const container = document.getElementById('form-gestor-inputs');
-    // NO limpiar container.innerHTML aquí para no borrar los inputs de 'task_delete[]'
+    const btn = document.querySelector('.gm-btn-save');
+    if (btn) { btn.disabled = true; btn.textContent = 'GUARDANDO...'; }
+
+    const params = new URLSearchParams();
+    params.append('action', 'save_gestor_tareas');
+    (window._gmPendingDeletes || []).forEach(id => params.append('task_delete[]', id));
 
     const cards = Array.from(document.querySelectorAll('#gestor-lista .gm-task-card'));
     cards.forEach((card, idx) => {
@@ -10128,30 +10089,40 @@ function gmGuardar() {
         // Día del mes
         const diaMesInput = card.querySelector('.gm-dia-mes-input');
         const diaMes      = diaMesInput ? diaMesInput.value : 1;
-        
+
         // Texto de la tarea
         const textoInput  = card.querySelector('.gm-task-name-input');
         const textoVal    = textoInput ? textoInput.value : 'Nueva Tarea';
 
-        const add = (n, v) => {
-            const i = document.createElement('input');
-            i.type = 'hidden'; i.name = n; i.value = v;
-            container.appendChild(i);
-        };
-
-        add('task_id[]', tid);
-        add('task_texto[' + tid + ']', textoVal); // ¡Enviamos el texto modificado!
-        add('task_orden[' + tid + ']', orden);
-        add('task_frec['  + tid + ']', frec);
-        add('task_dia_mes[' + tid + ']', diaMes);
+        params.append('task_id[]', tid);
+        params.append('task_texto[' + tid + ']', textoVal); // ¡Enviamos el texto modificado!
+        params.append('task_orden[' + tid + ']', orden);
+        params.append('task_frec['  + tid + ']', frec);
+        params.append('task_dia_mes[' + tid + ']', diaMes);
 
         if (frec === 'DIAS_ESPECIFICOS') {
-            diasActivos.forEach(d => add('task_dias[' + tid + '][]', d));
-            if (diasActivos.length === 0) add('task_dias[' + tid + '][]', '');
+            if (diasActivos.length === 0) params.append('task_dias[' + tid + '][]', '');
+            else diasActivos.forEach(d => params.append('task_dias[' + tid + '][]', d));
         }
     });
 
-    document.getElementById('form-gestor-tareas').submit();
+    fetch('api.php', {method:'POST', body: params})
+        .then(r => r.json())
+        .then(d => {
+            if (d.ok) {
+                window._gmPendingDeletes = [];
+                toast('✓ TAREAS GUARDADAS');
+                cerrarGestorTareas();
+                if (typeof softReload === 'function') softReload();
+            } else {
+                toast('⚠ ' + (d.error || 'Error al guardar'));
+            }
+            if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+        })
+        .catch(() => {
+            toast('⚠ Error de conexión');
+            if (btn) { btn.disabled = false; btn.textContent = '💾 Guardar cambios'; }
+        });
 }
 
 function completarPasoPipeline(pasoId, btn) {
