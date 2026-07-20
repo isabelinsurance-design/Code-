@@ -88,24 +88,42 @@ function notificarAIsabel(string $mensaje, ?PDO $pdo = null): void {
 // Se llama después de guardar algo importante (ticket, miembro, cita,
 // gasto, checklist...) para que el relay le avise AL INSTANTE a los demás
 // navegadores conectados. Nunca manda datos reales — solo el nombre de la
-// pestaña que cambió. Tiene un timeout corto para no colgar el guardado
-// del usuario si el relay está lento o caído; si falla, no pasa nada, el
+// pestaña que cambió. Tiene un timeout MUY corto (y doblemente puesto, en
+// milisegundos y en segundos, por si el servidor no respeta la versión en
+// milisegundos) para que en el peor de los casos nunca le agregue más de
+// ~1 segundo a la acción del usuario. Si falla o tarda, no pasa nada — el
 // refresco automático periódico sigue de respaldo.
 function notify_relay(string $tab = ''): void {
     if (!RELAY_URL || !RELAY_SECRET) return;
     if (!function_exists('curl_init')) return;
     $ch = curl_init(rtrim(RELAY_URL, '/') . '/broadcast');
     curl_setopt_array($ch, [
-        CURLOPT_POST           => true,
-        CURLOPT_POSTFIELDS     => json_encode(['tab' => $tab]),
-        CURLOPT_HTTPHEADER     => ['Content-Type: application/json', 'X-Relay-Secret: ' . RELAY_SECRET],
-        CURLOPT_TIMEOUT_MS     => 1200,
-        CURLOPT_CONNECTTIMEOUT_MS => 800,
-        CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_SSL_VERIFYPEER => true,
+        CURLOPT_POST              => true,
+        CURLOPT_POSTFIELDS        => json_encode(['tab' => $tab]),
+        CURLOPT_HTTPHEADER        => ['Content-Type: application/json', 'X-Relay-Secret: ' . RELAY_SECRET],
+        CURLOPT_TIMEOUT_MS        => 800,
+        CURLOPT_CONNECTTIMEOUT_MS => 500,
+        CURLOPT_TIMEOUT           => 1,  // respaldo en segundos por si el host ignora los _MS
+        CURLOPT_CONNECTTIMEOUT    => 1,  // (algunos cPanel/libcurl viejos no los soportan)
+        CURLOPT_RETURNTRANSFER    => true,
+        CURLOPT_SSL_VERIFYPEER    => true,
     ]);
     @curl_exec($ch);
     curl_close($ch);
+}
+
+// ─── RESPONDER PRIMERO, AVISAR DESPUÉS ──────────────────────────────
+// Envía la respuesta JSON al navegador (y, si el hosting lo soporta,
+// CIERRA esa conexión ahí mismo con fastcgi_finish_request) ANTES de
+// avisarle al relay. Así el usuario que guarda NUNCA espera por Railway —
+// su propia acción se siente instantánea pase lo que pase con el relay.
+function jsonOkNotify($data, string $tab): void {
+    echo json_encode(['ok' => true, 'data' => $data]);
+    if (function_exists('fastcgi_finish_request')) {
+        @fastcgi_finish_request();
+    }
+    notify_relay($tab);
+    exit;
 }
 
 // ─── PROMPTS DE IA (opcional) ─────────────────────────────────────
