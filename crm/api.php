@@ -881,13 +881,31 @@ case 'toggle_efectivo':
         if (!in_array('done', $cols)) $pdo->exec("ALTER TABLE efectivos_checks ADD COLUMN done TINYINT(1) DEFAULT 1");
         if (!in_array('done_by', $cols)) $pdo->exec("ALTER TABLE efectivos_checks ADD COLUMN done_by INT");
         if (!in_array('done_at', $cols)) $pdo->exec("ALTER TABLE efectivos_checks ADD COLUMN done_at DATETIME");
+        // Si la tabla ya existía de antes (de una versión sin esta restricción),
+        // el CREATE TABLE IF NOT EXISTS de arriba nunca llega a aplicarla.
+        // La agregamos aquí (una vez que ya no queden duplicados) para que no
+        // se puedan volver a crear filas repetidas por doble clic o clics casi
+        // simultáneos.
+        $idx = $pdo->query("SHOW INDEX FROM efectivos_checks WHERE Key_name='unique_check'")->fetch();
+        if (!$idx) { try { $pdo->exec("ALTER TABLE efectivos_checks ADD UNIQUE KEY unique_check (miembro_id, tipo)"); } catch (Exception $e2) {} }
     } catch(Exception $e) {}
     // ----------------------------------------
 
-    $existing = $pdo->prepare("SELECT id,done FROM efectivos_checks WHERE miembro_id=? AND tipo=?");
+    // Autosanar duplicados históricos: de antes de existir la UNIQUE KEY,
+    // algunos miembros quedaron con MÁS DE UNA fila para el mismo
+    // miembro_id+tipo. Sin esto, el clic actualizaba una fila mientras la
+    // pantalla (que lee la última) mostraba otra — parecía que "no se podía
+    // desmarcar" porque siempre volvía a aparecer marcado al recargar.
+    $existing = $pdo->prepare("SELECT id,done FROM efectivos_checks WHERE miembro_id=? AND tipo=? ORDER BY id DESC");
     $existing->execute([$mid,$tipo]);
-    $row = $existing->fetch();
-    
+    $rows = $existing->fetchAll();
+    $row = $rows[0] ?? null;
+    if (count($rows) > 1) {
+        $dupIds = array_column(array_slice($rows, 1), 'id');
+        $ph = implode(',', array_fill(0, count($dupIds), '?'));
+        $pdo->prepare("DELETE FROM efectivos_checks WHERE id IN ($ph)")->execute($dupIds);
+    }
+
     if ($row) {
         $newDone = $row['done'] ? 0 : 1;
         $pdo->prepare("UPDATE efectivos_checks SET done=?, done_by=?, done_at=NOW() WHERE id=?")

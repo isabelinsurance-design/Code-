@@ -1116,7 +1116,10 @@ $t65_alertas=$pdo->query("SELECT id,nombre,apellido,dob,telefono,estado,carrier,
 $ES_REFRESCO_AJAX = (($_SERVER['HTTP_X_REQUESTED_WITH'] ?? '') === 'XMLHttpRequest');
 if(!$ES_REFRESCO_AJAX){ try{generarNotificacionesRetencion($pdo,$users_all);}catch(Exception $e){} }
 $ef_checks=[];
-try{foreach($pdo->query("SELECT * FROM efectivos_checks") as $e)$ef_checks[$e['miembro_id']][$e['tipo']]=$e;}catch(Exception $e){}
+// ORDER BY id ASC: si por un bug histórico quedó más de una fila para el mismo
+// miembro+tipo, se muestra siempre la más reciente (la última que sobreescribe
+// en el loop), de forma consistente con lo que autosana toggle_efectivo.
+try{foreach($pdo->query("SELECT * FROM efectivos_checks ORDER BY id ASC") as $e)$ef_checks[$e['miembro_id']][$e['tipo']]=$e;}catch(Exception $e){}
 // Filtro corregido: Que sea de este mes Y que el estado sea estrictamente 'ACTIVE'
 $ef_mes = array_filter($members, function($m) {
     $es_de_este_mes = (!empty($m['fecha_efectiva']) && str_starts_with($m['fecha_efectiva'], date('Y-m'))) || 
