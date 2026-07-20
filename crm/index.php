@@ -1122,11 +1122,16 @@ $ef_checks=[];
 try{foreach($pdo->query("SELECT * FROM efectivos_checks ORDER BY id ASC") as $e)$ef_checks[$e['miembro_id']][$e['tipo']]=$e;}catch(Exception $e){}
 // Filtro corregido: Que sea de este mes Y que el estado sea estrictamente 'ACTIVE'
 $ef_mes = array_filter($members, function($m) {
-    $es_de_este_mes = (!empty($m['fecha_efectiva']) && str_starts_with($m['fecha_efectiva'], date('Y-m'))) || 
+    $es_de_este_mes = (!empty($m['fecha_efectiva']) && str_starts_with($m['fecha_efectiva'], date('Y-m'))) ||
                       (!empty($m['app_fecha']) && str_starts_with($m['app_fecha'], date('Y-m')));
-    
+
     return $es_de_este_mes && $m['estado'] === 'ACTIVE';
 });
+// Separar NEW ENROLLMENT vs RE-SIGNED; el resto (sin subestado marcado, etc.)
+// va en un grupo aparte para que nadie desaparezca de la lista sin explicación.
+$ef_new_enroll = array_filter($ef_mes, fn($m) => ($m['subestado'] ?? '') === 'NEW ENROLLMENT');
+$ef_resigned   = array_filter($ef_mes, fn($m) => ($m['subestado'] ?? '') === 'RE-SIGNED');
+$ef_otros      = array_filter($ef_mes, fn($m) => !in_array($m['subestado'] ?? '', ['NEW ENROLLMENT','RE-SIGNED'], true));
 
 try{
   $chat_msgs=array_reverse($pdo->query("SELECT c.*,u.nombre,u.color,u.iniciales FROM chat_mensajes c LEFT JOIN usuarios u ON c.user_id=u.id ORDER BY c.id DESC LIMIT 60")->fetchAll());
@@ -1220,6 +1225,25 @@ if ($u['rol']==='admin') notificarAIsabel(" *RETENCIÓN {$d} DÍAS*\n".$msg, $pd
 }
 }
 function chk(?array $ef,int $mid,string $tipo):string{$d=!empty($ef[$mid][$tipo]['done']);$bg=$d?'#EAF5F0':'#fff';$bc=$d?'#8DCFBA':'#C8DFF0';$tc=$d?'#1E7A5C':'#94A3B8';return "<button class=\"efbtn\" onclick=\"toggleEf($mid,'$tipo',this)\" style=\"background:$bg;border:1.5px solid $bc;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:900;color:$tc;cursor:pointer\">".($d?'✓':'○')."</button>";}
+// Fila de la tabla EFECTIVOS DEL MES — compartida entre los grupos NEW ENROLLMENT / RE-SIGNED / OTROS
+function efMesRow(array $m, ?array $ef_checks): string {
+    $nombre = h($m['apellido'].', '.$m['nombre']);
+    $agente = h(explode(' ', $m['agente_nombre'] ?? '')[0]);
+    $fecha  = h($m['fecha_efectiva'] ?? '—');
+    $carrier = $m['carrier'] ? "<span style=\"background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 7px;font-size:8px;font-weight:900\">".h($m['carrier'])."</span>" : '—';
+    $mid = (int)$m['id'];
+    return "<tr><td><div style=\"font-weight:900;font-size:9px;color:#1B4A6B;cursor:pointer\" onclick=\"openProfile($mid)\">$nombre</div><div style=\"font-size:8px;color:#7A90A4\">$agente</div></td>"
+        ."<td style=\"font-size:8px;color:#7A90A4\">$fecha</td>"
+        ."<td>$carrier</td>"
+        ."<td>".chk($ef_checks,$mid,'app_enviada')."</td>"
+        ."<td>".chk($ef_checks,$mid,'app_aprobada')."</td>"
+        ."<td>".chk($ef_checks,$mid,'hra')."</td>"
+        ."<td>".chk($ef_checks,$mid,'doctor_verificado')."</td>"
+        ."<td>".chk($ef_checks,$mid,'id_drive')."</td>"
+        ."<td>".chk($ef_checks,$mid,'sms_enviado')."</td>"
+        ."<td>".chk($ef_checks,$mid,'llam_bienvenida')."</td>"
+        ."<td><button class=\"btn btn-b btn-sm\" onclick=\"openProfile($mid)\">◉</button></td></tr>";
+}
 ?><!DOCTYPE html>
 <html lang="es">
 <head>
@@ -1572,16 +1596,24 @@ $progreso = $meta_mensual > 0 ? min(round(($apps_proceso/$meta_mensual)*100),100
 </div>
 <div style="font-size:8px;color:<?=$MU?>;margin-top:4px;letter-spacing:1px;text-transform:uppercase"><?=$progreso?>% DE LA META</div>
 </div>
-<?php if(count($ef_mes)>0):?>
-<div class="card" style="border-top:3px solid #1E7A5C;margin-bottom:14px">
-<div class="card-header"><div><div class="card-title"> EFECTIVOS DEL MES — <?=strtoupper(date('F Y'))?></div><div class="card-sub"><?=count($ef_mes)?> MIEMBRO<?=count($ef_mes)>1?'S':''?> · CHECKLIST</div></div></div>
+<?php
+// EFECTIVOS DEL MES, separado en NEW ENROLLMENT / RE-SIGNED / OTROS
+$ef_grupos = [
+    ['NEW ENROLLMENT', $ef_new_enroll, '#1E7A5C'],
+    ['RE-SIGNED',       $ef_resigned,   '#5B3FAF'],
+    ['OTROS / SIN SUBESTADO', $ef_otros, '#7A90A4'],
+];
+foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
+    if (count($ef_grupo) === 0) continue;
+?>
+<div class="card" style="border-top:3px solid <?=$ef_color?>;margin-bottom:14px">
+<div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> EFECTIVOS DEL MES — <?=h($ef_lbl)?> · <?=strtoupper(date('F Y'))?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div></div>
 <div style="overflow-x:auto"><table>
 <tr><th>MIEMBRO</th><th>EFECTIVA</th><th>CARRIER</th><th>APP✉</th><th>APROBADA</th><th>HRA</th><th>DR.✓</th><th>DRIVE</th><th>SMS</th><th>LLAM.B</th><th></th></tr>
-<?php foreach($ef_mes as $m):?><tr><td><div style="font-weight:900;font-size:9px;color:<?=$P1?>;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=h($m['apellido'].', '.$m['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>"><?=h(explode(' ',$m['agente_nombre']??'')[0])?></div></td><td style="font-size:8px;color:<?=$MU?>"><?=$m['fecha_efectiva']??'—'?></td><td><?php if($m['carrier']):?><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 7px;font-size:8px;font-weight:900"><?=h($m['carrier'])?></span><?php else:?>—<?php endif;?></td><td><?=chk($ef_checks,$m['id'],'app_enviada')?></td><td><?=chk($ef_checks,$m['id'],'app_aprobada')?></td><td><?=chk($ef_checks,$m['id'],'hra')?></td><td><?=chk($ef_checks,$m['id'],'doctor_verificado')?></td><td><?=chk($ef_checks,$m['id'],'id_drive')?></td><td><?=chk($ef_checks,$m['id'],'sms_enviado')?></td><td><?=chk($ef_checks,$m['id'],'llam_bienvenida')?></td><td><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td></tr>
-<?php endforeach;?>
+<?php foreach($ef_grupo as $m) echo efMesRow($m, $ef_checks); ?>
 </table></div>
 </div>
-<?php endif;?>
+<?php endforeach; ?>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
 <div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button></div>
