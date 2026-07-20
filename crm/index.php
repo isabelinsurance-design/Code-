@@ -1120,18 +1120,37 @@ $ef_checks=[];
 // miembro+tipo, se muestra siempre la más reciente (la última que sobreescribe
 // en el loop), de forma consistente con lo que autosana toggle_efectivo.
 try{foreach($pdo->query("SELECT * FROM efectivos_checks ORDER BY id ASC") as $e)$ef_checks[$e['miembro_id']][$e['tipo']]=$e;}catch(Exception $e){}
-// Filtro corregido: Que sea de este mes Y que el estado sea estrictamente 'ACTIVE'
-$ef_mes = array_filter($members, function($m) {
-    $es_de_este_mes = (!empty($m['fecha_efectiva']) && str_starts_with($m['fecha_efectiva'], date('Y-m'))) ||
-                      (!empty($m['app_fecha']) && str_starts_with($m['app_fecha'], date('Y-m')));
-
-    return $es_de_este_mes && $m['estado'] === 'ACTIVE';
+// Filtro corregido: que sea de ESTE mes o del PRÓXIMO, y que el estado sea 'ACTIVE'
+$ef_this_month_str = date('Y-m');
+$ef_mes = array_filter($members, function($m) use ($ef_this_month_str, $next_month_str) {
+    $fe_mes = !empty($m['fecha_efectiva']) ? substr($m['fecha_efectiva'],0,7) : null;
+    $af_mes = !empty($m['app_fecha'])      ? substr($m['app_fecha'],0,7)      : null;
+    $es_actual_o_proximo = in_array($fe_mes,[$ef_this_month_str,$next_month_str],true)
+                        || in_array($af_mes,[$ef_this_month_str,$next_month_str],true);
+    return $es_actual_o_proximo && $m['estado'] === 'ACTIVE';
 });
-// Separar NEW ENROLLMENT vs RE-SIGNED; el resto (sin subestado marcado, etc.)
-// va en un grupo aparte para que nadie desaparezca de la lista sin explicación.
-$ef_new_enroll = array_filter($ef_mes, fn($m) => ($m['subestado'] ?? '') === 'NEW ENROLLMENT');
-$ef_resigned   = array_filter($ef_mes, fn($m) => ($m['subestado'] ?? '') === 'RE-SIGNED');
-$ef_otros      = array_filter($ef_mes, fn($m) => !in_array($m['subestado'] ?? '', ['NEW ENROLLMENT','RE-SIGNED'], true));
+// A qué mes (actual/próximo) pertenece el miembro — prioriza fecha_efectiva sobre app_fecha
+function ef_mes_de_miembro(array $m, string $this_month, string $next_month): ?string {
+    $fe_mes = !empty($m['fecha_efectiva']) ? substr($m['fecha_efectiva'],0,7) : null;
+    if ($fe_mes === $this_month) return $this_month;
+    if ($fe_mes === $next_month) return $next_month;
+    $af_mes = !empty($m['app_fecha']) ? substr($m['app_fecha'],0,7) : null;
+    if ($af_mes === $this_month) return $this_month;
+    if ($af_mes === $next_month) return $next_month;
+    return null;
+}
+$ef_mes_actual   = array_filter($ef_mes, fn($m)=>ef_mes_de_miembro($m,$ef_this_month_str,$next_month_str)===$ef_this_month_str);
+$ef_mes_proximo  = array_filter($ef_mes, fn($m)=>ef_mes_de_miembro($m,$ef_this_month_str,$next_month_str)===$next_month_str);
+// Dentro de cada mes, separar NEW ENROLLMENT vs RE-SIGNED; el resto (sin
+// subestado marcado, etc.) va en un grupo aparte para que nadie desaparezca
+// de la lista sin explicación.
+function ef_split_subestado(array $grupo): array {
+    return [
+        'NEW ENROLLMENT'         => array_filter($grupo, fn($m)=>($m['subestado']??'')==='NEW ENROLLMENT'),
+        'RE-SIGNED'               => array_filter($grupo, fn($m)=>($m['subestado']??'')==='RE-SIGNED'),
+        'OTROS / SIN SUBESTADO'   => array_filter($grupo, fn($m)=>!in_array($m['subestado']??'',['NEW ENROLLMENT','RE-SIGNED'],true)),
+    ];
+}
 
 try{
   $chat_msgs=array_reverse($pdo->query("SELECT c.*,u.nombre,u.color,u.iniciales FROM chat_mensajes c LEFT JOIN usuarios u ON c.user_id=u.id ORDER BY c.id DESC LIMIT 60")->fetchAll());
@@ -1597,22 +1616,38 @@ $progreso = $meta_mensual > 0 ? min(round(($apps_proceso/$meta_mensual)*100),100
 <div style="font-size:8px;color:<?=$MU?>;margin-top:4px;letter-spacing:1px;text-transform:uppercase"><?=$progreso?>% DE LA META</div>
 </div>
 <?php
-// EFECTIVOS DEL MES, separado en NEW ENROLLMENT / RE-SIGNED / OTROS
+// EFECTIVOS DEL MES — primero MES ACTUAL, luego PRÓXIMO MES; dentro de cada
+// uno, separado en NEW ENROLLMENT / RE-SIGNED / OTROS.
+$ef_meses = [
+    [strtoupper(date('F Y')),        $ef_mes_actual,  false],
+    [$next_month_label,              $ef_mes_proximo, true],
+];
+foreach ($ef_meses as [$ef_mes_lbl, $ef_grupo_mes, $ef_es_futuro]):
+    if (count($ef_grupo_mes) === 0) continue;
+    $ef_subgrupos = ef_split_subestado($ef_grupo_mes);
+?>
+<div style="display:flex;align-items:center;gap:8px;margin:4px 0 8px">
+  <div style="font-size:10px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px">📅 <?=$ef_es_futuro?'PRÓXIMO MES':'MES ACTUAL'?> — <?=h($ef_mes_lbl)?></div>
+  <div style="flex:1;height:1px;background:<?=$CB?>"></div>
+  <div style="font-size:8px;color:<?=$MU?>;font-weight:800"><?=count($ef_grupo_mes)?> MIEMBRO<?=count($ef_grupo_mes)>1?'S':''?></div>
+</div>
+<?php
 $ef_grupos = [
-    ['NEW ENROLLMENT', $ef_new_enroll, '#1E7A5C'],
-    ['RE-SIGNED',       $ef_resigned,   '#5B3FAF'],
-    ['OTROS / SIN SUBESTADO', $ef_otros, '#7A90A4'],
+    ['NEW ENROLLMENT', $ef_subgrupos['NEW ENROLLMENT'], '#1E7A5C'],
+    ['RE-SIGNED',       $ef_subgrupos['RE-SIGNED'],       '#5B3FAF'],
+    ['OTROS / SIN SUBESTADO', $ef_subgrupos['OTROS / SIN SUBESTADO'], '#7A90A4'],
 ];
 foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
     if (count($ef_grupo) === 0) continue;
 ?>
 <div class="card" style="border-top:3px solid <?=$ef_color?>;margin-bottom:14px">
-<div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> EFECTIVOS DEL MES — <?=h($ef_lbl)?> · <?=strtoupper(date('F Y'))?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div></div>
+<div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> <?=h($ef_lbl)?> — <?=h($ef_mes_lbl)?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div></div>
 <div style="overflow-x:auto"><table>
 <tr><th>MIEMBRO</th><th>EFECTIVA</th><th>CARRIER</th><th>APP✉</th><th>APROBADA</th><th>HRA</th><th>DR.✓</th><th>DRIVE</th><th>SMS</th><th>LLAM.B</th><th></th></tr>
 <?php foreach($ef_grupo as $m) echo efMesRow($m, $ef_checks); ?>
 </table></div>
 </div>
+<?php endforeach; ?>
 <?php endforeach; ?>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
