@@ -3435,7 +3435,7 @@ foreach($_ret_stats as $_rs) {
 </div>
 <div class="grid-2">
 <div class="form-group"><label class="form-label">¿Explicaste que NO deben dar informacion a brokers?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="" checked> N/D</label></div></div>
-<div class="form-group"><label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label><input type="text" name="referido_nuevo" class="form-input" placeholder="Nombre y telefono del referido"></div>
+<div class="form-group"><label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label><input type="text" name="referido_nuevo" class="form-input" placeholder="Nombre y telefono del referido"><div id="rq30-ref-anterior" style="display:none;margin-top:5px;font-size:8px;color:#1E7A5C;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:6px;padding:5px 8px;font-weight:700">🤝 Ya registrado: <span id="rq30-ref-anterior-txt"></span> — deja este campo vacío para no duplicarlo; escribe aquí solo si hay un referido NUEVO.</div></div>
 </div>
 <div class="section-divider">RESULTADO DE LA LLAMADA</div>
 <div class="grid-2">
@@ -3493,6 +3493,7 @@ function openRetQ30(mid,nombre){
   form.reset();
   document.getElementById('rq30-mid').value=mid;
   document.getElementById('rq30-nombre').textContent=nombre||_RET_NOMBRES[mid]||'';
+  var refAnt=document.getElementById('rq30-ref-anterior'); if(refAnt) refAnt.style.display='none';
   openModal('ret-q30-modal');
   // Precargar respuestas anteriores (si ya se había hecho el cuestionario) para poder editarlas
   fetch('api.php?action=get_retencion_q30&id='+mid).then(function(r){return r.json();}).then(function(d){
@@ -3532,8 +3533,15 @@ function _rq30Prefill(q){
   setVal('cuenta_referida_tipo', q.cuenta_referida_tipo);
   setVal('donde_conocio_isabel', q.donde_conocio_isabel);
   setVal('notas_generales', q.notas_generales);
-  // referido_nuevo NO se precarga a propósito: cada envío con ese campo lleno
-  // crea un prospecto nuevo, y precargarlo duplicaría el referido anterior.
+  // referido_nuevo NO se precarga en el campo de texto a propósito: cada envío
+  // con ese campo lleno crea un prospecto nuevo, y precargarlo lo duplicaría.
+  // En vez de eso, se muestra como aviso de solo lectura para que se sepa que
+  // ya quedó registrado (y el backend ya no lo borra si el campo llega vacío).
+  if(q.referido_nuevo){
+    var refAnt=document.getElementById('rq30-ref-anterior');
+    var refTxt=document.getElementById('rq30-ref-anterior-txt');
+    if(refAnt && refTxt){ refTxt.textContent=q.referido_nuevo; refAnt.style.display='block'; }
+  }
 }
 function submitRetQ30(e){
   e.preventDefault();

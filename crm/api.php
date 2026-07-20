@@ -1650,7 +1650,7 @@ case 'save_retencion_q30':
         usa_anteojos=VALUES(usa_anteojos), explicaste_uber=VALUES(explicaste_uber),
         explicaste_gym=VALUES(explicaste_gym), beneficios_repasados=VALUES(beneficios_repasados),
         explicaste_no_dar_info=VALUES(explicaste_no_dar_info),
-        referido_nuevo=VALUES(referido_nuevo), donde_conocio_isabel=VALUES(donde_conocio_isabel),
+        referido_nuevo=COALESCE(VALUES(referido_nuevo), referido_nuevo), donde_conocio_isabel=VALUES(donde_conocio_isabel),
         notas_generales=VALUES(notas_generales), completada_por=VALUES(completada_por),
         completada_at=CURRENT_TIMESTAMP,
         nos_siguio_ig=VALUES(nos_siguio_ig), en_ihss=VALUES(en_ihss),
