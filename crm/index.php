@@ -832,7 +832,7 @@ try {
     $alertas_hoy = (int) $pdo->query("
         SELECT COUNT(DISTINCT m.id) FROM miembros m
         WHERE m.estado='ACTIVE' AND m.fecha_efectiva IS NOT NULL AND (
-          (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 0  AND 14 AND NOT EXISTS (SELECT 1 FROM efectivos_checks ec WHERE ec.miembro_id=m.id AND ec.tipo='llam_bienvenida'))
+          (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 0  AND 14 AND NOT EXISTS (SELECT 1 FROM efectivos_checks ec WHERE ec.miembro_id=m.id AND ec.tipo='llam_bienvenida' AND ec.done=1))
           OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 25 AND 40 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='30'))
           OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 55 AND 70 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='60'))
           OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 85 AND 100 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='90'))
@@ -1219,7 +1219,7 @@ if ($u['rol']==='admin') notificarAIsabel(" *RETENCIÓN {$d} DÍAS*\n".$msg, $pd
 }
 }
 }
-function chk(?array $ef,int $mid,string $tipo):string{$d=!empty($ef[$mid][$tipo]);$bg=$d?'#EAF5F0':'#fff';$bc=$d?'#8DCFBA':'#C8DFF0';$tc=$d?'#1E7A5C':'#94A3B8';return "<button class=\"efbtn\" onclick=\"toggleEf($mid,'$tipo',this)\" style=\"background:$bg;border:1.5px solid $bc;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:900;color:$tc;cursor:pointer\">".($d?'✓':'○')."</button>";}
+function chk(?array $ef,int $mid,string $tipo):string{$d=!empty($ef[$mid][$tipo]['done']);$bg=$d?'#EAF5F0':'#fff';$bc=$d?'#8DCFBA':'#C8DFF0';$tc=$d?'#1E7A5C':'#94A3B8';return "<button class=\"efbtn\" onclick=\"toggleEf($mid,'$tipo',this)\" style=\"background:$bg;border:1.5px solid $bc;border-radius:6px;padding:2px 8px;font-size:11px;font-weight:900;color:$tc;cursor:pointer\">".($d?'✓':'○')."</button>";}
 ?><!DOCTYPE html>
 <html lang="es">
 <head>
