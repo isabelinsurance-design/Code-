@@ -343,7 +343,7 @@ display: block;
           <div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase;letter-spacing:1px">📋 Cuestionario 30 Días</div>
           <div style="display:flex;align-items:center;gap:7px">
             <div style="font-size:7px;color:<?=$MU?>"><?=date('d/m/Y', strtotime($_pr_q30['completada_at']))?></div>
-            <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE)?>)" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 8px">✏️ EDITAR</button>
+            <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=htmlspecialchars(json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE),ENT_QUOTES)?>)" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 8px">✏️ EDITAR</button>
           </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:8px;margin-bottom:7px">
@@ -424,7 +424,7 @@ display: block;
         <?php endif; ?>
       </div>
       <?php elseif ($_pr_dias !== null && $_pr_dias >= 25): ?>
-      <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE)?>)" style="margin-top:8px;width:100%;text-align:left;padding:6px 10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:6px;font-size:8px;color:#C07A1A;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">
+      <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=htmlspecialchars(json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE),ENT_QUOTES)?>)" style="margin-top:8px;width:100%;text-align:left;padding:6px 10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:6px;font-size:8px;color:#C07A1A;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">
         ⚠️ Cuestionario 30 días pendiente — clic para completarlo
       </button>
       <?php endif; ?>
