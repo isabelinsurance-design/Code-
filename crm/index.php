@@ -3437,11 +3437,8 @@ foreach($_ret_stats as $_rs) {
 <div class="form-group"><label class="form-label">¿Explicaste que NO deben dar informacion a brokers?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="" checked> N/D</label></div></div>
 <div class="form-group"><label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label><input type="text" name="referido_nuevo" class="form-input" placeholder="Nombre y telefono del referido"><div id="rq30-ref-anterior" style="display:none;margin-top:5px;font-size:8px;color:#1E7A5C;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:6px;padding:5px 8px;font-weight:700">🤝 Ya registrado: <span id="rq30-ref-anterior-txt"></span> — deja este campo vacío para no duplicarlo; escribe aquí solo si hay un referido NUEVO.</div></div>
 </div>
-<div class="section-divider">RESULTADO DE LA LLAMADA</div>
-<div class="grid-2">
-<div class="form-group"><label class="form-label">RESULTADO *</label><select name="resultado_q30" class="form-input" required><option value="">Seleccionar</option><option value="COMPLETADA">COMPLETADA</option><option value="NO CONTESTÓ">NO CONTESTO</option><option value="BUZÓN">BUZON</option></select></div>
+<div class="section-divider">NOTAS</div>
 <div class="form-group"><label class="form-label">NOTAS ADICIONALES</label><textarea name="notas_generales" class="form-input" rows="2" style="text-transform:none" placeholder="Observaciones importantes..."></textarea></div>
-</div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:7px;padding:12px 18px;border-top:1px solid #C8DFF0"><button type="button" class="btn btn-gh btn-sm" onclick="closeModal('ret-q30-modal')">CANCELAR</button><button type="submit" class="btn btn-b btn-sm">GUARDAR CUESTIONARIO</button></div>
 </form>

@@ -1612,9 +1612,10 @@ case 'save_retencion_q30':
     }
 
     $mid       = intval($_POST['miembro_id'] ?? 0);
-    $resultado = $_POST['resultado_q30'] ?? 'COMPLETADA';
+    // Se quitó la pregunta "RESULTADO DE LA LLAMADA" del cuestionario: si se
+    // llena el cuestionario es porque la llamada se completó.
+    $resultado = 'COMPLETADA';
     if (!$mid) jsonErr('Miembro no especificado');
-    if (!in_array($resultado, ['COMPLETADA','NO CONTESTÓ','BUZÓN'])) jsonErr('Resultado inválido');
 
     // Convierte '' a NULL, '1'/'0' a int
     $yn = fn($k) => (isset($_POST[$k]) && $_POST[$k] !== '') ? intval($_POST[$k]) : null;
@@ -1738,7 +1739,7 @@ case 'save_retencion_q30':
 
     // ── Actividad ─────────────────────────────────────────────
     $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
-        ->execute([$uid, $mid, 'RETENCION', "Cuestionario 30 días completado — {$resultado}"]);
+        ->execute([$uid, $mid, 'RETENCION', "Cuestionario 30 días completado"]);
 
     jsonOk();
     break;
