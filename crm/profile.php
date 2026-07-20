@@ -88,6 +88,15 @@ if ($m['estado'] === 'ACTIVE' && !empty($m['fecha_efectiva'])) {
     } catch (Exception $e) {}
     $_pr_dias = (int) round((strtotime(date('Y-m-d')) - strtotime($m['fecha_efectiva'])) / 86400);
 }
+// Nombre de la cuenta/proveedor referido en el cuestionario (si aplica)
+$_pr_cuenta_ref_nombre = null;
+if (!empty($_pr_q30['cuenta_referida_id'])) {
+    try {
+        $cq = $pdo->prepare("SELECT nombre FROM cuentas WHERE id=?");
+        $cq->execute([(int)$_pr_q30['cuenta_referida_id']]);
+        $_pr_cuenta_ref_nombre = $cq->fetchColumn() ?: null;
+    } catch (Exception $e) {}
+}
 
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$MU='#7A90A4';$TX='#1B3A5C';
 $G='#1E7A5C';$R='#B83232';$A='#C07A1A';
@@ -332,7 +341,10 @@ display: block;
       <div style="background:#fff;border:1px solid #A9D0E8;border-radius:8px;padding:10px 12px;margin-top:8px">
         <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
           <div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase;letter-spacing:1px">📋 Cuestionario 30 Días</div>
-          <div style="font-size:7px;color:<?=$MU?>"><?=date('d/m/Y', strtotime($_pr_q30['completada_at']))?></div>
+          <div style="display:flex;align-items:center;gap:7px">
+            <div style="font-size:7px;color:<?=$MU?>"><?=date('d/m/Y', strtotime($_pr_q30['completada_at']))?></div>
+            <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE)?>)" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 8px">✏️ EDITAR</button>
+          </div>
         </div>
         <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:5px;font-size:8px;margin-bottom:7px">
           <?php
@@ -341,16 +353,20 @@ display: block;
             ['WhatsApp',      $_pr_q30['usa_whatsapp'] ?? null],
             ['Facebook',      $_pr_q30['usa_facebook'] ?? null],
             ['Nos siguió',    $_pr_q30['nos_siguio'] ?? null],
+            ['Siguió IG/FB',  $_pr_q30['nos_siguio_ig'] ?? null],
+            ['En IHSS',       $_pr_q30['en_ihss'] ?? null],
             ['Insulina',      $_pr_q30['usa_insulina'] ?? null],
             ['Delivery med.', $_pr_q30['necesita_delivery'] ?? null],
             ['Llegó tarjeta', $_pr_q30['llego_tarjeta'] ?? null],
             ['Explic.tarjeta',$_pr_q30['explicaste_tarjeta'] ?? null],
             ['Dir. correcta', $_pr_q30['direccion_correcta'] ?? null],
+            ['Está casado/a', $_pr_q30['esta_casado'] ?? null],
             ['Doctor OK',     $_pr_q30['doctor_correcto'] ?? null],
             ['Fue a citas',   $_pr_q30['ha_ido_citas'] ?? null],
             ['Satisfecho dr.',$_pr_q30['satisfecho_doctor'] ?? null],
             ['Cambiar dr.',   $_pr_q30['cambiar_doctor'] ?? null],
             ['Va dentista',   $_pr_q30['va_dentista'] ?? null],
+            ['Recom. dentista',$_pr_q30['necesita_dentista'] ?? null],
             ['Anteojos',      $_pr_q30['usa_anteojos'] ?? null],
             ['Expl. Uber',    $_pr_q30['explicaste_uber'] ?? null],
             ['Expl. Gym',     $_pr_q30['explicaste_gym'] ?? null],
@@ -369,6 +385,21 @@ display: block;
         <?php if (!empty($_pr_q30['ayudas_movilidad'])): ?>
         <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
           <b style="color:<?=$MU?>">Dispositivos:</b> <?=h($_pr_q30['ayudas_movilidad'])?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($_pr_q30['con_quien_vive'])): ?>
+        <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
+          <b style="color:<?=$MU?>">Con quién vive:</b> <?=h($_pr_q30['con_quien_vive'])?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($_pr_q30['transporte'])): ?>
+        <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
+          <b style="color:<?=$MU?>">Transporte a citas:</b> <?=h($_pr_q30['transporte'])?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($_pr_q30['cuenta_referida_tipo']) || $_pr_cuenta_ref_nombre): ?>
+        <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
+          <b style="color:<?=$MU?>">Cuenta/proveedor referido:</b> <?=h($_pr_cuenta_ref_nombre ?: '—')?><?=$_pr_q30['cuenta_referida_tipo']?' ('.h($_pr_q30['cuenta_referida_tipo']).')':''?>
         </div>
         <?php endif; ?>
         <?php if (!empty($_pr_q30['donde_conocio_isabel'])): ?>
@@ -393,9 +424,9 @@ display: block;
         <?php endif; ?>
       </div>
       <?php elseif ($_pr_dias !== null && $_pr_dias >= 25): ?>
-      <div style="margin-top:8px;padding:6px 10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:6px;font-size:8px;color:#C07A1A;font-weight:800">
-        ⚠️ Cuestionario 30 días pendiente — completar en tab RETENCIÓN
-      </div>
+      <button onclick="closeModal('profile-modal');openRetQ30(<?=$id?>,<?=json_encode($m['nombre'].' '.$m['apellido'],JSON_UNESCAPED_UNICODE)?>)" style="margin-top:8px;width:100%;text-align:left;padding:6px 10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:6px;font-size:8px;color:#C07A1A;font-weight:800;cursor:pointer;font-family:'DM Sans',sans-serif">
+        ⚠️ Cuestionario 30 días pendiente — clic para completarlo
+      </button>
       <?php endif; ?>
     </div>
     <?php endif; // ACTIVE ?>

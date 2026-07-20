@@ -3234,13 +3234,13 @@ foreach($_ret_stats as $_rs) {
     if($_c30ts) {
         $_r = $_rm['call30']['resultado'] ?? 'COMPLETADA';
         $_st = $_r==='NO CONTESTÓ'?['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']:($_r==='BUZÓN'?['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']:['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ']);
-        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetQ30({$_mid})' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c30ts))."</div></div>";
+        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"30\")' title='Cambiar resultado' style='background:{$_st[0]};color:{$_st[1]};border:1.5px solid {$_st[2]};font-size:8px;font-weight:900;padding:3px 8px'>{$_st[3]}</button><div style='font-size:7px;color:#7A90A4'>".date('d/m/y',strtotime($_c30ts))."</div></div>";
     } elseif($_dias < 25) {
         $_chip_30 = "<div style='text-align:center;font-size:8px;color:#94A3B8'>en ".(25-$_dias)."d</div>";
     } elseif($_dias <= 40) {
-        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetQ30({$_mid})' style='background:#FEF8EE;color:#C07A1A;border:1.5px solid #F5D5A0;font-size:8px;font-weight:900;padding:3px 8px'>📞 HOY</button></div>";
+        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"30\")' style='background:#FEF8EE;color:#C07A1A;border:1.5px solid #F5D5A0;font-size:8px;font-weight:900;padding:3px 8px'>📞 HOY</button></div>";
     } else {
-        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetQ30({$_mid})' style='background:#FDF0EE;color:#B83232;border:1.5px solid #EFA09A;font-size:8px;font-weight:900;padding:3px 8px'>🚨 VENCIDA</button></div>";
+        $_chip_30 = "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple({$_mid},\"30\")' style='background:#FDF0EE;color:#B83232;border:1.5px solid #EFA09A;font-size:8px;font-weight:900;padding:3px 8px'>🚨 VENCIDA</button></div>";
     }
 
     // 60 días chip
@@ -3488,12 +3488,52 @@ function saveRetSimple(resultado){
   fd.append('action','save_retencion_llamada');fd.append('miembro_id',mid);fd.append('tipo',tipo);fd.append('resultado',resultado);fd.append('notas',notas);
   fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Llamada registrada');closeModal('ret-simple-modal');softReload();}else if(typeof toast==='function')toast('Error: '+(d.error||'No se pudo guardar'));});
 }
-function openRetQ30(mid){
+function openRetQ30(mid,nombre){
+  var form=document.getElementById('ret-q30-form');
+  form.reset();
   document.getElementById('rq30-mid').value=mid;
-  document.getElementById('rq30-nombre').textContent=_RET_NOMBRES[mid]||'';
-  document.getElementById('ret-q30-form').reset();
-  document.getElementById('rq30-mid').value=mid;
+  document.getElementById('rq30-nombre').textContent=nombre||_RET_NOMBRES[mid]||'';
   openModal('ret-q30-modal');
+  // Precargar respuestas anteriores (si ya se había hecho el cuestionario) para poder editarlas
+  fetch('api.php?action=get_retencion_q30&id='+mid).then(function(r){return r.json();}).then(function(d){
+    if(d.ok && d.data) _rq30Prefill(d.data);
+  }).catch(function(){});
+}
+function _rq30Prefill(q){
+  var form=document.getElementById('ret-q30-form');
+  var radios=['puede_sms','usa_whatsapp','usa_facebook','nos_siguio_ig','usa_insulina','necesita_delivery',
+    'en_ihss','direccion_correcta','llego_tarjeta','explicaste_tarjeta','esta_casado','doctor_correcto',
+    'ha_ido_citas','satisfecho_doctor','cambiar_doctor','va_dentista','necesita_dentista','usa_anteojos',
+    'explicaste_no_dar_info'];
+  radios.forEach(function(k){
+    var v=q[k];
+    if(v===null||v===undefined||v==='') return; // deja marcado N/D por defecto
+    var val=parseInt(v)?'1':'0';
+    var el=form.querySelector('input[name="'+k+'"][value="'+val+'"]');
+    if(el) el.checked=true;
+  });
+  function setChecklist(name,str){
+    if(!str) return;
+    String(str).split(',').map(function(s){return s.trim();}).filter(Boolean).forEach(function(v){
+      var el=form.querySelector('input[name="'+name+'[]"][value="'+v+'"]');
+      if(el) el.checked=true;
+    });
+  }
+  setChecklist('ayudas_movilidad', q.ayudas_movilidad);
+  setChecklist('con_quien_vive', q.con_quien_vive);
+  setChecklist('beneficios', q.beneficios_repasados);
+  function setVal(name,v){
+    if(v===null||v===undefined||v==='') return;
+    var el=form.querySelector('[name="'+name+'"]');
+    if(el) el.value=v;
+  }
+  setVal('transporte', q.transporte);
+  setVal('cuenta_referida_id', q.cuenta_referida_id);
+  setVal('cuenta_referida_tipo', q.cuenta_referida_tipo);
+  setVal('donde_conocio_isabel', q.donde_conocio_isabel);
+  setVal('notas_generales', q.notas_generales);
+  // referido_nuevo NO se precarga a propósito: cada envío con ese campo lleno
+  // crea un prospecto nuevo, y precargarlo duplicaría el referido anterior.
 }
 function submitRetQ30(e){
   e.preventDefault();
