@@ -165,6 +165,38 @@ case 'delete_recordatorio':
     jsonOk();
     break;
 
+// ── LISTAS (catálogo de reportes/archivos Excel) ──────────────
+case 'save_lista_excel':
+    $pdo = db();
+    $pdo->exec("CREATE TABLE IF NOT EXISTS listas_excel (
+        id INT AUTO_INCREMENT PRIMARY KEY, nombre VARCHAR(255) NOT NULL, descripcion TEXT,
+        columnas TEXT, creado_por INT, created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_listas_nombre (nombre))");
+    $nombre = trim($_POST['nombre'] ?? '');
+    if ($nombre === '') jsonErr('El nombre es obligatorio');
+    $desc = trim($_POST['descripcion'] ?? '') ?: null;
+    $cols = trim($_POST['columnas'] ?? '') ?: null;
+    $lid  = intval($_POST['id'] ?? 0);
+    if ($lid) {
+        $pdo->prepare("UPDATE listas_excel SET nombre=?, descripcion=?, columnas=? WHERE id=?")
+            ->execute([$nombre, $desc, $cols, $lid]);
+    } else {
+        $pdo->prepare("INSERT INTO listas_excel (nombre,descripcion,columnas,creado_por) VALUES (?,?,?,?)")
+            ->execute([$nombre, $desc, $cols, $uid]);
+    }
+    jsonOk();
+    break;
+
+case 'delete_lista_excel':
+    $pdo = db();
+    $lid = intval($_POST['id'] ?? 0);
+    if (!$lid) jsonErr('ID requerido');
+    if (isAdmin()) $pdo->prepare("DELETE FROM listas_excel WHERE id=?")->execute([$lid]);
+    else $pdo->prepare("DELETE FROM listas_excel WHERE id=? AND creado_por=?")->execute([$lid, $uid]);
+    jsonOk();
+    break;
+
 // ── SALARIO / HORAS DE NÓMINA (admin) ─────────────────────────
 case 'save_salario':
     if (!$admin) jsonErr('Solo admin puede configurar salarios');

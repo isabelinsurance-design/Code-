@@ -864,6 +864,24 @@ try {
     sort($rec_cats);
 } catch (Exception $e) {}
 
+// ─── LISTAS (catálogo de reportes/archivos Excel importantes) ────────────────
+$listas_excel = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS listas_excel (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(255) NOT NULL,
+        descripcion TEXT,
+        columnas TEXT,
+        creado_por INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_listas_nombre (nombre)
+    )");
+    $listas_excel = $pdo->query("SELECT l.*, u.nombre AS creador
+        FROM listas_excel l LEFT JOIN usuarios u ON l.creado_por=u.id
+        ORDER BY l.nombre ASC")->fetchAll();
+} catch (Exception $e) {}
+
 // Tickets — admin ve todos, agente ve SOLO donde es responsable (asignado_a)
 // Si no hay asignado_a, fallback a agente_id (creador) para no perder tickets antiguos
 $tkt_select = "SELECT t.*,
@@ -5250,7 +5268,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
-<?php foreach(['RECORDATORIOS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':$rt?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?></button><?php endforeach;?>
+<?php foreach(['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':($rt==='LISTAS'?'📊 LISTAS':$rt)?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?><?=($rt==='LISTAS'&&count($listas_excel)>0)?' <span class="nbadge">'.count($listas_excel).'</span>':''?></button><?php endforeach;?>
 </div>
 
 <!-- ══════════ RECORDATORIOS Y NOTAS ══════════ -->
@@ -5341,6 +5359,67 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
   </div>
 </div>
 <!-- ══════════ /RECORDATORIOS ══════════ -->
+
+<!-- ══════════ LISTAS (catálogo de reportes/archivos Excel) ══════════ -->
+<div id="rtab-LISTAS" style="display:none">
+  <div class="card" style="margin-bottom:13px">
+    <div class="card-header"><div class="card-title">📊 NUEVA LISTA</div></div>
+    <div style="padding:13px 16px">
+      <form onsubmit="submitListaExcel(event)">
+        <input type="hidden" id="lista-id" name="id">
+        <div style="margin-bottom:9px">
+          <label class="form-label">NOMBRE DE LA LISTA *</label>
+          <input id="lista-nombre" name="nombre" class="form-input" required placeholder="Ej: Reporte de Retención Q30">
+        </div>
+        <div style="margin-bottom:9px">
+          <label class="form-label">DESCRIPCIÓN / CONTEXTO</label>
+          <textarea id="lista-descripcion" name="descripcion" class="form-input" placeholder="¿Para qué sirve esta lista? ¿De dónde sale? ¿Quién la usa?…" style="min-height:48px;resize:vertical"></textarea>
+        </div>
+        <div>
+          <label class="form-label">COLUMNAS PRINCIPALES</label>
+          <textarea id="lista-columnas" name="columnas" class="form-input" placeholder="Ej: Status, Product Name, Medicare ID (MBI), PCP Name…" style="min-height:36px;resize:vertical"></textarea>
+          <div style="font-size:7px;color:<?=$MU?>;margin-top:3px;text-transform:uppercase;letter-spacing:.5px">SEPARA LAS COLUMNAS CON COMAS — ASÍ ES MÁS FÁCIL BUSCARLAS DESPUÉS</div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:9px">
+          <button type="button" id="lista-cancel-btn" class="btn btn-gh btn-sm" style="display:none" onclick="resetListaForm()">CANCELAR EDICIÓN</button>
+          <button type="submit" id="lista-save-btn" class="btn btn-p btn-sm">+ AGREGAR</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div style="margin-bottom:11px">
+    <input id="lista-search" class="form-input" placeholder="🔎 BUSCAR POR NOMBRE, DESCRIPCIÓN O COLUMNA (EJ: PCP NAME)…" oninput="listaFilter(this.value)" style="text-transform:uppercase">
+  </div>
+
+  <div id="lista-list" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px">
+  <?php if(!count($listas_excel)): ?>
+    <div style="grid-column:1/-1;padding:26px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1.5px;background:#fff;border:1px dashed <?=$CB?>;border-radius:12px">📊 AÚN NO HAY LISTAS AGREGADAS</div>
+  <?php else: foreach($listas_excel as $l):
+      $l_search = mb_strtolower(($l['nombre']??'').' '.($l['descripcion']??'').' '.($l['columnas']??''), 'UTF-8');
+      $l_json = htmlspecialchars(json_encode(['id'=>(int)$l['id'],'nombre'=>$l['nombre'],'descripcion'=>$l['descripcion'],'columnas'=>$l['columnas']]), ENT_QUOTES);
+      $l_cols = array_filter(array_map('trim', explode(',', $l['columnas'] ?? '')));
+  ?>
+    <div class="lista-card" data-search="<?=h($l_search)?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$P1?>;border-radius:11px;padding:12px 14px">
+      <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
+        <span style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($l['nombre'])?></span>
+        <div style="display:flex;gap:4px;flex-shrink:0">
+          <button onclick='openListaEdit(<?=$l_json?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Editar">✏️</button>
+          <?php if($admin || (int)$l['creado_por']===$uid): ?><button onclick="deleteListaExcel(<?=(int)$l['id']?>)" class="btn btn-sm" style="font-size:8px;padding:3px 8px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE" title="Borrar">🗑</button><?php endif; ?>
+        </div>
+      </div>
+      <?php if(!empty($l['descripcion'])): ?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:6px"><?=h($l['descripcion'])?></div><?php endif; ?>
+      <?php if($l_cols): ?>
+      <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
+        <?php foreach($l_cols as $lc): ?><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900"><?=h($lc)?></span><?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+      <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:7px"><?=h(explode(' ',$l['creador']??'—')[0])?></div>
+    </div>
+  <?php endforeach; endif; ?>
+  </div>
+</div>
+<!-- ══════════ /LISTAS ══════════ -->
 
 <div id="rtab-SCRIPTS" style="display:none">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto">
@@ -6918,7 +6997,7 @@ function irAMiembros(estado) {
     }
 }
 function showComTab(id){['SMS','LLAMADAS','EMAILS','HISTORIAL'].forEach(t=>{const el=document.getElementById('ctab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-ctab]').forEach(b=>b.classList.toggle('active',b.dataset.ctab===id));}
-function showRecTab(id){['RECORDATORIOS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));}
+function showRecTab(id){['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));}
 // ── RECORDATORIOS Y NOTAS ──
 function submitRecordatorio(e){
   e.preventDefault();
@@ -6970,6 +7049,47 @@ function recFilter(btn){
   const cat=btn.dataset.cat||'';
   document.querySelectorAll('.rec-cat-pill').forEach(b=>{const on=(b.dataset.cat||'')===cat;b.style.background=on?'<?=$P1?>':'#fff';b.style.color=on?'#fff':'<?=$MU?>';b.style.borderColor=on?'<?=$P1?>':'<?=$CB?>';});
   document.querySelectorAll('.rec-group').forEach(g=>{ g.style.display=(!cat||g.dataset.cat===cat)?'':'none'; });
+}
+// ── LISTAS (catálogo de reportes/archivos Excel) ──
+function submitListaExcel(e){
+  e.preventDefault();
+  const fd=new FormData(e.target); fd.append('action','save_lista_excel');
+  const btn=document.getElementById('lista-save-btn');
+  if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ GUARDADO'); resetListaForm(); if(typeof softReload==='function') softReload(); }
+      else toast('⚠ '+(d.error||'Error'));
+      if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; }
+    }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; } });
+}
+function resetListaForm(){
+  document.getElementById('lista-id').value='';
+  document.getElementById('lista-nombre').value='';
+  document.getElementById('lista-descripcion').value='';
+  document.getElementById('lista-columnas').value='';
+  const cb=document.getElementById('lista-cancel-btn'); if(cb) cb.style.display='none';
+  const sb=document.getElementById('lista-save-btn'); if(sb) sb.textContent='+ AGREGAR';
+}
+function openListaEdit(l){
+  if(!l) return;
+  document.getElementById('lista-id').value=l.id;
+  document.getElementById('lista-nombre').value=l.nombre||'';
+  document.getElementById('lista-descripcion').value=l.descripcion||'';
+  document.getElementById('lista-columnas').value=l.columnas||'';
+  const cb=document.getElementById('lista-cancel-btn'); if(cb) cb.style.display='';
+  const sb=document.getElementById('lista-save-btn'); if(sb) sb.textContent='✓ GUARDAR CAMBIOS';
+  document.getElementById('lista-nombre').scrollIntoView({behavior:'smooth',block:'center'});
+  document.getElementById('lista-nombre').focus();
+}
+function deleteListaExcel(id){
+  if(!confirm('¿Borrar esta lista?')) return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_lista_excel',id})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ BORRADO'); if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
+}
+function listaFilter(q){
+  q=(q||'').trim().toLowerCase();
+  document.querySelectorAll('.lista-card').forEach(c=>{ c.style.display=(!q||(c.dataset.search||'').includes(q))?'':'none'; });
 }
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
 function saveSalario(id){
