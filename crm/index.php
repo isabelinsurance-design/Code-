@@ -5402,16 +5402,16 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
   ?>
     <div class="lista-card" data-search="<?=h($l_search)?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$P1?>;border-radius:11px;padding:12px 14px">
       <div style="display:flex;align-items:flex-start;gap:8px;justify-content:space-between">
-        <span style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($l['nombre'])?></span>
+        <span class="lista-nombre" style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($l['nombre'])?></span>
         <div style="display:flex;gap:4px;flex-shrink:0">
           <button onclick='openListaEdit(<?=$l_json?>)' class="btn btn-gh btn-sm" style="font-size:8px;padding:3px 8px" title="Editar">✏️</button>
           <?php if($admin || (int)$l['creado_por']===$uid): ?><button onclick="deleteListaExcel(<?=(int)$l['id']?>)" class="btn btn-sm" style="font-size:8px;padding:3px 8px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE" title="Borrar">🗑</button><?php endif; ?>
         </div>
       </div>
-      <?php if(!empty($l['descripcion'])): ?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:6px"><?=h($l['descripcion'])?></div><?php endif; ?>
+      <?php if(!empty($l['descripcion'])): ?><div class="lista-desc" style="font-size:9px;color:<?=$TX?>;line-height:1.6;white-space:pre-wrap;margin-top:6px"><?=h($l['descripcion'])?></div><?php endif; ?>
       <?php if($l_cols): ?>
       <div style="display:flex;flex-wrap:wrap;gap:4px;margin-top:8px">
-        <?php foreach($l_cols as $lc): ?><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900"><?=h($lc)?></span><?php endforeach; ?>
+        <?php foreach($l_cols as $lc): ?><span class="lista-chip" style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 8px;font-size:7px;font-weight:900"><?=h($lc)?></span><?php endforeach; ?>
       </div>
       <?php endif; ?>
       <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:7px"><?=h(explode(' ',$l['creador']??'—')[0])?></div>
@@ -7087,9 +7087,20 @@ function deleteListaExcel(id){
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_lista_excel',id})})
     .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ BORRADO'); if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); });
 }
+function listaHighlight(el,q){
+  if(el.dataset.orig===undefined) el.dataset.orig=el.textContent;
+  const orig=el.dataset.orig;
+  if(!q){ el.textContent=orig; return; }
+  const esc=orig.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const qEsc=q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
+  el.innerHTML=esc.replace(new RegExp('('+qEsc+')','ig'),'<mark style="background:#FFEB8A;color:inherit;padding:0 1px;border-radius:2px">$1</mark>');
+}
 function listaFilter(q){
   q=(q||'').trim().toLowerCase();
-  document.querySelectorAll('.lista-card').forEach(c=>{ c.style.display=(!q||(c.dataset.search||'').includes(q))?'':'none'; });
+  document.querySelectorAll('.lista-card').forEach(c=>{
+    c.style.display=(!q||(c.dataset.search||'').includes(q))?'':'none';
+    c.querySelectorAll('.lista-nombre, .lista-desc, .lista-chip').forEach(el=>listaHighlight(el,q));
+  });
 }
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
 function saveSalario(id){
