@@ -4307,7 +4307,7 @@ $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
     <?php endif;?>
     <div style="display:flex;gap:4px;flex-wrap:wrap">
       <?php if(!$is_done && !$is_canceled):?>
-        <button class="btn btn-gr btn-sm" onclick="completarCita(<?=$c['id']?>)" title="Completar" style="flex:1;padding:5px 8px;font-size:8px">✓ COMPLETAR</button>
+        <button class="btn btn-gr btn-sm" onclick="completarCitaOpciones(<?=$c['id']?>)" title="Completar" style="flex:1;padding:5px 8px;font-size:8px">✓ COMPLETAR</button>
       <?php endif;?>
       <button class="btn btn-gh btn-sm" onclick="editarCita(<?=$c['id']?>)" title="Editar" style="padding:5px 8px;font-size:8px">✎</button>
       <button class="btn btn-bl btn-sm" onclick="crearTicketDesdeCita(<?=$c['id']?>)" title="Crear ticket" style="padding:5px 8px;font-size:8px">◈ TICKET</button>
@@ -6874,6 +6874,14 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
     </form>
   </div>
 </div>
+<div class="modal-overlay" id="cita-completar-choice-modal"><div class="modal modal-sm" style="max-width:420px">
+  <div class="modal-header"><div class="modal-title">✓ COMPLETAR CITA</div><button class="modal-close" onclick="closeModal('cita-completar-choice-modal')">✕</button></div>
+  <div style="padding:4px 2px 2px">
+    <div style="font-size:9px;color:<?=$MU?>;line-height:1.6;margin-bottom:14px">¿QUÉ PASÓ CON ESTA CITA?</div>
+    <button type="button" class="btn btn-gr btn-sm" onclick="completarCitaSolo()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">✓ SOLO MARCAR COMO COMPLETADA<br><span style="font-weight:400;font-size:8px;text-transform:none;opacity:.85">(no fue venta / no aplica cuestionario)</span></button>
+    <button type="button" class="btn btn-b btn-sm" onclick="completarCitaConAplicacion()" style="width:100%;padding:10px;font-size:9px">📋 FUE VENTA — LLENAR CUESTIONARIO DE APLICACIÓN</button>
+  </div>
+</div></div>
 <div class="modal-overlay" id="llamada-form-modal"><div class="modal modal-sm"><div class="modal-header"><div class="modal-title">◌ REGISTRAR LLAMADA</div><button class="modal-close" onclick="closeModal('llamada-form-modal')">✕</button></div><form onsubmit="submitLlamada(event)"><div class="grid-2"><div class="form-group"><label class="form-label">NÚMERO *</label><input type="text" name="numero" class="form-input" placeholder="(818) 555-0000" required></div><div class="form-group"><label class="form-label">ORIGEN</label><select name="origen" class="form-input"><option>TWILIO</option><option>NEXTIVA</option><option>OTRO</option></select></div></div><div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-gh btn-sm" onclick="closeModal('llamada-form-modal')">CANCELAR</button><button type="submit" class="btn btn-b btn-sm">◌ REGISTRAR</button></div></form></div></div>
 <?php if($admin):?><div class="modal-overlay" id="finance-modal"><div class="modal" style="max-width:900px;background:#0B1E3D;border:1px solid rgba(255,255,255,.1)"><div id="finance-login" style="text-align:center;padding:30px"><div style="font-size:11px;font-weight:900;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-bottom:14px">◎ PORTAL FINANCIERO</div><div id="fin-err" style="display:none;background:rgba(184,50,50,.2);color:#FCA5A5;border:1px solid rgba(184,50,50,.3);border-radius:9px;padding:8px;font-size:9px;font-weight:900;margin-bottom:12px;text-transform:uppercase">CONTRASEÑA INCORRECTA</div><input type="password" id="fin-pwd" placeholder="••••••••" style="width:100%;max-width:280px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:9px;padding:10px 13px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;color:#fff;box-sizing:border-box;letter-spacing:2px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto"><button onclick="financeAuth()" style="background:rgba(196,154,42,.2);color:#E8C354;border:1px solid rgba(196,154,42,.3);border-radius:11px;padding:11px 30px;font-size:10px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:3px;text-transform:uppercase">INGRESAR →</button></div><div id="finance-content" style="display:none"><div style="padding:0 22px;display:flex;align-items:center;height:56px;border-bottom:1px solid rgba(255,255,255,.08)"><div style="font-size:11px;font-weight:900;color:#E8C354;letter-spacing:4px;text-transform:uppercase">◎ PORTAL FINANCIERO</div><div style="margin-left:auto;display:flex;gap:7px"><span style="background:rgba(30,122,92,.2);color:#6EE7B7;border:1px solid rgba(30,122,92,.3);border-radius:20px;padding:3px 11px;font-size:8px;font-weight:900;text-transform:uppercase"> ISABEL FUENTES</span><button onclick="closeFinance()" style="background:rgba(184,50,50,.2);color:#FCA5A5;border:1px solid rgba(184,50,50,.3);border-radius:9px;padding:5px 12px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">× SALIR</button></div></div><div id="fin-kpis" style="display:flex;gap:9px;flex-wrap:wrap;padding:16px 22px 0"></div><div style="padding:14px 22px"><div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px"><?php foreach(['RESUMEN','POR CARRIER','POR AGENTE','DISCREPANCIAS'] as $ft):?><button class="ntab<?=$ft==='RESUMEN'?' active':''?>" onclick="showFinTab('<?=$ft?>')" data-ftab="<?=$ft?>" style="color:rgba(255,255,255,.5);border-bottom-color:transparent"><?=$ft?></button><?php endforeach;?></div><div id="fin-table"></div></div></div><div style="text-align:right;padding:10px 22px;border-top:1px solid rgba(255,255,255,.08)"><button onclick="closeModal('finance-modal')" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:none;border-radius:9px;padding:6px 14px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">CERRAR</button></div></div></div><?php endif;?>
 
@@ -9041,24 +9049,41 @@ const b=document.getElementById('dark-btn');if(b)b.textContent='☀️';
 })();
 
 // ── CUESTIONARIO DE APLICACIÓN ─────────────────────────────────────────────
- 
-// Reemplaza la función original completarCita(id)
-function completarCita(id) {
-  const btn = event.currentTarget;
-  if (btn) { btn.disabled = true; btn.textContent = '⏳'; }
+
+// Al presionar COMPLETAR primero se pregunta si fue venta o no —
+// una cita puede completarse sin ser venta, y en ese caso no hay
+// datos para llenar el cuestionario ni mandar a Ready to Enroll.
+let _citaCompletarId = null;
+function completarCitaOpciones(id) {
+  _citaCompletarId = id;
+  openModal('cita-completar-choice-modal');
+}
+function completarCitaSolo() {
+  if (!_citaCompletarId) return;
+  const id = _citaCompletarId;
+  closeModal('cita-completar-choice-modal');
+  fetch('api.php', { method: 'POST', body: new URLSearchParams({ action: 'complete_cita', id }) })
+    .then(r => r.json())
+    .then(d => {
+      if (!d.ok) { toast('⚠ ' + (d.error || 'Error')); return; }
+      toast('✓ CITA COMPLETADA');
+      saveTabAndReload();
+    })
+    .catch(() => toast('⚠ Error de red'));
+}
+function completarCitaConAplicacion() {
+  if (!_citaCompletarId) return;
+  const id = _citaCompletarId;
+  closeModal('cita-completar-choice-modal');
   fetch('api.php?action=get_cita&id=' + id)
     .then(r => r.json())
     .then(d => {
-      if (btn) { btn.disabled = false; btn.textContent = '✓ COMPLETAR'; }
       if (!d.ok) { toast('⚠ ' + (d.error || 'Error al cargar cita')); return; }
       _abrirAppModal(id, d.data);
     })
-    .catch(() => {
-      if (btn) { btn.disabled = false; btn.textContent = '✓ COMPLETAR'; }
-      toast('⚠ Error de red');
-    });
+    .catch(() => toast('⚠ Error de red'));
 }
- 
+
 function _abrirAppModal(citaId, cita) {
   // Reset del form
   document.getElementById('app-form').reset();
