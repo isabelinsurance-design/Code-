@@ -19,6 +19,10 @@ if (!$m) { echo '<div style="padding:20px;color:#B83232">MIEMBRO NO ENCONTRADO</
 
 $polizas = $pdo->prepare("SELECT * FROM polizas WHERE miembro_id=? ORDER BY tipo"); $polizas->execute([$id]); $polizas=$polizas->fetchAll();
 $tickets_m = $pdo->prepare("SELECT * FROM tickets WHERE miembro_id=? ORDER BY created_at DESC"); $tickets_m->execute([$id]); $tickets_m=$tickets_m->fetchAll();
+$citas_m = $pdo->prepare("SELECT c.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
+                           FROM citas c LEFT JOIN usuarios u ON c.agente_id=u.id
+                           WHERE c.miembro_id=? ORDER BY c.fecha DESC, c.hora DESC");
+$citas_m->execute([$id]); $citas_m=$citas_m->fetchAll();
 // Post-cita questionnaire table + data
 $postcita_list = [];
 try {
@@ -272,7 +276,7 @@ display: block;
 
   <!-- Profile Tabs -->
   <div class="profile-tabs">
-    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','TICKETS ('.count($tickets_m).')','SOA','FAMILIA','NOTAS ('.count($notas).')','POST-CITA ('.count($postcita_list).')'];
+    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','CITAS ('.count($citas_m).')','TICKETS ('.count($tickets_m).')','SOA','FAMILIA','NOTAS ('.count($notas).')','POST-CITA ('.count($postcita_list).')'];
     foreach ($ptabs as $i=>$pt): ?>
     <button class="p-tab<?= $i===0?' active':'' ?>" onclick="showPTab('<?= $pt ?>')" data-ptab="<?= $pt ?>"><?= $pt ?></button>
     <?php endforeach; ?>
@@ -624,6 +628,29 @@ display: block;
       </div>
     <?php endforeach;
     else: ?><div style="padding:16px 0;text-align:center;font-size:8px;color:<?= $MU ?>;letter-spacing:2px;text-transform:uppercase">SIN HISTORIAL</div><?php endif; ?>
+  </div>
+
+  <!-- =================== CITAS =================== -->
+  <div class="tab-content" id="ptab-CITAS (<?= count($citas_m) ?>)">
+    <div style="font-size:9px;font-weight:900;color:<?= $MU ?>;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:11px">◷ <?= count($citas_m) ?> CITA<?= count($citas_m)===1?'':'S' ?> EN TOTAL</div>
+    <?php if (count($citas_m)):
+      foreach ($citas_m as $c):
+        $c_badge = ['COMPLETADA'=>['#EAF5F0','#1E7A5C','#8DCFBA','✓'],'CANCELADA'=>['#F5F5F5','#7A90A4','#D0D7DE','✕'],'REAGENDAR'=>['#F3EBFA','#6B3FA0','#D6BCE8','↺']][$c['estado']] ?? ['#EBF5FB','#1B5E8C','#A9D0E8','◷'];
+    ?>
+      <div style="background:#fff;border:1px solid <?= $CB ?>;border-left:3px solid <?= $c_badge[1] ?>;border-radius:9px;padding:11px 13px;margin-bottom:8px">
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap">
+          <div>
+            <div style="font-weight:900;font-size:11px;color:<?= $P1 ?>"><?= date('m/d/Y', strtotime($c['fecha'])) ?> · <?= !empty($c['hora'])?substr($c['hora'],0,5):'--:--' ?></div>
+            <div style="font-size:8px;color:<?= $MU ?>;margin-top:3px;text-transform:uppercase">
+              <?= h($c['tipo']??'?') ?> · <?= h($c['modalidad']??'?') ?><?php if ($c['agente_nombre']): ?> · <?= h(explode(' ',$c['agente_nombre'])[0]) ?><?php endif; ?>
+            </div>
+          </div>
+          <span style="background:<?= $c_badge[0] ?>;color:<?= $c_badge[1] ?>;border:1px solid <?= $c_badge[2] ?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;white-space:nowrap"><?= $c_badge[3] ?> <?= h($c['estado']==='REAGENDAR'?'POSIBLE PARA REAGENDAR':($c['estado']??'PENDIENTE')) ?></span>
+        </div>
+        <?php if (!empty($c['notas'])): ?><div style="font-size:9px;color:<?= $TX ?>;margin-top:6px;white-space:pre-wrap"><?= h($c['notas']) ?></div><?php endif; ?>
+      </div>
+    <?php endforeach;
+    else: ?><div style="padding:16px 0;text-align:center;font-size:8px;color:<?= $MU ?>;letter-spacing:2px;text-transform:uppercase">SIN CITAS REGISTRADAS AÚN</div><?php endif; ?>
   </div>
 
   <!-- =================== TICKETS =================== -->
