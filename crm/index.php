@@ -4298,7 +4298,7 @@ $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
       <div style="text-align:right;white-space:nowrap">
         <div style="font-size:14px;font-weight:900;color:<?=$border_color?>"><?=$hora_disp?></div>
         <div style="font-size:7px;color:<?=$MU?>;font-weight:800;text-transform:uppercase">
-          <?php if($is_today):?>HOY<?php elseif($is_tomorrow):?>MAÑANA<?php elseif($is_past&&!$is_done):?>ATRASADA<?php else:?><?=date('m/d',strtotime($c['fecha']))?><?php endif;?>
+          <?php if($is_today):?>HOY · <?php elseif($is_tomorrow):?>MAÑANA · <?php elseif($is_past&&!$is_done):?>ATRASADA · <?php endif;?><?=date('m/d/Y',strtotime($c['fecha']))?>
         </div>
       </div>
     </div>
