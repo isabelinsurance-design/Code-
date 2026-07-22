@@ -4284,7 +4284,7 @@ $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
   $agente_ini   = $c['agente_ini']   ?? '?';
   ?>
   <div class="cita-card" data-fecha="<?=h($c['fecha'])?>" data-agente="<?=h($c['agente_id'])?>" data-tipo="<?=h($c['tipo']??'')?>" data-modalidad="<?=h($c['modalidad']??'')?>" data-search="<?=strtolower(h(($cli.' '.($c['tipo']??'').' '.($c['modalidad']??'').' '.($c['notas']??''))))?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;border-radius:10px;padding:11px 13px;<?=$is_done||$is_canceled?'opacity:.65':''?>">
-    <?php if($is_reagendar):?><div style="display:inline-block;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8;border-radius:20px;padding:2px 9px;font-size:7px;font-weight:900;text-transform:uppercase;margin-bottom:6px">↺ PARA REAGENDAR</div><?php endif;?>
+    <?php if($is_reagendar):?><div style="display:inline-block;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8;border-radius:20px;padding:2px 9px;font-size:7px;font-weight:900;text-transform:uppercase;margin-bottom:6px">↺ POSIBLE PARA REAGENDAR</div><?php endif;?>
     <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
       <div style="flex:1;min-width:0">
         <div style="font-size:11px;font-weight:900;color:<?=$P1?>;<?=!empty($c['miembro_id'])?'cursor:pointer':''?>;line-height:1.2"
@@ -4415,17 +4415,17 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
     <button class="cita-subtab active" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ► PRÓXIMAS (<?=$citas_proximas_n?>)
     </button>
+    <?php if(count($citas_reagendar)):?>
+    <button class="cita-subtab" data-csub="reagendar" onclick="cambiarSubtabCitas('reagendar')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ↺ POSIBLE PARA REAGENDAR (<?=count($citas_reagendar)?>)
+    </button>
+    <?php endif;?>
     <button class="cita-subtab" data-csub="pendientes" onclick="cambiarSubtabCitas('pendientes')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ⚠ ATRASADAS (<?=$citas_atrasadas_n?>)
     </button>
     <button class="cita-subtab" data-csub="completadas" onclick="cambiarSubtabCitas('completadas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ✓ COMPLETADAS (<?=count($citas_completadas)?>)
     </button>
-    <?php if(count($citas_reagendar)):?>
-    <button class="cita-subtab" data-csub="reagendar" onclick="cambiarSubtabCitas('reagendar')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
-      ↺ PARA REAGENDAR (<?=count($citas_reagendar)?>)
-    </button>
-    <?php endif;?>
     <?php if(count($citas_canceladas)):?>
     <button class="cita-subtab" data-csub="canceladas" onclick="cambiarSubtabCitas('canceladas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ✕ CANCELADAS (<?=count($citas_canceladas)?>)
@@ -4471,6 +4471,16 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
   <?php endif;?>
 </div>
 
+<!-- ─── POSIBLE PARA REAGENDAR ─── -->
+<?php if(count($citas_reagendar)):?>
+<div id="csub-reagendar" class="csub-pane" style="display:none">
+  <div style="background:#F3EBFA;border:1px solid #D6BCE8;border-radius:9px;padding:9px 12px;font-size:9px;color:#6B3FA0;margin-bottom:11px">↺ Recordatorio para volver a llamar y agendar una nueva cita — la mayoría son prospectos.</div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_reagendar as $c) $render_cita($c); ?>
+  </div>
+</div>
+<?php endif;?>
+
 <!-- ─── COMPLETADAS ─── -->
 <div id="csub-completadas" class="csub-pane" style="display:none">
   <?php
@@ -4488,16 +4498,6 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS COMPLETADAS AÚN</div>
   <?php endif;?>
 </div>
-
-<!-- ─── PARA REAGENDAR ─── -->
-<?php if(count($citas_reagendar)):?>
-<div id="csub-reagendar" class="csub-pane" style="display:none">
-  <div style="background:#F3EBFA;border:1px solid #D6BCE8;border-radius:9px;padding:9px 12px;font-size:9px;color:#6B3FA0;margin-bottom:11px">↺ Recordatorio para volver a llamar y agendar una nueva cita — la mayoría son prospectos.</div>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
-    <?php foreach($citas_reagendar as $c) $render_cita($c); ?>
-  </div>
-</div>
-<?php endif;?>
 
 <!-- ─── CANCELADAS ─── -->
 <?php if(count($citas_canceladas)):?>
@@ -9136,7 +9136,7 @@ function completarCitaReagendar() {
     .then(r => r.json())
     .then(d => {
       if (!d.ok) { toast('⚠ ' + (d.error || 'Error')); return; }
-      toast('↺ MARCADA PARA REAGENDAR');
+      toast('↺ MARCADA COMO POSIBLE PARA REAGENDAR');
       saveTabAndReload();
     })
     .catch(() => toast('⚠ Error de red'));
