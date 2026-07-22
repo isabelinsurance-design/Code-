@@ -6874,7 +6874,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
         <div class="form-group">
           <label class="form-label">TIPO</label>
           <select name="tipo" id="cita-tipo" class="form-input">
-            <?php foreach(['PRESENTACIÓN','AEP','RETENCIÓN','SEGUIMIENTO','CITA DENTAL','T65','ENROLLMENT','EN CASA DEL PROSPECTO','PERSONAL DE ISABEL','OTRO'] as $t):?><option><?=$t?></option><?php endforeach;?>
+            <?php foreach(['PRESENTACIÓN','AEP','RETENCIÓN','SEGUIMIENTO','CITA DENTAL','T65','ENROLLMENT','PERSONAL DE ISABEL','OTRO'] as $t):?><option><?=$t?></option><?php endforeach;?>
           </select>
         </div>
         <div class="form-group">
