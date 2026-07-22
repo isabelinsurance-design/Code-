@@ -361,8 +361,15 @@ case 'save_member':
             }
 
             // ── UPDATE ────────────────────────────────────────────────────────
-            $sets = implode(',', array_map(fn($f)=>"$f=?", $fields));
-            $vals = array_map($clean, $fields);
+            // Solo se actualizan los campos que realmente vienen en el formulario
+            // enviado. Antes se ponían TODOS los campos de miembros a NULL si no
+            // venían en el POST — eso borraba el perfil entero cuando se guardaba
+            // desde un formulario parcial (ej. el cuestionario de aplicación que
+            // se llena desde Citas, que no incluye todos los campos del perfil).
+            $fields_presentes = array_values(array_filter($fields, fn($f) => isset($d[$f])));
+            if (empty($fields_presentes)) jsonErr('No hay datos para actualizar');
+            $sets = implode(',', array_map(fn($f)=>"$f=?", $fields_presentes));
+            $vals = array_map($clean, $fields_presentes);
             $vals[] = $d['id'];
             $pdo->prepare("UPDATE miembros SET $sets, updated_at=NOW() WHERE id=?")->execute($vals);
 
