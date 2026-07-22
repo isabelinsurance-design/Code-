@@ -46,10 +46,6 @@ try {
     $sq->execute([$id]);
     $postcita_list = $sq->fetchAll();
 } catch (Exception $e) {}
-$soas = $pdo->prepare("SELECT * FROM soa WHERE miembro_id=? ORDER BY created_at DESC"); $soas->execute([$id]); $soas=$soas->fetchAll();
-// CMS Compliance: verificar SOA firmado
-$soa_valido = false;
-foreach($soas as $s) { if($s['estado'] === 'FIRMADO') { $soa_valido = true; break; } }
 
 $actividad = $pdo->prepare("SELECT a.*,u.nombre,u.iniciales,u.color FROM actividad a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.miembro_id=? ORDER BY a.fecha_hora DESC LIMIT 20"); $actividad->execute([$id]); $actividad=$actividad->fetchAll();
 $notas = $pdo->prepare("SELECT n.*,u.nombre as autor,u.iniciales,u.color
@@ -191,16 +187,6 @@ display: block;
 
 
 <div style="font-family:'DM Sans',sans-serif">
-  <?php if (!$soa_valido): ?>
-  <div style="background:#FDF0EE;border:1px solid #EFA09A;border-left:4px solid #B83232;border-radius:9px;padding:12px;margin-bottom:15px;display:flex;align-items:center;gap:10px">
-    <span style="font-size:20px">⚠️</span>
-    <div>
-      <div style="font-weight:900;font-size:10px;color:#B83232;text-transform:uppercase">⚠️ ALERTA DE CUMPLIMIENTO (CMS)</div>
-      <div style="font-size:9px;color:#1B3A5C">Este miembro no tiene un SOA firmado. CMS exige que se firme <b>48 horas antes</b> de cualquier presentación de plan.</div>
-    </div>
-  </div>
-  <?php endif; ?>
-
   <?php if ($m['alerta_activa']): ?>
   <div style="background:#FDF0EE;border:1px solid #EFA09A;border-left:4px solid #B83232;border-radius:9px;padding:9px 13px;margin-bottom:12px;display:flex;gap:8px">
     <span>⚡</span><div><div style="font-weight:900;font-size:9px;color:#B83232;letter-spacing:2px;text-transform:uppercase">ALERTA — LEER ANTES DE TRABAJAR</div>
@@ -260,9 +246,9 @@ display: block;
   <div style="margin-bottom:12px">
     <div style="font-size:7px;font-weight:900;color:<?= $P2 ?>;text-transform:uppercase;letter-spacing:2px;margin-bottom:6px">PROCESO</div>
     <div style="display:flex;gap:3px;flex-wrap:wrap">
-      <?php foreach (['CONTACTO','SOA FIRMADO','PLAN OK','APP ENVIADA','EN REVISIÓN','APROBADO','EFECTIVO'] as $i=>$s):
-        $done = $m['estado']==='ACTIVO' && $i<5;
-        $cur  = $m['estado']==='ACTIVO' && $i===4;
+      <?php foreach (['CONTACTO','PLAN OK','APP ENVIADA','EN REVISIÓN','APROBADO','EFECTIVO'] as $i=>$s):
+        $done = $m['estado']==='ACTIVO' && $i<4;
+        $cur  = $m['estado']==='ACTIVO' && $i===3;
         $bg   = $done?'#EAF5F0':($cur?'#EBF5FB':'#EBF4F9');
         $bc   = $done?'#8DCFBA':($cur?'#A9D0E8':'#C8DFF0');
         $fc   = $done?'#1E7A5C':($cur?'#1B5E8C':'#7A90A4');
@@ -276,7 +262,7 @@ display: block;
 
   <!-- Profile Tabs -->
   <div class="profile-tabs">
-    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','CITAS ('.count($citas_m).')','TICKETS ('.count($tickets_m).')','SOA','FAMILIA','NOTAS ('.count($notas).')','POST-CITA ('.count($postcita_list).')'];
+    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','CITAS ('.count($citas_m).')','TICKETS ('.count($tickets_m).')','FAMILIA','NOTAS ('.count($notas).')','POST-CITA ('.count($postcita_list).')'];
     foreach ($ptabs as $i=>$pt): ?>
     <button class="p-tab<?= $i===0?' active':'' ?>" onclick="showPTab('<?= $pt ?>')" data-ptab="<?= $pt ?>"><?= $pt ?></button>
     <?php endforeach; ?>
@@ -670,26 +656,6 @@ display: block;
       </div>
     <?php endforeach;
     else: ?><div style="padding:16px 0;text-align:center;font-size:8px;color:<?= $MU ?>;letter-spacing:2px;text-transform:uppercase">SIN TICKETS</div><?php endif; ?>
-  </div>
-
-  <!-- =================== SOA =================== -->
-  <div class="tab-content" id="ptab-SOA">
-    <div style="background:#EBF5FB;border:1px solid #A9D0E8;border-radius:8px;padding:8px 12px;margin-bottom:11px;font-size:8px;color:#1B5E8C;font-weight:800;letter-spacing:1px;text-transform:uppercase">
-      CMS: SOA REQUERIDO 48H ANTES DE CITA · GUARDAR MÍNIMO 10 AÑOS
-    </div>
-    <?php if (count($soas)):
-      foreach ($soas as $s): ?>
-      <div style="background:<?= $BG ?>;border:1px solid <?= $s['estado']==='FIRMADO'?'#8DCFBA':$CB ?>;border-radius:8px;padding:11px 13px;margin-bottom:8px;border-left:3px solid <?= $s['estado']==='FIRMADO'?$G:$A ?>">
-        <div style="display:flex;justify-content:space-between;margin-bottom:4px">
-          <div style="font-weight:900;font-size:9px;color:<?= $P1 ?>;letter-spacing:1px;text-transform:uppercase"><?= h($s['tipo_plan']??'MEDICARE ADVANTAGE') ?></div>
-          <span style="background:<?= $s['estado']==='FIRMADO'?'#EAF5F0':'#FEF8EE' ?>;color:<?= $s['estado']==='FIRMADO'?$G:$A ?>;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900;border:1px solid <?= $s['estado']==='FIRMADO'?'#8DCFBA':'#F5D5A0' ?>"><?= h($s['estado']) ?></span>
-        </div>
-        <div style="font-size:8px;color:<?= $MU ?>;letter-spacing:.5px"><?= h($s['metodo']) ?> · FIRMADO: <?= fdate($s['fecha_firma']) ?> · EXPIRA: <?= fdate($s['fecha_expiracion']) ?></div>
-      </div>
-    <?php endforeach;
-    else: ?><div style="background:#FDF0EE;border:1px solid #EFA09A;border-radius:8px;padding:11px 13px;border-left:3px solid #B83232">
-      <div style="font-weight:900;font-size:9px;color:#B83232;letter-spacing:2px;text-transform:uppercase;margin-bottom:7px">⚠ SOA PENDIENTE</div>
-    </div><?php endif; ?>
   </div>
 
   <!-- =================== FAMILIA =================== -->
