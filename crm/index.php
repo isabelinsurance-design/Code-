@@ -4388,6 +4388,11 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
   <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px">
     <input type="search" id="cita-search" placeholder=" Buscar por nombre, tipo, notas..." onkeyup="filtrarCitas()" style="flex:1;min-width:180px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:7px 11px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
     <input type="date" id="cita-fecha-filtro" onchange="filtrarCitas()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
+    <div style="display:flex;gap:0;border:1px solid <?=$CB?>;border-radius:8px;overflow:hidden">
+      <?php foreach(['dia'=>'DÍA','semana'=>'SEMANA','mes'=>'MES','anio'=>'AÑO'] as $pv=>$pl):?>
+      <button type="button" class="cita-periodo-btn<?=$pv==='dia'?' active':''?>" data-periodo="<?=$pv?>" onclick="citaSetPeriodo('<?=$pv?>',this)" style="background:<?=$pv==='dia'?$P1:'#fff'?>;color:<?=$pv==='dia'?'#fff':$MU?>;border:none;padding:6px 10px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px"><?=$pl?></button>
+      <?php endforeach;?>
+    </div>
     <?php if($admin):?>
     <select id="cita-agente-filtro" onchange="filtrarCitas()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
       <option value="">Todos los agentes</option>
@@ -9447,17 +9452,53 @@ function cambiarSubtabCitas(sub){
   filtrarCitas();
 }
 
+window._citaPeriodo = 'dia';
+function citaSetPeriodo(p, btn){
+  window._citaPeriodo = p;
+  document.querySelectorAll('.cita-periodo-btn').forEach(b=>{
+    const on = b===btn;
+    b.style.background = on ? '#1B4A6B' : '#fff';
+    b.style.color      = on ? '#fff'     : '#7A90A4';
+    b.classList.toggle('active', on);
+  });
+  filtrarCitas();
+}
+function _fmtFechaLocal(d){
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}-${m}-${day}`;
+}
+function _rangoCitaPeriodo(fechaStr, periodo){
+  const d = new Date(fechaStr+'T00:00:00');
+  if(periodo==='semana'){
+    const dow = d.getDay(); // 0=domingo..6=sábado
+    const diffLunes = (dow===0 ? -6 : 1-dow);
+    const inicio = new Date(d); inicio.setDate(d.getDate()+diffLunes);
+    const fin = new Date(inicio); fin.setDate(inicio.getDate()+6);
+    return [_fmtFechaLocal(inicio), _fmtFechaLocal(fin)];
+  }
+  if(periodo==='mes'){
+    const inicio = new Date(d.getFullYear(), d.getMonth(), 1);
+    const fin    = new Date(d.getFullYear(), d.getMonth()+1, 0);
+    return [_fmtFechaLocal(inicio), _fmtFechaLocal(fin)];
+  }
+  if(periodo==='anio'){
+    return [`${d.getFullYear()}-01-01`, `${d.getFullYear()}-12-31`];
+  }
+  return [fechaStr, fechaStr]; // día
+}
+
 function filtrarCitas(){
   const q       = (document.getElementById('cita-search')?.value||'').toLowerCase().trim();
   const fecha   = document.getElementById('cita-fecha-filtro')?.value||'';
   const agente  = document.getElementById('cita-agente-filtro')?.value||'';
   const tipo    = document.getElementById('cita-tipo-filtro')?.value||'';
   const moda    = document.getElementById('cita-modalidad-filtro')?.value||'';
+  const rango   = fecha ? _rangoCitaPeriodo(fecha, window._citaPeriodo||'dia') : null;
 
   document.querySelectorAll('.cita-card').forEach(c=>{
     let show = true;
     if(q && !(c.dataset.search||'').includes(q)) show = false;
-    if(fecha && c.dataset.fecha!==fecha) show = false;
+    if(rango && (c.dataset.fecha<rango[0] || c.dataset.fecha>rango[1])) show = false;
     if(agente && c.dataset.agente!==agente) show = false;
     if(tipo && c.dataset.tipo!==tipo) show = false;
     if(moda && c.dataset.modalidad!==moda) show = false;
@@ -9475,6 +9516,13 @@ function resetCitaFiltros(){
   ['cita-search','cita-fecha-filtro','cita-agente-filtro','cita-tipo-filtro','cita-modalidad-filtro'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
+  });
+  window._citaPeriodo = 'dia';
+  document.querySelectorAll('.cita-periodo-btn').forEach(b=>{
+    const on = b.dataset.periodo==='dia';
+    b.style.background = on ? '#1B4A6B' : '#fff';
+    b.style.color      = on ? '#fff'     : '#7A90A4';
+    b.classList.toggle('active', on);
   });
   filtrarCitas();
 }
