@@ -4305,7 +4305,7 @@ $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
       <span style="background:<?=$BG?>;color:<?=$P1?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($c['tipo']??'?')?></span>
       <span style="background:<?=$BG?>;color:<?=$P2?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase">
-        <?=$c['modalidad']==='TELÉFONO'?'📞':'🏢'?> <?=h($c['modalidad']??'?')?>
+        <?=['TELÉFONO'=>'📞','VIDEO'=>'📹','EN CASA'=>'🏠','EN RESTAURANTE'=>'🍽️'][$c['modalidad']??'']??'🏢'?> <?=h($c['modalidad']??'?')?>
       </span>
       <span style="display:inline-flex;align-items:center;gap:3px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase;color:<?=$MU?>">
         <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:<?=h($agente_color)?>;color:#fff;font-size:6px;text-align:center;line-height:11px;font-weight:900"><?=h($agente_ini)?></span>
@@ -4406,12 +4406,14 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
       <option value="OFICINA">Oficina</option>
       <option value="TELÉFONO">Teléfono</option>
       <option value="VIDEO">Video</option>
+      <option value="EN CASA">En casa</option>
+      <option value="EN RESTAURANTE">En restaurante</option>
     </select>
     <button class="btn btn-gh btn-sm" onclick="resetCitaFiltros()" style="font-size:8px">↺ LIMPIAR</button>
   </div>
   <div style="display:flex;gap:0;border-bottom:1px solid <?=$CB?>">
     <button class="cita-subtab active" data-csub="pendientes" onclick="cambiarSubtabCitas('pendientes')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
-      ◷ PENDIENTES (<?=count($citas_pendientes)?>)
+      ⚠ ATRASADAS (<?=$citas_atrasadas_n?>)
     </button>
     <button class="cita-subtab" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ► PRÓXIMAS (<?=$citas_proximas_n?>)
@@ -4445,15 +4447,11 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
     else                                                              $g_futuro[]    = $c;
   }
   $render_grupo('⚠ ATRASADAS — REQUIEREN ATENCIÓN', '#B83232', $g_atrasadas);
-  $render_grupo('● HOY · '.date('m/d/Y'),            '#C07A1A', $g_hoy);
-  $render_grupo('► MAÑANA · '.date('m/d/Y',strtotime('+1 day')), '#2876A8', $g_manana);
-  $render_grupo('ESTA SEMANA',                       $P1, $g_semana);
-  $render_grupo('PRÓXIMAS',                          $P2, $g_futuro);
-  if (!count($citas_pendientes)):?>
+  if (!count($g_atrasadas)):?>
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
       <div style="font-size:32px;margin-bottom:9px">◷</div>
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS PENDIENTES</div>
-      <div style="font-size:8px;color:<?=$MU?>;margin-top:5px">Todo al día. Crea una nueva con el botón de arriba.</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS ATRASADAS</div>
+      <div style="font-size:8px;color:<?=$MU?>;margin-top:5px">Todo al día. Las de hoy en adelante están en la pestaña PRÓXIMAS.</div>
     </div>
   <?php endif;?>
 </div>
@@ -4494,6 +4492,7 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
 <!-- ─── PARA REAGENDAR ─── -->
 <?php if(count($citas_reagendar)):?>
 <div id="csub-reagendar" class="csub-pane" style="display:none">
+  <div style="background:#F3EBFA;border:1px solid #D6BCE8;border-radius:9px;padding:9px 12px;font-size:9px;color:#6B3FA0;margin-bottom:11px">↺ Recordatorio para volver a llamar y agendar una nueva cita — la mayoría son prospectos.</div>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
     <?php foreach($citas_reagendar as $c) $render_cita($c); ?>
   </div>
@@ -6872,7 +6871,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
         <div class="form-group">
           <label class="form-label">TIPO</label>
           <select name="tipo" id="cita-tipo" class="form-input">
-            <?php foreach(['PRESENTACIÓN','AEP','RETENCIÓN','SEGUIMIENTO','CITA DENTAL','T65','ENROLLMENT','EN CASA DEL PROSPECTO','OTRO'] as $t):?><option><?=$t?></option><?php endforeach;?>
+            <?php foreach(['PRESENTACIÓN','AEP','RETENCIÓN','SEGUIMIENTO','CITA DENTAL','T65','ENROLLMENT','EN CASA DEL PROSPECTO','PERSONAL DE ISABEL','OTRO'] as $t):?><option><?=$t?></option><?php endforeach;?>
           </select>
         </div>
         <div class="form-group">
@@ -6881,6 +6880,8 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
             <option value="OFICINA">🏢 OFICINA</option>
             <option value="TELÉFONO">📞 TELÉFONO</option>
             <option value="VIDEO">📹 VIDEO</option>
+            <option value="EN CASA">🏠 EN CASA (DEL PROSPECTO)</option>
+            <option value="EN RESTAURANTE">🍽️ EN RESTAURANTE</option>
           </select>
         </div>
       </div>
