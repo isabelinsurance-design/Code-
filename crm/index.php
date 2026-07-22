@@ -4412,11 +4412,11 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
     <button class="btn btn-gh btn-sm" onclick="resetCitaFiltros()" style="font-size:8px">↺ LIMPIAR</button>
   </div>
   <div style="display:flex;gap:0;border-bottom:1px solid <?=$CB?>">
-    <button class="cita-subtab active" data-csub="pendientes" onclick="cambiarSubtabCitas('pendientes')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
-      ⚠ ATRASADAS (<?=$citas_atrasadas_n?>)
-    </button>
-    <button class="cita-subtab" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+    <button class="cita-subtab active" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ► PRÓXIMAS (<?=$citas_proximas_n?>)
+    </button>
+    <button class="cita-subtab" data-csub="pendientes" onclick="cambiarSubtabCitas('pendientes')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ⚠ ATRASADAS (<?=$citas_atrasadas_n?>)
     </button>
     <button class="cita-subtab" data-csub="completadas" onclick="cambiarSubtabCitas('completadas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ✓ COMPLETADAS (<?=count($citas_completadas)?>)
@@ -4435,7 +4435,7 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
 </div>
 
 <!-- ─── PENDIENTES ─── -->
-<div id="csub-pendientes" class="csub-pane">
+<div id="csub-pendientes" class="csub-pane" style="display:none">
   <?php
   // Agrupar pendientes por fecha relativa
   $g_atrasadas = []; $g_hoy = []; $g_manana = []; $g_semana = []; $g_futuro = [];
@@ -4457,7 +4457,7 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
 </div>
 
 <!-- ─── PRÓXIMAS (todas las no completadas, sin ATRASADAS) ─── -->
-<div id="csub-proximas" class="csub-pane" style="display:none">
+<div id="csub-proximas" class="csub-pane">
   <?php
   $render_grupo('● HOY · '.date('m/d/Y'),            '#C07A1A', $g_hoy);
   $render_grupo('► MAÑANA · '.date('m/d/Y',strtotime('+1 day')), '#2876A8', $g_manana);
@@ -6927,7 +6927,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
     <button type="button" class="btn btn-gr btn-sm" onclick="completarCitaSolo()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">✓ COMPLETADA — NO FUE VENTA</button>
     <button type="button" class="btn btn-b btn-sm" onclick="mostrarCitaVentaPregunta()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">💰 VENTA</button>
     <button type="button" class="btn btn-r btn-sm" onclick="completarCitaCancelar()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">✕ CANCELÓ (NO SE VA A REAGENDAR)</button>
-    <button type="button" class="btn" style="width:100%;padding:10px;font-size:9px;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8" onclick="completarCitaReagendar()">↺ SE VA A REAGENDAR PARA OTRO DÍA</button>
+    <button type="button" class="btn" style="width:100%;padding:10px;font-size:9px;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8" onclick="completarCitaReagendar()">↺ POSIBLE PARA REAGENDAR</button>
   </div>
   <div id="cita-choice-step2" style="display:none;padding:4px 2px 2px">
     <div style="font-size:9px;color:<?=$MU?>;line-height:1.6;margin-bottom:14px">¿LLENAR EL CUESTIONARIO DE APLICACIÓN AHORA?</div>
