@@ -4244,8 +4244,9 @@ $tomorrow_d= date('Y-m-d', strtotime('+1 day'));
 $yest_d    = date('Y-m-d', strtotime('-1 day'));
 $week_end  = date('Y-m-d', strtotime('+7 days'));
 
-// Filtrar las que ve cada usuario: admin todas, agentes solo las suyas
-$citas_view = $admin ? $citas : array_values(array_filter($citas, fn($c)=>$c['agente_id']==$uid));
+// Todos los usuarios ven todas las citas (la cita puede ser de un agente
+// pero cualquiera puede terminar completándola/reagendándola).
+$citas_view = $citas;
 
 // Separar por estado
 $citas_pendientes = array_values(array_filter($citas_view, fn($c)=>!in_array($c['estado'], ['COMPLETADA','CANCELADA','REAGENDAR'], true)));

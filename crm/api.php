@@ -713,7 +713,6 @@ case 'update_cita':
     $prev->execute([$id]);
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
-    if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso para editar esta cita');
 
     $mid = intval($_POST['miembro_id']??0) ?: null;
     $cli = trim($_POST['cliente']??'') ?: null;
@@ -743,7 +742,6 @@ case 'get_cita':
     $stmt->execute([$id]);
     $c = $stmt->fetch();
     if (!$c) jsonErr('Cita no encontrada');
-    if (!$admin && $c['agente_id'] != $uid) jsonErr('Sin permiso para ver esta cita');
     jsonOk($c);
     break;
 
@@ -755,7 +753,6 @@ case 'complete_cita':
     $prev->execute([$id]);
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
-    if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='COMPLETADA', completada_por=?, completada_at=NOW() WHERE id=?")
         ->execute([$uid, $id]);
     jsonOkNotify([], 'CITAS');
@@ -769,7 +766,6 @@ case 'cancel_cita':
     $prev->execute([$id]);
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
-    if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='CANCELADA' WHERE id=?")->execute([$id]);
     jsonOkNotify([], 'CITAS');
     break;
@@ -785,7 +781,6 @@ case 'reagendar_cita':
     $prev->execute([$id]);
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
-    if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='REAGENDAR' WHERE id=?")->execute([$id]);
     jsonOkNotify([], 'CITAS');
     break;
