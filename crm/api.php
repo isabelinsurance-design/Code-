@@ -725,7 +725,7 @@ case 'update_cita':
     $notas     = trim($_POST['notas']??'') ?: null;
     $agente    = $admin ? (intval($_POST['agente_id']??$row['agente_id']) ?: $row['agente_id']) : $row['agente_id'];
 
-    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=IF(estado='CANCELADA','PENDIENTE',estado) WHERE id=?")
+    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=IF(estado IN ('CANCELADA','REAGENDAR'),'PENDIENTE',estado) WHERE id=?")
         ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $id]);
     jsonOkNotify([], 'CITAS');
     break;
@@ -771,6 +771,22 @@ case 'cancel_cita':
     if (!$row) jsonErr('Cita no encontrada');
     if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
     $pdo->prepare("UPDATE citas SET estado='CANCELADA' WHERE id=?")->execute([$id]);
+    jsonOkNotify([], 'CITAS');
+    break;
+
+case 'reagendar_cita':
+    // Distinto de cancelar: la cita no se cerró, solo necesita una fecha/hora
+    // nueva. Se marca aparte para poder darle seguimiento (pestaña PARA
+    // REAGENDAR) en vez de perderla entre las canceladas.
+    $pdo = db();
+    $id  = intval($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $prev = $pdo->prepare("SELECT agente_id FROM citas WHERE id=?");
+    $prev->execute([$id]);
+    $row = $prev->fetch();
+    if (!$row) jsonErr('Cita no encontrada');
+    if (!$admin && $row['agente_id'] != $uid) jsonErr('Sin permiso');
+    $pdo->prepare("UPDATE citas SET estado='REAGENDAR' WHERE id=?")->execute([$id]);
     jsonOkNotify([], 'CITAS');
     break;
 
