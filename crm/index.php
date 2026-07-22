@@ -4266,7 +4266,7 @@ $citas_hoy_n     = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$t
 $citas_manana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$tomorrow_d));
 $citas_semana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d && $c['fecha']<=$week_end));
 $citas_atrasadas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']<$today_d));
-$citas_desde_manana_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$tomorrow_d));
+$citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d));
 
 // Helper para renderizar una cita
 $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
@@ -4414,7 +4414,7 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
       ◷ PENDIENTES (<?=count($citas_pendientes)?>)
     </button>
     <button class="cita-subtab" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
-      ► DESDE MAÑANA (<?=$citas_desde_manana_n?>)
+      ► PRÓXIMAS (<?=$citas_proximas_n?>)
     </button>
     <button class="cita-subtab" data-csub="completadas" onclick="cambiarSubtabCitas('completadas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ✓ COMPLETADAS (<?=count($citas_completadas)?>)
@@ -4458,16 +4458,17 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
   <?php endif;?>
 </div>
 
-<!-- ─── DESDE MAÑANA (todas las no completadas, sin HOY ni ATRASADAS) ─── -->
+<!-- ─── PRÓXIMAS (todas las no completadas, sin ATRASADAS) ─── -->
 <div id="csub-proximas" class="csub-pane" style="display:none">
   <?php
+  $render_grupo('● HOY · '.date('m/d/Y'),            '#C07A1A', $g_hoy);
   $render_grupo('► MAÑANA · '.date('m/d/Y',strtotime('+1 day')), '#2876A8', $g_manana);
   $render_grupo('ESTA SEMANA',                       $P1, $g_semana);
   $render_grupo('PRÓXIMAS',                          $P2, $g_futuro);
-  if (!count($g_manana)+count($g_semana)+count($g_futuro)):?>
+  if (!count($g_hoy)+count($g_manana)+count($g_semana)+count($g_futuro)):?>
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
       <div style="font-size:32px;margin-bottom:9px">►</div>
-      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS DESDE MAÑANA</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS PRÓXIMAS</div>
     </div>
   <?php endif;?>
 </div>
