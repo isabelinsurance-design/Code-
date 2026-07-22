@@ -6876,10 +6876,17 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 </div>
 <div class="modal-overlay" id="cita-completar-choice-modal"><div class="modal modal-sm" style="max-width:420px">
   <div class="modal-header"><div class="modal-title">✓ COMPLETAR CITA</div><button class="modal-close" onclick="closeModal('cita-completar-choice-modal')">✕</button></div>
-  <div style="padding:4px 2px 2px">
+  <div id="cita-choice-step1" style="padding:4px 2px 2px">
     <div style="font-size:9px;color:<?=$MU?>;line-height:1.6;margin-bottom:14px">¿QUÉ PASÓ CON ESTA CITA?</div>
-    <button type="button" class="btn btn-gr btn-sm" onclick="completarCitaSolo()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">✓ SOLO MARCAR COMO COMPLETADA<br><span style="font-weight:400;font-size:8px;text-transform:none;opacity:.85">(no fue venta / no aplica cuestionario)</span></button>
-    <button type="button" class="btn btn-b btn-sm" onclick="completarCitaConAplicacion()" style="width:100%;padding:10px;font-size:9px">📋 FUE VENTA — LLENAR CUESTIONARIO DE APLICACIÓN</button>
+    <button type="button" class="btn btn-gr btn-sm" onclick="completarCitaSolo()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">✓ COMPLETADA — NO FUE VENTA</button>
+    <button type="button" class="btn btn-b btn-sm" onclick="mostrarCitaVentaPregunta()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">💰 VENTA</button>
+    <button type="button" class="btn btn-r btn-sm" onclick="completarCitaCancelar()" style="width:100%;padding:10px;font-size:9px">↺ CANCELÓ — PARA REAGENDAR</button>
+  </div>
+  <div id="cita-choice-step2" style="display:none;padding:4px 2px 2px">
+    <div style="font-size:9px;color:<?=$MU?>;line-height:1.6;margin-bottom:14px">¿LLENAR EL CUESTIONARIO DE APLICACIÓN AHORA?</div>
+    <button type="button" class="btn btn-b btn-sm" onclick="completarCitaConAplicacion()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">📋 SÍ, LLENAR AHORA</button>
+    <button type="button" class="btn btn-gh btn-sm" onclick="completarCitaSolo()" style="width:100%;padding:10px;font-size:9px;margin-bottom:8px">AHORA NO — SOLO MARCAR COMPLETADA</button>
+    <button type="button" class="btn btn-gh btn-sm" onclick="volverCitaChoiceStep1()" style="width:100%;padding:10px;font-size:9px">← VOLVER</button>
   </div>
 </div></div>
 <div class="modal-overlay" id="llamada-form-modal"><div class="modal modal-sm"><div class="modal-header"><div class="modal-title">◌ REGISTRAR LLAMADA</div><button class="modal-close" onclick="closeModal('llamada-form-modal')">✕</button></div><form onsubmit="submitLlamada(event)"><div class="grid-2"><div class="form-group"><label class="form-label">NÚMERO *</label><input type="text" name="numero" class="form-input" placeholder="(818) 555-0000" required></div><div class="form-group"><label class="form-label">ORIGEN</label><select name="origen" class="form-input"><option>TWILIO</option><option>NEXTIVA</option><option>OTRO</option></select></div></div><div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-gh btn-sm" onclick="closeModal('llamada-form-modal')">CANCELAR</button><button type="submit" class="btn btn-b btn-sm">◌ REGISTRAR</button></div></form></div></div>
@@ -9056,7 +9063,23 @@ const b=document.getElementById('dark-btn');if(b)b.textContent='☀️';
 let _citaCompletarId = null;
 function completarCitaOpciones(id) {
   _citaCompletarId = id;
+  document.getElementById('cita-choice-step1').style.display = '';
+  document.getElementById('cita-choice-step2').style.display = 'none';
   openModal('cita-completar-choice-modal');
+}
+function mostrarCitaVentaPregunta() {
+  document.getElementById('cita-choice-step1').style.display = 'none';
+  document.getElementById('cita-choice-step2').style.display = '';
+}
+function volverCitaChoiceStep1() {
+  document.getElementById('cita-choice-step2').style.display = 'none';
+  document.getElementById('cita-choice-step1').style.display = '';
+}
+function completarCitaCancelar() {
+  if (!_citaCompletarId) return;
+  const id = _citaCompletarId;
+  closeModal('cita-completar-choice-modal');
+  cancelarCita(id);
 }
 function completarCitaSolo() {
   if (!_citaCompletarId) return;
