@@ -4415,11 +4415,9 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
     <button class="cita-subtab active" data-csub="proximas" onclick="cambiarSubtabCitas('proximas')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ► PRÓXIMAS (<?=$citas_proximas_n?>)
     </button>
-    <?php if(count($citas_reagendar)):?>
     <button class="cita-subtab" data-csub="reagendar" onclick="cambiarSubtabCitas('reagendar')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ↺ POSIBLE PARA REAGENDAR (<?=count($citas_reagendar)?>)
     </button>
-    <?php endif;?>
     <button class="cita-subtab" data-csub="pendientes" onclick="cambiarSubtabCitas('pendientes')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ⚠ ATRASADAS (<?=$citas_atrasadas_n?>)
     </button>
@@ -4472,14 +4470,19 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
 </div>
 
 <!-- ─── POSIBLE PARA REAGENDAR ─── -->
-<?php if(count($citas_reagendar)):?>
 <div id="csub-reagendar" class="csub-pane" style="display:none">
   <div style="background:#F3EBFA;border:1px solid #D6BCE8;border-radius:9px;padding:9px 12px;font-size:9px;color:#6B3FA0;margin-bottom:11px">↺ Recordatorio para volver a llamar y agendar una nueva cita — la mayoría son prospectos.</div>
+  <?php if(!count($citas_reagendar)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
+      <div style="font-size:32px;margin-bottom:9px">↺</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS POR AHORA</div>
+    </div>
+  <?php else:?>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
     <?php foreach($citas_reagendar as $c) $render_cita($c); ?>
   </div>
+  <?php endif;?>
 </div>
-<?php endif;?>
 
 <!-- ─── COMPLETADAS ─── -->
 <div id="csub-completadas" class="csub-pane" style="display:none">
