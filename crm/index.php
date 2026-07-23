@@ -898,14 +898,14 @@ if ($admin) {
     $tickets = $pdo->query("$tkt_select
                             ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                                      FIELD(t.prioridad,'ALTA','MEDIA','BAJA'),
-                                     t.fecha_creacion DESC, t.id DESC")->fetchAll();
+                                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC")->fetchAll();
 } else {
     $stmt = $pdo->prepare("$tkt_select
                            WHERE t.asignado_a = ?
                               OR (t.asignado_a IS NULL AND t.agente_id = ?)
                            ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                                     FIELD(t.prioridad,'ALTA','MEDIA','BAJA'),
-                                    t.fecha_creacion DESC, t.id DESC");
+                                    IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
     $stmt->execute([$uid, $uid]);
     $tickets = $stmt->fetchAll();
 }
