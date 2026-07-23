@@ -2103,7 +2103,7 @@ case 'list_proyectos':
             FROM proyectos p
             LEFT JOIN usuarios c ON p.agente_id  = c.id
             LEFT JOIN usuarios a ON p.asignado_a = a.id
-            ORDER BY (p.estado='COMPLETADO') ASC, p.orden ASC, p.id DESC");
+            ORDER BY (p.estado='COMPLETADO') ASC, p.fecha_cierre DESC, p.orden ASC, p.id DESC");
         jsonOk($stmt->fetchAll());
     } else {
         $stmt = $pdo->prepare("SELECT p.*,
@@ -2117,7 +2117,7 @@ case 'list_proyectos':
             LEFT JOIN usuarios a ON p.asignado_a = a.id
             WHERE p.asignado_a=? OR p.agente_id=?
                OR EXISTS(SELECT 1 FROM proyecto_miembros pm WHERE pm.proyecto_id=p.id AND pm.usuario_id=?)
-            ORDER BY (p.estado='COMPLETADO') ASC, p.orden ASC, p.id DESC");
+            ORDER BY (p.estado='COMPLETADO') ASC, p.fecha_cierre DESC, p.orden ASC, p.id DESC");
         $stmt->execute([$uid, $uid, $uid]);
         jsonOk($stmt->fetchAll());
     }

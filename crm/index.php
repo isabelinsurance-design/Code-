@@ -7457,6 +7457,11 @@ function setProyFiltro(f){
 }
 
 function proyOrdSort(a,b){ return ((parseInt(a.orden)||0)-(parseInt(b.orden)||0)) || (a.id-b.id); }
+function proyOrdSortCompletado(a,b){
+  const fa=a.fecha_cierre||'', fb=b.fecha_cierre||'';
+  if(fa!==fb) return fb.localeCompare(fa); // más recién cerrado primero
+  return (b.id-a.id);
+}
 
 function proyCardHTML(p, canUp, canDown){
   const pc=Math.max(0,Math.min(100,parseInt(p.progreso)||0));
@@ -7528,7 +7533,8 @@ function renderProyectos(){
       : (_proyFiltro==='TODOS' ? ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO','COMPLETADO'] : ['EN PROGRESO','PLANIFICANDO','CONTINUO','PAUSADO']);
   const labels={'EN PROGRESO':'🔵 En progreso','PLANIFICANDO':'⚪ Planificando','CONTINUO':'🔁 Continuo (en curso)','PAUSADO':'🟠 Pausado','COMPLETADO':'✅ Completados'};
   order.forEach(est=>{
-    const group=pool.filter(p=>p.estado===est && !(foco&&p.id===foco.id)).sort(proyOrdSort);
+    const esCompletado = est==='COMPLETADO';
+    const group=pool.filter(p=>p.estado===est && !(foco&&p.id===foco.id)).sort(esCompletado?proyOrdSortCompletado:proyOrdSort);
     if(!group.length) return;
     const ec=_PROY_EST_COLOR[est]||'#8896A5';
     html+=`<div style="margin-bottom:18px">
@@ -7536,7 +7542,7 @@ function renderProyectos(){
         <span style="font-size:10px;font-weight:900;color:${ec};text-transform:uppercase;letter-spacing:1.5px">${labels[est]||est}</span>
         <span style="font-size:8px;font-weight:900;color:#8896A5;background:<?=$BG?>;border-radius:20px;padding:1px 8px">${group.length}</span>
       </div>
-      <div style="${gridCSS}">${group.map((p,i)=>proyCardHTML(p, i>0, i<group.length-1)).join('')}</div>
+      <div style="${gridCSS}">${group.map((p,i)=>proyCardHTML(p, !esCompletado&&i>0, !esCompletado&&i<group.length-1)).join('')}</div>
     </div>`;
   });
 
