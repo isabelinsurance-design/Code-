@@ -18,7 +18,7 @@ $m->execute([$id]); $m = $m->fetch();
 if (!$m) { echo '<div style="padding:20px;color:#B83232">MIEMBRO NO ENCONTRADO</div>'; exit; }
 
 $polizas = $pdo->prepare("SELECT * FROM polizas WHERE miembro_id=? ORDER BY tipo"); $polizas->execute([$id]); $polizas=$polizas->fetchAll();
-$tickets_m = $pdo->prepare("SELECT * FROM tickets WHERE miembro_id=? ORDER BY created_at DESC"); $tickets_m->execute([$id]); $tickets_m=$tickets_m->fetchAll();
+$tickets_m = $pdo->prepare("SELECT * FROM tickets WHERE miembro_id=? ORDER BY IF(estado='CERRADO', fecha_cierre, fecha_creacion) DESC, id DESC"); $tickets_m->execute([$id]); $tickets_m=$tickets_m->fetchAll();
 $citas_m = $pdo->prepare("SELECT c.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
                            FROM citas c LEFT JOIN usuarios u ON c.agente_id=u.id
                            WHERE c.miembro_id=? ORDER BY c.fecha DESC, c.hora DESC");
