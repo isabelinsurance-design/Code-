@@ -48,7 +48,7 @@ $stmt = $pdo->prepare(
 );
 
 // ── FUNCIÓN: segundos trabajados en un registro ────────────────────────────
-function segundos_trabajados(array $r): int {
+function segundos_trabajados(PDO $pdo, array $r): int {
     if (!$r['check_in'] || !$r['check_out']) return 0;
     $ci = strtotime('1970-01-01 ' . $r['check_in']);
     $co = strtotime('1970-01-01 ' . $r['check_out']);
@@ -59,11 +59,21 @@ function segundos_trabajados(array $r): int {
         $li = strtotime('1970-01-01 ' . $r['lunch_in']);
         $t -= max(0, $li - $lo);
     }
-    // descontar break
+    // descontar el primer break del día
     if (!empty($r['break_out']) && !empty($r['break_in'])) {
         $bo = strtotime('1970-01-01 ' . $r['break_out']);
         $bi = strtotime('1970-01-01 ' . $r['break_in']);
         $t -= max(0, $bi - $bo);
+    }
+    // descontar breaks adicionales (más de uno por día)
+    if (!empty($r['id'])) {
+        try {
+            $bx = $pdo->prepare("SELECT break_out, break_in FROM asistencia_breaks WHERE asistencia_id=? AND break_in IS NOT NULL");
+            $bx->execute([$r['id']]);
+            foreach ($bx->fetchAll() as $b) {
+                $t -= max(0, strtotime('1970-01-01 ' . $b['break_in']) - strtotime('1970-01-01 ' . $b['break_out']));
+            }
+        } catch (Exception $e) {}
     }
     return max(0, $t);
 }
@@ -113,7 +123,7 @@ foreach ($agents as $ag) {
     $detalle = [];
 
     foreach ($registros as $r) {
-        $seg = segundos_trabajados($r);
+        $seg = segundos_trabajados($pdo, $r);
         $seg_trabajados += $seg;
         if ($r['check_in'] && $r['check_out']) {
             $dias_con_checkin++;

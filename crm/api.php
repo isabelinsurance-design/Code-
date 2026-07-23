@@ -77,6 +77,46 @@ case 'checkin':
     jsonOk(['time'=>$t,'hora'=>$t,'field'=>$field]);
     break;
 
+// ── BREAKS ADICIONALES ──────────────────────────────────────────
+// El primer break del día se sigue guardando en asistencia.break_out/
+// break_in (como siempre). A partir del segundo, se guarda aquí — así
+// se puede tomar más de un break por día.
+case 'break_start':
+    $pdo = db();
+    try { $pdo->exec("CREATE TABLE IF NOT EXISTS asistencia_breaks (id INT AUTO_INCREMENT PRIMARY KEY, asistencia_id INT NOT NULL, break_out TIME NOT NULL, break_in TIME DEFAULT NULL, INDEX idx_asis (asistencia_id))"); } catch (Exception $e) {}
+    $hoy = $pdo->prepare("SELECT id, break_out, break_in, check_out FROM asistencia WHERE agente_id=? AND fecha=?");
+    $hoy->execute([$uid, date('Y-m-d')]);
+    $row = $hoy->fetch();
+    if (!$row) jsonErr('Primero registra tu CHECK-IN');
+    if (empty($row['break_out']) || empty($row['break_in'])) jsonErr('Primero termina tu primer break con REG.BREAK');
+    if (!empty($row['check_out'])) jsonErr('Ya hiciste check-out, no puedes tomar más breaks');
+    $abierto = $pdo->prepare("SELECT id FROM asistencia_breaks WHERE asistencia_id=? AND break_in IS NULL");
+    $abierto->execute([$row['id']]);
+    if ($abierto->fetch()) jsonErr('Ya tienes un break en curso');
+    $t = date('H:i:s');
+    $pdo->prepare("INSERT INTO asistencia_breaks (asistencia_id, break_out) VALUES (?,?)")->execute([$row['id'], $t]);
+    $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
+        ->execute([$uid, 'SALIDA BREAK', 'SALIDA BREAK (adicional) — '.$t]);
+    jsonOk(['hora'=>$t]);
+    break;
+
+case 'break_end':
+    $pdo = db();
+    $hoy = $pdo->prepare("SELECT id FROM asistencia WHERE agente_id=? AND fecha=?");
+    $hoy->execute([$uid, date('Y-m-d')]);
+    $row = $hoy->fetch();
+    if (!$row) jsonErr('No hay check-in de hoy');
+    $abierto = $pdo->prepare("SELECT id FROM asistencia_breaks WHERE asistencia_id=? AND break_in IS NULL ORDER BY id DESC LIMIT 1");
+    $abierto->execute([$row['id']]);
+    $b = $abierto->fetch();
+    if (!$b) jsonErr('No hay ningún break adicional abierto');
+    $t = date('H:i:s');
+    $pdo->prepare("UPDATE asistencia_breaks SET break_in=? WHERE id=?")->execute([$t, $b['id']]);
+    $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
+        ->execute([$uid, 'REGRESO BREAK', 'REGRESO BREAK (adicional) — '.$t]);
+    jsonOk(['hora'=>$t]);
+    break;
+
 // ── CORREGIR ASISTENCIA (admin) ───────────────────────────────
 // El admin corrige check-in/out de un registro; queda en el HISTORIAL.
 case 'edit_asistencia':

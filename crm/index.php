@@ -949,6 +949,7 @@ $citas=$pdo->query("SELECT c.*,
 $citas_por_miembro=[];
 foreach($citas as $__c){ if(!empty($__c['miembro_id'])) $citas_por_miembro[$__c['miembro_id']][]=$__c; }
 
+try { $pdo->exec("CREATE TABLE IF NOT EXISTS asistencia_breaks (id INT AUTO_INCREMENT PRIMARY KEY, asistencia_id INT NOT NULL, break_out TIME NOT NULL, break_in TIME DEFAULT NULL, INDEX idx_asis (asistencia_id))"); } catch (Exception $e) {}
 $mci=$pdo->prepare("SELECT * FROM asistencia WHERE agente_id=? AND fecha=?");$mci->execute([$uid,$today]);$my_ci=$mci->fetch();
 $tcq=$pdo->prepare("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.fecha=?");$tcq->execute([$today]);$today_ckins=$tcq->fetchAll();
 $open_tks = count(array_filter($tickets_open, fn($t) => in_array($t['tipo'] ?? '', $TIPO_MIEMBRO, true)));
@@ -1205,7 +1206,22 @@ function strftime_es(string $ym):string{
     [$y,$m]=array_map('intval', explode('-',$ym));
     return ($meses[$m]??'?').' '.$y;
 }
-function calc_hours(?string $ci,?string $lo,?string $li,?string $co,?string $bo=null,?string $bi=null):?string{if(!$ci||!$co)return null;$s=strtotime("1970-01-01 $ci");$e=strtotime("1970-01-01 $co");$t=$e-$s;if($lo&&$li){$ls=strtotime("1970-01-01 $lo");$le=strtotime("1970-01-01 $li");$t-=($le-$ls);}if($bo&&$bi){$bs=strtotime("1970-01-01 $bo");$be=strtotime("1970-01-01 $bi");$t-=($be-$bs);}if($t<=0)return null;return floor($t/3600).'H '.floor(($t%3600)/60).'M';}
+function calc_hours(?string $ci,?string $lo,?string $li,?string $co,?string $bo=null,?string $bi=null,int $extraBreakSecs=0):?string{if(!$ci||!$co)return null;$s=strtotime("1970-01-01 $ci");$e=strtotime("1970-01-01 $co");$t=$e-$s;if($lo&&$li){$ls=strtotime("1970-01-01 $lo");$le=strtotime("1970-01-01 $li");$t-=($le-$ls);}if($bo&&$bi){$bs=strtotime("1970-01-01 $bo");$be=strtotime("1970-01-01 $bi");$t-=($be-$bs);}$t-=max(0,$extraBreakSecs);if($t<=0)return null;return floor($t/3600).'H '.floor(($t%3600)/60).'M';}
+// Breaks EXTRA de un día de asistencia (más allá del primer break_out/break_in de la fila).
+// Devuelve [segundos_totales, lista_de_pares ['out'=>hh:mm,'in'=>hh:mm|null]].
+function extra_breaks(PDO $pdo, ?int $asistencia_id): array {
+    if (!$asistencia_id) return [0, []];
+    try {
+        $rows = $pdo->prepare("SELECT break_out, break_in FROM asistencia_breaks WHERE asistencia_id=? ORDER BY break_out ASC");
+        $rows->execute([$asistencia_id]);
+        $secs = 0; $pares = [];
+        foreach ($rows->fetchAll() as $r) {
+            $pares[] = ['out'=>$r['break_out'], 'in'=>$r['break_in']];
+            if ($r['break_in']) $secs += max(0, strtotime("1970-01-01 {$r['break_in']}") - strtotime("1970-01-01 {$r['break_out']}"));
+        }
+        return [$secs, $pares];
+    } catch (Exception $e) { return [0, []]; }
+}
 function generarNotificacionesRetencion(PDO $pdo, array $users_all):void {
 // Candado diario: si ya se generaron hoy, no repetir el trabajo en cada carga.
 $flag = sys_get_temp_dir().'/crm_ret_'.date('Ymd').'.flag';
@@ -1510,7 +1526,11 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
   <?php if($referidos_pendientes > 0): ?><span style="background:#7B2D8B;color:#fff;border-radius:20px;padding:2px 10px;font-size:8px;font-weight:900"><?=$referidos_pendientes?> REFERIDOS PENDIENTES</span><?php endif; ?>
 </div>
 <?php endif; ?>
-<?php if(!$admin):$steps=[['ci','CHECK-IN'],['lo','ALMUERZO'],['li','REGRESO  DE ALMUERZO.'],['bo','BREAK'],['bi','REGRESO DE BREAK'],['co','CHECK-OUT']];$vals=['ci'=>$my_ci['check_in']??null,'lo'=>$my_ci['lunch_out']??null,'li'=>$my_ci['lunch_in']??null,'bo'=>$my_ci['break_out']??null,'bi'=>$my_ci['break_in']??null,'co'=>$my_ci['check_out']??null];$bk=['bo','bi'];$ns=null;foreach($steps as $s){if(!$vals[$s[0]]){$ns=$s;break;}}$worked=calc_hours($vals['ci'],$vals['lo'],$vals['li'],$vals['co'],$vals['bo'],$vals['bi']);?>
+<?php if(!$admin):$steps=[['ci','CHECK-IN'],['lo','ALMUERZO'],['li','REGRESO  DE ALMUERZO.'],['bo','BREAK'],['bi','REGRESO DE BREAK'],['co','CHECK-OUT']];$vals=['ci'=>$my_ci['check_in']??null,'lo'=>$my_ci['lunch_out']??null,'li'=>$my_ci['lunch_in']??null,'bo'=>$my_ci['break_out']??null,'bi'=>$my_ci['break_in']??null,'co'=>$my_ci['check_out']??null];$bk=['bo','bi'];$ns=null;foreach($steps as $s){if(!$vals[$s[0]]){$ns=$s;break;}}
+[$_xb_secs,$_xb_pares]=extra_breaks($pdo,$my_ci['id']??null);
+$_xb_abierto=count($_xb_pares)>0 && end($_xb_pares)['in']===null;
+$_xb_disponible=!empty($vals['bo'])&&!empty($vals['bi'])&&empty($vals['co']); // ya se tomó el primer break y no se ha hecho check-out
+$worked=calc_hours($vals['ci'],$vals['lo'],$vals['li'],$vals['co'],$vals['bo'],$vals['bi'],$_xb_secs);?>
 <div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px">
 <div class="card-header"><div class="card-title">CHECK IN— <?=$today?></div><?php if($worked):?><span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:3px 11px;font-size:9px;font-weight:900"> <?=$worked?></span><?php endif;?></div>
 <div style="padding:14px 16px">
@@ -1520,6 +1540,20 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="registroHora()">
 ◐ REGISTRAR SIGUIENTE MOVIMIENTO
 </button>
+<!-- BREAKS ADICIONALES — se pueden tomar varios, no solo uno -->
+<?php if($_xb_disponible || count($_xb_pares)):?>
+<div style="margin-bottom:10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:9px;padding:10px 12px">
+<div style="font-size:7px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px">BREAKS ADICIONALES</div>
+<?php foreach($_xb_pares as $p):?>
+<div style="font-size:9px;color:<?=$TX?>;margin-bottom:3px">⏱ <?=substr($p['out'],0,5)?> – <?=$p['in']?substr($p['in'],0,5):'<span style="color:#C07A1A;font-weight:900">EN CURSO</span>'?></div>
+<?php endforeach;?>
+<?php if($_xb_abierto):?>
+<button class="btn btn-am btn-full" style="margin-top:5px" onclick="doExtraBreak('end')">◐ TERMINAR ESTE BREAK</button>
+<?php elseif($_xb_disponible):?>
+<button class="btn btn-gh btn-full" style="margin-top:5px" onclick="doExtraBreak('start')">+ TOMAR OTRO BREAK</button>
+<?php endif;?>
+</div>
+<?php endif;?>
 <!-- BOTONES LIBRES — cualquier orden -->
 <div style="margin-top:10px;border-top:1px solid <?=$CB?>;padding-top:10px">
 <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px">REGISTRO LIBRE — CUALQUIER ORDEN</div>
@@ -1655,7 +1689,7 @@ if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8p
 </div>
 </div>
 <?php if($admin):?><div class="card"><div class="card-header"><div class="card-title">◐ ASISTENCIA HOY</div><button class="btn btn-gh btn-sm" onclick="showTab('ASISTENCIA')">DETALLE →</button></div><div style="display:flex;overflow-x:auto;padding:11px 14px;gap:9px">
-<?php foreach($agents as $ag):$ci=array_filter($today_ckins,fn($c)=>$c['agente_id']==$ag['id']);$ci=reset($ci)?:null;$w=calc_hours($ci['check_in']??null,$ci['lunch_out']??null,$ci['lunch_in']??null,$ci['check_out']??null,$ci['break_out']??null,$ci['break_in']??null);?>
+<?php foreach($agents as $ag):$ci=array_filter($today_ckins,fn($c)=>$c['agente_id']==$ag['id']);$ci=reset($ci)?:null;[$_xb1,]=extra_breaks($pdo,$ci['id']??null);$w=calc_hours($ci['check_in']??null,$ci['lunch_out']??null,$ci['lunch_in']??null,$ci['check_out']??null,$ci['break_out']??null,$ci['break_in']??null,$_xb1);?>
 <div style="min-width:105px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 12px;text-align:center;border-top:3px solid <?=h($ag['color'])?>"><?=av(h($ag['iniciales']),h($ag['color']),30)?><div style="font-weight:900;font-size:10px;color:<?=$P1?>;margin-top:5px"><?=h(explode(' ',$ag['nombre'])[0])?></div><div style="font-size:8px;color:<?=$ci&&$ci['check_in']?'#1E7A5C':'#B83232'?>;font-weight:800;margin-top:2px"><?=$ci&&$ci['check_in']?'✓ '.substr($ci['check_in'],0,5):'—'?></div><div style="font-size:11px;font-weight:900;color:<?=$P1?>"><?=$w??'—'?></div></div>
 <?php endforeach;?></div></div><?php endif;?>
 </div><!-- /DASHBOARD -->
@@ -4922,9 +4956,10 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
 <?php foreach($agents as $ag):
   $ci2 = array_filter($today_ckins, fn($c)=>$c['agente_id']==$ag['id']);
   $ci2 = reset($ci2)?:null;
+  [$_xb2, $_xbp2] = extra_breaks($pdo, $ci2['id']??null);
   $w2  = calc_hours(
     $ci2['check_in']??null,$ci2['lunch_out']??null,$ci2['lunch_in']??null,
-    $ci2['check_out']??null,$ci2['break_out']??null,$ci2['break_in']??null
+    $ci2['check_out']??null,$ci2['break_out']??null,$ci2['break_in']??null,$_xb2
   );
 ?>
 <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:12px;padding:12px 14px;flex:1;min-width:120px;border-top:3px solid <?=h($ag['color'])?>">
@@ -4940,7 +4975,7 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
   <div style="font-size:8px;color:<?=$MU?>">
     HORAS: <b style="color:<?=$w2?'#1E7A5C':$MU?>"><?=$w2??'—'?></b>
     <?php if($ci2&&!empty($ci2['break_out'])):?>
-    · BREAK: <b style="color:#C07A1A"><?=substr($ci2['break_out'],0,5).'–'.($ci2['break_in']?substr($ci2['break_in'],0,5):'•')?></b>
+    · BREAK: <b style="color:#C07A1A"><?=substr($ci2['break_out'],0,5).'–'.($ci2['break_in']?substr($ci2['break_in'],0,5):'•')?></b><?php if(count($_xbp2)):?> <b style="color:#C07A1A">+<?=count($_xbp2)?></b><?php endif;?>
     <?php endif;?>
   </div>
 </div>
@@ -5003,9 +5038,10 @@ $rows_q = $asist_q->fetchAll();
       <?php
       $dias_es = ['','Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
       foreach($rows_q as $c):
+        [$_xbq, $_xbpq] = extra_breaks($pdo, $c['id']??null);
         $w3 = calc_hours(
           $c['check_in'],$c['lunch_out'],$c['lunch_in'],
-          $c['check_out'],$c['break_out']??null,$c['break_in']??null
+          $c['check_out'],$c['break_out']??null,$c['break_in']??null,$_xbq
         );
         $dow_n = $dias_es[(int)date('w',strtotime($c['fecha']))+1] ?? '—';
         $completo = $c['check_in'] && $c['check_out'];
@@ -5023,7 +5059,7 @@ $rows_q = $asist_q->fetchAll();
         <td style="font-size:8px;color:<?=$MU?>"><?=$c['lunch_out']?substr($c['lunch_out'],0,5):'—'?></td>
         <td style="font-size:8px;color:<?=$MU?>"><?=$c['lunch_in']?substr($c['lunch_in'],0,5):'—'?></td>
         <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_out'])?substr($c['break_out'],0,5):'—'?></td>
-        <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_in'])?substr($c['break_in'],0,5):'—'?></td>
+        <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_in'])?substr($c['break_in'],0,5):'—'?><?php if(count($_xbpq)):?> <span title="<?=implode(', ',array_map(fn($p)=>substr($p['out'],0,5).'-'.($p['in']?substr($p['in'],0,5):'…'),$_xbpq))?>" style="color:#C07A1A;font-weight:900">+<?=count($_xbpq)?></span><?php endif;?></td>
         <td style="font-weight:900;color:<?=$completo?'#B83232':'#C07A1A'?>;font-size:9px">
           <?=$c['check_out']?substr($c['check_out'],0,5):'ACTIVO •'?>
         </td>
@@ -5065,9 +5101,10 @@ $rows_q = $asist_q->fetchAll();
         ? $pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id ORDER BY a.fecha DESC,u.nombre")
         : $pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.agente_id=$uid ORDER BY a.fecha DESC");
     foreach($cq as $c):
+      [$_xbh, $_xbph] = extra_breaks($pdo, $c['id']??null);
       $w3 = calc_hours(
         $c['check_in'],$c['lunch_out'],$c['lunch_in'],
-        $c['check_out'],$c['break_out']??null,$c['break_in']??null
+        $c['check_out'],$c['break_out']??null,$c['break_in']??null,$_xbh
       );
     ?>
     <tr>
@@ -5082,7 +5119,7 @@ $rows_q = $asist_q->fetchAll();
       <td style="font-size:8px;color:<?=$MU?>"><?=$c['lunch_out']?substr($c['lunch_out'],0,5):'—'?></td>
       <td style="font-size:8px;color:<?=$MU?>"><?=$c['lunch_in']?substr($c['lunch_in'],0,5):'—'?></td>
       <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_out'])?substr($c['break_out'],0,5):'—'?></td>
-      <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_in'])?substr($c['break_in'],0,5):'—'?></td>
+      <td style="font-size:8px;color:<?=$MU?>"><?=!empty($c['break_in'])?substr($c['break_in'],0,5):'—'?><?php if(count($_xbph)):?> <span title="<?=implode(', ',array_map(fn($p)=>substr($p['out'],0,5).'-'.($p['in']?substr($p['in'],0,5):'…'),$_xbph))?>" style="color:#C07A1A;font-weight:900">+<?=count($_xbph)?></span><?php endif;?></td>
       <td style="font-weight:900;color:<?=$c['check_out']?'#B83232':'#C07A1A'?>;font-size:9px">
         <?=$c['check_out']?substr($c['check_out'],0,5):'ACTIVO •'?>
       </td>
@@ -5708,7 +5745,8 @@ $rep_json = [];
 foreach ($agents as $ag) {
     $r2  = null; foreach ($reportes_hoy as $rr) { if ($rr['agente_id']==$ag['id']) { $r2=$rr; break; } }
     $ci3 = null; foreach ($today_ckins as $c) { if ($c['agente_id']==$ag['id']) { $ci3=$c; break; } }
-    $horas = calc_hours($ci3['check_in']??null,$ci3['lunch_out']??null,$ci3['lunch_in']??null,$ci3['check_out']??null,$ci3['break_out']??null,$ci3['break_in']??null);
+    [$_xb3,] = extra_breaks($pdo, $ci3['id']??null);
+    $horas = calc_hours($ci3['check_in']??null,$ci3['lunch_out']??null,$ci3['lunch_in']??null,$ci3['check_out']??null,$ci3['break_out']??null,$ci3['break_in']??null,$_xb3);
     $agtks = count(array_filter($tickets, fn($t) => ((!empty($t['asignado_a']) ? $t['asignado_a']==$ag['id'] : $t['agente_id']==$ag['id']) && $t['estado']!=='CERRADO' && in_array($t['tipo']??'',$TIPO_MIEMBRO,true) && (empty($t['sla_fecha']) || $t['sla_fecha'] <= $today))));
     $ck    = $checklist_stats[$ag['id']] ?? null;
     $items = $checklist_por_agente[$ag['id']] ?? [];
@@ -7263,6 +7301,13 @@ hablar(`Excelente trabajo hoy, ${NOMBRE_USUARIO}. Descansa y nos vemos mañana.`
 fetch('api.php',{method:'POST',body:new URLSearchParams({action:'checkin',field})})
 .then(r=>r.json()).then(d=>{
 if(d.ok){const h=d.data?.hora||d.data?.time||'';toast('✓ '+h);setTimeout(()=>softReload(),400);}
+else toast(d.error||'Error');
+});
+}
+function doExtraBreak(accion){
+fetch('api.php',{method:'POST',body:new URLSearchParams({action:accion==='start'?'break_start':'break_end'})})
+.then(r=>r.json()).then(d=>{
+if(d.ok){const h=d.data?.hora||'';toast('✓ '+h);setTimeout(()=>softReload(),400);}
 else toast(d.error||'Error');
 });
 }
