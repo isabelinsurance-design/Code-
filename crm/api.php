@@ -1887,24 +1887,41 @@ case 'save_retencion_q30':
             ->execute($params);
     }
 
-    // ── Si hay referido nuevo → crear prospect automáticamente
-    $ref_nuevo = trim($_POST['referido_nuevo'] ?? '');
-    if ($ref_nuevo) {
-        try {
-            $agente_q = $pdo->prepare("SELECT agente_id FROM miembros WHERE id=?");
-            $agente_q->execute([$mid]);
-            $agente_ref = $agente_q->fetchColumn() ?: $uid;
-            $pdo->prepare("INSERT INTO miembros (nombre, apellido, telefono, estado, fuente, referido_por, agente_id)
-                VALUES (?, '', '', 'PROSPECT', 'REFERIDO MIEMBRO', ?, ?)")
-                ->execute([$ref_nuevo, $ref_nuevo, $agente_ref]);
-        } catch (Exception $e) {}
-    }
+    // NOTA: el campo "referido_nuevo" ya NO crea un prospecto automáticamente —
+    // es texto libre (puede no ser un nombre real), así que ahora se le
+    // pregunta al usuario si quiere crear el perfil (ver acción
+    // 'crear_prospecto_referido', que se llama aparte solo si confirma).
 
     // ── Actividad ─────────────────────────────────────────────
     $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
         ->execute([$uid, $mid, 'RETENCION', "Cuestionario 30 días completado"]);
 
     jsonOkNotify([], 'RETENCION');
+    break;
+
+// ── Crear perfil de prospecto para un referido nuevo (solo si el
+//    usuario confirma — ya no se crea automáticamente al guardar el
+//    cuestionario). "referido_por" queda con el nombre del miembro al
+//    que se le hizo el cuestionario, no con el texto libre escrito.
+case 'crear_prospecto_referido':
+    $pdo = db();
+    $mid_origen = intval($_POST['miembro_id'] ?? 0);
+    $nombre_ref = trim($_POST['nombre'] ?? '');
+    if (!$mid_origen) jsonErr('Miembro de origen requerido');
+    if ($nombre_ref === '') jsonErr('Nombre requerido');
+    $origen = $pdo->prepare("SELECT nombre, apellido, agente_id FROM miembros WHERE id=?");
+    $origen->execute([$mid_origen]);
+    $om = $origen->fetch();
+    if (!$om) jsonErr('Miembro de origen no encontrado');
+    $referido_por = trim($om['nombre'].' '.$om['apellido']);
+    $agente_ref = $om['agente_id'] ?: $uid;
+    $pdo->prepare("INSERT INTO miembros (nombre, apellido, telefono, estado, fuente, referido_por, agente_id)
+        VALUES (?, '', '', 'PROSPECT', 'REFERIDO MIEMBRO', ?, ?)")
+        ->execute([$nombre_ref, $referido_por, $agente_ref]);
+    $newId = $pdo->lastInsertId();
+    $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
+        ->execute([$uid, $newId, 'NOTA', 'PROSPECTO CREADO — referido por '.$referido_por]);
+    jsonOkNotify(['id'=>$newId], 'MIEMBROS');
     break;
 
 // ── RETENCIÓN — OBTENER CUESTIONARIO 30 DÍAS (para perfil) ────

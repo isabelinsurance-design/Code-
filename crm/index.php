@@ -3644,9 +3644,29 @@ function submitRetQ30(e){
   e.preventDefault();
   var btn=e.target.querySelector('[type=submit]');
   if(btn){btn.disabled=true;btn.textContent='GUARDANDO...';}
+  var mid = document.getElementById('rq30-mid').value;
+  var nombreOrigen = document.getElementById('rq30-nombre').textContent||'';
+  var refInput = e.target.querySelector('[name="referido_nuevo"]');
+  var refNuevo = refInput ? refInput.value.trim() : '';
   var fd=new FormData(e.target);
   fd.append('action','save_retencion_q30');
-  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Cuestionario guardado');closeModal('ret-q30-modal');softReload();}else{if(typeof toast==='function')toast('Error: '+(d.error||''));if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}}}).catch(function(){if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}});
+  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      if(typeof toast==='function')toast('Cuestionario guardado');
+      closeModal('ret-q30-modal');
+      // El campo "amigo/familiar" es texto libre — se pregunta si de
+      // verdad se quiere crear un perfil de prospecto, no se crea solo.
+      if(refNuevo && confirm('¿Quieres crear un perfil de prospecto para "'+refNuevo+'"?\n\nQuedará registrado que fue referido por '+nombreOrigen+'.')){
+        fetch('api.php',{method:'POST',body:new URLSearchParams({action:'crear_prospecto_referido',miembro_id:mid,nombre:refNuevo})})
+          .then(function(r){return r.json();}).then(function(d2){
+            if(d2.ok){ if(typeof toast==='function')toast('✓ Prospecto creado'); }
+            else { if(typeof toast==='function')toast('⚠ '+(d2.error||'No se pudo crear el prospecto')); }
+            softReload();
+          }).catch(function(){ softReload(); });
+      } else {
+        softReload();
+      }
+    }else{if(typeof toast==='function')toast('Error: '+(d.error||''));if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}}}).catch(function(){if(btn){btn.disabled=false;btn.textContent='GUARDAR CUESTIONARIO';}});
 }
 </script>
 
