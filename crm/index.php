@@ -3441,6 +3441,12 @@ foreach($_ret_stats as $_rs) {
 </div>
 <div class="form-group"><label class="form-label">DISPOSITIVOS / AYUDAS</label><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:5px"><?php foreach(['BASTÓN','WALKER','PAÑALES','ENSURE','NINGUNO'] as $_ay): ?><label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase"><input type="checkbox" name="ayudas_movilidad[]" value="<?=$_ay?>"> <?=$_ay?></label><?php endforeach; ?></div></div>
 <div class="grid-2"><div class="form-group"><label class="form-label">ENFERMEDADES CRÓNICAS (actualizar si cambió)</label><textarea name="condiciones_cronicas_new" class="form-input" rows="2" style="text-transform:none" placeholder="Diabetes, hipertensión..."></textarea></div><div class="form-group"><label class="form-label">MEDICAMENTOS (actualizar)</label><textarea name="prescripciones_new" class="form-input" rows="2" style="text-transform:none" placeholder="Cuántos toma, nombres"></textarea></div></div>
+<div class="section-divider">SEGURO DE VIDA</div>
+<div class="grid-3">
+<div class="form-group"><label class="form-label">¿TIENE SEGURO DE VIDA?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="" checked> N/D</label></div></div>
+<div class="form-group"><label class="form-label">¿CON QUÉ COMPAÑÍA?</label><input type="text" name="seguro_vida_compania" class="form-input" placeholder="Ej: New York Life, Globe Life..."></div>
+<div class="form-group"><label class="form-label">¿CUÁNTO LE DAN? (COBERTURA)</label><input type="text" name="seguro_vida_monto" class="form-input" placeholder="Ej: $10,000" style="text-transform:none"></div>
+</div>
 <div class="section-divider">DIRECCIÓN</div>
 <div class="form-group"><label class="form-label">¿Está correcta su dirección?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="" checked> N/D</label></div></div>
 <div class="grid-2"><div class="form-group"><label class="form-label">CALLE (si cambió)</label><input type="text" name="direccion_calle_new" class="form-input"></div><div class="form-group"><label class="form-label">APT</label><input type="text" name="direccion_apto_new" class="form-input"></div></div>
@@ -3594,7 +3600,7 @@ function _rq30Prefill(q){
   var radios=['puede_sms','usa_whatsapp','usa_facebook','nos_siguio_ig','usa_insulina','necesita_delivery',
     'en_ihss','direccion_correcta','llego_tarjeta','explicaste_tarjeta','esta_casado','doctor_correcto',
     'ha_ido_citas','satisfecho_doctor','cambiar_doctor','va_dentista','necesita_dentista','usa_anteojos',
-    'explicaste_no_dar_info'];
+    'explicaste_no_dar_info','tiene_seguro_vida'];
   radios.forEach(function(k){
     var v=q[k];
     if(v===null||v===undefined||v==='') return; // deja marcado N/D por defecto
@@ -3622,6 +3628,8 @@ function _rq30Prefill(q){
   setVal('cuenta_referida_tipo', q.cuenta_referida_tipo);
   setVal('donde_conocio_isabel', q.donde_conocio_isabel);
   setVal('notas_generales', q.notas_generales);
+  setVal('seguro_vida_compania', q.seguro_vida_compania);
+  setVal('seguro_vida_monto', q.seguro_vida_monto);
   // referido_nuevo NO se precarga en el campo de texto a propósito: cada envío
   // con ese campo lleno crea un prospecto nuevo, y precargarlo lo duplicaría.
   // En vez de eso, se muestra como aviso de solo lectura para que se sepa que

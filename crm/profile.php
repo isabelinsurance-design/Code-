@@ -361,6 +361,7 @@ display: block;
             ['Expl. Uber',    $_pr_q30['explicaste_uber'] ?? null],
             ['Expl. Gym',     $_pr_q30['explicaste_gym'] ?? null],
             ['No dar info',   $_pr_q30['explicaste_no_dar_info'] ?? null],
+            ['Seguro de vida',$_pr_q30['tiene_seguro_vida'] ?? null],
           ];
           foreach ($q30_items as [$ql, $qv]):
             $qcolor = ($qv === null || $qv === '') ? '#94A3B8' : ((int)$qv ? '#1E7A5C' : '#B83232');
@@ -380,6 +381,11 @@ display: block;
         <?php if (!empty($_pr_q30['con_quien_vive'])): ?>
         <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
           <b style="color:<?=$MU?>">Con quién vive:</b> <?=h($_pr_q30['con_quien_vive'])?>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($_pr_q30['seguro_vida_compania']) || !empty($_pr_q30['seguro_vida_monto'])): ?>
+        <div style="font-size:8px;padding:4px 8px;background:#EBF4F9;border-radius:5px;margin-bottom:5px">
+          <b style="color:<?=$MU?>">Seguro de vida:</b> <?=h($_pr_q30['seguro_vida_compania'] ?: '—')?><?=$_pr_q30['seguro_vida_monto']?' · '.h($_pr_q30['seguro_vida_monto']):''?>
         </div>
         <?php endif; ?>
         <?php if (!empty($_pr_q30['transporte'])): ?>

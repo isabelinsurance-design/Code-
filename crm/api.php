@@ -1754,12 +1754,17 @@ case 'save_retencion_q30':
         con_quien_vive      VARCHAR(200) DEFAULT NULL,
         cuenta_referida_id  INT DEFAULT NULL,
         cuenta_referida_tipo VARCHAR(50) DEFAULT NULL,
+        tiene_seguro_vida     TINYINT(1) DEFAULT NULL,
+        seguro_vida_compania  VARCHAR(150) DEFAULT NULL,
+        seguro_vida_monto     VARCHAR(100) DEFAULT NULL,
         UNIQUE KEY uk_q30 (miembro_id)
     )");
     // Agregar columnas nuevas si la tabla ya existe
     foreach(['nos_siguio_ig TINYINT(1) DEFAULT NULL','en_ihss TINYINT(1) DEFAULT NULL',
              'transporte VARCHAR(100) DEFAULT NULL','con_quien_vive VARCHAR(200) DEFAULT NULL',
-             'cuenta_referida_id INT DEFAULT NULL','cuenta_referida_tipo VARCHAR(50) DEFAULT NULL'] as $_nc) {
+             'cuenta_referida_id INT DEFAULT NULL','cuenta_referida_tipo VARCHAR(50) DEFAULT NULL',
+             'tiene_seguro_vida TINYINT(1) DEFAULT NULL','seguro_vida_compania VARCHAR(150) DEFAULT NULL',
+             'seguro_vida_monto VARCHAR(100) DEFAULT NULL'] as $_nc) {
         try { $pdo->exec("ALTER TABLE retencion_cuestionario_30 ADD COLUMN $_nc"); } catch(Exception $e) {}
     }
 
@@ -1788,8 +1793,9 @@ case 'save_retencion_q30':
         explicaste_no_dar_info, referido_nuevo, donde_conocio_isabel,
         notas_generales, completada_por,
         nos_siguio_ig, en_ihss, transporte, con_quien_vive,
-        cuenta_referida_id, cuenta_referida_tipo
-    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        cuenta_referida_id, cuenta_referida_tipo,
+        tiene_seguro_vida, seguro_vida_compania, seguro_vida_monto
+    ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
     ON DUPLICATE KEY UPDATE
         puede_sms=VALUES(puede_sms), usa_whatsapp=VALUES(usa_whatsapp),
         usa_facebook=VALUES(usa_facebook), nos_siguio=VALUES(nos_siguio),
@@ -1808,7 +1814,9 @@ case 'save_retencion_q30':
         completada_at=CURRENT_TIMESTAMP,
         nos_siguio_ig=VALUES(nos_siguio_ig), en_ihss=VALUES(en_ihss),
         transporte=VALUES(transporte), con_quien_vive=VALUES(con_quien_vive),
-        cuenta_referida_id=VALUES(cuenta_referida_id), cuenta_referida_tipo=VALUES(cuenta_referida_tipo)")
+        cuenta_referida_id=VALUES(cuenta_referida_id), cuenta_referida_tipo=VALUES(cuenta_referida_tipo),
+        tiene_seguro_vida=VALUES(tiene_seguro_vida), seguro_vida_compania=VALUES(seguro_vida_compania),
+        seguro_vida_monto=VALUES(seguro_vida_monto)")
     ->execute([
         $mid,
         $yn('puede_sms'),    $yn('usa_whatsapp'), $yn('usa_facebook'), $yn('nos_siguio'),
@@ -1830,7 +1838,10 @@ case 'save_retencion_q30':
         trim($_POST['transporte'] ?? '') ?: null,
         implode(', ', $con_quien) ?: null,
         intval($_POST['cuenta_referida_id'] ?? 0) ?: null,
-        trim($_POST['cuenta_referida_tipo'] ?? '') ?: null
+        trim($_POST['cuenta_referida_tipo'] ?? '') ?: null,
+        $yn('tiene_seguro_vida'),
+        trim($_POST['seguro_vida_compania'] ?? '') ?: null,
+        trim($_POST['seguro_vida_monto'] ?? '') ?: null
     ]);
 
     // ── Guardar automáticamente la llamada de 30 días ─────────
