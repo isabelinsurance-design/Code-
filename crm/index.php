@@ -3718,9 +3718,12 @@ $states_lost = ['CANCELED','DENIED','CERRADO','DISENROLLED'];
 foreach($members as $m){
     if(!$admin && (int)$m['agente_id']!==$uid) continue;
     $est = $m['estado'] ?? '';
+    // "CON CITA" solo cuenta si tiene una cita activa (no completada) — una cita
+    // vieja ya completada no debe seguir apareciendo aquí como si estuviera pendiente.
+    $tiene_cita_activa = !empty(array_filter($citas_por_miembro[$m['id']] ?? [], fn($c)=>$c['estado']!=='COMPLETADA'));
     if($est==='ACTIVE') $pipe_sold[] = $m;
     elseif(in_array($est,$states_app)) $pipe_app[] = $m;
-    elseif(!empty($citas_por_miembro[$m['id']])) $pipe_cita[] = $m;
+    elseif($tiene_cita_activa) $pipe_cita[] = $m;
     elseif(in_array($est,$states_lost)) { if(!empty($m['en_recuperacion'])) $pipe_pros[] = $m; }
     else $pipe_pros[] = $m;
 }
