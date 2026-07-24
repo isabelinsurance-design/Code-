@@ -8564,6 +8564,15 @@ function softReload(done){
 // respaldo por si los avisos en vivo de arriba no están configurados, se
 // cortan, o el relay está caído — así nunca dependemos de una sola vía.
 window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 8000; // 8 s — para que varios agentes vean los cambios de los demás casi al instante
+// Solo bloqueamos si hubo tecleo hace poco (no basta con tener el foco en
+// una caja de búsqueda/filtro sin usarla — si no, el refresco se quedaba
+// congelado en cualquier pestaña con buscador, aunque ya no estuvieras
+// escribiendo, y por eso solo "funcionaba" en el Dashboard).
+window._lastTypingAt = 0;
+document.addEventListener('input', function(e){
+  var t = e.target && e.target.tagName;
+  if(t==='INPUT'||t==='TEXTAREA') window._lastTypingAt = Date.now();
+}, true);
 function _canAutoRefresh(){
   try{
     if(localStorage.getItem('crm_autorefresh')==='off') return false;
@@ -8571,12 +8580,9 @@ function _canAutoRefresh(){
   if(window._softReloading) return false;          // ya hay un refresco en curso
   if(document.hidden) return false;                // pestaña en segundo plano
   if(document.querySelector('.modal-overlay.open')) return false; // hay un modal abierto
-  var ae = document.activeElement;                 // estás escribiendo/editando algo
-  if(ae){
-    var t = ae.tagName;
-    if(t==='INPUT'||t==='TEXTAREA'||t==='SELECT') return false;
-    if(ae.isContentEditable) return false;
-  }
+  if(Date.now() - window._lastTypingAt < 4000) return false; // escribiendo ahora mismo
+  var ae = document.activeElement;
+  if(ae && ae.isContentEditable) return false;
   return true;
 }
 setInterval(function(){ if(_canAutoRefresh()) softReload(); }, window.AUTO_REFRESH_MS);
