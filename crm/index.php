@@ -6016,7 +6016,7 @@ $ref_colores = ['NUEVO'=>['#EBF4F9','#1B4A6B','#A9CDE0'],'INTENTANDO'=>['#FEF8EE
     <select class="form-input" style="font-size:8px;padding:4px 7px;min-width:130px" onchange="updateEstadoRef(<?=$rf['id']?>, this.value)">
       <?php foreach(array_keys($ref_colores) as $est):?><option value="<?=$est?>"<?=$rf['estado']===$est?' selected':''?>><?=$est?></option><?php endforeach;?>
     </select>
-    <?php if($rf['estado']==='INTERESADO'):?><button class="btn btn-gr btn-sm" style="font-size:8px" onclick="convertirRef(<?=$rf['id']?>)"> MOVER AL PIPELINE</button><?php endif;?>
+    <button class="btn btn-gr btn-sm" style="font-size:8px" onclick="convertirRef(<?=$rf['id']?>)" title="Crea un perfil de miembro para esta persona, en Miembros con estado PROSPECT">▲ CONVERTIR A PROSPECTO</button>
     <?php else:?><button class="btn btn-bl btn-sm" style="font-size:8px" onclick="openProfile(<?=$rf['miembro_id']?>)">◉ VER PERFIL</button><?php endif;?>
     <div style="display:flex;gap:4px"><button class="btn btn-gh btn-sm" style="font-size:8px" onclick="openRefModal(<?=$rf['id']?>)">✎</button><button class="btn btn-re btn-sm" style="font-size:8px" onclick="deleteRef(<?=$rf['id']?>)">✕</button></div>
   </div>
