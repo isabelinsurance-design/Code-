@@ -11172,14 +11172,23 @@ function saveCuenta() {
 }
 
 // ── Modal Contacto de Cuenta ──────────────────────────────────────
-function openCtcCuentaModal(cid, cNombre, ctid=null) {
-    document.getElementById('ctcuenta-cuenta-id').value=cid; document.getElementById('ctcuenta-edit-id').value=ctid||'';
-    document.getElementById('ctcuenta-form-title').textContent=ctid?'EDITAR CONTACTO':'NUEVO CONTACTO';
+function openCtcCuentaModal(cid, cNombre, ct=null) {
+    document.getElementById('ctcuenta-cuenta-id').value=cid; document.getElementById('ctcuenta-edit-id').value=ct?.id||'';
+    document.getElementById('ctcuenta-form-title').textContent=ct?'EDITAR CONTACTO':'NUEVO CONTACTO';
     document.getElementById('ctcuenta-form-cuenta').textContent=cNombre;
-    ['ctcuenta-nombre','ctcuenta-cargo','ctcuenta-tel','ctcuenta-email','ctcuenta-notas'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
-    document.getElementById('ctcuenta-principal').value='0';
+    document.getElementById('ctcuenta-nombre').value = ct?.nombre || '';
+    document.getElementById('ctcuenta-cargo').value  = ct?.cargo || '';
+    document.getElementById('ctcuenta-tel').value    = ct?.telefono || '';
+    document.getElementById('ctcuenta-email').value  = ct?.email || '';
+    document.getElementById('ctcuenta-notas').value  = ct?.notas || '';
+    document.getElementById('ctcuenta-principal').value = ct?.es_principal=='1' ? '1' : '0';
     closeModal('modal-cue-detalle');
     openModal('modal-ctcuenta-form');
+}
+function editCtcCuenta(ctid) {
+    const ct = (window._cueContactosActuales||[]).find(x=>x.id==ctid);
+    if(!ct){ toast('⚠ Contacto no encontrado'); return; }
+    openCtcCuentaModal(cueCurrentId, cueCurrentNombre, ct);
 }
 function saveCtcCuenta() {
     const btn=document.getElementById('ctcuenta-form-btn'); const cid=document.getElementById('ctcuenta-cuenta-id').value; const ctid=document.getElementById('ctcuenta-edit-id').value;
@@ -11280,9 +11289,10 @@ function openCueDetalle(cid, tabInicial='INFO') {
         const gastos=d.interacciones.filter(i=>parseFloat(i.gasto_monto)>0); const gBox=document.getElementById('cue-det-gastos-box');
         if(gastos.length){gBox.style.display='';const total=gastos.reduce((s,i)=>s+parseFloat(i.gasto_monto),0);document.getElementById('cue-det-gastos-content').innerHTML=`<div style="display:flex;gap:10px;flex-wrap:wrap"><div style="background:#FEF8EE;border:1px solid #F5D5A0;border-radius:9px;padding:10px 16px;text-align:center;min-width:120px"><div style="font-size:22px;font-weight:900;color:#C07A1A">$${total.toFixed(2)}</div><div style="font-size:8px;color:#C07A1A;text-transform:uppercase;font-weight:900">TOTAL INVERTIDO</div><div style="font-size:8px;color:#C07A1A">${gastos.length} VISITA${gastos.length>1?'S':''}</div></div><div style="flex:1;min-width:200px">${gastos.slice(0,5).map(g=>`<div style="display:flex;justify-content:space-between;padding:5px 0;border-bottom:1px solid #F5D5A0;font-size:9px"><span>${g.fecha} — ${g.gasto_descripcion||'Gasto'}</span><span style="font-weight:900;color:#C07A1A">$${parseFloat(g.gasto_monto).toFixed(2)}</span></div>`).join('')}</div></div>`;}else gBox.style.display='none';
         // CONTACTOS
+        window._cueContactosActuales = d.contactos;
         const ctcList=document.getElementById('cue-det-ctc-list');
         if(!d.contactos.length){ctcList.innerHTML='<div style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN CONTACTOS — USA "+ CONTACTO" PARA AGREGAR</div>';}
-        else{ctcList.innerHTML=d.contactos.map(ct=>`<div style="background:#fff;border:1px solid #C8DFF0;border-radius:10px;padding:12px 15px;display:flex;gap:10px;align-items:center"><div style="width:36px;height:36px;border-radius:50%;background:${ct.es_principal=='1'?'#1B4A6B':'#EBF4F9'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${ct.es_principal=='1'?'#fff':'#1B4A6B'};flex-shrink:0">${ct.nombre.charAt(0)}</div><div style="flex:1;min-width:0"><div style="font-weight:900;font-size:10px;color:#1B4A6B">${ct.nombre}${ct.es_principal=='1'?' <span style="font-size:7px;background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:1px 7px;font-weight:900">PRINCIPAL</span>':''}</div><div style="font-size:8px;color:#7A90A4;margin-top:2px">${ct.cargo||'—'}${ct.telefono?' · 📞 '+ct.telefono:''}${ct.email?' · '+ct.email:''}</div>${ct.notas?`<div style="font-size:8px;color:#7A90A4;font-style:italic;margin-top:2px">${ct.notas}</div>`:''}</div><button onclick="deleteCtcCuenta(${ct.id})" style="background:none;border:1px solid #EFA09A;color:#B83232;border-radius:7px;padding:3px 8px;font-size:9px;cursor:pointer;font-weight:900">✕</button></div>`).join('');}
+        else{ctcList.innerHTML=d.contactos.map(ct=>`<div style="background:#fff;border:1px solid #C8DFF0;border-radius:10px;padding:12px 15px;display:flex;gap:10px;align-items:center"><div style="width:36px;height:36px;border-radius:50%;background:${ct.es_principal=='1'?'#1B4A6B':'#EBF4F9'};display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:900;color:${ct.es_principal=='1'?'#fff':'#1B4A6B'};flex-shrink:0">${ct.nombre.charAt(0)}</div><div style="flex:1;min-width:0"><div style="font-weight:900;font-size:10px;color:#1B4A6B">${ct.nombre}${ct.es_principal=='1'?' <span style="font-size:7px;background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:1px 7px;font-weight:900">PRINCIPAL</span>':''}</div><div style="font-size:8px;color:#7A90A4;margin-top:2px">${ct.cargo||'—'}${ct.telefono?' · 📞 '+ct.telefono:''}${ct.email?' · '+ct.email:''}</div>${ct.notas?`<div style="font-size:8px;color:#7A90A4;font-style:italic;margin-top:2px">${ct.notas}</div>`:''}</div><button onclick="editCtcCuenta(${ct.id})" style="background:none;border:1px solid #A9D0E8;color:#1B5E8C;border-radius:7px;padding:3px 8px;font-size:9px;cursor:pointer;font-weight:900">✏️</button><button onclick="deleteCtcCuenta(${ct.id})" style="background:none;border:1px solid #EFA09A;color:#B83232;border-radius:7px;padding:3px 8px;font-size:9px;cursor:pointer;font-weight:900">✕</button></div>`).join('');}
         // HISTORIAL
         const tipoIcon={VISITA:'🏢',LLAMADA:'📞',SMS:'💬',EMAIL:'📧','REUNIÓN':'🤝',OTRO:'◌'};
         const hList=document.getElementById('cue-det-hist-list');
