@@ -3764,17 +3764,7 @@ $t65_pipe_count = count(array_filter($pipe_pros, fn($m)=>strtolower($m['fuente']
 ?>
 
 <!-- TOOLBAR -->
-<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
-    <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-        <button onclick="switchPipeView('principal')" id="btn-pipe-main"
-            style="background:#1B4A6B; color:#fff; border:2px solid #1B4A6B; border-radius:10px; font-weight:900; font-size:9px; cursor:pointer; padding:8px 16px; letter-spacing:1.5px; text-transform:uppercase;">
-            🏠 PIPELINE
-        </button>
-        <button onclick="switchPipeView('actividades')" id="btn-pipe-today"
-            style="background:#fff; border:1.5px solid #C8DFF0; border-radius:10px; font-weight:900; font-size:9px; cursor:pointer; color:#7A90A4; padding:8px 16px; letter-spacing:1.5px; text-transform:uppercase;">
-            ⚡ ACTIVIDADES HOY <span style="background:#EBF4F9; color:#1B4A6B; border-radius:20px; padding:1px 6px; font-size:8px; margin-left:4px;"><?=count($lista_prioridad_hoy)?></span>
-        </button>
-    </div>
+<div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
     <div style="display:flex; gap:7px; align-items:center; flex-wrap:wrap;">
         <input type="text" id="pipe-search" placeholder="🔍 Buscar prospecto..."
             oninput="filterPipeProspects()"
@@ -3907,7 +3897,6 @@ if(count($t65_pipe)>0):
             </div>
 
             <?php foreach($items as $m):
-                $p_act = $pasos_por_miembro[$m['id']] ?? null;
                 $apellido = $m['apellido'] ?? '';
                 $nombre   = $m['nombre']   ?? '';
                 $telefono = $m['telefono'] ?? '';
@@ -3929,13 +3918,11 @@ if(count($t65_pipe)>0):
                     $temp_badge = "<span class='pipe-temp-badge $tcls'>$tlabel</span>";
                 }
 
-                // Paso vencido?
-                $paso_vencido = $p_act && $p_act['fecha_programada'] < $hoy;
                 // ¿Es un cancelado/dado de baja marcado para recuperar? (no cambia su estado real)
                 $es_recuperacion = in_array($m['estado']??'', $states_lost, true) && !empty($m['en_recuperacion']);
             ?>
             <div class="pipe-card" data-temp="<?=h($fuente)?>" data-agente="<?=h($agente_id_m)?>" data-nombre="<?=strtolower(h($nombre_completo))?>"
-                 style="border-top:3px solid <?=$col?>; background:#fff; <?=$paso_vencido?'border-left:3px solid #B83232;':''?>">
+                 style="border-top:3px solid <?=$col?>; background:#fff;">
 
                 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:6px;">
                     <div onclick="openProfile(<?=$m['id']?>)" style="cursor:pointer; flex:1; min-width:0;">
@@ -3949,35 +3936,6 @@ if(count($t65_pipe)>0):
                     <?php if($es_recuperacion):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">⚠ <?=h($m['estado'])?></span><?php endif;?>
                     <?php if($temp_badge): echo $temp_badge; endif; ?>
                 </div>
-
-                <?php if($p_act):
-                    $desc_paso = $p_act['descripcion'] ?? '';
-                    $fecha_paso = $p_act['fecha_programada'] ?? '';
-                    $fecha_disp = $fecha_paso ? date('m/d', strtotime($fecha_paso)) : '—';
-                    $bg_paso = $paso_vencido ? '#FDF0EE' : '#FFF9F0';
-                    $border_paso = $paso_vencido ? '#EFA09A' : '#FFE4BC';
-                    $color_lbl = $paso_vencido ? '#B83232' : '#C07A1A';
-                    $lbl_paso = $paso_vencido ? '⚠ VENCIDO' : 'SIGUIENTE PASO';
-                ?>
-                <div style="background:<?=$bg_paso?>; border:1px solid <?=$border_paso?>; border-radius:7px; padding:7px 8px; margin-bottom:8px;">
-                    <div style="font-size:7px; font-weight:900; color:<?=$color_lbl?>; margin-bottom:3px;"><?=$lbl_paso?></div>
-                    <div style="font-size:9px; color:#333; line-height:1.3; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
-                        <?=htmlspecialchars($desc_paso, ENT_QUOTES, 'UTF-8')?>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:5px;">
-                        <span style="font-size:7px; color:<?=$color_lbl?>; font-weight:800;">📅 <?=$fecha_disp?></span>
-                        <button onclick="completarPasoPipeline(<?=$p_act['id']?>, this)"
-                            style="background:#1E7A5C; color:white; border:none; border-radius:5px; font-size:7px; padding:3px 7px; cursor:pointer; font-weight:900; font-family:'DM Sans',sans-serif;">
-                            ✓ LISTO
-                        </button>
-                    </div>
-                </div>
-                <?php else: ?>
-                <button onclick="aplicarPasosConfig(<?=$m['id']?>)"
-                    style="width:100%; background:#F4F8FC; border:1.5px dashed #C8DFF0; color:#7A90A4; font-size:8px; padding:6px; border-radius:7px; cursor:pointer; font-weight:900; margin-bottom:8px; font-family:'DM Sans',sans-serif; text-transform:uppercase; letter-spacing:1px;">
-                    + APLICAR SECUENCIA
-                </button>
-                <?php endif; ?>
 
                 <!-- Nota rápida -->
                 <div style="display:flex; gap:4px;">
@@ -4025,101 +3983,6 @@ if(count($t65_pipe)>0):
     </div>
 </div>
 
-<!-- ACTIVIDADES VIEW -->
-<div id="pipe-view-actividades" style="display:none;">
-<?php if(empty($lista_prioridad_hoy)): ?>
-    <div style="text-align:center;padding:48px 20px;background:#fff;border:1px solid #C8DFF0;border-radius:14px">
-        <div style="font-size:28px;margin-bottom:8px">✅</div>
-        <div style="font-size:11px;font-weight:900;color:#1B4A6B;letter-spacing:2px;text-transform:uppercase">¡Todo al día!</div>
-        <div style="font-size:9px;color:#7A90A4;margin-top:4px">No hay pasos pendientes para hoy.</div>
-    </div>
-<?php else:
-    $hoy_lista   = array_filter($lista_prioridad_hoy, fn($p) => (int)floor((strtotime($hoy)-strtotime($p['fecha_programada']))/86400) === 0);
-    $venc_lista  = array_filter($lista_prioridad_hoy, fn($p) => (int)floor((strtotime($hoy)-strtotime($p['fecha_programada']))/86400) >  0);
-?>
-
-<!-- Resumen compacto con filtro -->
-<div style="display:flex;gap:10px;margin-bottom:16px">
-    <?php if(count($venc_lista)>0):?>
-    <div onclick="filterActividades('vencidas')" id="act-btn-venc"
-         style="background:#FDF0EE;border:2px solid #EFA09A;border-radius:10px;padding:10px 16px;
-                display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s;user-select:none"
-         onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-        <span style="font-size:16px">⚠</span>
-        <div>
-            <div style="font-size:18px;font-weight:900;color:#B83232"><?=count($venc_lista)?></div>
-            <div style="font-size:7px;font-weight:900;color:#B83232;text-transform:uppercase">Vencidos</div>
-        </div>
-    </div>
-    <?php endif;?>
-    <?php if(count($hoy_lista)>0):?>
-    <div onclick="filterActividades('hoy')" id="act-btn-hoy"
-         style="background:#EBF5FB;border:2px solid #A9D0E8;border-radius:10px;padding:10px 16px;
-                display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s;user-select:none"
-         onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-        <span style="font-size:16px">📅</span>
-        <div>
-            <div style="font-size:18px;font-weight:900;color:#1B5E8C"><?=count($hoy_lista)?></div>
-            <div style="font-size:7px;font-weight:900;color:#1B5E8C;text-transform:uppercase">Para hoy</div>
-        </div>
-    </div>
-    <?php endif;?>
-    <div onclick="filterActividades('todas')" id="act-btn-todas"
-         style="background:#fff;border:2px solid #C8DFF0;border-radius:10px;padding:10px 16px;
-                display:flex;align-items:center;gap:8px;cursor:pointer;transition:all .15s;user-select:none"
-         onmouseover="this.style.transform='scale(1.03)'" onmouseout="this.style.transform=''">
-        <span style="font-size:16px">◉</span>
-        <div>
-            <div style="font-size:18px;font-weight:900;color:#7A90A4"><?=count($lista_prioridad_hoy)?></div>
-            <div style="font-size:7px;font-weight:900;color:#7A90A4;text-transform:uppercase">Todas</div>
-        </div>
-    </div>
-</div>
-
-<!-- Lista unificada limpia -->
-<div style="background:#fff;border:1px solid #C8DFF0;border-radius:13px;overflow:hidden">
-<?php
-$todos_act = array_merge(array_values($venc_lista), array_values($hoy_lista));
-foreach($todos_act as $i => $paso):
-    $dias_venc  = (int)floor((strtotime($hoy)-strtotime($paso['fecha_programada']))/86400);
-    $vencido    = $dias_venc > 0;
-    $mem_act    = $members_map[$paso['miembro_id']] ?? null;
-    $nn         = $mem_act ? trim(($mem_act['apellido']??'').', '.($mem_act['nombre']??'')) : 'Desconocido';
-    $tel        = $mem_act['telefono'] ?? '';
-?>
-<div class="pipe-actividad-card" data-agente="<?=h($mem_act['agente_id']??'')?>" data-vencida="<?=$vencido?1:0?>"
-     style="display:flex;align-items:center;gap:12px;padding:11px 14px;flex-wrap:nowrap;
-            <?=$i>0?'border-top:1px solid #EBF4F9':''?>;
-            background:<?=$vencido?'#FFFAF9':'#fff'?>">
-
-    <!-- Indicador lateral -->
-    <div style="width:4px;height:36px;border-radius:99px;background:<?=$vencido?'#EFA09A':'#A9D0E8'?>;flex-shrink:0"></div>
-
-    <!-- Info principal -->
-    <div style="flex:1;min-width:0">
-        <div style="font-size:9px;font-weight:900;color:<?=$vencido?'#B83232':'#1B5E8C'?>;text-transform:uppercase;margin-bottom:2px">
-            <?=$vencido ? "⚠ Hace $dias_venc día".($dias_venc>1?'s':'') : '📅 Hoy'?>
-        </div>
-        <div style="font-size:10px;font-weight:900;color:#1B3A5C;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">
-            <?=h($paso['descripcion']??'')?>
-        </div>
-        <div style="font-size:8px;color:#7A90A4;margin-top:1px;cursor:pointer" onclick="openProfile(<?=$mem_act['id']??0?>)">
-            <?=h($nn)?><?=$tel?" · $tel":''?>
-        </div>
-    </div>
-
-    <!-- Acción -->
-    <button onclick="completarPasoPipeline(<?=$paso['id']?>, this)"
-        style="background:#1E7A5C;color:#fff;border:none;border-radius:8px;padding:6px 13px;
-               font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;
-               text-transform:uppercase;white-space:nowrap;flex-shrink:0;margin-left:auto">
-        ✓ Listo
-    </button>
-</div>
-<?php endforeach; ?>
-</div>
-<?php endif; ?>
-</div>
 <!-- MODAL DE LLAMADA -------------->
 <style>
   .lr-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
@@ -10554,28 +10417,6 @@ function gmGuardar() {
         });
 }
 
-function completarPasoPipeline(pasoId, btn) {
-    if(!confirm('¿Marcar este paso como completado?')) return;
-    btn.disabled = true;
-    btn.textContent = '...';
-    const fd = new FormData();
-    fd.append('action', 'completar_paso_pipeline');
-    fd.append('id', pasoId);
-    fetch('api.php', {method:'POST', body:fd})
-    .then(r=>r.json())
-    .then(d=>{
-        if(d.ok) {
-            const card = btn.closest('.pipe-card') || btn.closest('div[style]');
-            if(card){ card.style.opacity = '0.4'; card.style.transform = 'scale(0.97)'; }
-            toast('✓ PASO COMPLETADO');
-            setTimeout(() => softReload(), 400);
-        } else {
-            btn.disabled = false; btn.textContent = '✓ LISTO';
-            toast('⚠ ' + (d.error || 'Error'));
-        }
-    }).catch(()=>{ btn.disabled = false; btn.textContent = '✓ LISTO'; });
-}
-
 function savePipelineNote(mid, btn) {
     const input = document.getElementById('p-note-'+mid);
     const nota = input.value.trim();
@@ -10594,39 +10435,6 @@ function savePipelineNote(mid, btn) {
     }).catch(()=>{ btn.disabled = false; });
 }
 
-function switchPipeView(view) {
-    const main   = document.getElementById('pipe-view-principal');
-    const act    = document.getElementById('pipe-view-actividades');
-    const pills  = document.getElementById('pipe-temp-pills');
-    const btnMain  = document.getElementById('btn-pipe-main');
-    const btnToday = document.getElementById('btn-pipe-today');
-    if(view === 'principal') {
-        main.style.display  = 'block';
-        act.style.display   = 'none';
-        if(pills) pills.style.display = 'flex';
-        btnMain.style.background  = '#1B4A6B'; btnMain.style.color = '#fff';
-        btnToday.style.background = '#fff';    btnToday.style.color = '#7A90A4';
-    } else {
-        main.style.display  = 'none';
-        act.style.display   = 'block';
-        if(pills) pills.style.display = 'none';
-        btnToday.style.background = '#1B4A6B'; btnToday.style.color = '#fff';
-        btnMain.style.background  = '#fff';    btnMain.style.color = '#1B4A6B';
-    }
-}
-
-function aplicarPasosConfig(miembroId) {
-    if(!confirm('¿Aplicar la secuencia de pasos automáticos a este prospecto?')) return;
-    const fd = new FormData();
-    fd.append('action', 'aplicar_pasos_automaticos');
-    fd.append('miembro_id', miembroId);
-    fetch('api.php', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        if(d.ok) { toast('✓ PASOS APLICADOS'); setTimeout(()=>softReload(), 400); }
-        else toast('⚠ ' + (d.msg || d.error || 'Sin pasos configurados'));
-    });
-}
 
 function updatePipeConfig(id, campo, valor) {
     const fd = new FormData();
@@ -11043,27 +10851,6 @@ function filterPortalTab() {
     if (el('p-cnt-cancelados')) el('p-cnt-cancelados').textContent = cCancelados;
     if (el('p-cnt-pendientes')) el('p-cnt-pendientes').textContent = cPendientes;
     if (el('p-cnt-total'))      el('p-cnt-total').textContent      = cTotal;
-}
-
-function filterActividades(tipo) {
-    // Estilos activo/inactivo
-    const btns = {
-        'vencidas': document.getElementById('act-btn-venc'),
-        'hoy':      document.getElementById('act-btn-hoy'),
-        'todas':    document.getElementById('act-btn-todas')
-    };
-    Object.entries(btns).forEach(([k, el]) => {
-        if (!el) return;
-        el.style.opacity  = k === tipo ? '1'    : '0.45';
-        el.style.transform = k === tipo ? 'scale(1.05)' : '';
-    });
-
-    document.querySelectorAll('.pipe-actividad-card').forEach(card => {
-        const esVencida = card.dataset.vencida === '1';
-        if (tipo === 'todas')    card.style.display = '';
-        else if (tipo === 'vencidas') card.style.display = esVencida  ? '' : 'none';
-        else if (tipo === 'hoy')      card.style.display = !esVencida ? '' : 'none';
-    });
 }
 
 </script>
