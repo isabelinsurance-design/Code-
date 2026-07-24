@@ -3777,10 +3777,6 @@ $t65_pipe_count = count(array_filter($pipe_pros, fn($m)=>strtolower($m['fuente']
             <?php endforeach;?>
         </select>
         <?php endif;?>
-        <button onclick="openPipeConfigModal()"
-            style="background:#fff; color:#1B4A6B; border:1.5px solid #1B4A6B; border-radius:10px; padding:8px 14px; font-size:9px; font-weight:900; cursor:pointer; letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; gap:5px;">
-            ⚙️ CONFIGURAR PASOS
-        </button>
     </div>
 </div>
 
@@ -4102,70 +4098,6 @@ if(count($t65_pipe)>0):
 </div>
 <!-- CIERRE MODAL: REGISTRAR LLAMADAS -->
 
-<!-- MODAL: CONFIGURAR PASOS PIPELINE -->
-<div id="modal-pipe-config" class="modal" style="display:none; position:fixed; z-index:9999; left:0; top:0; width:100%; height:100%; background:rgba(27,74,107,0.55); backdrop-filter:blur(4px);">
-    <div style="background:#fff; border-radius:16px; width:94%; max-width:560px; margin:40px auto; padding:0; box-shadow:0 20px 50px rgba(27,74,107,0.25); overflow:hidden; max-height:90vh; display:flex; flex-direction:column;">
-
-        <!-- Header del modal -->
-        <div style="background:linear-gradient(to right, #1B4A6B, #2876A8); padding:18px 22px; display:flex; justify-content:space-between; align-items:center; flex-shrink:0;">
-            <div>
-                <div style="font-size:11px; font-weight:900; color:#fff; letter-spacing:2px; text-transform:uppercase;">⚙️ CONFIGURAR SECUENCIA</div>
-                <div style="font-size:8px; color:rgba(255,255,255,0.6); margin-top:2px; letter-spacing:1px; text-transform:uppercase;">Pasos automáticos del pipeline</div>
-            </div>
-            <button onclick="document.getElementById('modal-pipe-config').style.display='none'"
-                style="background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.25); color:#fff; border-radius:8px; width:32px; height:32px; font-size:16px; cursor:pointer; display:flex; align-items:center; justify-content:center; font-weight:900; font-family:'DM Sans',sans-serif; flex-shrink:0;">
-                ×
-            </button>
-        </div>
-
-        <!-- Lista de pasos -->
-        <div id="lista-pasos-config" style="overflow-y:auto; padding:16px 20px; flex:1;">
-            <?php
-            try {
-                $config_pasos = $pdo->query("SELECT * FROM pipeline_config_pasos ORDER BY dias_intervalo ASC")->fetchAll();
-            } catch(Exception $e) { $config_pasos = []; }
-            
-            if(empty($config_pasos)):?>
-            <div style="text-align:center; padding:24px; font-size:9px; color:#7A90A4; font-weight:700; text-transform:uppercase; letter-spacing:1px;">
-                No hay pasos configurados aún. Agrega el primero abajo.
-            </div>
-            <?php else:
-            foreach($config_pasos as $cp): ?>
-            <div id="row-config-<?=$cp['id']?>" style="display:flex; gap:10px; margin-bottom:10px; align-items:center; background:#F4F8FC; border:1px solid #C8DFF0; border-radius:10px; padding:10px 12px;">
-                <div style="flex-shrink:0; text-align:center;">
-                    <div style="font-size:7px; font-weight:900; color:#7A90A4; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">DÍA</div>
-                    <input type="number" value="<?=$cp['dias_intervalo']?>" min="0" max="365"
-                        onchange="updatePipeConfig(<?=$cp['id']?>, 'dias_intervalo', this.value)"
-                        style="width:55px; font-size:11px; font-weight:900; padding:6px; border-radius:7px; border:1.5px solid #C8DFF0; text-align:center; font-family:'DM Sans',sans-serif; color:#1B4A6B; background:#fff;">
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-size:7px; font-weight:900; color:#7A90A4; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">ACCIÓN</div>
-                    <input type="text" value="<?=htmlspecialchars($cp['accion']??'', ENT_QUOTES,'UTF-8')?>"
-                        onchange="updatePipeConfig(<?=$cp['id']?>, 'accion', this.value)"
-                        style="width:100%; font-size:10px; padding:7px 9px; border-radius:7px; border:1.5px solid #C8DFF0; font-family:'DM Sans',sans-serif; color:#1B3A5C; background:#fff; outline:none;">
-                </div>
-                <button onclick="eliminarConfigPaso(<?=$cp['id']?>)"
-                    style="background:#FDF0EE; border:1px solid #EFA09A; color:#B83232; padding:7px 10px; border-radius:7px; cursor:pointer; font-size:13px; flex-shrink:0; font-weight:900; font-family:'DM Sans',sans-serif;">
-                    ✕
-                </button>
-            </div>
-            <?php endforeach;
-            endif;?>
-        </div>
-
-        <!-- Footer del modal -->
-        <div style="padding:14px 20px; border-top:1px solid #C8DFF0; flex-shrink:0; display:flex; gap:8px;">
-            <button onclick="agregarNuevaConfig()"
-                style="flex:1; background:#1B4A6B; color:white; border:none; padding:11px; border-radius:10px; font-size:9px; font-weight:900; cursor:pointer; font-family:'DM Sans',sans-serif; letter-spacing:1.5px; text-transform:uppercase; display:flex; align-items:center; justify-content:center; gap:6px;">
-                + AÑADIR NUEVO PASO
-            </button>
-            <button onclick="document.getElementById('modal-pipe-config').style.display='none'"
-                style="background:#EBF4F9; color:#1B4A6B; border:1.5px solid #C8DFF0; padding:11px 18px; border-radius:10px; font-size:9px; font-weight:900; cursor:pointer; font-family:'DM Sans',sans-serif; letter-spacing:1.5px; text-transform:uppercase;">
-                CERRAR
-            </button>
-        </div>
-    </div>
-</div>
 </div>
 <!-- /PIPELINE -->
 
@@ -10435,81 +10367,6 @@ function savePipelineNote(mid, btn) {
     }).catch(()=>{ btn.disabled = false; });
 }
 
-
-function updatePipeConfig(id, campo, valor) {
-    const fd = new FormData();
-    fd.append('action', 'update_pipeline_config');
-    fd.append('id', id);
-    fd.append('campo', campo);
-    fd.append('valor', valor);
-    fetch('api.php', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => { if(d.ok) toast('✓ GUARDADO'); else toast('⚠ ' + (d.error||'Error')); });
-}
-
-function agregarNuevaConfig() {
-    const btn = event.currentTarget;
-    btn.disabled = true; btn.textContent = 'AGREGANDO...';
-    const fd = new FormData();
-    fd.append('action', 'add_pipeline_config_row');
-    fetch('api.php', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        if(d.ok) {
-            // Agregar nueva fila dinámicamente sin reload
-            const lista = document.getElementById('lista-pasos-config');
-            const newId = d.id || Date.now();
-            const row = document.createElement('div');
-            row.id = 'row-config-' + newId;
-            row.style.cssText = 'display:flex; gap:10px; margin-bottom:10px; align-items:center; background:#F4F8FC; border:1px solid #C8DFF0; border-radius:10px; padding:10px 12px;';
-            row.innerHTML = `
-                <div style="flex-shrink:0; text-align:center;">
-                    <div style="font-size:7px; font-weight:900; color:#7A90A4; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">DÍA</div>
-                    <input type="number" value="1" min="0" max="365"
-                        onchange="updatePipeConfig(${newId}, 'dias_intervalo', this.value)"
-                        style="width:55px; font-size:11px; font-weight:900; padding:6px; border-radius:7px; border:1.5px solid #C8DFF0; text-align:center; font-family:'DM Sans',sans-serif; color:#1B4A6B; background:#fff;">
-                </div>
-                <div style="flex:1; min-width:0;">
-                    <div style="font-size:7px; font-weight:900; color:#7A90A4; text-transform:uppercase; letter-spacing:1px; margin-bottom:3px;">ACCIÓN</div>
-                    <input type="text" value="Nueva Tarea de Seguimiento" placeholder="Describe el paso..."
-                        onchange="updatePipeConfig(${newId}, 'accion', this.value)"
-                        style="width:100%; font-size:10px; padding:7px 9px; border-radius:7px; border:1.5px solid #C8DFF0; font-family:'DM Sans',sans-serif; color:#1B3A5C; background:#fff; outline:none;">
-                </div>
-                <button onclick="eliminarConfigPaso(${newId})"
-                    style="background:#FDF0EE; border:1px solid #EFA09A; color:#B83232; padding:7px 10px; border-radius:7px; cursor:pointer; font-size:13px; flex-shrink:0; font-weight:900; font-family:'DM Sans',sans-serif;">✕</button>`;
-            // Remove "no pasos" placeholder if present
-            const placeholder = lista.querySelector('[style*="text-align:center"]');
-            if(placeholder && placeholder.textContent.includes('No hay pasos')) placeholder.remove();
-            lista.appendChild(row);
-            row.querySelector('input[type=text]').focus();
-            toast('✓ PASO AÑADIDO');
-        } else {
-            toast('⚠ ' + (d.error||'Error al añadir'));
-        }
-        btn.disabled = false; btn.textContent = '+ AÑADIR NUEVO PASO';
-    }).catch(()=>{ btn.disabled = false; btn.textContent = '+ AÑADIR NUEVO PASO'; });
-}
-
-function eliminarConfigPaso(id) {
-    if(!confirm('¿Eliminar este paso de la configuración?')) return;
-    const fd = new FormData();
-    fd.append('action', 'delete_pipeline_config');
-    fd.append('id', id);
-    fetch('api.php', { method: 'POST', body: fd })
-    .then(r => r.json())
-    .then(d => {
-        if(d.ok) {
-            const row = document.getElementById('row-config-' + id);
-            if(row){ row.style.opacity='0'; row.style.transform='scale(0.95)'; setTimeout(()=>row.remove(), 200); }
-            toast('✓ PASO ELIMINADO');
-        } else toast('⚠ ' + (d.error||'Error'));
-    });
-}
-
-function openPipeConfigModal() {
-    const m = document.getElementById('modal-pipe-config');
-    if (m) { m.style.display = 'flex'; m.style.alignItems = 'flex-start'; m.style.justifyContent = 'center'; }
-}
 
 // Filtro de temperatura en prospectos
 function setPipeTemp(btn, temp) {
