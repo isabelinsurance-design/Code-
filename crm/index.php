@@ -530,6 +530,10 @@ try {
     if (!$col_fp) { $pdo->exec("ALTER TABLE miembros ADD COLUMN foto_perfil VARCHAR(500) DEFAULT NULL"); }
     $col_pa = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'pareja_id'")->fetch();
     if (!$col_pa) { $pdo->exec("ALTER TABLE miembros ADD COLUMN pareja_id INT NULL"); }
+    // Marca manual para que un cancelado/dado de baja aparezca en el Pipeline
+    // (para intentar recuperarlo) sin tener que cambiarle el estado real.
+    $col_er = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'en_recuperacion'")->fetch();
+    if (!$col_er) { $pdo->exec("ALTER TABLE miembros ADD COLUMN en_recuperacion TINYINT(1) DEFAULT 0"); }
 } catch (Exception $e) {}
 // ─── REPORTE_DIARIO: quién/ cuándo lo editó un admin (auditoría) ──────────────
 try {
@@ -3717,7 +3721,7 @@ foreach($members as $m){
     if($est==='ACTIVE') $pipe_sold[] = $m;
     elseif(in_array($est,$states_app)) $pipe_app[] = $m;
     elseif(!empty($citas_por_miembro[$m['id']])) $pipe_cita[] = $m;
-    elseif(in_array($est,$states_lost)) continue;
+    elseif(in_array($est,$states_lost)) { if(!empty($m['en_recuperacion'])) $pipe_pros[] = $m; }
     else $pipe_pros[] = $m;
 }
 
@@ -3924,6 +3928,8 @@ if(count($t65_pipe)>0):
 
                 // Paso vencido?
                 $paso_vencido = $p_act && $p_act['fecha_programada'] < $hoy;
+                // ¿Es un cancelado/dado de baja marcado para recuperar? (no cambia su estado real)
+                $es_recuperacion = in_array($m['estado']??'', $states_lost, true) && !empty($m['en_recuperacion']);
             ?>
             <div class="pipe-card" data-temp="<?=h($fuente)?>" data-agente="<?=h($agente_id_m)?>" data-nombre="<?=strtolower(h($nombre_completo))?>"
                  style="border-top:3px solid <?=$col?>; background:#fff; <?=$paso_vencido?'border-left:3px solid #B83232;':''?>">
@@ -3937,6 +3943,7 @@ if(count($t65_pipe)>0):
                             <?=htmlspecialchars($telefono, ENT_QUOTES, 'UTF-8')?>
                         </div>
                     </div>
+                    <?php if($es_recuperacion):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">⚠ <?=h($m['estado'])?></span><?php endif;?>
                     <?php if($temp_badge): echo $temp_badge; endif; ?>
                 </div>
 

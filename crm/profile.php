@@ -237,6 +237,9 @@ display: block;
         <?php if ($m['estado'] === 'ACTIVE'): ?>
         <button onclick="openCambioPlanModal()" class="btn btn-gh btn-sm" style="background:rgba(30,122,92,.3);color:#6EE7C0;border-color:rgba(30,122,92,.4)">🔄 CAMBIO DE PLAN</button>
         <?php endif; ?>
+        <?php if (in_array($m['estado'], ['CANCELED','DENIED','CERRADO','DISENROLLED'], true)): ?>
+        <button onclick="toggleRecuperacion(<?= $id ?>,<?= !empty($m['en_recuperacion'])?0:1 ?>)" class="btn btn-gh btn-sm" style="background:<?= !empty($m['en_recuperacion'])?'rgba(184,50,50,.3);color:#FCA5A5;border-color:rgba(184,50,50,.4)':'rgba(255,255,255,.1);color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.2)' ?>"><?= !empty($m['en_recuperacion'])?'✕ QUITAR DE PIPELINE':'🔄 INTENTAR RECUPERAR' ?></button>
+        <?php endif; ?>
         <button onclick="openMemberForm(<?= $id ?>)" class="btn btn-gh btn-sm" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border-color:rgba(255,255,255,.2)">✎ EDITAR</button>
 
     </div>
@@ -928,6 +931,15 @@ function toggleAllegation(mid, val) {
   if (!confirm(val ? '¿Marcar SALES ALLEGATION para este miembro?' : '¿Quitar la Sales Allegation?')) return;
   fetch('api.php', {method:'POST', body: new URLSearchParams({action:'toggle_sales_allegation', miembro_id:mid, valor:val})})
     .then(r=>r.json()).then(d=>{ if(d.ok) location.reload(); else alert(d.error||'Error'); });
+}
+
+function toggleRecuperacion(mid, val) {
+  const msg = val
+    ? '¿Mostrar a este miembro en tu Pipeline (columna PROSPECTO) para intentar recuperarlo?\n\nSu estado sigue siendo el mismo — solo se marca para verlo ahí.'
+    : '¿Quitar a este miembro del Pipeline?';
+  if (!confirm(msg)) return;
+  fetch('api.php', {method:'POST', body: new URLSearchParams({action:'toggle_recuperacion', miembro_id:mid, valor:val})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ if(typeof toast==='function') toast(val?'✓ AGREGADO AL PIPELINE':'✓ QUITADO DEL PIPELINE'); location.reload(); } else alert(d.error||'Error'); });
 }
 
 async function subirFoto(mid, input) {

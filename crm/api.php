@@ -2096,6 +2096,17 @@ case 'toggle_sales_allegation':
     jsonOk();
     break;
 
+// Marca/desmarca a un cancelado/dado de baja para que aparezca en el Pipeline
+// (columna PROSPECTO, con su estado real como etiqueta) sin cambiar su estado.
+case 'toggle_recuperacion':
+    $pdo = db();
+    $mid = intval($_POST['miembro_id'] ?? 0);
+    $val = intval($_POST['valor'] ?? 0);
+    if (!$mid) jsonErr('ID requerido');
+    $pdo->prepare("UPDATE miembros SET en_recuperacion=? WHERE id=?")->execute([$val ? 1 : 0, $mid]);
+    jsonOkNotify([], 'PIPELINE');
+    break;
+
 // ── UPLOAD FOTO PERFIL ────────────────────────────────────────
 case 'upload_foto':
     $pdo = db();
