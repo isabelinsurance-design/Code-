@@ -5991,6 +5991,8 @@ $ref_colores = ['NUEVO'=>['#EBF4F9','#1B4A6B','#A9CDE0'],'INTENTANDO'=>['#FEF8EE
     <option value="">TODAS LAS CUENTAS</option>
     <?php foreach($cuentas_list as $cu):?><option value="<?=$cu['id']?>"><?=h($cu['nombre'])?></option><?php endforeach;?>
   </select>
+  <button class="btn btn-gh btn-sm" onclick="exportReferidosCSV()" title="Descargar CSV">⤓ CSV</button>
+  <button class="btn btn-gh btn-sm" onclick="printReferidos()" title="Imprimir / Guardar como PDF">🖨 IMPRIMIR</button>
   <button class="btn btn-p btn-sm" onclick="openRefModal()">+ NUEVO REFERIDO</button>
 </div>
 <div id="refs-grid" style="display:flex;flex-direction:column;gap:8px">
@@ -5998,7 +6000,11 @@ $ref_colores = ['NUEVO'=>['#EBF4F9','#1B4A6B','#A9CDE0'],'INTENTANDO'=>['#FEF8EE
 <div style="text-align:center;padding:32px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">👥 AÚN NO HAY REFERIDOS — AGRÉGALOS DESDE UNA CUENTA</div>
 <?php else: foreach($refs_all as $rf): $col_r=$ref_colores[$rf['estado']]??['#F5F5F5','#7A90A4','#C8DFF0']; $conv=$rf['estado']==='EN PIPELINE'; ?>
 <div class="ref-card" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$col_r[1]?>;border-radius:11px;padding:12px 16px;display:flex;gap:12px;align-items:flex-start"
-     data-nombre="<?=strtolower(h($rf['nombre'].' '.$rf['apellido']))?>" data-estado="<?=h($rf['estado'])?>" data-cuenta="<?=(int)$rf['cuenta_id']?>">
+     data-nombre="<?=strtolower(h($rf['nombre'].' '.$rf['apellido']))?>" data-estado="<?=h($rf['estado'])?>" data-cuenta="<?=(int)$rf['cuenta_id']?>"
+     data-x-nombre="<?=h(trim($rf['nombre'].' '.($rf['apellido']??'')))?>" data-x-estado="<?=h($rf['estado'])?>"
+     data-x-telefono="<?=h($rf['telefono']??'')?>" data-x-cuenta="<?=h($rf['cuenta_nombre']??'')?>"
+     data-x-contacto="<?=h($rf['contacto_nombre']??'')?>" data-x-agente="<?=h($rf['agente_nombre']??'')?>"
+     data-x-notas="<?=h($rf['notas']??'')?>">
   <div style="flex:1;min-width:0">
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:5px">
       <span style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($rf['nombre'].' '.($rf['apellido']??''))?></span>
@@ -11143,6 +11149,57 @@ function filterRefs(estadoClick=null) {
         const okCue=!cue||(card.dataset.cuenta||'')===cue;
         card.style.display=okQ&&okEst&&okCue?'':'none';
     });
+}
+
+function _referidosVisibles() {
+    return [...document.querySelectorAll('.ref-card')].filter(c => c.style.display !== 'none');
+}
+function exportReferidosCSV() {
+    const visibles = _referidosVisibles();
+    if(!visibles.length){ toast('No hay referidos visibles para exportar'); return; }
+    const filas = [['Nombre','Estado','Teléfono','Cuenta','Contacto','Agente','Notas']];
+    visibles.forEach(c => {
+        const d = c.dataset;
+        filas.push([d.xNombre||'', d.xEstado||'', d.xTelefono||'', d.xCuenta||'', d.xContacto||'', d.xAgente||'', d.xNotas||'']);
+    });
+    const csv = filas.map(r=>r.map(v=>'"'+(''+v).replace(/"/g,'""')+'"').join(',')).join('\n');
+    const blob = new Blob(['﻿'+csv],{type:'text/csv;charset=utf-8'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'referidos_'+new Date().toISOString().slice(0,10)+'.csv';
+    a.click();
+    toast('✓ CSV descargado');
+}
+function printReferidos() {
+    const visibles = _referidosVisibles();
+    if(!visibles.length){ toast('No hay referidos visibles para imprimir'); return; }
+    const filas = visibles.map(c => c.dataset).map(d => `<tr>
+        <td><b>${d.xNombre||''}</b></td>
+        <td>${d.xEstado||''}</td>
+        <td>${d.xTelefono||'—'}</td>
+        <td>${d.xCuenta||'—'}${d.xContacto?' — '+d.xContacto:''}</td>
+        <td>${d.xAgente||'—'}</td>
+        <td>${d.xNotas||''}</td>
+      </tr>`).join('');
+    const hoy = new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
+    const win = window.open('','_blank');
+    win.document.write(`<!DOCTYPE html><html><head><title>Referidos</title>
+      <style>
+        body{font-family:Arial,sans-serif;padding:24px;color:#1B3A5C}
+        h1{font-size:16px;color:#1B4A6B;margin-bottom:2px}
+        .sub{font-size:11px;color:#7A90A4;margin-bottom:16px}
+        table{width:100%;border-collapse:collapse;font-size:11px}
+        th{background:#EBF4F9;color:#1B4A6B;text-align:left;padding:7px 9px;border-bottom:2px solid #C8DFF0}
+        td{padding:7px 9px;border-bottom:1px solid #EBF4F9;vertical-align:top}
+        tr:nth-child(even){background:#F8FBFD}
+      </style></head><body>
+      <h1>📋 Referidos</h1>
+      <div class="sub">${hoy} · ${visibles.length} referido${visibles.length!==1?'s':''}</div>
+      <table><tr><th>Nombre</th><th>Estado</th><th>Teléfono</th><th>Cuenta / Contacto</th><th>Agente</th><th>Notas</th></tr>${filas}</table>
+      </body></html>`);
+    win.document.close();
+    win.focus();
+    setTimeout(()=>win.print(), 300);
 }
 
 // ── Modal Cuenta ──────────────────────────────────────────────────
