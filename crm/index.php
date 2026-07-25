@@ -3000,6 +3000,7 @@ $p_pendientes= count(array_filter($portal_members,fn($m)=>$m['estado']==='IN PRO
 </div>
 </div>
 <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:11px">
+<input type="text" id="pf-search" placeholder="🔍 BUSCAR MIEMBRO..." oninput="filterPortalTab()" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none;text-transform:uppercase">
 <select id="pf-carrier" onchange="filterPortalTab()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
 <option value="">TODOS LOS CARRIERS</option>
 
@@ -3029,7 +3030,7 @@ $dias = $m['fecha_efectiva'] ? $m['dias_activo'] : null;
 $ec=['ACTIVE'=>['#1E7A5C','#EAF5F0'],'CANCELED'=>['#B83232','#FDF0EE'],'DENIED'=>['#B83232','#FDF0EE'],'CERRADO'=>['#888780','#F1EFE8'],'DISENROLLED'=>['#993C1D','#FAECE7'],'IN PROCESS'=>['#1B5E8C','#EBF5FB']];
 [$ec_color,$ec_bg]=$ec[$m['estado']]??['#7A90A4','#EBF4F9'];
 ?>
-<tr class="portal-tab-row" data-estado="<?=$m['estado']?>" data-carrier="<?=strtoupper($m['carrier']??'')?>">
+<tr class="portal-tab-row" data-estado="<?=$m['estado']?>" data-carrier="<?=strtoupper($m['carrier']??'')?>" data-nombre="<?=strtolower(h($m['apellido'].' '.$m['nombre']))?>">
 <td style="font-weight:900;font-size:9px;color:<?=$P2?>;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=h($m['apellido'].', '.$m['nombre'])?></td>
 <td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($m['carrier']??'—')?></span></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h(substr($m['plan']??'—',0,28))?></td>
@@ -10690,6 +10691,7 @@ function submitLlamadaRapida(e) {
 
  
 function filterPortalTab() {
+    const q       = (document.getElementById('pf-search')?.value || '').toLowerCase().trim();
     const carrier = document.getElementById('pf-carrier').value.toUpperCase().trim();
     const estado  = document.getElementById('pf-estado').value.trim();
 
@@ -10699,11 +10701,13 @@ function filterPortalTab() {
     document.querySelectorAll('.portal-tab-row').forEach(function(row) {
         const rowCarrier = (row.dataset.carrier || '').toUpperCase().trim();
         const rowEstado  = (row.dataset.estado  || '').trim();
+        const rowNombre  = (row.dataset.nombre  || '').trim();
 
+        const okQ       = !q || rowNombre.includes(q);
         const okCarrier = !carrier || rowCarrier === carrier;
         const okEstado  = !estado  || rowEstado  === estado;
 
-        if (okCarrier && okEstado) {
+        if (okQ && okCarrier && okEstado) {
             row.style.display = '';
             cTotal++;
             if (rowEstado === 'ACTIVE')            cActivos++;
