@@ -2520,11 +2520,12 @@ function submitCcImport(){
       }
       return;
     }
-    // La respuesta no fue JSON válido — casi siempre es porque el archivo
-    // superó el límite de subida del hosting (el servidor descarta todo
-    // el POST y regresa la página normal en vez de la respuesta).
-    if(res.status===413 || res.status===500 || res.status===0 || /post_max_size|upload_max_filesize/i.test(res.txt)){
-      _cciShowResult('⚠ EL ARCHIVO ES DEMASIADO GRANDE PARA EL LÍMITE DE SUBIDA DEL HOSTING. PARTE LA LISTA EN ARCHIVOS MÁS PEQUEÑOS (POR EJEMPLO DE 200-300 FILAS) Y SÚBELOS UNO POR UNO.', false);
+    // La respuesta no fue JSON válido. Si viene la página completa en HTML
+    // (aunque el código sea 200), es casi seguro que el hosting descartó el
+    // archivo por tamaño y el servidor solo regresó la página normal.
+    var pareceHTML = /^\s*(<!DOCTYPE|<html)/i.test(res.txt);
+    if(res.status===413 || res.status===500 || res.status===0 || pareceHTML || /post_max_size|upload_max_filesize/i.test(res.txt)){
+      _cciShowResult('⚠ EL ARCHIVO ES DEMASIADO GRANDE PARA EL LÍMITE DE SUBIDA DEL HOSTING (CÓDIGO '+res.status+'). PARTE LA LISTA EN ARCHIVOS MÁS PEQUEÑOS (POR EJEMPLO DE 200-300 FILAS) Y SÚBELOS UNO POR UNO.', false);
     } else {
       _cciShowResult('⚠ RESPUESTA INESPERADA DEL SERVIDOR (CÓDIGO '+res.status+'). INTENTA CON UN ARCHIVO MÁS PEQUEÑO O AVISA A SOPORTE.', false);
     }
