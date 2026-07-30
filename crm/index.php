@@ -437,9 +437,11 @@ if (!empty($_POST['camp_ajax'])) {
             foreach ($header as $i => $h) { if (!in_array($i, $usadas, true)) $extraCols[$i] = trim($h); }
 
             $importados=0; $duplicados=0; $errores=0;
+            $primerasFilas = [];
             $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
             while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
+                if (count($primerasFilas) < 2) $primerasFilas[] = ['cuenta_columnas'=>count($data), 'valores'=>array_slice($data,0,8)];
                 if (count($data)<1) continue;
                 if ($detectado) {
                     $nombre    = strtoupper(trim($data[$map['nombre']] ?? ''));
@@ -483,6 +485,7 @@ if (!empty($_POST['camp_ajax'])) {
                     'encabezados' => array_slice($header, 0, 8),
                     'mapa_detectado' => $map,
                     'uso_orden_fijo' => !$detectado,
+                    'primeras_filas' => $primerasFilas,
                 ];
             }
             echo json_encode($resp); break;
@@ -2525,9 +2528,11 @@ function submitCcImport(){
       if(d.ok){
         var msg='✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':'');
         if(d.importados===0 && d.diag){
-          msg += '\n\nNO SE RECONOCIÓ NINGÚN CONTACTO. El sistema vio '+d.diag.columnas_vistas+' columna(s). Primeras columnas: '+(d.diag.encabezados||[]).join(' | ')+
-                 '. '+(d.diag.uso_orden_fijo?'No reconoció ningún encabezado de nombre, así que usó el orden fijo (columna 1 = nombre) y salió vacía.':'Detectó la columna de nombre en la posición '+d.diag.mapa_detectado.nombre+' pero venía vacía en todas las filas.')+
-                 ' Si tu archivo tiene 1 sola columna gigante, probablemente está separado por punto y coma (;) en vez de coma — avísame.';
+          msg += '\n\nNO SE RECONOCIÓ NINGÚN CONTACTO. El sistema vio '+d.diag.columnas_vistas+' columna(s) en el encabezado. Primeras columnas: '+(d.diag.encabezados||[]).join(' | ')+
+                 '. '+(d.diag.uso_orden_fijo?'No reconoció ningún encabezado de nombre, así que usó el orden fijo (columna 1 = nombre) y salió vacía.':'Detectó la columna de nombre en la posición '+d.diag.mapa_detectado.nombre+' pero venía vacía en los datos.');
+          (d.diag.primeras_filas||[]).forEach(function(f,i){
+            msg += '\nFila de datos #'+(i+1)+' tiene '+f.cuenta_columnas+' columna(s): '+JSON.stringify(f.valores);
+          });
           _cciShowResult(msg, false);
         } else {
           _cciShowResult(msg, true);
