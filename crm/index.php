@@ -382,17 +382,57 @@ if (!empty($_POST['camp_ajax'])) {
             if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
             if (empty($_FILES['file']['tmp_name'])) { echo json_encode(['ok'=>false,'error'=>'Sin archivo']); break; }
             $handle = fopen($_FILES['file']['tmp_name'],'r');
-            fgetcsv($handle); // saltar encabezado
+            $header = fgetcsv($handle);
+            if ($header === false) { echo json_encode(['ok'=>false,'error'=>'Archivo vacío']); break; }
+
+            // Detectar qué columna es cuál según el título del encabezado —
+            // así no importa el orden ni si tu lista trae columnas distintas.
+            $aliases = [
+                'nombre'   => ['nombre','name','first name','firstname','first_name'],
+                'apellido' => ['apellido','last name','lastname','last_name','surname'],
+                'telefono' => ['telefono','phone','cell','celular','tel','numero','numero de telefono'],
+                'email'    => ['email','correo','e-mail','mail'],
+                'notas'    => ['notas','notes','comentarios','comment','nota'],
+            ];
+            $map = ['nombre'=>null,'apellido'=>null,'telefono'=>null,'email'=>null,'notas'=>null];
+            foreach ($header as $i => $h) {
+                $hn = strtolower(trim(preg_replace('/[^a-zA-Z0-9 ]/','', strtr($h,['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n']))));
+                foreach ($aliases as $field => $names) {
+                    if ($map[$field] === null && in_array($hn, $names, true)) { $map[$field] = $i; break; }
+                }
+            }
+            $detectado = $map['nombre'] !== null; // si no reconocimos ni el nombre, usamos el orden fijo de siempre
+            // Columnas que no reconocimos — no se pierden, se agregan a las notas
+            $usadas = array_filter($map, fn($v)=>$v!==null);
+            $extraCols = [];
+            foreach ($header as $i => $h) { if (!in_array($i, $usadas, true)) $extraCols[$i] = trim($h); }
+
             $importados=0; $duplicados=0; $errores=0;
             $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
             while (($data=fgetcsv($handle))!==false) {
                 if (count($data)<1) continue;
-                $nombre   = strtoupper(trim($data[0] ?? ''));
-                $apellido = strtoupper(trim($data[1] ?? ''));
-                $telefono = trim($data[2] ?? '');
-                $email    = trim($data[3] ?? '');
-                $notas    = trim($data[4] ?? '');
+                if ($detectado) {
+                    $nombre    = strtoupper(trim($data[$map['nombre']] ?? ''));
+                    $apellido  = strtoupper(trim($map['apellido']!==null ? ($data[$map['apellido']] ?? '') : ''));
+                    $telefono  = trim($map['telefono']!==null ? ($data[$map['telefono']] ?? '') : '');
+                    $email     = trim($map['email']!==null ? ($data[$map['email']] ?? '') : '');
+                    $notasBase = trim($map['notas']!==null ? ($data[$map['notas']] ?? '') : '');
+                } else {
+                    // Respaldo: si no se reconoció ningún encabezado, se asume el
+                    // orden clásico Nombre, Apellido, Teléfono, Email, Notas.
+                    $nombre    = strtoupper(trim($data[0] ?? ''));
+                    $apellido  = strtoupper(trim($data[1] ?? ''));
+                    $telefono  = trim($data[2] ?? '');
+                    $email     = trim($data[3] ?? '');
+                    $notasBase = trim($data[4] ?? '');
+                }
+                $extras = [];
+                foreach ($extraCols as $i => $colName) {
+                    $val = trim($data[$i] ?? '');
+                    if ($val !== '') $extras[] = ($colName !== '' ? $colName : 'Col'.($i+1)).': '.$val;
+                }
+                $notas = trim($notasBase . ($extras ? (($notasBase!==''?"\n":'').implode(' · ',$extras)) : ''));
                 if ($nombre === '') { $errores++; continue; }
                 if ($telefono !== '') {
                     $chk->execute([$cid,$telefono]);
@@ -2267,8 +2307,11 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
   <div class="modal-header"><div class="modal-title">⤒ SUBIR LISTA DE CONTACTOS</div><button class="modal-close" onclick="closeModal('modal-cc-import')">✕</button></div>
   <input type="hidden" id="cci-campana-id">
   <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:9px 12px;margin-bottom:11px">
-    <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">FORMATO ESPERADO (CSV)</div>
-    <div style="font-size:9px;color:<?=$MU?>;font-family:monospace">Nombre, Apellido, Teléfono, Email, Notas<br>María, González, (818)555-0142, maria@x.com, Le interesa el plan dental</div>
+    <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">TU ARCHIVO DEBE TENER ENCABEZADOS</div>
+    <div style="font-size:9px;color:<?=$MU?>;line-height:1.6">
+      La primera fila debe decir el nombre de cada columna (ej. "Nombre", "Teléfono", "Email"...). No importa el orden ni si le faltan o le sobran columnas — el sistema las reconoce solas. Las columnas que no reconozca (ej. "Edad", "Ciudad") no se pierden: se guardan dentro de las notas de cada contacto.
+    </div>
+    <div style="font-size:9px;color:<?=$MU?>;font-family:monospace;margin-top:6px">Nombre, Apellido, Teléfono, Email, Notas<br>María, González, (818)555-0142, maria@x.com, Le interesa el plan dental</div>
     <div style="font-size:8px;color:<?=$MU?>;margin-top:6px">Si tu lista está en Excel, ábrela y guárdala como CSV (Archivo → Guardar como → CSV) antes de subirla aquí.</div>
   </div>
   <div class="form-group"><label class="form-label">ARCHIVO CSV</label><input type="file" id="cci-file" accept=".csv" class="form-input" style="padding:6px"></div>
