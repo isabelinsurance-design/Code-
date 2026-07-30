@@ -438,6 +438,7 @@ if (!empty($_POST['camp_ajax'])) {
 
             $importados=0; $duplicados=0; $errores=0;
             $primerasFilas = [];
+            $erroresPorNombreVacio = 0; $erroresPorInsert = 0; $primerErrorInsert = null;
             $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
             while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
@@ -464,7 +465,13 @@ if (!empty($_POST['camp_ajax'])) {
                     if ($val !== '') $extras[] = ($colName !== '' ? $colName : 'Col'.($i+1)).': '.$val;
                 }
                 $notas = trim($notasBase . ($extras ? (($notasBase!==''?"\n":'').implode(' · ',$extras)) : ''));
-                if ($nombre === '') { $errores++; continue; }
+                // Recortar a lo que realmente caben las columnas (evita que un
+                // valor más largo de lo esperado tumbe el insert completo).
+                $telefono = mb_substr($telefono, 0, 50);
+                $apellido = mb_substr($apellido, 0, 150);
+                $email    = mb_substr($email, 0, 150);
+                if ($nombre === '') { $errores++; $erroresPorNombreVacio++; continue; }
+                $nombre = mb_substr($nombre, 0, 150);
                 if ($telefono !== '') {
                     $chk->execute([$cid,$telefono]);
                     if ($chk->fetch()) { $duplicados++; continue; }
@@ -472,7 +479,10 @@ if (!empty($_POST['camp_ajax'])) {
                 try {
                     $ins->execute([$cid,$nombre,$apellido,$telefono,$email,$notas]);
                     $importados++;
-                } catch (Exception $e) { $errores++; }
+                } catch (Exception $e) {
+                    $errores++; $erroresPorInsert++;
+                    if ($primerErrorInsert === null) $primerErrorInsert = $e->getMessage();
+                }
             }
             fclose($handle);
             $resp = ['ok'=>true,'importados'=>$importados,'duplicados'=>$duplicados,'errores'=>$errores];
@@ -486,6 +496,9 @@ if (!empty($_POST['camp_ajax'])) {
                     'mapa_detectado' => $map,
                     'uso_orden_fijo' => !$detectado,
                     'primeras_filas' => $primerasFilas,
+                    'errores_por_nombre_vacio' => $erroresPorNombreVacio,
+                    'errores_por_insert' => $erroresPorInsert,
+                    'primer_error_insert' => $primerErrorInsert,
                 ];
             }
             echo json_encode($resp); break;
@@ -2528,8 +2541,9 @@ function submitCcImport(){
       if(d.ok){
         var msg='✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':'');
         if(d.importados===0 && d.diag){
-          msg += '\n\nNO SE RECONOCIÓ NINGÚN CONTACTO. El sistema vio '+d.diag.columnas_vistas+' columna(s) en el encabezado. Primeras columnas: '+(d.diag.encabezados||[]).join(' | ')+
-                 '. '+(d.diag.uso_orden_fijo?'No reconoció ningún encabezado de nombre, así que usó el orden fijo (columna 1 = nombre) y salió vacía.':'Detectó la columna de nombre en la posición '+d.diag.mapa_detectado.nombre+' pero venía vacía en los datos.');
+          msg += '\n\nNO SE IMPORTÓ NINGUNO. El sistema vio '+d.diag.columnas_vistas+' columna(s) en el encabezado. Primeras columnas: '+(d.diag.encabezados||[]).join(' | ')+'.';
+          if(d.diag.errores_por_nombre_vacio) msg += '\n· '+d.diag.errores_por_nombre_vacio+' fila(s) sin nombre.';
+          if(d.diag.errores_por_insert) msg += '\n· '+d.diag.errores_por_insert+' fila(s) fallaron al guardar. Error: '+(d.diag.primer_error_insert||'—');
           (d.diag.primeras_filas||[]).forEach(function(f,i){
             msg += '\nFila de datos #'+(i+1)+' tiene '+f.cuenta_columnas+' columna(s): '+JSON.stringify(f.valores);
           });
