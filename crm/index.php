@@ -387,18 +387,47 @@ if (!empty($_POST['camp_ajax'])) {
 
             // Detectar qué columna es cuál según el título del encabezado —
             // así no importa el orden ni si tu lista trae columnas distintas.
-            $aliases = [
+            // Reportes reales (ej. de Medicare) traen MUCHAS columnas parecidas
+            // ("Provider Name", "Provider Phone", "Product Name"...) que NO son
+            // del contacto — por eso primero se busca coincidencia EXACTA, y
+            // solo si no hay, una coincidencia por frase específica (nunca por
+            // palabra suelta como "name" o "phone", que daría falsos positivos).
+            $normalizar = function($h) {
+                return strtolower(trim(preg_replace('/[^a-z0-9 ]/','', strtr(strtolower($h),
+                    ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n']))));
+            };
+            $exactos = [
                 'nombre'   => ['nombre','name','first name','firstname','first_name'],
                 'apellido' => ['apellido','last name','lastname','last_name','surname'],
                 'telefono' => ['telefono','phone','cell','celular','tel','numero','numero de telefono'],
                 'email'    => ['email','correo','e-mail','mail'],
                 'notas'    => ['notas','notes','comentarios','comment','nota'],
             ];
+            $porFrase = [
+                'nombre'   => ['first name'],
+                'apellido' => ['last name','middle name'],
+                'telefono' => ['primary phone','mbr phone','member phone','phone number','contact phone','cell phone'],
+                'email'    => ['email'],
+                'notas'    => [],
+            ];
+            $headerNorm = array_map($normalizar, $header);
             $map = ['nombre'=>null,'apellido'=>null,'telefono'=>null,'email'=>null,'notas'=>null];
-            foreach ($header as $i => $h) {
-                $hn = strtolower(trim(preg_replace('/[^a-zA-Z0-9 ]/','', strtr($h,['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','ñ'=>'n']))));
-                foreach ($aliases as $field => $names) {
-                    if ($map[$field] === null && in_array($hn, $names, true)) { $map[$field] = $i; break; }
+            // 1) coincidencia exacta
+            foreach ($exactos as $field => $names) {
+                foreach ($headerNorm as $i => $hn) {
+                    if (in_array($hn, $names, true)) { $map[$field] = $i; break; }
+                }
+            }
+            // 2) coincidencia por frase específica (columnas que empiecen con "provider"/
+            //    "application"/"product" quedan afuera a propósito — esas no son del contacto)
+            foreach ($porFrase as $field => $frases) {
+                if ($map[$field] !== null || empty($frases)) continue;
+                foreach ($headerNorm as $i => $hn) {
+                    if (in_array($i, $map, true)) continue; // no reusar una columna ya asignada
+                    if (str_starts_with($hn, 'provider') || str_starts_with($hn, 'application') || str_starts_with($hn, 'product')) continue;
+                    foreach ($frases as $f) {
+                        if (str_contains($hn, $f)) { $map[$field] = $i; break 2; }
+                    }
                 }
             }
             $detectado = $map['nombre'] !== null; // si no reconocimos ni el nombre, usamos el orden fijo de siempre
@@ -2309,7 +2338,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
   <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:9px 12px;margin-bottom:11px">
     <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">TU ARCHIVO DEBE TENER ENCABEZADOS</div>
     <div style="font-size:9px;color:<?=$MU?>;line-height:1.6">
-      La primera fila debe decir el nombre de cada columna (ej. "Nombre", "Teléfono", "Email"...). No importa el orden ni si le faltan o le sobran columnas — el sistema las reconoce solas. Las columnas que no reconozca (ej. "Edad", "Ciudad") no se pierden: se guardan dentro de las notas de cada contacto.
+      La primera fila debe decir el nombre de cada columna (ej. "First Name", "Primary Phone Number"...). No importa el orden ni si tu lista trae columnas de más (ej. reportes de Medicare con "Provider Name", "Provider Phone", MBI, dirección, etc.) — el sistema reconoce solo el nombre y teléfono del contacto, y todo lo demás lo guarda dentro de las notas para no perder nada.
     </div>
     <div style="font-size:9px;color:<?=$MU?>;font-family:monospace;margin-top:6px">Nombre, Apellido, Teléfono, Email, Notas<br>María, González, (818)555-0142, maria@x.com, Le interesa el plan dental</div>
     <div style="font-size:8px;color:<?=$MU?>;margin-top:6px">Si tu lista está en Excel, ábrela y guárdala como CSV (Archivo → Guardar como → CSV) antes de subirla aquí.</div>
