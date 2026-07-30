@@ -1340,9 +1340,9 @@ case 'import_csv':
     if (empty($_FILES['file']['tmp_name'])) jsonErr('Sin archivo');
     $pdo = db();
     $handle = fopen($_FILES['file']['tmp_name'],'r');
-    fgetcsv($handle);
+    fgetcsv($handle, null, ",", "\"", "\\");
     $count=0; $errors=0;
-    while (($data=fgetcsv($handle))!==false) {
+    while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
         if (count($data)<2){$errors++;continue;}
         $nombre = trim($data[0]??'');
         $apellido = trim($data[1]??'');

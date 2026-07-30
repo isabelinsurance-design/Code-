@@ -382,7 +382,7 @@ if (!empty($_POST['camp_ajax'])) {
             if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
             if (empty($_FILES['file']['tmp_name'])) { echo json_encode(['ok'=>false,'error'=>'Sin archivo']); break; }
             $handle = fopen($_FILES['file']['tmp_name'],'r');
-            $header = fgetcsv($handle);
+            $header = fgetcsv($handle, null, ",", "\"", "\\");
             if ($header === false) { echo json_encode(['ok'=>false,'error'=>'Archivo vacío']); break; }
 
             // Detectar qué columna es cuál según el título del encabezado —
@@ -439,7 +439,7 @@ if (!empty($_POST['camp_ajax'])) {
             $importados=0; $duplicados=0; $errores=0;
             $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
-            while (($data=fgetcsv($handle))!==false) {
+            while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
                 if (count($data)<1) continue;
                 if ($detectado) {
                     $nombre    = strtoupper(trim($data[$map['nombre']] ?? ''));
