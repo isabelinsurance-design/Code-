@@ -377,6 +377,50 @@ if (!empty($_POST['camp_ajax'])) {
             $nid = (int)$pdo_c->lastInsertId();
             $pdo_c->prepare("UPDATE campana_contactos SET miembro_id=?, promovido=1, estado='EN PIPELINE' WHERE id=?")->execute([$nid, $id]);
             echo json_encode(['ok'=>true,'miembro_id'=>$nid]); break;
+        case 'import_contactos_csv':
+            $cid = (int)($_POST['campana_id'] ?? 0);
+            if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
+            if (empty($_FILES['file']['tmp_name'])) { echo json_encode(['ok'=>false,'error'=>'Sin archivo']); break; }
+            $handle = fopen($_FILES['file']['tmp_name'],'r');
+            fgetcsv($handle); // saltar encabezado
+            $importados=0; $duplicados=0; $errores=0;
+            $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
+            $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
+            while (($data=fgetcsv($handle))!==false) {
+                if (count($data)<1) continue;
+                $nombre   = strtoupper(trim($data[0] ?? ''));
+                $apellido = strtoupper(trim($data[1] ?? ''));
+                $telefono = trim($data[2] ?? '');
+                $email    = trim($data[3] ?? '');
+                $notas    = trim($data[4] ?? '');
+                if ($nombre === '') { $errores++; continue; }
+                if ($telefono !== '') {
+                    $chk->execute([$cid,$telefono]);
+                    if ($chk->fetch()) { $duplicados++; continue; }
+                }
+                try {
+                    $ins->execute([$cid,$nombre,$apellido,$telefono,$email,$notas]);
+                    $importados++;
+                } catch (Exception $e) { $errores++; }
+            }
+            fclose($handle);
+            echo json_encode(['ok'=>true,'importados'=>$importados,'duplicados'=>$duplicados,'errores'=>$errores]); break;
+        case 'reclamar_contacto':
+            $id = (int)($_POST['id'] ?? 0);
+            $q = $pdo_c->prepare("SELECT agente_id FROM campana_contactos WHERE id=?"); $q->execute([$id]);
+            $row = $q->fetch(PDO::FETCH_ASSOC);
+            if (!$row) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
+            if (!empty($row['agente_id'])) { echo json_encode(['ok'=>false,'error'=>'Ya lo reclamó otra persona']); break; }
+            $pdo_c->prepare("UPDATE campana_contactos SET agente_id=? WHERE id=?")->execute([$uid_c, $id]);
+            echo json_encode(['ok'=>true]); break;
+        case 'liberar_contacto':
+            $id = (int)($_POST['id'] ?? 0);
+            $q = $pdo_c->prepare("SELECT agente_id FROM campana_contactos WHERE id=?"); $q->execute([$id]);
+            $row = $q->fetch(PDO::FETCH_ASSOC);
+            if (!$row) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
+            if ((int)$row['agente_id'] !== (int)$uid_c && !$admin) { echo json_encode(['ok'=>false,'error'=>'Solo quien lo reclamó (o un admin) puede liberarlo']); break; }
+            $pdo_c->prepare("UPDATE campana_contactos SET agente_id=NULL WHERE id=?")->execute([$id]);
+            echo json_encode(['ok'=>true]); break;
         default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
     }} catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
     exit;
@@ -2044,7 +2088,9 @@ $CC_EST=['ACTIVO'=>['#1B5E8C','#EBF5FB','ACTIVO'],'INTERESADO'=>['#1E7A5C','#EAF
 $campanas=[];$cc_by_camp=[];$clog_by_contacto=[];
 try{
  $campanas=$pdo->query("SELECT c.*, u.iniciales as agente_ini, u.color as agente_color FROM campanas c LEFT JOIN usuarios u ON c.agente_id=u.id ORDER BY FIELD(c.estado,'ACTIVA','PAUSADA','CERRADA'), c.created_at DESC")->fetchAll();
- foreach($pdo->query("SELECT * FROM campana_contactos ORDER BY promovido ASC, id DESC") as $ct)$cc_by_camp[$ct['campana_id']][]=$ct;
+ foreach($pdo->query("SELECT cc.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
+                       FROM campana_contactos cc LEFT JOIN usuarios u ON cc.agente_id=u.id
+                       ORDER BY cc.promovido ASC, cc.id DESC") as $ct)$cc_by_camp[$ct['campana_id']][]=$ct;
  foreach($pdo->query("SELECT * FROM campana_logs ORDER BY id DESC") as $lg)$clog_by_contacto[$lg['contacto_id']][]=$lg;
 }catch(Exception $e){}
 $camp_total=count($campanas);
@@ -2101,6 +2147,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
     <?php if(!empty($c['descripcion'])):?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;margin-bottom:11px"><?=h($c['descripcion'])?></div><?php endif;?>
     <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
+      <button class="btn btn-sky btn-sm" onclick="openCcImport(<?=$c['id']?>)">⤒ SUBIR LISTA (CSV)</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
       <button class="btn btn-re btn-sm" onclick="deleteCampana(<?=$c['id']?>)">✕ ELIMINAR</button>
     </div>
@@ -2125,9 +2172,17 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
               </select>
             <?php endif;?>
           </div>
-          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px">
+          <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
             <?php if($lastlog):?><span style="font-size:8px;color:<?=$MU?>">ÚLTIMO: <?=h($lastlog['canal'])?> — <?=h($lastlog['resultado'])?></span><?php endif;?>
+            <?php if(!empty($ct['agente_id'])):?>
+              <span style="display:inline-flex;align-items:center;gap:4px;background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:20px;padding:1px 8px 1px 3px;font-size:8px;font-weight:900">
+                <?=av(h($ct['agente_ini']??'?'),h($ct['agente_color']??$P2),14)?> 🙋 <?=h(explode(' ',$ct['agente_nombre']??'?')[0])?>
+                <?php if((int)$ct['agente_id']===(int)$uid || $admin):?><a href="javascript:void(0)" onclick="liberarContacto(<?=$ct['id']?>)" style="color:#5B3FAF;text-decoration:underline;margin-left:2px">liberar</a><?php endif;?>
+              </span>
+            <?php elseif(!$ct['promovido']):?>
+              <button class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 8px" onclick="reclamarContacto(<?=$ct['id']?>)">🙋 RECLAMAR</button>
+            <?php endif;?>
           </div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
@@ -2205,6 +2260,23 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
       <button type="submit" class="btn btn-p btn-sm">GUARDAR</button>
     </div>
   </form>
+</div></div>
+
+<!-- MODAL: SUBIR LISTA DE CONTACTOS (CSV) -->
+<div id="modal-cc-import" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">⤒ SUBIR LISTA DE CONTACTOS</div><button class="modal-close" onclick="closeModal('modal-cc-import')">✕</button></div>
+  <input type="hidden" id="cci-campana-id">
+  <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:9px 12px;margin-bottom:11px">
+    <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">FORMATO ESPERADO (CSV)</div>
+    <div style="font-size:9px;color:<?=$MU?>;font-family:monospace">Nombre, Apellido, Teléfono, Email, Notas<br>María, González, (818)555-0142, maria@x.com, Le interesa el plan dental</div>
+    <div style="font-size:8px;color:<?=$MU?>;margin-top:6px">Si tu lista está en Excel, ábrela y guárdala como CSV (Archivo → Guardar como → CSV) antes de subirla aquí.</div>
+  </div>
+  <div class="form-group"><label class="form-label">ARCHIVO CSV</label><input type="file" id="cci-file" accept=".csv" class="form-input" style="padding:6px"></div>
+  <div id="cci-result" style="display:none;margin-bottom:8px"></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-import')">CANCELAR</button>
+    <button type="button" class="btn btn-p btn-sm" id="cci-btn" onclick="submitCcImport()">⤒ SUBIR</button>
+  </div>
 </div></div>
 
 <!-- MODAL: REGISTRAR ACTIVIDAD -->
@@ -2321,6 +2393,46 @@ function promoverContacto(id,name){
   campPost('action=promover_contacto&id='+id,false).then(function(d){
     if(d&&d.ok){ if(typeof toast==='function')toast('✓ Movido al pipeline'); _campReload(); }
   });
+}
+function reclamarContacto(id){
+  campPost('action=reclamar_contacto&id='+id,false).then(function(d){
+    if(d&&d.ok){ if(typeof toast==='function')toast('🙋 RECLAMADO — ya es tuyo'); _campReload(); }
+  });
+}
+function liberarContacto(id){
+  if(!confirm('¿Liberar este contacto para que cualquiera lo pueda reclamar?'))return;
+  campPost('action=liberar_contacto&id='+id,false).then(function(d){
+    if(d&&d.ok){ if(typeof toast==='function')toast('✓ Liberado'); _campReload(); }
+  });
+}
+function openCcImport(campanaId){
+  document.getElementById('cci-campana-id').value=campanaId;
+  document.getElementById('cci-file').value='';
+  var res=document.getElementById('cci-result'); if(res){res.style.display='none';}
+  openModal('modal-cc-import');
+}
+function submitCcImport(){
+  var file=document.getElementById('cci-file')?.files[0];
+  var cid=document.getElementById('cci-campana-id').value;
+  if(!file){ if(typeof toast==='function')toast('⚠ SELECCIONA UN ARCHIVO CSV'); return; }
+  var btn=document.getElementById('cci-btn'); btn.disabled=true; btn.textContent='SUBIENDO...';
+  var fd=new FormData();
+  fd.append('camp_ajax','1'); fd.append('action','import_contactos_csv');
+  fd.append('campana_id',cid); fd.append('file',file);
+  fetch(location.pathname,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    btn.disabled=false; btn.textContent='⤒ SUBIR';
+    var res=document.getElementById('cci-result');
+    if(d&&d.ok){
+      if(res){ res.style.display=''; res.style.background='#EAF5F0'; res.style.border='1px solid #8DCFBA'; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.color='#1E7A5C'; res.style.textTransform='uppercase';
+        res.textContent='✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':''); }
+      if(typeof toast==='function')toast('✓ '+d.importados+' CONTACTOS IMPORTADOS');
+      try{ sessionStorage.setItem('campOpen', cid); }catch(e){}
+      setTimeout(function(){ closeModal('modal-cc-import'); _campReload(); },1400);
+    } else {
+      if(res){ res.style.display=''; res.style.background='#FDF0EE'; res.style.border='1px solid #EFA09A'; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.color='#B83232'; res.style.textTransform='uppercase';
+        res.textContent='⚠ '+(d&&d.error||'Error al importar'); }
+    }
+  }).catch(function(){ btn.disabled=false; btn.textContent='⤒ SUBIR'; if(typeof toast==='function')toast('Error de red'); });
 }
 document.addEventListener('DOMContentLoaded',function(){
   try{
