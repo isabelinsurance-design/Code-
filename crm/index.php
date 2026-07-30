@@ -2483,28 +2483,52 @@ function openCcImport(campanaId){
   var res=document.getElementById('cci-result'); if(res){res.style.display='none';}
   openModal('modal-cc-import');
 }
+function _cciShowResult(msg,ok){
+  var res=document.getElementById('cci-result');
+  if(!res) return;
+  res.style.display=''; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.textTransform='uppercase';
+  if(ok){ res.style.background='#EAF5F0'; res.style.border='1px solid #8DCFBA'; res.style.color='#1E7A5C'; }
+  else  { res.style.background='#FDF0EE'; res.style.border='1px solid #EFA09A'; res.style.color='#B83232'; }
+  res.textContent=msg;
+}
 function submitCcImport(){
   var file=document.getElementById('cci-file')?.files[0];
   var cid=document.getElementById('cci-campana-id').value;
   if(!file){ if(typeof toast==='function')toast('⚠ SELECCIONA UN ARCHIVO CSV'); return; }
+  if(file.size > 6*1024*1024){
+    _cciShowResult('⚠ EL ARCHIVO PESA '+(file.size/1024/1024).toFixed(1)+' MB — PARTE LA LISTA EN VARIAS MÁS PEQUEÑAS (MENOS DE 5 MB CADA UNA) Y SÚBELAS UNA POR UNA', false);
+    return;
+  }
   var btn=document.getElementById('cci-btn'); btn.disabled=true; btn.textContent='SUBIENDO...';
   var fd=new FormData();
   fd.append('camp_ajax','1'); fd.append('action','import_contactos_csv');
   fd.append('campana_id',cid); fd.append('file',file);
-  fetch(location.pathname,{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+  fetch(location.pathname,{method:'POST',body:fd}).then(function(r){
+    return r.text().then(function(txt){ return {status:r.status, txt:txt}; });
+  }).then(function(res){
     btn.disabled=false; btn.textContent='⤒ SUBIR';
-    var res=document.getElementById('cci-result');
-    if(d&&d.ok){
-      if(res){ res.style.display=''; res.style.background='#EAF5F0'; res.style.border='1px solid #8DCFBA'; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.color='#1E7A5C'; res.style.textTransform='uppercase';
-        res.textContent='✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':''); }
-      if(typeof toast==='function')toast('✓ '+d.importados+' CONTACTOS IMPORTADOS');
-      try{ sessionStorage.setItem('campOpen', cid); }catch(e){}
-      setTimeout(function(){ closeModal('modal-cc-import'); _campReload(); },1400);
-    } else {
-      if(res){ res.style.display=''; res.style.background='#FDF0EE'; res.style.border='1px solid #EFA09A'; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.color='#B83232'; res.style.textTransform='uppercase';
-        res.textContent='⚠ '+(d&&d.error||'Error al importar'); }
+    var d=null;
+    try{ d=JSON.parse(res.txt); }catch(e){}
+    if(d && typeof d==='object'){
+      if(d.ok){
+        _cciShowResult('✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':''), true);
+        if(typeof toast==='function')toast('✓ '+d.importados+' CONTACTOS IMPORTADOS');
+        try{ sessionStorage.setItem('campOpen', cid); }catch(e){}
+        setTimeout(function(){ closeModal('modal-cc-import'); _campReload(); },1400);
+      } else {
+        _cciShowResult('⚠ '+(d.error||'Error al importar'), false);
+      }
+      return;
     }
-  }).catch(function(){ btn.disabled=false; btn.textContent='⤒ SUBIR'; if(typeof toast==='function')toast('Error de red'); });
+    // La respuesta no fue JSON válido — casi siempre es porque el archivo
+    // superó el límite de subida del hosting (el servidor descarta todo
+    // el POST y regresa la página normal en vez de la respuesta).
+    if(res.status===413 || res.status===500 || res.status===0 || /post_max_size|upload_max_filesize/i.test(res.txt)){
+      _cciShowResult('⚠ EL ARCHIVO ES DEMASIADO GRANDE PARA EL LÍMITE DE SUBIDA DEL HOSTING. PARTE LA LISTA EN ARCHIVOS MÁS PEQUEÑOS (POR EJEMPLO DE 200-300 FILAS) Y SÚBELOS UNO POR UNO.', false);
+    } else {
+      _cciShowResult('⚠ RESPUESTA INESPERADA DEL SERVIDOR (CÓDIGO '+res.status+'). INTENTA CON UN ARCHIVO MÁS PEQUEÑO O AVISA A SOPORTE.', false);
+    }
+  }).catch(function(){ btn.disabled=false; btn.textContent='⤒ SUBIR'; _cciShowResult('⚠ ERROR DE RED — REVISA TU CONEXIÓN E INTENTA DE NUEVO', false); });
 }
 document.addEventListener('DOMContentLoaded',function(){
   try{
