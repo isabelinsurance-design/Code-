@@ -473,7 +473,19 @@ if (!empty($_POST['camp_ajax'])) {
                 } catch (Exception $e) { $errores++; }
             }
             fclose($handle);
-            echo json_encode(['ok'=>true,'importados'=>$importados,'duplicados'=>$duplicados,'errores'=>$errores]); break;
+            $resp = ['ok'=>true,'importados'=>$importados,'duplicados'=>$duplicados,'errores'=>$errores];
+            // Si nada se importó, mandamos pistas de diagnóstico (qué columnas
+            // vio y cuáles reconoció) para saber por qué sin tener que adivinar.
+            if ($importados === 0) {
+                $resp['diag'] = [
+                    'columnas_vistas' => count($header),
+                    'primer_encabezado' => $header[0] ?? null,
+                    'encabezados' => array_slice($header, 0, 8),
+                    'mapa_detectado' => $map,
+                    'uso_orden_fijo' => !$detectado,
+                ];
+            }
+            echo json_encode($resp); break;
         case 'reclamar_contacto':
             $id = (int)($_POST['id'] ?? 0);
             $q = $pdo_c->prepare("SELECT agente_id FROM campana_contactos WHERE id=?"); $q->execute([$id]);
@@ -2486,7 +2498,7 @@ function openCcImport(campanaId){
 function _cciShowResult(msg,ok){
   var res=document.getElementById('cci-result');
   if(!res) return;
-  res.style.display=''; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.textTransform='uppercase';
+  res.style.display=''; res.style.borderRadius='8px'; res.style.padding='8px 12px'; res.style.fontSize='9px'; res.style.fontWeight='900'; res.style.textTransform='uppercase'; res.style.whiteSpace='pre-wrap'; res.style.lineHeight='1.6';
   if(ok){ res.style.background='#EAF5F0'; res.style.border='1px solid #8DCFBA'; res.style.color='#1E7A5C'; }
   else  { res.style.background='#FDF0EE'; res.style.border='1px solid #EFA09A'; res.style.color='#B83232'; }
   res.textContent=msg;
@@ -2511,10 +2523,18 @@ function submitCcImport(){
     try{ d=JSON.parse(res.txt); }catch(e){}
     if(d && typeof d==='object'){
       if(d.ok){
-        _cciShowResult('✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':''), true);
-        if(typeof toast==='function')toast('✓ '+d.importados+' CONTACTOS IMPORTADOS');
-        try{ sessionStorage.setItem('campOpen', cid); }catch(e){}
-        setTimeout(function(){ closeModal('modal-cc-import'); _campReload(); },1400);
+        var msg='✓ '+d.importados+' IMPORTADOS'+(d.duplicados?' · '+d.duplicados+' DUPLICADOS OMITIDOS':'')+(d.errores?' · '+d.errores+' CON ERROR':'');
+        if(d.importados===0 && d.diag){
+          msg += '\n\nNO SE RECONOCIÓ NINGÚN CONTACTO. El sistema vio '+d.diag.columnas_vistas+' columna(s). Primeras columnas: '+(d.diag.encabezados||[]).join(' | ')+
+                 '. '+(d.diag.uso_orden_fijo?'No reconoció ningún encabezado de nombre, así que usó el orden fijo (columna 1 = nombre) y salió vacía.':'Detectó la columna de nombre en la posición '+d.diag.mapa_detectado.nombre+' pero venía vacía en todas las filas.')+
+                 ' Si tu archivo tiene 1 sola columna gigante, probablemente está separado por punto y coma (;) en vez de coma — avísame.';
+          _cciShowResult(msg, false);
+        } else {
+          _cciShowResult(msg, true);
+          if(typeof toast==='function')toast('✓ '+d.importados+' CONTACTOS IMPORTADOS');
+          try{ sessionStorage.setItem('campOpen', cid); }catch(e){}
+          setTimeout(function(){ closeModal('modal-cc-import'); _campReload(); },1400);
+        }
       } else {
         _cciShowResult('⚠ '+(d.error||'Error al importar'), false);
       }
