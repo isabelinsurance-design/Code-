@@ -2406,7 +2406,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
     <div class="form-group"><label class="form-label">DESCRIPCIÓN</label><textarea name="descripcion" id="camp-desc" class="form-input" rows="2" style="text-transform:none"></textarea></div>
     <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
       <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-camp-form')">CANCELAR</button>
-      <button type="submit" class="btn btn-p btn-sm">GUARDAR</button>
+      <button type="submit" class="btn btn-p btn-sm" id="camp-form-btn">GUARDAR</button>
     </div>
   </form>
 </div></div>
@@ -2427,7 +2427,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
     <div class="form-group"><label class="form-label">NOTAS</label><textarea name="notas" id="cc-notas" class="form-input" rows="2" style="text-transform:none"></textarea></div>
     <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
       <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-form')">CANCELAR</button>
-      <button type="submit" class="btn btn-p btn-sm">GUARDAR</button>
+      <button type="submit" class="btn btn-p btn-sm" id="cc-form-btn">GUARDAR</button>
     </div>
   </form>
 </div></div>
@@ -2516,8 +2516,18 @@ function openCampForm(id){
   openModal('modal-camp-form');
 }
 function saveCampana(e){e.preventDefault();var f=e.target;
+  var btn=document.getElementById('camp-form-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
   var p='action=save_campana&id='+encodeURIComponent(f.id.value)+'&nombre='+encodeURIComponent(f.nombre.value)+'&canal='+encodeURIComponent(f.canal.value)+'&estado='+encodeURIComponent(f.estado.value)+'&fecha_inicio='+encodeURIComponent(f.fecha_inicio.value)+'&costo='+encodeURIComponent(f.costo.value)+'&descripcion='+encodeURIComponent(f.descripcion.value);
-  campPost(p,false).then(function(d){if(d&&d.ok){try{sessionStorage.setItem('campOpen',d.id);}catch(e){}_campReload();}});
+  campPost(p,false).then(function(d){
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ CAMPAÑA GUARDADA');
+      try{sessionStorage.setItem('campOpen',d.id);}catch(e){}
+      closeModal('modal-camp-form');
+      _campReload();
+    }
+    if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; }
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; } });
 }
 function deleteCampana(id){if(!confirm('¿Eliminar esta campaña? Se borrarán sus contactos y registros.'))return;try{sessionStorage.removeItem('campOpen');}catch(e){}campPost('action=delete_campana&id='+id,true);}
 function openCcForm(campId,ctId){
@@ -2533,9 +2543,19 @@ function openCcForm(campId,ctId){
   openModal('modal-cc-form');
 }
 function saveContacto(e){e.preventDefault();var f=e.target;
+  var btn=document.getElementById('cc-form-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
   var camp=f.campana_id.value;
   var p='action=save_contacto&id='+encodeURIComponent(f.id.value)+'&campana_id='+encodeURIComponent(camp)+'&nombre='+encodeURIComponent(f.nombre.value)+'&apellido='+encodeURIComponent(f.apellido.value)+'&telefono='+encodeURIComponent(f.telefono.value)+'&email='+encodeURIComponent(f.email.value)+'&notas='+encodeURIComponent(f.notas.value);
-  campPost(p,false).then(function(d){if(d&&d.ok){try{sessionStorage.setItem('campOpen',camp);}catch(e){}_campReload();}});
+  campPost(p,false).then(function(d){
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ CONTACTO GUARDADO');
+      try{sessionStorage.setItem('campOpen',camp);}catch(e){}
+      closeModal('modal-cc-form');
+      _campReload();
+    }
+    if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; }
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; } });
 }
 function deleteContacto(id){if(!confirm('¿Eliminar este contacto y su historial?'))return;campPost('action=delete_contacto&id='+id,true);}
 function ccEstado(id,val){campPost('action=update_contacto_estado&id='+id+'&estado='+encodeURIComponent(val),false).then(function(){if(typeof toast==='function')toast('Estado actualizado');});}
