@@ -286,12 +286,23 @@ if (!empty($_POST['mtg_ajax'])) {
 if (!empty($_POST['camp_ajax'])) {
     header('Content-Type: application/json');
     $pdo_c = db(); $u_c = auth(); $uid_c = $u_c['id']; $act_c = $_POST['action'] ?? '';
-    // Asegurar que 'apellido' exista aunque esta petición ajax se dispare
-    // antes de que una carga normal de la página corra esa migración.
+    // Asegurar que todas las columnas existan aunque esta petición ajax se
+    // dispare antes de que una carga normal de la página corra la migración.
     try {
         $cc_cols_chk = $pdo_c->query("SHOW COLUMNS FROM campana_contactos")->fetchAll(PDO::FETCH_COLUMN);
-        if (!in_array('apellido', $cc_cols_chk, true)) {
-            $pdo_c->exec("ALTER TABLE campana_contactos ADD COLUMN apellido VARCHAR(150) DEFAULT NULL AFTER nombre");
+        $cc_add_chk = [
+            'apellido'         => "ADD COLUMN apellido VARCHAR(150) DEFAULT NULL AFTER nombre",
+            'telefono'         => "ADD COLUMN telefono VARCHAR(50)",
+            'email'            => "ADD COLUMN email VARCHAR(150)",
+            'estado'           => "ADD COLUMN estado VARCHAR(30) DEFAULT 'ACTIVO'",
+            'notas'            => "ADD COLUMN notas TEXT",
+            'miembro_id'       => "ADD COLUMN miembro_id INT DEFAULT NULL",
+            'promovido'        => "ADD COLUMN promovido TINYINT(1) DEFAULT 0",
+            'agente_id'        => "ADD COLUMN agente_id INT",
+            'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
+        ];
+        foreach ($cc_add_chk as $col => $ddl) {
+            if (!in_array($col, $cc_cols_chk, true)) { $pdo_c->exec("ALTER TABLE campana_contactos $ddl"); }
         }
     } catch (Exception $e) {}
     try { switch ($act_c) {
@@ -863,11 +874,23 @@ try {
         ultima_actividad DATETIME DEFAULT NULL,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )");
-    // Migración: agregar 'apellido' si la tabla ya existía de antes sin esa
-    // columna (CREATE TABLE IF NOT EXISTS no la agrega a una tabla existente).
+    // Migración: agregar TODAS las columnas que falten si la tabla ya
+    // existía de antes de forma más antigua/incompleta (CREATE TABLE IF NOT
+    // EXISTS no agrega columnas a una tabla que ya existe).
     $cc_cols = $pdo->query("SHOW COLUMNS FROM campana_contactos")->fetchAll(PDO::FETCH_COLUMN);
-    if (!in_array('apellido', $cc_cols, true)) {
-        try { $pdo->exec("ALTER TABLE campana_contactos ADD COLUMN apellido VARCHAR(150) DEFAULT NULL AFTER nombre"); } catch (Exception $e) {}
+    $cc_add = [
+        'apellido'         => "ADD COLUMN apellido VARCHAR(150) DEFAULT NULL AFTER nombre",
+        'telefono'         => "ADD COLUMN telefono VARCHAR(50)",
+        'email'            => "ADD COLUMN email VARCHAR(150)",
+        'estado'           => "ADD COLUMN estado VARCHAR(30) DEFAULT 'ACTIVO'",
+        'notas'            => "ADD COLUMN notas TEXT",
+        'miembro_id'       => "ADD COLUMN miembro_id INT DEFAULT NULL",
+        'promovido'        => "ADD COLUMN promovido TINYINT(1) DEFAULT 0",
+        'agente_id'        => "ADD COLUMN agente_id INT",
+        'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
+    ];
+    foreach ($cc_add as $col => $ddl) {
+        if (!in_array($col, $cc_cols, true)) { try { $pdo->exec("ALTER TABLE campana_contactos $ddl"); } catch (Exception $e) {} }
     }
     $pdo->exec("CREATE TABLE IF NOT EXISTS campana_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
