@@ -300,6 +300,7 @@ if (!empty($_POST['camp_ajax'])) {
             'promovido'        => "ADD COLUMN promovido TINYINT(1) DEFAULT 0",
             'agente_id'        => "ADD COLUMN agente_id INT",
             'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
+            'datos_extra'      => "ADD COLUMN datos_extra TEXT DEFAULT NULL",
         ];
         foreach ($cc_add_chk as $col => $ddl) {
             if (!in_array($col, $cc_cols_chk, true)) { $pdo_c->exec("ALTER TABLE campana_contactos $ddl"); }
@@ -458,7 +459,7 @@ if (!empty($_POST['camp_ajax'])) {
             $importados=0; $duplicados=0; $errores=0;
             $primerasFilas = [];
             $erroresPorNombreVacio = 0; $erroresPorInsert = 0; $primerErrorInsert = null;
-            $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,estado) VALUES (?,?,?,?,?,?,'ACTIVO')");
+            $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,datos_extra,estado) VALUES (?,?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
             while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
                 if (count($primerasFilas) < 2) $primerasFilas[] = ['cuenta_columnas'=>count($data), 'valores'=>array_slice($data,0,8)];
@@ -478,12 +479,15 @@ if (!empty($_POST['camp_ajax'])) {
                     $email     = trim($data[3] ?? '');
                     $notasBase = trim($data[4] ?? '');
                 }
+                // Columnas no reconocidas: se guardan aparte (no mezcladas con
+                // las notas reales) para poder mostrarlas como etiquetas.
                 $extras = [];
                 foreach ($extraCols as $i => $colName) {
                     $val = trim($data[$i] ?? '');
-                    if ($val !== '') $extras[] = ($colName !== '' ? $colName : 'Col'.($i+1)).': '.$val;
+                    if ($val !== '') $extras[($colName !== '' ? $colName : 'Col'.($i+1))] = $val;
                 }
-                $notas = trim($notasBase . ($extras ? (($notasBase!==''?"\n":'').implode(' · ',$extras)) : ''));
+                $notas = $notasBase;
+                $datosExtraJson = $extras ? json_encode($extras, JSON_UNESCAPED_UNICODE) : null;
                 // Recortar a lo que realmente caben las columnas (evita que un
                 // valor más largo de lo esperado tumbe el insert completo).
                 $telefono = mb_substr($telefono, 0, 50);
@@ -496,7 +500,7 @@ if (!empty($_POST['camp_ajax'])) {
                     if ($chk->fetch()) { $duplicados++; continue; }
                 }
                 try {
-                    $ins->execute([$cid,$nombre,$apellido,$telefono,$email,$notas]);
+                    $ins->execute([$cid,$nombre,$apellido,$telefono,$email,$notas,$datosExtraJson]);
                     $importados++;
                 } catch (Exception $e) {
                     $errores++; $erroresPorInsert++;
@@ -888,6 +892,7 @@ try {
         'promovido'        => "ADD COLUMN promovido TINYINT(1) DEFAULT 0",
         'agente_id'        => "ADD COLUMN agente_id INT",
         'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
+        'datos_extra'      => "ADD COLUMN datos_extra TEXT DEFAULT NULL",
     ];
     foreach ($cc_add as $col => $ddl) {
         if (!in_array($col, $cc_cols, true)) { try { $pdo->exec("ALTER TABLE campana_contactos $ddl"); } catch (Exception $e) {} }
@@ -2292,6 +2297,26 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
       $ph=preg_replace('/[^0-9]/','',$ct['telefono']??'');
       $logs=$clog_by_contacto[$ct['id']]??[]; $lastlog=$logs[0]??null;
       $nm=trim($ct['nombre'].' '.($ct['apellido']??''));
+      // Datos extra del archivo importado (columnas que no eran nombre/
+      // teléfono/email/notas) — se guardan aparte para mostrarlas como
+      // etiquetas en vez de mezcladas con las notas reales.
+      $extraChips=[]; $notasReales=$ct['notas']??'';
+      if(!empty($ct['datos_extra'])){
+        $dec=json_decode($ct['datos_extra'],true);
+        if(is_array($dec)) $extraChips=$dec;
+      } elseif(!empty($notasReales) && str_contains($notasReales,' · ')){
+        // Compatibilidad con contactos importados antes de este cambio,
+        // cuando los datos extra venían mezclados dentro de las notas.
+        $partes=explode("\n",$notasReales,2);
+        $blobExtras=count($partes)>1?$partes[1]:$partes[0];
+        $notasPrevias=count($partes)>1?$partes[0]:'';
+        $tmp=[]; $parsedOk=true;
+        foreach(explode(' · ',$blobExtras) as $seg){
+          if(preg_match('/^([^:]{1,60}):\s?(.*)$/s',trim($seg),$m)) $tmp[trim($m[1])]=trim($m[2]);
+          else { $parsedOk=false; break; }
+        }
+        if($parsedOk && $tmp){ $extraChips=$tmp; $notasReales=$notasPrevias; }
+      }
     ?>
     <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
@@ -2334,6 +2359,17 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
           <?php endif;?>
         </div>
       </div>
+      <?php if($notasReales):?><div style="font-size:9px;color:<?=$TX?>;margin-top:6px;white-space:pre-wrap"><?=h($notasReales)?></div><?php endif;?>
+      <?php if($extraChips):?>
+      <div style="margin-top:6px">
+        <button type="button" onclick="var d=this.nextElementSibling;d.style.display=d.style.display==='none'?'flex':'none'" style="background:none;border:none;color:<?=$MU?>;font-size:7px;font-weight:900;text-transform:uppercase;cursor:pointer;padding:0;letter-spacing:.5px">▾ MÁS DATOS (<?=count($extraChips)?>)</button>
+        <div style="display:none;flex-wrap:wrap;gap:4px;margin-top:5px">
+          <?php foreach($extraChips as $ek=>$ev): if($ev===''||$ev===null) continue; ?>
+          <span style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:6px;padding:2px 7px;font-size:7px;color:<?=$TX?>"><b style="color:<?=$MU?>"><?=h($ek)?>:</b> <?=h(mb_strimwidth((string)$ev,0,60,'…'))?></span>
+          <?php endforeach;?>
+        </div>
+      </div>
+      <?php endif;?>
       <div id="cc-hist-<?=$ct['id']?>" style="display:none">
         <?php if(empty($logs)):?><div style="font-size:9px;color:<?=$MU?>;padding:8px;text-transform:uppercase">SIN ACTIVIDAD REGISTRADA</div><?php else: foreach($logs as $lg):?>
         <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid <?=$CB?>">
