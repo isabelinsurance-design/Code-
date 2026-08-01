@@ -382,6 +382,28 @@ if (!empty($_POST['camp_ajax'])) {
                 $pdo_c->prepare("UPDATE campana_contactos SET estado=?, ultima_actividad=NOW() WHERE id=?")->execute([$nuevo_estado,$coid]);
             else
                 $pdo_c->prepare("UPDATE campana_contactos SET ultima_actividad=NOW() WHERE id=?")->execute([$coid]);
+            // Si fue por LLAMADA, que también cuente en el reporte diario del
+            // agente (lo mismo que hace el botón "REGISTRAR LLAMADA").
+            if ($canal === 'LLAMADA') {
+                try {
+                    $pdo_c->exec("CREATE TABLE IF NOT EXISTS llamadas_prospectos (
+                        id INT AUTO_INCREMENT PRIMARY KEY,
+                        agente_id INT, miembro_id INT NULL,
+                        nombre_libre VARCHAR(255), telefono VARCHAR(50),
+                        contesto TINYINT(1) DEFAULT 0,
+                        resultado VARCHAR(100) DEFAULT NULL,
+                        notas TEXT,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )");
+                } catch (Exception $e) {}
+                $ctq = $pdo_c->prepare("SELECT nombre, apellido, telefono, miembro_id FROM campana_contactos WHERE id=?");
+                $ctq->execute([$coid]);
+                $ctRow = $ctq->fetch(PDO::FETCH_ASSOC) ?: [];
+                $nombreLibre = trim(($ctRow['nombre'] ?? '').' '.($ctRow['apellido'] ?? ''));
+                $contesto = in_array($res, ['No contestó','Dejó buzón'], true) ? 0 : 1;
+                $pdo_c->prepare("INSERT INTO llamadas_prospectos (agente_id, miembro_id, nombre_libre, telefono, contesto, resultado, notas) VALUES (?,?,?,?,?,?,?)")
+                      ->execute([$uid_c, $ctRow['miembro_id'] ?? null, $nombreLibre, $ctRow['telefono'] ?? '', $contesto, $res, $nt]);
+            }
             echo json_encode(['ok'=>true]); break;
         case 'promover_contacto':
             $id = (int)($_POST['id'] ?? 0);
@@ -2457,6 +2479,7 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
   <div class="modal-header"><div class="modal-title">REGISTRAR — <span id="cc-log-name"></span></div><button class="modal-close" onclick="closeModal('modal-cc-log')">✕</button></div>
   <form onsubmit="saveLog(event)">
     <input type="hidden" name="campana_id" id="cc-log-campana"><input type="hidden" name="contacto_id" id="cc-log-contacto">
+    <div style="font-size:8px;color:<?=$MU?>;margin-bottom:9px">📞 Si el canal es LLAMADA, también se cuenta automáticamente en tu reporte diario — igual que "REGISTRAR LLAMADA".</div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">CANAL</label><select name="canal" id="cc-log-canal" class="form-input" onchange="ccUpdateOutcomes()">
         <option value="LLAMADA">📞 LLAMADA</option><option value="WHATSAPP">💬 WHATSAPP</option><option value="FLYER">📄 FLYER</option><option value="CITA">🤝 CITA</option>
