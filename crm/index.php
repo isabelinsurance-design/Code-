@@ -4281,6 +4281,11 @@ if(count($t65_pipe)>0):
 
                 // ¿Es un cancelado/dado de baja marcado para recuperar? (no cambia su estado real)
                 $es_recuperacion = in_array($m['estado']??'', $states_lost, true) && !empty($m['en_recuperacion']);
+
+                // Elegible para bonos: ACTIVE o IN PROCESS, siempre que sea NEW ENROLLMENT
+                // (no RE-SIGNED / cambio de plan)
+                $elegible_bono = in_array($m['estado'] ?? '', ['ACTIVE', 'IN PROCESS'], true)
+                                  && ($m['subestado'] ?? '') === 'NEW ENROLLMENT';
             ?>
             <div class="pipe-card" data-temp="<?=h($fuente)?>" data-agente="<?=h($agente_id_m)?>" data-nombre="<?=strtolower(h($nombre_completo))?>"
                  style="border-top:3px solid <?=$col?>; background:#fff;">
@@ -4320,8 +4325,8 @@ if(count($t65_pipe)>0):
                 </div>
                 <?php endif; ?>
 
-                <!-- Es venta → mandar a bonos (VENDIDO / ACTIVE) -->
-                <?php if($colkey === 'sold'):
+                <!-- Es venta → mandar a bonos (ACTIVE o IN PROCESS, si es NEW ENROLLMENT) -->
+                <?php if($elegible_bono):
                     $tiene_bono = !empty($bonos_miembro_ids[(int)$m['id']]);
                 ?>
                 <div style="margin-top:7px;">

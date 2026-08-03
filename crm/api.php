@@ -1267,8 +1267,9 @@ case 'delete_pago_bono':
     break;
 
 // ── ES VENTA → MANDAR A BONOS ─────────────────────────────────
-// El agente (o admin) confirma que la venta ya está ACTIVE y la manda
-// a bonos. El agente solo puede mandar sus propios miembros.
+// El agente (o admin) confirma que la venta ya está ACTIVE o IN PROCESS
+// (siempre que sea NEW ENROLLMENT, no RE-SIGNED) y la manda a bonos.
+// El agente solo puede mandar sus propios miembros.
 // Se registra como PENDIENTE; el admin la paga. Idempotente por miembro.
 case 'verificar_venta_bono':
     $mid = intval($_POST['miembro_id'] ?? 0);
@@ -1279,12 +1280,13 @@ case 'verificar_venta_bono':
         $hasCol = $pdo->query("SHOW COLUMNS FROM pago_bonos LIKE 'miembro_id'")->fetch();
         if (!$hasCol) $pdo->exec("ALTER TABLE pago_bonos ADD COLUMN miembro_id INT NULL");
     } catch (Exception $e) {}
-    $m = $pdo->prepare("SELECT id,nombre,apellido,estado,agente_id FROM miembros WHERE id=?");
+    $m = $pdo->prepare("SELECT id,nombre,apellido,estado,subestado,agente_id FROM miembros WHERE id=?");
     $m->execute([$mid]);
     $mem = $m->fetch();
     if (!$mem) jsonErr('Miembro no encontrado');
     if (!$admin && (int)$mem['agente_id'] !== (int)$uid) jsonErr('Solo puedes mandar tus propias ventas');
-    if ($mem['estado'] !== 'ACTIVE') jsonErr('La venta debe estar ACTIVE para mandarla a bonos');
+    if (!in_array($mem['estado'], ['ACTIVE', 'IN PROCESS'], true)) jsonErr('La venta debe estar ACTIVE o IN PROCESS para mandarla a bonos');
+    if (($mem['subestado'] ?? '') !== 'NEW ENROLLMENT') jsonErr('Solo los NEW ENROLLMENT se pueden mandar a bonos (no re-signed / cambios de plan)');
     if (empty($mem['agente_id'])) jsonErr('El miembro no tiene agente asignado');
     // Evitar duplicados
     $chk = $pdo->prepare("SELECT id FROM pago_bonos WHERE miembro_id=?");
