@@ -2,16 +2,17 @@
 /**
  * reporte_pagos.php
  * Recibo de pago por empleado — Medicare with Isabel CRM
- * Admin-only · junta horas de la quincena + gastos pendientes de reembolso +
- * bonos pendientes en un solo recibo, que el admin aprueba y marca pagado.
+ * Cada empleado arma su propio recibo (horas de la quincena + gastos
+ * pendientes de reembolso + bonos pendientes) y lo manda a aprobación.
+ * El admin aprueba/rechaza y, al marcarlo pagado, los gastos y bonos
+ * incluidos quedan automáticamente como pagados.
  */
 require_once 'session_boot.php';
 require_once 'config.php';
 require_once 'nomina_calc.php';
 $user  = auth();
 $admin = isAdmin();
-if (!$admin) { http_response_code(403); die('Acceso denegado'); }
-$pdo = db();
+$pdo   = db();
 
 // ── TABLA DE RECIBOS DE PAGO (auto-crear, estilo del resto del CRM) ────────
 try { $pdo->exec("CREATE TABLE IF NOT EXISTS recibos_pago (
@@ -43,8 +44,13 @@ $year  = (int)($_GET['y'] ?? date('Y'));
 $month = (int)($_GET['m'] ?? date('n'));
 $q     = (int)($_GET['q'] ?? (date('j') <= 15 ? 1 : 2));
 
-$primer_agente = $pdo->query("SELECT id FROM usuarios WHERE activo=1 AND rol='agent' ORDER BY nombre LIMIT 1")->fetchColumn();
-$agente_id     = (int)($_GET['a'] ?? $primer_agente ?? 0);
+if ($admin) {
+    $primer_agente = $pdo->query("SELECT id FROM usuarios WHERE activo=1 AND rol='agent' ORDER BY nombre LIMIT 1")->fetchColumn();
+    $agente_id     = (int)($_GET['a'] ?? $primer_agente ?? 0);
+} else {
+    // Un empleado solo puede ver/armar su propio recibo, nunca el de otro.
+    $agente_id = (int)$user['id'];
+}
 
 // ── ESCRITURA (PRG: Post → Redirect → Get) ──────────────────────────────────
 if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
@@ -55,7 +61,9 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $action  = $_POST['action'] ?? '';
 
     if ($action === 'crear_recibo') {
-        $post_agente_id = (int)($_POST['agente_id'] ?? 0);
+        // Un empleado solo puede armar un recibo para sí mismo — el admin
+        // puede armarlo en nombre de cualquier empleado si hace falta.
+        $post_agente_id = $admin ? (int)($_POST['agente_id'] ?? 0) : (int)$user['id'];
         $incluye_horas  = !empty($_POST['incluye_horas']);
         $gasto_ids      = array_values(array_filter(array_map('intval', $_POST['gasto_ids'] ?? [])));
         $bono_ids       = array_values(array_filter(array_map('intval', $_POST['bono_ids'] ?? [])));
@@ -125,7 +133,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             }
         }
         $p_a = $post_agente_id;
-    } elseif ($action === 'decidir_recibo') {
+    } elseif ($action === 'decidir_recibo' && $admin) {
+        // Aprobar / rechazar es exclusivo del admin.
         $rid      = (int)($_POST['recibo_id'] ?? 0);
         $decision = $_POST['decision'] ?? '';
         if ($rid && in_array($decision, ['APROBADO', 'RECHAZADO'], true)) {
@@ -134,7 +143,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                  WHERE id=? AND estado='PENDIENTE'"
             )->execute([$decision, (int)$user['id'], $user['nombre'] ?? '', $rid]);
         }
-    } elseif ($action === 'marcar_pagado') {
+    } elseif ($action === 'marcar_pagado' && $admin) {
+        // Marcar como pagado es exclusivo del admin — cascada a gastos y bonos.
         $rid = (int)($_POST['recibo_id'] ?? 0);
         $rr  = $pdo->prepare("SELECT * FROM recibos_pago WHERE id=? AND estado='APROBADO'");
         $rr->execute([$rid]);
@@ -155,16 +165,29 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             } catch (Exception $e) {}
         }
     } elseif ($action === 'eliminar_recibo') {
+        // El admin puede borrar cualquier recibo pendiente; el empleado solo el suyo.
         $rid = (int)($_POST['recibo_id'] ?? 0);
-        $pdo->prepare("DELETE FROM recibos_pago WHERE id=? AND estado='PENDIENTE'")->execute([$rid]);
+        if ($admin) {
+            $pdo->prepare("DELETE FROM recibos_pago WHERE id=? AND estado='PENDIENTE'")->execute([$rid]);
+        } else {
+            $pdo->prepare("DELETE FROM recibos_pago WHERE id=? AND estado='PENDIENTE' AND agente_id=?")->execute([$rid, (int)$user['id']]);
+        }
     }
 
+    if (!$admin) $p_a = (int)$user['id'];
     header('Location: reporte_pagos.php?a=' . $p_a . '&y=' . $p_year . '&m=' . $p_month . '&q=' . $p_q);
     exit;
 }
 
 // ── AGENTES (para el selector) ──────────────────────────────────────────────
-$agents = $pdo->query("SELECT * FROM usuarios WHERE activo=1 AND rol='agent' ORDER BY nombre")->fetchAll();
+// Un empleado solo puede ver/traer sus propios datos, nunca los de otro.
+if ($admin) {
+    $agents = $pdo->query("SELECT * FROM usuarios WHERE activo=1 AND rol='agent' ORDER BY nombre")->fetchAll();
+} else {
+    $st = $pdo->prepare("SELECT * FROM usuarios WHERE id=? AND rol='agent'");
+    $st->execute([$agente_id]);
+    $agents = $st->fetchAll();
+}
 $ag_sel = null;
 foreach ($agents as $a) if ((int)$a['id'] === $agente_id) { $ag_sel = $a; break; }
 
@@ -213,13 +236,16 @@ if ($ag_sel) {
     $recibos_agente = $rh->fetchAll();
 }
 
-// ── COLA GLOBAL DE APROBACIÓN (todos los agentes) ───────────────────────────
-$cola_aprobacion = $pdo->query(
-    "SELECT r.*, u.nombre as agente_nombre, u.iniciales, u.color
-     FROM recibos_pago r LEFT JOIN usuarios u ON r.agente_id = u.id
-     WHERE r.estado IN ('PENDIENTE','APROBADO')
-     ORDER BY r.estado='APROBADO', r.created_at"
-)->fetchAll();
+// ── COLA GLOBAL DE APROBACIÓN (solo admin, todos los agentes) ───────────────
+$cola_aprobacion = [];
+if ($admin) {
+    $cola_aprobacion = $pdo->query(
+        "SELECT r.*, u.nombre as agente_nombre, u.iniciales, u.color
+         FROM recibos_pago r LEFT JOIN usuarios u ON r.agente_id = u.id
+         WHERE r.estado IN ('PENDIENTE','APROBADO')
+         ORDER BY r.estado='APROBADO', r.created_at"
+    )->fetchAll();
+}
 
 // Meses en español
 $meses = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
@@ -270,11 +296,13 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
 <!-- ENCABEZADO -->
 <div class="page-header">
   <div>
-    <div class="page-header h1">🧾 RECIBOS DE PAGO</div>
-    <div class="sub">HORAS · GASTOS · BONOS · MEDICARE WITH ISABEL</div>
+    <div class="page-header h1">🧾 <?=$admin?'RECIBOS DE PAGO':'MI RECIBO DE PAGO'?></div>
+    <div class="sub"><?=$admin?'HORAS · GASTOS · BONOS · MEDICARE WITH ISABEL':'ENVÍA TU RECIBO PARA APROBACIÓN · MEDICARE WITH ISABEL'?></div>
   </div>
   <div style="display:flex;gap:8px;align-items:center">
+    <?php if($admin): ?>
     <a href="reporte_nomina.php?y=<?=$year?>&m=<?=$month?>&q=<?=$q?>" target="_blank" class="btn" style="background:rgba(255,255,255,.12);color:#fff;text-decoration:none">$ VER NÓMINA</a>
+    <?php endif; ?>
     <a href="index.php" class="btn" style="background:rgba(255,255,255,.12);color:#fff;text-decoration:none">← CRM</a>
   </div>
 </div>
@@ -317,6 +345,7 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
 
 <!-- SELECTOR DE EMPLEADO Y PERÍODO -->
 <form method="GET" class="controls">
+  <?php if($admin): ?>
   <div>
     <label>EMPLEADO</label>
     <select name="a">
@@ -325,6 +354,9 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
       <?php endforeach; ?>
     </select>
   </div>
+  <?php else: ?>
+  <input type="hidden" name="a" value="<?=$agente_id?>">
+  <?php endif; ?>
   <div>
     <label>MES</label>
     <select name="m">

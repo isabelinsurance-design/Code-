@@ -5149,6 +5149,20 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
     <?php endif;?>
   </div>
 </div>
+
+<!-- Acceso a mi recibo de pago -->
+<div style="background:#fff;border:1px solid <?=$CB?>;border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px">
+  <div>
+    <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1.5px">MI PAGO</div>
+    <div style="font-size:10px;color:<?=$MU?>;margin-top:3px">Arma tu recibo de horas, gastos y bonos pendientes y mándalo a aprobación</div>
+  </div>
+  <a href="reporte_pagos.php?y=<?=date('Y')?>&m=<?=date('n')?>&q=<?=$q_default?>"
+     target="_blank"
+     class="btn btn-p"
+     style="text-decoration:none;padding:8px 16px;font-size:10px;background:#5B3FAF">
+    🧾 MI RECIBO DE PAGO
+  </a>
+</div>
 <?php endif;?>
  
 <!-- ADMIN: resumen del día + botón nómina + tabla quincena -->
