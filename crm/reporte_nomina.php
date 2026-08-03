@@ -11,11 +11,62 @@ $admin = isAdmin();
 if (!$admin) { http_response_code(403); die('Acceso denegado'); }
 $pdo = db();
 
+// ── TABLA DE AJUSTES MANUALES (auto-crear, estilo del resto del CRM) ───────
+// Permite corregir horas que no quedaron registradas por check-in/check-out
+// (olvidos, fallas del reloj, etc.) dejando constancia de quién y por qué.
+try { $pdo->exec("CREATE TABLE IF NOT EXISTS nomina_ajustes (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    agente_id INT NOT NULL,
+    anio INT NOT NULL,
+    mes TINYINT NOT NULL,
+    quincena TINYINT NOT NULL,
+    horas DECIMAL(6,2) NOT NULL,
+    motivo VARCHAR(255) NOT NULL,
+    creado_por INT,
+    creado_por_nombre VARCHAR(100),
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    INDEX idx_periodo (agente_id, anio, mes, quincena)
+)"); } catch (Exception $e) {}
+
 // ── PARÁMETROS ─────────────────────────────────────────────────────────────
 $year  = (int)($_GET['y'] ?? date('Y'));
 $month = (int)($_GET['m'] ?? date('n'));
 // q=1 → días 1-15  |  q=2 → días 16-fin
 $q     = (int)($_GET['q'] ?? (date('j') <= 15 ? 1 : 2));
+
+// ── ESCRITURA: agregar / borrar ajuste manual (PRG: Post → Redirect → Get) ─
+if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
+    $p_year  = (int)($_POST['y'] ?? $year);
+    $p_month = (int)($_POST['m'] ?? $month);
+    $p_q     = (int)($_POST['q'] ?? $q);
+    $action  = $_POST['action'] ?? '';
+
+    if ($action === 'add_ajuste') {
+        $agente_id = (int)($_POST['agente_id'] ?? 0);
+        $horas     = (float)str_replace(',', '.', $_POST['horas'] ?? '0');
+        $motivo    = trim($_POST['motivo'] ?? '');
+        if ($agente_id > 0 && $horas != 0 && $motivo !== '') {
+            $st = $pdo->prepare(
+                "INSERT INTO nomina_ajustes
+                    (agente_id, anio, mes, quincena, horas, motivo, creado_por, creado_por_nombre)
+                 VALUES (?,?,?,?,?,?,?,?)"
+            );
+            $st->execute([
+                $agente_id, $p_year, $p_month, $p_q,
+                round($horas, 2), mb_substr($motivo, 0, 255),
+                (int)$user['id'], $user['nombre'] ?? '',
+            ]);
+        }
+    } elseif ($action === 'del_ajuste') {
+        $ajuste_id = (int)($_POST['ajuste_id'] ?? 0);
+        if ($ajuste_id > 0) {
+            $pdo->prepare("DELETE FROM nomina_ajustes WHERE id=?")->execute([$ajuste_id]);
+        }
+    }
+
+    header('Location: reporte_nomina.php?y=' . $p_year . '&m=' . $p_month . '&q=' . $p_q);
+    exit;
+}
 
 // Límites de la quincena
 if ($q === 1) {
@@ -110,6 +161,13 @@ function dias_laborables_rango(array $agent, string $inicio, string $fin): array
     return ['dias' => $total, 'horas' => $horas];
 }
 
+// ── AJUSTES MANUALES DE HORAS DE LA QUINCENA ────────────────────────────────
+$stmt_ajustes = $pdo->prepare(
+    "SELECT * FROM nomina_ajustes
+     WHERE agente_id = ? AND anio = ? AND mes = ? AND quincena = ?
+     ORDER BY created_at"
+);
+
 // ── CONSTRUIR DATOS POR AGENTE ─────────────────────────────────────────────
 $nomina = [];
 foreach ($agents as $ag) {
@@ -145,15 +203,21 @@ foreach ($agents as $ag) {
     $dias_esperados   = $esperado['dias'];
     $horas_trabajadas = round($seg_trabajados / 3600, 2);
 
+    // ajustes manuales (horas que no quedaron registradas por check-in/out)
+    $stmt_ajustes->execute([$ag['id'], $year, $month, $q]);
+    $ajustes = $stmt_ajustes->fetchAll();
+    $horas_ajuste = round(array_sum(array_column($ajustes, 'horas')), 2);
+    $horas_trabajadas_total = round($horas_trabajadas + $horas_ajuste, 2);
+
     // pago proporcional
     $salario_base   = (float)$ag['salario_quincenal'];
-    $ratio_horas    = $horas_esperadas > 0 ? ($horas_trabajadas / $horas_esperadas) : 0;
+    $ratio_horas    = $horas_esperadas > 0 ? ($horas_trabajadas_total / $horas_esperadas) : 0;
 
     // Pago base: proporcional a horas trabajadas (máx 100% del salario base)
     $pago_base      = round(min(1, $ratio_horas) * $salario_base, 2);
 
     // Horas extra: cualquier hora por encima de las esperadas
-    $horas_extra    = max(0, round($horas_trabajadas - $horas_esperadas, 2));
+    $horas_extra    = max(0, round($horas_trabajadas_total - $horas_esperadas, 2));
     $valor_hora     = $horas_esperadas > 0 ? ($salario_base / $horas_esperadas) : 0;
     $pago_extra     = round($horas_extra * $valor_hora * 1, 2); // 1x tiempo y medio
 
@@ -161,24 +225,27 @@ foreach ($agents as $ag) {
 
     $dias_ausente   = max(0, $dias_esperados - $dias_con_checkin);
     $porcentaje     = $horas_esperadas > 0
-        ? min(100, round(($horas_trabajadas / $horas_esperadas) * 100, 1))
+        ? min(100, round(($horas_trabajadas_total / $horas_esperadas) * 100, 1))
         : 0;
 
     $nomina[] = [
-        'ag'               => $ag,
-        'horas_esperadas'  => $horas_esperadas,
-        'horas_trabajadas' => $horas_trabajadas,
-        'horas_extra'      => $horas_extra,
-        'dias_esperados'   => $dias_esperados,
-        'dias_presentes'   => $dias_con_checkin,
-        'dias_ausentes'    => $dias_ausente,
-        'salario_base'     => $salario_base,
-        'pago_base'        => $pago_base,
-        'pago_extra'       => $pago_extra,
-        'pago_calculado'   => $pago_calculado,
-        'porcentaje'       => $porcentaje,
-        'valor_hora'       => round($valor_hora, 4),
-        'detalle'          => $detalle,
+        'ag'                     => $ag,
+        'horas_esperadas'        => $horas_esperadas,
+        'horas_trabajadas'       => $horas_trabajadas,
+        'horas_ajuste'           => $horas_ajuste,
+        'horas_trabajadas_total' => $horas_trabajadas_total,
+        'ajustes'                => $ajustes,
+        'horas_extra'            => $horas_extra,
+        'dias_esperados'         => $dias_esperados,
+        'dias_presentes'         => $dias_con_checkin,
+        'dias_ausentes'          => $dias_ausente,
+        'salario_base'           => $salario_base,
+        'pago_base'              => $pago_base,
+        'pago_extra'             => $pago_extra,
+        'pago_calculado'         => $pago_calculado,
+        'porcentaje'             => $porcentaje,
+        'valor_hora'             => round($valor_hora, 4),
+        'detalle'                => $detalle,
     ];
 }
 
@@ -297,7 +364,7 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
   </div>
   <div class="tot-card" style="color:<?=$A?>">
     <div class="tot-icon">◐ HRS TOTALES</div>
-    <div class="tot-val" style="color:<?=$A?>"><?=array_sum(array_column($nomina,'horas_trabajadas'))?>h</div>
+    <div class="tot-val" style="color:<?=$A?>"><?=array_sum(array_column($nomina,'horas_trabajadas_total'))?>h</div>
     <div style="font-size:8px;color:<?=$MU?>;margin-top:2px">TRABAJADAS</div>
   </div>
 </div>
@@ -355,7 +422,10 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
       </div>
       <div class="kpi">
         <div class="kpi-lbl">◐ HRS TRABAJADAS</div>
-        <div class="kpi-val" style="color:<?=$bar_color?>"><?=$n['horas_trabajadas']?>h</div>
+        <div class="kpi-val" style="color:<?=$bar_color?>"><?=$n['horas_trabajadas_total']?>h</div>
+        <?php if($n['horas_ajuste'] != 0): ?>
+        <div style="font-size:7px;font-weight:800;color:<?=$n['horas_ajuste']>0?$G:$R?>;margin-top:2px"><?=$n['horas_ajuste']>0?'+':''?><?=$n['horas_ajuste']?>h ajuste</div>
+        <?php endif; ?>
       </div>
       <div class="kpi">
         <div class="kpi-lbl">⚡ HRS EXTRA</div>
@@ -375,7 +445,57 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
       <div style="position:absolute;top:0;right:0;height:100%;width:4px;background:#C07A1A;border-radius:0 4px 4px 0" title="Horas extra"></div>
       <?php endif; ?>
     </div>
-    <div style="font-size:8px;color:<?=$MU?>;margin-bottom:12px"><?=$n['horas_trabajadas']?>h trabajadas de <?=$n['horas_esperadas']?>h esperadas</div>
+    <div style="font-size:8px;color:<?=$MU?>;margin-bottom:12px">
+      <?=$n['horas_trabajadas']?>h de check-in/out
+      <?php if($n['horas_ajuste'] != 0): ?>
+        <?=$n['horas_ajuste']>0?'+':''?><?=$n['horas_ajuste']?>h de ajuste manual =
+      <?php endif; ?>
+      <?=$n['horas_trabajadas_total']?>h de <?=$n['horas_esperadas']?>h esperadas
+    </div>
+
+    <!-- Ajustes manuales de horas -->
+    <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:10px 12px;margin-bottom:13px">
+      <div style="font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px"> AJUSTES MANUALES DE HORAS</div>
+      <?php if(count($n['ajustes']) > 0): ?>
+      <table style="width:100%;border-collapse:collapse;font-size:9px;margin-bottom:9px">
+        <?php foreach($n['ajustes'] as $aj): ?>
+        <tr>
+          <td style="padding:4px 6px 4px 0;font-weight:900;color:<?=(float)$aj['horas']>=0?$G:$R?>;white-space:nowrap"><?=(float)$aj['horas']>=0?'+':''?><?=rtrim(rtrim(number_format((float)$aj['horas'],2),'0'),'.')?>h</td>
+          <td style="padding:4px 6px;color:<?=$P1?>"><?=htmlspecialchars($aj['motivo'])?></td>
+          <td style="padding:4px 6px;color:<?=$MU?>;white-space:nowrap;text-align:right">
+            <?=htmlspecialchars($aj['creado_por_nombre']?:'—')?> · <?=date('d/m/Y',strtotime($aj['created_at']))?>
+          </td>
+          <td style="padding:4px 0 4px 6px;text-align:right">
+            <form method="POST" style="display:inline" onsubmit="return confirm('¿Eliminar este ajuste de horas?')">
+              <input type="hidden" name="action" value="del_ajuste">
+              <input type="hidden" name="ajuste_id" value="<?=(int)$aj['id']?>">
+              <input type="hidden" name="y" value="<?=$year?>">
+              <input type="hidden" name="m" value="<?=$month?>">
+              <input type="hidden" name="q" value="<?=$q?>">
+              <button type="submit" style="border:none;background:none;color:<?=$R?>;font-size:9px;font-weight:900;cursor:pointer">✕</button>
+            </form>
+          </td>
+        </tr>
+        <?php endforeach; ?>
+      </table>
+      <?php endif; ?>
+      <form method="POST" style="display:flex;gap:6px;flex-wrap:wrap;align-items:flex-end">
+        <input type="hidden" name="action" value="add_ajuste">
+        <input type="hidden" name="agente_id" value="<?=(int)$ag['id']?>">
+        <input type="hidden" name="y" value="<?=$year?>">
+        <input type="hidden" name="m" value="<?=$month?>">
+        <input type="hidden" name="q" value="<?=$q?>">
+        <div>
+          <label style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px">HORAS</label>
+          <input type="number" name="horas" step="0.25" required placeholder="ej. 3 o -1.5" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:6px 8px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$P1?>;font-weight:700;width:100px">
+        </div>
+        <div style="flex:1;min-width:160px">
+          <label style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;display:block;margin-bottom:2px">MOTIVO</label>
+          <input type="text" name="motivo" required maxlength="255" placeholder="ej. Se olvidó marcar salida el 5/8" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:6px 8px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$P1?>;font-weight:700;width:100%">
+        </div>
+        <button type="submit" class="btn btn-p" style="padding:7px 14px">+ AGREGAR AJUSTE</button>
+      </form>
+    </div>
 
     <!-- Detalle diario (colapsable) -->
     <?php if(count($n['detalle']) > 0): ?>
@@ -427,6 +547,9 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
         <div class="pago-label">PAGO ESTA QUINCENA</div>
         <div style="font-size:8px;color:rgba(255,255,255,.5);margin-top:3px;line-height:1.6">
           Base: $<?=number_format($n['pago_base'],2)?> (<?=$pc?>% de $<?=number_format($n['salario_base'],0)?>)
+          <?php if($n['horas_ajuste'] != 0): ?>
+            <br> Ajuste manual: <?=$n['horas_ajuste']>0?'+':''?><?=$n['horas_ajuste']?>h incluidas en el cálculo
+          <?php endif; ?>
           <?php if($n['horas_extra'] > 0): ?>
             <br>⚡ Tiempo extra: <?=$n['horas_extra']?>h × $<?=number_format($n['valor_hora'],2)?>/h × 1 = <b style="color:#FFE066">+$<?=number_format($n['pago_extra'],2)?></b>
           <?php endif; ?>
