@@ -5199,6 +5199,12 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
        style="text-decoration:none;padding:8px 16px;font-size:10px">
       $ VER NÓMINA QUINCENA
     </a>
+    <a href="reporte_pagos.php?y=<?=date('Y')?>&m=<?=date('n')?>&q=<?=$q_default?>"
+       target="_blank"
+       class="btn btn-p"
+       style="text-decoration:none;padding:8px 16px;font-size:10px;background:#5B3FAF">
+      🧾 RECIBOS DE PAGO
+    </a>
   </div>
 </div>
  
