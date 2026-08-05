@@ -1825,11 +1825,6 @@ case 'crear_prospecto_referido':
     $nombre_ref = trim($_POST['nombre'] ?? '');
     if (!$mid_origen) jsonErr('Miembro de origen requerido');
     if ($nombre_ref === '') jsonErr('Nombre requerido');
-    // El campo es texto libre; si lo que se escribió es una respuesta negativa
-    // (p.ej. "no", "ninguno") no es un nombre real — no se crea el perfil.
-    $nombre_norm = trim(preg_replace('/[.,!¡¿?]/', '', mb_strtolower($nombre_ref)));
-    $negativos = ['no', 'no tengo', 'no hay', 'ninguno', 'ninguna', 'ninguno/a', 'nadie', 'na', 'n/a', 'ns'];
-    if (in_array($nombre_norm, $negativos, true)) jsonErr('Esa respuesta no parece ser un nombre — no se creó el prospecto');
     $origen = $pdo->prepare("SELECT nombre, apellido, agente_id FROM miembros WHERE id=?");
     $origen->execute([$mid_origen]);
     $om = $origen->fetch();

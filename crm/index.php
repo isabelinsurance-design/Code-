@@ -3902,7 +3902,15 @@ foreach($_ret_stats as $_rs) {
 </div>
 <div class="grid-2">
 <div class="form-group"><label class="form-label">¿Explicaste que NO deben dar informacion a brokers?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="" checked> N/D</label></div></div>
-<div class="form-group"><label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label><input type="text" name="referido_nuevo" class="form-input" placeholder="Nombre y telefono del referido"><div id="rq30-ref-anterior" style="display:none;margin-top:5px;font-size:8px;color:#1E7A5C;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:6px;padding:5px 8px;font-weight:700">🤝 Ya registrado: <span id="rq30-ref-anterior-txt"></span> — deja este campo vacío para no duplicarlo; escribe aquí solo si hay un referido NUEVO.</div></div>
+<div class="form-group">
+  <label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label>
+  <label style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;cursor:pointer;margin-bottom:6px">
+    <input type="checkbox" id="rq30-tiene-referido" onchange="var i=document.getElementById('rq30-referido-input'); i.disabled=!this.checked; if(!this.checked) i.value=''; else i.focus();">
+    SÍ, me dieron el nombre de alguien
+  </label>
+  <input type="text" name="referido_nuevo" id="rq30-referido-input" class="form-input" placeholder="Nombre y telefono del referido" disabled>
+  <div id="rq30-ref-anterior" style="display:none;margin-top:5px;font-size:8px;color:#1E7A5C;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:6px;padding:5px 8px;font-weight:700">🤝 Ya registrado: <span id="rq30-ref-anterior-txt"></span> — deja el checkbox sin marcar para no duplicarlo; márcalo solo si hay un referido NUEVO.</div>
+</div>
 </div>
 <div class="section-divider">NOTAS</div>
 <div class="form-group"><label class="form-label">NOTAS ADICIONALES</label><textarea name="notas_generales" class="form-input" rows="2" style="text-transform:none" placeholder="Observaciones importantes..."></textarea></div>
@@ -3958,6 +3966,11 @@ function openRetQ30(mid,nombre){
   document.getElementById('rq30-mid').value=mid;
   document.getElementById('rq30-nombre').textContent=nombre||_RET_NOMBRES[mid]||'';
   var refAnt=document.getElementById('rq30-ref-anterior'); if(refAnt) refAnt.style.display='none';
+  // El checkbox y el campo de referido siempre arrancan apagados — form.reset()
+  // no restaura el "disabled" que se cambia con JS, así que se hace a mano.
+  document.getElementById('rq30-tiene-referido').checked=false;
+  var refInput=document.getElementById('rq30-referido-input');
+  refInput.disabled=true; refInput.value='';
   openModal('ret-q30-modal');
   // Precargar respuestas anteriores (si ya se había hecho el cuestionario) para poder editarlas
   fetch('api.php?action=get_retencion_q30&id='+mid).then(function(r){return r.json();}).then(function(d){
@@ -4023,14 +4036,10 @@ function submitRetQ30(e){
     if(d.ok){
       if(typeof toast==='function')toast('Cuestionario guardado');
       closeModal('ret-q30-modal');
-      // El campo "amigo/familiar" es texto libre — se pregunta si de
-      // verdad se quiere crear un perfil de prospecto, no se crea solo.
-      // Si lo que se escribió es una respuesta negativa (p.ej. "no", "ninguno")
-      // no es un nombre real, así que ni se pregunta ni se crea nada.
-      var _refNorm = refNuevo.toLowerCase().replace(/[.,!¡¿?]/g,'').trim();
-      var _NEGATIVOS = ['no','no tengo','no hay','ninguno','ninguna','ninguno/a','nadie','na','n/a','ns'];
-      var esNegativo = _NEGATIVOS.indexOf(_refNorm) !== -1;
-      if(refNuevo && !esNegativo && confirm('¿Quieres crear un perfil de prospecto para "'+refNuevo+'"?\n\nQuedará registrado que fue referido por '+nombreOrigen+'.')){
+      // El campo de referido solo se puede escribir si se marcó el checkbox
+      // "SÍ, me dieron el nombre de alguien" — si no se marcó, el input queda
+      // deshabilitado y vacío, así que aquí nunca llega un "no" por error.
+      if(refNuevo && confirm('¿Quieres crear un perfil de prospecto para "'+refNuevo+'"?\n\nQuedará registrado que fue referido por '+nombreOrigen+'.')){
         fetch('api.php',{method:'POST',body:new URLSearchParams({action:'crear_prospecto_referido',miembro_id:mid,nombre:refNuevo})})
           .then(function(r){return r.json();}).then(function(d2){
             if(d2.ok){ if(typeof toast==='function')toast('✓ Prospecto creado'); }
