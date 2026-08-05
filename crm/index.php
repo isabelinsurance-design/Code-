@@ -4025,7 +4025,12 @@ function submitRetQ30(e){
       closeModal('ret-q30-modal');
       // El campo "amigo/familiar" es texto libre — se pregunta si de
       // verdad se quiere crear un perfil de prospecto, no se crea solo.
-      if(refNuevo && confirm('¿Quieres crear un perfil de prospecto para "'+refNuevo+'"?\n\nQuedará registrado que fue referido por '+nombreOrigen+'.')){
+      // Si lo que se escribió es una respuesta negativa (p.ej. "no", "ninguno")
+      // no es un nombre real, así que ni se pregunta ni se crea nada.
+      var _refNorm = refNuevo.toLowerCase().replace(/[.,!¡¿?]/g,'').trim();
+      var _NEGATIVOS = ['no','no tengo','no hay','ninguno','ninguna','ninguno/a','nadie','na','n/a','ns'];
+      var esNegativo = _NEGATIVOS.indexOf(_refNorm) !== -1;
+      if(refNuevo && !esNegativo && confirm('¿Quieres crear un perfil de prospecto para "'+refNuevo+'"?\n\nQuedará registrado que fue referido por '+nombreOrigen+'.')){
         fetch('api.php',{method:'POST',body:new URLSearchParams({action:'crear_prospecto_referido',miembro_id:mid,nombre:refNuevo})})
           .then(function(r){return r.json();}).then(function(d2){
             if(d2.ok){ if(typeof toast==='function')toast('✓ Prospecto creado'); }
