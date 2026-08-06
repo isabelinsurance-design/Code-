@@ -413,6 +413,11 @@ case 'save_member':
             $vals[] = $d['id'];
             $pdo->prepare("UPDATE miembros SET $sets, updated_at=NOW() WHERE id=?")->execute($vals);
 
+            // ── CUENTAS REFERENTES (puede ser más de una) ──────────────────────
+            if (isset($d['cuentas_referidas_json'])) {
+                guardarCuentasReferidasMiembro($pdo, (int)$d['id'], $d['cuentas_referidas_json']);
+            }
+
             // ── HISTORIAL DE PLANES ───────────────────────────────────────────
             _historial_planes($pdo, $d['id'], $old_data, $d, $uid);
 
@@ -429,7 +434,12 @@ case 'save_member':
             $vals = array_map($clean, $fields);
             $pdo->prepare("INSERT INTO miembros ($cols_str) VALUES ($placeholders)")->execute($vals);
             $newId = $pdo->lastInsertId();
-            
+
+            // ── CUENTAS REFERENTES (puede ser más de una) ──────────────────────
+            if (isset($d['cuentas_referidas_json'])) {
+                guardarCuentasReferidasMiembro($pdo, (int)$newId, $d['cuentas_referidas_json']);
+            }
+
             $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
                 ->execute([$uid,$newId,'NOTA','PROSPECTO CREADO']);
 
@@ -2467,6 +2477,29 @@ function guardarEquipoProyecto(PDO $pdo, int $pid, $teamRaw): void {
             if ($u > 0 && empty($seen[$u])) { $seen[$u] = 1; try { $ins->execute([$pid, $u]); } catch (Exception $e) {} }
         }
     }
+}
+
+// ── MIEMBROS — reemplaza las cuentas referentes de un miembro (puede ser
+//    más de una, ej. referido a dental Y a visión a la vez) ─────────────────
+function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): void {
+    $items = is_array($raw) ? $raw : json_decode((string)$raw, true);
+    if (!is_array($items)) $items = [];
+    $pdo->prepare("DELETE FROM miembro_cuentas_referidas WHERE miembro_id=?")->execute([$mid]);
+    $primera = null;
+    if ($items) {
+        $ins  = $pdo->prepare("INSERT INTO miembro_cuentas_referidas (miembro_id, cuenta_id, tipo_referido) VALUES (?,?,?)");
+        $seen = [];
+        foreach ($items as $it) {
+            $cid = (int)($it['cuenta_id'] ?? 0);
+            if ($cid <= 0 || !empty($seen[$cid])) continue;
+            $seen[$cid] = 1;
+            $tipo = in_array($it['tipo_referido'] ?? '', ['ENTRANTE', 'SALIENTE'], true) ? $it['tipo_referido'] : 'ENTRANTE';
+            try { $ins->execute([$mid, $cid, $tipo]); if ($primera === null) $primera = $cid; } catch (Exception $e) {}
+        }
+    }
+    // miembros.referido_por queda de solo lectura con la primera cuenta, por
+    // compatibilidad con reportes/joins viejos que todavía leen esa columna.
+    try { $pdo->prepare("UPDATE miembros SET referido_por=? WHERE id=?")->execute([$primera, $mid]); } catch (Exception $e) {}
 }
 
 // ── HISTORIAL DE PLANES — helper ─────────────────────────────────────────────

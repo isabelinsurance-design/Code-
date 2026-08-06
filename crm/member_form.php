@@ -16,6 +16,21 @@ if ($id) {
 
 $agents   = $pdo->query("SELECT id,nombre FROM usuarios WHERE activo=1 AND rol IN ('admin','agent') ORDER BY nombre")->fetchAll();
 $cuentas  = $pdo->query("SELECT id,nombre,tipo FROM cuentas WHERE activo=1 ORDER BY nombre")->fetchAll();
+
+// Cuentas referentes ya guardadas para este miembro (puede ser más de una)
+$cuentas_referidas = [];
+if ($id) {
+    try {
+        $cr = $pdo->prepare(
+            "SELECT mcr.cuenta_id, mcr.tipo_referido, c.nombre AS cuenta_nombre, c.tipo AS cuenta_tipo
+             FROM miembro_cuentas_referidas mcr
+             LEFT JOIN cuentas c ON mcr.cuenta_id = c.id
+             WHERE mcr.miembro_id = ?"
+        );
+        $cr->execute([$id]);
+        $cuentas_referidas = $cr->fetchAll();
+    } catch (Exception $e) {}
+}
 $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A5C';
 ?>
 <form onsubmit="submitMemberForm(event)" enctype="multipart/form-data" style="font-family:'DM Sans',sans-serif">
@@ -307,142 +322,82 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     <!-- ════ ORIGEN / REFERENTE ════ -->
     <div class="section-divider">ORIGEN DEL MIEMBRO</div>
 
-    <!-- Selector de cuenta — siempre visible -->
-    <div class="grid-2" style="margin-bottom:0">
-      <div class="form-group">
-        <label class="form-label">CUENTA / CONTACTO REFERENTE</label>
-        <select name="referido_por" id="mf-referido-por" class="form-input"
-                onchange="_mfCuentaChange(this.value)">
-          <option value="">— NINGUNA —</option>
-          <?php foreach ($cuentas as $cu):
-            $sel = (string)($m['referido_por'] ?? '') === (string)$cu['id'] ? ' selected' : '';
-          ?>
-          <option value="<?= (int)$cu['id'] ?>"<?= $sel ?>>
+    <!-- Cuentas referentes — puede ser más de una (ej. dental Y visión) -->
+    <div class="form-group">
+      <label class="form-label">CUENTAS REFERENTES <span style="font-weight:400;text-transform:none;color:#7A90A4">— puede agregar varias (ej. dental y visión)</span></label>
+      <div id="mf-cuentas-list" style="display:flex;flex-direction:column;gap:6px;margin-bottom:8px"></div>
+      <div style="display:flex;gap:6px">
+        <select id="mf-cuenta-add-sel" class="form-input" style="flex:1">
+          <option value="">— SELECCIONAR CUENTA PARA AGREGAR —</option>
+          <?php foreach ($cuentas as $cu): ?>
+          <option value="<?= (int)$cu['id'] ?>" data-nombre="<?= h($cu['nombre']) ?>" data-tipo="<?= h($cu['tipo']) ?>">
             <?= h($cu['nombre']) ?><?= $cu['tipo'] ? ' — '.h($cu['tipo']) : '' ?>
           </option>
           <?php endforeach; ?>
         </select>
-        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;
-                    text-transform:uppercase">★ APARECERÁ EN EL CONTEO DE ESA CUENTA EN CONTACTOS</div>
+        <button type="button" class="btn btn-gh btn-sm" onclick="_mfAgregarCuenta()">+ AGREGAR</button>
       </div>
-      <!-- Contacto específico de la cuenta — se carga dinámicamente -->
-      <div class="form-group" id="mf-contacto-wrap" style="display:none">
-        <label class="form-label">PERSONA ESPECÍFICA DE LA CUENTA</label>
-        <select name="contacto_referido_id" id="mf-contacto-sel" class="form-input">
-          <option value="">— SELECCIONAR CONTACTO —</option>
-        </select>
-        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;
-                    text-transform:uppercase">OPCIONAL — QUIÉN DENTRO DE LA CUENTA LO REFIRIÓ</div>
-      </div>
+      <div style="font-size:7px;color:#7A90A4;margin-top:5px;letter-spacing:1px;
+                  text-transform:uppercase">★ CADA CUENTA APARECERÁ EN SU PROPIO CONTEO DE CONTACTOS</div>
     </div>
 
-    <!-- Toggle + Fuente — solo visible cuando hay cuenta seleccionada -->
-    <div id="mf-origen-extra" style="display:none;margin-top:12px">
-      <div style="font-size:8px;font-weight:900;color:#7A90A4;letter-spacing:1px;
-                  text-transform:uppercase;margin-bottom:6px">¿CÓMO LLEGÓ ESTE MIEMBRO?</div>
-      <div style="display:flex;gap:0;border-radius:10px;overflow:hidden;
-                  border:1.5px solid #C8DFF0;margin-bottom:12px">
-        <button type="button" id="mf-tipo-entrante"
-          onclick="_mfSetTipo('ENTRANTE')"
-          style="flex:1;padding:10px;font-size:10px;font-weight:900;cursor:pointer;border:none;
-                 background:#fff;color:#7A90A4;font-family:'DM Sans',sans-serif;letter-spacing:.5px">
-          📥 NOS LO ENVIARON
-        </button>
-        <button type="button" id="mf-tipo-saliente"
-          onclick="_mfSetTipo('SALIENTE')"
-          style="flex:1;padding:10px;font-size:10px;font-weight:900;cursor:pointer;border:none;
-                 background:#fff;color:#7A90A4;font-family:'DM Sans',sans-serif;
-                 letter-spacing:.5px;border-left:1.5px solid #C8DFF0">
-          📤 NOSOTROS LO ENVIAMOS
-        </button>
-      </div>
-      <div class="form-group">
-        <label class="form-label">FUENTE</label>
-        <select name="fuente" class="form-input" id="mf-fuente-orig">
-          <option value="">—</option>
-          <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','IGLESIA','GOOGLE','OTRO'] as $o): ?>
-          <option<?= ($m['fuente']??'')===$o?' selected':'' ?>><?= $o ?></option>
-          <?php endforeach; ?>
-        </select>
-      </div>
+    <div class="form-group">
+      <label class="form-label">FUENTE</label>
+      <select name="fuente" class="form-input">
+        <option value="">—</option>
+        <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','IGLESIA','GOOGLE','OTRO'] as $o): ?>
+        <option<?= ($m['fuente']??'')===$o?' selected':'' ?>><?= $o ?></option>
+        <?php endforeach; ?>
+      </select>
     </div>
 
-    <input type="hidden" name="tipo_referido" id="mf-tipo-referido"
-           value="<?= h($m['tipo_referido'] ?? '') ?>">
+    <input type="hidden" name="cuentas_referidas_json" id="mf-cuentas-json" value="">
 
     <script>
-    // ── Al cambiar la cuenta ────────────────────────────────────────────────
-    function _mfCuentaChange(cid) {
-      const extra   = document.getElementById('mf-origen-extra');
-      const ctcWrap = document.getElementById('mf-contacto-wrap');
-      const ctcSel  = document.getElementById('mf-contacto-sel');
-      const hid     = document.getElementById('mf-tipo-referido');
+    // Estado en memoria de las cuentas referentes de este miembro. Se
+    // precarga con lo ya guardado y se sincroniza a un input oculto
+    // (cuentas_referidas_json) que el backend usa para reemplazar el set
+    // completo — mismo patrón que el equipo de colaboradores de proyectos.
+    let _mfCuentas = <?= json_encode(array_map(fn($cr) => [
+        'cuenta_id'     => (int)$cr['cuenta_id'],
+        'nombre'        => $cr['cuenta_nombre'] ?? ('#'.$cr['cuenta_id']),
+        'tipo_cuenta'   => $cr['cuenta_tipo'] ?? '',
+        'tipo_referido' => $cr['tipo_referido'] ?: 'ENTRANTE',
+    ], $cuentas_referidas)) ?>;
 
-      if (!cid) {
-        // Sin cuenta → ocultar todo y limpiar
-        extra.style.display   = 'none';
-        ctcWrap.style.display = 'none';
-        ctcSel.innerHTML = '<option value="">— SELECCIONAR CONTACTO —</option>';
-        hid.value = '';
-        _mfSetTipo('');
-        return;
-      }
-
-      // Mostrar toggle + fuente
-      extra.style.display = '';
-      // Auto-seleccionar ENTRANTE si no tiene valor aún
-      if (!hid.value) _mfSetTipo('ENTRANTE');
-
-      // Cargar contactos de la cuenta via AJAX
-      ctcWrap.style.display = 'none';
-      ctcSel.innerHTML = '<option value="">⏳ CARGANDO…</option>';
-      const fd = new FormData();
-      fd.append('cue_ajax','1'); fd.append('action','get_contactos_cuenta'); fd.append('cid',cid);
-      fetch('index.php',{method:'POST',body:fd})
-        .then(r=>r.json())
-        .then(d=>{
-          ctcSel.innerHTML = '<option value="">— SELECCIONAR CONTACTO —</option>';
-          if (d.ok && d.contactos.length) {
-            d.contactos.forEach(c=>{
-              const op = document.createElement('option');
-              op.value = c.id;
-              op.textContent = c.nombre + (c.cargo?' — '+c.cargo:'');
-              ctcSel.appendChild(op);
-            });
-            ctcWrap.style.display = '';  // mostrar solo si hay contactos
-          }
-        })
-        .catch(()=>{ ctcSel.innerHTML='<option value="">— SELECCIONAR CONTACTO —</option>'; });
+    function _mfEsc(s) { const d = document.createElement('div'); d.textContent = s || ''; return d.innerHTML; }
+    function _mfRenderCuentas() {
+      const box = document.getElementById('mf-cuentas-list');
+      box.innerHTML = '';
+      _mfCuentas.forEach(function(c, idx) {
+        const row = document.createElement('div');
+        row.style.cssText = 'display:flex;align-items:center;gap:8px;background:#F4F8FC;border:1px solid #C8DFF0;border-radius:8px;padding:7px 10px;flex-wrap:wrap';
+        const entranteOn = c.tipo_referido === 'ENTRANTE';
+        row.innerHTML =
+          '<div style="flex:1;min-width:140px;font-size:10px;font-weight:800;color:#1B3A5C">' + _mfEsc(c.nombre) +
+            (c.tipo_cuenta ? ' <span style="color:#7A90A4;font-weight:600">— ' + _mfEsc(c.tipo_cuenta) + '</span>' : '') + '</div>' +
+          '<div style="display:flex;border-radius:7px;overflow:hidden;border:1px solid #C8DFF0">' +
+            '<button type="button" onclick="_mfSetRowTipo(' + idx + ',\'ENTRANTE\')" style="padding:5px 8px;font-size:8px;font-weight:900;border:none;cursor:pointer;font-family:\'DM Sans\',sans-serif;background:' + (entranteOn?'#1B4A6B':'#fff') + ';color:' + (entranteOn?'#fff':'#7A90A4') + '">📥 NOS LO ENVIÓ</button>' +
+            '<button type="button" onclick="_mfSetRowTipo(' + idx + ',\'SALIENTE\')" style="padding:5px 8px;font-size:8px;font-weight:900;border:none;cursor:pointer;font-family:\'DM Sans\',sans-serif;border-left:1px solid #C8DFF0;background:' + (!entranteOn?'#1B5E8C':'#fff') + ';color:' + (!entranteOn?'#fff':'#7A90A4') + '">📤 SE LO ENVIAMOS</button>' +
+          '</div>' +
+          '<button type="button" onclick="_mfQuitarCuenta(' + idx + ')" title="Quitar" style="border:none;background:none;color:#B83232;font-weight:900;cursor:pointer;font-size:13px;padding:2px 4px">✕</button>';
+        box.appendChild(row);
+      });
+      document.getElementById('mf-cuentas-json').value = JSON.stringify(_mfCuentas);
     }
-
-    // ── Estilo del toggle ───────────────────────────────────────────────────
-    function _mfSetTipo(tipo) {
-      const hid = document.getElementById('mf-tipo-referido');
-      const e   = document.getElementById('mf-tipo-entrante');
-      const s   = document.getElementById('mf-tipo-saliente');
-      if (!hid) return;
-      hid.value = tipo;
-      if (!e||!s) return;
-      if (tipo === 'ENTRANTE') {
-        e.style.background='#1B4A6B'; e.style.color='#fff';
-        s.style.background='#fff';    s.style.color='#7A90A4';
-      } else if (tipo === 'SALIENTE') {
-        s.style.background='#1B5E8C'; s.style.color='#fff';
-        e.style.background='#fff';    e.style.color='#7A90A4';
-      } else {
-        e.style.background='#fff'; e.style.color='#7A90A4';
-        s.style.background='#fff'; s.style.color='#7A90A4';
-      }
+    function _mfAgregarCuenta() {
+      const sel = document.getElementById('mf-cuenta-add-sel');
+      const opt = sel.selectedOptions[0];
+      if (!opt || !opt.value) return;
+      const cid = parseInt(opt.value, 10);
+      if (_mfCuentas.some(function(c){ return c.cuenta_id === cid; })) { sel.value=''; return; }
+      _mfCuentas.push({cuenta_id: cid, nombre: opt.dataset.nombre, tipo_cuenta: opt.dataset.tipo || '', tipo_referido: 'ENTRANTE'});
+      sel.value = '';
+      _mfRenderCuentas();
     }
-
-    // ── Inicializar al cargar (si ya tiene cuenta guardada) ─────────────────
-    (function(){
-      const sel = document.getElementById('mf-referido-por');
-      if (sel && sel.value) _mfCuentaChange(sel.value);
-      // Restaurar tipo guardado
-      const tipoVal = document.getElementById('mf-tipo-referido')?.value;
-      if (tipoVal) _mfSetTipo(tipoVal);
-    })();
+    function _mfQuitarCuenta(idx) { _mfCuentas.splice(idx, 1); _mfRenderCuentas(); }
+    function _mfSetRowTipo(idx, tipo) { _mfCuentas[idx].tipo_referido = tipo; _mfRenderCuentas(); }
+    _mfRenderCuentas();
     </script>
 
     <div class="section-divider">SALUD</div>

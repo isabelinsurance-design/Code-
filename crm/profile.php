@@ -98,6 +98,23 @@ if (!empty($_pr_q30['cuenta_referida_id'])) {
     } catch (Exception $e) {}
 }
 
+// Cuentas referentes de este miembro (puede ser más de una — ej. dental Y visión)
+$_pr_cuentas_referidas_txt = null;
+try {
+    $crq = $pdo->prepare(
+        "SELECT c.nombre, c.tipo, mcr.tipo_referido
+         FROM miembro_cuentas_referidas mcr LEFT JOIN cuentas c ON mcr.cuenta_id = c.id
+         WHERE mcr.miembro_id = ? ORDER BY mcr.created_at"
+    );
+    $crq->execute([$id]);
+    $_pr_cuentas_lista = [];
+    foreach ($crq->fetchAll() as $cr) {
+        $dir = $cr['tipo_referido'] === 'SALIENTE' ? 'se lo mandamos' : 'nos lo mandó';
+        $_pr_cuentas_lista[] = ($cr['nombre'] ?: '—') . ($cr['tipo'] ? ' — '.$cr['tipo'] : '') . " ($dir)";
+    }
+    if ($_pr_cuentas_lista) $_pr_cuentas_referidas_txt = implode(', ', $_pr_cuentas_lista);
+} catch (Exception $e) {}
+
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$MU='#7A90A4';$TX='#1B3A5C';
 $G='#1E7A5C';$R='#B83232';$A='#C07A1A';
 
@@ -540,7 +557,7 @@ display: block;
       ['BROKER MWI',       $m['broker_mwi'] ?? null],
       ['AGENTE',           $m['agente_nombre'] ?? null],
       ['FUENTE',           $m['fuente']],
-      ['REFERIDO POR',     $m['referido_por']],
+      ['CUENTAS REFERENTES', $_pr_cuentas_referidas_txt],
       ['EVENTO',           $m['evento']],
       ['F. CANCELACIÓN',   fdate($m['fecha_cancelacion'] ?? null)],
       ['RAZÓN CANCEL.',    $m['razon_cancelacion']],

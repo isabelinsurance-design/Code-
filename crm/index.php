@@ -48,7 +48,7 @@ if (!empty($_POST['cue_ajax'])) {
         $cid = (int)($_POST['cid'] ?? 0);
         ob_clean();
         if (!$cid) { echo json_encode(['ok'=>false]); exit; }
-        foreach (['cuentas_interacciones','cuentas_contactos','referidos'] as $t)
+        foreach (['cuentas_interacciones','cuentas_contactos','referidos','miembro_cuentas_referidas'] as $t)
             $pdo_x->prepare("DELETE FROM $t WHERE cuenta_id=?")->execute([$cid]);
         $pdo_x->prepare("UPDATE miembros SET referido_por=NULL WHERE referido_por=?")->execute([$cid]);
         $pdo_x->prepare("DELETE FROM cuentas WHERE id=?")->execute([$cid]);
@@ -159,6 +159,12 @@ if (!empty($_POST['cue_ajax'])) {
         $ins = $pdo_x->prepare("INSERT INTO miembros (nombre,apellido,telefono,dob,idioma,estado,agente_id,referido_por,created_by) VALUES (?,?,?,?,?,'PROSPECT',?,?,?)");
         $ins->execute([$r['nombre'],$r['apellido'],$r['telefono'],$r['dob'],$r['idioma'],$r['agente_id']?:$uid_x,$r['cuenta_id'],$uid_x]);
         $nuevo_id = $pdo_x->lastInsertId();
+        if ($r['cuenta_id']) {
+            try {
+                $pdo_x->prepare("INSERT INTO miembro_cuentas_referidas (miembro_id,cuenta_id,tipo_referido) VALUES (?,?,'ENTRANTE')")
+                    ->execute([$nuevo_id, $r['cuenta_id']]);
+            } catch (Exception $e) {}
+        }
         $pdo_x->prepare("UPDATE referidos SET estado='EN PIPELINE', miembro_id=? WHERE id=?")->execute([$nuevo_id, $rid]);
         ob_clean();
         echo json_encode(['ok'=>true,'miembro_id'=>$nuevo_id]);
@@ -181,7 +187,9 @@ if (!empty($_POST['cue_ajax'])) {
         $qc->execute([$cid]); $contactos = $qc->fetchAll(PDO::FETCH_ASSOC);
         $qr = $pdo_x->prepare("SELECT r.*, cc.nombre as contacto_nombre, u.nombre as agente_nombre FROM referidos r LEFT JOIN cuentas_contactos cc ON r.contacto_id=cc.id LEFT JOIN usuarios u ON r.agente_id=u.id WHERE r.cuenta_id=? ORDER BY r.created_at DESC");
         $qr->execute([$cid]); $refs = $qr->fetchAll(PDO::FETCH_ASSOC);
-        $qm = $pdo_x->prepare("SELECT m.id, m.nombre, m.apellido, m.estado, m.carrier, m.telefono, m.fecha_efectiva, m.tipo_referido FROM miembros m WHERE m.referido_por=? ORDER BY m.apellido");
+        $qm = $pdo_x->prepare("SELECT m.id, m.nombre, m.apellido, m.estado, m.carrier, m.telefono, m.fecha_efectiva, mcr.tipo_referido
+                               FROM miembro_cuentas_referidas mcr JOIN miembros m ON m.id = mcr.miembro_id
+                               WHERE mcr.cuenta_id=? ORDER BY m.apellido");
         $qm->execute([$cid]); $miembros_c = $qm->fetchAll(PDO::FETCH_ASSOC);
         ob_clean(); echo json_encode(['ok'=>true,'cuenta'=>$cuenta,'interacciones'=>$ints,'contactos'=>$contactos,'referidos'=>$refs,'miembros'=>$miembros_c]);
         break;
@@ -702,6 +710,20 @@ try {
         miembro_id  INT          DEFAULT NULL,
         created_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP,
         updated_at  TIMESTAMP    DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    )");
+    // Un miembro puede estar ligado a VARIAS cuentas referentes a la vez
+    // (ej. lo mandamos a dental Y a visión) — miembros.referido_por se deja
+    // de solo lectura (guarda la primera, por compatibilidad con reportes
+    // viejos) y esta tabla es la fuente real de la relación.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS miembro_cuentas_referidas (
+        id            INT AUTO_INCREMENT PRIMARY KEY,
+        miembro_id    INT NOT NULL,
+        cuenta_id     INT NOT NULL,
+        tipo_referido ENUM('ENTRANTE','SALIENTE') DEFAULT 'ENTRANTE',
+        created_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_mc (miembro_id, cuenta_id),
+        INDEX idx_miembro (miembro_id),
+        INDEX idx_cuenta (cuenta_id)
     )");
     $col_rp = $pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por'")->fetch();
     if ($col_rp && stripos($col_rp['Type'], 'varchar') !== false) {
@@ -1376,14 +1398,14 @@ try {
     $cuentas_list = $pdo->query("
         SELECT c.*, u.nombre AS agente_nombre, u.color AS agente_color, u.iniciales AS agente_ini,
                COUNT(DISTINCT ref.id)  AS cnt_referidos,
-               COUNT(DISTINCT mie.id)  AS cnt_miembros,
+               COUNT(DISTINCT mcr.miembro_id) AS cnt_miembros,
                MAX(ci.fecha)           AS ultima_interaccion,
                DATEDIFF(CURDATE(), MAX(ci.fecha)) AS dias_desde,
                SUM(ci.gasto_monto)     AS total_gastado
         FROM cuentas c
         LEFT JOIN usuarios u               ON c.agente_id   = u.id
         LEFT JOIN referidos ref            ON ref.cuenta_id = c.id
-        LEFT JOIN miembros mie             ON mie.referido_por = c.id
+        LEFT JOIN miembro_cuentas_referidas mcr ON mcr.cuenta_id = c.id
         LEFT JOIN cuentas_interacciones ci ON ci.cuenta_id  = c.id
         WHERE c.activo = 1
         GROUP BY c.id
