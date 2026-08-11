@@ -3810,92 +3810,92 @@ foreach($_ret_stats as $_rs) {
 
 <div class="modal-overlay" id="ret-q30-modal">
 <div class="modal" style="max-width:700px;width:96vw">
-<div class="modal-header"><div class="modal-title">📋 CUESTIONARIO 30 DÍAS — <span id="rq30-nombre" style="color:#2876A8"></span></div><button class="modal-close" onclick="closeModal('ret-q30-modal')">✕</button></div>
+<div class="modal-header"><div class="modal-title">📋 CUESTIONARIO 30 DÍAS — <span id="rq30-nombre" style="color:#2876A8"></span></div><div style="display:flex;gap:6px;align-items:center"><button type="button" id="rq30-lang-btn" onclick="toggleRq30Lang()" class="btn btn-gh btn-sm" style="padding:5px 10px;font-size:8px">🌐 ENGLISH</button><button class="modal-close" onclick="closeModal('ret-q30-modal')">✕</button></div></div>
 <form id="ret-q30-form" onsubmit="submitRetQ30(event)">
 <input type="hidden" name="miembro_id" id="rq30-mid">
 <div style="max-height:65vh;overflow-y:auto;padding:14px 18px">
-<div class="section-divider">CONTACTO Y REDES</div>
+<div class="section-divider" data-en="CONTACT &amp; SOCIAL MEDIA">CONTACTO Y REDES</div>
 <div class="grid-3">
-<?php foreach([['puede_sms','¿Puedo enviarle SMS a este número?'],['usa_whatsapp','¿Usa WhatsApp?'],['usa_facebook','¿Usa Facebook?'],['nos_siguio_ig','¿Nos siguió en Facebook/Instagram?']] as list($_qn,$_ql)): ?>
-<div class="form-group"><label class="form-label"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
+<?php foreach([['puede_sms','¿Puedo enviarle SMS a este número?','Can I text this number?'],['usa_whatsapp','¿Usa WhatsApp?','Do you use WhatsApp?'],['usa_facebook','¿Usa Facebook?','Do you use Facebook?'],['nos_siguio_ig','¿Nos siguió en Facebook/Instagram?','Did you follow us on Facebook/Instagram?']] as list($_qn,$_ql,$_qe)): ?>
+<div class="form-group"><label class="form-label" data-en="<?=h($_qe)?>"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
 <?php endforeach; ?>
 </div>
 <div style="background:#F3F0FB;border:1px solid #C2B0E8;border-radius:9px;padding:9px 13px;margin-bottom:12px;font-size:9px;color:#5B3FAF;font-weight:700">
-  📱 <b>RECORDATORIO:</b> Invitar a seguirnos en <b>Facebook e Instagram</b> — compartir página y dar like. Mencionar que publicamos tips de salud y avisos importantes.
+  <span data-en="📱 REMINDER: Invite them to follow us on Facebook and Instagram — share the page and like it. Mention that we post health tips and important notices.">📱 <b>RECORDATORIO:</b> Invitar a seguirnos en <b>Facebook e Instagram</b> — compartir página y dar like. Mencionar que publicamos tips de salud y avisos importantes.</span>
 </div>
-<div class="grid-2"><div class="form-group"><label class="form-label">TELÉFONO ALTERNATIVO</label><input type="text" name="telefono2_new" class="form-input" placeholder="(818) 555-0000"></div><div class="form-group"><label class="form-label">EMAIL</label><input type="email" name="email_new" class="form-input" placeholder="correo@ejemplo.com"></div></div>
-<div class="section-divider">SALUD</div>
+<div class="grid-2"><div class="form-group"><label class="form-label" data-en="ALTERNATE PHONE">TELÉFONO ALTERNATIVO</label><input type="text" name="telefono2_new" class="form-input" placeholder="(818) 555-0000"></div><div class="form-group"><label class="form-label" data-en="EMAIL">EMAIL</label><input type="email" name="email_new" class="form-input" placeholder="correo@ejemplo.com"></div></div>
+<div class="section-divider" data-en="HEALTH">SALUD</div>
 <div class="grid-2">
-<?php foreach([['usa_insulina','¿Utiliza insulina?'],['necesita_delivery','¿Necesita entrega de medicinas o visita de doctor a casa?'],['en_ihss','¿Está en IHSS (cuidado en casa)?']] as list($_qn,$_ql)): ?>
-<div class="form-group"><label class="form-label"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
+<?php foreach([['usa_insulina','¿Utiliza insulina?','Do you use insulin?'],['necesita_delivery','¿Necesita entrega de medicinas o visita de doctor a casa?','Do you need medicine delivery or a doctor home visit?'],['en_ihss','¿Está en IHSS (cuidado en casa)?','Are you in IHSS (in-home care)?']] as list($_qn,$_ql,$_qe)): ?>
+<div class="form-group"><label class="form-label" data-en="<?=h($_qe)?>"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
 <?php endforeach; ?>
 </div>
-<div class="form-group"><label class="form-label">DISPOSITIVOS / AYUDAS</label><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:5px"><?php foreach(['BASTÓN','WALKER','PAÑALES','ENSURE','NINGUNO'] as $_ay): ?><label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase"><input type="checkbox" name="ayudas_movilidad[]" value="<?=$_ay?>"> <?=$_ay?></label><?php endforeach; ?></div></div>
-<div class="grid-2"><div class="form-group"><label class="form-label">ENFERMEDADES CRÓNICAS (actualizar si cambió)</label><textarea name="condiciones_cronicas_new" class="form-input" rows="2" style="text-transform:none" placeholder="Diabetes, hipertensión..."></textarea></div><div class="form-group"><label class="form-label">MEDICAMENTOS (actualizar)</label><textarea name="prescripciones_new" class="form-input" rows="2" style="text-transform:none" placeholder="Cuántos toma, nombres"></textarea></div></div>
-<div class="section-divider">SEGURO DE VIDA</div>
+<div class="form-group"><label class="form-label" data-en="DEVICES / AIDS">DISPOSITIVOS / AYUDAS</label><div style="display:flex;gap:14px;flex-wrap:wrap;margin-top:5px"><?php foreach(['BASTÓN'=>'CANE','WALKER'=>'WALKER','PAÑALES'=>'DIAPERS','ENSURE'=>'ENSURE','NINGUNO'=>'NONE'] as $_ay=>$_aye): ?><label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase"><input type="checkbox" name="ayudas_movilidad[]" value="<?=$_ay?>"> <span data-en="<?=h($_aye)?>"><?=$_ay?></span></label><?php endforeach; ?></div></div>
+<div class="grid-2"><div class="form-group"><label class="form-label" data-en="CHRONIC CONDITIONS (update if changed)">ENFERMEDADES CRÓNICAS (actualizar si cambió)</label><textarea name="condiciones_cronicas_new" class="form-input" rows="2" style="text-transform:none" placeholder="Diabetes, hipertensión..."></textarea></div><div class="form-group"><label class="form-label" data-en="MEDICATIONS (update)">MEDICAMENTOS (actualizar)</label><textarea name="prescripciones_new" class="form-input" rows="2" style="text-transform:none" placeholder="Cuántos toma, nombres"></textarea></div></div>
+<div class="section-divider" data-en="LIFE INSURANCE">SEGURO DE VIDA</div>
 <div class="grid-3">
-<div class="form-group"><label class="form-label">¿TIENE SEGURO DE VIDA?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="" checked> N/D</label></div></div>
-<div class="form-group"><label class="form-label">¿CON QUÉ COMPAÑÍA?</label><input type="text" name="seguro_vida_compania" class="form-input" placeholder="Ej: New York Life, Globe Life..."></div>
-<div class="form-group"><label class="form-label">¿CUÁNTO LE DAN? (COBERTURA)</label><input type="text" name="seguro_vida_monto" class="form-input" placeholder="Ej: $10,000" style="text-transform:none"></div>
+<div class="form-group"><label class="form-label" data-en="DO YOU HAVE LIFE INSURANCE?">¿TIENE SEGURO DE VIDA?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="tiene_seguro_vida" value="" checked> N/D</label></div></div>
+<div class="form-group"><label class="form-label" data-en="WHICH COMPANY?">¿CON QUÉ COMPAÑÍA?</label><input type="text" name="seguro_vida_compania" class="form-input" placeholder="Ej: New York Life, Globe Life..."></div>
+<div class="form-group"><label class="form-label" data-en="HOW MUCH COVERAGE?">¿CUÁNTO LE DAN? (COBERTURA)</label><input type="text" name="seguro_vida_monto" class="form-input" placeholder="Ej: $10,000" style="text-transform:none"></div>
 </div>
-<div class="section-divider">DIRECCIÓN</div>
-<div class="form-group"><label class="form-label">¿Está correcta su dirección?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="" checked> N/D</label></div></div>
-<div class="grid-2"><div class="form-group"><label class="form-label">CALLE (si cambió)</label><input type="text" name="direccion_calle_new" class="form-input"></div><div class="form-group"><label class="form-label">APT</label><input type="text" name="direccion_apto_new" class="form-input"></div></div>
-<div class="grid-3"><div class="form-group"><label class="form-label">CIUDAD</label><input type="text" name="ciudad_new" class="form-input"></div><div class="form-group"><label class="form-label">STATE</label><input type="text" name="estado_dir_new" class="form-input" placeholder="CA" maxlength="2"></div><div class="form-group"><label class="form-label">ZIP</label><input type="text" name="zip_new" class="form-input"></div></div>
-<div class="section-divider">VIDA PERSONAL</div>
+<div class="section-divider" data-en="ADDRESS">DIRECCIÓN</div>
+<div class="form-group"><label class="form-label" data-en="Is your address correct?">¿Está correcta su dirección?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="direccion_correcta" value="" checked> N/D</label></div></div>
+<div class="grid-2"><div class="form-group"><label class="form-label" data-en="STREET (if changed)">CALLE (si cambió)</label><input type="text" name="direccion_calle_new" class="form-input"></div><div class="form-group"><label class="form-label">APT</label><input type="text" name="direccion_apto_new" class="form-input"></div></div>
+<div class="grid-3"><div class="form-group"><label class="form-label" data-en="CITY">CIUDAD</label><input type="text" name="ciudad_new" class="form-input"></div><div class="form-group"><label class="form-label">STATE</label><input type="text" name="estado_dir_new" class="form-input" placeholder="CA" maxlength="2"></div><div class="form-group"><label class="form-label">ZIP</label><input type="text" name="zip_new" class="form-input"></div></div>
+<div class="section-divider" data-en="PERSONAL LIFE">VIDA PERSONAL</div>
 <div class="grid-2">
 <div class="form-group">
-  <label class="form-label">¿CON QUIÉN VIVE?</label>
+  <label class="form-label" data-en="WHO DO YOU LIVE WITH?">¿CON QUIÉN VIVE?</label>
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:5px">
-    <?php foreach(['SOLO/A','ESPOSO/A','HIJOS/AS','NIETOS/AS','CUIDADOR/A','OTRO'] as $_cv): ?>
+    <?php foreach(['SOLO/A'=>'ALONE','ESPOSO/A'=>'SPOUSE','HIJOS/AS'=>'CHILDREN','NIETOS/AS'=>'GRANDCHILDREN','CUIDADOR/A'=>'CAREGIVER','OTRO'=>'OTHER'] as $_cv=>$_cve): ?>
     <label style="display:flex;align-items:center;gap:5px;font-size:9px;font-weight:800;cursor:pointer;text-transform:uppercase">
-      <input type="checkbox" name="con_quien_vive[]" value="<?=$_cv?>"> <?=$_cv?>
+      <input type="checkbox" name="con_quien_vive[]" value="<?=$_cv?>"> <span data-en="<?=h($_cve)?>"><?=$_cv?></span>
     </label>
     <?php endforeach; ?>
   </div>
 </div>
 <div class="form-group">
-  <label class="form-label">¿CÓMO LLEGA A SUS CITAS?</label>
+  <label class="form-label" data-en="HOW DO THEY GET TO APPOINTMENTS?">¿CÓMO LLEGA A SUS CITAS?</label>
   <select name="transporte" class="form-input">
     <option value="">— SELECCIONAR —</option>
-    <option value="MANEJA SOLO">🚗 Maneja solo/a</option>
-    <option value="FAMILIAR">👨‍👩‍👧 Lo lleva un familiar</option>
+    <option value="MANEJA SOLO" data-en="🚗 Drives themselves">🚗 Maneja solo/a</option>
+    <option value="FAMILIAR" data-en="👨‍👩‍👧 A family member drives them">👨‍👩‍👧 Lo lleva un familiar</option>
     <option value="UBER/LYFT">📱 Uber / Lyft / America Logistics</option>
-    <option value="TRANSPORTE PÚBLICO">🚌 Transporte público</option>
-    <option value="AMBULANCIA/NEMT">🚑 Ambulancia / NEMT</option>
-    <option value="NO SALE">🏠 No sale de casa</option>
-    <option value="OTRO">Otro</option>
+    <option value="TRANSPORTE PÚBLICO" data-en="🚌 Public transportation">🚌 Transporte público</option>
+    <option value="AMBULANCIA/NEMT" data-en="🚑 Ambulance / NEMT">🚑 Ambulancia / NEMT</option>
+    <option value="NO SALE" data-en="🏠 Doesn't leave home">🏠 No sale de casa</option>
+    <option value="OTRO" data-en="Other">Otro</option>
   </select>
 </div>
 </div>
-<div class="section-divider">ORIGEN</div>
-<div class="grid-2"><div class="form-group"><label class="form-label">¿DÓNDE CONOCIÓ A ISABEL?</label><input type="text" name="donde_conocio_isabel" class="form-input" placeholder="Evento, iglesia, Facebook..."></div><div class="form-group"><label class="form-label">NOMBRE DE QUIEN LO RECOMENDÓ</label><input type="text" name="referido_por_new" class="form-input" placeholder="Nombre completo"></div></div>
-<div class="section-divider">TARJETAS / INFORMACIÓN PERSONAL</div>
+<div class="section-divider" data-en="SOURCE">ORIGEN</div>
+<div class="grid-2"><div class="form-group"><label class="form-label" data-en="HOW DID THEY MEET ISABEL?">¿DÓNDE CONOCIÓ A ISABEL?</label><input type="text" name="donde_conocio_isabel" class="form-input" placeholder="Evento, iglesia, Facebook..."></div><div class="form-group"><label class="form-label" data-en="NAME OF WHO REFERRED THEM">NOMBRE DE QUIEN LO RECOMENDÓ</label><input type="text" name="referido_por_new" class="form-input" placeholder="Nombre completo"></div></div>
+<div class="section-divider" data-en="CARDS / PERSONAL INFO">TARJETAS / INFORMACIÓN PERSONAL</div>
 <div class="grid-3">
-<?php foreach([['llego_tarjeta','¿Le llegaron las tarjetas del plan?'],['explicaste_tarjeta','¿Le explicaste las tarjetas?'],['esta_casado','¿Está casado/a?']] as list($_qn,$_ql)): ?>
-<div class="form-group"><label class="form-label"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
+<?php foreach([['llego_tarjeta','¿Le llegaron las tarjetas del plan?','Did the plan cards arrive?'],['explicaste_tarjeta','¿Le explicaste las tarjetas?','Did you explain the cards?'],['esta_casado','¿Está casado/a?','Are they married?']] as list($_qn,$_ql,$_qe)): ?>
+<div class="form-group"><label class="form-label" data-en="<?=h($_qe)?>"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
 <?php endforeach; ?>
 </div>
-<div class="form-group"><label class="form-label">PROFESIÓN (actualizar si cambió)</label><input type="text" name="profesion_new" class="form-input"></div>
-<div class="section-divider">DOCTOR PCP</div>
+<div class="form-group"><label class="form-label" data-en="OCCUPATION (update if changed)">PROFESIÓN (actualizar si cambió)</label><input type="text" name="profesion_new" class="form-input"></div>
+<div class="section-divider" data-en="PCP DOCTOR">DOCTOR PCP</div>
 <div class="grid-3">
-<?php foreach([['doctor_correcto','¿Su doctor está correcto?'],['ha_ido_citas','¿Ha ido a sus citas?'],['satisfecho_doctor','¿Se siente bien con su doctor?'],['cambiar_doctor','¿Necesitamos cambiarle el doctor?']] as list($_qn,$_ql)): ?>
-<div class="form-group"><label class="form-label"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
+<?php foreach([['doctor_correcto','¿Su doctor está correcto?','Is their doctor correct?'],['ha_ido_citas','¿Ha ido a sus citas?','Have they gone to their appointments?'],['satisfecho_doctor','¿Se siente bien con su doctor?','Are they happy with their doctor?'],['cambiar_doctor','¿Necesitamos cambiarle el doctor?','Do we need to change their doctor?']] as list($_qn,$_ql,$_qe)): ?>
+<div class="form-group"><label class="form-label" data-en="<?=h($_qe)?>"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
 <?php endforeach; ?>
 </div>
-<div class="grid-2"><div class="form-group"><label class="form-label">NOMBRE DOCTOR (actualizar si cambió)</label><input type="text" name="pcp_new" class="form-input" placeholder="Dr. Ramirez"></div><div class="form-group"><label class="form-label">GRUPO MÉDICO</label><input type="text" name="pcp_group_new" class="form-input" placeholder="AltaMed, ApolloMed..."></div></div>
-<div class="section-divider">DENTISTA / VISIÓN</div>
+<div class="grid-2"><div class="form-group"><label class="form-label" data-en="DOCTOR'S NAME (update if changed)">NOMBRE DOCTOR (actualizar si cambió)</label><input type="text" name="pcp_new" class="form-input" placeholder="Dr. Ramirez"></div><div class="form-group"><label class="form-label" data-en="MEDICAL GROUP">GRUPO MÉDICO</label><input type="text" name="pcp_group_new" class="form-input" placeholder="AltaMed, ApolloMed..."></div></div>
+<div class="section-divider" data-en="DENTIST / VISION">DENTISTA / VISIÓN</div>
 <div class="grid-3">
-<?php foreach([['va_dentista','¿Va al dentista?'],['necesita_dentista','¿Necesitamos recomendarle dentista?'],['usa_anteojos','¿Usa anteojos?']] as list($_qn,$_ql)): ?>
-<div class="form-group"><label class="form-label"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
+<?php foreach([['va_dentista','¿Va al dentista?','Do they go to the dentist?'],['necesita_dentista','¿Necesitamos recomendarle dentista?','Do we need to recommend a dentist?'],['usa_anteojos','¿Usa anteojos?','Do they wear glasses?']] as list($_qn,$_ql,$_qe)): ?>
+<div class="form-group"><label class="form-label" data-en="<?=h($_qe)?>"><?=$_ql?></label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="<?=$_qn?>" value="" checked> N/D</label></div></div>
 <?php endforeach; ?>
 </div>
-<div class="form-group"><label class="form-label">DATOS DEL DENTISTA (actualizar si cambió)</label><input type="text" name="dentista_new" class="form-input" placeholder="Dr. Garcia - (323) 555-0000"></div>
-<div class="section-divider">CUENTA / PROVEEDOR REFERIDO</div>
-<div style="font-size:8px;color:#7A90A4;margin-bottom:10px">Anotar si se le recomendó o visitó algún proveedor (dentista, visión, clínica, etc.) que esté en nuestros Contactos.</div>
+<div class="form-group"><label class="form-label" data-en="DENTIST INFO (update if changed)">DATOS DEL DENTISTA (actualizar si cambió)</label><input type="text" name="dentista_new" class="form-input" placeholder="Dr. Garcia - (323) 555-0000"></div>
+<div class="section-divider" data-en="REFERRED ACCOUNT / PROVIDER">CUENTA / PROVEEDOR REFERIDO</div>
+<div style="font-size:8px;color:#7A90A4;margin-bottom:10px"><span data-en="Note if they were recommended or visited a provider (dentist, vision, clinic, etc.) that's in our Contacts.">Anotar si se le recomendó o visitó algún proveedor (dentista, visión, clínica, etc.) que esté en nuestros Contactos.</span></div>
 <div class="grid-2">
 <div class="form-group">
-  <label class="form-label">CUENTA / PROVEEDOR</label>
+  <label class="form-label" data-en="ACCOUNT / PROVIDER">CUENTA / PROVEEDOR</label>
   <select name="cuenta_referida_id" id="rq30-cuenta" class="form-input">
     <option value="">— NINGUNA —</option>
     <?php foreach($cuentas_list as $_cu): ?>
@@ -3904,38 +3904,38 @@ foreach($_ret_stats as $_rs) {
   </select>
 </div>
 <div class="form-group">
-  <label class="form-label">TIPO DE RELACIÓN</label>
+  <label class="form-label" data-en="RELATIONSHIP TYPE">TIPO DE RELACIÓN</label>
   <select name="cuenta_referida_tipo" class="form-input">
     <option value="">—</option>
-    <option value="DENTISTA">🦷 Dentista</option>
-    <option value="VISIÓN">👓 Visión / Óptica</option>
-    <option value="MÉDICO">🩺 Médico especialista</option>
-    <option value="CLÍNICA">🏥 Clínica</option>
-    <option value="FARMACIA">💊 Farmacia</option>
-    <option value="OTRO">Otro</option>
+    <option value="DENTISTA" data-en="🦷 Dentist">🦷 Dentista</option>
+    <option value="VISIÓN" data-en="👓 Vision / Optical">👓 Visión / Óptica</option>
+    <option value="MÉDICO" data-en="🩺 Specialist doctor">🩺 Médico especialista</option>
+    <option value="CLÍNICA" data-en="🏥 Clinic">🏥 Clínica</option>
+    <option value="FARMACIA" data-en="💊 Pharmacy">💊 Farmacia</option>
+    <option value="OTRO" data-en="Other">Otro</option>
   </select>
 </div>
 </div>
-<div class="section-divider">BENEFICIOS EXPLICADOS</div>
+<div class="section-divider" data-en="BENEFITS EXPLAINED">BENEFICIOS EXPLICADOS</div>
 <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:12px">
-<?php foreach(['uber'=>'Uber / America Logistics (844-923-0744)','gym'=>'Gym / SilverSneakers','otc'=>'Beneficio OTC','dental_ben'=>'Beneficio Dental','vision_ben'=>'Beneficio Vision','medicamentos'=>'Medicamentos cubiertos','no_dar_info'=>'NO dar informacion a extraños','brokers'=>'Cuidado con brokers - 323-402-4145'] as $_bk=>$_bl): ?>
-<label style="display:flex;align-items:flex-start;gap:6px;font-size:9px;font-weight:700;cursor:pointer;line-height:1.5"><input type="checkbox" name="beneficios[]" value="<?=$_bk?>" style="margin-top:2px;flex-shrink:0"> <?=$_bl?></label>
+<?php foreach(['uber'=>['Uber / America Logistics (844-923-0744)','Uber / America Logistics (844-923-0744)'],'gym'=>['Gym / SilverSneakers','Gym / SilverSneakers'],'otc'=>['Beneficio OTC','OTC Benefit'],'dental_ben'=>['Beneficio Dental','Dental Benefit'],'vision_ben'=>['Beneficio Vision','Vision Benefit'],'medicamentos'=>['Medicamentos cubiertos','Covered medications'],'no_dar_info'=>['NO dar informacion a extraños','Do NOT give info to strangers'],'brokers'=>['Cuidado con brokers - 323-402-4145','Beware of brokers - 323-402-4145']] as $_bk=>list($_bl,$_ble)): ?>
+<label style="display:flex;align-items:flex-start;gap:6px;font-size:9px;font-weight:700;cursor:pointer;line-height:1.5"><input type="checkbox" name="beneficios[]" value="<?=$_bk?>" style="margin-top:2px;flex-shrink:0"> <span data-en="<?=h($_ble)?>"><?=$_bl?></span></label>
 <?php endforeach; ?>
 </div>
 <div class="grid-2">
-<div class="form-group"><label class="form-label">¿Explicaste que NO deben dar informacion a brokers?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="" checked> N/D</label></div></div>
+<div class="form-group"><label class="form-label" data-en="Did you explain they should NOT give info to brokers?">¿Explicaste que NO deben dar informacion a brokers?</label><div style="display:flex;gap:10px;margin-top:4px"><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="1"> SÍ</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="0"> NO</label><label style="display:flex;align-items:center;gap:4px;font-size:9px;font-weight:800;cursor:pointer"><input type="radio" name="explicaste_no_dar_info" value="" checked> N/D</label></div></div>
 <div class="form-group">
-  <label class="form-label">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label>
+  <label class="form-label" data-en="FRIEND / FAMILY MEMBER WE COULD HELP?">¿AMIGO / FAMILIAR AL QUE PODAMOS AYUDAR?</label>
   <label style="display:flex;align-items:center;gap:6px;font-size:9px;font-weight:800;cursor:pointer;margin-bottom:6px">
     <input type="checkbox" id="rq30-tiene-referido" onchange="var i=document.getElementById('rq30-referido-input'); i.disabled=!this.checked; if(!this.checked) i.value=''; else i.focus();">
-    SÍ, me dieron el nombre de alguien
+    <span data-en="YES, I was given someone's name">SÍ, me dieron el nombre de alguien</span>
   </label>
   <input type="text" name="referido_nuevo" id="rq30-referido-input" class="form-input" placeholder="Nombre y telefono del referido" disabled>
   <div id="rq30-ref-anterior" style="display:none;margin-top:5px;font-size:8px;color:#1E7A5C;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:6px;padding:5px 8px;font-weight:700">🤝 Ya registrado: <span id="rq30-ref-anterior-txt"></span> — deja el checkbox sin marcar para no duplicarlo; márcalo solo si hay un referido NUEVO.</div>
 </div>
 </div>
-<div class="section-divider">NOTAS</div>
-<div class="form-group"><label class="form-label">NOTAS ADICIONALES</label><textarea name="notas_generales" class="form-input" rows="2" style="text-transform:none" placeholder="Observaciones importantes..."></textarea></div>
+<div class="section-divider" data-en="NOTES">NOTAS</div>
+<div class="form-group"><label class="form-label" data-en="ADDITIONAL NOTES">NOTAS ADICIONALES</label><textarea name="notas_generales" class="form-input" rows="2" style="text-transform:none" placeholder="Observaciones importantes..."></textarea></div>
 </div>
 <div style="display:flex;justify-content:flex-end;gap:7px;padding:12px 18px;border-top:1px solid #C8DFF0"><button type="button" class="btn btn-gh btn-sm" onclick="closeModal('ret-q30-modal')">CANCELAR</button><button type="submit" class="btn btn-b btn-sm">GUARDAR CUESTIONARIO</button></div>
 </form>
@@ -3981,6 +3981,29 @@ function saveRetSimple(resultado){
   var fd=new FormData();
   fd.append('action','save_retencion_llamada');fd.append('miembro_id',mid);fd.append('tipo',tipo);fd.append('resultado',resultado);fd.append('notas',notas);
   fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Llamada registrada');closeModal('ret-simple-modal');softReload();}else if(typeof toast==='function')toast('Error: '+(d.error||'No se pudo guardar'));});
+}
+// Traducción del cuestionario 30 días — solo para LEER, no cambia lo que se guarda
+// (el value= de cada campo se manda igual, solo se traduce el texto visible).
+let _rq30English = false;
+function toggleRq30Lang(){
+  _rq30English = !_rq30English;
+  const modal = document.getElementById('ret-q30-modal');
+  if (!modal) return;
+  // SÍ / N/D se repiten en cada pregunta de sí-no — se traducen genéricamente
+  // (NO se queda igual en los dos idiomas, no hace falta tocarlo).
+  modal.querySelectorAll('label').forEach(function(lbl){
+    if (!lbl.querySelector('input[type=radio]')) return;
+    const txt = lbl.textContent.trim();
+    if (txt === 'SÍ' || txt === 'YES') lbl.lastChild.textContent = ' ' + (_rq30English ? 'YES' : 'SÍ');
+    else if (txt === 'N/D' || txt === 'N/A') lbl.lastChild.textContent = ' ' + (_rq30English ? 'N/A' : 'N/D');
+  });
+  // Todo lo demás (títulos, preguntas, opciones) trae su traducción en data-en
+  modal.querySelectorAll('[data-en]').forEach(function(el){
+    if (el.dataset.es === undefined) el.dataset.es = el.textContent;
+    el.textContent = _rq30English ? el.dataset.en : el.dataset.es;
+  });
+  const btn = document.getElementById('rq30-lang-btn');
+  if (btn) btn.textContent = _rq30English ? '🇲🇽 ESPAÑOL' : '🌐 ENGLISH';
 }
 function openRetQ30(mid,nombre){
   var form=document.getElementById('ret-q30-form');
