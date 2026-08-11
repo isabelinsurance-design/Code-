@@ -6793,7 +6793,7 @@ try {
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
 <?php foreach(['EMPLEADOS','CERTIFICACIONES','CONTRASEÑAS','METAS','NOTIFICACIONES','INCENTIVOS','IMPORTAR','HISTORIAL'] as $at):?><button class="ntab<?=$at==='EMPLEADOS'?' active':''?>" onclick="showAdminTab('<?=$at?>')" data-atab="<?=$at?>"><?=$at?></button><?php endforeach;?>
 </div>
-<div id="atab-EMPLEADOS"><div class="card"><div class="card-header"><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal y horas para que aparezcan en la NÓMINA</div></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all as $u): $u_es_admin=$u['rol']==='admin'; ?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
+<div id="atab-EMPLEADOS"><div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal y horas para que aparezcan en la NÓMINA</div></div><button class="btn btn-p btn-sm" onclick="openModal('modal-nuevo-usuario')">+ NUEVO EMPLEADO</button></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all as $u): $u_es_admin=$u['rol']==='admin'; ?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
 <?php foreach(['lun'=>['trabaja_lunes','L'],'mar'=>['trabaja_martes','M'],'mie'=>['trabaja_miercoles','X'],'jue'=>['trabaja_jueves','J'],'vie'=>['trabaja_viernes','V'],'sab'=>['trabaja_sabado','S']] as $dk=>$dd): $on=(int)($u[$dd[0]]??0)===1; ?>
 <label style="display:inline-flex;flex-direction:column;align-items:center;font-size:7px;font-weight:900;color:<?=$MU?>;cursor:pointer"><?=$dd[1]?><input type="checkbox" id="d<?=$dk?>-<?=$u['id']?>"<?=$on?' checked':''?> style="cursor:pointer;margin-top:2px"></label>
 <?php endforeach;?>
@@ -6905,6 +6905,24 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <div id="toast" class="toast"></div>
 <!-- MODALS -->
 <?php if($admin):?>
+<!-- MODAL: nuevo empleado/usuario (admin) -->
+<div class="modal-overlay" id="modal-nuevo-usuario"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">👤 NUEVO EMPLEADO</div><button type="button" class="modal-close" onclick="closeModal('modal-nuevo-usuario')">✕</button></div>
+  <div class="form-group"><label class="form-label">NOMBRE COMPLETO *</label><input id="nu-nombre" class="form-input" placeholder="Ej: Arthur Ramírez"></div>
+  <div class="form-group"><label class="form-label">USUARIO (PARA INICIAR SESIÓN) *</label><input id="nu-username" class="form-input" placeholder="ej: arthur" oninput="this.value=this.value.toLowerCase()"></div>
+  <div class="form-group">
+    <label class="form-label">CONTRASEÑA *</label>
+    <input id="nu-password" type="text" class="form-input" placeholder="Mínimo 8 caracteres">
+    <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:.5px;text-transform:uppercase">Se guarda encriptada en la base de datos — nunca en texto plano</div>
+  </div>
+  <div class="form-group"><label class="form-label">ROL</label><select id="nu-rol" class="form-input"><option value="agent">EMPLEADO (AGENTE)</option><option value="admin">ADMINISTRADOR</option></select></div>
+  <div id="nu-err" style="display:none;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:8px;padding:7px;font-size:9px;font-weight:900;margin-top:4px;text-transform:uppercase"></div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:12px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-nuevo-usuario')">CANCELAR</button>
+    <button type="button" class="btn btn-p btn-sm" id="nu-save-btn" onclick="crearUsuario()">✓ CREAR EMPLEADO</button>
+  </div>
+</div></div>
+
 <!-- MODAL: corregir asistencia (admin) -->
 <div class="modal-overlay" id="asi-edit-modal">
   <div class="modal modal-sm">
@@ -7476,6 +7494,33 @@ function listaFilter(q){
   });
 }
 function showScriptTab(id){document.querySelectorAll('.script-tab-content').forEach(e=>e.style.display='none');document.querySelectorAll('.ntab[data-stab]').forEach(b=>b.classList.remove('active'));const el=document.getElementById('stab-'+id);if(el)el.style.display='';document.querySelector('.ntab[data-stab="'+id+'"]')?.classList.add('active');}
+function crearUsuario(){
+  const errBox = document.getElementById('nu-err');
+  const nombre = document.getElementById('nu-nombre').value.trim();
+  const username = document.getElementById('nu-username').value.trim();
+  const password = document.getElementById('nu-password').value;
+  const rol = document.getElementById('nu-rol').value;
+  errBox.style.display = 'none';
+  if(!nombre || !username || !password){ errBox.textContent='COMPLETA NOMBRE, USUARIO Y CONTRASEÑA'; errBox.style.display='block'; return; }
+  if(password.length < 8){ errBox.textContent='LA CONTRASEÑA DEBE TENER AL MENOS 8 CARACTERES'; errBox.style.display='block'; return; }
+  const btn = document.getElementById('nu-save-btn');
+  btn.disabled = true; btn.textContent = 'CREANDO...';
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'crear_usuario',nombre,username,password,rol})})
+    .then(r=>r.json()).then(d=>{
+      btn.disabled = false; btn.textContent = '✓ CREAR EMPLEADO';
+      if(d.ok){
+        toast('✓ EMPLEADO CREADO');
+        closeModal('modal-nuevo-usuario');
+        document.getElementById('nu-nombre').value='';
+        document.getElementById('nu-username').value='';
+        document.getElementById('nu-password').value='';
+        softReload();
+      } else {
+        errBox.textContent = (d.error||'ERROR AL CREAR EL EMPLEADO').toUpperCase();
+        errBox.style.display = 'block';
+      }
+    }).catch(()=>{ btn.disabled=false; btn.textContent='✓ CREAR EMPLEADO'; errBox.textContent='ERROR DE CONEXIÓN'; errBox.style.display='block'; });
+}
 function saveSalario(id){
   const v=x=>document.getElementById(x+'-'+id);
   const ck=x=>document.getElementById(x+'-'+id)?.checked?1:0;

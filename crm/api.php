@@ -237,6 +237,45 @@ case 'delete_lista_excel':
     jsonOk();
     break;
 
+// ── CREAR NUEVO EMPLEADO/USUARIO (admin) ───────────────────────
+// Reemplaza el flujo viejo de usuarios_setup.php (que dependía de
+// variables de entorno PASS_* configuradas en el servidor). La
+// contraseña se guarda siempre encriptada con password_hash().
+case 'crear_usuario':
+    if (!$admin) jsonErr('Solo un administrador puede crear empleados');
+    $pdo = db();
+    $nombre   = trim($_POST['nombre'] ?? '');
+    $username = strtolower(trim($_POST['username'] ?? ''));
+    $password = (string)($_POST['password'] ?? '');
+    $rol      = ($_POST['rol'] ?? '') === 'admin' ? 'admin' : 'agent';
+
+    if ($nombre === '' || $username === '' || $password === '') jsonErr('Nombre, usuario y contraseña son requeridos');
+    if (!preg_match('/^[a-z0-9_.]+$/', $username)) jsonErr('El usuario solo puede tener letras minúsculas, números, punto y guión bajo');
+    if (strlen($password) < 8) jsonErr('La contraseña debe tener al menos 8 caracteres');
+
+    $chk = $pdo->prepare("SELECT id FROM usuarios WHERE username=?");
+    $chk->execute([$username]);
+    if ($chk->fetch()) jsonErr('Ya existe un usuario con ese nombre de usuario');
+
+    // Iniciales a partir del nombre (primera letra de las dos primeras palabras)
+    $partes = preg_split('/\s+/', $nombre, -1, PREG_SPLIT_NO_EMPTY);
+    $iniciales = mb_strtoupper(mb_substr($partes[0] ?? '?', 0, 1) . mb_substr($partes[1] ?? mb_substr($partes[0] ?? '', 1, 1), 0, 1));
+    $colores = ['#1B4A6B', '#2876A8', '#1E7A5C', '#C07A1A', '#7A5BAF', '#B83232', '#1E7A8C', '#993C1D'];
+    $color = $colores[array_rand($colores)];
+
+    $hash = password_hash($password, PASSWORD_DEFAULT);
+    $pdo->prepare("INSERT INTO usuarios (nombre,username,password_hash,rol,iniciales,color,activo) VALUES (?,?,?,?,?,?,1)")
+        ->execute([$nombre, $username, $hash, $rol, $iniciales, $color]);
+    $newId = $pdo->lastInsertId();
+
+    try {
+        $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
+            ->execute([$uid, 'SISTEMA', 'Empleado creado: '.$nombre.' (usuario: '.$username.')']);
+    } catch (Exception $e) {}
+
+    jsonOk(['id' => $newId]);
+    break;
+
 // ── SALARIO / HORAS DE NÓMINA (admin) ─────────────────────────
 case 'save_salario':
     if (!$admin) jsonErr('Solo admin puede configurar salarios');
