@@ -6909,10 +6909,10 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 <div class="modal-overlay" id="modal-nuevo-usuario"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title">👤 NUEVO EMPLEADO</div><button type="button" class="modal-close" onclick="closeModal('modal-nuevo-usuario')">✕</button></div>
   <div class="form-group"><label class="form-label">NOMBRE COMPLETO *</label><input id="nu-nombre" class="form-input" placeholder="Ej: Arthur Ramírez"></div>
-  <div class="form-group"><label class="form-label">USUARIO (PARA INICIAR SESIÓN) *</label><input id="nu-username" class="form-input" placeholder="ej: arthur" oninput="this.value=this.value.toLowerCase()"></div>
+  <div class="form-group"><label class="form-label">USUARIO (PARA INICIAR SESIÓN) *</label><input id="nu-username" class="form-input" style="text-transform:none" placeholder="ej: arthur" oninput="this.value=this.value.toLowerCase()"></div>
   <div class="form-group">
     <label class="form-label">CONTRASEÑA *</label>
-    <input id="nu-password" type="text" class="form-input" placeholder="Mínimo 8 caracteres">
+    <input id="nu-password" type="text" class="form-input" style="text-transform:none" placeholder="Mínimo 8 caracteres">
     <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:.5px;text-transform:uppercase">Se guarda encriptada en la base de datos — nunca en texto plano</div>
   </div>
   <div class="form-group"><label class="form-label">ROL</label><select id="nu-rol" class="form-input"><option value="agent">EMPLEADO (AGENTE)</option><option value="admin">ADMINISTRADOR</option></select></div>
