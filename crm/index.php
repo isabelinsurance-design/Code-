@@ -4410,8 +4410,12 @@ if(count($t65_pipe)>0):
         <?php endforeach; ?>
     </div>
 </div>
+</div>
+<!-- /PIPELINE -->
 
-<!-- MODAL DE LLAMADA -------------->
+<!-- MODAL DE LLAMADA — fuera de #tab-PIPELINE a propósito: si quedara dentro
+     de un tab-pane oculto (display:none), el modal abría "invisible" hasta
+     cambiar a esa pestaña, aunque el botón funcionara bien. -->
 <style>
   .lr-grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; margin-bottom: 14px; }
   .lr-grid-btn { background: #fff; border: 2px solid #C8DFF0; border-radius: 12px; padding: 16px 8px; text-align: center; cursor: pointer; transition: all 0.18s; user-select: none; }
@@ -4529,10 +4533,6 @@ if(count($t65_pipe)>0):
   </div>
 </div>
 <!-- CIERRE MODAL: REGISTRAR LLAMADAS -->
-
-</div>
-<!-- /PIPELINE -->
-
 
 <!-- CITAS -->
 <div id="tab-CITAS" class="tab-pane">
