@@ -8967,7 +8967,9 @@ function softReload(done){
   window._softReloading = true;
   window._softReloadStart = Date.now();
   // 1) Snapshot del estado dentro del panel activo
-  var scrollY = window.scrollY;
+  // (el scroll se lee más abajo, justo antes de reemplazar el HTML —no aquí,
+  // antes del fetch— para no "jalar" al usuario a una posición vieja si
+  // siguió bajando la página mientras esperábamos la respuesta del servidor)
   var vals = {};   // valores de inputs/selects/textareas con id
   var disp = {};   // estado de display (acordeones/paneles abiertos o cerrados)
   active.querySelectorAll('[id]').forEach(function(el){
@@ -8989,6 +8991,7 @@ function softReload(done){
       var doc = new DOMParser().parseFromString(html, 'text/html');
       var fresh = doc.getElementById(active.id);
       if(!fresh){ _softReloadDone(); return; }
+      var scrollY = window.scrollY;
       active.innerHTML = fresh.innerHTML;
       // 3) Restaurar estado del usuario sobre el contenido fresco
       Object.keys(disp).forEach(function(id){
