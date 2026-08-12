@@ -1144,10 +1144,13 @@ if ($admin) {
 $tickets_open = array_filter($tickets, fn($t) => $t['estado'] !== 'CERRADO');
 
 // === TIPOS DE TICKET — el sistema decide la categoría según el tipo elegido ===
-$TIPO_MIEMBRO = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
-                 'SERVICIO AL CLIENTE','LLAMADA','LLAMADA PERDIDA','CITA DENTAL','URGENTE'];
-$TIPO_TAREA   = ['SOPORTE','TASK','MARKETING','NEXTIVA','ENTRENAMIENTO','CRM','PROYECTO','OTRO'];
-$TIPOS_TODOS  = array_merge($TIPO_MIEMBRO, $TIPO_TAREA);
+$TIPO_MIEMBRO  = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
+                  'SERVICIO AL CLIENTE','LLAMADA','LLAMADA PERDIDA','CITA DENTAL','URGENTE'];
+$TIPO_TAREA    = ['SOPORTE','TASK','MARKETING','NEXTIVA','ENTRENAMIENTO','CRM','PROYECTO','OTRO'];
+// PROBLEMAS: su propia pestaña de vista, separada de tickets de miembros y tareas,
+// para poder estar pendiente de fallas/incidentes sin que se mezclen con lo demás.
+$TIPO_PROBLEMA = ['PROBLEMA'];
+$TIPOS_TODOS   = array_merge($TIPO_MIEMBRO, $TIPO_TAREA, $TIPO_PROBLEMA);
 
 // Cargar next_steps de todos los tickets (ordenados: pendientes primero por fecha, luego completados)
 $next_steps_por_ticket = [];
@@ -4832,8 +4835,9 @@ $tkt_proceso    = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['ti
 $tkt_alta_open  = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['tipo'],$TIPO_MIEMBRO,true) && $t['prioridad']==='ALTA' && $t['estado']!=='CERRADO' && (empty($t['sla_fecha']) || $t['sla_fecha'] <= $today_d)));
 $tkt_cerr_mes   = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['tipo'],$TIPO_MIEMBRO,true) && $t['estado']==='CERRADO'   && !empty($t['fecha_cierre']) && str_starts_with($t['fecha_cierre'], date('Y-m'))));
 
-$tkt_miembro_cnt = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['tipo'],$TIPO_MIEMBRO,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
-$tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['tipo'],$TIPO_MIEMBRO,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
+$tkt_miembro_cnt  = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['tipo'],$TIPO_MIEMBRO,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
+$tkt_problema_cnt = count(array_filter($mis_tickets_stats, fn($t)=>in_array($t['tipo'],$TIPO_PROBLEMA,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
+$tkt_tarea_cnt    = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['tipo'],$TIPO_MIEMBRO,true)&&!in_array($t['tipo'],$TIPO_PROBLEMA,true)&&$t['estado']!=='CERRADO'&&(empty($t['sla_fecha'])||$t['sla_fecha']<=$today_d)));
 ?>
 
 <div class="stats-row tkt-only" style="margin-bottom:14px">
@@ -4875,6 +4879,11 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
     ◈ TAREAS GENERALES
     <span id="vtab-tarea-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px"><?=$tkt_tarea_cnt?></span>
   </button>
+  <button id="vtab-problema" onclick="setTktVista('problema')"
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;border-right:1px solid <?=$CB?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    ⚠ PROBLEMAS
+    <span id="vtab-problema-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px"><?=$tkt_problema_cnt?></span>
+  </button>
   <button id="vtab-proyecto" onclick="setTktVista('proyecto')"
     style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
     📁 PROYECTOS
@@ -4913,6 +4922,9 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
       </optgroup>
       <optgroup label="── TAREA GENERAL ──">
       <?php foreach($TIPO_TAREA as $tp):?><option><?=$tp?></option><?php endforeach;?>
+      </optgroup>
+      <optgroup label="── PROBLEMAS ──">
+      <?php foreach($TIPO_PROBLEMA as $tp):?><option><?=$tp?></option><?php endforeach;?>
       </optgroup>
     </select>
     <?php if($admin):?>
@@ -4979,7 +4991,7 @@ $tkt_tarea_cnt   = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t['
 <tr class="ticket-row<?=$is_closed?' tkt-cerrada':''?>"
     data-id="<?=(int)$t['id']?>"
     style="border-left:3px solid <?=$left_color?>;<?=$is_closed?'opacity:.6':''?>"
-    data-vista="<?=in_array($t['tipo'],$TIPO_MIEMBRO,true)?'miembro':'tarea'?>"
+    data-vista="<?=in_array($t['tipo'],$TIPO_MIEMBRO,true)?'miembro':(in_array($t['tipo'],$TIPO_PROBLEMA,true)?'problema':'tarea')?>"
     data-prio="<?=h($prio)?>"
     data-estado="<?=h($t['estado']??'')?>"
     data-tipo="<?=h($t['tipo']??'')?>"
@@ -7048,6 +7060,9 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
       <optgroup label="── TAREA GENERAL ──">
         <?php foreach($TIPO_TAREA as $tp):?><option value="<?=$tp?>"><?=$tp?></option><?php endforeach;?>
       </optgroup>
+      <optgroup label="── PROBLEMAS ──">
+        <?php foreach($TIPO_PROBLEMA as $tp):?><option value="<?=$tp?>"><?=$tp?></option><?php endforeach;?>
+      </optgroup>
     </select>
     <div id="tkt-vista-hint" style="font-size:8px;color:<?=$MU?>;margin-top:3px;font-weight:700;letter-spacing:.5px"></div>
     </div>
@@ -7737,7 +7752,7 @@ function setTktVista(vista){
   _tktVista = vista;
   // Estilos de los tabs
   const P1 = '<?=$P1?>', MU = '<?=$MU?>', BG = '<?=$BG?>', CB = '<?=$CB?>';
-  const tabs = {miembro:'vtab-miembro', tarea:'vtab-tarea', proyecto:'vtab-proyecto'};
+  const tabs = {miembro:'vtab-miembro', tarea:'vtab-tarea', problema:'vtab-problema', proyecto:'vtab-proyecto'};
   for(const [v,id] of Object.entries(tabs)){
     const btn = document.getElementById(id);
     if(!btn) continue;
@@ -8245,9 +8260,10 @@ function quickTktStatus(id, newEstado){
     });
 }
 
-// ── TIPOS DE TICKETS — el sistema decide miembro/tarea según el tipo ──
-const TIPO_MIEMBRO = <?=json_encode($TIPO_MIEMBRO)?>;
-const TIPO_TAREA   = <?=json_encode($TIPO_TAREA)?>;
+// ── TIPOS DE TICKETS — el sistema decide miembro/tarea/problema según el tipo ──
+const TIPO_MIEMBRO  = <?=json_encode($TIPO_MIEMBRO)?>;
+const TIPO_TAREA    = <?=json_encode($TIPO_TAREA)?>;
+const TIPO_PROBLEMA = <?=json_encode($TIPO_PROBLEMA)?>;
 
 // Estado del modal: pasos del ticket actual + flag de nuevo/edición
 window._tktNextSteps = [];   // [{id?, descripcion, fecha_programada, completado, _local?}]
@@ -8261,6 +8277,9 @@ function tktTipoChange(){
   if(TIPO_MIEMBRO.includes(tipo)){
     hint.innerHTML = '◉ Este ticket aparecerá en <b>TICKETS DE MIEMBROS</b>';
     hint.style.color = '<?=$P1?>';
+  } else if(TIPO_PROBLEMA.includes(tipo)){
+    hint.innerHTML = '⚠ Este ticket aparecerá en <b>PROBLEMAS</b>';
+    hint.style.color = '#B83232';
   } else if(TIPO_TAREA.includes(tipo)){
     hint.innerHTML = '◈ Este ticket aparecerá en <b>TAREAS GENERALES</b>';
     hint.style.color = '<?=$P2?>';
