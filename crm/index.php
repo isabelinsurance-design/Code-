@@ -1738,7 +1738,9 @@ $hoy_cump_ts = strtotime($hoy_cump);
 $cumples_miembros = [];
 foreach ($members as $m) {
     if (empty($m['dob'])) continue;
-    if (!$admin && (int)($m['agente_id'] ?? 0) !== $uid) continue;
+    // A propósito NO se filtra por agente: cualquier empleada puede ver el
+    // cumpleaños de cualquier miembro, no solo los suyos, para que todo el
+    // equipo esté al tanto y alguien pueda llamar a felicitar.
     if (in_array($m['estado'] ?? '', ['CANCELED', 'DENIED', 'CERRADO', 'DISENROLLED'], true)) continue;
     $dob_ts = strtotime($m['dob']);
     if (!$dob_ts) continue;
@@ -1805,7 +1807,7 @@ foreach ($users_all as $u) {
       <div style="font-size:18px"><?=$_cc['dias']===0?'🎉':'🎂'?></div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($_cnombre)?> <span style="color:<?=$MU?>;font-weight:700">— cumple <?=$_cc['edad']?></span></div>
-        <div style="font-size:8px;color:<?=$MU?>"><?=$_cm['telefono']?h($_cm['telefono']):'—'?></div>
+        <div style="font-size:8px;color:<?=$MU?>"><?=$_cm['telefono']?h($_cm['telefono']):'—'?><?php if(!empty($_cm['agente_nombre'])):?> · agente: <?=h(explode(' ',$_cm['agente_nombre'])[0])?><?php endif;?></div>
       </div>
       <span style="background:<?=$_cc['dias']===0?'#FDEBF1':$BG?>;color:<?=$_cc['dias']===0?'#B83232':$MU?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;white-space:nowrap"><?=$_cc['dias']===0?'¡HOY!':($_cc['dias']===1?'MAÑANA':'EN '.$_cc['dias'].' DÍAS')?></span>
     </div>
