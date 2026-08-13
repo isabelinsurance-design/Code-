@@ -2648,10 +2648,10 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       </div>
     </div>
     <?php if(empty($lem)):?>
-    <div style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
+    <div class="le-empty" style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
     <?php else:?>
-    <div style="overflow-x:auto;margin-top:10px">
-    <table style="width:100%;border-collapse:collapse">
+    <div class="le-table-wrap" style="overflow-x:auto;margin-top:10px">
+    <table class="le-table" style="width:100%;border-collapse:collapse">
       <tr>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">TELÉFONO</th>
@@ -2660,7 +2660,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <th></th>
       </tr>
       <?php foreach($lem as $_lm): $_lm_nombre = trim($_lm['apellido'].', '.$_lm['nombre']); ?>
-      <tr style="border-top:1px solid <?=$CB?>">
+      <tr style="border-top:1px solid <?=$CB?>" data-le-row="<?=(int)$_lm['id']?>">
         <td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile(<?=(int)$_lm['miembro_id']?>)"><?=h($_lm_nombre)?></td>
         <td style="padding:6px 8px;font-size:9px;color:<?=$MU?>"><?=h($_lm['telefono']?:'—')?></td>
         <td style="padding:6px 8px">
@@ -3026,24 +3026,69 @@ function deleteLista(id){
   _campVista='listas';
   campPost('action=delete_lista_evento&id='+id,true);
 }
+var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
+// _membersData.label/tel ya vienen escapados con h() desde PHP (ver
+// _membersData más abajo), así que se insertan tal cual sin re-escaparlos.
+function _leRowHtml(rowId, miembro){
+  var nombre = miembro ? miembro.label.split(' · ')[0] : '—';
+  var tel    = miembro && miembro.tel ? miembro.tel : '—';
+  var midAttr= miembro ? miembro.id : 0;
+  var opts = LE_ESTADO_OPTS.map(function(o){ return '<option value="'+o+'"'+(o==='PENDIENTE'?' selected':'')+'>'+o+'</option>'; }).join('');
+  return '<tr style="border-top:1px solid <?=$CB?>" data-le-row="'+rowId+'">'
+    + '<td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile('+midAttr+')">'+nombre+'</td>'
+    + '<td style="padding:6px 8px;font-size:9px;color:<?=$MU?>">'+tel+'</td>'
+    + '<td style="padding:6px 8px"><select onchange="updateMiembroLista('+rowId+',{estado:this.value})" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
+    + '<td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista('+rowId+',{asistio:this.checked?1:0})" style="width:16px;height:16px;cursor:pointer"></td>'
+    + '<td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button></td>'
+    + '</tr>';
+}
 function addMiembroLista(listaId){
   var hid=document.getElementById('le-mpick-hidden-'+listaId);
   var mid=hid?hid.value:'';
   if(!mid){ if(typeof toast==='function')toast('⚠ Busca y selecciona un miembro primero'); return; }
-  _campVista='listas';
-  try{sessionStorage.setItem('leOpen',listaId);}catch(e){}
-  campPost('action=add_miembro_lista&lista_id='+listaId+'&miembro_id='+mid,true);
+  var miembro=_membersData.filter(function(m){return String(m.id)===String(mid);})[0];
+  var btn=document.querySelector('#le-body-'+listaId+' [onclick="addMiembroLista('+listaId+')"]');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='AGREGANDO...'; }
+  campPost('action=add_miembro_lista&lista_id='+listaId+'&miembro_id='+mid,false).then(function(d){
+    if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; }
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ MIEMBRO AGREGADO');
+      // Actualiza la tabla al instante — no depende de que se recargue toda
+      // la página (antes había que refrescar a mano para ver el cambio).
+      var body=document.getElementById('le-body-'+listaId);
+      if(body){
+        var empty=body.querySelector('.le-empty'); if(empty) empty.remove();
+        var table=body.querySelector('table.le-table');
+        if(!table){
+          var wrap=document.createElement('div'); wrap.className='le-table-wrap'; wrap.style.cssText='overflow-x:auto;margin-top:10px';
+          wrap.innerHTML='<table class="le-table" style="width:100%;border-collapse:collapse"><tr>'
+            +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>'
+            +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">TELÉFONO</th>'
+            +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ESTADO</th>'
+            +'<th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th><th></th></tr></table>';
+          body.appendChild(wrap);
+          table=wrap.querySelector('table');
+        }
+        table.insertAdjacentHTML('beforeend', _leRowHtml(d.id, miembro));
+      }
+      mpickClear('le-mpick-input-'+listaId,'le-mpick-hidden-'+listaId,'le-mpick-drop-'+listaId);
+    }
+  });
 }
 function updateMiembroLista(id,cambios){
-  _campVista='listas';
   var p='action=update_miembro_lista&id='+id;
   Object.keys(cambios).forEach(function(k){ p+='&'+k+'='+encodeURIComponent(cambios[k]); });
   campPost(p,false).then(function(d){ if(d&&d.ok && typeof toast==='function')toast('✓ Actualizado'); });
 }
 function removeMiembroLista(id){
   if(!confirm('¿Quitar a este miembro de la lista?'))return;
-  _campVista='listas';
-  campPost('action=remove_miembro_lista&id='+id,true);
+  campPost('action=remove_miembro_lista&id='+id,false).then(function(d){
+    if(d&&d.ok){
+      var row=document.querySelector('[data-le-row="'+id+'"]');
+      if(row) row.remove();
+      if(typeof toast==='function')toast('✓ QUITADO DE LA LISTA');
+    }
+  });
 }
 
 document.addEventListener('DOMContentLoaded',function(){
