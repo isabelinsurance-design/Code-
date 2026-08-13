@@ -1728,13 +1728,26 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <main>
 <div class="page-title"><span id="tab-icon" style="font-size:14px">▣</span><h1 id="tab-title">DASHBOARD</h1></div>
 <?php
-// ─── CUMPLEAÑOS — miembros (próximos 7 días) y empleados (hoy) ─────────────
+// ─── CUMPLEAÑOS — solo el día de hoy (miembros y empleados) ────────────────
+// Excepción: si el cumpleaños cayó en domingo (oficina cerrada), se sigue
+// mostrando el lunes siguiente para no perderse a nadie.
 // Se usa strtotime()/date() en vez de DateTime::createFromFormat('Y-m-d',...)
 // porque este último es estricto con el formato y fallaba en silencio si la
-// columna dob venía con hora (ej. "1958-04-12 00:00:00") — el resultado era
-// que NUNCA aparecía ningún cumpleaños de miembro, aunque sí tuvieran dob.
-$hoy_cump   = today();
+// columna dob venía con hora (ej. "1958-04-12 00:00:00").
+$hoy_cump    = today();
 $hoy_cump_ts = strtotime($hoy_cump);
+$hoy_es_lunes = (int)date('N', $hoy_cump_ts) === 1; // ISO-8601: 1 = lunes
+
+function _cumple_diff_dias(string $dobRaw, int $hoyTs): ?int {
+    $dobTs = strtotime($dobRaw);
+    if (!$dobTs) return null;
+    $mmdd = date('m-d', $dobTs);
+    $anio = (int)date('Y', $hoyTs);
+    $ocurreTs = strtotime($anio . '-' . $mmdd);
+    if ($ocurreTs === false) return null;
+    return (int)round(($ocurreTs - $hoyTs) / 86400);
+}
+
 $cumples_miembros = [];
 foreach ($members as $m) {
     if (empty($m['dob'])) continue;
@@ -1742,24 +1755,23 @@ foreach ($members as $m) {
     // cumpleaños de cualquier miembro, no solo los suyos, para que todo el
     // equipo esté al tanto y alguien pueda llamar a felicitar.
     if (in_array($m['estado'] ?? '', ['CANCELED', 'DENIED', 'CERRADO', 'DISENROLLED'], true)) continue;
-    $dob_ts = strtotime($m['dob']);
-    if (!$dob_ts) continue;
-    $mmdd = date('m-d', $dob_ts);
-    $anio = (int)date('Y', $hoy_cump_ts);
-    $prox_ts = strtotime($anio . '-' . $mmdd);
-    if ($prox_ts === false) continue;
-    if ($prox_ts < $hoy_cump_ts) { $anio++; $prox_ts = strtotime($anio . '-' . $mmdd); }
-    $dias_cump = (int)round(($prox_ts - $hoy_cump_ts) / 86400);
-    if ($dias_cump >= 0 && $dias_cump <= 7) {
-        $cumples_miembros[] = ['m' => $m, 'dias' => $dias_cump, 'edad' => $anio - (int)date('Y', $dob_ts)];
+    $diff = _cumple_diff_dias($m['dob'], $hoy_cump_ts);
+    if ($diff === null) continue;
+    $es_hoy = $diff === 0;
+    $cayo_domingo = $hoy_es_lunes && $diff === -1;
+    if ($es_hoy || $cayo_domingo) {
+        $anio = (int)date('Y', $hoy_cump_ts);
+        $cumples_miembros[] = ['m' => $m, 'hoy' => $es_hoy, 'edad' => $anio - (int)date('Y', strtotime($m['dob']))];
     }
 }
-usort($cumples_miembros, fn($a, $b) => $a['dias'] <=> $b['dias']);
+usort($cumples_miembros, fn($a, $b) => $b['hoy'] <=> $a['hoy']);
 
 $cumple_hoy_empleados = [];
 foreach ($users_all as $u) {
     if (empty($u['dob'])) continue;
-    if (date('m-d', strtotime($u['dob'])) === date('m-d', $hoy_cump_ts)) {
+    $diff = _cumple_diff_dias($u['dob'], $hoy_cump_ts);
+    if ($diff === null) continue;
+    if ($diff === 0 || ($hoy_es_lunes && $diff === -1)) {
         $cumple_hoy_empleados[] = $u['nombre'];
     }
 }
@@ -1804,12 +1816,12 @@ foreach ($users_all as $u) {
   <div style="padding:6px 14px 10px">
   <?php foreach($cumples_miembros as $_cc): $_cm=$_cc['m']; $_cnombre=trim($_cm['apellido'].', '.$_cm['nombre']); ?>
     <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid <?=$CB?>;cursor:pointer" onclick="openProfile(<?=$_cm['id']?>)">
-      <div style="font-size:18px"><?=$_cc['dias']===0?'🎉':'🎂'?></div>
+      <div style="font-size:18px">🎉</div>
       <div style="flex:1;min-width:0">
         <div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($_cnombre)?> <span style="color:<?=$MU?>;font-weight:700">— cumple <?=$_cc['edad']?></span></div>
         <div style="font-size:8px;color:<?=$MU?>"><?=$_cm['telefono']?h($_cm['telefono']):'—'?><?php if(!empty($_cm['agente_nombre'])):?> · agente: <?=h(explode(' ',$_cm['agente_nombre'])[0])?><?php endif;?></div>
       </div>
-      <span style="background:<?=$_cc['dias']===0?'#FDEBF1':$BG?>;color:<?=$_cc['dias']===0?'#B83232':$MU?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;white-space:nowrap"><?=$_cc['dias']===0?'¡HOY!':($_cc['dias']===1?'MAÑANA':'EN '.$_cc['dias'].' DÍAS')?></span>
+      <span style="background:<?=$_cc['hoy']?'#FDEBF1':$BG?>;color:<?=$_cc['hoy']?'#B83232':$MU?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;white-space:nowrap"><?=$_cc['hoy']?'¡HOY!':'🗓 FUE AYER (DOMINGO)'?></span>
     </div>
   <?php endforeach; ?>
   </div>
