@@ -571,6 +571,56 @@ if (!empty($_POST['camp_ajax'])) {
             if ((int)$row['agente_id'] !== (int)$uid_c && !$admin) { echo json_encode(['ok'=>false,'error'=>'Solo quien lo reclamó (o un admin) puede liberarlo']); break; }
             $pdo_c->prepare("UPDATE campana_contactos SET agente_id=NULL WHERE id=?")->execute([$id]);
             echo json_encode(['ok'=>true]); break;
+
+        // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros) ───────
+        case 'save_lista_evento':
+            $id = (int)($_POST['id'] ?? 0);
+            $nombre = trim($_POST['nombre'] ?? '');
+            $fecha  = trim($_POST['fecha'] ?? '') ?: null;
+            $desc   = trim($_POST['descripcion'] ?? '');
+            if ($nombre === '') { echo json_encode(['ok'=>false,'error'=>'Nombre requerido']); break; }
+            if ($id) {
+                $pdo_c->prepare("UPDATE listas_evento SET nombre=?, fecha=?, descripcion=? WHERE id=?")
+                      ->execute([$nombre, $fecha, $desc, $id]);
+                echo json_encode(['ok'=>true,'id'=>$id]);
+            } else {
+                $pdo_c->prepare("INSERT INTO listas_evento (nombre,fecha,descripcion,agente_id) VALUES (?,?,?,?)")
+                      ->execute([$nombre, $fecha, $desc, $uid_c]);
+                echo json_encode(['ok'=>true,'id'=>$pdo_c->lastInsertId()]);
+            }
+            break;
+        case 'delete_lista_evento':
+            $id = (int)($_POST['id'] ?? 0);
+            $pdo_c->prepare("DELETE FROM lista_evento_miembros WHERE lista_id=?")->execute([$id]);
+            $pdo_c->prepare("DELETE FROM listas_evento WHERE id=?")->execute([$id]);
+            echo json_encode(['ok'=>true]); break;
+        case 'add_miembro_lista':
+            $lista_id   = (int)($_POST['lista_id'] ?? 0);
+            $miembro_id = (int)($_POST['miembro_id'] ?? 0);
+            if (!$lista_id || !$miembro_id) { echo json_encode(['ok'=>false,'error'=>'Lista y miembro requeridos']); break; }
+            try {
+                $pdo_c->prepare("INSERT INTO lista_evento_miembros (lista_id,miembro_id) VALUES (?,?)")->execute([$lista_id, $miembro_id]);
+                echo json_encode(['ok'=>true,'id'=>$pdo_c->lastInsertId()]);
+            } catch (Exception $e) {
+                echo json_encode(['ok'=>false,'error'=>'Ese miembro ya está en la lista']);
+            }
+            break;
+        case 'update_miembro_lista':
+            $id = (int)($_POST['id'] ?? 0);
+            if (!$id) { echo json_encode(['ok'=>false,'error'=>'ID requerido']); break; }
+            $sets = []; $vals = [];
+            if (isset($_POST['estado']))  { $sets[] = 'estado=?';  $vals[] = trim($_POST['estado']); }
+            if (isset($_POST['asistio'])) { $sets[] = 'asistio=?'; $vals[] = !empty($_POST['asistio']) ? 1 : 0; }
+            if (isset($_POST['notas']))   { $sets[] = 'notas=?';   $vals[] = trim($_POST['notas']); }
+            if (!$sets) { echo json_encode(['ok'=>false,'error'=>'Nada que actualizar']); break; }
+            $vals[] = $id;
+            $pdo_c->prepare("UPDATE lista_evento_miembros SET " . implode(',', $sets) . " WHERE id=?")->execute($vals);
+            echo json_encode(['ok'=>true]); break;
+        case 'remove_miembro_lista':
+            $id = (int)($_POST['id'] ?? 0);
+            $pdo_c->prepare("DELETE FROM lista_evento_miembros WHERE id=?")->execute([$id]);
+            echo json_encode(['ok'=>true]); break;
+
         default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
     }} catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
     exit;
@@ -951,6 +1001,28 @@ try {
         resultado VARCHAR(100),
         notas TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+} catch (Exception $e) {}
+// ─── TABLAS LISTAS DE EVENTO (confirmaciones/asistencia — ej. celebraciones) ─
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS listas_evento (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(200) NOT NULL,
+        fecha DATE DEFAULT NULL,
+        descripcion TEXT,
+        agente_id INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS lista_evento_miembros (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        lista_id INT NOT NULL,
+        miembro_id INT NOT NULL,
+        estado VARCHAR(30) DEFAULT 'PENDIENTE',
+        asistio TINYINT(1) DEFAULT 0,
+        notas VARCHAR(255),
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        UNIQUE KEY uniq_lista_miembro (lista_id, miembro_id),
+        INDEX idx_lista (lista_id)
     )");
 } catch (Exception $e) {}
 // ─── TABLAS PLANEACIÓN (metas, roadmap, planes día/semana/mes) ───────────────
@@ -2349,7 +2421,30 @@ $camp_total=count($campanas);
 $camp_activas=count(array_filter($campanas,fn($c)=>$c['estado']==='ACTIVA'));
 $cc_total=0;$cc_pipe=0; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_total++; if($ct['promovido'])$cc_pipe++;}}
 $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id']]=$ct;}}
+
+// ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros ya existentes) ──
+$LEM_ESTADOS = ['PENDIENTE'=>['#7A90A4','#F1F1F1'],'CONFIRMADO'=>['#1E7A5C','#EAF5F0'],'NO CONFIRMADO'=>['#B83232','#FDF0EE'],'ASISTIÓ'=>['#1B5E8C','#EBF5FB'],'NO ASISTIÓ'=>['#993C1D','#FAECE7']];
+$listas_evento=[]; $lem_by_lista=[];
+try{
+ $listas_evento=$pdo->query("SELECT le.*, u.iniciales as agente_ini, u.color as agente_color FROM listas_evento le LEFT JOIN usuarios u ON le.agente_id=u.id ORDER BY le.fecha DESC, le.created_at DESC")->fetchAll();
+ foreach($pdo->query("SELECT lem.*, m.nombre, m.apellido, m.telefono
+                       FROM lista_evento_miembros lem JOIN miembros m ON m.id=lem.miembro_id
+                       ORDER BY m.apellido, m.nombre") as $lm) $lem_by_lista[$lm['lista_id']][]=$lm;
+}catch(Exception $e){}
+$le_total=count($listas_evento);
+$le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l);
 ?>
+<div style="display:flex;gap:0;margin-bottom:13px;background:#fff;border:1px solid <?=$CB?>;border-radius:13px;overflow:hidden">
+  <button id="cvtab-campanas" onclick="setCampVista('campanas')"
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:<?=$P1?>;color:#fff;border-right:1px solid <?=$CB?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    📣 CAMPAÑAS <span id="cvtab-campanas-cnt" style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:8px"><?=$camp_total?></span>
+  </button>
+  <button id="cvtab-listas" onclick="setCampVista('listas')"
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    🎉 LISTAS DE EVENTO <span id="cvtab-listas-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px"><?=$le_total?></span>
+  </button>
+</div>
+<div id="camp-view-campanas">
 <div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px;padding:13px 16px">
   <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px">
     <div>
@@ -2496,6 +2591,94 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
   </div>
 </div>
 <?php endforeach;?>
+</div>
+<div id="camp-view-listas" style="display:none">
+<div class="card" style="border-top:3px solid #D46A9A;margin-bottom:14px;padding:13px 16px">
+  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px">
+    <div>
+      <div class="card-title" style="font-size:11px">🎉 LISTAS DE EVENTO</div>
+      <div style="font-size:8px;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-top:3px"><?=$le_total?> LISTAS · <?=$le_miembros_total?> MIEMBROS AGREGADOS</div>
+    </div>
+    <button class="btn btn-p btn-sm" onclick="openListaForm()">+ NUEVA LISTA</button>
+  </div>
+</div>
+<div style="background:#F3F0FB;border:1px solid #C2B0E8;border-left:4px solid #5B3FAF;border-radius:10px;padding:9px 14px;margin-bottom:14px;font-size:8px;color:#5B3FAF;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">
+  ℹ️ Úsalo para confirmaciones de eventos/celebraciones — agrega miembros que ya están en el CRM, marca su estado y si asistieron.
+</div>
+<?php if(empty($listas_evento)):?>
+<div class="card" style="padding:30px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">🎉 NO HAY LISTAS — CREA UNA CON "NUEVA LISTA"</div>
+<?php endif;?>
+<?php foreach($listas_evento as $le):
+  $lem = $lem_by_lista[$le['id']] ?? [];
+  $n_total = count($lem);
+  $n_conf  = count(array_filter($lem, fn($x)=>$x['estado']==='CONFIRMADO'));
+  $n_asis  = count(array_filter($lem, fn($x)=>!empty($x['asistio'])));
+?>
+<div class="card" style="margin-bottom:10px;border-left:4px solid #D46A9A">
+  <div class="card-header" style="cursor:pointer;flex-wrap:wrap;gap:9px" onclick="leToggleCard(<?=$le['id']?>)">
+    <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
+      <div style="min-width:0">
+        <div class="card-title" style="font-size:10px;white-space:normal"><?=h($le['nombre'])?></div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px">
+          <?php if($le['fecha']):?><span style="background:#F3F0FB;color:#5B3FAF;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900">📅 <?=date('d/m/Y',strtotime($le['fecha']))?></span><?php endif;?>
+          <span style="font-size:8px;color:<?=$MU?>">👥 <?=$n_total?> AGREGADOS</span>
+          <?php if($n_conf>0):?><span style="font-size:8px;font-weight:900;color:#1E7A5C">✓ <?=$n_conf?> CONFIRMADOS</span><?php endif;?>
+          <?php if($n_asis>0):?><span style="font-size:8px;font-weight:900;color:#1B5E8C">🎉 <?=$n_asis?> ASISTIERON</span><?php endif;?>
+        </div>
+      </div>
+    </div>
+    <span style="font-size:13px;color:<?=$MU?>;flex-shrink:0">▾</span>
+  </div>
+  <div id="le-body-<?=$le['id']?>" style="display:none;padding:13px 17px;border-top:1px solid <?=$CB?>">
+    <?php if(!empty($le['descripcion'])):?><div style="font-size:9px;color:<?=$TX?>;line-height:1.6;margin-bottom:11px"><?=h($le['descripcion'])?></div><?php endif;?>
+    <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
+      <button class="btn btn-gh btn-sm" onclick="openListaForm(<?=$le['id']?>)">✎ EDITAR LISTA</button>
+      <button class="btn btn-re btn-sm" onclick="deleteLista(<?=$le['id']?>)">✕ ELIMINAR LISTA</button>
+    </div>
+    <div class="form-group" style="max-width:460px">
+      <label class="form-label">AGREGAR MIEMBRO</label>
+      <div style="display:flex;gap:6px;align-items:flex-start">
+        <div class="mpick-wrap" style="flex:1">
+          <input type="text" id="le-mpick-input-<?=$le['id']?>" class="form-input" placeholder="Escribe nombre o teléfono..." autocomplete="off"
+                 oninput="mpickSearch('le-mpick-input-<?=$le['id']?>','le-mpick-hidden-<?=$le['id']?>','le-mpick-drop-<?=$le['id']?>',this.value,false)">
+          <input type="hidden" id="le-mpick-hidden-<?=$le['id']?>" value="">
+          <div id="le-mpick-drop-<?=$le['id']?>" class="mpick-drop"></div>
+        </div>
+        <button type="button" class="btn btn-p btn-sm" onclick="addMiembroLista(<?=$le['id']?>)">+ AGREGAR</button>
+      </div>
+    </div>
+    <?php if(empty($lem)):?>
+    <div style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
+    <?php else:?>
+    <div style="overflow-x:auto;margin-top:10px">
+    <table style="width:100%;border-collapse:collapse">
+      <tr>
+        <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>
+        <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">TELÉFONO</th>
+        <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ESTADO</th>
+        <th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th>
+        <th></th>
+      </tr>
+      <?php foreach($lem as $_lm): $_lm_nombre = trim($_lm['apellido'].', '.$_lm['nombre']); ?>
+      <tr style="border-top:1px solid <?=$CB?>">
+        <td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile(<?=(int)$_lm['miembro_id']?>)"><?=h($_lm_nombre)?></td>
+        <td style="padding:6px 8px;font-size:9px;color:<?=$MU?>"><?=h($_lm['telefono']?:'—')?></td>
+        <td style="padding:6px 8px">
+          <select onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value})" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
+            <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"<?=($_lm['estado']??'PENDIENTE')===$_est_op?' selected':''?>><?=h($_est_op)?></option><?php endforeach;?>
+          </select>
+        </td>
+        <td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{asistio:this.checked?1:0})"<?=!empty($_lm['asistio'])?' checked':''?> style="width:16px;height:16px;cursor:pointer"></td>
+        <td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista(<?=(int)$_lm['id']?>)">✕</button></td>
+      </tr>
+      <?php endforeach;?>
+    </table>
+    </div>
+    <?php endif;?>
+  </div>
+</div>
+<?php endforeach;?>
+</div>
 </div><!-- /CAMPANAS -->
 
 <!-- MODAL: NUEVA/EDITAR CAMPAÑA -->
@@ -2588,6 +2771,20 @@ $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id'
     <div style="margin-top:13px;border-top:1px solid <?=$CB?>;padding-top:9px">
       <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">HISTORIAL</div>
       <div id="cc-log-history" style="max-height:180px;overflow-y:auto"></div>
+    </div>
+  </form>
+</div></div>
+<!-- MODAL: NUEVA/EDITAR LISTA DE EVENTO -->
+<div id="modal-le-form" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title" id="le-form-title">NUEVA LISTA</div><button class="modal-close" onclick="closeModal('modal-le-form')">✕</button></div>
+  <form onsubmit="saveListaEvento(event)">
+    <input type="hidden" name="id" id="le-id">
+    <div class="form-group"><label class="form-label">NOMBRE *</label><input type="text" name="nombre" id="le-nombre" class="form-input" required placeholder="Ej: Celebración de Verano 2026"></div>
+    <div class="form-group"><label class="form-label">FECHA</label><input type="date" name="fecha" id="le-fecha" class="form-input"></div>
+    <div class="form-group"><label class="form-label">DESCRIPCIÓN</label><textarea name="descripcion" id="le-desc" class="form-input" rows="2" style="text-transform:none" placeholder="Detalles del evento..."></textarea></div>
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+      <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-le-form')">CANCELAR</button>
+      <button type="submit" class="btn btn-p btn-sm" id="le-form-btn">GUARDAR</button>
     </div>
   </form>
 </div></div>
@@ -2777,9 +2974,83 @@ function submitCcImport(){
     }
   }).catch(function(){ btn.disabled=false; btn.textContent='⤒ SUBIR'; _cciShowResult('⚠ ERROR DE RED — REVISA TU CONEXIÓN E INTENTA DE NUEVO', false); });
 }
+
+// ════════════════════════════════════════════════════════════════
+//  LISTAS DE EVENTO — confirmaciones/asistencia de miembros
+// ════════════════════════════════════════════════════════════════
+var LISTA_DATA=<?=json_encode($listas_evento)?>;
+var _campVista='campanas';
+function setCampVista(vista){
+  _campVista=vista;
+  var onBg='<?=$P1?>', offBg='#fff', onCol='#fff', offCol='<?=$MU?>';
+  var esListas=(vista==='listas');
+  var bC=document.getElementById('cvtab-campanas'), bL=document.getElementById('cvtab-listas');
+  if(bC){ bC.style.background=esListas?offBg:onBg; bC.style.color=esListas?offCol:onCol; }
+  if(bL){ bL.style.background=esListas?onBg:offBg; bL.style.color=esListas?onCol:offCol; }
+  var vC=document.getElementById('camp-view-campanas'), vL=document.getElementById('camp-view-listas');
+  if(vC) vC.style.display=esListas?'none':'';
+  if(vL) vL.style.display=esListas?'':'none';
+}
+function leToggleCard(id){
+  var b=document.getElementById('le-body-'+id); if(!b)return;
+  var open=b.style.display!=='none'; b.style.display=open?'none':'block';
+  try{ if(open)sessionStorage.removeItem('leOpen'); else sessionStorage.setItem('leOpen',id); }catch(e){}
+}
+function openListaForm(id){
+  document.getElementById('le-id').value=id||'';
+  document.getElementById('le-form-title').textContent=id?'EDITAR LISTA':'NUEVA LISTA';
+  var d=id?LISTA_DATA.filter(function(x){return x.id==id;})[0]:null;
+  document.getElementById('le-nombre').value=d?d.nombre:'';
+  document.getElementById('le-fecha').value=d&&d.fecha?d.fecha:'';
+  document.getElementById('le-desc').value=d&&d.descripcion?d.descripcion:'';
+  openModal('modal-le-form');
+}
+function saveListaEvento(e){e.preventDefault();var f=e.target;
+  var btn=document.getElementById('le-form-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  var p='action=save_lista_evento&id='+encodeURIComponent(f.id.value)+'&nombre='+encodeURIComponent(f.nombre.value)+'&fecha='+encodeURIComponent(f.fecha.value)+'&descripcion='+encodeURIComponent(f.descripcion.value);
+  campPost(p,false).then(function(d){
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ LISTA GUARDADA');
+      try{sessionStorage.setItem('leOpen',d.id);sessionStorage.setItem('campVistaKeep','listas');}catch(e){}
+      _campVista='listas';
+      closeModal('modal-le-form');
+      _campReload();
+    }
+    if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; }
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; } });
+}
+function deleteLista(id){
+  if(!confirm('¿Eliminar esta lista y todos sus miembros agregados?'))return;
+  try{sessionStorage.removeItem('leOpen');}catch(e){}
+  _campVista='listas';
+  campPost('action=delete_lista_evento&id='+id,true);
+}
+function addMiembroLista(listaId){
+  var hid=document.getElementById('le-mpick-hidden-'+listaId);
+  var mid=hid?hid.value:'';
+  if(!mid){ if(typeof toast==='function')toast('⚠ Busca y selecciona un miembro primero'); return; }
+  _campVista='listas';
+  try{sessionStorage.setItem('leOpen',listaId);}catch(e){}
+  campPost('action=add_miembro_lista&lista_id='+listaId+'&miembro_id='+mid,true);
+}
+function updateMiembroLista(id,cambios){
+  _campVista='listas';
+  var p='action=update_miembro_lista&id='+id;
+  Object.keys(cambios).forEach(function(k){ p+='&'+k+'='+encodeURIComponent(cambios[k]); });
+  campPost(p,false).then(function(d){ if(d&&d.ok && typeof toast==='function')toast('✓ Actualizado'); });
+}
+function removeMiembroLista(id){
+  if(!confirm('¿Quitar a este miembro de la lista?'))return;
+  _campVista='listas';
+  campPost('action=remove_miembro_lista&id='+id,true);
+}
+
 document.addEventListener('DOMContentLoaded',function(){
   try{
     var o=sessionStorage.getItem('campOpen'); if(o){var b=document.getElementById('camp-body-'+o); if(b)b.style.display='block';}
+    var lo=sessionStorage.getItem('leOpen'); if(lo){var lb=document.getElementById('le-body-'+lo); if(lb)lb.style.display='block';}
+    var cv=sessionStorage.getItem('campVistaKeep'); if(cv){ setCampVista(cv); sessionStorage.removeItem('campVistaKeep'); }
     var sc=sessionStorage.getItem('campScroll'); if(sc){ setTimeout(function(){window.scrollTo(0,parseInt(sc));sessionStorage.removeItem('campScroll');},150); }
   }catch(e){}
 });
@@ -9094,9 +9365,17 @@ function softReload(done){
           else if(typeof filterTickets==='function'){ filterTickets(); }
         }
       }catch(e){}
+      // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual
+      // que arriba con TICKETS — si no, siempre vuelve a "campañas".
+      try{
+        if(active.id==='tab-CAMPANAS' && typeof setCampVista==='function' && typeof _campVista!=='undefined'){
+          setCampVista(_campVista);
+        }
+      }catch(e){}
       // Reabrir acordeón recién creado de reuniones / campañas (si aplica)
       try{ var mo=sessionStorage.getItem('mtgOpen'); if(mo){ var mb=document.getElementById('mtg-body-'+mo); if(mb) mb.style.display='block'; sessionStorage.removeItem('mtgOpen'); } }catch(e){}
       try{ var co=sessionStorage.getItem('campOpen'); if(co){ var cb=document.getElementById('camp-body-'+co); if(cb) cb.style.display='block'; sessionStorage.removeItem('campOpen'); } }catch(e){}
+      try{ var lo=sessionStorage.getItem('leOpen'); if(lo){ var lb=document.getElementById('le-body-'+lo); if(lb) lb.style.display='block'; sessionStorage.removeItem('leOpen'); } }catch(e){}
       // 5) Restaurar scroll
       window.scrollTo(0, scrollY);
       window._lastSoftReload = Date.now();
