@@ -1729,20 +1729,27 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <div class="page-title"><span id="tab-icon" style="font-size:14px">▣</span><h1 id="tab-title">DASHBOARD</h1></div>
 <?php
 // ─── CUMPLEAÑOS — miembros (próximos 7 días) y empleados (hoy) ─────────────
-$hoy_cump = new DateTime(today());
+// Se usa strtotime()/date() en vez de DateTime::createFromFormat('Y-m-d',...)
+// porque este último es estricto con el formato y fallaba en silencio si la
+// columna dob venía con hora (ej. "1958-04-12 00:00:00") — el resultado era
+// que NUNCA aparecía ningún cumpleaños de miembro, aunque sí tuvieran dob.
+$hoy_cump   = today();
+$hoy_cump_ts = strtotime($hoy_cump);
 $cumples_miembros = [];
 foreach ($members as $m) {
     if (empty($m['dob'])) continue;
     if (!$admin && (int)($m['agente_id'] ?? 0) !== $uid) continue;
     if (in_array($m['estado'] ?? '', ['CANCELED', 'DENIED', 'CERRADO', 'DISENROLLED'], true)) continue;
-    $dob = DateTime::createFromFormat('Y-m-d', $m['dob']);
-    if (!$dob) continue;
-    $prox = DateTime::createFromFormat('Y-m-d', $hoy_cump->format('Y') . '-' . $dob->format('m-d'));
-    if (!$prox) continue;
-    if ($prox < $hoy_cump) $prox->modify('+1 year');
-    $dias_cump = (int)$hoy_cump->diff($prox)->days;
-    if ($dias_cump <= 7) {
-        $cumples_miembros[] = ['m' => $m, 'dias' => $dias_cump, 'edad' => (int)$prox->format('Y') - (int)$dob->format('Y')];
+    $dob_ts = strtotime($m['dob']);
+    if (!$dob_ts) continue;
+    $mmdd = date('m-d', $dob_ts);
+    $anio = (int)date('Y', $hoy_cump_ts);
+    $prox_ts = strtotime($anio . '-' . $mmdd);
+    if ($prox_ts === false) continue;
+    if ($prox_ts < $hoy_cump_ts) { $anio++; $prox_ts = strtotime($anio . '-' . $mmdd); }
+    $dias_cump = (int)round(($prox_ts - $hoy_cump_ts) / 86400);
+    if ($dias_cump >= 0 && $dias_cump <= 7) {
+        $cumples_miembros[] = ['m' => $m, 'dias' => $dias_cump, 'edad' => $anio - (int)date('Y', $dob_ts)];
     }
 }
 usort($cumples_miembros, fn($a, $b) => $a['dias'] <=> $b['dias']);
@@ -1750,7 +1757,7 @@ usort($cumples_miembros, fn($a, $b) => $a['dias'] <=> $b['dias']);
 $cumple_hoy_empleados = [];
 foreach ($users_all as $u) {
     if (empty($u['dob'])) continue;
-    if (date('m-d', strtotime($u['dob'])) === $hoy_cump->format('m-d')) {
+    if (date('m-d', strtotime($u['dob'])) === date('m-d', $hoy_cump_ts)) {
         $cumple_hoy_empleados[] = $u['nombre'];
     }
 }
