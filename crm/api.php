@@ -298,6 +298,18 @@ case 'save_salario':
     jsonOk();
     break;
 
+// ── FECHA DE NACIMIENTO DEL EMPLEADO (para el saludo de cumpleaños) ──
+case 'save_cumple':
+    if (!$admin) jsonErr('Solo admin puede configurar cumpleaños');
+    $aid = intval($_POST['agente_id'] ?? 0);
+    if (!$aid) jsonErr('Empleado requerido');
+    $pdo = db();
+    if (!$pdo->query("SHOW COLUMNS FROM usuarios LIKE 'dob'")->fetch()) $pdo->exec("ALTER TABLE usuarios ADD COLUMN dob DATE NULL");
+    $dob = trim($_POST['dob'] ?? '');
+    $pdo->prepare("UPDATE usuarios SET dob=? WHERE id=?")->execute([$dob !== '' ? $dob : null, $aid]);
+    jsonOk();
+    break;
+
 // ── GESTOR DE TAREAS PERSONALIZADAS (checklist de MI DÍA) ─────
 // Antes se guardaba con un <form> nativo que recargaba TODA la página
 // (te mandaba de vuelta al Dashboard, perdiendo dónde estabas). Ahora es

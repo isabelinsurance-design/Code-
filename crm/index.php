@@ -750,11 +750,12 @@ try {
     if (!$pdo->query("SHOW COLUMNS FROM reporte_diario LIKE 'editado_at'")->fetch())
         $pdo->exec("ALTER TABLE reporte_diario ADD COLUMN editado_at TIMESTAMP NULL");
 } catch (Exception $e) {}
-// ─── USUARIOS: salario/horas para la nómina ──────────────────────────────────
+// ─── USUARIOS: salario/horas para la nómina + fecha de nacimiento (cumpleaños) ─
 try {
     foreach (['salario_quincenal'=>'DECIMAL(10,2) NULL','horas_semana'=>'DECIMAL(5,2) NULL','horas_sabado'=>'DECIMAL(5,2) NULL',
               'trabaja_lunes'=>'TINYINT(1) DEFAULT 1','trabaja_martes'=>'TINYINT(1) DEFAULT 1','trabaja_miercoles'=>'TINYINT(1) DEFAULT 1',
-              'trabaja_jueves'=>'TINYINT(1) DEFAULT 1','trabaja_viernes'=>'TINYINT(1) DEFAULT 1','trabaja_sabado'=>'TINYINT(1) DEFAULT 0'] as $ucol=>$uddl) {
+              'trabaja_jueves'=>'TINYINT(1) DEFAULT 1','trabaja_viernes'=>'TINYINT(1) DEFAULT 1','trabaja_sabado'=>'TINYINT(1) DEFAULT 0',
+              'dob'=>'DATE NULL'] as $ucol=>$uddl) {
         if (!$pdo->query("SHOW COLUMNS FROM usuarios LIKE '$ucol'")->fetch())
             $pdo->exec("ALTER TABLE usuarios ADD COLUMN $ucol $uddl");
     }
@@ -1726,6 +1727,34 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 </nav>
 <main>
 <div class="page-title"><span id="tab-icon" style="font-size:14px">▣</span><h1 id="tab-title">DASHBOARD</h1></div>
+<?php
+// ─── CUMPLEAÑOS — miembros (próximos 7 días) y empleados (hoy) ─────────────
+$hoy_cump = new DateTime(today());
+$cumples_miembros = [];
+foreach ($members as $m) {
+    if (empty($m['dob'])) continue;
+    if (!$admin && (int)($m['agente_id'] ?? 0) !== $uid) continue;
+    if (in_array($m['estado'] ?? '', ['CANCELED', 'DENIED', 'CERRADO', 'DISENROLLED'], true)) continue;
+    $dob = DateTime::createFromFormat('Y-m-d', $m['dob']);
+    if (!$dob) continue;
+    $prox = DateTime::createFromFormat('Y-m-d', $hoy_cump->format('Y') . '-' . $dob->format('m-d'));
+    if (!$prox) continue;
+    if ($prox < $hoy_cump) $prox->modify('+1 year');
+    $dias_cump = (int)$hoy_cump->diff($prox)->days;
+    if ($dias_cump <= 7) {
+        $cumples_miembros[] = ['m' => $m, 'dias' => $dias_cump, 'edad' => (int)$prox->format('Y') - (int)$dob->format('Y')];
+    }
+}
+usort($cumples_miembros, fn($a, $b) => $a['dias'] <=> $b['dias']);
+
+$cumple_hoy_empleados = [];
+foreach ($users_all as $u) {
+    if (empty($u['dob'])) continue;
+    if (date('m-d', strtotime($u['dob'])) === $hoy_cump->format('m-d')) {
+        $cumple_hoy_empleados[] = $u['nombre'];
+    }
+}
+?>
 <!-- DASHBOARD -->
 <div id="tab-DASHBOARD" class="tab-pane active">
 <?php if(!empty($alertas_hoy) && $alertas_hoy>0): ?>
@@ -1758,6 +1787,23 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <div class="alert-bar" style="background:#F0EBF8;border-left-color:#7B2D8B;color:#7B2D8B;cursor:pointer;display:flex;justify-content:space-between;align-items:center" onclick="showTab('CONTACTOS')">
   <span>🤝 <?=$cue_alerta_count?> CUENTA<?=$cue_alerta_count>1?'S':''?> SIN VISITAR — REVISAR →</span>
   <?php if($referidos_pendientes > 0): ?><span style="background:#7B2D8B;color:#fff;border-radius:20px;padding:2px 10px;font-size:8px;font-weight:900"><?=$referidos_pendientes?> REFERIDOS PENDIENTES</span><?php endif; ?>
+</div>
+<?php endif; ?>
+<?php if(!empty($cumples_miembros)): ?>
+<div class="card" style="margin-bottom:13px;border-left:4px solid #D46A9A">
+  <div class="card-header"><div class="card-title" style="color:#D46A9A">🎂 CUMPLEAÑOS (<?=count($cumples_miembros)?>)</div></div>
+  <div style="padding:6px 14px 10px">
+  <?php foreach($cumples_miembros as $_cc): $_cm=$_cc['m']; $_cnombre=trim($_cm['apellido'].', '.$_cm['nombre']); ?>
+    <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid <?=$CB?>;cursor:pointer" onclick="openProfile(<?=$_cm['id']?>)">
+      <div style="font-size:18px"><?=$_cc['dias']===0?'🎉':'🎂'?></div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($_cnombre)?> <span style="color:<?=$MU?>;font-weight:700">— cumple <?=$_cc['edad']?></span></div>
+        <div style="font-size:8px;color:<?=$MU?>"><?=$_cm['telefono']?h($_cm['telefono']):'—'?></div>
+      </div>
+      <span style="background:<?=$_cc['dias']===0?'#FDEBF1':$BG?>;color:<?=$_cc['dias']===0?'#B83232':$MU?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;white-space:nowrap"><?=$_cc['dias']===0?'¡HOY!':($_cc['dias']===1?'MAÑANA':'EN '.$_cc['dias'].' DÍAS')?></span>
+    </div>
+  <?php endforeach; ?>
+  </div>
 </div>
 <?php endif; ?>
 <?php if(!$admin):$steps=[['ci','CHECK-IN'],['lo','ALMUERZO'],['li','REGRESO  DE ALMUERZO.'],['bo','BREAK'],['bi','REGRESO DE BREAK'],['co','CHECK-OUT']];$vals=['ci'=>$my_ci['check_in']??null,'lo'=>$my_ci['lunch_out']??null,'li'=>$my_ci['lunch_in']??null,'bo'=>$my_ci['break_out']??null,'bi'=>$my_ci['break_in']??null,'co'=>$my_ci['check_out']??null];$bk=['bo','bi'];$ns=null;foreach($steps as $s){if(!$vals[$s[0]]){$ns=$s;break;}}
@@ -6828,7 +6874,7 @@ try {
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
 <?php foreach(['EMPLEADOS','CERTIFICACIONES','CONTRASEÑAS','METAS','NOTIFICACIONES','INCENTIVOS','IMPORTAR','HISTORIAL'] as $at):?><button class="ntab<?=$at==='EMPLEADOS'?' active':''?>" onclick="showAdminTab('<?=$at?>')" data-atab="<?=$at?>"><?=$at?></button><?php endforeach;?>
 </div>
-<div id="atab-EMPLEADOS"><div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal y horas para que aparezcan en la NÓMINA</div></div><button class="btn btn-p btn-sm" onclick="openModal('modal-nuevo-usuario')">+ NUEVO EMPLEADO</button></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all as $u): $u_es_admin=$u['rol']==='admin'; ?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
+<div id="atab-EMPLEADOS"><div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal, horas y fecha de nacimiento (para el saludo de cumpleaños)</div></div><button class="btn btn-p btn-sm" onclick="openModal('modal-nuevo-usuario')">+ NUEVO EMPLEADO</button></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>USUARIO</th><th>🎂 CUMPLEAÑOS</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all as $u): $u_es_admin=$u['rol']==='admin'; ?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><td><input type="date" id="dob-<?=$u['id']?>" value="<?=h($u['dob']??'')?>" onchange="saveCumple(<?=$u['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 6px;font-size:9px;font-family:'DM Sans',sans-serif;color:<?=$P1?>"></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
 <?php foreach(['lun'=>['trabaja_lunes','L'],'mar'=>['trabaja_martes','M'],'mie'=>['trabaja_miercoles','X'],'jue'=>['trabaja_jueves','J'],'vie'=>['trabaja_viernes','V'],'sab'=>['trabaja_sabado','S']] as $dk=>$dd): $on=(int)($u[$dd[0]]??0)===1; ?>
 <label style="display:inline-flex;flex-direction:column;align-items:center;font-size:7px;font-weight:900;color:<?=$MU?>;cursor:pointer"><?=$dd[1]?><input type="checkbox" id="d<?=$dk?>-<?=$u['id']?>"<?=$on?' checked':''?> style="cursor:pointer;margin-top:2px"></label>
 <?php endforeach;?>
@@ -7558,6 +7604,12 @@ function crearUsuario(){
         errBox.style.display = 'block';
       }
     }).catch(()=>{ btn.disabled=false; btn.textContent='✓ CREAR EMPLEADO'; errBox.textContent='ERROR DE CONEXIÓN'; errBox.style.display='block'; });
+}
+function saveCumple(id){
+  const dob = document.getElementById('dob-'+id)?.value || '';
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_cumple',agente_id:id,dob})})
+    .then(r=>r.json()).then(d=>{ if(d.ok) toast('✓ CUMPLEAÑOS GUARDADO'); else toast('⚠ '+(d.error||'Error')); })
+    .catch(()=>toast('⚠ Error de conexión'));
 }
 function saveSalario(id){
   const v=x=>document.getElementById(x+'-'+id);
@@ -9138,6 +9190,50 @@ document.addEventListener('DOMContentLoaded', function() {
 document.querySelectorAll('.script-card').forEach(card=>{card.addEventListener('click',function(){const o=this.classList.contains('open');const t=this.querySelector('.sc-title');const c=this.querySelector('.sc-cuando');const a=this.querySelector('.sc-arrow');if(t)t.style.color=o?'#fff':'<?=$P1?>';if(c)c.style.color=o?'rgba(255,255,255,.6)':'<?=$MU?>';if(a)a.style.color=o?'#fff':'<?=$P2?>';});});
 document.querySelectorAll('.pill-btn').forEach(b=>{if(b.classList.contains('active')){b.style.background='#1B4A6B';b.style.color='#fff';b.style.borderColor='#1B4A6B';}});
 scrollChat();
+
+// ── 🎂 CUMPLEAÑOS DE EMPLEADAS — confeti + banner (una vez al día) ─────────
+const CUMPLE_HOY = <?=json_encode($cumple_hoy_empleados)?>;
+function mostrarCumpleEmpleados(){
+  if(!CUMPLE_HOY.length) return;
+  const hoyKey = 'cumple_visto_' + new Date().toISOString().slice(0,10);
+  try{ if(localStorage.getItem(hoyKey)) return; }catch(e){}
+
+  // Confeti: piezas cayendo con CSS, sin dependencias externas
+  const colores = ['#1B4A6B','#2876A8','#1E7A5C','#C07A1A','#D46A9A','#5B3FAF','#B83232'];
+  const conf = document.createElement('div');
+  conf.style.cssText = 'position:fixed;inset:0;pointer-events:none;z-index:99998;overflow:hidden';
+  for(let i=0;i<70;i++){
+    const p = document.createElement('div');
+    const c = colores[Math.floor(Math.random()*colores.length)];
+    const left = Math.random()*100;
+    const dur = 2.6 + Math.random()*2.2;
+    const delay = Math.random()*1.2;
+    const size = 6 + Math.random()*7;
+    const round = Math.random() > .5;
+    p.style.cssText = 'position:absolute;top:-20px;left:'+left+'vw;width:'+size+'px;height:'+(size*.6)+'px;background:'+c+';opacity:.9;'+(round?'border-radius:50%;':'')+'animation:cumpleFall '+dur+'s ease-in '+delay+'s forwards;transform:rotate('+(Math.random()*360)+'deg)';
+    conf.appendChild(p);
+  }
+  document.body.appendChild(conf);
+  setTimeout(()=>conf.remove(), 6000);
+
+  // Banner
+  const nombres = CUMPLE_HOY.map(n => (n||'').split(' ')[0]).join(' y ');
+  const banner = document.createElement('div');
+  banner.style.cssText = 'position:fixed;top:16px;left:50%;transform:translateX(-50%);z-index:99999;background:linear-gradient(135deg,#D46A9A,#5B3FAF);color:#fff;padding:14px 22px;border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.25);font-family:\'DM Sans\',sans-serif;font-weight:900;font-size:13px;text-align:center;display:flex;align-items:center;gap:12px;max-width:92vw';
+  banner.innerHTML = '<span style="font-size:22px">🎉🎂🎉</span><span>¡FELIZ CUMPLEAÑOS, '+nombres.toUpperCase()+'!</span><button style="background:rgba(255,255,255,.25);border:none;color:#fff;border-radius:8px;padding:4px 9px;cursor:pointer;font-weight:900;font-family:inherit">✕</button>';
+  banner.querySelector('button').onclick = function(){
+    banner.remove();
+    try{ localStorage.setItem(hoyKey,'1'); }catch(e){}
+  };
+  document.body.appendChild(banner);
+  setTimeout(()=>{ if(banner.parentNode){ banner.remove(); try{ localStorage.setItem(hoyKey,'1'); }catch(e){} } }, 15000);
+}
+(function(){
+  const st = document.createElement('style');
+  st.textContent = '@keyframes cumpleFall{0%{transform:translateY(0) rotate(0deg);opacity:.95}100%{transform:translateY(100vh) rotate(360deg);opacity:.4}}';
+  document.head.appendChild(st);
+})();
+mostrarCumpleEmpleados();
 
 // ── PAGO DE BONOS (tab MIS BONOS) ────────────────────────────
 const isAdmin = <?=$admin?'true':'false'?>;
