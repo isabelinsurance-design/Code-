@@ -361,6 +361,11 @@ if (!empty($_POST['camp_ajax'])) {
                 'email'    => trim($_POST['email'] ?? ''),
                 'notas'    => trim($_POST['notas'] ?? ''),
             ];
+            // Si se buscó y eligió un miembro ya existente (en vez de escribir los
+            // datos a mano), se vincula el contacto a ese miembro y se marca como
+            // ya "promovido" — ya está en el pipeline, no hay que crearlo de nuevo.
+            $mid_link = (int)($_POST['miembro_id'] ?? 0);
+            if ($mid_link) { $d['miembro_id'] = $mid_link; $d['promovido'] = 1; }
             if ($d['nombre'] === '') { echo json_encode(['ok'=>false,'error'=>'Nombre requerido']); break; }
             if ($id) {
                 $s = implode(',', array_map(fn($k)=>"`$k`=?", array_keys($d)));
@@ -425,6 +430,12 @@ if (!empty($_POST['camp_ajax'])) {
             $q = $pdo_c->prepare("SELECT * FROM campana_contactos WHERE id=?"); $q->execute([$id]); $ct = $q->fetch(PDO::FETCH_ASSOC);
             if (!$ct) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
             if (!empty($ct['promovido'])) { echo json_encode(['ok'=>false,'error'=>'Ya está en el pipeline']); break; }
+            if (!empty($ct['miembro_id'])) {
+                // Ya estaba vinculado a un miembro existente (elegido con el
+                // buscador al crearlo) — no crear un miembro duplicado.
+                $pdo_c->prepare("UPDATE campana_contactos SET promovido=1, estado='EN PIPELINE' WHERE id=?")->execute([$id]);
+                echo json_encode(['ok'=>true,'miembro_id'=>$ct['miembro_id']]); break;
+            }
             $cn = $pdo_c->prepare("SELECT nombre,canal FROM campanas WHERE id=?"); $cn->execute([$ct['campana_id']]); $camp = $cn->fetch(PDO::FETCH_ASSOC);
             $fuente_map = ['FACEBOOK'=>'FACEBOOK LEAD','INSTAGRAM'=>'FACEBOOK LEAD','EVENTO'=>'EVENTO COMUNIDAD','REFERIDO'=>'REFERIDO MIEMBRO','GOOGLE'=>'GOOGLE'];
             $fuente = $fuente_map[$camp['canal'] ?? ''] ?? 'OTRO';
@@ -2728,6 +2739,16 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
   <div class="modal-header"><div class="modal-title" id="cc-form-title">NUEVO CONTACTO</div><button class="modal-close" onclick="closeModal('modal-cc-form')">✕</button></div>
   <form onsubmit="saveContacto(event)">
     <input type="hidden" name="id" id="cc-id"><input type="hidden" name="campana_id" id="cc-campana-id">
+    <input type="hidden" id="cc-miembro-id" value="">
+    <div class="form-group">
+      <label class="form-label">BUSCAR MIEMBRO EXISTENTE (OPCIONAL)</label>
+      <div class="mpick-wrap">
+        <input type="text" id="cc-mpick-input" class="form-input" placeholder="Escribe nombre o teléfono para buscar y rellenar..." autocomplete="off"
+               oninput="mpickSearch('cc-mpick-input','cc-miembro-id','cc-mpick-drop',this.value,false)">
+        <div id="cc-mpick-drop" class="mpick-drop"></div>
+      </div>
+      <div style="font-size:8px;color:<?=$MU?>;margin-top:4px;text-transform:none">Si la persona ya es miembro, búscala aquí para rellenar sus datos solo. Si no, escribe los datos abajo.</div>
+    </div>
     <div class="grid-2">
       <div class="form-group"><label class="form-label">NOMBRE *</label><input type="text" name="nombre" id="cc-nombre" class="form-input" required></div>
       <div class="form-group"><label class="form-label">APELLIDO</label><input type="text" name="apellido" id="cc-apellido" class="form-input"></div>
@@ -2867,13 +2888,15 @@ function openCcForm(campId,ctId){
   document.getElementById('cc-telefono').value=d&&d.telefono?d.telefono:'';
   document.getElementById('cc-email').value=d&&d.email?d.email:'';
   document.getElementById('cc-notas').value=d&&d.notas?d.notas:'';
+  mpickClear('cc-mpick-input','cc-miembro-id','cc-mpick-drop');
   openModal('modal-cc-form');
 }
 function saveContacto(e){e.preventDefault();var f=e.target;
   var btn=document.getElementById('cc-form-btn');
   if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
   var camp=f.campana_id.value;
-  var p='action=save_contacto&id='+encodeURIComponent(f.id.value)+'&campana_id='+encodeURIComponent(camp)+'&nombre='+encodeURIComponent(f.nombre.value)+'&apellido='+encodeURIComponent(f.apellido.value)+'&telefono='+encodeURIComponent(f.telefono.value)+'&email='+encodeURIComponent(f.email.value)+'&notas='+encodeURIComponent(f.notas.value);
+  var mid=document.getElementById('cc-miembro-id').value||'';
+  var p='action=save_contacto&id='+encodeURIComponent(f.id.value)+'&campana_id='+encodeURIComponent(camp)+'&nombre='+encodeURIComponent(f.nombre.value)+'&apellido='+encodeURIComponent(f.apellido.value)+'&telefono='+encodeURIComponent(f.telefono.value)+'&email='+encodeURIComponent(f.email.value)+'&notas='+encodeURIComponent(f.notas.value)+'&miembro_id='+encodeURIComponent(mid);
   campPost(p,false).then(function(d){
     if(d&&d.ok){
       if(typeof toast==='function')toast('✓ CONTACTO GUARDADO');
@@ -11547,6 +11570,20 @@ function mpickItemClick(e, el) {
         const ti = document.getElementById('lr-telefono');
         if (ni && !ni.value) ni.value = nombre;
         if (ti && !ti.value) ti.value = tel;
+    }
+
+    // Auto-fill nombre/apellido/teléfono/email al elegir un miembro existente
+    // para agregarlo como contacto de campaña (así no hay que escribirlo a mano).
+    if (inputId === 'cc-mpick-input') {
+        const full = (typeof _membersFullData !== 'undefined') ? _membersFullData.find(m => m.id == id) : null;
+        const ni = document.getElementById('cc-nombre');
+        const ai = document.getElementById('cc-apellido');
+        const ti = document.getElementById('cc-telefono');
+        const ei = document.getElementById('cc-email');
+        if (ni) ni.value = full ? full.nombre : nombre;
+        if (ai) ai.value = full ? full.apellido : '';
+        if (ti) ti.value = full ? full.telefono : tel;
+        if (ei) ei.value = full ? full.email : '';
     }
 }
 
