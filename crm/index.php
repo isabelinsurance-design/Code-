@@ -297,6 +297,13 @@ if (!empty($_POST['camp_ajax'])) {
     // Asegurar que todas las columnas existan aunque esta petición ajax se
     // dispare antes de que una carga normal de la página corra la migración.
     try {
+        // Si 'campanas.estado' quedó como ENUM viejo (sin 'PAUSADA', por
+        // ejemplo), MySQL trunca el valor y tira "Data truncated for
+        // column 'estado'" al guardar — se convierte a VARCHAR.
+        $camp_estado_col_chk = $pdo_c->query("SHOW COLUMNS FROM campanas LIKE 'estado'")->fetch();
+        if ($camp_estado_col_chk && stripos($camp_estado_col_chk['Type'], 'enum') !== false) {
+            $pdo_c->exec("ALTER TABLE campanas MODIFY estado VARCHAR(20) DEFAULT 'ACTIVA'");
+        }
         $cc_cols_chk = $pdo_c->query("SHOW COLUMNS FROM campana_contactos")->fetchAll(PDO::FETCH_COLUMN);
         $cc_add_chk = [
             'apellido'         => "ADD COLUMN apellido VARCHAR(150) DEFAULT NULL AFTER nombre",
@@ -957,6 +964,15 @@ try {
     ];
     foreach ($camp_add as $col => $ddl) {
         if (!in_array($col, $camp_cols, true)) { try { $pdo->exec("ALTER TABLE campanas $ddl"); } catch (Exception $e) {} }
+    }
+    // Si 'estado' quedó como ENUM de una versión vieja de la tabla (con
+    // menos valores que los que usa el formulario hoy: ACTIVA/PAUSADA/
+    // CERRADA), MySQL trunca cualquier valor que no esté en ese ENUM y
+    // tira "Data truncated for column 'estado'" al guardar. Se convierte
+    // a VARCHAR para que acepte cualquiera de los 3 estados sin romperse.
+    $camp_estado_col = $pdo->query("SHOW COLUMNS FROM campanas LIKE 'estado'")->fetch();
+    if ($camp_estado_col && stripos($camp_estado_col['Type'], 'enum') !== false) {
+        try { $pdo->exec("ALTER TABLE campanas MODIFY estado VARCHAR(20) DEFAULT 'ACTIVA'"); } catch (Exception $e) {}
     }
     $pdo->exec("CREATE TABLE IF NOT EXISTS campana_contactos (
         id INT AUTO_INCREMENT PRIMARY KEY,
