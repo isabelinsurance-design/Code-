@@ -2527,7 +2527,12 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     </div>
     <?php if(empty($contactos)):?>
     <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">SIN CONTACTOS — AGREGA EL PRIMERO</div>
-    <?php else: foreach($contactos as $ct):
+    <?php else:?>
+    <div class="form-group" style="max-width:360px;margin-bottom:10px">
+      <input type="text" class="form-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+    </div>
+    <div class="cc-empty-filter" style="display:none;font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">NINGÚN CONTACTO COINCIDE CON LA BÚSQUEDA</div>
+    <?php foreach($contactos as $ct):
       $ce=$CC_EST[$ct['estado']]??['#7A90A4','#F1F1F1',$ct['estado']];
       $ph=preg_replace('/[^0-9]/','',$ct['telefono']??'');
       $logs=$clog_by_contacto[$ct['id']]??[]; $lastlog=$logs[0]??null;
@@ -2553,7 +2558,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         if($parsedOk && $tmp){ $extraChips=$tmp; $notasReales=$notasPrevias; }
       }
     ?>
-    <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
+    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -2850,6 +2855,20 @@ function filterCamp(f,btn){
   document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';});
   if(btn)btn.className='btn btn-p btn-sm camp-filter';
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
+}
+function filterCc(input,campId){
+  var q=(input.value||'').toLowerCase().trim();
+  var body=document.getElementById('camp-body-'+campId);
+  if(!body)return;
+  var cards=body.querySelectorAll('.cc-contact-card');
+  var visibles=0;
+  cards.forEach(function(c){
+    var match=!q||(c.dataset.search||'').includes(q);
+    c.style.display=match?'':'none';
+    if(match)visibles++;
+  });
+  var empty=body.querySelector('.cc-empty-filter');
+  if(empty) empty.style.display=(cards.length>0 && visibles===0)?'':'none';
 }
 function openCampForm(id){
   document.getElementById('camp-id').value=id||'';
