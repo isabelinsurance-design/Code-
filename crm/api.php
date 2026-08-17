@@ -1609,6 +1609,30 @@ case 'sms_enviar':
     jsonOkNotify(['sid' => $res['sid']], 'COMUNICACION');
     break;
 
+case 'sms_plantilla_guardar':
+    if (!$admin) jsonErr('Solo un administrador puede editar las plantillas');
+    $pdo = db();
+    $pid    = (int)($_POST['id'] ?? 0);
+    $nombre = trim($_POST['nombre'] ?? '');
+    $texto  = trim($_POST['texto'] ?? '');
+    if ($nombre === '' || $texto === '') jsonErr('Nombre y texto requeridos');
+    if ($pid) {
+        $pdo->prepare("UPDATE sms_plantillas SET nombre=?, texto=? WHERE id=?")->execute([$nombre, $texto, $pid]);
+        jsonOk(['id' => $pid]);
+    } else {
+        $orden = (int)$pdo->query("SELECT COALESCE(MAX(orden),0)+1 FROM sms_plantillas")->fetchColumn();
+        $pdo->prepare("INSERT INTO sms_plantillas (nombre,texto,orden) VALUES (?,?,?)")->execute([$nombre, $texto, $orden]);
+        jsonOk(['id' => $pdo->lastInsertId()]);
+    }
+    break;
+
+case 'sms_plantilla_eliminar':
+    if (!$admin) jsonErr('Solo un administrador puede editar las plantillas');
+    $pdo = db();
+    $pdo->prepare("DELETE FROM sms_plantillas WHERE id=?")->execute([(int)($_POST['id'] ?? 0)]);
+    jsonOk();
+    break;
+
 case 'toggle_checklist':
     $pdo = db(); 
     $item_key = trim($_POST['item_key'] ?? '');

@@ -25,6 +25,27 @@ try {
         INDEX idx_telefono (telefono),
         INDEX idx_miembro (miembro_id)
     )");
+    $pdo->exec("CREATE TABLE IF NOT EXISTS sms_plantillas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre VARCHAR(60) NOT NULL,
+        texto TEXT NOT NULL,
+        orden INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )");
+    // Primera vez: se siembran las 6 plantillas que venían fijas en el código,
+    // para que nadie pierda las que ya estaba usando al pasar a la versión
+    // editable.
+    if ((int)$pdo->query("SELECT COUNT(*) FROM sms_plantillas")->fetchColumn() === 0) {
+        $ins_pl = $pdo->prepare("INSERT INTO sms_plantillas (nombre,texto,orden) VALUES (?,?,?)");
+        foreach ([
+            ['BIENVENIDA', 'HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.'],
+            ['AEP', 'HOLA [NOMBRE]! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. (818) 000-0000 REPLY STOP.'],
+            ['CUMPLEAÑOS', 'FELIZ CUMPLEAÑOS [NOMBRE]! DE PARTE DE MEDICARE WITH ISABEL.'],
+            ['T65', 'HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.'],
+            ['DENTAL', 'HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.'],
+            ['REFERIDO', 'HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000'],
+        ] as $i => $pl) { $ins_pl->execute([$pl[0], $pl[1], $i]); }
+    }
 } catch (Exception $e) {}
 
 // ─── CUENTAS + REFERIDOS — AJAX HANDLER ──────────────────────────────────────
@@ -1542,6 +1563,8 @@ try{
         ];
     }
 }catch(Exception $e){}
+$sms_plantillas=[];
+try{ $sms_plantillas=$pdo->query("SELECT * FROM sms_plantillas ORDER BY orden ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC); }catch(Exception $e){}
 $actividad=$pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales,CONCAT(m.apellido,' ',m.nombre) as miembro_nombre FROM actividad a LEFT JOIN usuarios u ON a.agente_id=u.id LEFT JOIN miembros m ON a.miembro_id=m.id ORDER BY a.fecha_hora DESC LIMIT 150")->fetchAll();
 // Tabs use safe ASCII IDs for JS; tabn maps to display names with accents
 // ─── CARGA DE DATOS: CUENTAS + REFERIDOS ─────────────────────────────────────
@@ -6164,7 +6187,10 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       </div>
       <div id="sms-panel-msgs" style="flex:1;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 14px;border-top:1px solid <?=$CB?>">
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px"><?php foreach([['B','BIENVENIDA'],['A','AEP'],['C','CUMPLEAÑOS'],['T','T65'],['D','DENTAL'],['R','REFERIDO']] as [$k,$v]):?><button class="btn btn-gh btn-sm" onclick="setSmsTemplate('<?=$k?>')"><?=$v?></button><?php endforeach;?></div>
+        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">
+          <?php foreach($sms_plantillas as $pl):?><button class="btn btn-gh btn-sm" onclick="setSmsTemplate(<?=(int)$pl['id']?>)"><?=h($pl['nombre'])?></button><?php endforeach;?>
+          <?php if($admin):?><button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button><?php endif;?>
+        </div>
         <div style="display:flex;gap:6px">
           <textarea id="sms-panel-msg" class="form-input" rows="2" placeholder="Escribe un mensaje..." style="flex:1" oninput="updateSmsCount()"></textarea>
           <button class="btn btn-b btn-sm" id="sms-send-btn" onclick="enviarPanelSms()">◌ ENVIAR</button>
@@ -6192,6 +6218,29 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 </table></div></div>
 </div>
 </div><!-- /COMUNICACION -->
+<!-- MODAL: EDITAR PLANTILLAS DE SMS -->
+<div id="modal-sms-plantillas" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">✎ PLANTILLAS DE SMS</div><button class="modal-close" onclick="closeModal('modal-sms-plantillas')">✕</button></div>
+  <div style="font-size:8px;color:<?=$MU?>;margin-bottom:11px;text-transform:none">Usa <b>[NOMBRE]</b> donde quieras que se reemplace solo con el nombre de la persona al usar la plantilla.</div>
+  <div id="sms-plantillas-list" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:9px">
+    <?php foreach($sms_plantillas as $pl):?>
+    <div class="sms-plantilla-row" data-id="<?=(int)$pl['id']?>" style="border:1px solid <?=$CB?>;border-radius:9px;padding:10px 12px">
+      <div class="form-group" style="margin-bottom:6px"><input type="text" class="form-input sms-pl-nombre" value="<?=h($pl['nombre'])?>" placeholder="NOMBRE DE LA PLANTILLA"></div>
+      <div class="form-group" style="margin-bottom:6px"><textarea class="form-input sms-pl-texto" rows="3" style="text-transform:none"><?=h($pl['texto'])?></textarea></div>
+      <div style="display:flex;justify-content:flex-end;gap:6px">
+        <button class="btn btn-re btn-sm" onclick="eliminarSmsPlantilla(<?=(int)$pl['id']?>,this)">✕ ELIMINAR</button>
+        <button class="btn btn-p btn-sm" onclick="guardarSmsPlantilla(<?=(int)$pl['id']?>,this)">GUARDAR</button>
+      </div>
+    </div>
+    <?php endforeach;?>
+  </div>
+  <div style="border-top:1px solid <?=$CB?>;margin-top:11px;padding-top:11px">
+    <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;margin-bottom:6px">+ NUEVA PLANTILLA</div>
+    <div class="form-group" style="margin-bottom:6px"><input type="text" id="sms-pl-nueva-nombre" class="form-input" placeholder="NOMBRE DE LA PLANTILLA"></div>
+    <div class="form-group" style="margin-bottom:6px"><textarea id="sms-pl-nueva-texto" class="form-input" rows="3" placeholder="HOLA [NOMBRE]! ..." style="text-transform:none"></textarea></div>
+    <button class="btn btn-p btn-sm" onclick="agregarSmsPlantilla()" style="width:100%">+ AGREGAR PLANTILLA</button>
+  </div>
+</div></div>
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
@@ -9423,13 +9472,54 @@ function exportRep(fmt){const from=document.getElementById('rep-from')?.value;co
 // Web) — reemplaza el diseño anterior de tarjetas apiladas + modal.
 let _smsHiloAbierto = '';   // teléfono de la conversación seleccionada (o '' si ninguna)
 let _smsHiloNombre = '';
-function setSmsTemplate(k){
+const SMS_PLANTILLAS = <?=json_encode(array_map(fn($p)=>['id'=>(int)$p['id'],'nombre'=>$p['nombre'],'texto'=>$p['texto']], $sms_plantillas), JSON_UNESCAPED_UNICODE)?>;
+function setSmsTemplate(id){
   const n=_smsHiloNombre||document.getElementById('sms-nuevo-nombre')?.value||'[NOMBRE]';
-  const t={B:'HOLA '+n+'! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.',A:'HOLA '+n+'! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. (818) 000-0000 REPLY STOP.',C:'FELIZ CUMPLEAÑOS '+n+'! DE PARTE DE MEDICARE WITH ISABEL.',T:'HOLA '+n+'! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.',D:'HOLA '+n+'! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.',R:'HOLA '+n+'! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000'};
+  const pl=SMS_PLANTILLAS.find(p=>p.id===id);
   const el=document.getElementById('sms-panel-msg');
-  if(el){ el.value=t[k]||''; updateSmsCount(); }
+  if(el && pl){ el.value=pl.texto.replace(/\[NOMBRE\]/g,n); updateSmsCount(); }
 }
 function updateSmsCount(){const m=document.getElementById('sms-panel-msg');const c=document.getElementById('sms-count');if(m&&c)c.textContent=m.value.length+'/160';}
+function openSmsPlantillasModal(){ openModal('modal-sms-plantillas'); }
+// Nota: aquí se usa location.reload() en vez de softReload(). El modal de
+// plantillas y la lista SMS_PLANTILLAS (que usan los botones rápidos) viven
+// fuera de la pestaña COMUNICACIÓN, así que un softReload (que solo
+// refresca la pestaña activa) los dejaría con datos viejos hasta la
+// próxima recarga manual — mejor recargar la página entera aquí, ya que
+// editar plantillas no es algo que se haga seguido.
+function guardarSmsPlantilla(id,btn){
+  const row=btn.closest('.sms-plantilla-row');
+  const nombre=row.querySelector('.sms-pl-nombre').value.trim();
+  const texto=row.querySelector('.sms-pl-texto').value.trim();
+  if(!nombre||!texto){ if(typeof toast==='function')toast('⚠ COMPLETA NOMBRE Y TEXTO'); return; }
+  if(btn.disabled)return; btn.disabled=true;
+  const fd=new FormData(); fd.append('action','sms_plantilla_guardar'); fd.append('id',id); fd.append('nombre',nombre); fd.append('texto',texto);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(d.ok){ if(typeof toast==='function')toast('✓ PLANTILLA GUARDADA'); location.reload(); }
+    else { btn.disabled=false; if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo guardar')); }
+  }).catch(()=>{ btn.disabled=false; if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function eliminarSmsPlantilla(id,btn){
+  if(!confirm('¿Eliminar esta plantilla?'))return;
+  if(btn.disabled)return; btn.disabled=true;
+  const fd=new FormData(); fd.append('action','sms_plantilla_eliminar'); fd.append('id',id);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(d.ok){ if(typeof toast==='function')toast('✓ PLANTILLA ELIMINADA'); location.reload(); }
+    else { btn.disabled=false; if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo eliminar')); }
+  }).catch(()=>{ btn.disabled=false; if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function agregarSmsPlantilla(){
+  const ni=document.getElementById('sms-pl-nueva-nombre'), ti=document.getElementById('sms-pl-nueva-texto');
+  const nombre=ni.value.trim(), texto=ti.value.trim();
+  if(!nombre||!texto){ if(typeof toast==='function')toast('⚠ COMPLETA NOMBRE Y TEXTO'); return; }
+  const fd=new FormData(); fd.append('action','sms_plantilla_guardar'); fd.append('id',''); fd.append('nombre',nombre); fd.append('texto',texto);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(d.ok){
+      if(typeof toast==='function')toast('✓ PLANTILLA AGREGADA');
+      location.reload();
+    } else { if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo agregar')); }
+  }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
+}
 function _smsBurbuja(m){
   const clase=m.direccion==='SALIENTE'?'me':'them';
   const quien=m.direccion==='SALIENTE'?(m.agente_nombre?m.agente_nombre.split(' ')[0]:'TÚ'):'ELLOS';
