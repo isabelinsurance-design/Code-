@@ -12,6 +12,7 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib_telefono.php';
 // El secreto del webhook vive en config.php (constante WEBHOOK_SECRET_FB,
 // fuera de Git). Antes se leía solo getenv(), que en cPanel suele venir
 // vacío → el webhook aceptaba un secreto VACÍO. Ahora: constante primero,
@@ -107,6 +108,10 @@ $telefono = preg_replace('/[^\d+\-() ]/', '', $telefono);
 if (stripos($nombre_raw, '<test lead') !== false || stripos($telefono, '<test lead') !== false) {
     echo json_encode(['ok' => true, 'test_lead' => true, 'message' => 'Lead de prueba ignorado']); exit;
 }
+
+// Normalizar al formato +1XXXXXXXXXX (después de la revisión de lead de
+// prueba de arriba, que espera el texto crudo "<test lead...>").
+$telefono = normalizar_tel($telefono);
 
 // ─── Validación mínima ───────────────────────────────────────────────────────
 if (empty($nombre_raw) && empty($telefono)) {

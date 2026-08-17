@@ -1,6 +1,7 @@
 <?php
 require_once 'session_boot.php';
 require_once 'config.php';
+require_once 'lib_telefono.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -427,7 +428,9 @@ case 'save_member':
     $clean = function($f) use ($d) {
         if (!isset($d[$f])) return null;
         $v = $d[$f];
-        return ($v === '') ? null : $v;
+        if ($v === '') return null;
+        if ($f === 'telefono' || $f === 'telefono2') return normalizar_tel($v);
+        return $v;
     };
 
     try {
@@ -1409,7 +1412,7 @@ case 'import_csv':
         if (count($data)<2){$errors++;continue;}
         $nombre = trim($data[0]??'');
         $apellido = trim($data[1]??'');
-        $telefono = trim($data[2]??'');
+        $telefono = normalizar_tel(trim($data[2]??''));
         $dob = trim($data[3]??'') ?: null;
         $mbi = trim($data[4]??'') ?: null;
         $carrier = trim($data[5]??'') ?: null;
@@ -1514,7 +1517,7 @@ case 'save_llamada_prospecto':
     $agente_id = $uid;
     $miembro_id = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
     $nombre = $_POST['nombre_libre'] ?? '';
-    $telefono = $_POST['telefono'] ?? '';
+    $telefono = normalizar_tel($_POST['telefono'] ?? '');
     $resultado = $_POST['resultado'] ?? ''; // Tomamos la opción del grid
     $notas = $_POST['notas'] ?? '';
 

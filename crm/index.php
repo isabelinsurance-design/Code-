@@ -4,6 +4,7 @@ ini_set('display_startup_errors', 1);
 error_reporting(E_ALL);
 require_once 'session_boot.php';
 require_once 'config.php';
+require_once 'lib_telefono.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
 
@@ -19,7 +20,7 @@ if (!empty($_POST['cue_ajax'])) {
         $d = [
             'nombre'            => strtoupper(trim($_POST['nombre']          ?? '')),
             'tipo'              => trim($_POST['tipo']                        ?? 'OTRO'),
-            'telefono'          => trim($_POST['telefono']                    ?? ''),
+            'telefono'          => normalizar_tel($_POST['telefono']          ?? ''),
             'email'             => trim($_POST['email']                       ?? ''),
             'direccion'         => strtoupper(trim($_POST['direccion']        ?? '')),
             'ciudad'            => strtoupper(trim($_POST['ciudad']           ?? '')),
@@ -62,7 +63,7 @@ if (!empty($_POST['cue_ajax'])) {
             'cuenta_id'   => $cid,
             'nombre'      => strtoupper(trim($_POST['nombre']   ?? '')),
             'cargo'       => strtoupper(trim($_POST['cargo']    ?? '')),
-            'telefono'    => trim($_POST['telefono']             ?? ''),
+            'telefono'    => normalizar_tel($_POST['telefono']  ?? ''),
             'email'       => trim($_POST['email']                ?? ''),
             'notas'       => trim($_POST['notas']                ?? ''),
             'es_principal'=> (int)($_POST['es_principal']        ?? 0),
@@ -122,7 +123,7 @@ if (!empty($_POST['cue_ajax'])) {
             'agente_id'   => (int)($_POST['agente_id']   ?? $uid_x),
             'nombre'      => strtoupper(trim($_POST['nombre']    ?? '')),
             'apellido'    => strtoupper(trim($_POST['apellido']  ?? '')),
-            'telefono'    => trim($_POST['telefono']              ?? ''),
+            'telefono'    => normalizar_tel($_POST['telefono']   ?? ''),
             'dob'         => trim($_POST['dob']                   ?? '') ?: null,
             'idioma'      => trim($_POST['idioma']                ?? 'ESP'),
             'notas'       => trim($_POST['notas']                 ?? ''),
@@ -357,7 +358,7 @@ if (!empty($_POST['camp_ajax'])) {
             $d = [
                 'nombre'   => strtoupper(trim($_POST['nombre'] ?? '')),
                 'apellido' => strtoupper(trim($_POST['apellido'] ?? '')),
-                'telefono' => trim($_POST['telefono'] ?? ''),
+                'telefono' => normalizar_tel($_POST['telefono'] ?? ''),
                 'email'    => trim($_POST['email'] ?? ''),
                 'notas'    => trim($_POST['notas'] ?? ''),
             ];
@@ -536,6 +537,7 @@ if (!empty($_POST['camp_ajax'])) {
                 }
                 $notas = $notasBase;
                 $datosExtraJson = $extras ? json_encode($extras, JSON_UNESCAPED_UNICODE) : null;
+                $telefono = normalizar_tel($telefono);
                 // Recortar a lo que realmente caben las columnas (evita que un
                 // valor más largo de lo esperado tumbe el insert completo).
                 $telefono = mb_substr($telefono, 0, 50);
@@ -2535,6 +2537,9 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <?php foreach($contactos as $ct):
       $ce=$CC_EST[$ct['estado']]??['#7A90A4','#F1F1F1',$ct['estado']];
       $ph=preg_replace('/[^0-9]/','',$ct['telefono']??'');
+      // wa.me necesita el código de país. Si el teléfono ya lo trae (formato
+      // nuevo +1XXXXXXXXXX → 11 dígitos), no se le agrega otro "1" al frente.
+      $ph_wa=(strlen($ph)===10)?('1'.$ph):$ph;
       $logs=$clog_by_contacto[$ct['id']]??[]; $lastlog=$logs[0]??null;
       $nm=trim($ct['nombre'].' '.($ct['apellido']??''));
       // Datos extra del archivo importado (columnas que no eran nombre/
@@ -2587,7 +2592,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
           <?php if($ct['telefono']):?>
           <a href="tel:<?=h($ct['telefono'])?>" class="btn btn-bl btn-sm" style="font-size:8px">LLAMAR</a>
-          <a href="https://wa.me/1<?=$ph?>" target="_blank" class="btn btn-gr btn-sm" style="font-size:8px">WA</a>
+          <a href="https://wa.me/<?=$ph_wa?>" target="_blank" class="btn btn-gr btn-sm" style="font-size:8px">WA</a>
           <?php endif;?>
           <?php if($ct['promovido']):?>
             <button class="btn btn-am btn-sm" style="font-size:8px" onclick="openProfile(<?=$ct['miembro_id']?>)">◉ VER PERFIL</button>
