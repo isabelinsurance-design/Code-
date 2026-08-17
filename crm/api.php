@@ -1610,7 +1610,6 @@ case 'sms_enviar':
     break;
 
 case 'sms_plantilla_guardar':
-    if (!$admin) jsonErr('Solo un administrador puede editar las plantillas');
     $pdo = db();
     $pid    = (int)($_POST['id'] ?? 0);
     $nombre = trim($_POST['nombre'] ?? '');
@@ -1627,7 +1626,6 @@ case 'sms_plantilla_guardar':
     break;
 
 case 'sms_plantilla_eliminar':
-    if (!$admin) jsonErr('Solo un administrador puede editar las plantillas');
     $pdo = db();
     $pdo->prepare("DELETE FROM sms_plantillas WHERE id=?")->execute([(int)($_POST['id'] ?? 0)]);
     jsonOk();

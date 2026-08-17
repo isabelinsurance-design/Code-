@@ -6189,7 +6189,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <div style="padding:10px 14px;border-top:1px solid <?=$CB?>">
         <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">
           <?php foreach($sms_plantillas as $pl):?><button class="btn btn-gh btn-sm" onclick="setSmsTemplate(<?=(int)$pl['id']?>)"><?=h($pl['nombre'])?></button><?php endforeach;?>
-          <?php if($admin):?><button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button><?php endif;?>
+          <button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button>
         </div>
         <div style="display:flex;gap:6px">
           <textarea id="sms-panel-msg" class="form-input" rows="2" placeholder="Escribe un mensaje..." style="flex:1" oninput="updateSmsCount()"></textarea>
