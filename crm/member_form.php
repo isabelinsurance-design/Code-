@@ -82,6 +82,34 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       </div>
     </div>
 
+    <?php
+    // Referido por — buscador (mpick) si quien lo recomendó es otro miembro
+    // de la agencia. Prellenar nombre si ya está vinculado.
+    $ref_sel = (string)($m['referido_por_miembro_id'] ?? '');
+    $ref_label = '';
+    if ($ref_sel !== '') {
+        $rq = $pdo->prepare("SELECT nombre,apellido,telefono FROM miembros WHERE id=?");
+        $rq->execute([(int)$ref_sel]);
+        if ($rr = $rq->fetch()) $ref_label = $rr['apellido'].', '.$rr['nombre'].(!empty($rr['telefono'])?' · '.$rr['telefono']:'');
+    }
+    ?>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">REFERIDO POR — SI ES MIEMBRO</label>
+        <div class="mpick-wrap">
+          <input type="hidden" name="referido_por_miembro_id" id="mf-ref-id" value="<?=h($ref_sel)?>">
+          <input type="text" id="mf-ref-input" class="form-input" placeholder="Escribe nombre o teléfono para buscar..." autocomplete="off" value="<?=h($ref_label)?>" oninput="mpickSearch('mf-ref-input','mf-ref-id','mf-ref-drop',this.value,false)">
+          <button type="button" class="mpick-clear" onclick="mpickClear('mf-ref-input','mf-ref-id','mf-ref-drop')" title="Limpiar">×</button>
+          <div id="mf-ref-drop" class="mpick-drop"></div>
+        </div>
+        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;text-transform:uppercase">★ SI ES MIEMBRO, SU PERFIL QUEDA VINCULADO — SE PODRÁ ABRIR DESDE AQUÍ</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">O NOMBRE DE QUIEN LO RECOMENDÓ — SI NO ES MIEMBRO</label>
+        <input type="text" name="referido_por_texto" class="form-input" value="<?=h($m['referido_por_texto']??'')?>" placeholder="NOMBRE COMPLETO">
+      </div>
+    </div>
+
     <div class="section-divider">DIRECCIÓN</div>
     <div class="grid-2">
       <div class="form-group">

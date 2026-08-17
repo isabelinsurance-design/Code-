@@ -444,6 +444,7 @@ case 'save_member':
         'mbi','member_id','parte_a','parte_b','medical','medical_nivel','ss','elegibilidad','fecha_efectiva',
         'pcp','pcp_address','pcp_city','pcp_group','pcp_phone','pcp_state','pcp_zip',
         'dentista','email','evento','razon_cancelacion','fuente','fuente_campana','referido_por','tipo_referido',
+        'referido_por_texto','referido_por_miembro_id',
         'plan','carrier','tipo_plan','plan_secundario','plan_anterior',
         'prescripciones','condiciones_cronicas','especialistas','profesion','empresa','estatus_legal',
         'extras','opt_in','opt_out','info_verificada','carpeta_drive',
