@@ -47,6 +47,20 @@ function asegurarTablaSmsPlantillas(PDO $pdo): void {
     } catch (Exception $e) {}
 }
 
+// "referido_por_texto"/"referido_por_miembro_id" también se crean en el
+// bloque de migración general de index.php, pero varias acciones de aquí
+// (sms_get_hilo, save_retencion_q30, crear_prospecto_referido) los pueden
+// necesitar antes de que esa migración haya alcanzado a correr con éxito
+// — sin este respaldo, cualquiera de ellas revienta con "Column not found".
+function asegurarColumnasReferido(PDO $pdo): void {
+    try {
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_texto'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_texto VARCHAR(200) DEFAULT NULL");
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
+    } catch (Exception $e) {}
+}
+
 function completarNextStepsDelTicket(PDO $pdo, int $ticket_id, ?int $agente_id = null): int {
     $stmt = $pdo->prepare("UPDATE ticket_next_steps
                            SET completado=1, fecha_completado=NOW(),
@@ -437,6 +451,7 @@ case 'get_historial_mes':
 case 'save_member':
     $d = $_POST;
     $pdo = db();
+    asegurarColumnasReferido($pdo);
 
     $existing_cols = $pdo->query("SHOW COLUMNS FROM miembros")->fetchAll(PDO::FETCH_COLUMN);
     $all_fields = ['nombre','middle_name','apellido','telefono','telefono2','estado','subestado','agente_id',
@@ -1588,6 +1603,7 @@ case 'sms_get_nuevos':
 case 'sms_get_hilo':
     $pdo = db();
     asegurarTablaSms($pdo);
+    asegurarColumnasReferido($pdo);
     $telefono = normalizar_tel($_POST['telefono'] ?? '');
     if ($telefono === '') jsonErr('Teléfono requerido');
     $q = $pdo->prepare("SELECT s.*, u.nombre AS agente_nombre FROM sms_mensajes s LEFT JOIN usuarios u ON s.agente_id=u.id WHERE s.telefono=? ORDER BY s.id ASC LIMIT 300");
@@ -1805,6 +1821,7 @@ case 'save_retencion_llamada':
 
 case 'save_retencion_q30':
     $pdo = db();
+    asegurarColumnasReferido($pdo);
 
     // Crear tablas si no existen
     $pdo->exec("CREATE TABLE IF NOT EXISTS retencion_llamadas (
@@ -2005,14 +2022,7 @@ case 'save_retencion_q30':
 //    al que se le hizo el cuestionario, no al texto libre escrito.
 case 'crear_prospecto_referido':
     $pdo = db();
-    // Columnas nuevas por si esta petición llega antes de que index.php
-    // haya alcanzado a crearlas en esta instalación.
-    try {
-        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_texto'")->fetch())
-            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_texto VARCHAR(200) DEFAULT NULL");
-        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch())
-            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
-    } catch (Exception $e) {}
+    asegurarColumnasReferido($pdo);
     $mid_origen = intval($_POST['miembro_id'] ?? 0);
     $nombre_ref = trim($_POST['nombre'] ?? '');
     if (!$mid_origen) jsonErr('Miembro de origen requerido');
