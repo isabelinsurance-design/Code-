@@ -9436,10 +9436,11 @@ function _smsBurbuja(m){
   const texto=(m.cuerpo||'').replace(/</g,'&lt;');
   return '<div class="chat-msg '+clase+'"><div class="chat-msg-meta">'+quien+' · '+hora+'</div>'+texto+'</div>';
 }
-function abrirHiloSms(telefono){
+function abrirHiloSms(telefono,nombre){
+  if(!telefono){ if(typeof toast==='function')toast('⚠ ESTE MIEMBRO NO TIENE TELÉFONO GUARDADO'); return; }
   document.getElementById('sms-hilo-tel').value=telefono;
-  document.getElementById('sms-hilo-title').textContent=telefono;
-  document.getElementById('sms-hilo-sub').textContent='Cargando...';
+  document.getElementById('sms-hilo-title').textContent=nombre||telefono;
+  document.getElementById('sms-hilo-sub').textContent=nombre?telefono:'Cargando...';
   document.getElementById('sms-hilo-msgs').innerHTML='';
   openModal('modal-sms-hilo');
   const fd=new FormData(); fd.append('action','sms_get_hilo'); fd.append('telefono',telefono);
@@ -9448,9 +9449,13 @@ function abrirHiloSms(telefono){
     const box=document.getElementById('sms-hilo-msgs');
     box.innerHTML=(d.data.mensajes||[]).map(_smsBurbuja).join('');
     box.scrollTop=box.scrollHeight;
-    document.getElementById('sms-hilo-sub').textContent=d.data.miembro?(d.data.miembro.nombre+' '+d.data.miembro.apellido):'Número no vinculado a ningún miembro';
+    if(!nombre) document.getElementById('sms-hilo-sub').textContent=d.data.miembro?(d.data.miembro.nombre+' '+d.data.miembro.apellido):'Número no vinculado a ningún miembro';
   }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
 }
+// El botón "SMS" del encabezado del perfil (profile.php) ya llamaba a esta
+// función desde antes, pero nunca se había definido — por eso el botón no
+// hacía nada al presionarlo.
+function openSmsModal(nombre,telefono){ abrirHiloSms(telefono,nombre); }
 function enviarHiloSms(){
   const tel=document.getElementById('sms-hilo-tel').value;
   const ta=document.getElementById('sms-hilo-msg');
