@@ -2,6 +2,7 @@
 require_once 'session_boot.php';
 require_once 'config.php';
 require_once 'lib_telefono.php';
+require_once 'lib_twilio.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -14,6 +15,25 @@ $uid = $user['id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
 function jsonOk($data=[]) { echo json_encode(['ok'=>true,'data'=>$data]); exit; }
 function jsonErr($msg) { echo json_encode(['ok'=>false,'error'=>$msg]); exit; }
+
+function asegurarTablaSms(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telefono VARCHAR(20) NOT NULL,
+            miembro_id INT NULL,
+            direccion VARCHAR(10) NOT NULL,
+            cuerpo TEXT,
+            estado VARCHAR(30) DEFAULT NULL,
+            twilio_sid VARCHAR(64) DEFAULT NULL,
+            agente_id INT NULL,
+            leido TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_telefono (telefono),
+            INDEX idx_miembro (miembro_id)
+        )");
+    } catch (Exception $e) {}
+}
 
 function completarNextStepsDelTicket(PDO $pdo, int $ticket_id, ?int $agente_id = null): int {
     $stmt = $pdo->prepare("UPDATE ticket_next_steps
@@ -1532,7 +1552,45 @@ case 'save_llamada_prospecto':
         jsonErr('No se pudo guardar la llamada');
     }
     break;
-    
+
+// ── SMS (TWILIO) ──────────────────────────────────────────────────
+case 'sms_get_hilo':
+    $pdo = db();
+    asegurarTablaSms($pdo);
+    $telefono = normalizar_tel($_POST['telefono'] ?? '');
+    if ($telefono === '') jsonErr('Teléfono requerido');
+    $q = $pdo->prepare("SELECT s.*, u.nombre AS agente_nombre FROM sms_mensajes s LEFT JOIN usuarios u ON s.agente_id=u.id WHERE s.telefono=? ORDER BY s.id ASC LIMIT 300");
+    $q->execute([$telefono]);
+    $mensajes = $q->fetchAll(PDO::FETCH_ASSOC);
+    // Al abrir el hilo se marcan como leídos los mensajes entrantes pendientes.
+    $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE telefono=? AND direccion='ENTRANTE' AND leido=0")->execute([$telefono]);
+    $mq = $pdo->prepare("SELECT id, nombre, apellido FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+    $mq->execute([$telefono, $telefono]);
+    $miembro = $mq->fetch(PDO::FETCH_ASSOC);
+    jsonOk(['mensajes' => $mensajes, 'miembro' => $miembro ?: null]);
+    break;
+
+case 'sms_enviar':
+    $pdo = db();
+    asegurarTablaSms($pdo);
+    $telefono = normalizar_tel($_POST['telefono'] ?? '');
+    $cuerpo   = trim($_POST['mensaje'] ?? '');
+    $miembro_id_sms = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
+    if ($telefono === '') jsonErr('Teléfono requerido');
+    if ($cuerpo === '') jsonErr('Escribe un mensaje');
+    if (!$miembro_id_sms) {
+        $mq = $pdo->prepare("SELECT id FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+        $mq->execute([$telefono, $telefono]);
+        if ($mm = $mq->fetch(PDO::FETCH_ASSOC)) $miembro_id_sms = (int)$mm['id'];
+    }
+    $res = twilio_enviar_sms($telefono, $cuerpo);
+    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
+                   VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")
+        ->execute([$telefono, $miembro_id_sms, $cuerpo, $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid]);
+    if (!$res['ok']) jsonErr($res['error']);
+    jsonOkNotify(['sid' => $res['sid']], 'COMUNICACION');
+    break;
+
 case 'toggle_checklist':
     $pdo = db(); 
     $item_key = trim($_POST['item_key'] ?? '');

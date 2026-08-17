@@ -25,6 +25,14 @@ define('FINANCE_PASS',      getenv('FINANCE_PASS')      ?: 'CAMBIA_ESTA_CLAVE');
 define('ANTHROPIC_API_KEY', getenv('ANTHROPIC_API_KEY') ?: 'sk-ant-PON_TU_KEY');   // Isabel AI
 define('WEBHOOK_SECRET_FB', getenv('WEBHOOK_SECRET_FB') ?: 'CAMBIA_ESTE_SECRETO'); // leads de Facebook
 
+// ─── TWILIO (SMS) — opcional ────────────────────────────────────────
+// Sin esto configurado, el CRM sigue funcionando normal — solo no se
+// podrán enviar SMS (si llegan SMS entrantes por el webhook, de todos
+// modos se guardan; el sms_webhook.php no depende de estas 3).
+define('TWILIO_SID',         getenv('TWILIO_SID')         ?: '');  // Account SID de Twilio
+define('TWILIO_AUTH_TOKEN',  getenv('TWILIO_AUTH_TOKEN')  ?: '');  // Auth Token de Twilio (también valida el webhook entrante)
+define('TWILIO_FROM_NUMBER', getenv('TWILIO_FROM_NUMBER') ?: '');  // Tu número de Twilio, formato +1XXXXXXXXXX
+
 // ─── AVISOS EN VIVO (opcional) ─────────────────────────────────────
 // Servidor ws-relay (Railway) que avisa al instante a los navegadores
 // conectados cuando alguien guarda algo. Si se dejan vacíos, el CRM sigue

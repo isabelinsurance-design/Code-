@@ -5,8 +5,27 @@ error_reporting(E_ALL);
 require_once 'session_boot.php';
 require_once 'config.php';
 require_once 'lib_telefono.php';
+require_once 'lib_twilio.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
+// Se crea aquí (antes de los manejadores AJAX que hacen exit más abajo) para
+// que la tabla siempre exista sin importar qué parte de la página se pida.
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        telefono VARCHAR(20) NOT NULL,
+        miembro_id INT NULL,
+        direccion VARCHAR(10) NOT NULL,
+        cuerpo TEXT,
+        estado VARCHAR(30) DEFAULT NULL,
+        twilio_sid VARCHAR(64) DEFAULT NULL,
+        agente_id INT NULL,
+        leido TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_telefono (telefono),
+        INDEX idx_miembro (miembro_id)
+    )");
+} catch (Exception $e) {}
 
 // ─── CUENTAS + REFERIDOS — AJAX HANDLER ──────────────────────────────────────
 if (!empty($_POST['cue_ajax'])) {
@@ -1495,6 +1514,33 @@ try{
 }catch(Exception $e){}
 $notif_unread=0;
 try{$nq=$pdo->prepare("SELECT COUNT(*) FROM notificaciones WHERE user_id=? AND leido=0");$nq->execute([$uid]);$notif_unread=(int)$nq->fetchColumn();}catch(Exception $e){}
+// ─── SMS (TWILIO) — conversaciones agrupadas por teléfono ────────────────
+$sms_unread=0; $sms_conversaciones=[];
+try{
+    $sms_unread=(int)$pdo->query("SELECT COUNT(*) FROM sms_mensajes WHERE direccion='ENTRANTE' AND leido=0")->fetchColumn();
+    $sms_rows=$pdo->query("
+        SELECT s.telefono, MAX(s.created_at) AS ultimo_fecha,
+               SUM(CASE WHEN s.direccion='ENTRANTE' AND s.leido=0 THEN 1 ELSE 0 END) AS no_leidos
+        FROM sms_mensajes s GROUP BY s.telefono ORDER BY ultimo_fecha DESC LIMIT 200
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    foreach($sms_rows as $sr){
+        $ult=$pdo->prepare("SELECT cuerpo,direccion FROM sms_mensajes WHERE telefono=? ORDER BY id DESC LIMIT 1");
+        $ult->execute([$sr['telefono']]);
+        $u=$ult->fetch(PDO::FETCH_ASSOC);
+        $mq=$pdo->prepare("SELECT id,nombre,apellido FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+        $mq->execute([$sr['telefono'],$sr['telefono']]);
+        $mm=$mq->fetch(PDO::FETCH_ASSOC);
+        $sms_conversaciones[]=[
+            'telefono'=>$sr['telefono'],
+            'ultimo_fecha'=>$sr['ultimo_fecha'],
+            'no_leidos'=>(int)$sr['no_leidos'],
+            'ultimo_mensaje'=>$u['cuerpo']??'',
+            'ultimo_direccion'=>$u['direccion']??'',
+            'miembro_id'=>$mm['id']??null,
+            'nombre'=>$mm?trim($mm['nombre'].' '.$mm['apellido']):null,
+        ];
+    }
+}catch(Exception $e){}
 $actividad=$pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales,CONCAT(m.apellido,' ',m.nombre) as miembro_nombre FROM actividad a LEFT JOIN usuarios u ON a.agente_id=u.id LEFT JOIN miembros m ON a.miembro_id=m.id ORDER BY a.fecha_hora DESC LIMIT 150")->fetchAll();
 // Tabs use safe ASCII IDs for JS; tabn maps to display names with accents
 // ─── CARGA DE DATOS: CUENTAS + REFERIDOS ─────────────────────────────────────
@@ -1820,7 +1866,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <?php if($t==='TICKETS' && $mis_tickets_abiertos > 0):?><span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A"><?=$mis_tickets_abiertos?></span>
 <?php elseif($t==='MIEMBROS'):?><span class="nbadge" style="background:<?=$BG?>;color:<?=$MU?>;border:1px solid <?=$CB?>"><?=count($members)?></span>
 <?php elseif($t==='RETENCION'&&$alertas_hoy>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$alertas_hoy?></span>
-<?php elseif($t==='COMUNICACION'&&$chat_unread>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$chat_unread?></span>
+<?php elseif($t==='COMUNICACION'&&($chat_unread+$sms_unread)>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$chat_unread+$sms_unread?></span>
 <?php elseif($t==='RECURSOS'&&$rec_due>0):?><span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A"><?=$rec_due?></span>
 <?php endif;?>
 </button>
@@ -6060,20 +6106,48 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- COMUNICACION -->
 <div id="tab-COMUNICACION" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
-<?php foreach(['SMS','LLAMADAS','EMAILS','HISTORIAL'] as $ct):?><button class="ntab<?=$ct==='SMS'?' active':''?>" onclick="showComTab('<?=$ct?>')" data-ctab="<?=$ct?>"><?=$ct?></button><?php endforeach;?>
+<?php foreach(['SMS','LLAMADAS','EMAILS','HISTORIAL'] as $ct):?><button class="ntab<?=$ct==='SMS'?' active':''?>" onclick="showComTab('<?=$ct?>')" data-ctab="<?=$ct?>"><?=$ct?><?php if($ct==='SMS'&&$sms_unread>0):?> <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A"><?=$sms_unread?></span><?php endif;?></button><?php endforeach;?>
 </div>
 <div id="ctab-SMS">
+<?php if(!twilio_configurado()):?><div class="card" style="background:#FEF8EE;border:1px solid #F5D5A0;padding:11px 14px;margin-bottom:14px;font-size:9px;color:#7A5B12;text-transform:uppercase;font-weight:800">⚠ TWILIO TODAVÍA NO ESTÁ CONFIGURADO — FALTA AGREGAR TWILIO_SID / TWILIO_AUTH_TOKEN / TWILIO_FROM_NUMBER EN CONFIG.PHP. LOS SMS NO SE PODRÁN ENVIAR HASTA CONFIGURARLO (LOS ENTRANTES SÍ SE PUEDEN SEGUIR RECIBIENDO).</div><?php endif;?>
 <div class="grid-2" style="gap:14px">
 <div class="card"><div class="card-header"><div class="card-title">◌ ENVIAR SMS</div><div class="card-sub">VÍA TWILIO</div></div><div style="padding:14px 16px">
+<div class="form-group">
+  <label class="form-label">BUSCAR MIEMBRO (OPCIONAL)</label>
+  <div class="mpick-wrap">
+    <input type="text" id="sms-mpick-input" class="form-input" placeholder="Escribe nombre o teléfono para buscar..." autocomplete="off" oninput="mpickSearch('sms-mpick-input','sms-miembro-id','sms-mpick-drop',this.value,false)">
+    <div id="sms-mpick-drop" class="mpick-drop"></div>
+  </div>
+</div>
+<input type="hidden" id="sms-miembro-id" value="">
 <div class="grid-2"><div class="form-group"><label class="form-label">NOMBRE</label><input type="text" id="sms-nombre" class="form-input" placeholder="NOMBRE"></div><div class="form-group"><label class="form-label">TELÉFONO</label><input type="text" id="sms-tel" class="form-input" placeholder="(818) 555-0000"></div></div>
 <div class="form-group"><label class="form-label">PLANTILLA</label><div style="display:flex;gap:4px;flex-wrap:wrap"><?php foreach([['B','BIENVENIDA'],['A','AEP'],['C','CUMPLEAÑOS'],['T','T65'],['D','DENTAL'],['R','REFERIDO']] as [$k,$v]):?><button class="btn btn-gh btn-sm" onclick="setSmsTemplate('<?=$k?>')"><?=$v?></button><?php endforeach;?></div></div>
 
 <div class="form-group"><label class="form-label">MENSAJE</label><textarea id="sms-msg" class="form-input" rows="4" oninput="updateSmsCount()"></textarea></div>
-<div style="display:flex;justify-content:space-between;align-items:center"><span id="sms-count" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">0/160</span><button class="btn btn-b btn-sm" onclick="sendSms()">◌ ENVIAR SMS</button></div>
+<div style="display:flex;justify-content:space-between;align-items:center"><span id="sms-count" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">0/160</span><button class="btn btn-b btn-sm" id="sms-send-btn" onclick="sendSms()">◌ ENVIAR SMS</button></div>
 </div></div>
 <div class="card"><div class="card-header"><div class="card-title"> PLANTILLAS SMS</div></div><div style="padding:11px 14px">
 <?php foreach([['BIENVENIDA','HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.'],['AEP','HOLA [NOMBRE]! AEP OCT 15-DIC 7. PLAN GRATIS. (818) 000-0000 REPLY STOP.'],['T65','HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.'],['DENTAL','HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.'],['OTC','HOLA [NOMBRE]! BENEFICIO OTC PARA PRODUCTOS DE SALUD. (818) 000-0000'],['REFERIDO','HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000']] as [$n,$t]):?><div style="border:1px solid <?=$CB?>;border-radius:9px;padding:8px 11px;margin-bottom:7px"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><span style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase"><?=$n?></span><button class="btn btn-sky btn-sm" onclick="copyText(this)" data-text="<?=htmlspecialchars($t,ENT_QUOTES)?>"> </button></div><div style="font-size:8px;color:<?=$MU?>;line-height:1.7"><?=h($t)?></div></div><?php endforeach;?>
 </div></div>
+</div>
+<div class="card" style="margin-top:14px">
+  <div class="card-header"><div class="card-title">💬 CONVERSACIONES</div><div class="card-sub"><?=count($sms_conversaciones)?> · <?=$sms_unread?> SIN LEER</div></div>
+  <div style="max-height:420px;overflow-y:auto">
+    <?php if(empty($sms_conversaciones)):?>
+    <div style="padding:20px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN MENSAJES TODAVÍA</div>
+    <?php else: foreach($sms_conversaciones as $sc): ?>
+    <div style="padding:11px 15px;border-bottom:1px solid <?=$CB?>;cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:10px<?=$sc['no_leidos']>0?';background:#FDF0EE':''?>" onclick="abrirHiloSms('<?=h($sc['telefono'])?>')">
+      <div style="min-width:0">
+        <div style="font-size:10px;font-weight:900;color:<?=$P1?>"><?=$sc['nombre']?h($sc['nombre']):h($sc['telefono'])?> <?php if($sc['nombre']):?><span style="font-weight:700;color:<?=$MU?>;font-size:9px"><?=h($sc['telefono'])?></span><?php endif;?></div>
+        <div style="font-size:9px;color:<?=$MU?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:420px"><?=$sc['ultimo_direccion']==='SALIENTE'?'TÚ: ':''?><?=h(substr($sc['ultimo_mensaje'],0,80))?></div>
+      </div>
+      <div style="text-align:right;flex-shrink:0">
+        <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase"><?=date('m/d h:i A',strtotime($sc['ultimo_fecha']))?></div>
+        <?php if($sc['no_leidos']>0):?><span class="nbadge" style="background:#B83232;color:#fff;border:1px solid #B83232;margin-top:3px"><?=$sc['no_leidos']?></span><?php endif;?>
+      </div>
+    </div>
+    <?php endforeach; endif;?>
+  </div>
 </div>
 </div>
 <div id="ctab-LLAMADAS" style="display:none">
@@ -6093,6 +6167,16 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 </table></div></div>
 </div>
 </div><!-- /COMUNICACION -->
+<!-- MODAL: HILO DE SMS -->
+<div id="modal-sms-hilo" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div><div class="modal-title" id="sms-hilo-title">SMS</div><div style="font-size:8px;color:<?=$MU?>" id="sms-hilo-sub"></div></div><button class="modal-close" onclick="closeModal('modal-sms-hilo')">✕</button></div>
+  <input type="hidden" id="sms-hilo-tel">
+  <div id="sms-hilo-msgs" style="max-height:360px;overflow-y:auto;padding:8px 2px;display:flex;flex-direction:column;gap:8px"></div>
+  <div style="display:flex;gap:6px;margin-top:10px">
+    <textarea id="sms-hilo-msg" class="form-input" rows="2" placeholder="Escribe una respuesta..." style="flex:1;text-transform:none"></textarea>
+    <button class="btn btn-b btn-sm" onclick="enviarHiloSms()">◌ ENVIAR</button>
+  </div>
+</div></div>
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
@@ -9322,7 +9406,68 @@ function buscarHistorial() {
 function exportRep(fmt){const from=document.getElementById('rep-from')?.value;const to=document.getElementById('rep-to')?.value;const ag=document.getElementById('rep-ag')?.value||'';window.open('reporte_export.php?fmt='+fmt+'&from='+from+'&to='+to+(ag?'&agente='+ag:''),'_blank');}
 function setSmsTemplate(k){const n=document.getElementById('sms-nombre')?.value||'[NOMBRE]';const t={B:'HOLA '+n+'! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.',A:'HOLA '+n+'! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. (818) 000-0000 REPLY STOP.',C:'FELIZ CUMPLEAÑOS '+n+'! DE PARTE DE MEDICARE WITH ISABEL.',T:'HOLA '+n+'! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.',D:'HOLA '+n+'! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.',R:'HOLA '+n+'! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000'};const el=document.getElementById('sms-msg');if(el){el.value=t[k]||'';updateSmsCount();}}
 function updateSmsCount(){const m=document.getElementById('sms-msg');const c=document.getElementById('sms-count');if(m&&c)c.textContent=m.value.length+'/160';}
-function sendSms(){const n=document.getElementById('sms-nombre')?.value;const t=document.getElementById('sms-tel')?.value;toast(' SMS PREPARADO PARA '+(n||t));}
+function sendSms(){
+  const tel=document.getElementById('sms-tel')?.value||'';
+  const msg=document.getElementById('sms-msg')?.value||'';
+  const mid=document.getElementById('sms-miembro-id')?.value||'';
+  if(!tel.trim()){ if(typeof toast==='function')toast('⚠ ESCRIBE O BUSCA UN TELÉFONO'); return; }
+  if(!msg.trim()){ if(typeof toast==='function')toast('⚠ ESCRIBE UN MENSAJE'); return; }
+  const btn=document.getElementById('sms-send-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='ENVIANDO...'; }
+  const fd=new FormData();
+  fd.append('action','sms_enviar'); fd.append('telefono',tel); fd.append('mensaje',msg); if(mid)fd.append('miembro_id',mid);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(btn){ btn.disabled=false; btn.textContent='◌ ENVIAR SMS'; }
+    if(d.ok){
+      if(typeof toast==='function')toast('✓ SMS ENVIADO');
+      document.getElementById('sms-msg').value='';
+      updateSmsCount();
+      mpickClear('sms-mpick-input','sms-miembro-id','sms-mpick-drop');
+      if(typeof softReload==='function')softReload();
+    } else {
+      if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo enviar'));
+    }
+  }).catch(()=>{ if(btn){ btn.disabled=false; btn.textContent='◌ ENVIAR SMS'; } if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function _smsBurbuja(m){
+  const clase=m.direccion==='SALIENTE'?'me':'them';
+  const quien=m.direccion==='SALIENTE'?(m.agente_nombre?m.agente_nombre.split(' ')[0]:'TÚ'):'ELLOS';
+  const hora=m.created_at?new Date(m.created_at.replace(' ','T')).toLocaleString('es',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}):'';
+  const texto=(m.cuerpo||'').replace(/</g,'&lt;');
+  return '<div class="chat-msg '+clase+'"><div class="chat-msg-meta">'+quien+' · '+hora+'</div>'+texto+'</div>';
+}
+function abrirHiloSms(telefono){
+  document.getElementById('sms-hilo-tel').value=telefono;
+  document.getElementById('sms-hilo-title').textContent=telefono;
+  document.getElementById('sms-hilo-sub').textContent='Cargando...';
+  document.getElementById('sms-hilo-msgs').innerHTML='';
+  openModal('modal-sms-hilo');
+  const fd=new FormData(); fd.append('action','sms_get_hilo'); fd.append('telefono',telefono);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(!d.ok){ if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo cargar')); return; }
+    const box=document.getElementById('sms-hilo-msgs');
+    box.innerHTML=(d.data.mensajes||[]).map(_smsBurbuja).join('');
+    box.scrollTop=box.scrollHeight;
+    document.getElementById('sms-hilo-sub').textContent=d.data.miembro?(d.data.miembro.nombre+' '+d.data.miembro.apellido):'Número no vinculado a ningún miembro';
+  }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function enviarHiloSms(){
+  const tel=document.getElementById('sms-hilo-tel').value;
+  const ta=document.getElementById('sms-hilo-msg');
+  const msg=ta.value.trim();
+  if(!msg)return;
+  const fd=new FormData(); fd.append('action','sms_enviar'); fd.append('telefono',tel); fd.append('mensaje',msg);
+  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+    if(d.ok){
+      ta.value='';
+      const box=document.getElementById('sms-hilo-msgs');
+      box.insertAdjacentHTML('beforeend',_smsBurbuja({direccion:'SALIENTE',cuerpo:msg,created_at:null,agente_nombre:'TÚ'}));
+      box.scrollTop=box.scrollHeight;
+    } else {
+      if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo enviar'));
+    }
+  }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
+}
 function setEmailTemplate(k){const n=document.getElementById('email-nombre')?.value||'[NOMBRE]';const tm={bv:{s:'Bienvenido/a a Medicare with Isabel',b:'Estimado/a '+n+',\n\nBienvenido/a al plan Medicare. Su cobertura está activa.\n\nIsabel Fuentes — (818) 000-0000'},aep:{s:'Revisión AEP — Temporada Abierta',b:'Estimado/a '+n+',\n\nYa abrió la temporada AEP (oct 15 – dic 7). Hagamos una revisión gratuita.\n\n(818) 000-0000 — Isabel Fuentes'},fup:{s:'Seguimiento — Medicare with Isabel',b:'Estimado/a '+n+',\n\n¿Tiene preguntas sobre su plan? Estoy aquí para ayudarle.\n\nIsabel Fuentes — (818) 000-0000'},chk:{s:'Cambio de Doctor — Acción Requerida',b:'Estimado/a '+n+',\n\nNos informaron que su doctor puede no estar en la red. Llámenos: (818) 000-0000\n\nIsabel Fuentes'}};const t=tm[k];if(t){const a=document.getElementById('email-asunto');const m=document.getElementById('email-msg');if(a)a.value=t.s;if(m)m.value=t.b;}}
 function sendEmail(){const to=document.getElementById('email-to')?.value;const a=document.getElementById('email-asunto')?.value||'';const m=document.getElementById('email-msg')?.value||'';if(!to){toast('⚠ INGRESA UN EMAIL');return;}window.location.href='mailto:'+to+'?subject='+encodeURIComponent(a)+'&body='+encodeURIComponent(m);toast('✓ ABRIENDO CORREO');}
 function toggleEf(mid,tipo,btn){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'toggle_efectivo',miembro_id:mid,tipo})}).then(r=>r.json()).then(d=>{if(d.ok){const done=d.data.done;btn.textContent=done?'✓':'○';btn.style.background=done?'#EAF5F0':'#fff';btn.style.borderColor=done?'#8DCFBA':'#C8DFF0';btn.style.color=done?'#1E7A5C':'#94A3B8';toast(done?'✓ MARCADO':'○ DESMARCADO');}else toast(d.error);});}
@@ -11594,6 +11739,16 @@ function mpickItemClick(e, el) {
         const ti = document.getElementById('lr-telefono');
         if (ni && !ni.value) ni.value = nombre;
         if (ti && !ti.value) ti.value = tel;
+    }
+
+    // Auto-fill nombre/teléfono al elegir un miembro existente para enviarle
+    // un SMS (así no hay que escribirlo a mano).
+    if (inputId === 'sms-mpick-input') {
+        const full = (typeof _membersFullData !== 'undefined') ? _membersFullData.find(m => m.id == id) : null;
+        const ni = document.getElementById('sms-nombre');
+        const ti = document.getElementById('sms-tel');
+        if (ni) ni.value = full ? (full.nombre + ' ' + full.apellido).trim() : nombre;
+        if (ti) ti.value = full ? full.telefono : tel;
     }
 
     // Auto-fill nombre/apellido/teléfono/email al elegir un miembro existente

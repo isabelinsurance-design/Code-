@@ -54,6 +54,30 @@ $notas = $pdo->prepare("SELECT n.*,u.nombre as autor,u.iniciales,u.color
                         WHERE n.miembro_id=? ORDER BY n.created_at DESC");
 $notas->execute([$id]);
 $notas = $notas->fetchAll();
+// ─── HISTORIAL DE SMS (Twilio) ────────────────────────────────────────────
+$sms_hilo = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        telefono VARCHAR(20) NOT NULL,
+        miembro_id INT NULL,
+        direccion VARCHAR(10) NOT NULL,
+        cuerpo TEXT,
+        estado VARCHAR(30) DEFAULT NULL,
+        twilio_sid VARCHAR(64) DEFAULT NULL,
+        agente_id INT NULL,
+        leido TINYINT(1) DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_telefono (telefono),
+        INDEX idx_miembro (miembro_id)
+    )");
+    $sq2 = $pdo->prepare("SELECT s.*, u.nombre AS agente_nombre FROM sms_mensajes s LEFT JOIN usuarios u ON s.agente_id=u.id
+                           WHERE s.miembro_id=? OR s.telefono IN (?,?) ORDER BY s.id ASC");
+    $sq2->execute([$id, $m['telefono'] ?? '', $m['telefono2'] ?? '']);
+    $sms_hilo = $sq2->fetchAll(PDO::FETCH_ASSOC);
+    $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE (miembro_id=? OR telefono IN (?,?)) AND direccion='ENTRANTE' AND leido=0")
+        ->execute([$id, $m['telefono'] ?? '', $m['telefono2'] ?? '']);
+} catch (Exception $e) {}
 $fam = null;
 if ($m['familiar_id']) {
     $st = $pdo->prepare("SELECT id,nombre,apellido,estado,telefono FROM miembros WHERE id=?");
@@ -282,7 +306,7 @@ display: block;
 
   <!-- Profile Tabs -->
   <div class="profile-tabs">
-    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','CITAS ('.count($citas_m).')','TICKETS ('.count($tickets_m).')','FAMILIA','NOTAS ('.count($notas).')','POST-CITA ('.count($postcita_list).')'];
+    <?php $ptabs=['RESUMEN','INFO COMPLETA','PÓLIZAS','PLAN','HISTORIAL','CITAS ('.count($citas_m).')','TICKETS ('.count($tickets_m).')','FAMILIA','NOTAS ('.count($notas).')','SMS ('.count($sms_hilo).')','POST-CITA ('.count($postcita_list).')'];
     foreach ($ptabs as $i=>$pt): ?>
     <button class="p-tab<?= $i===0?' active':'' ?>" onclick="showPTab('<?= $pt ?>')" data-ptab="<?= $pt ?>"><?= $pt ?></button>
     <?php endforeach; ?>
@@ -761,6 +785,30 @@ display: block;
 
   </div>
 
+  <!-- =================== SMS =================== -->
+  <div class="tab-content" id="ptab-SMS (<?= count($sms_hilo) ?>)">
+    <?php if (empty($m['telefono'])): ?>
+    <div style="text-align:center;padding:24px;color:#7A90A4;font-size:12px">Este miembro no tiene teléfono guardado — agrégalo en INFO COMPLETA para poder enviarle SMS.</div>
+    <?php else: ?>
+    <div id="sms-pf-msgs-<?= $id ?>" style="max-height:400px;overflow-y:auto;padding:8px 2px;display:flex;flex-direction:column;gap:8px;margin-bottom:12px">
+      <?php if (empty($sms_hilo)): ?>
+        <div class="sms-pf-empty" style="text-align:center;padding:24px;color:#7A90A4;font-size:12px">Sin mensajes todavía.</div>
+      <?php else: foreach ($sms_hilo as $sm):
+        $esMe = $sm['direccion'] === 'SALIENTE';
+        $quien = $esMe ? ($sm['agente_nombre'] ? explode(' ', $sm['agente_nombre'])[0] : 'TÚ') : 'ELLOS';
+      ?>
+      <div class="chat-msg <?= $esMe ? 'me' : 'them' ?>">
+        <div class="chat-msg-meta"><?= h($quien) ?> · <?= date('m/d g:i a', strtotime($sm['created_at'])) ?></div>
+        <?= nl2br(h($sm['cuerpo'])) ?>
+      </div>
+      <?php endforeach; endif; ?>
+    </div>
+    <div style="display:flex;gap:6px">
+      <textarea id="sms-pf-msg-<?= $id ?>" class="form-input" rows="2" placeholder="Escribe un mensaje..." style="flex:1;text-transform:none"></textarea>
+      <button class="btn btn-b btn-sm" onclick="enviarSmsPerfil(<?= $id ?>,'<?= h(addslashes($m['telefono'])) ?>')">◌ ENVIAR</button>
+    </div>
+    <?php endif; ?>
+  </div>
 
   <!-- =================== POST-CITA =================== -->
   <div class="tab-content" id="ptab-POST-CITA (<?= count($postcita_list) ?>)">
@@ -927,6 +975,33 @@ async function guardarNota(miembroId) {
     if (typeof toast === 'function') toast('✓ NOTA GUARDADA');
   } else {
     alert('Error al guardar: ' + (d.error || 'desconocido'));
+  }
+}
+
+async function enviarSmsPerfil(miembroId, telefono) {
+  const ta = document.getElementById('sms-pf-msg-' + miembroId);
+  const texto = ta.value.trim();
+  if (!texto) { ta.focus(); return; }
+  const fd = new FormData();
+  fd.append('action', 'sms_enviar');
+  fd.append('telefono', telefono);
+  fd.append('mensaje', texto);
+  fd.append('miembro_id', miembroId);
+  const r = await fetch('api.php', { method: 'POST', body: fd });
+  const d = await r.json();
+  if (d.ok) {
+    ta.value = '';
+    const box = document.getElementById('sms-pf-msgs-' + miembroId);
+    const placeholder = box.querySelector('.sms-pf-empty');
+    if (placeholder) placeholder.remove();
+    const div = document.createElement('div');
+    div.className = 'chat-msg me';
+    div.innerHTML = '<div class="chat-msg-meta">TÚ · ahora</div>' + texto.replace(/</g,'&lt;').replace(/\n/g,'<br>');
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+    if (typeof toast === 'function') toast('✓ SMS ENVIADO');
+  } else {
+    alert('Error al enviar: ' + (d.error || 'desconocido'));
   }
 }
 
