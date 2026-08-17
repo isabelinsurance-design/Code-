@@ -6187,8 +6187,8 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       </div>
       <div id="sms-panel-msgs" style="flex:1;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 14px;border-top:1px solid <?=$CB?>">
-        <div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">
-          <?php foreach($sms_plantillas as $pl):?><button class="btn btn-gh btn-sm" onclick="setSmsTemplate(<?=(int)$pl['id']?>)"><?=h($pl['nombre'])?></button><?php endforeach;?>
+        <div id="sms-pl-btns" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">
+          <?php foreach($sms_plantillas as $pl):?><button class="btn btn-gh btn-sm sms-pl-btn" data-plantilla-id="<?=(int)$pl['id']?>" onclick="setSmsTemplate(<?=(int)$pl['id']?>)"><?=h($pl['nombre'])?></button><?php endforeach;?>
           <button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button>
         </div>
         <div style="display:flex;gap:6px">
@@ -9481,44 +9481,78 @@ function setSmsTemplate(id){
 }
 function updateSmsCount(){const m=document.getElementById('sms-panel-msg');const c=document.getElementById('sms-count');if(m&&c)c.textContent=m.value.length+'/160';}
 function openSmsPlantillasModal(){ openModal('modal-sms-plantillas'); }
-// Nota: aquí se usa location.reload() en vez de softReload(). El modal de
-// plantillas y la lista SMS_PLANTILLAS (que usan los botones rápidos) viven
-// fuera de la pestaña COMUNICACIÓN, así que un softReload (que solo
-// refresca la pestaña activa) los dejaría con datos viejos hasta la
-// próxima recarga manual — mejor recargar la página entera aquí, ya que
-// editar plantillas no es algo que se haga seguido.
+// Se lee la respuesta como texto primero y se intenta parsear como JSON —
+// si el servidor regresó otra cosa (un warning de PHP, una página de error),
+// se muestra ese texto tal cual en el aviso en vez de un genérico "no se
+// pudo guardar" que no ayuda a diagnosticar nada.
+function _smsPlantillaPost(fd){
+  return fetch('api.php',{method:'POST',body:fd}).then(r=>r.text()).then(txt=>{
+    let d=null; try{ d=JSON.parse(txt); }catch(e){}
+    if(!d || typeof d!=='object'){ throw new Error('Respuesta inesperada del servidor: '+txt.slice(0,200)); }
+    return d;
+  });
+}
 function guardarSmsPlantilla(id,btn){
   const row=btn.closest('.sms-plantilla-row');
   const nombre=row.querySelector('.sms-pl-nombre').value.trim();
   const texto=row.querySelector('.sms-pl-texto').value.trim();
   if(!nombre||!texto){ if(typeof toast==='function')toast('⚠ COMPLETA NOMBRE Y TEXTO'); return; }
-  if(btn.disabled)return; btn.disabled=true;
+  if(btn.disabled)return; btn.disabled=true; const txtOrig=btn.textContent; btn.textContent='GUARDANDO...';
   const fd=new FormData(); fd.append('action','sms_plantilla_guardar'); fd.append('id',id); fd.append('nombre',nombre); fd.append('texto',texto);
-  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-    if(d.ok){ if(typeof toast==='function')toast('✓ PLANTILLA GUARDADA'); location.reload(); }
-    else { btn.disabled=false; if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo guardar')); }
-  }).catch(()=>{ btn.disabled=false; if(typeof toast==='function')toast('⚠ Error de red'); });
+  _smsPlantillaPost(fd).then(d=>{
+    btn.disabled=false; btn.textContent=txtOrig;
+    if(d.ok){
+      if(typeof toast==='function')toast('✓ PLANTILLA GUARDADA');
+      const pl=SMS_PLANTILLAS.find(p=>p.id===id);
+      if(pl){ pl.nombre=nombre; pl.texto=texto; }
+      const quickBtn=document.querySelector('.sms-pl-btn[data-plantilla-id="'+id+'"]');
+      if(quickBtn) quickBtn.textContent=nombre;
+    } else {
+      if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo guardar'));
+    }
+  }).catch(err=>{ btn.disabled=false; btn.textContent=txtOrig; if(typeof toast==='function')toast('⚠ '+err.message); });
 }
 function eliminarSmsPlantilla(id,btn){
   if(!confirm('¿Eliminar esta plantilla?'))return;
   if(btn.disabled)return; btn.disabled=true;
   const fd=new FormData(); fd.append('action','sms_plantilla_eliminar'); fd.append('id',id);
-  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
-    if(d.ok){ if(typeof toast==='function')toast('✓ PLANTILLA ELIMINADA'); location.reload(); }
-    else { btn.disabled=false; if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo eliminar')); }
-  }).catch(()=>{ btn.disabled=false; if(typeof toast==='function')toast('⚠ Error de red'); });
+  _smsPlantillaPost(fd).then(d=>{
+    if(d.ok){
+      if(typeof toast==='function')toast('✓ PLANTILLA ELIMINADA');
+      const row=btn.closest('.sms-plantilla-row'); if(row)row.remove();
+      const idx=SMS_PLANTILLAS.findIndex(p=>p.id===id); if(idx>-1)SMS_PLANTILLAS.splice(idx,1);
+      const quickBtn=document.querySelector('.sms-pl-btn[data-plantilla-id="'+id+'"]'); if(quickBtn)quickBtn.remove();
+    } else {
+      btn.disabled=false; if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo eliminar'));
+    }
+  }).catch(err=>{ btn.disabled=false; if(typeof toast==='function')toast('⚠ '+err.message); });
 }
 function agregarSmsPlantilla(){
   const ni=document.getElementById('sms-pl-nueva-nombre'), ti=document.getElementById('sms-pl-nueva-texto');
   const nombre=ni.value.trim(), texto=ti.value.trim();
   if(!nombre||!texto){ if(typeof toast==='function')toast('⚠ COMPLETA NOMBRE Y TEXTO'); return; }
   const fd=new FormData(); fd.append('action','sms_plantilla_guardar'); fd.append('id',''); fd.append('nombre',nombre); fd.append('texto',texto);
-  fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+  _smsPlantillaPost(fd).then(d=>{
     if(d.ok){
       if(typeof toast==='function')toast('✓ PLANTILLA AGREGADA');
-      location.reload();
-    } else { if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo agregar')); }
-  }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
+      const nuevoId=d.data.id;
+      SMS_PLANTILLAS.push({id:nuevoId,nombre,texto});
+      const btns=document.getElementById('sms-pl-btns');
+      if(btns){ const b=document.createElement('button'); b.className='btn btn-gh btn-sm sms-pl-btn'; b.dataset.plantillaId=nuevoId; b.textContent=nombre; b.onclick=function(){ setSmsTemplate(nuevoId); }; btns.appendChild(b); }
+      const list=document.getElementById('sms-plantillas-list');
+      if(list){
+        const div=document.createElement('div'); div.className='sms-plantilla-row'; div.dataset.id=nuevoId;
+        div.style.cssText='border:1px solid <?=$CB?>;border-radius:9px;padding:10px 12px';
+        div.innerHTML='<div class="form-group" style="margin-bottom:6px"><input type="text" class="form-input sms-pl-nombre" value="'+nombre.replace(/"/g,'&quot;')+'" placeholder="NOMBRE DE LA PLANTILLA"></div>'
+          +'<div class="form-group" style="margin-bottom:6px"><textarea class="form-input sms-pl-texto" rows="3" style="text-transform:none">'+texto.replace(/</g,'&lt;')+'</textarea></div>'
+          +'<div style="display:flex;justify-content:flex-end;gap:6px"><button class="btn btn-re btn-sm" onclick="eliminarSmsPlantilla('+nuevoId+',this)">✕ ELIMINAR</button><button class="btn btn-p btn-sm" onclick="guardarSmsPlantilla('+nuevoId+',this)">GUARDAR</button></div>';
+        list.appendChild(div);
+      }
+      ni.value=''; ti.value='';
+    } else {
+      if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo agregar'));
+    }
+  }).catch(err=>{ if(typeof toast==='function')toast('⚠ '+err.message); });
 }
 function _smsBurbuja(m){
   const clase=m.direccion==='SALIENTE'?'me':'them';

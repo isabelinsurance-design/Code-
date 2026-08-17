@@ -35,6 +35,18 @@ function asegurarTablaSms(PDO $pdo): void {
     } catch (Exception $e) {}
 }
 
+function asegurarTablaSmsPlantillas(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_plantillas (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            nombre VARCHAR(60) NOT NULL,
+            texto TEXT NOT NULL,
+            orden INT DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+    } catch (Exception $e) {}
+}
+
 function completarNextStepsDelTicket(PDO $pdo, int $ticket_id, ?int $agente_id = null): int {
     $stmt = $pdo->prepare("UPDATE ticket_next_steps
                            SET completado=1, fecha_completado=NOW(),
@@ -1611,22 +1623,27 @@ case 'sms_enviar':
 
 case 'sms_plantilla_guardar':
     $pdo = db();
+    asegurarTablaSmsPlantillas($pdo);
     $pid    = (int)($_POST['id'] ?? 0);
     $nombre = trim($_POST['nombre'] ?? '');
     $texto  = trim($_POST['texto'] ?? '');
     if ($nombre === '' || $texto === '') jsonErr('Nombre y texto requeridos');
     if ($pid) {
+        $chk = $pdo->prepare("SELECT id FROM sms_plantillas WHERE id=?");
+        $chk->execute([$pid]);
+        if (!$chk->fetch()) jsonErr('Esa plantilla ya no existe (id '.$pid.') — cierra esta ventana y ábrela de nuevo');
         $pdo->prepare("UPDATE sms_plantillas SET nombre=?, texto=? WHERE id=?")->execute([$nombre, $texto, $pid]);
-        jsonOk(['id' => $pid]);
+        jsonOk(['id' => $pid, 'nombre' => $nombre, 'texto' => $texto]);
     } else {
         $orden = (int)$pdo->query("SELECT COALESCE(MAX(orden),0)+1 FROM sms_plantillas")->fetchColumn();
         $pdo->prepare("INSERT INTO sms_plantillas (nombre,texto,orden) VALUES (?,?,?)")->execute([$nombre, $texto, $orden]);
-        jsonOk(['id' => $pdo->lastInsertId()]);
+        jsonOk(['id' => $pdo->lastInsertId(), 'nombre' => $nombre, 'texto' => $texto]);
     }
     break;
 
 case 'sms_plantilla_eliminar':
     $pdo = db();
+    asegurarTablaSmsPlantillas($pdo);
     $pdo->prepare("DELETE FROM sms_plantillas WHERE id=?")->execute([(int)($_POST['id'] ?? 0)]);
     jsonOk();
     break;
