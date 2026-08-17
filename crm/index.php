@@ -1515,9 +1515,10 @@ try{
 $notif_unread=0;
 try{$nq=$pdo->prepare("SELECT COUNT(*) FROM notificaciones WHERE user_id=? AND leido=0");$nq->execute([$uid]);$notif_unread=(int)$nq->fetchColumn();}catch(Exception $e){}
 // ─── SMS (TWILIO) — conversaciones agrupadas por teléfono ────────────────
-$sms_unread=0; $sms_conversaciones=[];
+$sms_unread=0; $sms_conversaciones=[]; $sms_last_id=0;
 try{
     $sms_unread=(int)$pdo->query("SELECT COUNT(*) FROM sms_mensajes WHERE direccion='ENTRANTE' AND leido=0")->fetchColumn();
+    $sms_last_id=(int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM sms_mensajes")->fetchColumn();
     $sms_rows=$pdo->query("
         SELECT s.telefono, MAX(s.created_at) AS ultimo_fecha,
                SUM(CASE WHEN s.direccion='ENTRANTE' AND s.leido=0 THEN 1 ELSE 0 END) AS no_leidos
@@ -9482,6 +9483,58 @@ function sendChat(){const inp=document.getElementById('chat-input');const msg=in
 function appendChatMsg(m){const box=document.getElementById('chat-messages');const isMe=m.me||m.user_id==UID;const t=m.created_at?(m.created_at+'').substr(11,5):'';const div=document.createElement('div');div.className='chat-msg '+(isMe?'me':'them');if(m.id)div.dataset.id=m.id;div.innerHTML='<div class="chat-msg-meta">'+(isMe?'TÚ':(m.nombre||'?').split(' ')[0])+' · '+t+'</div>'+(m.mensaje+'').replace(/</g,'&lt;');box.appendChild(div);scrollChat();}
 
 setInterval(()=>{fetch('api.php?action=get_chat&since='+chatLastId).then(r=>r.json()).then(d=>{if(d.ok&&d.data.messages&&d.data.messages.length){d.data.messages.forEach(m=>{if(!document.querySelector('.chat-msg[data-id="'+m.id+'"]')){appendChatMsg(m);if(m.user_id!=UID){const panelOculto=document.getElementById('chat-panel').classList.contains('hidden');if(panelOculto){let b=document.querySelector('.chat-fab-badge');if(!b){b=document.createElement('span');b.className='chat-fab-badge';b.textContent='1';document.querySelector('.chat-fab').appendChild(b);}else{const n=parseInt(b.textContent)||0;b.textContent=(n+1>99)?'99+':String(n+1);}}/* 🔔 Notificación de Windows: cuando el panel está oculto O la pestaña no tiene el foco */if(panelOculto||document.hidden){const remitente=(m.nombre||'Compañero').split(' ')[0];enviarNotificacionPush('💬 '+remitente,m.mensaje);}}}chatLastId=Math.max(chatLastId,m.id);});}}); },8000);
+
+// ── SMS — sondeo para avisar de inmediato cuando llega uno nuevo ──────────
+// Corre sin importar en qué pestaña estés (igual que el chat interno de
+// arriba), para que un SMS entrante SIEMPRE se note: toast, badge en el nav
+// de COMUNICACIÓN, y notificación de escritorio si no estás viendo esa
+// pestaña o la ventana no tiene el foco.
+let smsLastId = <?=(int)$sms_last_id?>;
+let _smsChatUnreadInicial = <?=(int)$chat_unread?>;
+function _smsActualizarBadgeNav(smsUnread){
+  const btn = document.querySelector('.ntab[data-tab="COMUNICACION"]');
+  if (!btn) return;
+  const total = _smsChatUnreadInicial + smsUnread;
+  let b = btn.querySelector('.nbadge');
+  if (total > 0) {
+    if (!b) { b = document.createElement('span'); b.className = 'nbadge'; b.style.cssText = 'background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0'; btn.appendChild(b); }
+    b.textContent = total;
+  } else if (b) { b.remove(); }
+}
+function enviarNotificacionSms(titulo, mensaje, telefono) {
+  if (!("Notification" in window)) return;
+  if (Notification.permission === "granted") {
+    const n = new Notification(titulo, {body:mensaje, icon:'https://withisabelfuentes.com/favicon.png', tag:'sms-msg', renotify:true, requireInteraction:false});
+    n.onclick = function(){
+      window.focus();
+      if (typeof showTab === 'function') showTab('COMUNICACION');
+      if (typeof showComTab === 'function') showComTab('SMS');
+      if (typeof abrirHiloSms === 'function') abrirHiloSms(telefono);
+      n.close();
+    };
+    setTimeout(()=>{ try{ n.close(); }catch(e){} }, 8000);
+  } else if (Notification.permission !== "denied") {
+    Notification.requestPermission();
+  }
+}
+setInterval(()=>{
+  fetch('api.php?action=sms_get_nuevos&since='+smsLastId).then(r=>r.json()).then(d=>{
+    if(!d.ok || !d.data) return;
+    const nuevos = d.data.nuevos||[];
+    if(nuevos.length){
+      const comTab = document.getElementById('tab-COMUNICACION');
+      const enComunicacion = comTab && comTab.classList.contains('active') && !document.hidden;
+      nuevos.forEach(m=>{
+        smsLastId = Math.max(smsLastId, m.id);
+        const quien = (m.nombre && m.nombre.trim()) ? m.nombre.trim() : m.telefono;
+        if (typeof toast === 'function') toast('📩 NUEVO SMS DE ' + quien.toUpperCase());
+        if (!enComunicacion) enviarNotificacionSms('📩 SMS de ' + quien, m.cuerpo, m.telefono);
+      });
+      _smsActualizarBadgeNav(d.data.unread);
+      if (enComunicacion && typeof softReload === 'function') softReload();
+    }
+  }).catch(()=>{});
+}, 8000);
 function toggleNotifPanel(){const p=document.getElementById('notif-dropdown');p.classList.toggle('open');if(p.classList.contains('open'))loadNotifs();}
 function loadNotifs(){fetch('api.php?action=get_notifs').then(r=>r.json()).then(d=>{if(!d.ok)return;const list=document.getElementById('notif-list');if(!d.data.notifs||!d.data.notifs.length){list.innerHTML='<div style="padding:14px;text-align:center;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN NOTIFICACIONES</div>';return;}list.innerHTML=d.data.notifs.map(n=>'<div style="padding:9px 14px;border-bottom:1px solid #EBF4F9;background:'+(n.leido?'#fff':'#FEF8EE')+'" onclick="markNotifRead('+n.id+',this)"><div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase">'+n.tipo+'<span style="float:right;color:#7A90A4;font-weight:400">'+n.created_at.substr(5,11)+'</span></div><div style="font-size:9px;color:#1B3A5C;margin-top:3px">'+n.mensaje+'</div></div>').join('');});}
 function markNotifRead(id,el){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id})});if(el)el.style.background='#fff';}

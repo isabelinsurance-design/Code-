@@ -1554,6 +1554,24 @@ case 'save_llamada_prospecto':
     break;
 
 // ── SMS (TWILIO) ──────────────────────────────────────────────────
+case 'sms_get_nuevos':
+    // Sondeo ligero (cada pocos segundos, sin importar en qué pestaña estés)
+    // para avisar de inmediato cuando llega un SMS nuevo — igual que ya hace
+    // el chat interno del equipo con get_chat.
+    $pdo = db();
+    asegurarTablaSms($pdo);
+    $since = (int)($_GET['since'] ?? $_POST['since'] ?? 0);
+    $q = $pdo->prepare("SELECT s.id, s.telefono, s.cuerpo, s.created_at,
+                                (SELECT CONCAT(m.nombre,' ',m.apellido) FROM miembros m WHERE m.id=s.miembro_id) AS nombre
+                         FROM sms_mensajes s WHERE s.id>? AND s.direccion='ENTRANTE' ORDER BY s.id ASC LIMIT 50");
+    $q->execute([$since]);
+    $nuevos = $q->fetchAll(PDO::FETCH_ASSOC);
+    $unread = (int)$pdo->query("SELECT COUNT(*) FROM sms_mensajes WHERE direccion='ENTRANTE' AND leido=0")->fetchColumn();
+    $maxId = $since;
+    foreach ($nuevos as $n) { $maxId = max($maxId, (int)$n['id']); }
+    jsonOk(['nuevos' => $nuevos, 'unread' => $unread, 'max_id' => $maxId]);
+    break;
+
 case 'sms_get_hilo':
     $pdo = db();
     asegurarTablaSms($pdo);
