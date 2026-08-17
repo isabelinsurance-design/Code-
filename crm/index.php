@@ -4042,8 +4042,9 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 <div class="card"><div style="overflow-x:auto"><table id="members-table">
 <tr><th>MIEMBRO</th><th>TELÉFONO</th><th>CIUDAD</th><th>PLAN/CARRIER</th><th>ESTADO</th><th>MBI</th><th>TKT</th><th></th></tr>
 <?php foreach($members as $m):$mtks=count(array_filter($tickets,fn($t)=>$t['miembro_id']==$m['id']&&$t['estado']!=='CERRADO'));?>
-<tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-search="<?=strtolower($m['apellido'].' '.$m['nombre'].' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
-<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m['nombre'])?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
+<?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
+<tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
+<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
 <td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
@@ -11881,13 +11882,19 @@ function verificarVentaBono(mid, nombre, btn) {
 // ──────────────────────────────────────────────────────────────
 // MEMBER PICKER — searchable autocomplete replacing <select>
 // ──────────────────────────────────────────────────────────────
-const _membersData = <?= json_encode(array_map(fn($m) => [
-  'id'     => (int)$m['id'],
-  'label'  => h($m['apellido'].', '.$m['nombre']) . (!empty($m['telefono']) ? ' · '.h($m['telefono']) : ''),
-  'nombre' => h($m['nombre'].' '.$m['apellido']),
-  'tel'    => h($m['telefono'] ?? ''),
-  'search' => strtolower($m['apellido'].' '.$m['nombre'].' '.($m['telefono']??''))
-], $members)) ?>;
+const _membersData = <?= json_encode(array_map(function($m) {
+  // Con el nombre completo (incluyendo el segundo nombre) se pueden
+  // diferenciar dos personas con el mismo nombre y apellido al buscar
+  // (ej. "MARIA LOPEZ" puede haber varias — el segundo nombre las distingue).
+  $nombre_completo = trim($m['nombre'].' '.($m['middle_name']??''));
+  return [
+    'id'     => (int)$m['id'],
+    'label'  => h($m['apellido'].', '.$nombre_completo) . (!empty($m['telefono']) ? ' · '.h($m['telefono']) : ''),
+    'nombre' => h($nombre_completo.' '.$m['apellido']),
+    'tel'    => h($m['telefono'] ?? ''),
+    'search' => strtolower($m['apellido'].' '.$nombre_completo.' '.($m['telefono']??''))
+  ];
+}, $members)) ?>;
 
 
 // ── DATOS COMPLETOS PARA PRE-RELLENAR EL CUESTIONARIO ─────────────────────

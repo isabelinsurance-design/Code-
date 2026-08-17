@@ -64,9 +64,9 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     $pareja_sel = (string)($m['pareja_id'] ?? '');
     $pareja_label = '';
     if ($pareja_sel !== '') {
-        $pq = $pdo->prepare("SELECT nombre,apellido,telefono FROM miembros WHERE id=?");
+        $pq = $pdo->prepare("SELECT nombre,middle_name,apellido,telefono FROM miembros WHERE id=?");
         $pq->execute([(int)$pareja_sel]);
-        if ($pr = $pq->fetch()) $pareja_label = $pr['apellido'].', '.$pr['nombre'].(!empty($pr['telefono'])?' · '.$pr['telefono']:'');
+        if ($pr = $pq->fetch()) $pareja_label = $pr['apellido'].', '.trim($pr['nombre'].' '.($pr['middle_name']??'')).(!empty($pr['telefono'])?' · '.$pr['telefono']:'');
     }
     ?>
     <div class="grid-2">
@@ -88,9 +88,9 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     $ref_sel = (string)($m['referido_por_miembro_id'] ?? '');
     $ref_label = '';
     if ($ref_sel !== '') {
-        $rq = $pdo->prepare("SELECT nombre,apellido,telefono FROM miembros WHERE id=?");
+        $rq = $pdo->prepare("SELECT nombre,middle_name,apellido,telefono FROM miembros WHERE id=?");
         $rq->execute([(int)$ref_sel]);
-        if ($rr = $rq->fetch()) $ref_label = $rr['apellido'].', '.$rr['nombre'].(!empty($rr['telefono'])?' · '.$rr['telefono']:'');
+        if ($rr = $rq->fetch()) $ref_label = $rr['apellido'].', '.trim($rr['nombre'].' '.($rr['middle_name']??'')).(!empty($rr['telefono'])?' · '.$rr['telefono']:'');
     }
     ?>
     <div class="grid-2">
