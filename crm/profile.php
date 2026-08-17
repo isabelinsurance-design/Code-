@@ -91,6 +91,18 @@ if (!empty($m['pareja_id'])) {
     $pareja = $stp->fetch();
 }
 
+// ── ¿Quién recomendó a este miembro? ──────────────────────────────────────
+// referido_por_miembro_id: se sabe con certeza — un miembro real del CRM lo
+// recomendó (se linkea a su perfil). referido_por_texto: nombre escrito a
+// mano (puede no ser un miembro real). Se usa el primero si está, si no el
+// segundo.
+$referente = null;
+if (!empty($m['referido_por_miembro_id'])) {
+    $stf = $pdo->prepare("SELECT id,nombre,apellido FROM miembros WHERE id=?");
+    $stf->execute([(int)$m['referido_por_miembro_id']]);
+    $referente = $stf->fetch();
+}
+
 // ── RETENCIÓN: llamadas y cuestionario ───────────────────────────
 $_pr_bienvenida = null;
 $_pr_calls      = [];
@@ -267,6 +279,9 @@ display: block;
         <?php if ($admin): ?><span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.8);border:1px solid rgba(255,255,255,.2);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:700"><?= h($m['agente_nombre']??'') ?></span><?php endif; ?>
         <?php if (!$m['info_verificada']): ?><span style="background:rgba(192,122,26,.3);color:#FDE68A;border:1px solid rgba(192,122,26,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900">⚠ SIN VERIFICAR</span><?php endif; ?>
         <?php if ($m['carpeta_drive']): ?><a href="<?= h($m['carpeta_drive']) ?>" target="_blank" style="background:rgba(22,64,168,.25);color:#93C5FD;border:1px solid rgba(22,64,168,.35);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;text-decoration:none">📁 DRIVE</a><?php endif; ?>
+        <?php if ($referente): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;cursor:pointer" onclick="openProfile(<?= (int)$referente['id'] ?>)" title="Ver perfil de quien lo recomendó">🤝 REFERIDO POR: <?= h(trim($referente['nombre'].' '.$referente['apellido'])) ?></span>
+        <?php elseif (!empty($m['referido_por_texto'])): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Nombre escrito a mano — no está vinculado a un perfil del CRM">🤝 REFERIDO POR: <?= h($m['referido_por_texto']) ?></span>
+        <?php endif; ?>
       </div>
     </div>
     <div style="display:flex;gap:4px;flex-wrap:wrap;flex-shrink:0">

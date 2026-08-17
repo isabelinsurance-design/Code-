@@ -839,6 +839,18 @@ try {
     if ($col_rp && stripos($col_rp['Type'], 'varchar') !== false) {
         $pdo->exec("ALTER TABLE miembros MODIFY referido_por INT NULL");
     }
+    // "referido_por" de arriba quedó reservado para la CUENTA (negocio) que
+    // refirió al miembro. El nombre de la PERSONA/miembro que lo recomendó
+    // (lo que se llena en el cuestionario de retención, o al promover un
+    // "referido nuevo" a prospecto) necesita sus propias columnas — si no,
+    // MySQL trunca ese texto al intentar meterlo en una columna INT y la
+    // información se pierde en silencio.
+    if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_texto'")->fetch()) {
+        $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_texto VARCHAR(200) DEFAULT NULL");
+    }
+    if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch()) {
+        $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
+    }
 } catch (Exception $e) {}
 // ─── COLUMNAS EXTRA: SALES ALLEGATION + FOTO PERFIL ──────────────────────────
 try {
@@ -6221,7 +6233,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- MODAL: EDITAR PLANTILLAS DE SMS -->
 <div id="modal-sms-plantillas" class="modal-overlay"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title">✎ PLANTILLAS DE SMS</div><button class="modal-close" onclick="closeModal('modal-sms-plantillas')">✕</button></div>
-  <div style="font-size:8px;color:<?=$MU?>;margin-bottom:11px;text-transform:none">Usa <b>[NOMBRE]</b> donde quieras que se reemplace solo con el nombre de la persona al usar la plantilla.</div>
+  <div style="font-size:8px;color:<?=$MU?>;margin-bottom:11px;text-transform:none">Usa <b>[NOMBRE]</b> para el nombre de la persona, y <b>[NOMBRE_REFERIDO]</b> para el nombre de quien la recomendó (si el perfil de esa conversación tiene "REFERIDO POR" guardado) — se rellenan solos al usar la plantilla.</div>
   <div id="sms-plantillas-list" style="max-height:360px;overflow-y:auto;display:flex;flex-direction:column;gap:9px">
     <?php foreach($sms_plantillas as $pl):?>
     <div class="sms-plantilla-row" data-id="<?=(int)$pl['id']?>" style="border:1px solid <?=$CB?>;border-radius:9px;padding:10px 12px">
@@ -9472,12 +9484,14 @@ function exportRep(fmt){const from=document.getElementById('rep-from')?.value;co
 // Web) — reemplaza el diseño anterior de tarjetas apiladas + modal.
 let _smsHiloAbierto = '';   // teléfono de la conversación seleccionada (o '' si ninguna)
 let _smsHiloNombre = '';
+let _smsHiloReferidoPor = '';   // nombre de quien recomendó al miembro de este hilo (si se sabe)
 const SMS_PLANTILLAS = <?=json_encode(array_map(fn($p)=>['id'=>(int)$p['id'],'nombre'=>$p['nombre'],'texto'=>$p['texto']], $sms_plantillas), JSON_UNESCAPED_UNICODE)?>;
 function setSmsTemplate(id){
   const n=_smsHiloNombre||document.getElementById('sms-nuevo-nombre')?.value||'[NOMBRE]';
+  const r=_smsHiloReferidoPor||'[NOMBRE_REFERIDO]';
   const pl=SMS_PLANTILLAS.find(p=>p.id===id);
   const el=document.getElementById('sms-panel-msg');
-  if(el && pl){ el.value=pl.texto.replace(/\[NOMBRE\]/g,n); updateSmsCount(); }
+  if(el && pl){ el.value=pl.texto.replace(/\[NOMBRE\]/g,n).replace(/\[NOMBRE_REFERIDO\]/g,r); updateSmsCount(); }
 }
 function updateSmsCount(){const m=document.getElementById('sms-panel-msg');const c=document.getElementById('sms-count');if(m&&c)c.textContent=m.value.length+'/160';}
 function openSmsPlantillasModal(){ openModal('modal-sms-plantillas'); }
@@ -9562,7 +9576,7 @@ function _smsBurbuja(m){
   return '<div class="chat-msg '+clase+'"><div class="chat-msg-meta">'+quien+' · '+hora+'</div>'+texto+'</div>';
 }
 function smsNuevoMensaje(){
-  _smsHiloAbierto=''; _smsHiloNombre='';
+  _smsHiloAbierto=''; _smsHiloNombre=''; _smsHiloReferidoPor='';
   document.querySelectorAll('.sms-conv-row').forEach(r=>r.style.outline='');
   const empty=document.getElementById('sms-panel-empty'), hilo=document.getElementById('sms-panel-hilo');
   if(empty)empty.style.display='flex';
@@ -9577,7 +9591,7 @@ function smsIniciarNuevo(){
 }
 function seleccionarHiloSms(telefono,nombre,rowEl){
   if(!telefono){ if(typeof toast==='function')toast('⚠ ESTE MIEMBRO NO TIENE TELÉFONO GUARDADO'); return; }
-  _smsHiloAbierto=telefono; _smsHiloNombre=nombre||'';
+  _smsHiloAbierto=telefono; _smsHiloNombre=nombre||''; _smsHiloReferidoPor='';
   document.getElementById('sms-panel-empty').style.display='none';
   const hilo=document.getElementById('sms-panel-hilo'); hilo.style.display='flex';
   document.getElementById('sms-panel-title').textContent=nombre||telefono;
@@ -9592,6 +9606,7 @@ function seleccionarHiloSms(telefono,nombre,rowEl){
     box.innerHTML=(d.data.mensajes||[]).map(_smsBurbuja).join('') || '<div style="text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase;padding:20px">SIN MENSAJES TODAVÍA — ESCRIBE ABAJO PARA EMPEZAR</div>';
     box.scrollTop=box.scrollHeight;
     if(!nombre) document.getElementById('sms-panel-sub').textContent=d.data.miembro?(d.data.miembro.nombre+' '+d.data.miembro.apellido):'Número no vinculado a ningún miembro';
+    if(_smsHiloAbierto===telefono) _smsHiloReferidoPor=(d.data.miembro&&d.data.miembro.referido_por)?d.data.miembro.referido_por:'';
   }).catch(()=>{ if(typeof toast==='function')toast('⚠ Error de red'); });
 }
 function filterSmsConv(input){

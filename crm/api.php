@@ -1594,9 +1594,13 @@ case 'sms_get_hilo':
     $mensajes = $q->fetchAll(PDO::FETCH_ASSOC);
     // Al abrir el hilo se marcan como leídos los mensajes entrantes pendientes.
     $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE telefono=? AND direccion='ENTRANTE' AND leido=0")->execute([$telefono]);
-    $mq = $pdo->prepare("SELECT id, nombre, apellido FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+    $mq = $pdo->prepare("SELECT m.id, m.nombre, m.apellido, m.referido_por_texto,
+                                 CONCAT(r.nombre,' ',r.apellido) AS referido_por_miembro_nombre
+                          FROM miembros m LEFT JOIN miembros r ON r.id=m.referido_por_miembro_id
+                          WHERE m.telefono=? OR m.telefono2=? LIMIT 1");
     $mq->execute([$telefono, $telefono]);
     $miembro = $mq->fetch(PDO::FETCH_ASSOC);
+    if ($miembro) $miembro['referido_por'] = $miembro['referido_por_miembro_nombre'] ?: ($miembro['referido_por_texto'] ?: null);
     jsonOk(['mensajes' => $mensajes, 'miembro' => $miembro ?: null]);
     break;
 
@@ -1954,7 +1958,7 @@ case 'save_retencion_q30':
         'email_new'                => 'email',
         'condiciones_cronicas_new' => 'condiciones_cronicas',
         'prescripciones_new'       => 'prescripciones',
-        'referido_por_new'         => 'referido_por',
+        'referido_por_new'         => 'referido_por_texto',
         'direccion_calle_new'      => 'direccion_calle',
         'direccion_apto_new'       => 'direccion_apto',
         'ciudad_new'               => 'ciudad',
@@ -1996,10 +2000,18 @@ case 'save_retencion_q30':
 
 // ── Crear perfil de prospecto para un referido nuevo (solo si el
 //    usuario confirma — ya no se crea automáticamente al guardar el
-//    cuestionario). "referido_por" queda con el nombre del miembro al
-//    que se le hizo el cuestionario, no con el texto libre escrito.
+//    cuestionario). Queda vinculado (referido_por_miembro_id) al miembro
+//    al que se le hizo el cuestionario, no al texto libre escrito.
 case 'crear_prospecto_referido':
     $pdo = db();
+    // Columnas nuevas por si esta petición llega antes de que index.php
+    // haya alcanzado a crearlas en esta instalación.
+    try {
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_texto'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_texto VARCHAR(200) DEFAULT NULL");
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
+    } catch (Exception $e) {}
     $mid_origen = intval($_POST['miembro_id'] ?? 0);
     $nombre_ref = trim($_POST['nombre'] ?? '');
     if (!$mid_origen) jsonErr('Miembro de origen requerido');
@@ -2016,9 +2028,9 @@ case 'crear_prospecto_referido':
     $partes_nombre = preg_split('/\s+/', $nombre_ref, 2);
     $nombre_new    = $partes_nombre[0];
     $apellido_new  = $partes_nombre[1] ?? '';
-    $pdo->prepare("INSERT INTO miembros (nombre, apellido, telefono, estado, fuente, referido_por, agente_id)
-        VALUES (?, ?, '', 'PROSPECT', 'REFERIDO MIEMBRO', ?, ?)")
-        ->execute([$nombre_new, $apellido_new, $referido_por, $agente_ref]);
+    $pdo->prepare("INSERT INTO miembros (nombre, apellido, telefono, estado, fuente, referido_por_texto, referido_por_miembro_id, agente_id)
+        VALUES (?, ?, '', 'PROSPECT', 'REFERIDO MIEMBRO', ?, ?, ?)")
+        ->execute([$nombre_new, $apellido_new, $referido_por, $mid_origen, $agente_ref]);
     $newId = $pdo->lastInsertId();
     $pdo->prepare("INSERT INTO actividad (agente_id, miembro_id, tipo, descripcion) VALUES (?,?,?,?)")
         ->execute([$uid, $newId, 'NOTA', 'PROSPECTO CREADO — referido por '.$referido_por]);
