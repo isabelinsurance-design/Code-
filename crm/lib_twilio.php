@@ -53,3 +53,24 @@ function twilio_enviar_sms(string $to, string $body): array {
     }
     return ['ok' => false, 'error' => $data['message'] ?? ('Twilio respondió con error ' . $code)];
 }
+
+// Valida que un webhook (SMS o de voz/SIP) realmente venga de Twilio —
+// mismo cálculo que ya se usa en sms_webhook.php (HMAC-SHA1 de la URL
+// completa + los parámetros del POST, con el Auth Token como llave).
+// Sin esto, cualquiera podría llamar a la URL del webhook e inventar
+// llamadas/mensajes falsos (y, en el caso de voz, hacer que tu cuenta de
+// Twilio marque números por su cuenta con tu tarjeta).
+function twilio_firma_valida(): bool {
+    if (!defined('TWILIO_AUTH_TOKEN') || !TWILIO_AUTH_TOKEN) return false;
+    $firma_recibida = $_SERVER['HTTP_X_TWILIO_SIGNATURE'] ?? '';
+    if (!$firma_recibida) return false;
+    $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+    $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? '');
+    $url   = $proto . '://' . $host . ($_SERVER['REQUEST_URI'] ?? '');
+    $datos = $url;
+    $params = $_POST;
+    ksort($params);
+    foreach ($params as $k => $v) { $datos .= $k . $v; }
+    $firma_esperada = base64_encode(hash_hmac('sha1', $datos, TWILIO_AUTH_TOKEN, true));
+    return hash_equals($firma_esperada, $firma_recibida);
+}
