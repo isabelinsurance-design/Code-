@@ -461,7 +461,7 @@ if (!empty($_POST['camp_ajax'])) {
                 $ctq->execute([$coid]);
                 $ctRow = $ctq->fetch(PDO::FETCH_ASSOC) ?: [];
                 $nombreLibre = trim(($ctRow['nombre'] ?? '').' '.($ctRow['apellido'] ?? ''));
-                $contesto = in_array($res, ['No contestó','Dejó buzón'], true) ? 0 : 1;
+                $contesto = in_array($res, ['No contestó','Dejó buzón','Teléfono desconectado'], true) ? 0 : 1;
                 $pdo_c->prepare("INSERT INTO llamadas_prospectos (agente_id, miembro_id, nombre_libre, telefono, contesto, resultado, notas) VALUES (?,?,?,?,?,?,?)")
                       ->execute([$uid_c, $ctRow['miembro_id'] ?? null, $nombreLibre, $ctRow['telefono'] ?? '', $contesto, $res, $nt]);
             }
@@ -2921,7 +2921,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
 var CAMP_DATA=<?=json_encode($campanas)?>;
 var CC_DATA=<?=json_encode($cc_all)?>;
 var CAMP_OUTCOMES={
-  LLAMADA:['No contestó','Dejó buzón','Contestó - sin interés','Contestó - interesado','SOA firmado','Cita agendada','Inscrito','No interesado'],
+  LLAMADA:['No contestó','Dejó buzón','Teléfono desconectado','Contestó - sin interés','Contestó - interesado','SOA firmado','Cita agendada','Inscrito','No interesado'],
   WHATSAPP:['Enviado - sin respuesta','No respondió','Quiere info','Interesado','No interesado'],
   FLYER:['Entregado','Vio y preguntó','Sin respuesta'],
   CITA:['Cita confirmada','Muy interesado','SOA firmado','Inscrito','No le interesó']
