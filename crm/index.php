@@ -2895,7 +2895,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <div class="form-group"><label class="form-label">NOTAS</label><textarea name="notas" id="cc-log-notas" class="form-input" rows="2" style="text-transform:none" placeholder="QUÉ DIJO, PRÓXIMO PASO..."></textarea></div>
     <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
       <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-log')">CANCELAR</button>
-      <button type="submit" class="btn btn-p btn-sm">GUARDAR REGISTRO</button>
+      <button type="submit" class="btn btn-p btn-sm" id="cc-log-btn">GUARDAR REGISTRO</button>
     </div>
     <div style="margin-top:13px;border-top:1px solid <?=$CB?>;padding-top:9px">
       <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px">HISTORIAL</div>
@@ -3034,8 +3034,20 @@ function openCcLog(campId,ctId,name){
   openModal('modal-cc-log');
 }
 function saveLog(e){e.preventDefault();var f=e.target;var camp=f.campana_id.value;
+  var btn=document.getElementById('cc-log-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
   var p='action=log_actividad&campana_id='+encodeURIComponent(camp)+'&contacto_id='+encodeURIComponent(f.contacto_id.value)+'&canal='+encodeURIComponent(f.canal.value)+'&resultado='+encodeURIComponent(f.resultado.value)+'&nuevo_estado='+encodeURIComponent(f.nuevo_estado.value)+'&notas='+encodeURIComponent(f.notas.value);
-  campPost(p,false).then(function(d){if(d&&d.ok){try{sessionStorage.setItem('campOpen',camp);}catch(e){}_campReload();}});
+  campPost(p,false).then(function(d){
+    if(btn){ btn.disabled=false; btn.textContent='GUARDAR REGISTRO'; }
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ REGISTRADO'+(f.canal.value==='LLAMADA'?' — CONTADO EN TU REPORTE DIARIO':''));
+      try{sessionStorage.setItem('campOpen',camp);}catch(e){}
+      closeModal('modal-cc-log');
+      _campReload();
+    } else {
+      if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo registrar'));
+    }
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR REGISTRO'; } if(typeof toast==='function')toast('⚠ Error de red'); });
 }
 function promoverContacto(id,name){
   if(!confirm('¿Pasar a '+(name||'este contacto')+' al PIPELINE real del CRM? Se creará como prospecto.'))return;
