@@ -25,6 +25,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib_twilio.php';
+require_once __DIR__ . '/lib_telefono.php';
 
 header('Content-Type: text/xml; charset=utf-8');
 
@@ -38,8 +39,10 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { _sip_responder('<Response></Respons
 if (!twilio_firma_valida()) { _sip_responder('<Response></Response>', 403); }
 
 // "To" es el número que la persona marcó en el teléfono Grandstream.
-$to = trim($_POST['To'] ?? '');
-$to = preg_replace('/[^0-9+]/', '', $to);
+// Se usa normalizar_tel() (la misma función que usa todo el CRM) para
+// asegurar formato +1XXXXXXXXXX — sin esto, un número de 10 dígitos sin
+// el "1" al inicio puede llegar mal formado a Twilio y la llamada falla.
+$to = normalizar_tel($_POST['To'] ?? '');
 
 if ($to === '') {
     _sip_responder('<Response><Say language="es-MX" voice="Polly.Mia">No se reconoció el número marcado.</Say></Response>');
