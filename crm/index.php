@@ -2921,7 +2921,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
 var CAMP_DATA=<?=json_encode($campanas)?>;
 var CC_DATA=<?=json_encode($cc_all)?>;
 var CAMP_OUTCOMES={
-  LLAMADA:['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado','Contestó - sin interés','Contestó - interesado','SOA firmado','Cita agendada','Inscrito','No interesado'],
+  LLAMADA:['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado','Habla inglés','Contestó - sin interés','Contestó - interesado','SOA firmado','Cita agendada','Inscrito','No interesado'],
   WHATSAPP:['Enviado - sin respuesta','No respondió','Quiere info','Interesado','No interesado'],
   FLYER:['Entregado','Vio y preguntó','Sin respuesta'],
   CITA:['Cita confirmada','Muy interesado','SOA firmado','Inscrito','No le interesó']
