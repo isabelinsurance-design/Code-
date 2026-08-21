@@ -1468,6 +1468,7 @@ $followups=count(array_filter($members,fn($m)=>in_array($m['estado'],['IN PROCES
 $activos_mes=count(array_filter($members,fn($m)=>$m['estado']==='ACTIVE'&&$m['subestado']==='NEW ENROLLMENT'&&!empty($m['fecha_efectiva'])&&str_starts_with($m['fecha_efectiva'],date('Y-m'))));
 $cancelados_mes=count(array_filter($members,fn($m)=>in_array($m['estado'],['CANCELED','DENIED','CERRADO','DISENROLLED'])&&!empty($m['fecha_cancelacion'])&&str_starts_with($m['fecha_cancelacion'],date('Y-m'))));
 $cancelados_total=count(array_filter($members,fn($m)=>in_array($m['estado'],['CANCELED','DENIED','CERRADO','DISENROLLED'])));
+$fallecidos_total=count(array_filter($members,fn($m)=>($m['subestado']??'')==='DECEASED'));
 // String del próximo mes (ejemplo: '2026-06')
 $next_month_str = date('Y-m', strtotime('first day of next month'));
 $next_month_label = strtoupper(date('M Y', strtotime('first day of next month')));
@@ -2054,16 +2055,21 @@ $worked=calc_hours($vals['ci'],$vals['lo'],$vals['li'],$vals['co'],$vals['bo'],$
 <?php endif;?>
 
 <div class="stats-row">
-<?php foreach([
+<?php
+$stats_tiles = [
   ['◉', count($members), 'TOTAL', 'CONTACTOS', $P1, "showTab('MIEMBROS')"],
   ['✓', $activos_total, 'ACTIVOS', 'CON PÓLIZA', $G, "irAMiembros('ACTIVE')"],
   [' ', $futuros_efectivos, 'FUTUROS', 'EFECTIVOS '.$next_month_label, '#1E7A8C', "showTab('PIPELINE')"],
   ['✗', $cancelados_mes, 'CANCELADOS', 'ESTE MES', $R, "irAMiembros('CANCELED')"],
   ['✗', $cancelados_total, 'CANCELADOS', 'TOTAL', $R, "irAMiembros('CANCELED')"],
+];
+if ($fallecidos_total > 0) $stats_tiles[] = ['🕊', $fallecidos_total, 'FALLECIDOS', 'DE LOS CANCELADOS', '#3A3A3A', "irAMiembros('__DECEASED__')"];
+$stats_tiles = array_merge($stats_tiles, [
   [' ', $apps_proceso, 'META', 'PRÓXIMO MES', $A, "showTab('PIPELINE')"],
   ['◈', $urgent_tks, 'URGENTES', 'TICKETS', $R, "showTab('TICKETS')"],
   ['◐', $followups, 'PIPELINE', 'IN PROCESS + RTE', '#1B5E8C', "showTab('PIPELINE')"]
-] as [$ic, $v, $lbl, $sub, $col, $onclick]):?>
+]);
+foreach($stats_tiles as [$ic, $v, $lbl, $sub, $col, $onclick]):?>
 <div class="stat-card" style="color:<?=$col?>; cursor:pointer;" onclick="<?=$onclick?>">
   <div class="stat-icon"><?=$ic?> <?=$lbl?></div>
   <div class="stat-val" style="color:<?=$col?>"><?=$v?></div>
@@ -4018,6 +4024,7 @@ rsort($meses_disponibles); // más reciente primero (los meses actuales adelante
 $pill_items = [['TODOS','',count($members)]];
 $fut_c = count(array_filter($members, fn($m)=>str_starts_with($m['fecha_efectiva']??'', $next_month_str)));
 if($fut_c>0) $pill_items[] = ['FUTUROS EFECTIVOS','FUTUROS',$fut_c];
+if($fallecidos_total>0) $pill_items[] = ['🕊 FALLECIDOS','__DECEASED__',$fallecidos_total];
 foreach($estados_presentes as $e=>$c){
     if($e==='(SIN ESTADO)') { $pill_items[] = ['SIN ESTADO','__EMPTY__',$c]; }
     else { $pill_items[] = [$e,$e,$c]; }
@@ -4056,7 +4063,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 <?php foreach($members as $m):$mtks=count(array_filter($tickets,fn($t)=>$t['miembro_id']==$m['id']&&$t['estado']!=='CERRADO'));?>
 <?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
 <tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
-<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
+<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
 <td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
@@ -8323,6 +8330,7 @@ function applyMemberFilters(){
         if(m && _mEstado){
             if(_mEstado === 'FUTUROS')      m = !!(r.dataset.fecha && r.dataset.fecha.startsWith(_M_NEXT_MONTH));
             else if(_mEstado === '__EMPTY__') m = !r.dataset.estado;
+            else if(_mEstado === '__DECEASED__') m = (r.dataset.subestado === 'DECEASED');
             else                            m = (r.dataset.estado === _mEstado);
         }
         if(m && (_mAnio || _mMesNum)){

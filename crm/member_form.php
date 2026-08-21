@@ -297,7 +297,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       'PLAN CHANGE': [{v:'RE-SIGNED',l:'Re-signed — cambiando plan/carrier'}],
       'SIN HACER':   [],
       'SIN FIRMAR':  [],
-      'CANCELED':    [{v:'NEVER EFFECTIVE',l:'Never effective — antes de ser efectivo'},{v:'CHANGED INSURANCE',l:'Changed insurance'}],
+      'CANCELED':    [{v:'NEVER EFFECTIVE',l:'Never effective — antes de ser efectivo'},{v:'CHANGED INSURANCE',l:'Changed insurance'},{v:'DECEASED',l:'Deceased — falleció'}],
       'DENIED':      [{v:'NEVER EFFECTIVE',l:'Never effective'}],
       'CERRADO':     [{v:'NEVER EFFECTIVE',l:'Never effective'}],
       'DISENROLLED': [{v:'CHANGED INSURANCE',l:'Changed insurance'},{v:'DECEASED',l:'Deceased — fallecido/a'},{v:'NEVER EFFECTIVE',l:'Never effective'}],
