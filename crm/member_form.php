@@ -291,6 +291,14 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     <div class="grid-3" id="mf-fuente-row" style="display:none"></div>
 
     <script>
+    // Todo envuelto en una función que se ejecuta de inmediato (IIFE): este
+    // formulario se vuelve a insertar por AJAX cada vez que se abre "Editar
+    // Miembro", y el navegador vuelve a ejecutar este <script> desde cero.
+    // Sin este envoltorio, "const"/"let" de nivel superior chocan con la
+    // versión de la apertura anterior (el navegador tira un error y el resto
+    // del script no corre) — eso es lo que hacía que a veces el SUBESTADO
+    // saliera vacío o con datos de otro miembro.
+    (function() {
     const MF_SUBS = {
       'ACTIVE':      [{v:'NEW ENROLLMENT',l:'New enrollment — primera vez'},{v:'RE-SIGNED',l:'Re-signed — cambio de plan'}],
       'IN PROCESS':  [{v:'NEW ENROLLMENT',l:'New enrollment'},{v:'RE-SIGNED',l:'Re-signed'}],
@@ -325,7 +333,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       bajaRow.style.display = esBaja ? '' : 'none';
       fuenteRow.style.display = esBaja ? 'none' : '';
     }
-    document.addEventListener('DOMContentLoaded', mfActualizarSub);
+    document.getElementById('mf-estado')?.addEventListener('change', mfActualizarSub);
     mfActualizarSub();
 
     // ── Auto-rellenar plan_anterior cuando subestado = RE-SIGNED ─────────────
@@ -344,6 +352,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
         if (appTipoEl && !appTipoEl.value) appTipoEl.value = 'RE-SIGNED';
       }
     });
+    })();
     </script>
 
 
@@ -382,6 +391,12 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     <input type="hidden" name="cuentas_referidas_json" id="mf-cuentas-json" value="">
 
     <script>
+    // Envuelto en una IIFE por la misma razón que el bloque de GESTIÓN de
+    // arriba: este formulario se reinserta por AJAX cada vez que se abre, y
+    // sin esto "let _mfCuentas" chocaría con la apertura anterior. Las 3
+    // funciones que los botones llaman con onclick="..." se cuelgan
+    // explícitamente de window para seguir siendo accesibles desde ahí.
+    (function() {
     // Estado en memoria de las cuentas referentes de este miembro. Se
     // precarga con lo ya guardado y se sincroniza a un input oculto
     // (cuentas_referidas_json) que el backend usa para reemplazar el set
@@ -413,7 +428,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       });
       document.getElementById('mf-cuentas-json').value = JSON.stringify(_mfCuentas);
     }
-    function _mfAgregarCuenta() {
+    window._mfAgregarCuenta = function() {
       const sel = document.getElementById('mf-cuenta-add-sel');
       const opt = sel.selectedOptions[0];
       if (!opt || !opt.value) return;
@@ -422,10 +437,11 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       _mfCuentas.push({cuenta_id: cid, nombre: opt.dataset.nombre, tipo_cuenta: opt.dataset.tipo || '', tipo_referido: 'ENTRANTE'});
       sel.value = '';
       _mfRenderCuentas();
-    }
-    function _mfQuitarCuenta(idx) { _mfCuentas.splice(idx, 1); _mfRenderCuentas(); }
-    function _mfSetRowTipo(idx, tipo) { _mfCuentas[idx].tipo_referido = tipo; _mfRenderCuentas(); }
+    };
+    window._mfQuitarCuenta = function(idx) { _mfCuentas.splice(idx, 1); _mfRenderCuentas(); };
+    window._mfSetRowTipo = function(idx, tipo) { _mfCuentas[idx].tipo_referido = tipo; _mfRenderCuentas(); };
     _mfRenderCuentas();
+    })();
     </script>
 
     <div class="section-divider">SALUD</div>
