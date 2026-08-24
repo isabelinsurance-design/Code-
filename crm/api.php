@@ -2674,6 +2674,14 @@ function guardarEquipoProyecto(PDO $pdo, int $pid, $teamRaw): void {
 // ── MIEMBROS — reemplaza las cuentas referentes de un miembro (puede ser
 //    más de una, ej. referido a dental Y a visión a la vez) ─────────────────
 function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): void {
+    // "" (string vacío, no "[]") significa que el editor de cuentas referentes
+    // del formulario nunca llegó a cargar (ej. un error de JS al reabrir el
+    // formulario varias veces sin refrescar la página) — no lo tratamos como
+    // "el usuario quitó todas las cuentas", porque eso borraría de la base de
+    // datos cuentas referentes que sí estaban guardadas sin que nadie las haya
+    // tocado. Un vaciado real siempre llega como "[]" (JSON.stringify de un
+    // arreglo vacío), nunca como cadena vacía.
+    if ($raw === '') return;
     $items = is_array($raw) ? $raw : json_decode((string)$raw, true);
     if (!is_array($items)) $items = [];
     $pdo->prepare("DELETE FROM miembro_cuentas_referidas WHERE miembro_id=?")->execute([$mid]);
