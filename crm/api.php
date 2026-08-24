@@ -486,7 +486,7 @@ case 'save_member':
             // UPDATE EXISTENTE
             // ── ANTES DEL UPDATE: obtener estado actual para comparar ──────────────
             $cambio_log = '';
-            $pre = $pdo->prepare("SELECT estado, plan, carrier, tipo_plan, subestado, fecha_efectiva, fecha_cancelacion FROM miembros WHERE id=?");
+            $pre = $pdo->prepare("SELECT * FROM miembros WHERE id=?");
             $pre->execute([$d['id']]);
             $old_data = $pre->fetch(PDO::FETCH_ASSOC);
 
@@ -512,19 +512,30 @@ case 'save_member':
             if (empty($fields_presentes)) jsonErr('No hay datos para actualizar');
             $sets = implode(',', array_map(fn($f)=>"$f=?", $fields_presentes));
             $vals = array_map($clean, $fields_presentes);
+
+            // ── DETALLE DE CAMBIOS, campo por campo, para el historial del
+            // miembro — antes solo se guardaba "Perfil actualizado", sin decir
+            // QUÉ cambió. Compara el valor que había contra el que se va a
+            // guardar; solo entran al historial los campos que de verdad
+            // cambiaron (no todo lo que vino en el formulario).
+            $campos_cambiados = _describir_cambios_miembro($old_data, $fields_presentes, $vals);
+
             $vals[] = $d['id'];
             $pdo->prepare("UPDATE miembros SET $sets, updated_at=NOW() WHERE id=?")->execute($vals);
 
             // ── CUENTAS REFERENTES (puede ser más de una) ──────────────────────
             if (isset($d['cuentas_referidas_json'])) {
-                guardarCuentasReferidasMiembro($pdo, (int)$d['id'], $d['cuentas_referidas_json']);
+                $cambio_cuentas = guardarCuentasReferidasMiembro($pdo, (int)$d['id'], $d['cuentas_referidas_json']);
+                if ($cambio_cuentas) $campos_cambiados[] = $cambio_cuentas;
             }
 
             // ── HISTORIAL DE PLANES ───────────────────────────────────────────
             _historial_planes($pdo, $d['id'], $old_data, $d, $uid);
 
-            // Actividad
-            $desc_act = $cambio_log ?: 'Perfil actualizado por '.$user['nombre'];
+            // Actividad — detalle de qué cambió si se detectó algo; si no,
+            // el mensaje genérico de antes (ej. un guardado sin cambios reales).
+            if ($cambio_log) array_unshift($campos_cambiados, $cambio_log);
+            $desc_act = $campos_cambiados ? implode(' · ', $campos_cambiados) : 'Perfil actualizado por '.$user['nombre'].' (sin cambios detectados)';
             $tipo_act = $cambio_log ? 'PLAN CHANGE' : 'SISTEMA';
             $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
                 ->execute([$uid,$d['id'],$tipo_act,$desc_act]);
@@ -2671,9 +2682,57 @@ function guardarEquipoProyecto(PDO $pdo, int $pid, $teamRaw): void {
     }
 }
 
+// ── MIEMBROS — describe campo por campo qué cambió en un guardado, para que
+//    el historial del miembro diga QUÉ se cambió (no solo "se actualizó") —
+//    así, si algo se borra sin querer (como pasó con cuentas referentes),
+//    queda un rastro de cuándo y qué fue.
+function _describir_cambios_miembro(array $old, array $fields_presentes, array $vals_nuevos): array {
+    static $labels = [
+        'nombre'=>'NOMBRE','middle_name'=>'SEGUNDO NOMBRE','apellido'=>'APELLIDO',
+        'telefono'=>'TELÉFONO','telefono2'=>'TELÉFONO 2','estado'=>'ESTADO','subestado'=>'SUBESTADO',
+        'agente_id'=>'AGENTE','dob'=>'FECHA NACIMIENTO','sexo'=>'SEXO','idioma'=>'IDIOMA',
+        'estado_civil'=>'ESTADO CIVIL','pareja_id'=>'PAREJA','direccion_calle'=>'DIRECCIÓN',
+        'direccion_apto'=>'APTO','ciudad'=>'CIUDAD','county'=>'CONDADO','zip'=>'ZIP',
+        'mbi'=>'MBI','member_id'=>'MEMBER ID','parte_a'=>'PARTE A','parte_b'=>'PARTE B',
+        'medical'=>'MEDICAL','medical_nivel'=>'NIVEL MEDICAL','ss'=>'SS','elegibilidad'=>'ELEGIBILIDAD',
+        'fecha_efectiva'=>'FECHA EFECTIVA','pcp'=>'PCP','dentista'=>'DENTISTA','email'=>'EMAIL',
+        'evento'=>'EVENTO','razon_cancelacion'=>'RAZÓN DE CANCELACIÓN','fuente'=>'FUENTE',
+        'fuente_campana'=>'FUENTE CAMPAÑA','referido_por_texto'=>'REFERIDO POR (NOMBRE)',
+        'referido_por_miembro_id'=>'REFERIDO POR (MIEMBRO)','plan'=>'PLAN','carrier'=>'CARRIER',
+        'tipo_plan'=>'TIPO DE PLAN','plan_secundario'=>'PLAN SECUNDARIO','plan_anterior'=>'PLAN ANTERIOR',
+        'prescripciones'=>'PRESCRIPCIONES','condiciones_cronicas'=>'CONDICIONES CRÓNICAS',
+        'especialistas'=>'ESPECIALISTAS','profesion'=>'PROFESIÓN','empresa'=>'EMPRESA',
+        'estatus_legal'=>'ESTATUS LEGAL','extras'=>'EXTRAS/NOTAS','opt_in'=>'OPT-IN SMS','opt_out'=>'OPT-OUT SMS',
+        'info_verificada'=>'INFO VERIFICADA','carpeta_drive'=>'CARPETA DRIVE',
+        'app_tipo'=>'TIPO DE APP','app_periodo'=>'PERIODO APP','app_fecha'=>'FECHA APP',
+        'app_estado_cms'=>'ESTADO CMS','app_carrier_estado'=>'ESTADO CARRIER','hra'=>'HRA',
+        'fecha_cancelacion'=>'FECHA DE BAJA','broker_mwi'=>'BROKER','commission_paid'=>'COMISIÓN PAGADA',
+        'sales_allegation'=>'SALES ALLEGATION',
+    ];
+    $out = [];
+    foreach ($fields_presentes as $i => $f) {
+        $viejo  = $old[$f] ?? null;
+        $nuevo  = $vals_nuevos[$i] ?? null;
+        // Normaliza para comparar: null y '' cuentan como "vacío" por igual.
+        $vNorm = ($viejo === null || $viejo === '') ? null : (string)$viejo;
+        $nNorm = ($nuevo === null || $nuevo === '') ? null : (string)$nuevo;
+        if ($vNorm === $nNorm) continue;
+        $label = $labels[$f] ?? strtoupper(str_replace('_',' ',$f));
+        $fmt = function($v) {
+            if ($v === null) return '—';
+            $v = (string)$v;
+            return strlen($v) > 40 ? substr($v,0,37).'...' : $v;
+        };
+        $out[] = $label.': '.$fmt($viejo).' → '.$fmt($nuevo);
+    }
+    return $out;
+}
+
 // ── MIEMBROS — reemplaza las cuentas referentes de un miembro (puede ser
 //    más de una, ej. referido a dental Y a visión a la vez) ─────────────────
-function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): void {
+// Devuelve una descripción legible de qué cuenta(s) se agregaron/quitaron
+// (para el historial del miembro), o '' si no hubo ningún cambio real.
+function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): string {
     // "" (string vacío, no "[]") significa que el editor de cuentas referentes
     // del formulario nunca llegó a cargar (ej. un error de JS al reabrir el
     // formulario varias veces sin refrescar la página) — no lo tratamos como
@@ -2681,11 +2740,21 @@ function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): void {
     // datos cuentas referentes que sí estaban guardadas sin que nadie las haya
     // tocado. Un vaciado real siempre llega como "[]" (JSON.stringify de un
     // arreglo vacío), nunca como cadena vacía.
-    if ($raw === '') return;
+    if ($raw === '') return '';
+
+    // ── Estado ANTES, para poder describir el cambio ────────────────────────
+    $antes = [];
+    try {
+        $q = $pdo->prepare("SELECT cuenta_id, c.nombre FROM miembro_cuentas_referidas mcr LEFT JOIN cuentas c ON c.id=mcr.cuenta_id WHERE mcr.miembro_id=?");
+        $q->execute([$mid]);
+        foreach ($q->fetchAll(PDO::FETCH_ASSOC) as $r) $antes[(int)$r['cuenta_id']] = $r['nombre'] ?: ('#'.$r['cuenta_id']);
+    } catch (Exception $e) {}
+
     $items = is_array($raw) ? $raw : json_decode((string)$raw, true);
     if (!is_array($items)) $items = [];
     $pdo->prepare("DELETE FROM miembro_cuentas_referidas WHERE miembro_id=?")->execute([$mid]);
     $primera = null;
+    $despues = [];
     if ($items) {
         $ins  = $pdo->prepare("INSERT INTO miembro_cuentas_referidas (miembro_id, cuenta_id, tipo_referido) VALUES (?,?,?)");
         $seen = [];
@@ -2694,12 +2763,24 @@ function guardarCuentasReferidasMiembro(PDO $pdo, int $mid, $raw): void {
             if ($cid <= 0 || !empty($seen[$cid])) continue;
             $seen[$cid] = 1;
             $tipo = in_array($it['tipo_referido'] ?? '', ['ENTRANTE', 'SALIENTE'], true) ? $it['tipo_referido'] : 'ENTRANTE';
-            try { $ins->execute([$mid, $cid, $tipo]); if ($primera === null) $primera = $cid; } catch (Exception $e) {}
+            try {
+                $ins->execute([$mid, $cid, $tipo]);
+                if ($primera === null) $primera = $cid;
+                $despues[$cid] = trim($it['nombre'] ?? '') ?: ('#'.$cid);
+            } catch (Exception $e) {}
         }
     }
     // miembros.referido_por queda de solo lectura con la primera cuenta, por
     // compatibilidad con reportes/joins viejos que todavía leen esa columna.
     try { $pdo->prepare("UPDATE miembros SET referido_por=? WHERE id=?")->execute([$primera, $mid]); } catch (Exception $e) {}
+
+    $agregadas = array_diff_key($despues, $antes);
+    $quitadas  = array_diff_key($antes, $despues);
+    if (!$agregadas && !$quitadas) return '';
+    $partes = [];
+    if ($agregadas) $partes[] = '+'.implode(', +', $agregadas);
+    if ($quitadas)  $partes[] = '-'.implode(', -', $quitadas);
+    return 'CUENTAS REFERENTES: '.implode('  ', $partes);
 }
 
 // ── HISTORIAL DE PLANES — helper ─────────────────────────────────────────────
