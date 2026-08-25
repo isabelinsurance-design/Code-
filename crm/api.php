@@ -2669,6 +2669,10 @@ function proyPuede(PDO $pdo, array $p, int $uid, bool $admin): bool {
 
 // ── PROYECTOS — reemplaza el equipo (colaboradores) de un proyecto
 function guardarEquipoProyecto(PDO $pdo, int $pid, $teamRaw): void {
+    // "" (string vacío, no "[]") = el editor de equipo nunca cargó en el
+    // navegador — no lo tratamos como "se quitó a todo el equipo" (mismo
+    // problema que se encontró y arregló en cuentas referentes de miembros).
+    if ($teamRaw === '') return;
     $ids = is_array($teamRaw) ? $teamRaw : json_decode((string)$teamRaw, true);
     if (!is_array($ids)) $ids = [];
     $pdo->prepare("DELETE FROM proyecto_miembros WHERE proyecto_id=?")->execute([$pid]);
