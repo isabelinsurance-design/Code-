@@ -2712,16 +2712,17 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         $pct = fn($n) => $rep['total'] ? round($n*100/$rep['total']) : 0;
       ?>
       <div style="font-size:10px;font-weight:900;color:<?=$P1?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📊 RESULTADOS DE ESTA LISTA — <?=$rep['total']?> CONTACTOS</div>
+      <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">👆 TOCA CUALQUIER CIFRA PARA VER A ESAS PERSONAS EN LA LISTA</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:16px">
         <?php foreach([
-          ['CONTESTARON', $rep['contestados'], $G],
-          ['NO CONTESTARON', $rep['no_contestados'], $R],
-          ['SIN CONTACTAR', $rep['sin_contactar'], $MU],
-          ['HABLA INGLÉS', $rep['habla_ingles'], '#1B5E8C'],
-          ['RECLAMADOS', $rep['reclamados'], $A],
-          ['SIN RECLAMAR', $rep['sin_reclamar'], $MU],
-        ] as [$lbl,$val,$col]):?>
-        <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px 11px">
+          ['CONTESTARON', $rep['contestados'], $G, '__contestado', 'SI'],
+          ['NO CONTESTARON', $rep['no_contestados'], $R, '__contestado', 'NO'],
+          ['SIN CONTACTAR', $rep['sin_contactar'], $MU, '__contestado', '__SIN_CONTACTAR__'],
+          ['HABLA INGLÉS', $rep['habla_ingles'], '#1B5E8C', '__habla_ingles', '1'],
+          ['RECLAMADOS', $rep['reclamados'], $A, '__agente', '__CUALQUIERA__'],
+          ['SIN RECLAMAR', $rep['sin_reclamar'], $MU, '__agente', '__SIN_RECLAMAR__'],
+        ] as [$lbl,$val,$col,$fkey,$fval]):?>
+        <div onclick="ccVerEnLista(this)" data-cc-camp="<?=$c['id']?>" data-cc-key="<?=$fkey?>" data-cc-val="<?=h($fval)?>" style="cursor:pointer;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px 11px">
           <div style="font-size:16px;font-weight:900;color:<?=$col?>"><?=$val?></div>
           <div style="font-size:7px;font-weight:800;color:<?=$MU?>;letter-spacing:.5px;text-transform:uppercase;margin-top:1px"><?=$lbl?> (<?=$pct($val)?>%)</div>
         </div>
@@ -2731,7 +2732,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">POR RESULTADO</div>
       <div style="margin-bottom:16px">
         <?php foreach($rep['por_resultado'] as $r=>$n):?>
-        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+        <div onclick="ccVerEnLista(this)" data-cc-camp="<?=$c['id']?>" data-cc-key="__resultado" data-cc-val="<?=h($r)?>" style="cursor:pointer;display:flex;align-items:center;gap:8px;margin-bottom:4px">
           <div style="width:150px;font-size:9px;color:<?=$TX?>;flex-shrink:0"><?=h($r)?></div>
           <div style="flex:1;background:<?=$BG?>;border-radius:5px;overflow:hidden;height:14px"><div style="width:<?=$pct($n)?>%;background:<?=$P2?>;height:100%"></div></div>
           <div style="width:50px;font-size:9px;font-weight:800;color:<?=$TX?>;text-align:right;flex-shrink:0"><?=$n?> (<?=$pct($n)?>%)</div>
@@ -2743,7 +2744,9 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">POR AGENTE</div>
       <table style="width:100%;font-size:9px"><tr><th style="text-align:left;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">AGENTE</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">RECLAMADOS</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">CONTESTARON</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">INSCRITOS</th></tr>
         <?php foreach($rep['por_agente'] as $an=>$st):?>
-        <tr><td style="padding:3px 0;color:<?=$TX?>;font-weight:700"><?=h($an)?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['total']?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['contestados']?></td><td style="text-align:right;color:<?=$G?>;font-weight:800"><?=$st['inscritos']?></td></tr>
+        <tr onclick="ccVerEnLista(this)" data-cc-camp="<?=$c['id']?>" data-cc-key="__agente" data-cc-val="<?=h($an)?>" style="cursor:pointer">
+          <td style="padding:3px 0;color:<?=$TX?>;font-weight:700"><?=h($an)?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['total']?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['contestados']?></td><td style="text-align:right;color:<?=$G?>;font-weight:800"><?=$st['inscritos']?></td>
+        </tr>
         <?php endforeach; ?>
       </table>
       <?php endif; ?>
@@ -3137,6 +3140,24 @@ function filterCamp(f,btn){
   if(btn)btn.className='btn btn-p btn-sm camp-filter';
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
 }
+function ccVerEnLista(el){
+  var campId=el.dataset.ccCamp, key=el.dataset.ccKey, val=el.dataset.ccVal;
+  var body=document.getElementById('camp-body-'+campId);
+  if(!body)return;
+  var filtros=document.getElementById('cc-filtros-'+campId);
+  if(filtros) filtros.style.display='block';
+  var reporte=document.getElementById('cc-reporte-'+campId);
+  if(reporte) reporte.style.display='none';
+  // Deja solo este filtro activo (limpia los demás) para que la lista
+  // muestre exactamente a quiénes representa la cifra en la que se hizo clic.
+  body.querySelectorAll('.cc-filter-sel').forEach(function(sel){
+    sel.value=(sel.dataset.key===key)?val:'';
+  });
+  var search=body.querySelector('.cc-search-input');
+  if(search) search.value='';
+  filterCc(null,campId);
+  if(search) search.scrollIntoView({behavior:'smooth',block:'start'});
+}
 function toggleCcReporte(campId,btn){
   var box=document.getElementById('cc-reporte-'+campId);
   if(!box)return;
@@ -3184,7 +3205,9 @@ function filterCc(input,campId){
           match = (val==='__SIN_CONTACTAR__') ? !cst : (cst===val);
         } else if(key==='__agente'){
           var ag=c.dataset.agente||'';
-          match = (val==='__SIN_RECLAMAR__') ? !ag : (ag===val);
+          if(val==='__SIN_RECLAMAR__') match=!ag;
+          else if(val==='__CUALQUIERA__') match=!!ag;
+          else match=(ag===val);
         } else if(key==='__habla_ingles'){
           match = ((c.dataset.hablaIngles||'0')===val);
         } else {
