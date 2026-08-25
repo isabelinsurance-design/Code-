@@ -2594,12 +2594,17 @@ $cc_reporte_por_camp = [];
 foreach ($cc_by_camp as $cid => $lista) {
     $rep = [
         'total' => count($lista), 'contestados' => 0, 'no_contestados' => 0, 'sin_contactar' => 0,
-        'habla_ingles' => 0, 'reclamados' => 0, 'sin_reclamar' => 0,
+        'habla_ingles' => 0, 'reclamados' => 0, 'sin_reclamar' => 0, 'total_intentos' => 0,
         'por_estado' => [], 'por_resultado' => [], 'por_agente' => [],
     ];
     foreach ($lista as $ct) {
         $logs = $clog_by_contacto[$ct['id']] ?? [];
         $ultimo = $logs[0] ?? null;
+        // Esto cuenta CADA intento registrado (llamadas repetidas a la misma
+        // persona incluidas) — distinto a "contestados"/"por_resultado" de
+        // abajo, que solo miran el ÚLTIMO resultado de cada persona (en qué
+        // quedó cada quién ahora, no cuántas veces se le marcó).
+        $rep['total_intentos'] += count($logs);
         if ($ultimo) {
             $esNoContesto = in_array($ultimo['resultado'], $CC_RESULTADOS_NO_CONTESTO, true);
             $rep[$esNoContesto ? 'no_contestados' : 'contestados']++;
@@ -2711,7 +2716,8 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       <?php else:
         $pct = fn($n) => $rep['total'] ? round($n*100/$rep['total']) : 0;
       ?>
-      <div style="font-size:10px;font-weight:900;color:<?=$P1?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📊 RESULTADOS DE ESTA LISTA — <?=$rep['total']?> CONTACTOS</div>
+      <div style="font-size:10px;font-weight:900;color:<?=$P1?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:2px">📊 RESULTADOS DE ESTA LISTA — <?=$rep['total']?> CONTACTOS</div>
+      <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">☎ <?=$rep['total_intentos']?> LLAMADAS/INTENTOS REGISTRADOS EN TOTAL <?php if($rep['total_intentos']>$rep['contestados']+$rep['no_contestados']):?>(a veces se marcó más de una vez a la misma persona)<?php endif;?></div>
       <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">👆 TOCA CUALQUIER CIFRA PARA VER A ESAS PERSONAS EN LA LISTA</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:16px">
         <?php foreach([
