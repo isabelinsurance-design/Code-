@@ -2666,43 +2666,56 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <?php if(empty($contactos)):?>
     <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">SIN CONTACTOS — AGREGA EL PRIMERO</div>
     <?php else:?>
-    <div class="form-group" style="max-width:360px;margin-bottom:10px">
-      <input type="text" class="form-input cc-search-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+    <?php $cc_num_extra = count($cc_extra_por_camp[$c['id']] ?? []); ?>
+    <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
+      <div class="form-group" style="max-width:320px;flex:1;margin-bottom:0">
+        <input type="text" class="form-input cc-search-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+      </div>
+      <button type="button" class="btn btn-gh btn-sm" onclick="toggleCcFiltros(<?=$c['id']?>,this)">▾ FILTROS<?=$cc_num_extra?' (+'.$cc_num_extra.' DEL ARCHIVO)':''?></button>
+      <button type="button" class="btn btn-gh btn-sm" onclick="limpiarCcFiltros(<?=$c['id']?>)" style="color:#B83232;border-color:#EFA09A">✕ LIMPIAR FILTROS</button>
     </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
-      <select class="form-input cc-filter-sel" data-key="__resultado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
-        <option value="">RESULTADO: TODOS</option>
-        <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
-        <?php foreach ($cc_resultados_por_camp[$c['id']] ?? [] as $r): ?>
-        <option value="<?=h($r)?>"><?=h($r)?></option>
+    <div id="cc-filtros-<?=$c['id']?>" style="display:none;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:10px;padding:11px 13px;margin-bottom:10px">
+      <div style="font-size:7px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">FILTROS GENERALES</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px;margin-bottom:<?=$cc_num_extra?'12px':'0'?>">
+        <select class="form-input cc-filter-sel" data-key="__resultado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px">
+          <option value="">RESULTADO: TODOS</option>
+          <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
+          <?php foreach ($cc_resultados_por_camp[$c['id']] ?? [] as $r): ?>
+          <option value="<?=h($r)?>"><?=h($r)?></option>
+          <?php endforeach; ?>
+        </select>
+        <select class="form-input cc-filter-sel" data-key="__contestado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px">
+          <option value="">CONTESTÓ: TODOS</option>
+          <option value="SI">SÍ CONTESTÓ</option>
+          <option value="NO">NO CONTESTÓ</option>
+          <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
+        </select>
+        <select class="form-input cc-filter-sel" data-key="__agente" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px">
+          <option value="">RECLAMADO POR: TODOS</option>
+          <option value="__SIN_RECLAMAR__">SIN RECLAMAR</option>
+          <?php foreach ($cc_agentes_por_camp[$c['id']] ?? [] as $an): ?>
+          <option value="<?=h($an)?>"><?=h($an)?></option>
+          <?php endforeach; ?>
+        </select>
+        <select class="form-input cc-filter-sel" data-key="__habla_ingles" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px">
+          <option value="">🇬🇧 HABLA INGLÉS: TODOS</option>
+          <option value="1">SÍ HABLA INGLÉS</option>
+          <option value="0">NO / SIN MARCAR</option>
+        </select>
+      </div>
+      <?php if ($cc_num_extra): ?>
+      <div style="font-size:7px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;border-top:1px solid <?=$CB?>;padding-top:10px">COLUMNAS DEL ARCHIVO SUBIDO</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:7px">
+        <?php foreach ($cc_extra_por_camp[$c['id']] ?? [] as $ekey => $evals): ?>
+        <select class="form-input cc-filter-sel" data-key="<?=h($ekey)?>" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px">
+          <option value=""><?=h(mb_strtoupper($ekey))?>: TODOS</option>
+          <?php foreach ($evals as $ev): ?>
+          <option value="<?=h($ev)?>"><?=h($ev)?></option>
+          <?php endforeach; ?>
+        </select>
         <?php endforeach; ?>
-      </select>
-      <select class="form-input cc-filter-sel" data-key="__contestado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
-        <option value="">CONTESTÓ: TODOS</option>
-        <option value="SI">SÍ CONTESTÓ</option>
-        <option value="NO">NO CONTESTÓ</option>
-        <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
-      </select>
-      <select class="form-input cc-filter-sel" data-key="__agente" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
-        <option value="">RECLAMADO POR: TODOS</option>
-        <option value="__SIN_RECLAMAR__">SIN RECLAMAR</option>
-        <?php foreach ($cc_agentes_por_camp[$c['id']] ?? [] as $an): ?>
-        <option value="<?=h($an)?>"><?=h($an)?></option>
-        <?php endforeach; ?>
-      </select>
-      <select class="form-input cc-filter-sel" data-key="__habla_ingles" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
-        <option value="">🇬🇧 HABLA INGLÉS: TODOS</option>
-        <option value="1">SÍ HABLA INGLÉS</option>
-        <option value="0">NO / SIN MARCAR</option>
-      </select>
-      <?php foreach ($cc_extra_por_camp[$c['id']] ?? [] as $ekey => $evals): ?>
-      <select class="form-input cc-filter-sel" data-key="<?=h($ekey)?>" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
-        <option value=""><?=h(mb_strtoupper($ekey))?>: TODOS</option>
-        <?php foreach ($evals as $ev): ?>
-        <option value="<?=h($ev)?>"><?=h($ev)?></option>
-        <?php endforeach; ?>
-      </select>
-      <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
     </div>
     <div class="cc-empty-filter" style="display:none;font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">NINGÚN CONTACTO COINCIDE CON LA BÚSQUEDA</div>
     <?php foreach($contactos as $ct):
@@ -3037,6 +3050,21 @@ function filterCamp(f,btn){
   document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';});
   if(btn)btn.className='btn btn-p btn-sm camp-filter';
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
+}
+function toggleCcFiltros(campId,btn){
+  var box=document.getElementById('cc-filtros-'+campId);
+  if(!box)return;
+  var abierto=box.style.display!=='none';
+  box.style.display=abierto?'none':'block';
+  if(btn) btn.textContent=(abierto?'▾':'▴')+btn.textContent.slice(1);
+}
+function limpiarCcFiltros(campId){
+  var body=document.getElementById('camp-body-'+campId);
+  if(!body)return;
+  body.querySelectorAll('.cc-filter-sel').forEach(function(sel){ sel.value=''; });
+  var search=body.querySelector('.cc-search-input');
+  if(search) search.value='';
+  filterCc(null,campId);
 }
 function filterCc(input,campId){
   var body=document.getElementById('camp-body-'+campId);
