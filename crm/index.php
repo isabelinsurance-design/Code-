@@ -2587,6 +2587,46 @@ foreach ($cc_by_camp as $cid => $lista) {
 // "contestó" — así el filtro CONTESTÓ/NO CONTESTÓ dice lo mismo que el reporte.
 $CC_RESULTADOS_NO_CONTESTO = ['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado'];
 
+// ── REPORTE POR CAMPAÑA — resumen de resultados para saber cómo le fue a
+// cada lista subida: cuántos contestaron, en qué quedó cada quién, y el
+// desempeño de cada agente que trabajó esos contactos.
+$cc_reporte_por_camp = [];
+foreach ($cc_by_camp as $cid => $lista) {
+    $rep = [
+        'total' => count($lista), 'contestados' => 0, 'no_contestados' => 0, 'sin_contactar' => 0,
+        'habla_ingles' => 0, 'reclamados' => 0, 'sin_reclamar' => 0,
+        'por_estado' => [], 'por_resultado' => [], 'por_agente' => [],
+    ];
+    foreach ($lista as $ct) {
+        $logs = $clog_by_contacto[$ct['id']] ?? [];
+        $ultimo = $logs[0] ?? null;
+        if ($ultimo) {
+            $esNoContesto = in_array($ultimo['resultado'], $CC_RESULTADOS_NO_CONTESTO, true);
+            $rep[$esNoContesto ? 'no_contestados' : 'contestados']++;
+            $r = $ultimo['resultado'] ?: '(SIN RESULTADO)';
+            $rep['por_resultado'][$r] = ($rep['por_resultado'][$r] ?? 0) + 1;
+        } else {
+            $rep['sin_contactar']++;
+        }
+        if (!empty($ct['habla_ingles'])) $rep['habla_ingles']++;
+        $est = $ct['estado'] ?: '(SIN ESTADO)';
+        $rep['por_estado'][$est] = ($rep['por_estado'][$est] ?? 0) + 1;
+        if (!empty($ct['agente_id'])) {
+            $rep['reclamados']++;
+            $an = $ct['agente_nombre'] ?: '(AGENTE #'.$ct['agente_id'].')';
+            if (!isset($rep['por_agente'][$an])) $rep['por_agente'][$an] = ['total'=>0,'contestados'=>0,'inscritos'=>0];
+            $rep['por_agente'][$an]['total']++;
+            if ($ultimo && !in_array($ultimo['resultado'], $CC_RESULTADOS_NO_CONTESTO, true)) $rep['por_agente'][$an]['contestados']++;
+            if ($est === 'INSCRITO') $rep['por_agente'][$an]['inscritos']++;
+        } else {
+            $rep['sin_reclamar']++;
+        }
+    }
+    arsort($rep['por_resultado']);
+    uasort($rep['por_agente'], fn($a,$b) => $b['total'] <=> $a['total']);
+    $cc_reporte_por_camp[$cid] = $rep;
+}
+
 // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros ya existentes) ──
 $LEM_ESTADOS = ['PENDIENTE'=>['#7A90A4','#F1F1F1'],'CONFIRMADO'=>['#1E7A5C','#EAF5F0'],'NO CONFIRMADO'=>['#B83232','#FDF0EE'],'ASISTIÓ'=>['#1B5E8C','#EBF5FB'],'NO ASISTIÓ'=>['#993C1D','#FAECE7']];
 $listas_evento=[]; $lem_by_lista=[];
@@ -2660,8 +2700,54 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
       <button class="btn btn-sky btn-sm" onclick="openCcImport(<?=$c['id']?>)">⤒ SUBIR LISTA (CSV)</button>
+      <button class="btn btn-gh btn-sm" onclick="toggleCcReporte(<?=$c['id']?>,this)">📊 REPORTE</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
       <button class="btn btn-re btn-sm" onclick="deleteCampana(<?=$c['id']?>)">✕ ELIMINAR</button>
+    </div>
+    <?php $rep = $cc_reporte_por_camp[$c['id']] ?? null; ?>
+    <div id="cc-reporte-<?=$c['id']?>" style="display:none;background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:14px 16px;margin-bottom:13px">
+      <?php if(!$rep || $rep['total']===0):?>
+      <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN CONTACTOS TODAVÍA — NO HAY NADA QUE REPORTAR</div>
+      <?php else:
+        $pct = fn($n) => $rep['total'] ? round($n*100/$rep['total']) : 0;
+      ?>
+      <div style="font-size:10px;font-weight:900;color:<?=$P1?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:10px">📊 RESULTADOS DE ESTA LISTA — <?=$rep['total']?> CONTACTOS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-bottom:16px">
+        <?php foreach([
+          ['CONTESTARON', $rep['contestados'], $G],
+          ['NO CONTESTARON', $rep['no_contestados'], $R],
+          ['SIN CONTACTAR', $rep['sin_contactar'], $MU],
+          ['HABLA INGLÉS', $rep['habla_ingles'], '#1B5E8C'],
+          ['RECLAMADOS', $rep['reclamados'], $A],
+          ['SIN RECLAMAR', $rep['sin_reclamar'], $MU],
+        ] as [$lbl,$val,$col]):?>
+        <div style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px 11px">
+          <div style="font-size:16px;font-weight:900;color:<?=$col?>"><?=$val?></div>
+          <div style="font-size:7px;font-weight:800;color:<?=$MU?>;letter-spacing:.5px;text-transform:uppercase;margin-top:1px"><?=$lbl?> (<?=$pct($val)?>%)</div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <?php if($rep['por_resultado']):?>
+      <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">POR RESULTADO</div>
+      <div style="margin-bottom:16px">
+        <?php foreach($rep['por_resultado'] as $r=>$n):?>
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:4px">
+          <div style="width:150px;font-size:9px;color:<?=$TX?>;flex-shrink:0"><?=h($r)?></div>
+          <div style="flex:1;background:<?=$BG?>;border-radius:5px;overflow:hidden;height:14px"><div style="width:<?=$pct($n)?>%;background:<?=$P2?>;height:100%"></div></div>
+          <div style="width:50px;font-size:9px;font-weight:800;color:<?=$TX?>;text-align:right;flex-shrink:0"><?=$n?> (<?=$pct($n)?>%)</div>
+        </div>
+        <?php endforeach; ?>
+      </div>
+      <?php endif; ?>
+      <?php if($rep['por_agente']):?>
+      <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">POR AGENTE</div>
+      <table style="width:100%;font-size:9px"><tr><th style="text-align:left;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">AGENTE</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">RECLAMADOS</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">CONTESTARON</th><th style="text-align:right;color:<?=$MU?>;font-size:7px;text-transform:uppercase;padding-bottom:4px">INSCRITOS</th></tr>
+        <?php foreach($rep['por_agente'] as $an=>$st):?>
+        <tr><td style="padding:3px 0;color:<?=$TX?>;font-weight:700"><?=h($an)?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['total']?></td><td style="text-align:right;color:<?=$TX?>"><?=$st['contestados']?></td><td style="text-align:right;color:<?=$G?>;font-weight:800"><?=$st['inscritos']?></td></tr>
+        <?php endforeach; ?>
+      </table>
+      <?php endif; ?>
+      <?php endif; ?>
     </div>
     <?php if(empty($contactos)):?>
     <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">SIN CONTACTOS — AGREGA EL PRIMERO</div>
@@ -3050,6 +3136,12 @@ function filterCamp(f,btn){
   document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';});
   if(btn)btn.className='btn btn-p btn-sm camp-filter';
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
+}
+function toggleCcReporte(campId,btn){
+  var box=document.getElementById('cc-reporte-'+campId);
+  if(!box)return;
+  var abierto=box.style.display!=='none';
+  box.style.display=abierto?'none':'block';
 }
 function toggleCcFiltros(campId,btn){
   var box=document.getElementById('cc-filtros-'+campId);
