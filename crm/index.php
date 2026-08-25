@@ -357,6 +357,7 @@ if (!empty($_POST['camp_ajax'])) {
             'agente_id'        => "ADD COLUMN agente_id INT",
             'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
             'datos_extra'      => "ADD COLUMN datos_extra TEXT DEFAULT NULL",
+            'habla_ingles'     => "ADD COLUMN habla_ingles TINYINT(1) DEFAULT 0",
         ];
         foreach ($cc_add_chk as $col => $ddl) {
             if (!in_array($col, $cc_cols_chk, true)) { $pdo_c->exec("ALTER TABLE campana_contactos $ddl"); }
@@ -630,6 +631,14 @@ if (!empty($_POST['camp_ajax'])) {
             if (!$row) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
             if ((int)$row['agente_id'] !== (int)$uid_c && !$admin) { echo json_encode(['ok'=>false,'error'=>'Solo quien lo reclamó (o un admin) puede liberarlo']); break; }
             $pdo_c->prepare("UPDATE campana_contactos SET agente_id=NULL WHERE id=?")->execute([$id]);
+            echo json_encode(['ok'=>true]); break;
+        case 'toggle_habla_ingles':
+            // Marca independiente del contacto — no depende de haber
+            // registrado una llamada, para poder etiquetar a cualquiera
+            // que suba en CUALQUIER lista, no solo cuando se le llama.
+            $id = (int)($_POST['id'] ?? 0);
+            $val = !empty($_POST['valor']) ? 1 : 0;
+            $pdo_c->prepare("UPDATE campana_contactos SET habla_ingles=? WHERE id=?")->execute([$val, $id]);
             echo json_encode(['ok'=>true]); break;
 
         // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros) ───────
@@ -1069,6 +1078,7 @@ try {
         'agente_id'        => "ADD COLUMN agente_id INT",
         'ultima_actividad' => "ADD COLUMN ultima_actividad DATETIME DEFAULT NULL",
         'datos_extra'      => "ADD COLUMN datos_extra TEXT DEFAULT NULL",
+        'habla_ingles'     => "ADD COLUMN habla_ingles TINYINT(1) DEFAULT 0",
     ];
     foreach ($cc_add as $col => $ddl) {
         if (!in_array($col, $cc_cols, true)) { try { $pdo->exec("ALTER TABLE campana_contactos $ddl"); } catch (Exception $e) {} }
@@ -2680,6 +2690,11 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <option value="<?=h($an)?>"><?=h($an)?></option>
         <?php endforeach; ?>
       </select>
+      <select class="form-input cc-filter-sel" data-key="__habla_ingles" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
+        <option value="">🇬🇧 HABLA INGLÉS: TODOS</option>
+        <option value="1">SÍ HABLA INGLÉS</option>
+        <option value="0">NO / SIN MARCAR</option>
+      </select>
       <?php foreach ($cc_extra_por_camp[$c['id']] ?? [] as $ekey => $evals): ?>
       <select class="form-input cc-filter-sel" data-key="<?=h($ekey)?>" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
         <option value=""><?=h(mb_strtoupper($ekey))?>: TODOS</option>
@@ -2723,7 +2738,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       $extraParaFiltro = [];
       foreach ($extraChips as $ek => $ev) { $extraParaFiltro[$ek] = trim((string)$ev); }
     ?>
-    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
+    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-habla-ingles="<?=!empty($ct['habla_ingles'])?'1':'0'?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -2739,6 +2754,8 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
             <?php if($lastlog):?><span style="font-size:8px;color:<?=$MU?>">ÚLTIMO: <?=h($lastlog['canal'])?> — <?=h($lastlog['resultado'])?></span><?php endif;?>
+            <?php $hi=!empty($ct['habla_ingles']);?>
+            <button type="button" class="btn btn-sm" data-on="<?=$hi?'1':'0'?>" onclick="toggleHablaIngles(<?=$ct['id']?>,this)" style="font-size:7px;padding:2px 8px;background:<?=$hi?'#1B5E8C':'#fff'?>;color:<?=$hi?'#fff':'#7A90A4'?>;border:1px solid <?=$hi?'#1B5E8C':'#C8DFF0'?>" title="Marca si esta persona habla inglés">🇬🇧 HABLA INGLÉS</button>
             <?php if(!empty($ct['agente_id'])):?>
               <span style="display:inline-flex;align-items:center;gap:4px;background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:20px;padding:1px 8px 1px 3px;font-size:8px;font-weight:900">
                 <?=av(h($ct['agente_ini']??'?'),h($ct['agente_color']??$P2),14)?> 🙋 <?=h(explode(' ',$ct['agente_nombre']??'?')[0])?>
@@ -3048,6 +3065,8 @@ function filterCc(input,campId){
         } else if(key==='__agente'){
           var ag=c.dataset.agente||'';
           match = (val==='__SIN_RECLAMAR__') ? !ag : (ag===val);
+        } else if(key==='__habla_ingles'){
+          match = ((c.dataset.hablaIngles||'0')===val);
         } else {
           if(extra===null){ try{extra=JSON.parse(c.dataset.extra||'{}');}catch(e){extra={};} }
           match = ((extra[key]||'')===val);
@@ -3167,6 +3186,20 @@ function liberarContacto(id){
   if(!confirm('¿Liberar este contacto para que cualquiera lo pueda reclamar?'))return;
   campPost('action=liberar_contacto&id='+id,false).then(function(d){
     if(d&&d.ok){ if(typeof toast==='function')toast('✓ Liberado'); _campReload(); }
+  });
+}
+function toggleHablaIngles(id,btn){
+  var val = btn.dataset.on==='1' ? 0 : 1; // lee el estado actual del botón, no uno fijo
+  campPost('action=toggle_habla_ingles&id='+id+'&valor='+val,false).then(function(d){
+    if(!d||!d.ok){ if(typeof toast==='function')toast('⚠ Error'); return; }
+    // Se actualiza en vivo el botón y la tarjeta (para que el filtro de
+    // HABLA INGLÉS la reconozca al instante), sin recargar toda la lista.
+    btn.dataset.on=val?'1':'0';
+    btn.style.background=val?'#1B5E8C':'#fff';
+    btn.style.color=val?'#fff':'#7A90A4';
+    btn.style.borderColor=val?'#1B5E8C':'#C8DFF0';
+    var card=btn.closest('.cc-contact-card');
+    if(card) card.dataset.hablaIngles=val?'1':'0';
   });
 }
 function openCcImport(campanaId){
