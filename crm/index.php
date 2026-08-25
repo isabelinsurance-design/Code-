@@ -2539,6 +2539,44 @@ $camp_activas=count(array_filter($campanas,fn($c)=>$c['estado']==='ACTIVA'));
 $cc_total=0;$cc_pipe=0; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_total++; if($ct['promovido'])$cc_pipe++;}}
 $cc_all=[]; foreach($cc_by_camp as $list){foreach($list as $ct){$cc_all[$ct['id']]=$ct;}}
 
+// ── FILTROS DE CONTACTOS — se arman aquí, por campaña, para no tocar la
+// consulta de arriba: resultados de llamada/canal ya usados (para no listar
+// opciones vacías), agentes que han reclamado contactos, y las columnas
+// extra que traía el Excel/CSV subido (cada una se vuelve su propio filtro).
+$cc_resultados_por_camp = []; // [camp_id] => [resultado, ...]
+$cc_agentes_por_camp    = []; // [camp_id] => [nombre_agente, ...]
+$cc_extra_por_camp      = []; // [camp_id] => [clave => [valor, ...]]
+foreach ($cc_by_camp as $cid => $lista) {
+    $resultados = []; $agentes = []; $extra = [];
+    foreach ($lista as $ct) {
+        if (!empty($clog_by_contacto[$ct['id']])) {
+            foreach ($clog_by_contacto[$ct['id']] as $lg) {
+                if (!empty($lg['resultado'])) $resultados[$lg['resultado']] = true;
+            }
+        }
+        if (!empty($ct['agente_nombre'])) $agentes[$ct['agente_nombre']] = true;
+        if (!empty($ct['datos_extra'])) {
+            $ed = json_decode($ct['datos_extra'], true);
+            if (is_array($ed)) {
+                foreach ($ed as $k => $v) {
+                    $v = trim((string)$v);
+                    if ($k === '' || $v === '') continue;
+                    $extra[$k][$v] = true;
+                }
+            }
+        }
+    }
+    $cc_resultados_por_camp[$cid] = array_keys($resultados);
+    sort($cc_resultados_por_camp[$cid]);
+    $cc_agentes_por_camp[$cid] = array_keys($agentes);
+    sort($cc_agentes_por_camp[$cid]);
+    foreach ($extra as $k => $vals) { $extra[$k] = array_keys($vals); sort($extra[$k]); }
+    $cc_extra_por_camp[$cid] = $extra;
+}
+// Mismos grupos que usa el reporte diario para decidir qué cuenta como
+// "contestó" — así el filtro CONTESTÓ/NO CONTESTÓ dice lo mismo que el reporte.
+$CC_RESULTADOS_NO_CONTESTO = ['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado'];
+
 // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros ya existentes) ──
 $LEM_ESTADOS = ['PENDIENTE'=>['#7A90A4','#F1F1F1'],'CONFIRMADO'=>['#1E7A5C','#EAF5F0'],'NO CONFIRMADO'=>['#B83232','#FDF0EE'],'ASISTIÓ'=>['#1B5E8C','#EBF5FB'],'NO ASISTIÓ'=>['#993C1D','#FAECE7']];
 $listas_evento=[]; $lem_by_lista=[];
@@ -2619,7 +2657,37 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">SIN CONTACTOS — AGREGA EL PRIMERO</div>
     <?php else:?>
     <div class="form-group" style="max-width:360px;margin-bottom:10px">
-      <input type="text" class="form-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+      <input type="text" class="form-input cc-search-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px">
+      <select class="form-input cc-filter-sel" data-key="__resultado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
+        <option value="">RESULTADO: TODOS</option>
+        <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
+        <?php foreach ($cc_resultados_por_camp[$c['id']] ?? [] as $r): ?>
+        <option value="<?=h($r)?>"><?=h($r)?></option>
+        <?php endforeach; ?>
+      </select>
+      <select class="form-input cc-filter-sel" data-key="__contestado" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
+        <option value="">CONTESTÓ: TODOS</option>
+        <option value="SI">SÍ CONTESTÓ</option>
+        <option value="NO">NO CONTESTÓ</option>
+        <option value="__SIN_CONTACTAR__">SIN CONTACTAR</option>
+      </select>
+      <select class="form-input cc-filter-sel" data-key="__agente" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
+        <option value="">RECLAMADO POR: TODOS</option>
+        <option value="__SIN_RECLAMAR__">SIN RECLAMAR</option>
+        <?php foreach ($cc_agentes_por_camp[$c['id']] ?? [] as $an): ?>
+        <option value="<?=h($an)?>"><?=h($an)?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php foreach ($cc_extra_por_camp[$c['id']] ?? [] as $ekey => $evals): ?>
+      <select class="form-input cc-filter-sel" data-key="<?=h($ekey)?>" onchange="filterCc(null,<?=$c['id']?>)" style="font-size:9px;padding:6px 9px;width:auto">
+        <option value=""><?=h(mb_strtoupper($ekey))?>: TODOS</option>
+        <?php foreach ($evals as $ev): ?>
+        <option value="<?=h($ev)?>"><?=h($ev)?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php endforeach; ?>
     </div>
     <div class="cc-empty-filter" style="display:none;font-size:9px;color:<?=$MU?>;text-transform:uppercase;padding:8px 0">NINGÚN CONTACTO COINCIDE CON LA BÚSQUEDA</div>
     <?php foreach($contactos as $ct):
@@ -2650,8 +2718,12 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         }
         if($parsedOk && $tmp){ $extraChips=$tmp; $notasReales=$notasPrevias; }
       }
+      // Para los filtros: mismo criterio "contestó" que usa el reporte diario.
+      $ct_contestado = $lastlog ? (in_array($lastlog['resultado'], $CC_RESULTADOS_NO_CONTESTO, true) ? 'NO' : 'SI') : '';
+      $extraParaFiltro = [];
+      foreach ($extraChips as $ek => $ev) { $extraParaFiltro[$ek] = trim((string)$ev); }
     ?>
-    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
+    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -2950,13 +3022,38 @@ function filterCamp(f,btn){
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
 }
 function filterCc(input,campId){
-  var q=(input.value||'').toLowerCase().trim();
   var body=document.getElementById('camp-body-'+campId);
   if(!body)return;
+  // El input de texto puede llegar como parámetro (oninput) o no (cuando lo
+  // que cambió fue un dropdown de filtro) — en ambos casos se busca el mismo
+  // campo de texto de esta campaña para no perder lo que ya estaba escrito.
+  var searchInput=input||body.querySelector('.cc-search-input');
+  var q=((searchInput&&searchInput.value)||'').toLowerCase().trim();
+  var sels=body.querySelectorAll('.cc-filter-sel');
   var cards=body.querySelectorAll('.cc-contact-card');
   var visibles=0;
   cards.forEach(function(c){
     var match=!q||(c.dataset.search||'').includes(q);
+    if(match){
+      var extra=null;
+      sels.forEach(function(sel){
+        if(!match||!sel.value)return;
+        var val=sel.value, key=sel.dataset.key;
+        if(key==='__resultado'){
+          var r=c.dataset.ultimoResultado||'';
+          match = (val==='__SIN_CONTACTAR__') ? !r : (r===val);
+        } else if(key==='__contestado'){
+          var cst=c.dataset.contestado||'';
+          match = (val==='__SIN_CONTACTAR__') ? !cst : (cst===val);
+        } else if(key==='__agente'){
+          var ag=c.dataset.agente||'';
+          match = (val==='__SIN_RECLAMAR__') ? !ag : (ag===val);
+        } else {
+          if(extra===null){ try{extra=JSON.parse(c.dataset.extra||'{}');}catch(e){extra={};} }
+          match = ((extra[key]||'')===val);
+        }
+      });
+    }
     c.style.display=match?'':'none';
     if(match)visibles++;
   });
