@@ -392,7 +392,7 @@ if (!empty($_POST['camp_ajax'])) {
             $pdo_c->prepare("DELETE FROM campana_logs WHERE campana_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campana_contactos WHERE campana_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campanas WHERE id=?")->execute([$id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'save_contacto':
             $id  = (int)($_POST['id'] ?? 0);
             $cid = (int)($_POST['campana_id'] ?? 0);
@@ -412,24 +412,24 @@ if (!empty($_POST['camp_ajax'])) {
             if ($id) {
                 $s = implode(',', array_map(fn($k)=>"`$k`=?", array_keys($d)));
                 $pdo_c->prepare("UPDATE campana_contactos SET $s WHERE id=?")->execute([...array_values($d), $id]);
-                echo json_encode(['ok'=>true,'id'=>$id]);
+                jsonOkNotify(['id'=>$id], 'CAMPANAS');
             } else {
                 $d['campana_id'] = $cid; $d['agente_id'] = $uid_c; $d['estado'] = 'ACTIVO';
                 $cols = implode(',', array_map(fn($k)=>"`$k`", array_keys($d)));
                 $phs  = implode(',', array_fill(0, count($d), '?'));
                 $pdo_c->prepare("INSERT INTO campana_contactos ($cols) VALUES ($phs)")->execute(array_values($d));
-                echo json_encode(['ok'=>true,'id'=>$pdo_c->lastInsertId()]);
+                jsonOkNotify(['id'=>$pdo_c->lastInsertId()], 'CAMPANAS');
             }
             break;
         case 'delete_contacto':
             $id = (int)($_POST['id'] ?? 0);
             $pdo_c->prepare("DELETE FROM campana_logs WHERE contacto_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campana_contactos WHERE id=?")->execute([$id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'update_contacto_estado':
             $id = (int)($_POST['id'] ?? 0); $est = trim($_POST['estado'] ?? '');
             $pdo_c->prepare("UPDATE campana_contactos SET estado=? WHERE id=?")->execute([$est, $id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'log_actividad':
             $cid  = (int)($_POST['campana_id'] ?? 0);
             $coid = (int)($_POST['contacto_id'] ?? 0);
@@ -466,7 +466,7 @@ if (!empty($_POST['camp_ajax'])) {
                 $pdo_c->prepare("INSERT INTO llamadas_prospectos (agente_id, miembro_id, nombre_libre, telefono, contesto, resultado, notas) VALUES (?,?,?,?,?,?,?)")
                       ->execute([$uid_c, $ctRow['miembro_id'] ?? null, $nombreLibre, $ctRow['telefono'] ?? '', $contesto, $res, $nt]);
             }
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'promover_contacto':
             $id = (int)($_POST['id'] ?? 0);
             $q = $pdo_c->prepare("SELECT * FROM campana_contactos WHERE id=?"); $q->execute([$id]); $ct = $q->fetch(PDO::FETCH_ASSOC);
@@ -476,7 +476,7 @@ if (!empty($_POST['camp_ajax'])) {
                 // Ya estaba vinculado a un miembro existente (elegido con el
                 // buscador al crearlo) — no crear un miembro duplicado.
                 $pdo_c->prepare("UPDATE campana_contactos SET promovido=1, estado='EN PIPELINE' WHERE id=?")->execute([$id]);
-                echo json_encode(['ok'=>true,'miembro_id'=>$ct['miembro_id']]); break;
+                jsonOkNotify(['miembro_id'=>$ct['miembro_id']], 'CAMPANAS');
             }
             $cn = $pdo_c->prepare("SELECT nombre,canal FROM campanas WHERE id=?"); $cn->execute([$ct['campana_id']]); $camp = $cn->fetch(PDO::FETCH_ASSOC);
             $fuente_map = ['FACEBOOK'=>'FACEBOOK LEAD','INSTAGRAM'=>'FACEBOOK LEAD','EVENTO'=>'EVENTO COMUNIDAD','REFERIDO'=>'REFERIDO MIEMBRO','GOOGLE'=>'GOOGLE'];
@@ -486,7 +486,7 @@ if (!empty($_POST['camp_ajax'])) {
             $ins->execute([$ct['nombre'], $ct['apellido'] ?: '', $ct['telefono'], $ct['email'], $ct['agente_id'] ?: $uid_c, $fuente, $extras, $uid_c]);
             $nid = (int)$pdo_c->lastInsertId();
             $pdo_c->prepare("UPDATE campana_contactos SET miembro_id=?, promovido=1, estado='EN PIPELINE' WHERE id=?")->execute([$nid, $id]);
-            echo json_encode(['ok'=>true,'miembro_id'=>$nid]); break;
+            jsonOkNotify(['miembro_id'=>$nid], 'CAMPANAS');
         case 'import_contactos_csv':
             $cid = (int)($_POST['campana_id'] ?? 0);
             if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
@@ -623,7 +623,7 @@ if (!empty($_POST['camp_ajax'])) {
             if (!$row) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
             if (!empty($row['agente_id'])) { echo json_encode(['ok'=>false,'error'=>'Ya lo reclamó otra persona']); break; }
             $pdo_c->prepare("UPDATE campana_contactos SET agente_id=? WHERE id=?")->execute([$uid_c, $id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'liberar_contacto':
             $id = (int)($_POST['id'] ?? 0);
             $q = $pdo_c->prepare("SELECT agente_id FROM campana_contactos WHERE id=?"); $q->execute([$id]);
@@ -631,7 +631,7 @@ if (!empty($_POST['camp_ajax'])) {
             if (!$row) { echo json_encode(['ok'=>false,'error'=>'Contacto no encontrado']); break; }
             if ((int)$row['agente_id'] !== (int)$uid_c && !$admin) { echo json_encode(['ok'=>false,'error'=>'Solo quien lo reclamó (o un admin) puede liberarlo']); break; }
             $pdo_c->prepare("UPDATE campana_contactos SET agente_id=NULL WHERE id=?")->execute([$id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
         case 'toggle_habla_ingles':
             // Marca independiente del contacto — no depende de haber
             // registrado una llamada, para poder etiquetar a cualquiera
@@ -639,7 +639,7 @@ if (!empty($_POST['camp_ajax'])) {
             $id = (int)($_POST['id'] ?? 0);
             $val = !empty($_POST['valor']) ? 1 : 0;
             $pdo_c->prepare("UPDATE campana_contactos SET habla_ingles=? WHERE id=?")->execute([$val, $id]);
-            echo json_encode(['ok'=>true]); break;
+            jsonOkNotify([], 'CAMPANAS');
 
         // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros) ───────
         case 'save_lista_evento':
