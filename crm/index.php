@@ -2850,7 +2850,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
-            <span style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($nm)?></span>
+            <span onclick="verPerfilContacto(<?=$ct['id']?>)" style="font-weight:900;font-size:10px;color:<?=$P1?>;cursor:pointer;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.textDecorationColor='<?=$P1?>'" onmouseout="this.style.textDecorationColor='transparent'" title="Ver perfil completo"><?=h($nm)?></span>
             <?php if($ct['promovido']):?>
               <span style="background:<?=$ce[1]?>;color:<?=$ce[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=$ce[2]?></span>
             <?php else:?>
@@ -2905,6 +2905,61 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid <?=$CB?>">
           <span style="font-size:8px;font-weight:900;color:<?=$P2?>;min-width:54px"><?=date('d/m/y',strtotime($lg['created_at']))?></span>
           <div style="flex:1"><div style="font-size:9px;font-weight:700;color:<?=$TX?>"><?=h($lg['canal'])?> — <?=h($lg['resultado'])?></div><?php if($lg['notas']):?><div style="font-size:8px;color:<?=$MU?>"><?=h($lg['notas'])?></div><?php endif;?></div>
+        </div>
+        <?php endforeach; endif;?>
+      </div>
+      <!-- Perfil completo del contacto — se copia a modal-cc-perfil al hacer
+           clic en el nombre, para verlo mejor organizado en vez de la tarjeta
+           compacta de la lista. -->
+      <div id="cc-perfil-<?=$ct['id']?>" style="display:none">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:4px">
+          <div style="width:44px;height:44px;border-radius:50%;background:<?=$P2?>;color:#fff;display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:900;flex-shrink:0"><?=h(mb_strtoupper(mb_substr($nm,0,1)))?></div>
+          <div><div style="font-size:15px;font-weight:900;color:<?=$P1?>"><?=h($nm)?></div>
+            <?php if($ct['telefono']):?><div style="font-size:9px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?><?php if($ct['email']):?> · <?=h($ct['email'])?><?php endif;?></div><?php endif;?>
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin:10px 0 14px">
+          <?php if($ct['promovido']):?><span style="background:<?=$ce[1]?>;color:<?=$ce[0]?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900"><?=$ce[2]?></span>
+          <?php else:?><span style="background:<?=($CC_EST[$ct['estado']]??['#7A90A4','#F1F1F1'])[1]?>;color:<?=($CC_EST[$ct['estado']]??['#7A90A4','#F1F1F1'])[0]?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900"><?=h(str_replace('_',' ',$ct['estado']))?></span><?php endif;?>
+          <?php if($hi):?><span style="background:#1B5E8C;color:#fff;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900">🇬🇧 HABLA INGLÉS</span><?php endif;?>
+          <?php if(!empty($ct['agente_id'])):?><span style="background:#F3F0FB;color:#5B3FAF;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900">🙋 RECLAMADO POR <?=h($ct['agente_nombre']??'?')?></span>
+          <?php else:?><span style="background:<?=$BG?>;color:<?=$MU?>;border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900">SIN RECLAMAR</span><?php endif;?>
+        </div>
+        <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px;padding-bottom:14px;border-bottom:1px solid <?=$CB?>">
+          <?php if($ct['telefono']):?>
+          <a href="tel:<?=h($ct['telefono'])?>" class="btn btn-bl btn-sm">📞 LLAMAR</a>
+          <a href="https://wa.me/<?=$ph_wa?>" target="_blank" class="btn btn-gr btn-sm">WHATSAPP</a>
+          <?php endif;?>
+          <?php if($ct['promovido']):?>
+          <button class="btn btn-am btn-sm" onclick="closeModal('modal-cc-perfil');openProfile(<?=(int)$ct['miembro_id']?>)">◉ VER PERFIL DE MIEMBRO</button>
+          <?php else:?>
+          <button class="btn btn-p btn-sm" onclick="closeModal('modal-cc-perfil');openCcLog(<?=$ct['campana_id']?>,<?=$ct['id']?>,'<?=h(addslashes($nm))?>')">📋 REGISTRAR</button>
+          <button class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-perfil');promoverContacto(<?=$ct['id']?>,'<?=h(addslashes($nm))?>')">▲ PIPELINE</button>
+          <?php if(!empty($ct['agente_id'])):?>
+            <?php if((int)$ct['agente_id']===(int)$uid || $admin):?><button class="btn btn-gh btn-sm" onclick="liberarContacto(<?=$ct['id']?>)">LIBERAR</button><?php endif;?>
+          <?php else:?><button class="btn btn-gh btn-sm" onclick="reclamarContacto(<?=$ct['id']?>)">🙋 RECLAMAR</button><?php endif;?>
+          <button class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-perfil');openCcForm(<?=$ct['campana_id']?>,<?=$ct['id']?>)">✎ EDITAR</button>
+          <?php endif;?>
+        </div>
+        <?php if($extraChips):?>
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">DATOS DEL ARCHIVO SUBIDO</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px 16px;margin-bottom:16px">
+          <?php foreach($extraChips as $ek=>$ev): if($ev===''||$ev===null) continue; ?>
+          <div><div style="font-size:7px;font-weight:800;color:<?=$MU?>;letter-spacing:.5px;text-transform:uppercase"><?=h($ek)?></div><div style="font-size:9px;color:<?=$TX?>;margin-top:1px"><?=h((string)$ev)?></div></div>
+          <?php endforeach;?>
+        </div>
+        <?php endif;?>
+        <?php if($notasReales):?>
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">NOTAS</div>
+        <div style="font-size:9px;color:<?=$TX?>;white-space:pre-wrap;background:<?=$BG?>;border-radius:8px;padding:10px;margin-bottom:16px"><?=h($notasReales)?></div>
+        <?php endif;?>
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px">HISTORIAL DE CONTACTO (<?=count($logs)?>)</div>
+        <?php if(empty($logs)):?>
+        <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN ACTIVIDAD REGISTRADA TODAVÍA</div>
+        <?php else: foreach($logs as $lg):?>
+        <div style="display:flex;gap:8px;padding:7px 0;border-bottom:1px solid <?=$CB?>">
+          <span style="font-size:8px;font-weight:900;color:<?=$P2?>;min-width:56px"><?=date('d/m/y',strtotime($lg['created_at']))?></span>
+          <div style="flex:1"><div style="font-size:9px;font-weight:700;color:<?=$TX?>"><?=h($lg['canal'])?> — <?=h($lg['resultado'])?></div><?php if($lg['notas']):?><div style="font-size:8px;color:<?=$MU?>;margin-top:2px"><?=h($lg['notas'])?></div><?php endif;?></div>
         </div>
         <?php endforeach; endif;?>
       </div>
@@ -3030,6 +3085,11 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
 </div></div>
 
 <!-- MODAL: NUEVO/EDITAR CONTACTO -->
+<div id="modal-cc-perfil" class="modal-overlay"><div class="modal">
+  <div class="modal-header"><div class="modal-title">PERFIL DEL CONTACTO</div><button class="modal-close" onclick="closeModal('modal-cc-perfil')">✕</button></div>
+  <div id="cc-perfil-content" style="max-height:70vh;overflow-y:auto;padding-right:4px"></div>
+</div></div>
+
 <div id="modal-cc-form" class="modal-overlay"><div class="modal modal-sm">
   <div class="modal-header"><div class="modal-title" id="cc-form-title">NUEVO CONTACTO</div><button class="modal-close" onclick="closeModal('modal-cc-form')">✕</button></div>
   <form onsubmit="saveContacto(event)">
@@ -3145,6 +3205,13 @@ function filterCamp(f,btn){
   document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';});
   if(btn)btn.className='btn btn-p btn-sm camp-filter';
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
+}
+function verPerfilContacto(id){
+  var src=document.getElementById('cc-perfil-'+id);
+  var dst=document.getElementById('cc-perfil-content');
+  if(!src||!dst)return;
+  dst.innerHTML=src.innerHTML;
+  openModal('modal-cc-perfil');
 }
 function ccVerEnLista(el){
   var campId=el.dataset.ccCamp, key=el.dataset.ccKey, val=el.dataset.ccVal;
