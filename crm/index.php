@@ -482,8 +482,8 @@ if (!empty($_POST['camp_ajax'])) {
             $fuente_map = ['FACEBOOK'=>'FACEBOOK LEAD','INSTAGRAM'=>'FACEBOOK LEAD','EVENTO'=>'EVENTO COMUNIDAD','REFERIDO'=>'REFERIDO MIEMBRO','GOOGLE'=>'GOOGLE'];
             $fuente = $fuente_map[$camp['canal'] ?? ''] ?? 'OTRO';
             $extras = 'Promovido de campaña: ' . ($camp['nombre'] ?? '');
-            $ins = $pdo_c->prepare("INSERT INTO miembros (nombre,apellido,telefono,email,estado,agente_id,fuente,extras,created_by) VALUES (?,?,?,?,'PROSPECT',?,?,?,?)");
-            $ins->execute([$ct['nombre'], $ct['apellido'] ?: '', $ct['telefono'], $ct['email'], $ct['agente_id'] ?: $uid_c, $fuente, $extras, $uid_c]);
+            $ins = $pdo_c->prepare("INSERT INTO miembros (nombre,apellido,telefono,email,estado,agente_id,fuente,extras,campana_origen_id,created_by) VALUES (?,?,?,?,'PROSPECT',?,?,?,?,?)");
+            $ins->execute([$ct['nombre'], $ct['apellido'] ?: '', $ct['telefono'], $ct['email'], $ct['agente_id'] ?: $uid_c, $fuente, $extras, $ct['campana_id'], $uid_c]);
             $nid = (int)$pdo_c->lastInsertId();
             $pdo_c->prepare("UPDATE campana_contactos SET miembro_id=?, promovido=1, estado='EN PIPELINE' WHERE id=?")->execute([$nid, $id]);
             jsonOkNotify(['miembro_id'=>$nid], 'CAMPANAS');
@@ -859,6 +859,12 @@ try {
     }
     if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch()) {
         $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
+    }
+    // Guarda de qué CAMPAÑA vino un miembro cuando se promueve un contacto de
+    // campaña a prospecto — para poder mostrar el origen exacto en el perfil
+    // (antes solo quedaba como texto suelto dentro de "extras").
+    if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'campana_origen_id'")->fetch()) {
+        $pdo->exec("ALTER TABLE miembros ADD COLUMN campana_origen_id INT DEFAULT NULL");
     }
 } catch (Exception $e) {}
 // ─── COLUMNAS EXTRA: SALES ALLEGATION + FOTO PERFIL ──────────────────────────

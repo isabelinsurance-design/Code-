@@ -103,6 +103,16 @@ if (!empty($m['referido_por_miembro_id'])) {
     $referente = $stf->fetch();
 }
 
+// ── ¿De qué campaña vino? — se guarda al promover un contacto de campaña
+// a prospecto (ver 'promover_contacto' en index.php). Complementa a FUENTE,
+// que solo dice la categoría (FACEBOOK LEAD, etc.), no la lista exacta.
+$campana_origen = null;
+if (!empty($m['campana_origen_id'])) {
+    $stc = $pdo->prepare("SELECT id,nombre FROM campanas WHERE id=?");
+    $stc->execute([(int)$m['campana_origen_id']]);
+    $campana_origen = $stc->fetch();
+}
+
 // ── RETENCIÓN: llamadas y cuestionario ───────────────────────────
 $_pr_bienvenida = null;
 $_pr_calls      = [];
@@ -282,6 +292,9 @@ display: block;
         <?php if ($m['carpeta_drive']): ?><a href="<?= h($m['carpeta_drive']) ?>" target="_blank" style="background:rgba(22,64,168,.25);color:#93C5FD;border:1px solid rgba(22,64,168,.35);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;text-decoration:none">📁 DRIVE</a><?php endif; ?>
         <?php if ($referente): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;cursor:pointer" onclick="openProfile(<?= (int)$referente['id'] ?>)" title="Ver perfil de quien lo recomendó">🤝 REFERIDO POR: <?= h(trim($referente['nombre'].' '.$referente['apellido'])) ?></span>
         <?php elseif (!empty($m['referido_por_texto'])): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Nombre escrito a mano — no está vinculado a un perfil del CRM">🤝 REFERIDO POR: <?= h($m['referido_por_texto']) ?></span>
+        <?php endif; ?>
+        <?php if ($campana_origen): ?><span style="background:rgba(192,122,26,.28);color:#FBCB7B;border:1px solid rgba(192,122,26,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Vino de esta campaña">📣 ORIGEN: <?= h($campana_origen['nombre']) ?></span>
+        <?php elseif (!empty($m['fuente'])): ?><span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Origen del miembro">📍 ORIGEN: <?= h($m['fuente']) ?></span>
         <?php endif; ?>
       </div>
     </div>

@@ -382,7 +382,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
       <label class="form-label">FUENTE</label>
       <select name="fuente" class="form-input">
         <option value="">—</option>
-        <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','IGLESIA','GOOGLE','OTRO'] as $o): ?>
+        <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','WALK-IN','MIEMBRO ANTIGUO','IGLESIA','GOOGLE','OTRO'] as $o): ?>
         <option<?= ($m['fuente']??'')===$o?' selected':'' ?>><?= $o ?></option>
         <?php endforeach; ?>
       </select>
