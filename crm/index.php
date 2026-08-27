@@ -2593,6 +2593,23 @@ foreach ($cc_by_camp as $cid => $lista) {
 // "contestó" — así el filtro CONTESTÓ/NO CONTESTÓ dice lo mismo que el reporte.
 $CC_RESULTADOS_NO_CONTESTO = ['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado'];
 
+// ── EMBUDO HACIA EL CRM — a diferencia de campana_contactos.estado (que se
+// queda congelado en "EN PIPELINE" para siempre en cuanto se promueve), esto
+// mira el estado REAL y ACTUAL del miembro ya en el CRM (campana_origen_id),
+// para saber si de verdad avanzó a EN PROCESO, se activó, o se canceló.
+$cc_miembros_por_camp = []; // [camp_id] => ['total'=>n,'en_proceso'=>n,'activos'=>n,'cancelados'=>n,'prospecto'=>n]
+foreach ($members as $mb) {
+    if (empty($mb['campana_origen_id'])) continue;
+    $cid = (int)$mb['campana_origen_id'];
+    if (!isset($cc_miembros_por_camp[$cid])) $cc_miembros_por_camp[$cid] = ['total'=>0,'en_proceso'=>0,'activos'=>0,'cancelados'=>0,'prospecto'=>0];
+    $cc_miembros_por_camp[$cid]['total']++;
+    $est = $mb['estado'];
+    if (in_array($est, ['IN PROCESS','READY TO ENROLL','PLAN CHANGE','PENDING'], true)) $cc_miembros_por_camp[$cid]['en_proceso']++;
+    elseif ($est === 'ACTIVE') $cc_miembros_por_camp[$cid]['activos']++;
+    elseif (in_array($est, ['CANCELED','DENIED','CERRADO','DISENROLLED'], true)) $cc_miembros_por_camp[$cid]['cancelados']++;
+    else $cc_miembros_por_camp[$cid]['prospecto']++;
+}
+
 // ── REPORTE POR CAMPAÑA — resumen de resultados para saber cómo le fue a
 // cada lista subida: cuántos contestaron, en qué quedó cada quién, y el
 // desempeño de cada agente que trabajó esos contactos.
@@ -2635,6 +2652,7 @@ foreach ($cc_by_camp as $cid => $lista) {
     }
     arsort($rep['por_resultado']);
     uasort($rep['por_agente'], fn($a,$b) => $b['total'] <=> $a['total']);
+    $rep['miembros'] = $cc_miembros_por_camp[$cid] ?? ['total'=>0,'en_proceso'=>0,'activos'=>0,'cancelados'=>0,'prospecto'=>0];
     $cc_reporte_por_camp[$cid] = $rep;
 }
 
@@ -2761,6 +2779,24 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         </tr>
         <?php endforeach; ?>
       </table>
+      <?php endif; ?>
+      <?php $rm = $rep['miembros']; if($rm['total']>0):?>
+      <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin:16px 0 6px;border-top:1px solid <?=$CB?>;padding-top:14px">EMBUDO HACIA EL CRM — QUÉ PASÓ DESPUÉS DE PASARLOS AL PIPELINE</div>
+      <div style="font-size:7px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px">A diferencia de las tarjetas de arriba, esto mira el estado ACTUAL del miembro ya en el CRM — si avanzó, se activó, o se canceló.</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px">
+        <?php foreach([
+          ['EN PIPELINE (TOTAL)', $rm['total'], $A, ''],
+          ['PROSPECTO', $rm['prospecto'], $MU, 'PROSPECTO'],
+          ['EN PROCESO', $rm['en_proceso'], '#1B5E8C', 'PROCESO'],
+          ['ACTIVOS/APROBADOS', $rm['activos'], $G, 'ACTIVOS'],
+          ['CANCELADOS', $rm['cancelados'], $R, 'CANCELADOS'],
+        ] as [$lbl,$val,$col,$grupo]):?>
+        <div onclick="verMiembrosCampana(<?=$c['id']?>,'<?=$grupo?>','<?=h(addslashes($c['nombre']))?>')" style="cursor:pointer;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px 11px">
+          <div style="font-size:16px;font-weight:900;color:<?=$col?>"><?=$val?></div>
+          <div style="font-size:7px;font-weight:800;color:<?=$MU?>;letter-spacing:.5px;text-transform:uppercase;margin-top:1px"><?=$lbl?></div>
+        </div>
+        <?php endforeach; ?>
+      </div>
       <?php endif; ?>
       <?php endif; ?>
     </div>
@@ -4358,6 +4394,7 @@ uksort($estados_presentes, function($a,$b) use($orden_pref){
 
 </div>
 <select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach($estados_presentes as $e=>$c): if($e==='(SIN ESTADO)') continue; ?><option value="<?=h($e)?>"><?=h($e)?> (<?=$c?>)</option><?php endforeach;?></select>
+<button id="camp-origen-chip" onclick="limpiarFiltroCampOrigen()" style="display:none;align-items:center;gap:6px;background:#FEF8EE;border:1px solid #E8C48A;color:#C07A1A;border-radius:20px;padding:6px 11px;font-size:9px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif"><span></span> ✕</button>
 <button class="btn btn-b btn-sm" onclick="openMemberForm()">+ NUEVO MIEMBRO</button>
 </div>
 <div style="display:flex;gap:4px;margin-bottom:11px;flex-wrap:wrap">
@@ -4414,7 +4451,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 <tr><th>MIEMBRO</th><th>TELÉFONO</th><th>CIUDAD</th><th>PLAN/CARRIER</th><th>ESTADO</th><th>MBI</th><th>TKT</th><th></th></tr>
 <?php foreach($members as $m):$mtks=count(array_filter($tickets,fn($t)=>$t['miembro_id']==$m['id']&&$t['estado']!=='CERRADO'));?>
 <?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
-<tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
+<tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-campana-origen="<?=h($m['campana_origen_id']??'')?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
 <td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
@@ -8671,7 +8708,10 @@ hablar(msg);
 let _mEstado = '';   // '' = todos · 'FUTUROS' · '__EMPTY__' · o un estado
 let _mAnio   = '';   // año de efectividad (YYYY)
 let _mMesNum = '';   // mes de efectividad (MM)
+let _mCampOrigen = ''; // '' = cualquier origen · id de campaña (ver verMiembrosCampana)
 const _M_NEXT_MONTH = '<?= date('Y-m', strtotime('first day of next month')) ?>';
+const _M_GRUPO_PROCESO    = ['IN PROCESS','READY TO ENROLL','PLAN CHANGE','PENDING'];
+const _M_GRUPO_CANCELADOS = ['CANCELED','DENIED','CERRADO','DISENROLLED'];
 
 function applyMemberFilters(){
     const q = (document.getElementById('member-search')?.value||'').toLowerCase().trim();
@@ -8683,8 +8723,12 @@ function applyMemberFilters(){
             if(_mEstado === 'FUTUROS')      m = !!(r.dataset.fecha && r.dataset.fecha.startsWith(_M_NEXT_MONTH));
             else if(_mEstado === '__EMPTY__') m = !r.dataset.estado;
             else if(_mEstado === '__DECEASED__') m = (r.dataset.subestado === 'DECEASED');
+            else if(_mEstado === '__PROCESO__')    m = _M_GRUPO_PROCESO.includes(r.dataset.estado);
+            else if(_mEstado === '__CANCELADOS__') m = _M_GRUPO_CANCELADOS.includes(r.dataset.estado);
+            else if(_mEstado === '__PROSPECTO__')  m = r.dataset.estado==='PROSPECT';
             else                            m = (r.dataset.estado === _mEstado);
         }
+        if(m && _mCampOrigen){ m = (r.dataset.campanaOrigen === _mCampOrigen); }
         if(m && (_mAnio || _mMesNum)){
             const dm = r.dataset.mes || '';            // "YYYY-MM"
             if(_mAnio   && dm.substring(0,4) !== _mAnio)   m = false;
@@ -8694,6 +8738,28 @@ function applyMemberFilters(){
         if(m){ count++; if(q){ r.classList.add('search-match'); setTimeout(()=>r.classList.remove('search-match'),600); } }
     });
     const mc = document.getElementById('member-count'); if(mc) mc.textContent = count;
+}
+// Se llama desde el reporte de una campaña ("EMBUDO HACIA EL CRM") para ver
+// en Miembros exactamente a las personas que vinieron de esa lista, en la
+// etapa que se tocó (o todas, si grupo es '').
+function verMiembrosCampana(campId, grupo, nombreCampana){
+    showTab('MIEMBROS');
+    _mCampOrigen = String(campId);
+    _mEstado = grupo === 'ACTIVOS' ? 'ACTIVE'
+             : grupo === 'PROCESO' ? '__PROCESO__'
+             : grupo === 'CANCELADOS' ? '__CANCELADOS__'
+             : grupo === 'PROSPECTO' ? '__PROSPECTO__'
+             : '';
+    _setPillVisual('');
+    const fe=document.getElementById('filter-estado'); if(fe) fe.value='';
+    const chip=document.getElementById('camp-origen-chip');
+    if(chip){ chip.style.display='inline-flex'; chip.querySelector('span').textContent='📣 '+(nombreCampana||('CAMPAÑA #'+campId)); }
+    applyMemberFilters();
+}
+function limpiarFiltroCampOrigen(){
+    _mCampOrigen='';
+    const chip=document.getElementById('camp-origen-chip'); if(chip) chip.style.display='none';
+    applyMemberFilters();
 }
 function _setPillVisual(est){
     document.querySelectorAll('.pill-btn').forEach(b=>{
