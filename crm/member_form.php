@@ -378,14 +378,28 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
                   text-transform:uppercase">★ CADA CUENTA APARECERÁ EN SU PROPIO CONTEO DE CONTACTOS</div>
     </div>
 
-    <div class="form-group">
-      <label class="form-label">FUENTE</label>
-      <select name="fuente" class="form-input">
-        <option value="">—</option>
-        <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','WALK-IN','MIEMBRO ANTIGUO','IGLESIA','GOOGLE','OTRO'] as $o): ?>
-        <option<?= ($m['fuente']??'')===$o?' selected':'' ?>><?= $o ?></option>
-        <?php endforeach; ?>
-      </select>
+    <div class="grid-2">
+      <div class="form-group">
+        <label class="form-label">FUENTE</label>
+        <select name="fuente" class="form-input">
+          <option value="">—</option>
+          <?php foreach (['REFERIDO CUENTA','REFERIDO MIEMBRO','FACEBOOK LEAD','EVENTO COMUNIDAD','DIRECTA','WALK-IN','MIEMBRO ANTIGUO','IGLESIA','GOOGLE','OTRO'] as $o): ?>
+          <option<?= ($m['fuente']??'')===$o?' selected':'' ?>><?= $o ?></option>
+          <?php endforeach; ?>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">CAMPAÑA DE ORIGEN — SI VINO DE UNA</label>
+        <select name="campana_origen_id" class="form-input">
+          <option value="">— NINGUNA —</option>
+          <?php
+          $campanas_origen = $pdo->query("SELECT id,nombre FROM campanas ORDER BY nombre")->fetchAll();
+          foreach ($campanas_origen as $co): ?>
+          <option value="<?= (int)$co['id'] ?>"<?= ((int)($m['campana_origen_id']??0)===(int)$co['id'])?' selected':'' ?>><?= h($co['nombre']) ?></option>
+          <?php endforeach; ?>
+        </select>
+        <div style="font-size:7px;color:#7A90A4;margin-top:3px;letter-spacing:1px;text-transform:uppercase">★ SE LLENA SOLO AL PROMOVER DESDE CAMPAÑAS — AQUÍ LO PUEDES CORREGIR O AGREGAR A MANO</div>
+      </div>
     </div>
 
     <input type="hidden" name="cuentas_referidas_json" id="mf-cuentas-json" value="">
