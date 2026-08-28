@@ -330,6 +330,59 @@ th{text-align:left;padding:9px 12px;background:var(--surface);color:var(--text-m
 td{padding:9px 12px;border-bottom:1px solid var(--border);color:var(--text)}
 tr:hover td{background:var(--surface)}
 
+/* ─── TRAINING (ENTRENAMIENTO) ─── */
+details.card{margin-bottom:12px}
+details.card>summary{padding:14px 18px;border-bottom:1px solid transparent;display:flex;align-items:center;gap:10px;cursor:pointer;list-style:none;font-family:'Fraunces',serif;font-size:15px;color:var(--text)}
+details.card>summary::-webkit-details-marker{display:none}
+details.card>summary .lesson-num{font-family:'DM Mono',monospace;font-size:11px;color:var(--gold-dk);background:var(--gold-lt);border:1px solid var(--gold);border-radius:20px;padding:2px 9px;flex-shrink:0}
+details.card>summary::after{content:'▾';margin-left:auto;color:var(--text-muted);transition:transform .2s;flex-shrink:0}
+details.card[open]>summary{border-bottom-color:var(--border)}
+details.card[open]>summary::after{transform:rotate(180deg)}
+details.card .card-body h4{font-family:'Fraunces',serif;font-weight:500;font-size:13.5px;color:var(--gold-dk);margin:14px 0 6px}
+details.card .card-body h4:first-child{margin-top:0}
+details.card .card-body ul{padding-left:18px;margin-bottom:10px}
+details.card .card-body li{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:3px}
+details.card .card-body p{font-size:13px;line-height:1.7;color:var(--text);margin-bottom:10px}
+.rule-box{background:var(--gold-lt);border:1.5px solid var(--gold);border-radius:10px;padding:12px 14px;font-size:12.5px;line-height:1.6;color:var(--text);margin:10px 0}
+.rule-box strong{color:var(--gold-dk)}
+.lesson-done{display:flex;align-items:center;gap:8px;font-size:12px;font-weight:600;color:var(--text-mid);margin-bottom:12px;padding-bottom:12px;border-bottom:1px dashed var(--border)}
+.lesson-done input{width:auto}
+.script-line{font-size:13px;line-height:1.7;padding:8px 12px;border-radius:8px;margin-bottom:6px}
+.script-line.agent{background:var(--teal-lt);border-left:3px solid var(--teal)}
+.script-line.client{background:var(--surface);border-left:3px solid var(--border-d);font-style:italic}
+.app-viewer{display:flex;flex-direction:column;gap:12px}
+.app-viewer-frame{background:var(--surface);border:1.5px solid var(--border);border-radius:12px;padding:14px;text-align:center}
+.app-viewer-frame img{max-width:100%;border-radius:8px;border:1.5px solid var(--border-d);box-shadow:var(--sh)}
+.app-viewer-controls{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.app-step-count{font-family:'DM Mono',monospace;font-size:11.5px;color:var(--text-muted)}
+.app-caption{background:var(--amber-lt);border:1.5px solid var(--amber);border-radius:10px;padding:10px 14px;font-size:12.5px;color:var(--amber);font-weight:600}
+.app-thumbs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px}
+.app-thumbs img{width:66px;height:44px;object-fit:cover;border-radius:6px;border:2px solid var(--border);cursor:pointer;flex-shrink:0;opacity:.65;transition:all .15s}
+.app-thumbs img:hover{opacity:1}
+.app-thumbs img.active{border-color:var(--gold);opacity:1}
+
+/* ─── FLUJO DE PASOS (HACER CITAS) ─── */
+.steps{display:flex;flex-direction:column;gap:0;margin:4px 0}
+.step{display:flex;gap:14px;position:relative;padding-bottom:18px}
+.step:last-child{padding-bottom:0}
+.step::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border)}
+.step:last-child::before{display:none}
+.step-num{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;z-index:1;
+  background:var(--gold-lt);border:1.5px solid var(--gold);color:var(--gold-dk);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;
+}
+.step-body{flex:1;min-width:0;padding-top:4px}
+.step-title{font-family:'Fraunces',serif;font-size:14.5px;color:var(--text);margin-bottom:5px}
+.step-body p{font-size:13px;line-height:1.7;color:var(--text);margin-bottom:8px}
+.step-body ul{padding-left:18px;margin-bottom:8px}
+.step-body li{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:3px}
+.cita-out{
+  background:var(--surface);border:1.5px dashed var(--border-d);border-radius:10px;
+  padding:14px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;min-height:60px;
+}
+
 /* ─── SEPARATOR ─── */
 .sep{height:1px;background:var(--border);margin:16px 0}
 .mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
@@ -409,6 +462,12 @@ tr:hover td{background:var(--surface)}
       </button>
       <button class="nav-item" onclick="showModule('metricas',this)">
         <span class="nav-icon">📈</span><span class="nav-label">Métricas</span>
+      </button>
+    </div>
+    <div class="sidebar-label">EQUIPO</div>
+    <div class="sidebar-section">
+      <button class="nav-item" onclick="showModule('training',this)">
+        <span class="nav-icon">🎓</span><span class="nav-label">Entrenamiento</span>
       </button>
     </div>
     <div class="sidebar-label">HERRAMIENTAS COMPLETAS</div>
@@ -1424,6 +1483,525 @@ tr:hover td{background:var(--surface)}
       </div>
     </div>
 
+    <!-- ══════ ENTRENAMIENTO ══════ -->
+    <div class="module" id="mod-training">
+      <div class="page-header">
+        <div class="page-title">🎓 Centro de <em>Entrenamiento</em></div>
+        <div class="page-sub">Guía interna para empleados nuevos: fundamentos de Medicare, guiones de ventas, actividades semanales y aplicaciones paso a paso por aseguradora</div>
+      </div>
+
+      <div class="card mb-4">
+        <div class="card-body" style="padding:14px 18px">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-sm text-bold">Tu progreso</span>
+            <span class="text-sm mono" id="trainProgressLabel">0 / 14 lecciones</span>
+          </div>
+          <div class="progress-bar"><div class="progress-fill" id="trainProgressFill" style="width:0%"></div></div>
+        </div>
+      </div>
+
+      <div class="tabs" id="trainTabs">
+        <button class="tab active" onclick="switchTab('trainTabs','trainPane','train-fund')">📘 Fundamentos</button>
+        <button class="tab" onclick="switchTab('trainTabs','trainPane','train-ventas')">💬 Ventas</button>
+        <button class="tab" onclick="switchTab('trainTabs','trainPane','train-citas')">📞 Hacer Citas</button>
+        <button class="tab" onclick="switchTab('trainTabs','trainPane','train-actividades')">📅 Actividades</button>
+        <button class="tab" onclick="switchTab('trainTabs','trainPane','train-apps')">📋 Aplicaciones Paso a Paso</button>
+      </div>
+
+      <div id="trainPane">
+
+        <!-- ─── FUNDAMENTOS ─── -->
+        <div class="tab-pane active" id="train-fund">
+
+          <details class="card" open>
+            <summary><span class="lesson-num">1</span>¿Quiénes Somos?</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-1" onchange="toggleLesson('fund-1',this.checked)"><label for="chk-fund-1" style="margin:0">Marcar lección como completada</label></div>
+              <p><strong>Medicare with Isabel</strong> es una empresa dedicada a la venta y orientación de seguros médicos en California, principalmente para personas que tienen Medicare — incluyendo personas de 65 años o más y personas que califican por otras razones. Nuestro trabajo es ayudar a nuestros clientes a entender sus opciones de cobertura médica y encontrar un plan que se ajuste a sus necesidades.</p>
+              <h4>¿Qué tipo de cobertura ofrecemos?</h4>
+              <p>Trabajamos principalmente con planes de <strong>Medicare Advantage (Parte C)</strong>. Estos planes combinan la cobertura de Medicare Parte A y Parte B y, dependiendo del plan, pueden incluir beneficios adicionales: médico primario, especialistas, hospitalización, medicamentos recetados, servicios preventivos y de laboratorio, Dental, Vision, Hearing, allowances/OTC, transporte para citas médicas y otros beneficios según el plan y la elegibilidad del miembro.</p>
+              <h4>¿Qué hacemos nosotros?</h4>
+              <p>Nuestro trabajo no es solamente vender un seguro — ayudamos al cliente a entender sus opciones. En cada conversación debemos conocer:</p>
+              <ul>
+                <li><strong>Sus médicos</strong> — ¿quién es su doctor primario? ¿tiene especialistas?</li>
+                <li><strong>Sus medicamentos</strong> — ¿qué toma y qué tan importante es mantenerlos cubiertos?</li>
+                <li><strong>Sus necesidades de salud</strong> — ¿qué servicios utiliza con frecuencia?</li>
+                <li><strong>Sus beneficios actuales</strong> — ¿qué tiene y qué considera importante?</li>
+                <li><strong>Sus necesidades adicionales</strong> — Dental, Vision, Hearing, transporte, OTC, allowances, etc.</li>
+              </ul>
+              <h4>¿Quién es nuestro cliente?</h4>
+              <ul>
+                <li>Personas de 65 años o más.</li>
+                <li>Personas que ya tienen Medicare.</li>
+                <li>Personas que están entrando a Medicare por primera vez (T65).</li>
+                <li>Personas que tienen Medicare + Medi-Cal.</li>
+                <li>Personas que necesitan revisar si su plan actual sigue siendo conveniente.</li>
+              </ul>
+              <div class="rule-box">⚠️ <strong>IMPORTANTE PARA EL EMPLEADO:</strong> No debemos prometer beneficios sin verificar primero el plan. Los beneficios, copagos, médicos, medicamentos y cantidades permitidas pueden variar de un plan a otro y según la elegibilidad del miembro. Nuestro trabajo es <strong>educar, orientar y ayudar</strong> al cliente — no simplemente ofrecerle un plan.</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">2</span>Medicare y Medi-Cal: Conceptos Básicos</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-2" onchange="toggleLesson('fund-2',this.checked)"><label for="chk-fund-2" style="margin:0">Marcar lección como completada</label></div>
+              <p>Antes de aprender los planes que ofrecemos, es importante entender la diferencia entre Medicare y Medi-Cal, ya que muchos clientes pueden tener uno de estos programas — o ambos a la vez.</p>
+              <h4>¿Qué es Medicare?</h4>
+              <p>Un programa <strong>federal</strong> de seguro médico. Generalmente se obtiene a los 65 años, aunque también se puede calificar antes bajo ciertas circunstancias. Está dividido en partes:</p>
+              <ul>
+                <li><strong>Parte A — Hospital:</strong> hospitalizaciones, centros de enfermería especializada, hospice, algunos servicios de salud en el hogar.</li>
+                <li><strong>Parte B — Servicios médicos:</strong> visitas al médico, especialistas, servicios preventivos, laboratorios, equipo médico. (Parte A + Parte B = <strong>Medicare Original</strong>.)</li>
+                <li><strong>Parte D — Medicamentos:</strong> cobertura de medicamentos recetados, según el formulario de cada plan.</li>
+              </ul>
+              <h4>¿Qué es Medi-Cal?</h4>
+              <p>Es el programa de <strong>Medicaid del estado de California</strong>. A diferencia de Medicare, está basado principalmente en ingresos, situación familiar y otros requisitos de elegibilidad.</p>
+              <h4>¿Puede una persona tener ambos?</h4>
+              <p>Sí. Cuando una persona tiene Medicare y Medi-Cal a la vez, se le conoce como <strong>Dual Eligible</strong> (beneficiario dual). Esto es muy importante para nuestro trabajo porque existen planes diseñados específicamente para personas duales, incluyendo distintos tipos de <strong>D-SNP</strong> (Dual Eligible Special Needs Plans).</p>
+              <div class="rule-box">📏 <strong>Regla básica:</strong> Medicare = programa federal. Medi-Cal = programa de California. Medicare + Medi-Cal = cobertura dual (Dual Eligible). Nunca asumas que todos los clientes tienen la misma cobertura — siempre pregunta: ¿tiene Medicare? ¿Parte A y B? ¿tiene Medi-Cal? ¿tiene ambos? ¿qué plan tiene ahora? ¿qué médicos y medicamentos usa?</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">3</span>Medicare, Medi-Cal y Medicare Advantage</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-3" onchange="toggleLesson('fund-3',this.checked)"><label for="chk-fund-3" style="margin:0">Marcar lección como completada</label></div>
+              <p>Para inscribir a una persona en un plan de Medicare Advantage, lo principal es que tenga <strong>Medicare Parte A y Parte B</strong> y cumpla los requisitos del plan. <strong>Medi-Cal no es un requisito</strong> para tener Medicare Advantage.</p>
+              <h4>Dos escenarios</h4>
+              <ul>
+                <li><strong>Medicare solamente</strong> → puede tener acceso a planes de Medicare Advantage regulares, según elegibilidad y área de servicio.</li>
+                <li><strong>Medicare + Medi-Cal</strong> → es Dual Eligible y puede tener acceso a opciones diseñadas para personas con ambas coberturas, como los <strong>D-SNP</strong>, que pueden ofrecer beneficios adicionales y coordinación entre los dos programas.</li>
+              </ul>
+              <h4>Algo muy importante</h4>
+              <p>Tener Medicare + Medi-Cal <strong>no significa automáticamente</strong> que todos los servicios sean gratis ni que todos los beneficios sean iguales. Los beneficios, copagos, medicamentos, médicos y allowances dependen del plan y de la elegibilidad de cada miembro. Primero verificamos la situación del cliente, después revisamos qué opciones están disponibles.</p>
+              <div class="rule-box">☎️ <strong>La pregunta clave en cualquier llamada:</strong> "¿Usted tiene Medicare y también tiene Medi-Cal?" — Esto nos permite continuar con las preguntas necesarias para identificar sus opciones.</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">4</span>¿Qué es una Aseguradora?</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-4" onchange="toggleLesson('fund-4',this.checked)"><label for="chk-fund-4" style="margin:0">Marcar lección como completada</label></div>
+              <p>Una aseguradora es la empresa que administra un seguro de salud — en nuestro caso, las compañías que ofrecen y administran los planes de Medicare Advantage. Recibe dinero de Medicare para administrar la cobertura de sus miembros y, según las reglas del plan, administra: la red de médicos y hospitales, copagos, deducibles, medicamentos cubiertos, autorizaciones previas, beneficios adicionales, reclamaciones, la tarjeta del miembro y el servicio al cliente.</p>
+              <h4>Aseguradora ≠ Plan</h4>
+              <p>La aseguradora es la <strong>compañía</strong>. El plan es el <strong>producto</strong> de seguro que esa compañía ofrece — una misma aseguradora puede tener varios planes (HMO, PPO, planes para Medicare + Medi-Cal, etc.), y cada uno puede tener diferente copago, red, Dental, Vision, OTC, cobertura de medicamentos y MOOP. Por eso nunca decimos "este es el beneficio de la aseguradora" — preguntamos <strong>"¿de qué plan estamos hablando?"</strong></p>
+              <h4>La aseguradora vs. Medicare with Isabel</h4>
+              <p><strong>La aseguradora</strong> administra la cobertura, la red, los beneficios, los costos compartidos, las autorizaciones y las reclamaciones. <strong>Nosotros</strong> somos el broker/agencia — ayudamos al cliente a <strong>CONOCER → COMPARAR → ELEGIR → INSCRIBIRSE</strong> en las opciones para las que puede ser elegible. No administramos directamente su cobertura médica.</p>
+              <p>Flujo completo: <strong>MEDICARE</strong> (aprueba y regula el programa) → <strong>ASEGURADORA</strong> (administra el plan) → <strong>PLAN</strong> (define beneficios, costos, red y reglas) → <strong>MIEMBRO</strong> (usa su cobertura) → <strong>MEDICARE WITH ISABEL</strong> (ayuda a entender opciones y a inscribirse).</p>
+              <div class="rule-box">🧠 <strong>Memoriza:</strong> La aseguradora es la compañía. El plan es la cobertura específica. Medicare establece las reglas del programa. Medicare with Isabel ayuda al cliente a entender y elegir entre las opciones disponibles. Si un cliente dice "tengo SCAN", eso no basta — pregunta siempre <strong>qué plan de SCAN</strong> tiene.</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">5</span>Tipos de Planes de Medicare Advantage</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-5" onchange="toggleLesson('fund-5',this.checked)"><label for="chk-fund-5" style="margin:0">Marcar lección como completada</label></div>
+              <p>La primera pregunta siempre es: <strong>¿el cliente tiene solamente Medicare o tiene Medicare + Medi-Cal?</strong></p>
+              <h4>1. Clientes con Medicare solamente</h4>
+              <p>Medicare Parte A + B, sin Medi-Cal. Puede ser elegible para HMO, PPO u otros tipos de Medicare Advantage según su área. Un plan puede incluir médico primario, especialistas, hospital, laboratorios, preventivos, medicamentos (si incluye Parte D) y beneficios adicionales: Dental, Vision, Hearing, OTC, Transportation, Fitness, entre otros. <strong>No todos los planes tienen los mismos beneficios</strong> — uno puede tener $3,000 en Dental y otro $1,500.</p>
+              <h4>2. Clientes con Medicare + Medi-Cal (Dual Eligible)</h4>
+              <p>Aquí aparece el <strong>D-SNP</strong> (Dual Eligible Special Needs Plan): planes de Medicare Advantage diseñados para personas con Medicare y Medicaid/Medi-Cal. En California también existen los <strong>Medi-Medi Plans</strong>, que coordinan beneficios de ambos programas (dhcs.ca.gov). Pueden ofrecer médico, especialistas, hospital, medicamentos, Dental, Vision, Hearing, OTC, Transportation, beneficios de alimentos/groceries y más — pero siempre según el plan y la elegibilidad específica.</p>
+              <h4>Beneficios principales que debemos conocer</h4>
+              <ul>
+                <li>🩺 <strong>Médico primario:</strong> verificar red, copago y reglas del plan.</li>
+                <li>👨‍⚕️ <strong>Especialistas:</strong> si están en la red, si necesitan referido, copago y requisitos especiales.</li>
+                <li>🏥 <strong>Hospital:</strong> hospitales en la red, copago/coseguro, reglas de admisión.</li>
+                <li>💊 <strong>Medicamentos:</strong> si está cubierto, en qué Tier, costo, si requiere Prior Authorization o Step Therapy, cantidad permitida y farmacia preferida. "Cubierto" no siempre significa "gratis".</li>
+                <li><strong>Dental:</strong> preventivo, básico, mayor, allowance, límites anuales, redes específicas.</li>
+                <li><strong>Vision:</strong> examen, lentes, allowance, frecuencia.</li>
+                <li><strong>Hearing:</strong> examen auditivo, audífonos, allowance.</li>
+                <li><strong>OTC</strong> (Over-the-Counter): asignación mensual, trimestral o anual — nunca asumas la cantidad.</li>
+                <li><strong>Transportation:</strong> número de viajes, distancia máxima, requisitos, sistema de reserva.</li>
+                <li>Otros: Fitness, Food/Grocery, allowances, programas de bienestar, beneficios para duales.</li>
+              </ul>
+              <h4>¿Cómo comparar dos planes?</h4>
+              <p>Nunca comparamos solo el beneficio que "suena mejor". Ej: Plan A (Dental $4,000 / OTC $150 / Vision $300) vs. Plan B (Dental $2,500 / OTC $200 / Vision $450) — no podemos decir que uno es mejor sin preguntar <strong>qué necesita el cliente</strong>, y aún así revisar médico, especialistas, hospital, medicamentos, copagos, MOOP, red y elegibilidad.</p>
+              <h4>El orden correcto para analizar un plan</h4>
+              <p>1️⃣ Elegibilidad → 2️⃣ Médicos → 3️⃣ Medicamentos → 4️⃣ Hospital → 5️⃣ Costos → 6️⃣ Beneficios (Dental/Vision/Hearing/OTC/Transportation) → 7️⃣ Preferencias del cliente.</p>
+              <div class="rule-box">🎯 <strong>La idea que debes recordar:</strong> No todos los clientes necesitan el mismo plan. No todos los planes tienen los mismos beneficios. No todos los clientes tienen la misma elegibilidad. Primero identificamos al cliente → después sus necesidades → luego buscamos opciones disponibles → y finalmente comparamos planes.</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">6</span>Las Aseguradoras con las que Trabajamos</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-fund-6" onchange="toggleLesson('fund-6',this.checked)"><label for="chk-fund-6" style="margin:0">Marcar lección como completada</label></div>
+              <p>Las seis aseguradoras principales que debes reconocer: <strong>Humana, SCAN, Anthem, L.A. Care, Molina y Alignment.</strong></p>
+              <div class="rule-box">No quiero que memorices "Humana tiene esto, SCAN tiene aquello" — eso lleva a errores. Piensa siempre: <strong>ASEGURADORA → PLAN ESPECÍFICO → AÑO → ELEGIBILIDAD DEL CLIENTE.</strong> Los beneficios deben verificarse siempre en el material vigente del plan.</div>
+              <h4>Humana</h4>
+              <p>Ofrece distintos tipos de Medicare Advantage según área y elegibilidad, incluyendo — dependiendo del mercado — planes para Medicare + Medicaid/Medi-Cal. Identifica siempre: nombre y número del plan, tipo, área de servicio, prima, copagos, MOOP, red médica, hospitales, medicamentos, Dental, Vision, Hearing, OTC, Transportation. Si un cliente dice "yo tengo Humana", pregunta el nombre exacto de su plan.</p>
+              <h4>SCAN</h4>
+              <p>Diferentes opciones de Medicare Advantage, incluyendo planes para determinados miembros con necesidades específicas y opciones duales. Revisa HMO/PPO, redes, médicos, hospitales, medicamentos, copagos, MOOP, Dental, Vision, Hearing, OTC/FlexCard y Transportation. Nunca digas "SCAN siempre da $X de Dental" — cada plan específico tiene sus propias condiciones.</p>
+              <h4>Anthem</h4>
+              <p>Distintos planes de Medicare Advantage según área. Revisa tipo de plan, red, médico primario, especialistas, hospitales, copagos, MOOP, medicamentos, Dental, Vision, Hearing, Transportation y OTC cuando aplique. Nunca compares aseguradoras completas — compara <strong>Plan A vs. Plan B</strong> según las necesidades del cliente.</p>
+              <h4>L.A. Care</h4>
+              <p>Muy relevante en California por su presencia en Medicare y en Medi-Cal. Primero identifica: ¿tiene Medicare? ¿tiene Medi-Cal? ¿tiene ambos? ¿qué plan? ¿qué tipo de elegibilidad? — clave para clientes duales.</p>
+              <h4>Molina</h4>
+              <p>Fuerte presencia en Medicaid/Medi-Cal, y también ofrece Medicare Advantage en ciertos mercados. Verifica Medicare, Medi-Cal, elegibilidad dual, plan específico, red, hospitales, medicamentos, copagos, MOOP y beneficios. No asumas que alguien califica solo por tener Medi-Cal — verifica primero.</p>
+              <h4>Alignment</h4>
+              <p>Ofrece Medicare Advantage en determinados mercados. Revisa siempre tipo de plan, red, médico primario, especialistas, hospital, medicamentos, copagos, MOOP, Dental, Vision, Hearing, OTC y Transportation. No memorices solo la compañía — aprende a identificar el plan.</p>
+              <h4>¿Cómo aprender cada aseguradora?</h4>
+              <p>Misma estructura siempre: <strong>Aseguradora → Tipo de cliente → Plan → Red → Medicamentos → Costos (prima + copagos + deducible + MOOP) → Beneficios → Elegibilidad → Inscripción.</strong></p>
+              <div class="rule-box">🚫 Si un cliente pregunta "¿cuál es el mejor seguro?", nunca respondas de inmediato "Humana" o "SCAN" o "Anthem". La respuesta correcta es: <strong>"Depende de sus necesidades. Primero necesito conocer sus médicos, medicamentos y qué beneficios son importantes para usted."</strong> Ese es el objetivo de tu entrenamiento: no aprender a vender una aseguradora, sino a identificar qué plan puede funcionar para cada cliente.</div>
+            </div>
+          </details>
+
+        </div>
+
+        <!-- ─── VENTAS ─── -->
+        <div class="tab-pane" id="train-ventas">
+
+          <details class="card" open>
+            <summary><span class="lesson-num">1</span>Preguntas de Elegibilidad</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-vent-1" onchange="toggleLesson('vent-1',this.checked)"><label for="chk-vent-1" style="margin:0">Marcar lección como completada</label></div>
+              <h4>Preguntas que debes hacer (no eres el agente)</h4>
+              <ul>
+                <li>¿Tiene actualmente 65 años o más?</li>
+                <li>¿Tiene una discapacidad que cumple los requisitos para ser elegible para Medicare antes de los 65?</li>
+                <li>¿Es ciudadano estadounidense o residente legal que ha vivido en el país al menos cinco años consecutivos?</li>
+                <li>¿Usted o su cónyuge han trabajado y pagado impuestos de Medicare por al menos 10 años?</li>
+                <li>¿Está recibiendo actualmente beneficios del Seguro Social o es elegible para recibirlos?</li>
+                <li>¿Tiene enfermedad renal en etapa terminal (ESRD) o esclerosis lateral amiotrófica (ALS)?</li>
+              </ul>
+              <h4>Para confirmar que tiene Medicare</h4>
+              <ul>
+                <li>¿Está actualmente inscrito en algún otro plan de seguro médico, como del empleador (o el de su cónyuge)?</li>
+                <li>¿Está buscando cobertura para hospital, visitas al médico, medicamentos, o todo lo anterior?</li>
+                <li>¿Está interesado en opciones adicionales como Medicare Advantage o Medicare Supplement?</li>
+                <li>¿Tiene alguna condición de salud específica que le gustaría asegurarse esté cubierta?</li>
+              </ul>
+              <div class="rule-box">📝 <strong>Notas:</strong> Grupos médicos UCLA, Mid Valley y Kaiser tienen que cambiar de doctor al pasarse a Anthem. Y recuerda: <strong>si el prospecto ya tiene un plan con Anthem, eso no cuenta como venta.</strong></div>
+              <p class="text-muted text-sm mt-3">🇺🇸 Versión en inglés disponible — el mismo cuestionario en "Questions You Should Ask – Eligibility" y el guión de llamada en inglés siguen la misma estructura, para prospectos que prefieren comunicarse en inglés.</p>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">2</span>Guión de Llamada para Agendar Cita</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-vent-2" onchange="toggleLesson('vent-2',this.checked)"><label for="chk-vent-2" style="margin:0">Marcar lección como completada</label></div>
+              <div class="script-line agent">"¡Hola! ¿Hablo con [Nombre del cliente]? Soy [Tu nombre], llamando de parte de Isabel Fuentes. Me comentó que es posible que usted califique para el plan de Medicare Advantage / para más beneficios de Medicare."</div>
+              <div class="script-line client">Cliente: "Sí."</div>
+              <div class="script-line agent"><strong>Pregunta 1:</strong> "¿Ya estás inscrito en Medicare Parte A y Parte B?" · "¿Tienes Medicaid?"</div>
+              <div class="script-line agent"><strong>Pregunta 2:</strong> "¿Tiene insuficiencia renal? Espero que no sea el caso."</div>
+              <div class="script-line agent"><strong>Pregunta 3:</strong> "¿Tienes algún otro seguro médico, como a través del trabajo?"</div>
+              <div class="script-line agent">Si califica: "Perfecto, [Nombre], eres elegible para nuestros planes de Medicare Advantage. Además de los beneficios estándar de Parte A y B, nuestros planes ofrecen ventajas adicionales, como ayuda con alimentos saludables o asistencia con facturas de servicios públicos. ¿Sabías de estas ventajas?"</div>
+              <div class="script-line agent"><strong>Agendar cita:</strong> "Agendaré una cita con Isabel, quien tiene licencia y conoce bien nuestros planes. Ella te explicará cómo acceder a esos beneficios adicionales. ¿Te viene bien programar una reunión con ella la próxima semana?" — confirma teléfono, correo electrónico y el nombre/teléfono de su médico de cabecera.</div>
+              <div class="rule-box">🗣️ <strong>Pedir referencias</strong> (al cerrar cualquier llamada): "¿Hay alguien en el hogar que tenga Medicare?" — "Gracias por su tiempo. Mi nombre es X, y si conoce a alguien interesado en nuestros servicios, estaré encantada de ayudar. Muchas gracias por elegirnos."</div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">3</span>Cómo Calificar Rápido a un Prospecto</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-vent-3" onchange="toggleLesson('vent-3',this.checked)"><label for="chk-vent-3" style="margin:0">Marcar lección como completada</label></div>
+              <ul>
+                <li>Si está por cumplir 65, le podemos ayudar con su trámite de Medicare.</li>
+                <li>Tiene Medicare Parte A y Parte B → con esto ya es elegible.</li>
+                <li>Si solo tiene una de las dos partes → no es elegible.</li>
+                <li>Tiene Medicare y Medi-Cal (Medicaid) → puede optar por un plan mejor (dual).</li>
+                <li>Solo tiene Medi-Cal → no es elegible.</li>
+              </ul>
+              <h4>Preguntas rápidas de calificación</h4>
+              <ul>
+                <li>¿Tienes Medicare Parte A y B?</li>
+                <li>¿Tienes Medicaid?</li>
+                <li>¿Te han diagnosticado con trastorno cardiovascular, enfermedad cardíaca crónica o diabetes?</li>
+                <li>¿Eres miembro de un sindicato o tienes cobertura de grupo por empleador / TRICARE?</li>
+              </ul>
+              <h4>Datos a confirmar para la cita</h4>
+              <ul>
+                <li>Día, lugar y hora (intenta que vayan al Seguro Social de Panorama en un evento de Isabel).</li>
+                <li>Si es posible: dirección del prospecto, correo electrónico y mes/fecha de cumpleaños.</li>
+              </ul>
+              <p class="text-muted text-sm">*** Las citas se agendan por teléfono o por Zoom.</p>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">4</span>Mensajes de Voz</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-vent-4" onchange="toggleLesson('vent-4',this.checked)"><label for="chk-vent-4" style="margin:0">Marcar lección como completada</label></div>
+              <h4>🦷 Dental</h4>
+              <p>"Hola, soy Isabel, agente de seguros de Anthem Blue Cross. Quiero informarte que, como parte de tu plan de Medicare Advantage, tienes un beneficio dental de hasta $4,000. Si tienes alguna pregunta o deseas más información, no dudes en contactarme. ¡Que tengas un excelente día!"</p>
+              <h4>📍 Lugares donde estará</h4>
+              <p>"Hola, soy Isabel, agente de seguros de Anthem Blue Cross. Durante el mes estaré en la oficina del Seguro Social en Panorama, 14500 Roscoe Blvd, primer piso, en el lobby — lunes a viernes, de 9:00 a.m. a 12:00 del mediodía. ¡Nos vemos pronto!"</p>
+              <h4>🏋️ Beneficios de gimnasio</h4>
+              <p>"Hola, soy Isabel, agente de seguros de Anthem Blue Cross. Como parte de tu plan de Medicare Advantage, tienes acceso a beneficios de gimnasio totalmente gratis. ¡Estoy aquí para ayudarte!"</p>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">5</span>Textos para Prospectos</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-vent-5" onchange="toggleLesson('vent-5',this.checked)"><label for="chk-vent-5" style="margin:0">Marcar lección como completada</label></div>
+              <h4>Confirmar cita</h4>
+              <p>"Estimado/a [Nombre], espero que este mensaje le encuentre bien. Nos complace confirmar la cita programada para [fecha], recordando que estaré de 9:00 am a 12:00 pm en [ubicación]. — Isabel Fuentes"</p>
+              <h4>Mensaje general a prospectos</h4>
+              <p>"Hola, soy Isabel Fuentes y estoy revisando los beneficios del plan de Medicare Advantage para este año. Me gustaría ofrecerte información detallada — ¿podría llamarme lo antes posible para programar una cita? 📲"</p>
+              <h4>Bienvenida (recién conocido)</h4>
+              <p>"¡Hola [Nombre]! Soy Isabel Fuentes y fue un placer conocerte. Nuestro plan de Medicare Advantage es increíble y quiero ayudarte a descubrir todos los beneficios que ofrece. ¿Te gustaría agendar una cita? 😊"</p>
+              <h4>Llamada perdida</h4>
+              <p>"¡Hola! Me di cuenta de que perdí una llamada tuya. ¿Podrías textearme tu nombre y cómo puedo ayudarte? ¡Gracias!"</p>
+              <h4>Turning 65 (T65)</h4>
+              <p>"¡Felicitaciones por haber cumplido 65 años! Este es el momento perfecto para considerar inscribirte en Medicare, si aún no lo has hecho — puedes inscribirte hasta tres meses después de tu cumpleaños. Si tienes preguntas, aquí estoy para ayudarte."</p>
+              <div class="rule-box">📞 Todos los textos cierran invitando a llamar o enviar mensaje a los números de contacto de Isabel. Usa siempre un tono cálido y personalizado con el nombre del prospecto, y mantente dentro de las reglas de compliance CMS (sin promesas absolutas ni garantías).</div>
+            </div>
+          </details>
+
+        </div>
+
+        <!-- ─── HACER CITAS ─── -->
+        <div class="tab-pane" id="train-citas">
+
+          <div class="alert-bar">🎯 La llamada <strong>no es para vender ni para explicar planes</strong> — es para calificar al prospecto y agendar la cita con Isabel. Ella es la agente licenciada que explica los planes.</div>
+
+          <details class="card" open>
+            <summary><span class="lesson-num">1</span>El proceso, paso a paso</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-1" onchange="toggleLesson('cita-1',this.checked)"><label for="chk-cita-1" style="margin:0">Marcar lección como completada</label></div>
+              <div class="steps">
+
+                <div class="step">
+                  <div class="step-num">1</div>
+                  <div class="step-body">
+                    <div class="step-title">Antes de llamar — prepárate</div>
+                    <ul>
+                      <li>Ten a la mano el <strong>calendario del mes</strong> de Isabel: necesitas saber qué días y en qué lugares estará antes de ofrecer una fecha.</li>
+                      <li>Revisa si el prospecto <strong>ya fue contactado antes</strong> y qué se habló, para no repetir la misma conversación.</li>
+                      <li>Abre la <strong>tabla de elegibilidad</strong> para ir anotando los datos durante la llamada, no después.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">2</div>
+                  <div class="step-body">
+                    <div class="step-title">Abre la llamada</div>
+                    <div class="script-line agent">"¡Hola! ¿Hablo con [Nombre del cliente]? Soy [Tu nombre], llamando de parte de Isabel Fuentes. Me comentó que es posible que usted califique para más beneficios de Medicare."</div>
+                    <p class="text-muted text-sm">El guión completo está en la pestaña <strong>💬 Ventas → Guión de Llamada</strong>.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">3</div>
+                  <div class="step-body">
+                    <div class="step-title">Califica antes de ofrecer la cita</div>
+                    <p>Las tres preguntas que deciden si vale la pena agendar:</p>
+                    <ul>
+                      <li>¿Ya está inscrito en <strong>Medicare Parte A y Parte B</strong>? ¿Tiene Medicaid (Medi-Cal)?</li>
+                      <li>¿Tiene insuficiencia renal?</li>
+                      <li>¿Tiene otro seguro médico, como del trabajo?</li>
+                    </ul>
+                    <div class="rule-box">⚠️ Si solo tiene <strong>una</strong> de las dos partes de Medicare, o solo tiene Medi-Cal, <strong>no es elegible</strong> — no agendes la cita. Si ya tiene un plan con <strong>Anthem</strong>, no cuenta como venta.</div>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">4</div>
+                  <div class="step-body">
+                    <div class="step-title">Ofrece la cita</div>
+                    <p>Ofrece <strong>dos opciones concretas</strong> de día y hora en vez de preguntar "¿cuándo puede?" — es mucho más fácil que el prospecto elija entre dos que invente una fecha.</p>
+                    <div class="script-line agent">"Agendaré una cita con Isabel, quien tiene licencia y conoce bien nuestros planes. Ella le podrá explicar cómo acceder a esos beneficios. ¿Le viene mejor el martes o el jueves en la mañana?"</div>
+                    <p>Prioridad de lugar: <strong>1)</strong> en persona, en uno de los eventos de Isabel (ver los lugares abajo) · <strong>2)</strong> por Zoom · <strong>3)</strong> por teléfono.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">5</div>
+                  <div class="step-body">
+                    <div class="step-title">Captura los datos — sin colgar</div>
+                    <p>Datos <strong>obligatorios</strong> de la cita:</p>
+                    <ul>
+                      <li>Día · Hora · Lugar</li>
+                      <li>Nombre completo y teléfono</li>
+                      <li>Médico de cabecera (nombre y teléfono si lo tiene)</li>
+                    </ul>
+                    <p>Si logras conseguir más datos, mucho mejor:</p>
+                    <ul>
+                      <li>Dirección del prospecto</li>
+                      <li>Correo electrónico</li>
+                      <li>Mes y fecha de cumpleaños <span class="text-muted">(clave para identificar T65)</span></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">6</div>
+                  <div class="step-body">
+                    <div class="step-title">Confirma por texto el mismo día</div>
+                    <p>Apenas cuelgues, manda el mensaje de confirmación. Usa la <strong>ficha de cita</strong> de abajo para generarlo ya listo para copiar.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">7</div>
+                  <div class="step-body">
+                    <div class="step-title">Recuerda un día antes</div>
+                    <p>Vuelve a mandar el mensaje de confirmación el día anterior. Es lo que más reduce las citas perdidas.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">8</div>
+                  <div class="step-body">
+                    <div class="step-title">Registra la cita</div>
+                    <p>Anota al prospecto en la <strong>tabla de elegibilidad</strong> y en el CRM. Una cita que no quedó registrada es una cita que se va a perder.</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">2</span>Si no contesta o dice que no</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-2" onchange="toggleLesson('cita-2',this.checked)"><label for="chk-cita-2" style="margin:0">Marcar lección como completada</label></div>
+              <h4>📵 No contesta</h4>
+              <p>Deja un mensaje de voz y manda un texto de seguimiento. Los mensajes de voz que funcionan están en <strong>💬 Ventas → Mensajes de Voz</strong> — el de beneficio dental, el de lugares donde estará, y el de gimnasio.</p>
+              <p>Después colócalo en el ciclo de seguimiento (<strong>📅 Actividades</strong>): se vuelve a llamar a los 15 días, 30, 60 y 180 días. Un prospecto que no contestó hoy no es un prospecto perdido.</p>
+              <h4>🙅 Dice que no le interesa</h4>
+              <ul>
+                <li>No insistas. Agradece y deja la puerta abierta.</li>
+                <li><strong>Siempre pide referencias antes de colgar:</strong> "¿Hay alguien en el hogar que tenga Medicare?"</li>
+                <li>Cierra: "Gracias por su tiempo. Si conoce a alguien interesado en nuestros servicios, estaré encantada de ayudar."</li>
+              </ul>
+              <h4>📅 Quiere pensarlo</h4>
+              <p>No lo dejes al aire — agenda la cita de todos modos y dile que puede reprogramar si necesita. Es mucho más fácil mover una cita que crear una desde cero.</p>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">3</span>Lugares y horarios de las citas</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-3" onchange="toggleLesson('cita-3',this.checked)"><label for="chk-cita-3" style="margin:0">Marcar lección como completada</label></div>
+              <div class="alert-bar">📌 Estos son los lugares habituales según el calendario de referencia. <strong>Confirma siempre el calendario del mes en curso con Isabel</strong> antes de ofrecer una fecha — los días y lugares cambian cada mes.</div>
+              <table>
+                <tr><th>Lugar</th><th>Dirección</th><th>Horario habitual</th></tr>
+                <tr><td><strong>SSA Panorama City</strong><br/><span class="text-muted text-sm">El más frecuente</span></td><td>14500 Roscoe Blvd, Panorama City</td><td>9:00 am – 12:00 pm</td></tr>
+                <tr><td><strong>SSA San Fernando</strong></td><td>456 SF Mission Blvd, San Fernando</td><td>9:00 am – 12:00 pm</td></tr>
+                <tr><td><strong>Optum Burbank</strong></td><td>2211 W Magnolia Blvd, Burbank</td><td>1:00 pm – 3:00 pm</td></tr>
+                <tr><td><strong>Por Zoom</strong></td><td>—</td><td>A convenir</td></tr>
+                <tr><td><strong>Por teléfono</strong></td><td>—</td><td>A convenir</td></tr>
+              </table>
+              <div class="rule-box mt-3">💡 El número exacto de suite en Panorama City ha aparecido de dos formas en los materiales (Ste. 207 y "primer piso, en el lobby"). <strong>Verifica con Isabel cuál es el correcto antes de dárselo a un prospecto.</strong></div>
+            </div>
+          </details>
+
+          <div class="card">
+            <div class="card-head"><span>📝</span><div class="card-title">Ficha de Cita — genera el mensaje de confirmación</div></div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div>
+                  <div class="form-row-2">
+                    <div>
+                      <label for="citaNombre">Nombre del prospecto</label>
+                      <input type="text" id="citaNombre" placeholder="Ej. Adrián Castro" oninput="generarConfirmacionCita()"/>
+                    </div>
+                    <div>
+                      <label for="citaTelefono">Teléfono</label>
+                      <input type="tel" id="citaTelefono" placeholder="323-555-0100"/>
+                    </div>
+                  </div>
+                  <div class="form-row-2">
+                    <div>
+                      <label for="citaFecha">Fecha de la cita</label>
+                      <input type="date" id="citaFecha" onchange="generarConfirmacionCita()"/>
+                    </div>
+                    <div>
+                      <label for="citaHora">Hora</label>
+                      <input type="text" id="citaHora" value="9:00 am a 12:00 pm" oninput="generarConfirmacionCita()"/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="citaLugar">Lugar</label>
+                    <select id="citaLugar" onchange="generarConfirmacionCita()">
+                      <option value="la oficina del Seguro Social de Panorama, 14500 Roscoe Blvd, Panorama City">SSA Panorama City — 14500 Roscoe Blvd</option>
+                      <option value="la oficina del Seguro Social de San Fernando, 456 SF Mission Blvd">SSA San Fernando — 456 SF Mission Blvd</option>
+                      <option value="Optum, 2211 W Magnolia Blvd, Burbank">Optum Burbank — 2211 W Magnolia Blvd</option>
+                      <option value="__zoom">Por Zoom</option>
+                      <option value="__tel">Por teléfono</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="citaDoctor">Médico de cabecera <span class="text-muted">(opcional)</span></label>
+                    <input type="text" id="citaDoctor" placeholder="Ej. Dr. López — 323-555-0177"/>
+                  </div>
+                </div>
+                <div>
+                  <label>Mensaje de confirmación</label>
+                  <div class="cita-out" id="citaOutput">Llena la ficha y el mensaje aparecerá aquí, listo para copiar.</div>
+                  <button class="btn btn-gold btn-full mt-3" onclick="copiarConfirmacionCita(this)">📋 Copiar mensaje</button>
+                  <p class="text-muted text-sm mt-2">Esta ficha no guarda nada — es solo para redactar el mensaje. Registra la cita en el CRM y en la tabla de elegibilidad.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- ─── ACTIVIDADES ─── -->
+        <div class="tab-pane" id="train-actividades">
+          <div class="card mb-4">
+            <div class="card-head"><span>📅</span><div class="card-title">Formato de Actividades Diarias de Seguimiento (Lunes a Sábado)</div></div>
+            <div class="card-body">
+              <p class="text-muted text-sm">Este calendario asegura que todos los días haya actividades específicas, manteniendo un flujo constante de trabajo y sin perder ninguna oportunidad de seguimiento o conversión.</p>
+            </div>
+          </div>
+          <div class="grid-3">
+            <div class="cal-day">
+              <div class="cal-day-name">Lunes</div>
+              <div class="cal-item">Llamadas a prospectos nuevos: contactar a todos los que ingresaron la semana pasada o el fin de semana</div>
+              <div class="cal-item story">Llamadas semanales: seguimiento a los contactados la semana anterior</div>
+            </div>
+            <div class="cal-day">
+              <div class="cal-day-name">Martes</div>
+              <div class="cal-item">Seguimiento quincenal: prospectos contactados hace dos semanas</div>
+              <div class="cal-item reel">Revisión de documentación: actualizar registros de la semana pasada</div>
+            </div>
+            <div class="cal-day">
+              <div class="cal-day-name">Miércoles</div>
+              <div class="cal-item">Llamadas a prospectos de 30 días sin contacto</div>
+            </div>
+            <div class="cal-day">
+              <div class="cal-day-name">Jueves</div>
+              <div class="cal-item">Llamadas a prospectos de 60 días desde su último contacto</div>
+              <div class="cal-item story">Continuar seguimiento quincenal</div>
+            </div>
+            <div class="cal-day">
+              <div class="cal-day-name">Viernes</div>
+              <div class="cal-item">Seguimiento mensual: contactados el mes anterior sin decisión</div>
+              <div class="cal-item story">Llamadas semanales de seguimiento</div>
+              <div class="cal-item reel">Revisión de prospectos y organización de la próxima semana</div>
+            </div>
+            <div class="cal-day">
+              <div class="cal-day-name">Sábado</div>
+              <div class="cal-item">Llamadas a prospectos de 180 días (6 meses) sin decisión</div>
+              <div class="cal-item live">Seguimiento rápido a prospectos de 15 días</div>
+              <div class="cal-item reel">Revisión y preparación de actividades de la próxima semana</div>
+            </div>
+          </div>
+          <div class="rule-box mt-4">📊 <strong>Resumen:</strong> Lunes = nuevos prospectos + seguimiento semanal · Martes = seguimiento quincenal + registros · Miércoles = seguimiento de 30 días · Jueves = seguimiento de 60 días · Viernes = seguimiento mensual + revisión · Sábado = seguimiento semestral + preparación de la próxima semana.</div>
+        </div>
+
+        <!-- ─── APLICACIONES ─── -->
+        <div class="tab-pane" id="train-apps">
+          <div class="alert-bar">📸 Estas son capturas de pantalla reales del proceso de aplicación de cada aseguradora, paso a paso. Úsalas como referencia mientras llenas una aplicación — no reemplazan el material oficial vigente del carrier.</div>
+          <div class="tabs" id="appTabs">
+            <button class="tab active" onclick="switchTab('appTabs','appPane','app-humana')">Humana</button>
+            <button class="tab" onclick="switchTab('appTabs','appPane','app-anthem')">Anthem Blue Cross</button>
+            <button class="tab" onclick="switchTab('appTabs','appPane','app-alignment')">Alignment</button>
+          </div>
+          <div id="appPane">
+            <div class="tab-pane active" id="app-humana"><div id="appViewer-humana"></div></div>
+            <div class="tab-pane" id="app-anthem"><div id="appViewer-anthem"></div></div>
+            <div class="tab-pane" id="app-alignment"><div id="appViewer-alignment"></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -1478,6 +2056,119 @@ function showModule(id, btn){
   if(mod) mod.classList.add('active');
   if(btn) btn.classList.add('active');
   if(id==='calendar') renderCalendar();
+  if(id==='training'){ initTrainingApps(); updateTrainProgress(); }
+}
+
+// ─── ENTRENAMIENTO ───
+const TRAIN_APPS = {
+  humana:    {n:65, dir:'humana',    captions:{}},
+  anthem:    {n:47, dir:'anthem',    captions:{}},
+  alignment: {n:56, dir:'alignment', captions:{19:'❌ No selecciones esta opción.', 25:'⚠️ OJO: el SEP (periodo especial de inscripción) cambia según la persona — si no estás segura, pregunta.'}}
+};
+let trainAppsInit = false;
+function pad2(n){ return n<10 ? '0'+n : ''+n; }
+function initTrainingApps(){
+  if(trainAppsInit) return;
+  trainAppsInit = true;
+  Object.keys(TRAIN_APPS).forEach(key=>{
+    TRAIN_APPS[key].i = 1;
+    renderAppViewer(key);
+  });
+}
+function renderAppViewer(key){
+  const state = TRAIN_APPS[key];
+  const host = document.getElementById('appViewer-'+key);
+  if(!host) return;
+  const src = 'assets/entrenamiento/'+state.dir+'/'+pad2(state.i)+'.jpg';
+  const caption = state.captions[state.i];
+  let thumbs = '';
+  for(let t=1;t<=state.n;t++){
+    thumbs += `<img loading="lazy" src="assets/entrenamiento/${state.dir}/${pad2(t)}.jpg" class="${t===state.i?'active':''}" onclick="appGoTo('${key}',${t})" alt="Paso ${t}"/>`;
+  }
+  host.innerHTML = `
+    <div class="app-viewer">
+      <div class="app-viewer-controls">
+        <button class="btn btn-ghost btn-sm" onclick="appStep('${key}',-1)" ${state.i<=1?'disabled':''}>← Anterior</button>
+        <span class="app-step-count">Paso ${state.i} de ${state.n}</span>
+        <button class="btn btn-ghost btn-sm" onclick="appStep('${key}',1)" ${state.i>=state.n?'disabled':''}>Siguiente →</button>
+      </div>
+      ${caption?`<div class="app-caption">${caption}</div>`:''}
+      <div class="app-viewer-frame"><img src="${src}" alt="Paso ${state.i} de la aplicación"/></div>
+      <div class="app-thumbs">${thumbs}</div>
+    </div>`;
+}
+function appStep(key, delta){
+  const state = TRAIN_APPS[key];
+  const next = state.i + delta;
+  if(next<1 || next>state.n) return;
+  state.i = next;
+  renderAppViewer(key);
+}
+function appGoTo(key, i){
+  TRAIN_APPS[key].i = i;
+  renderAppViewer(key);
+}
+
+// ─── FICHA DE CITA ───
+const CITA_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const CITA_DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function fechaEnEspanol(iso){
+  if(!iso) return '';
+  const partes = iso.split('-').map(Number);
+  if(partes.length !== 3 || partes.some(isNaN)) return '';
+  const [y,m,d] = partes;
+  const dt = new Date(y, m-1, d); // constructor local: evita el corrimiento de zona horaria de Date('YYYY-MM-DD')
+  return CITA_DIAS[dt.getDay()]+' '+d+' de '+CITA_MESES[m-1];
+}
+function generarConfirmacionCita(){
+  const out = document.getElementById('citaOutput');
+  if(!out) return;
+  const nombre = (document.getElementById('citaNombre').value || '').trim() || '[Nombre]';
+  const fecha = fechaEnEspanol(document.getElementById('citaFecha').value) || '[fecha]';
+  const hora = (document.getElementById('citaHora').value || '').trim() || '[hora]';
+  const lugar = document.getElementById('citaLugar').value;
+  let donde;
+  if(lugar === '__zoom')      donde = 'La cita será por Zoom y le enviaré el enlace antes de la reunión.';
+  else if(lugar === '__tel')  donde = 'La cita será por teléfono y la estaré llamando a este mismo número.';
+  else                        donde = 'La cita será en '+lugar+'.';
+  out.textContent =
+    'Estimado/a '+nombre+', espero que este mensaje le encuentre bien.\n\n'+
+    'Nos complace confirmar su cita para el '+fecha+', de '+hora+'. '+donde+'\n\n'+
+    'Si necesita reprogramar, por favor avíseme.\n\nIsabel Fuentes — Medicare Advantage';
+}
+function copiarConfirmacionCita(btn){
+  const out = document.getElementById('citaOutput');
+  if(!out) return;
+  navigator.clipboard.writeText(out.textContent).then(()=>{
+    const original = btn.textContent;
+    btn.textContent = '✅ ¡Copiado!';
+    setTimeout(()=>btn.textContent = original, 2000);
+  });
+}
+
+const TRAIN_LESSON_IDS = ['fund-1','fund-2','fund-3','fund-4','fund-5','fund-6','vent-1','vent-2','vent-3','vent-4','vent-5','cita-1','cita-2','cita-3'];
+const TRAIN_PROGRESS_KEY = 'isabel_training_progress';
+function loadTrainProgress(){
+  try{ return JSON.parse(localStorage.getItem(TRAIN_PROGRESS_KEY) || '{}'); }catch(_){ return {}; }
+}
+function toggleLesson(id, done){
+  const progress = loadTrainProgress();
+  progress[id] = done;
+  try{ localStorage.setItem(TRAIN_PROGRESS_KEY, JSON.stringify(progress)); }catch(_){}
+  updateTrainProgress();
+}
+function updateTrainProgress(){
+  const progress = loadTrainProgress();
+  TRAIN_LESSON_IDS.forEach(id=>{
+    const chk = document.getElementById('chk-'+id);
+    if(chk) chk.checked = !!progress[id];
+  });
+  const done = TRAIN_LESSON_IDS.filter(id=>progress[id]).length;
+  const total = TRAIN_LESSON_IDS.length;
+  const label = document.getElementById('trainProgressLabel');
+  const fill = document.getElementById('trainProgressFill');
+  if(label) label.textContent = done+' / '+total+' lecciones';
+  if(fill) fill.style.width = Math.round(done/total*100)+'%';
 }
 
 // ─── FULL TOOLS (iframe) ───
@@ -1505,9 +2196,11 @@ function switchTab(tabGroupId, paneGroupId, targetId){
   const tabs = document.getElementById(tabGroupId);
   const panes = document.getElementById(paneGroupId);
   if(!tabs||!panes)return;
+  // :scope > evita capturar los tab-panes anidados (ej. las aseguradoras dentro de Aplicaciones)
+  const directPanes = panes.querySelectorAll(':scope > .tab-pane');
   tabs.querySelectorAll('.tab').forEach((t,i)=>{
-    const pane = panes.querySelectorAll('.tab-pane')[i];
-    const active = t.getAttribute('onclick').includes(targetId);
+    const pane = directPanes[i];
+    const active = t.getAttribute('onclick').includes("'"+targetId+"'");
     t.classList.toggle('active',active);
     if(pane) pane.classList.toggle('active',active);
   });
@@ -1893,6 +2586,7 @@ async function analyzeMetrics(){
 // ─── INIT ───
 renderCalendar();
 loadApiKey();
+updateTrainProgress();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
