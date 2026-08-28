@@ -1228,6 +1228,28 @@ $members=$pdo->query("SELECT m.*,u.nombre as agente_nombre,u.color as agente_col
 (SELECT COUNT(*) FROM soa WHERE miembro_id=m.id AND estado='FIRMADO') as has_soa
 FROM miembros m LEFT JOIN usuarios u ON m.agente_id=u.id ORDER BY m.apellido,m.nombre")->fetchAll();
 
+// ── Mapas de apoyo + helper para mostrar el ORIGEN de un miembro de forma
+// compacta (un iconito con tooltip) en cualquier lista donde aparezcan
+// miembros — Miembros, Retención, etc. — sin repetir la consulta cada vez.
+$_origen_campanas = [];
+try { foreach ($pdo->query("SELECT id,nombre FROM campanas") as $_oc) $_origen_campanas[$_oc['id']] = $_oc['nombre']; } catch (Exception $e) {}
+$_origen_miembros_nombre = [];
+foreach ($members as $_om) { $_origen_miembros_nombre[$_om['id']] = trim($_om['nombre'].' '.$_om['apellido']); }
+function origen_badge_html(array $m, array $campanasById, array $membersById): string {
+    $icon = '📍'; $label = null;
+    if (!empty($m['campana_origen_id']) && isset($campanasById[$m['campana_origen_id']])) {
+        $icon = '📣'; $label = 'Campaña: '.$campanasById[$m['campana_origen_id']];
+    } elseif (!empty($m['referido_por_miembro_id']) && isset($membersById[$m['referido_por_miembro_id']])) {
+        $icon = '🤝'; $label = 'Referido por: '.$membersById[$m['referido_por_miembro_id']];
+    } elseif (!empty($m['referido_por_texto'])) {
+        $icon = '🤝'; $label = 'Referido por: '.$m['referido_por_texto'];
+    } elseif (!empty($m['fuente'])) {
+        $label = 'Origen: '.$m['fuente'];
+    }
+    if ($label === null) return '';
+    return '<span title="'.h($label).'" style="font-size:10px;cursor:help;margin-left:3px">'.$icon.'</span>';
+}
+
 // ─── RECORDATORIOS Y NOTAS (equipo) ──────────────────────────────────────────
 $recordatorios = []; $rec_cats = []; $rec_due = 0; $rec_dash = []; $_hoy_rec = date('Y-m-d');
 try {
@@ -4452,7 +4474,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 <?php foreach($members as $m):$mtks=count(array_filter($tickets,fn($t)=>$t['miembro_id']==$m['id']&&$t['estado']!=='CERRADO'));?>
 <?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
 <tr class="member-row" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-campana-origen="<?=h($m['campana_origen_id']??'')?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
-<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
+<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?><?=origen_badge_html($m,$_origen_campanas,$_origen_miembros_nombre)?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
 <td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
@@ -4597,7 +4619,8 @@ foreach($members as $m) {
     if(!$call30 && $dias >= 25) $urgente = true;
     if(!$call60 && $dias >= 55) $urgente = true;
     if(!$call90 && $dias >= 85) $urgente = true;
-    $_ret_list[] = ['id'=>$m['id'],'nombre'=>$m['nombre'],'apellido'=>$m['apellido'],'telefono'=>$m['telefono']??'','carrier'=>$m['carrier']??'','fecha_efe'=>$m['fecha_efectiva'],'dias'=>$dias,'bienvenida'=>$bienvenida_done?($_ret_bienvenidas[$m['id']]??''):null,'callB'=>$callB,'call30'=>$call30,'call60'=>$call60,'call90'=>$call90,'q30'=>isset($_ret_q30_ids[$m['id']])?$_ret_q30_ids[$m['id']]:null,'urgente'=>$urgente];
+    $_ret_list[] = ['id'=>$m['id'],'nombre'=>$m['nombre'],'apellido'=>$m['apellido'],'telefono'=>$m['telefono']??'','carrier'=>$m['carrier']??'','fecha_efe'=>$m['fecha_efectiva'],'dias'=>$dias,'bienvenida'=>$bienvenida_done?($_ret_bienvenidas[$m['id']]??''):null,'callB'=>$callB,'call30'=>$call30,'call60'=>$call60,'call90'=>$call90,'q30'=>isset($_ret_q30_ids[$m['id']])?$_ret_q30_ids[$m['id']]:null,'urgente'=>$urgente,
+        'campana_origen_id'=>$m['campana_origen_id']??null,'referido_por_miembro_id'=>$m['referido_por_miembro_id']??null,'referido_por_texto'=>$m['referido_por_texto']??null,'fuente'=>$m['fuente']??null];
 }
 usort($_ret_list, function($a,$b){ return $b['urgente']<=>$a['urgente'] ?: $a['dias']<=>$b['dias']; });
 $_st_total   = count($_ret_list);
@@ -4705,7 +4728,7 @@ foreach($_ret_stats as $_rs) {
  data-pend-90="<?=(!$_rm['call90']&&$_dias>=85?'1':'0')?>"
  data-q30="<?=$_rm['q30']?'1':'0'?>"
  style="<?=$_rm['urgente']?'background:#FFFBF2':''?>">
-<td><div style="font-weight:900;font-size:9px;color:#1B4A6B;cursor:pointer" onclick="openProfile(<?=$_mid?>)"><?=htmlspecialchars($_rm['apellido'].', '.$_rm['nombre'])?></div><div style="font-size:8px;color:#7A90A4"><?=htmlspecialchars($_rm['telefono']??'—')?></div></td>
+<td><div style="font-weight:900;font-size:9px;color:#1B4A6B;cursor:pointer" onclick="openProfile(<?=$_mid?>)"><?=htmlspecialchars($_rm['apellido'].', '.$_rm['nombre'])?><?=origen_badge_html($_rm,$_origen_campanas,$_origen_miembros_nombre)?></div><div style="font-size:8px;color:#7A90A4"><?=htmlspecialchars($_rm['telefono']??'—')?></div></td>
 <td><?php if($_rm['carrier']): ?><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 7px;font-size:8px;font-weight:900"><?=htmlspecialchars($_rm['carrier'])?></span><?php else: ?>—<?php endif; ?></td>
 <td style="font-size:8px;color:#7A90A4"><?=$_rm['fecha_efe']?></td>
 <td style="text-align:center"><span style="font-weight:900;font-size:12px;color:<?=$_dc?>"><?=$_dias?>d</span></td>
