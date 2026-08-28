@@ -1236,18 +1236,29 @@ try { foreach ($pdo->query("SELECT id,nombre FROM campanas") as $_oc) $_origen_c
 $_origen_miembros_nombre = [];
 foreach ($members as $_om) { $_origen_miembros_nombre[$_om['id']] = trim($_om['nombre'].' '.$_om['apellido']); }
 function origen_badge_html(array $m, array $campanasById, array $membersById): string {
-    $icon = '📍'; $label = null;
+    // Texto corto SIEMPRE visible (no un icono que hay que pasar el mouse
+    // para entender — eso no se ve claro, sobre todo en celular/tablet).
+    $bg = '#F1EFE8'; $col = '#7A90A4'; $bc = '#D8D4C8'; $texto = null; $tip = '';
     if (!empty($m['campana_origen_id']) && isset($campanasById[$m['campana_origen_id']])) {
-        $icon = '📣'; $label = 'Campaña: '.$campanasById[$m['campana_origen_id']];
+        $nombreCamp = $campanasById[$m['campana_origen_id']];
+        $bg = '#FEF8EE'; $col = '#C07A1A'; $bc = '#F5D5A0';
+        $texto = '📣 '.h(mb_strimwidth($nombreCamp, 0, 16, '…'));
+        $tip = 'Campaña: '.$nombreCamp;
     } elseif (!empty($m['referido_por_miembro_id']) && isset($membersById[$m['referido_por_miembro_id']])) {
-        $icon = '🤝'; $label = 'Referido por: '.$membersById[$m['referido_por_miembro_id']];
+        $nombreRef = $membersById[$m['referido_por_miembro_id']];
+        $bg = '#EAF5F0'; $col = '#1E7A5C'; $bc = '#8DCFBA';
+        $texto = '🤝 REF: '.h(mb_strimwidth($nombreRef, 0, 14, '…'));
+        $tip = 'Referido por: '.$nombreRef;
     } elseif (!empty($m['referido_por_texto'])) {
-        $icon = '🤝'; $label = 'Referido por: '.$m['referido_por_texto'];
+        $bg = '#EAF5F0'; $col = '#1E7A5C'; $bc = '#8DCFBA';
+        $texto = '🤝 REF: '.h(mb_strimwidth($m['referido_por_texto'], 0, 14, '…'));
+        $tip = 'Referido por: '.$m['referido_por_texto'];
     } elseif (!empty($m['fuente'])) {
-        $label = 'Origen: '.$m['fuente'];
+        $texto = h($m['fuente']);
+        $tip = 'Origen: '.$m['fuente'];
     }
-    if ($label === null) return '';
-    return '<span title="'.h($label).'" style="font-size:10px;cursor:help;margin-left:3px">'.$icon.'</span>';
+    if ($texto === null) return '';
+    return '<span title="'.h($tip).'" style="background:'.$bg.';color:'.$col.';border:1px solid '.$bc.';border-radius:4px;padding:1px 6px;font-size:7px;font-weight:900;margin-left:4px;white-space:nowrap">'.$texto.'</span>';
 }
 
 // ─── RECORDATORIOS Y NOTAS (equipo) ──────────────────────────────────────────
