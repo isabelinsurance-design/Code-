@@ -361,6 +361,28 @@ details.card .card-body p{font-size:13px;line-height:1.7;color:var(--text);margi
 .app-thumbs img:hover{opacity:1}
 .app-thumbs img.active{border-color:var(--gold);opacity:1}
 
+/* ─── FLUJO DE PASOS (HACER CITAS) ─── */
+.steps{display:flex;flex-direction:column;gap:0;margin:4px 0}
+.step{display:flex;gap:14px;position:relative;padding-bottom:18px}
+.step:last-child{padding-bottom:0}
+.step::before{content:'';position:absolute;left:15px;top:32px;bottom:0;width:2px;background:var(--border)}
+.step:last-child::before{display:none}
+.step-num{
+  width:32px;height:32px;border-radius:50%;flex-shrink:0;z-index:1;
+  background:var(--gold-lt);border:1.5px solid var(--gold);color:var(--gold-dk);
+  display:flex;align-items:center;justify-content:center;
+  font-family:'DM Mono',monospace;font-size:12.5px;font-weight:500;
+}
+.step-body{flex:1;min-width:0;padding-top:4px}
+.step-title{font-family:'Fraunces',serif;font-size:14.5px;color:var(--text);margin-bottom:5px}
+.step-body p{font-size:13px;line-height:1.7;color:var(--text);margin-bottom:8px}
+.step-body ul{padding-left:18px;margin-bottom:8px}
+.step-body li{font-size:13px;line-height:1.65;color:var(--text);margin-bottom:3px}
+.cita-out{
+  background:var(--surface);border:1.5px dashed var(--border-d);border-radius:10px;
+  padding:14px;font-size:13px;line-height:1.7;color:var(--text);white-space:pre-wrap;min-height:60px;
+}
+
 /* ─── SEPARATOR ─── */
 .sep{height:1px;background:var(--border);margin:16px 0}
 .mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
@@ -1472,7 +1494,7 @@ details.card .card-body p{font-size:13px;line-height:1.7;color:var(--text);margi
         <div class="card-body" style="padding:14px 18px">
           <div class="flex items-center justify-between mb-2">
             <span class="text-sm text-bold">Tu progreso</span>
-            <span class="text-sm mono" id="trainProgressLabel">0 / 13 lecciones</span>
+            <span class="text-sm mono" id="trainProgressLabel">0 / 14 lecciones</span>
           </div>
           <div class="progress-bar"><div class="progress-fill" id="trainProgressFill" style="width:0%"></div></div>
         </div>
@@ -1481,6 +1503,7 @@ details.card .card-body p{font-size:13px;line-height:1.7;color:var(--text);margi
       <div class="tabs" id="trainTabs">
         <button class="tab active" onclick="switchTab('trainTabs','trainPane','train-fund')">📘 Fundamentos</button>
         <button class="tab" onclick="switchTab('trainTabs','trainPane','train-ventas')">💬 Ventas</button>
+        <button class="tab" onclick="switchTab('trainTabs','trainPane','train-citas')">📞 Hacer Citas</button>
         <button class="tab" onclick="switchTab('trainTabs','trainPane','train-actividades')">📅 Actividades</button>
         <button class="tab" onclick="switchTab('trainTabs','trainPane','train-apps')">📋 Aplicaciones Paso a Paso</button>
       </div>
@@ -1727,6 +1750,196 @@ details.card .card-body p{font-size:13px;line-height:1.7;color:var(--text);margi
 
         </div>
 
+        <!-- ─── HACER CITAS ─── -->
+        <div class="tab-pane" id="train-citas">
+
+          <div class="alert-bar">🎯 La llamada <strong>no es para vender ni para explicar planes</strong> — es para calificar al prospecto y agendar la cita con Isabel. Ella es la agente licenciada que explica los planes.</div>
+
+          <details class="card" open>
+            <summary><span class="lesson-num">1</span>El proceso, paso a paso</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-1" onchange="toggleLesson('cita-1',this.checked)"><label for="chk-cita-1" style="margin:0">Marcar lección como completada</label></div>
+              <div class="steps">
+
+                <div class="step">
+                  <div class="step-num">1</div>
+                  <div class="step-body">
+                    <div class="step-title">Antes de llamar — prepárate</div>
+                    <ul>
+                      <li>Ten a la mano el <strong>calendario del mes</strong> de Isabel: necesitas saber qué días y en qué lugares estará antes de ofrecer una fecha.</li>
+                      <li>Revisa si el prospecto <strong>ya fue contactado antes</strong> y qué se habló, para no repetir la misma conversación.</li>
+                      <li>Abre la <strong>tabla de elegibilidad</strong> para ir anotando los datos durante la llamada, no después.</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">2</div>
+                  <div class="step-body">
+                    <div class="step-title">Abre la llamada</div>
+                    <div class="script-line agent">"¡Hola! ¿Hablo con [Nombre del cliente]? Soy [Tu nombre], llamando de parte de Isabel Fuentes. Me comentó que es posible que usted califique para más beneficios de Medicare."</div>
+                    <p class="text-muted text-sm">El guión completo está en la pestaña <strong>💬 Ventas → Guión de Llamada</strong>.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">3</div>
+                  <div class="step-body">
+                    <div class="step-title">Califica antes de ofrecer la cita</div>
+                    <p>Las tres preguntas que deciden si vale la pena agendar:</p>
+                    <ul>
+                      <li>¿Ya está inscrito en <strong>Medicare Parte A y Parte B</strong>? ¿Tiene Medicaid (Medi-Cal)?</li>
+                      <li>¿Tiene insuficiencia renal?</li>
+                      <li>¿Tiene otro seguro médico, como del trabajo?</li>
+                    </ul>
+                    <div class="rule-box">⚠️ Si solo tiene <strong>una</strong> de las dos partes de Medicare, o solo tiene Medi-Cal, <strong>no es elegible</strong> — no agendes la cita. Si ya tiene un plan con <strong>Anthem</strong>, no cuenta como venta.</div>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">4</div>
+                  <div class="step-body">
+                    <div class="step-title">Ofrece la cita</div>
+                    <p>Ofrece <strong>dos opciones concretas</strong> de día y hora en vez de preguntar "¿cuándo puede?" — es mucho más fácil que el prospecto elija entre dos que invente una fecha.</p>
+                    <div class="script-line agent">"Agendaré una cita con Isabel, quien tiene licencia y conoce bien nuestros planes. Ella le podrá explicar cómo acceder a esos beneficios. ¿Le viene mejor el martes o el jueves en la mañana?"</div>
+                    <p>Prioridad de lugar: <strong>1)</strong> en persona, en uno de los eventos de Isabel (ver los lugares abajo) · <strong>2)</strong> por Zoom · <strong>3)</strong> por teléfono.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">5</div>
+                  <div class="step-body">
+                    <div class="step-title">Captura los datos — sin colgar</div>
+                    <p>Datos <strong>obligatorios</strong> de la cita:</p>
+                    <ul>
+                      <li>Día · Hora · Lugar</li>
+                      <li>Nombre completo y teléfono</li>
+                      <li>Médico de cabecera (nombre y teléfono si lo tiene)</li>
+                    </ul>
+                    <p>Si logras conseguir más datos, mucho mejor:</p>
+                    <ul>
+                      <li>Dirección del prospecto</li>
+                      <li>Correo electrónico</li>
+                      <li>Mes y fecha de cumpleaños <span class="text-muted">(clave para identificar T65)</span></li>
+                    </ul>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">6</div>
+                  <div class="step-body">
+                    <div class="step-title">Confirma por texto el mismo día</div>
+                    <p>Apenas cuelgues, manda el mensaje de confirmación. Usa la <strong>ficha de cita</strong> de abajo para generarlo ya listo para copiar.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">7</div>
+                  <div class="step-body">
+                    <div class="step-title">Recuerda un día antes</div>
+                    <p>Vuelve a mandar el mensaje de confirmación el día anterior. Es lo que más reduce las citas perdidas.</p>
+                  </div>
+                </div>
+
+                <div class="step">
+                  <div class="step-num">8</div>
+                  <div class="step-body">
+                    <div class="step-title">Registra la cita</div>
+                    <p>Anota al prospecto en la <strong>tabla de elegibilidad</strong> y en el CRM. Una cita que no quedó registrada es una cita que se va a perder.</p>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">2</span>Si no contesta o dice que no</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-2" onchange="toggleLesson('cita-2',this.checked)"><label for="chk-cita-2" style="margin:0">Marcar lección como completada</label></div>
+              <h4>📵 No contesta</h4>
+              <p>Deja un mensaje de voz y manda un texto de seguimiento. Los mensajes de voz que funcionan están en <strong>💬 Ventas → Mensajes de Voz</strong> — el de beneficio dental, el de lugares donde estará, y el de gimnasio.</p>
+              <p>Después colócalo en el ciclo de seguimiento (<strong>📅 Actividades</strong>): se vuelve a llamar a los 15 días, 30, 60 y 180 días. Un prospecto que no contestó hoy no es un prospecto perdido.</p>
+              <h4>🙅 Dice que no le interesa</h4>
+              <ul>
+                <li>No insistas. Agradece y deja la puerta abierta.</li>
+                <li><strong>Siempre pide referencias antes de colgar:</strong> "¿Hay alguien en el hogar que tenga Medicare?"</li>
+                <li>Cierra: "Gracias por su tiempo. Si conoce a alguien interesado en nuestros servicios, estaré encantada de ayudar."</li>
+              </ul>
+              <h4>📅 Quiere pensarlo</h4>
+              <p>No lo dejes al aire — agenda la cita de todos modos y dile que puede reprogramar si necesita. Es mucho más fácil mover una cita que crear una desde cero.</p>
+            </div>
+          </details>
+
+          <details class="card">
+            <summary><span class="lesson-num">3</span>Lugares y horarios de las citas</summary>
+            <div class="card-body">
+              <div class="lesson-done"><input type="checkbox" id="chk-cita-3" onchange="toggleLesson('cita-3',this.checked)"><label for="chk-cita-3" style="margin:0">Marcar lección como completada</label></div>
+              <div class="alert-bar">📌 Estos son los lugares habituales según el calendario de referencia. <strong>Confirma siempre el calendario del mes en curso con Isabel</strong> antes de ofrecer una fecha — los días y lugares cambian cada mes.</div>
+              <table>
+                <tr><th>Lugar</th><th>Dirección</th><th>Horario habitual</th></tr>
+                <tr><td><strong>SSA Panorama City</strong><br/><span class="text-muted text-sm">El más frecuente</span></td><td>14500 Roscoe Blvd, Panorama City</td><td>9:00 am – 12:00 pm</td></tr>
+                <tr><td><strong>SSA San Fernando</strong></td><td>456 SF Mission Blvd, San Fernando</td><td>9:00 am – 12:00 pm</td></tr>
+                <tr><td><strong>Optum Burbank</strong></td><td>2211 W Magnolia Blvd, Burbank</td><td>1:00 pm – 3:00 pm</td></tr>
+                <tr><td><strong>Por Zoom</strong></td><td>—</td><td>A convenir</td></tr>
+                <tr><td><strong>Por teléfono</strong></td><td>—</td><td>A convenir</td></tr>
+              </table>
+              <div class="rule-box mt-3">💡 El número exacto de suite en Panorama City ha aparecido de dos formas en los materiales (Ste. 207 y "primer piso, en el lobby"). <strong>Verifica con Isabel cuál es el correcto antes de dárselo a un prospecto.</strong></div>
+            </div>
+          </details>
+
+          <div class="card">
+            <div class="card-head"><span>📝</span><div class="card-title">Ficha de Cita — genera el mensaje de confirmación</div></div>
+            <div class="card-body">
+              <div class="grid-2">
+                <div>
+                  <div class="form-row-2">
+                    <div>
+                      <label for="citaNombre">Nombre del prospecto</label>
+                      <input type="text" id="citaNombre" placeholder="Ej. Adrián Castro" oninput="generarConfirmacionCita()"/>
+                    </div>
+                    <div>
+                      <label for="citaTelefono">Teléfono</label>
+                      <input type="tel" id="citaTelefono" placeholder="323-555-0100"/>
+                    </div>
+                  </div>
+                  <div class="form-row-2">
+                    <div>
+                      <label for="citaFecha">Fecha de la cita</label>
+                      <input type="date" id="citaFecha" onchange="generarConfirmacionCita()"/>
+                    </div>
+                    <div>
+                      <label for="citaHora">Hora</label>
+                      <input type="text" id="citaHora" value="9:00 am a 12:00 pm" oninput="generarConfirmacionCita()"/>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label for="citaLugar">Lugar</label>
+                    <select id="citaLugar" onchange="generarConfirmacionCita()">
+                      <option value="la oficina del Seguro Social de Panorama, 14500 Roscoe Blvd, Panorama City">SSA Panorama City — 14500 Roscoe Blvd</option>
+                      <option value="la oficina del Seguro Social de San Fernando, 456 SF Mission Blvd">SSA San Fernando — 456 SF Mission Blvd</option>
+                      <option value="Optum, 2211 W Magnolia Blvd, Burbank">Optum Burbank — 2211 W Magnolia Blvd</option>
+                      <option value="__zoom">Por Zoom</option>
+                      <option value="__tel">Por teléfono</option>
+                    </select>
+                  </div>
+                  <div class="form-row">
+                    <label for="citaDoctor">Médico de cabecera <span class="text-muted">(opcional)</span></label>
+                    <input type="text" id="citaDoctor" placeholder="Ej. Dr. López — 323-555-0177"/>
+                  </div>
+                </div>
+                <div>
+                  <label>Mensaje de confirmación</label>
+                  <div class="cita-out" id="citaOutput">Llena la ficha y el mensaje aparecerá aquí, listo para copiar.</div>
+                  <button class="btn btn-gold btn-full mt-3" onclick="copiarConfirmacionCita(this)">📋 Copiar mensaje</button>
+                  <p class="text-muted text-sm mt-2">Esta ficha no guarda nada — es solo para redactar el mensaje. Registra la cita en el CRM y en la tabla de elegibilidad.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+
         <!-- ─── ACTIVIDADES ─── -->
         <div class="tab-pane" id="train-actividades">
           <div class="card mb-4">
@@ -1896,7 +2109,44 @@ function appGoTo(key, i){
   renderAppViewer(key);
 }
 
-const TRAIN_LESSON_IDS = ['fund-1','fund-2','fund-3','fund-4','fund-5','fund-6','vent-1','vent-2','vent-3','vent-4','vent-5'];
+// ─── FICHA DE CITA ───
+const CITA_MESES = ['enero','febrero','marzo','abril','mayo','junio','julio','agosto','septiembre','octubre','noviembre','diciembre'];
+const CITA_DIAS = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'];
+function fechaEnEspanol(iso){
+  if(!iso) return '';
+  const partes = iso.split('-').map(Number);
+  if(partes.length !== 3 || partes.some(isNaN)) return '';
+  const [y,m,d] = partes;
+  const dt = new Date(y, m-1, d); // constructor local: evita el corrimiento de zona horaria de Date('YYYY-MM-DD')
+  return CITA_DIAS[dt.getDay()]+' '+d+' de '+CITA_MESES[m-1];
+}
+function generarConfirmacionCita(){
+  const out = document.getElementById('citaOutput');
+  if(!out) return;
+  const nombre = (document.getElementById('citaNombre').value || '').trim() || '[Nombre]';
+  const fecha = fechaEnEspanol(document.getElementById('citaFecha').value) || '[fecha]';
+  const hora = (document.getElementById('citaHora').value || '').trim() || '[hora]';
+  const lugar = document.getElementById('citaLugar').value;
+  let donde;
+  if(lugar === '__zoom')      donde = 'La cita será por Zoom y le enviaré el enlace antes de la reunión.';
+  else if(lugar === '__tel')  donde = 'La cita será por teléfono y la estaré llamando a este mismo número.';
+  else                        donde = 'La cita será en '+lugar+'.';
+  out.textContent =
+    'Estimado/a '+nombre+', espero que este mensaje le encuentre bien.\n\n'+
+    'Nos complace confirmar su cita para el '+fecha+', de '+hora+'. '+donde+'\n\n'+
+    'Si necesita reprogramar, por favor avíseme.\n\nIsabel Fuentes — Medicare Advantage';
+}
+function copiarConfirmacionCita(btn){
+  const out = document.getElementById('citaOutput');
+  if(!out) return;
+  navigator.clipboard.writeText(out.textContent).then(()=>{
+    const original = btn.textContent;
+    btn.textContent = '✅ ¡Copiado!';
+    setTimeout(()=>btn.textContent = original, 2000);
+  });
+}
+
+const TRAIN_LESSON_IDS = ['fund-1','fund-2','fund-3','fund-4','fund-5','fund-6','vent-1','vent-2','vent-3','vent-4','vent-5','cita-1','cita-2','cita-3'];
 const TRAIN_PROGRESS_KEY = 'isabel_training_progress';
 function loadTrainProgress(){
   try{ return JSON.parse(localStorage.getItem(TRAIN_PROGRESS_KEY) || '{}'); }catch(_){ return {}; }
@@ -1946,9 +2196,11 @@ function switchTab(tabGroupId, paneGroupId, targetId){
   const tabs = document.getElementById(tabGroupId);
   const panes = document.getElementById(paneGroupId);
   if(!tabs||!panes)return;
+  // :scope > evita capturar los tab-panes anidados (ej. las aseguradoras dentro de Aplicaciones)
+  const directPanes = panes.querySelectorAll(':scope > .tab-pane');
   tabs.querySelectorAll('.tab').forEach((t,i)=>{
-    const pane = panes.querySelectorAll('.tab-pane')[i];
-    const active = t.getAttribute('onclick').includes(targetId);
+    const pane = directPanes[i];
+    const active = t.getAttribute('onclick').includes("'"+targetId+"'");
     t.classList.toggle('active',active);
     if(pane) pane.classList.toggle('active',active);
   });
