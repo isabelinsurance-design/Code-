@@ -58,6 +58,13 @@ function asegurarColumnasReferido(PDO $pdo): void {
             $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_texto VARCHAR(200) DEFAULT NULL");
         if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'referido_por_miembro_id'")->fetch())
             $pdo->exec("ALTER TABLE miembros ADD COLUMN referido_por_miembro_id INT DEFAULT NULL");
+        // campana_origen_id vive en la migración de index.php, pero save_member
+        // se guarda desde AQUÍ (api.php) — si esta petición llega antes de que
+        // alguien haya cargado index.php en este servidor, la columna todavía
+        // no existe y el valor se pierde en silencio (queda fuera de
+        // array_intersect con las columnas reales, sin ningún error visible).
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'campana_origen_id'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN campana_origen_id INT DEFAULT NULL");
     } catch (Exception $e) {}
 }
 
