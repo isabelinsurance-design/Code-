@@ -293,8 +293,7 @@ display: block;
         <?php if ($referente): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900;cursor:pointer" onclick="openProfile(<?= (int)$referente['id'] ?>)" title="Ver perfil de quien lo recomendó">🤝 REFERIDO POR: <?= h(trim($referente['nombre'].' '.$referente['apellido'])) ?></span>
         <?php elseif (!empty($m['referido_por_texto'])): ?><span style="background:rgba(30,122,92,.3);color:#6EE7C0;border:1px solid rgba(30,122,92,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Nombre escrito a mano — no está vinculado a un perfil del CRM">🤝 REFERIDO POR: <?= h($m['referido_por_texto']) ?></span>
         <?php endif; ?>
-        <?php if ($campana_origen): ?><span style="background:rgba(192,122,26,.28);color:#FBCB7B;border:1px solid rgba(192,122,26,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Vino de esta campaña">📣 ORIGEN: <?= h($campana_origen['nombre']) ?></span>
-        <?php elseif (!empty($m['fuente'])): ?><span style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.85);border:1px solid rgba(255,255,255,.25);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Origen del miembro">📍 ORIGEN: <?= h($m['fuente']) ?></span>
+        <?php if ($campana_origen): ?><span style="background:rgba(192,122,26,.28);color:#FBCB7B;border:1px solid rgba(192,122,26,.4);border-radius:20px;padding:2px 9px;font-size:8px;font-weight:900" title="Vino de esta campaña">📣 <?= h($campana_origen['nombre']) ?></span>
         <?php endif; ?>
       </div>
     </div>
@@ -343,6 +342,43 @@ display: block;
 
   <!-- =================== RESUMEN =================== -->
   <div class="tab-content active" id="ptab-RESUMEN">
+    <!-- ── ORIGEN — todo en un solo lugar: antes FUENTE, REFERIDO POR,
+         CUENTAS REFERENTES y CAMPAÑA vivían cada uno por su lado (una
+         insignia arriba, un renglón perdido en "info completa"...) y no
+         contaban una historia clara de por qué esta persona es miembro. ── -->
+    <div style="background:#fff;border:1.5px solid #C8DFF0;border-radius:10px;padding:12px 14px;margin-bottom:11px">
+      <div style="font-size:8px;font-weight:900;color:#2876A8;letter-spacing:1.5px;text-transform:uppercase;margin-bottom:9px">📍 ORIGEN DE ESTE MIEMBRO</div>
+      <div style="display:flex;flex-direction:column;gap:7px">
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:7px;font-weight:800;color:#7A90A4;text-transform:uppercase;min-width:150px">FUENTE</span>
+          <span style="font-size:10px;font-weight:800;color:#1B3A5C"><?= h($m['fuente'] ?: 'SIN ESPECIFICAR — EDITA EL MIEMBRO PARA AGREGARLA') ?></span>
+        </div>
+        <?php if ($campana_origen): ?>
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:7px;font-weight:800;color:#7A90A4;text-transform:uppercase;min-width:150px">CAMPAÑA DE ORIGEN</span>
+          <span style="font-size:10px;font-weight:800;color:#C07A1A">📣 <?= h($campana_origen['nombre']) ?></span>
+        </div>
+        <?php endif; ?>
+        <?php if ($referente): ?>
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:7px;font-weight:800;color:#7A90A4;text-transform:uppercase;min-width:150px">REFERIDO POR (MIEMBRO)</span>
+          <span onclick="openProfile(<?= (int)$referente['id'] ?>)" style="font-size:10px;font-weight:800;color:#1E7A5C;cursor:pointer;text-decoration:underline">🤝 <?= h(trim($referente['nombre'].' '.$referente['apellido'])) ?></span>
+        </div>
+        <?php elseif (!empty($m['referido_por_texto'])): ?>
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:7px;font-weight:800;color:#7A90A4;text-transform:uppercase;min-width:150px">REFERIDO POR</span>
+          <span style="font-size:10px;font-weight:800;color:#1E7A5C">🤝 <?= h($m['referido_por_texto']) ?></span>
+          <span style="font-size:7px;color:#7A90A4;text-transform:uppercase">(nombre escrito a mano — no vinculado a un perfil)</span>
+        </div>
+        <?php endif; ?>
+        <?php if (!empty($_pr_cuentas_referidas_txt)): ?>
+        <div style="display:flex;gap:10px;align-items:baseline;flex-wrap:wrap">
+          <span style="font-size:7px;font-weight:800;color:#7A90A4;text-transform:uppercase;min-width:150px">CUENTAS REFERENTES</span>
+          <span style="font-size:10px;font-weight:800;color:#2876A8">🏢 <?= h($_pr_cuentas_referidas_txt) ?></span>
+        </div>
+        <?php endif; ?>
+      </div>
+    </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(145px,1fr));gap:7px;margin-bottom:11px">
       <?php foreach ([
         ['MBI',$m['mbi']],
@@ -352,7 +388,6 @@ display: block;
         ['F. EFECTIVA',fdate($m['fecha_efectiva'])],
         ['CIUDAD',($m['ciudad']??'').($m['ciudad']?', CA':'')],
         ['EDAD',$age.' AÑOS'],
-        ['FUENTE',$m['fuente']],
         ['PARTE A',fdate($m['parte_a'])],
         ['PARTE B',fdate($m['parte_b'])],
         ['MEDI-CAL',$m['medical']],
