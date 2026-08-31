@@ -5934,7 +5934,10 @@ $tkt_tarea_cnt    = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t[
 <tbody>
 <?php foreach($tickets as $t):
   $sla_vence  = $t['sla_fecha'] ?? null;
-  $sla_alert  = $sla_vence && $sla_vence <= date('Y-m-d', strtotime('+1 day')) && $t['estado']!=='CERRADO';
+  // Un ticket "EN PROCESO" ya se está trabajando — no tiene sentido marcarlo
+  // como vencido/atrasado igual que uno que nadie ha tocado todavía.
+  $_no_vence  = in_array($t['estado'], ['CERRADO','EN PROCESO'], true);
+  $sla_alert  = $sla_vence && $sla_vence <= date('Y-m-d', strtotime('+1 day')) && !$_no_vence;
   $resp_id    = !empty($t['asignado_a']) ? $t['asignado_a'] : $t['agente_id'];
   $is_closed  = $t['estado']==='CERRADO';
   $prio       = $t['prioridad'] ?? 'MEDIA';
@@ -5993,7 +5996,7 @@ $tkt_tarea_cnt    = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t[
       $ns_total_pend = count($ns_pend);
       if ($ns_total_pend > 0):
         $ns_proximo = $ns_pend[0];
-        $ns_vencido = !empty($ns_proximo['fecha_programada']) && $ns_proximo['fecha_programada'] < date('Y-m-d') && !$is_closed;
+        $ns_vencido = !empty($ns_proximo['fecha_programada']) && $ns_proximo['fecha_programada'] < date('Y-m-d') && !$_no_vence;
     ?>
     <div style="margin-top:4px;background:<?=$ns_vencido?'#FDF0EE':$BG?>;border:1px solid <?=$ns_vencido?'#EFA09A':$CB?>;border-radius:7px;padding:4px 7px;display:flex;align-items:center;gap:6px">
       <span style="font-size:9px;color:<?=$ns_vencido?'#B83232':$P2?>;font-weight:900">→</span>
