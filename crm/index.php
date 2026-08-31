@@ -8257,6 +8257,16 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
       <div class="modal-title" id="cita-modal-title">◷ NUEVA CITA</div>
       <button class="modal-close" onclick="closeModal('cita-form-modal')">✕</button>
     </div>
+    <div style="background:#FEF8EE;border:1px solid #F5D5A0;border-left:4px solid #C07A1A;border-radius:10px;padding:10px 13px;margin-bottom:13px">
+      <div style="font-size:9px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px">📋 PREGUNTAS DE ELEGIBILIDAD — PREGUNTAR ANTES DE AGENDAR</div>
+      <div style="font-size:9px;color:#8A5A10;line-height:1.7">
+        1. ¿Quién es esta persona?<br>
+        2. ¿Qué plan tiene?<br>
+        3. ¿Con qué doctor va?<br>
+        4. ¿Tiene Medicare y Medi-Cal?<br>
+        5. ¿Tiene especialistas o va a un hospital en específico?
+      </div>
+    </div>
     <form onsubmit="submitCita(event)" id="cita-form">
       <input type="hidden" name="id" id="cita-id" value="">
 
