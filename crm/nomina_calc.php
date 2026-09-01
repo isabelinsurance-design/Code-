@@ -101,12 +101,27 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
         $seg = segundos_trabajados($pdo, $r);
         $seg_trabajados += $seg;
         if ($r['check_in'] && $r['check_out']) $dias_con_checkin++;
+        // Breaks adicionales (más de uno en el día) — mismo patrón que ya
+        // usa index.php, para poder mostrar "+N" en el detalle diario.
+        $extra_breaks_count = 0;
+        if (!empty($r['id'])) {
+            try {
+                $bxc = $pdo->prepare("SELECT COUNT(*) FROM asistencia_breaks WHERE asistencia_id=?");
+                $bxc->execute([$r['id']]);
+                $extra_breaks_count = (int)$bxc->fetchColumn();
+            } catch (Exception $e) {}
+        }
         $detalle[] = [
-            'fecha'     => $r['fecha'],
-            'dow'       => $r['dow'],
-            'check_in'  => $r['check_in'],
-            'check_out' => $r['check_out'],
-            'horas'     => round($seg / 3600, 2),
+            'fecha'      => $r['fecha'],
+            'dow'        => $r['dow'],
+            'check_in'   => $r['check_in'],
+            'check_out'  => $r['check_out'],
+            'lunch_out'  => $r['lunch_out'] ?? null,
+            'lunch_in'   => $r['lunch_in'] ?? null,
+            'break_out'  => $r['break_out'] ?? null,
+            'break_in'   => $r['break_in'] ?? null,
+            'extra_breaks_count' => $extra_breaks_count,
+            'horas'      => round($seg / 3600, 2),
         ];
     }
 

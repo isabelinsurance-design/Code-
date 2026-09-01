@@ -342,19 +342,27 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
       </summary>
       <table class="detail-table" style="margin-top:8px">
         <tr>
-          <th>FECHA</th><th>DÍA</th><th>CHECK-IN</th><th>CHECK-OUT</th><th>HORAS</th><th>ESTADO</th>
+          <th>FECHA</th><th>DÍA</th><th>CHECK-IN</th><th>SAL.ALM.</th><th>REG.ALM.</th><th>SAL.BREAK</th><th>REG.BREAK</th><th>CHECK-OUT</th><th>HORAS</th><th>ESTADO</th>
         </tr>
-        <?php foreach($n['detalle'] as $d): 
+        <?php foreach($n['detalle'] as $d):
           $dow_n = $dias_semana[(int)$d['dow']] ?? '—';
           $h     = $d['horas'];
           $ok    = $d['check_in'] && $d['check_out'] && $h > 0;
           $ci_str = $d['check_in'] ? substr($d['check_in'],0,5) : '—';
           $co_str = $d['check_out'] ? substr($d['check_out'],0,5) : '—';
+          $lo_str = !empty($d['lunch_out']) ? substr($d['lunch_out'],0,5) : '—';
+          $li_str = !empty($d['lunch_in'])  ? substr($d['lunch_in'],0,5)  : '—';
+          $bo_str = !empty($d['break_out']) ? substr($d['break_out'],0,5) : '—';
+          $bi_str = !empty($d['break_in'])  ? substr($d['break_in'],0,5)  : '—';
         ?>
         <tr>
           <td style="font-weight:800;color:<?=$P1?>"><?=date('d/m/Y',strtotime($d['fecha']))?></td>
           <td><?=$dow_n?></td>
           <td style="color:<?=$G?>;font-weight:800"><?=$ci_str?></td>
+          <td style="color:<?=$MU?>"><?=$lo_str?></td>
+          <td style="color:<?=$MU?>"><?=$li_str?></td>
+          <td style="color:<?=$MU?>"><?=$bo_str?><?php if(!empty($d['extra_breaks_count'])):?> <span style="color:<?=$A?>;font-weight:900" title="<?=$d['extra_breaks_count']?> break(s) adicional(es) ese día">+<?=$d['extra_breaks_count']?></span><?php endif;?></td>
+          <td style="color:<?=$MU?>"><?=$bi_str?></td>
           <td style="color:<?=$R?>;font-weight:800"><?=$co_str?></td>
           <td style="font-weight:900;color:<?=$h>0?$P1:$MU?>"><?=$h > 0 ? $h.'h' : '—'?></td>
           <td>
