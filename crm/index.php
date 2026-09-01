@@ -4489,7 +4489,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
 <td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
-<td><?=badge($m['estado'])?></td>
+<td><?=badge($m['estado'])?><?php if($m['estado']==='IN PROCESS'):?><br><button class="btn btn-gr btn-sm" style="margin-top:4px;font-size:7px;padding:3px 8px" onclick="event.stopPropagation();abrirActivarMiembro(<?=$m['id']?>,'<?=h(addslashes($m['apellido'].', '.$m_nombre_completo))?>')">✓ ACTIVAR</button><?php endif;?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['mbi']??'—')?></td>
 <td><?php if($mtks>0):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 7px;font-size:8px;font-weight:900"><?=$mtks?></span><?php else:?>—<?php endif;?></td>
 <td onclick="event.stopPropagation()"><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td>
@@ -8078,6 +8078,20 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
 </div>
 <?php endif;?>
 <div class="modal-overlay" id="member-form-modal" style="z-index:9600"><div class="modal"><div id="member-form-content"></div></div></div>
+
+<!-- MODAL: ACTIVAR MIEMBRO RÁPIDO — atajo para cuando alguien EN PROCESO ya
+     quedó activo, sin tener que abrir todo el formulario de Editar Miembro. -->
+<div class="modal-overlay" id="modal-activar-miembro"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">✓ ACTIVAR MIEMBRO</div><button class="modal-close" onclick="closeModal('modal-activar-miembro')">✕</button></div>
+  <input type="hidden" id="am-miembro-id">
+  <div class="form-group"><label class="form-label">MIEMBRO</label><div id="am-nombre" style="font-weight:900;font-size:12px;color:<?=$P1?>"></div></div>
+  <div class="form-group"><label class="form-label">FECHA EFECTIVA *</label><input type="date" id="am-fecha" class="form-input" required></div>
+  <div style="font-size:8px;color:<?=$MU?>;margin-top:-4px;margin-bottom:8px;text-transform:none">Esto cambia el ESTADO a ACTIVE con esta fecha — el resto de los datos del miembro no se toca. Si necesitas cambiar plan/carrier también, usa "Editar Miembro".</div>
+  <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-activar-miembro')">CANCELAR</button>
+    <button type="button" class="btn btn-p btn-sm" id="am-btn" onclick="guardarActivarMiembro()">✓ MARCAR ACTIVO</button>
+  </div>
+</div></div>
 <div class="modal-overlay" id="profile-modal"><div class="modal" id="profile-content"></div></div>
 <div class="modal-overlay" id="ticket-form-modal"><div class="modal" style="max-width:640px">
 <div class="modal-header">
@@ -10203,6 +10217,30 @@ fetch('api.php',{method:'POST',body:new URLSearchParams({action:'send_notif',use
 }
 function sendNotif(){const uid=document.getElementById('notif-target')?.value;const msg=document.getElementById('notif-msg')?.value.trim();if(!uid||uid==='0'){toast('⚠ SELECCIONA UN DESTINATARIO');return;}if(!msg){toast('⚠ ESCRIBE UN MENSAJE');return;}fetch('api.php',{method:'POST',body:new URLSearchParams({action:'send_notif',user_id:uid,mensaje:msg})}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ NOTIFICACIÓN ENVIADA');const el=document.getElementById('notif-msg');if(el)el.value='';}else toast('⚠ ERROR: '+(d.error||'No se pudo enviar — revisa la BD'));}).catch(()=>toast('⚠ ERROR DE RED'));}
 document.addEventListener('click',e=>{const p=document.getElementById('notif-dropdown');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.hbtn'))p.classList.remove('open');});
+function abrirActivarMiembro(id,nombre){
+  document.getElementById('am-miembro-id').value=id;
+  document.getElementById('am-nombre').textContent=nombre;
+  document.getElementById('am-fecha').value=new Date().toISOString().slice(0,10);
+  openModal('modal-activar-miembro');
+}
+function guardarActivarMiembro(){
+  const id=document.getElementById('am-miembro-id').value;
+  const fecha=document.getElementById('am-fecha').value;
+  if(!fecha){ if(typeof toast==='function')toast('⚠ Falta la fecha efectiva'); return; }
+  const btn=document.getElementById('am-btn');
+  btn.disabled=true; btn.textContent='GUARDANDO...';
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_member',id,estado:'ACTIVE',fecha_efectiva:fecha})})
+    .then(r=>r.json())
+    .then(d=>{
+      btn.disabled=false; btn.textContent='✓ MARCAR ACTIVO';
+      if(d&&d.ok){
+        if(typeof toast==='function')toast('✓ MIEMBRO ACTIVADO');
+        closeModal('modal-activar-miembro');
+        if(typeof softReload==='function') softReload();
+      } else if(typeof toast==='function') toast('⚠ '+(d&&d.error?d.error:'Error al guardar'));
+    })
+    .catch(()=>{ btn.disabled=false; btn.textContent='✓ MARCAR ACTIVO'; if(typeof toast==='function')toast('⚠ Error de conexión'); });
+}
 function openMemberForm(id=null){
   fetch('member_form.php'+(id?'?id='+id:''))
     .then(r=>r.text())
