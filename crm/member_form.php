@@ -551,11 +551,22 @@ function submitMemberForm(e) {
 }
 
 function refreshMemberRow(id){
-  // Antes hacía location.reload() — recargaba TODA la página (todo el CSS,
-  // JS, fuentes, y volvía a pedir cada pestaña del CRM) solo para
-  // actualizar una fila. softReload() ya hace exactamente esto mismo pero
-  // sin recargar la página completa — mismo patrón que usa el resto del CRM.
-  if(typeof softReload === 'function') softReload();
+  // Antes hacía location.reload() (o softReload()) — las dos vuelven a
+  // pedir TODA la página del CRM (todas las pestañas se recalculan en el
+  // servidor) solo para actualizar una fila. Ahora se pide nada más el
+  // HTML de ESA fila y se reemplaza directamente — mucho más rápido.
+  const row = document.querySelector('.member-row[data-id="'+id+'"]');
+  if(!row){ if(typeof softReload==='function') softReload(); return; }
+  fetch('member_row.php?id='+id)
+    .then(r=>{ if(!r.ok) throw new Error('no-ok'); return r.text(); })
+    .then(html=>{
+      const tmp = document.createElement('table');
+      tmp.innerHTML = html;
+      const nuevaFila = tmp.querySelector('tr');
+      if(nuevaFila) row.replaceWith(nuevaFila);
+      else if(typeof softReload==='function') softReload();
+    })
+    .catch(()=>{ if(typeof softReload==='function') softReload(); });
 }
 
 // ── ADDRESS AUTOCOMPLETE — OpenStreetMap Nominatim (GRATUITO, sin API key) ──
