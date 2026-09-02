@@ -34,7 +34,7 @@ $stm = $pdo->prepare($tkt_select);
 $stm->execute([$id]);
 $t = $stm->fetch();
 if (!$t) { http_response_code(404); exit; }
-if (!$admin && !((int)($t['asignado_a'] ?? 0) === $uid || (empty($t['asignado_a']) && (int)$t['agente_id'] === $uid))) {
+if (!$admin && $t['asignado_a'] != $uid && !(empty($t['asignado_a']) && $t['agente_id'] == $uid)) {
     http_response_code(403); exit;
 }
 

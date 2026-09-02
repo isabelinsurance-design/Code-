@@ -9419,7 +9419,8 @@ function quickTktStatus(id, newEstado){
         refreshTicketRow(id);
       }
       else toast('⚠ '+(d.error||'Error'));
-    });
+    })
+    .catch(()=>toast('⚠ ERROR DE CONEXIÓN — INTENTA DE NUEVO'));
 }
 
 // Actualiza SOLO la fila de un ticket (ticket_row.php) en vez de recargar
@@ -11588,7 +11589,8 @@ function closeTicket(id){
         refreshTicketRow(id);
       }
       else toast('⚠ '+(d.error||'Error'));
-    });
+    })
+    .catch(()=>toast('⚠ ERROR DE CONEXIÓN — INTENTA DE NUEVO'));
 }
 function submitCita(e){
   e.preventDefault();
