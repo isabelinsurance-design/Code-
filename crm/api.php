@@ -3,6 +3,7 @@ require_once 'session_boot.php';
 require_once 'config.php';
 require_once 'lib_telefono.php';
 require_once 'lib_twilio.php';
+require_once 'lib_row_render.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -629,7 +630,7 @@ case 'close_ticket':
         ->execute([$notas_final ?: null, $tres, $id]);
 
     completarNextStepsDelTicket($pdo, $id, $uid);
-    jsonOkNotify([], 'TICKETS');
+    jsonOkNotify(['row_html' => render_ticket_row_html($pdo, $id, $admin, $uid)], 'TICKETS');
     break;
 
 case 'add_next_step':
@@ -798,7 +799,9 @@ case 'update_ticket':
         if ($new_estado === 'CERRADO' && $prev_data['estado'] !== 'CERRADO') {
             completarNextStepsDelTicket($pdo, $id, $uid);
         }
-        jsonOkNotify([], 'TICKETS');
+        // Devolver ya la fila renderizada — evita un segundo viaje al
+        // servidor (ticket_row.php) solo para pintar el cambio en pantalla.
+        jsonOkNotify(['row_html' => render_ticket_row_html($pdo, $id, $admin, $uid)], 'TICKETS');
     }
 
     $miembro_id        = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
@@ -858,7 +861,7 @@ case 'update_ticket':
         }
     }
 
-    jsonOkNotify([], 'TICKETS');
+    jsonOkNotify(['row_html' => render_ticket_row_html($pdo, $id, $admin, $uid)], 'TICKETS');
     break;
 
 // ── CITAS ─────────────────────────────────────────────────────
