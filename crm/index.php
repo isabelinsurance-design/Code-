@@ -9416,13 +9416,27 @@ function quickTktStatus(id, newEstado){
     .then(r=>r.json()).then(d=>{
       if(d.ok){
         toast('✓ ESTADO ACTUALIZADO');
-        const row=document.querySelector('.ticket-row[data-id="'+id+'"]');
-        if(row) row.dataset.estado=newEstado;
-        if(typeof filterTickets==='function') filterTickets();
-        saveTabAndReload();
+        refreshTicketRow(id);
       }
       else toast('⚠ '+(d.error||'Error'));
     });
+}
+
+// Actualiza SOLO la fila de un ticket (ticket_row.php) en vez de recargar
+// toda la página — igual que refreshMemberRow() para Miembros.
+function refreshTicketRow(id){
+  const row = document.querySelector('.ticket-row[data-id="'+id+'"]');
+  if(!row){ if(typeof softReload==='function') softReload(); return; }
+  fetch('ticket_row.php?id='+id)
+    .then(r=>{ if(!r.ok) throw new Error('no-ok'); return r.text(); })
+    .then(html=>{
+      const tmp = document.createElement('table');
+      tmp.innerHTML = html;
+      const nuevaFila = tmp.querySelector('tr');
+      if(nuevaFila){ row.replaceWith(nuevaFila); if(typeof filterTickets==='function') filterTickets(); }
+      else if(typeof softReload==='function') softReload();
+    })
+    .catch(()=>{ if(typeof softReload==='function') softReload(); });
 }
 
 // ── TIPOS DE TICKETS — el sistema decide miembro/tarea/problema según el tipo ──
@@ -9804,17 +9818,13 @@ function submitTicket(e){
     .then(r=>r.json()).then(d=>{
       if(d.ok){
         toast(isEdit ? '✓ TICKET ACTUALIZADO' : '✓ TICKET CREADO');
-        // Reflejar el nuevo estado en la fila al instante (sin esperar el refresco)
         const _tid = document.getElementById('tkt-id').value;
-        const _newEst = document.getElementById('tkt-estado-sel')?.value || '';
-        if(isEdit && _tid && _newEst){
-          const row=document.querySelector('.ticket-row[data-id="'+_tid+'"]');
-          if(row){ row.dataset.estado=_newEst; if(_newEst==='CERRADO') row.classList.add('tkt-cerrada'); }
-          if(typeof filterTickets==='function') filterTickets();
-        }
         if(btn){ btn.disabled = false; btn.textContent = '◈ GUARDAR'; }
         closeModal('ticket-form-modal');
-        saveTabAndReload();
+        // Editar un ticket existente: solo refrescar su fila. Uno nuevo
+        // necesita entrar en la lista/orden completa, eso sí requiere recargar.
+        if(isEdit && _tid) refreshTicketRow(_tid);
+        else saveTabAndReload();
       } else {
         toast('⚠ '+(d.error||'Error al guardar'));
         if(btn){ btn.disabled = false; btn.textContent = '◈ GUARDAR'; }
@@ -11575,11 +11585,7 @@ function closeTicket(id){
     .then(r=>r.json()).then(d=>{
       if(d.ok){
         toast('✓ TICKET CERRADO');
-        // Actualización instantánea de la fila (no esperar al refresco completo)
-        const row=document.querySelector('.ticket-row[data-id="'+id+'"]');
-        if(row){ row.dataset.estado='CERRADO'; row.classList.add('tkt-cerrada'); }
-        if(typeof filterTickets==='function') filterTickets();
-        saveTabAndReload();
+        refreshTicketRow(id);
       }
       else toast('⚠ '+(d.error||'Error'));
     });
