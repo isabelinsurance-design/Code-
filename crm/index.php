@@ -2217,9 +2217,9 @@ $ef_grupos = [
 ];
 foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
     if (count($ef_grupo) === 0) continue;
-    // NEW ENROLLMENT arranca cerrado (ocupa mucho espacio en el Dashboard) —
-    // se despliega al presionar el botón. Los otros grupos se quedan igual.
-    $ef_colapsable = ($ef_lbl === 'NEW ENROLLMENT');
+    // NEW ENROLLMENT y RE-SIGNED arrancan cerrados (ocupan mucho espacio en
+    // el Dashboard) — se despliegan al presionar el botón. OTROS se queda igual.
+    $ef_colapsable = in_array($ef_lbl, ['NEW ENROLLMENT','RE-SIGNED'], true);
     $ef_body_id = 'ef-body-'.($ef_es_futuro ? 'prox' : 'actual').'-'.preg_replace('/[^A-Z]/','',$ef_lbl);
 ?>
 <div class="card" style="border-top:3px solid <?=$ef_color?>;margin-bottom:14px">
@@ -2244,7 +2244,8 @@ function dashToggleCard(id, btn){
 </script>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
-<div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button></div>
+<div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button><button class="btn btn-gh btn-sm" onclick="dashToggleCard('dash-prosp-pend',this)">▼ DESPLEGAR</button></div></div>
+<div id="dash-prosp-pend" style="display:none">
 <?php
 $prosp_pend = array_filter($members, function($m) use($admin,$uid){
   if(!$admin && (int)($m['agente_id']??0)!==$uid) return false;
@@ -2254,9 +2255,12 @@ $prosp_pend = array_slice(array_values($prosp_pend), 0, 12);
 if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">✓ SIN PROSPECTOS PENDIENTES</div>
 <?php else: foreach($prosp_pend as $m):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),26)?><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>"><?=h($m['estado']?:'PROSPECT')?> · <?=h($m['ciudad'])?></div></div><?=badge($m['estado']?:'PROSPECT',true)?></div><?php endforeach; endif;?>
 </div>
-<div class="card"><div class="card-header"><div class="card-title">◈ TICKETS ABIERTOS</div><button class="btn btn-gh btn-sm" onclick="showTab('TICKETS')">VER →</button></div>
+</div>
+<div class="card"><div class="card-header"><div class="card-title">◈ TICKETS ABIERTOS</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('TICKETS')">VER →</button><button class="btn btn-gh btn-sm" onclick="dashToggleCard('dash-tkt-abiertos',this)">▼ DESPLEGAR</button></div></div>
+<div id="dash-tkt-abiertos" style="display:none">
 <?php foreach(array_slice(array_values($tickets_open),0,6) as $t):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$t['miembro_id']?>)"><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($t['miembro_nombre']??'—')?></div><div style="font-size:8px;color:<?=$MU?>"><?=h(substr($t['descripcion'],0,50))?></div></div><?=badge($t['prioridad'],true)?></div><?php endforeach;?>
 <?php if($open_tks===0):?><div style="padding:18px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">✓ SIN TICKETS</div><?php endif;?>
+</div>
 </div>
 </div>
 <?php if($admin):?><div class="card"><div class="card-header"><div class="card-title">◐ ASISTENCIA HOY</div><button class="btn btn-gh btn-sm" onclick="showTab('ASISTENCIA')">DETALLE →</button></div><div style="display:flex;overflow-x:auto;padding:11px 14px;gap:9px">
