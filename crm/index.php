@@ -2224,7 +2224,7 @@ foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
 ?>
 <div class="card" style="border-top:3px solid <?=$ef_color?>;margin-bottom:14px">
 <div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> <?=h($ef_lbl)?> — <?=h($ef_mes_lbl)?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div>
-<?php if ($ef_colapsable):?><button class="btn btn-gh btn-sm" onclick="dashToggleCard('<?=$ef_body_id?>',this)">▼ DESPLEGAR</button><?php endif;?>
+<?php if ($ef_colapsable):?><button class="btn btn-gh btn-sm" data-target="<?=$ef_body_id?>" onclick="dashToggleCard(this)">▼ DESPLEGAR</button><?php endif;?>
 </div>
 <div id="<?=$ef_body_id?>" style="overflow-x:auto<?=$ef_colapsable?';display:none':''?>"><table>
 <tr><th>MIEMBRO</th><th>EFECTIVA</th><th>CARRIER</th><th>APP✉</th><th>APROBADA</th><th>HRA</th><th>DR.✓</th><th>DRIVE</th><th>SMS</th><th>LLAM.B</th><th></th></tr>
@@ -2234,17 +2234,38 @@ foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
 <?php endforeach; ?>
 <?php endforeach; ?>
 <script>
-function dashToggleCard(id, btn){
-  var b = document.getElementById(id);
+// Secciones colapsables del Dashboard (NEW ENROLLMENT, RE-SIGNED, PROSPECTOS
+// PENDIENTES, TICKETS ABIERTOS): arrancan cerradas, pero una vez que el
+// usuario despliega una se queda así — incluyendo cuando el refresco
+// automático (softReload, cada pocos segundos) vuelve a traer el Dashboard
+// fresco por debajo. Se guarda en sessionStorage cuáles están abiertas para
+// poder reabrirlas después de ese refresco (y de una recarga normal).
+window._dashOpenIds = (function(){
+  try{ return JSON.parse(sessionStorage.getItem('dashOpenIds')||'{}'); }catch(e){ return {}; }
+})();
+function dashToggleCard(btn){
+  var id = btn && btn.dataset ? btn.dataset.target : null;
+  var b = id ? document.getElementById(id) : null;
   if(!b) return;
-  var open = b.style.display !== 'none';
-  b.style.display = open ? 'none' : '';
-  if(btn) btn.textContent = open ? '▼ DESPLEGAR' : '▲ OCULTAR';
+  var willOpen = (b.style.display === 'none');
+  b.style.display = willOpen ? '' : 'none';
+  btn.textContent = willOpen ? '▲ OCULTAR' : '▼ DESPLEGAR';
+  if(willOpen) window._dashOpenIds[id] = true; else delete window._dashOpenIds[id];
+  try{ sessionStorage.setItem('dashOpenIds', JSON.stringify(window._dashOpenIds)); }catch(e){}
 }
+function _dashRestoreOpenCards(){
+  document.querySelectorAll('#tab-DASHBOARD [data-target]').forEach(function(btn){
+    var id = btn.dataset.target;
+    if(!window._dashOpenIds || !window._dashOpenIds[id]) return;
+    var b = document.getElementById(id);
+    if(b){ b.style.display=''; btn.textContent='▲ OCULTAR'; }
+  });
+}
+document.addEventListener('DOMContentLoaded', _dashRestoreOpenCards);
 </script>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
-<div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button><button class="btn btn-gh btn-sm" onclick="dashToggleCard('dash-prosp-pend',this)">▼ DESPLEGAR</button></div></div>
+<div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button><button class="btn btn-gh btn-sm" data-target="dash-prosp-pend" onclick="dashToggleCard(this)">▼ DESPLEGAR</button></div></div>
 <div id="dash-prosp-pend" style="display:none">
 <?php
 $prosp_pend = array_filter($members, function($m) use($admin,$uid){
@@ -2256,7 +2277,7 @@ if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8p
 <?php else: foreach($prosp_pend as $m):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),26)?><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>"><?=h($m['estado']?:'PROSPECT')?> · <?=h($m['ciudad'])?></div></div><?=badge($m['estado']?:'PROSPECT',true)?></div><?php endforeach; endif;?>
 </div>
 </div>
-<div class="card"><div class="card-header"><div class="card-title">◈ TICKETS ABIERTOS</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('TICKETS')">VER →</button><button class="btn btn-gh btn-sm" onclick="dashToggleCard('dash-tkt-abiertos',this)">▼ DESPLEGAR</button></div></div>
+<div class="card"><div class="card-header"><div class="card-title">◈ TICKETS ABIERTOS</div><div style="display:flex;gap:6px"><button class="btn btn-gh btn-sm" onclick="showTab('TICKETS')">VER →</button><button class="btn btn-gh btn-sm" data-target="dash-tkt-abiertos" onclick="dashToggleCard(this)">▼ DESPLEGAR</button></div></div>
 <div id="dash-tkt-abiertos" style="display:none">
 <?php foreach(array_slice(array_values($tickets_open),0,6) as $t):?><div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$t['miembro_id']?>)"><div style="flex:1"><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($t['miembro_nombre']??'—')?></div><div style="font-size:8px;color:<?=$MU?>"><?=h(substr($t['descripcion'],0,50))?></div></div><?=badge($t['prioridad'],true)?></div><?php endforeach;?>
 <?php if($open_tks===0):?><div style="padding:18px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">✓ SIN TICKETS</div><?php endif;?>
@@ -10347,6 +10368,15 @@ function softReload(done){
       try{
         if(active.id==='tab-MIEMBROS' && typeof loadMembersTable==='function'){
           loadMembersTable(typeof applyMemberFilters==='function' ? applyMemberFilters : undefined);
+        }
+      }catch(e){}
+      // DASHBOARD: las tarjetas colapsables (NEW ENROLLMENT, RE-SIGNED,
+      // PROSPECTOS PENDIENTES, TICKETS ABIERTOS) vuelven a su estado
+      // cerrado con el HTML fresco — reabrir las que el usuario ya había
+      // desplegado, para que el refresco automático no se las cierre.
+      try{
+        if(active.id==='tab-DASHBOARD' && typeof _dashRestoreOpenCards==='function'){
+          _dashRestoreOpenCards();
         }
       }catch(e){}
       // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual
