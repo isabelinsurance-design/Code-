@@ -2217,16 +2217,31 @@ $ef_grupos = [
 ];
 foreach ($ef_grupos as [$ef_lbl, $ef_grupo, $ef_color]):
     if (count($ef_grupo) === 0) continue;
+    // NEW ENROLLMENT arranca cerrado (ocupa mucho espacio en el Dashboard) —
+    // se despliega al presionar el botón. Los otros grupos se quedan igual.
+    $ef_colapsable = ($ef_lbl === 'NEW ENROLLMENT');
+    $ef_body_id = 'ef-body-'.($ef_es_futuro ? 'prox' : 'actual').'-'.preg_replace('/[^A-Z]/','',$ef_lbl);
 ?>
 <div class="card" style="border-top:3px solid <?=$ef_color?>;margin-bottom:14px">
-<div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> <?=h($ef_lbl)?> — <?=h($ef_mes_lbl)?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div></div>
-<div style="overflow-x:auto"><table>
+<div class="card-header"><div><div class="card-title"><span style="color:<?=$ef_color?>">●</span> <?=h($ef_lbl)?> — <?=h($ef_mes_lbl)?></div><div class="card-sub"><?=count($ef_grupo)?> MIEMBRO<?=count($ef_grupo)>1?'S':''?> · CHECKLIST</div></div>
+<?php if ($ef_colapsable):?><button class="btn btn-gh btn-sm" onclick="dashToggleCard('<?=$ef_body_id?>',this)">▼ DESPLEGAR</button><?php endif;?>
+</div>
+<div id="<?=$ef_body_id?>" style="overflow-x:auto<?=$ef_colapsable?';display:none':''?>"><table>
 <tr><th>MIEMBRO</th><th>EFECTIVA</th><th>CARRIER</th><th>APP✉</th><th>APROBADA</th><th>HRA</th><th>DR.✓</th><th>DRIVE</th><th>SMS</th><th>LLAM.B</th><th></th></tr>
 <?php foreach($ef_grupo as $m) echo efMesRow($m, $ef_checks); ?>
 </table></div>
 </div>
 <?php endforeach; ?>
 <?php endforeach; ?>
+<script>
+function dashToggleCard(id, btn){
+  var b = document.getElementById(id);
+  if(!b) return;
+  var open = b.style.display !== 'none';
+  b.style.display = open ? 'none' : '';
+  if(btn) btn.textContent = open ? '▼ DESPLEGAR' : '▲ OCULTAR';
+}
+</script>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:11px;margin-bottom:11px">
 
 <div class="card"><div class="card-header"><div class="card-title">◌ PROSPECTOS PENDIENTES</div><button class="btn btn-gh btn-sm" onclick="showTab('PIPELINE')">PIPELINE →</button></div>
