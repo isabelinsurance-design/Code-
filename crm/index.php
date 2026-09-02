@@ -1366,14 +1366,6 @@ if ($admin) {
 }
 // Separate open vs all for dashboard counts
 $tickets_open = array_filter($tickets, fn($t) => $t['estado'] !== 'CERRADO');
-// Conteo de tickets abiertos POR miembro — una sola pasada por $tickets_open
-// en vez de recorrer TODOS los tickets por CADA miembro en la lista (con 300
-// miembros y 300 tickets eso eran ~90,000 revisiones en vez de 300).
-$_tks_abiertos_por_miembro = [];
-foreach ($tickets_open as $t) {
-    if (empty($t['miembro_id'])) continue;
-    $_tks_abiertos_por_miembro[$t['miembro_id']] = ($_tks_abiertos_por_miembro[$t['miembro_id']] ?? 0) + 1;
-}
 
 // === TIPOS DE TICKET — el sistema decide la categoría según el tipo elegido ===
 $TIPO_MIEMBRO  = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
@@ -4508,19 +4500,9 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 </div>
 <div class="card"><div style="overflow-x:auto"><table id="members-table">
 <tr><th>MIEMBRO</th><th>TELÉFONO</th><th>CIUDAD</th><th>PLAN/CARRIER</th><th>ESTADO</th><th>MBI</th><th>TKT</th><th></th></tr>
-<?php foreach($members as $m):$mtks=$_tks_abiertos_por_miembro[$m['id']]??0;?>
-<?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
-<tr class="member-row" data-id="<?=$m['id']?>" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-campana-origen="<?=h($m['campana_origen_id']??'')?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
-<td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?><?=origen_badge_html($m,$_origen_campanas,$_origen_miembros_nombre)?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
-<td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
-<td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
-<td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
-<td><?=badge($m['estado'])?><?php if($m['estado']==='IN PROCESS'):?><br><button class="btn btn-gr btn-sm" style="margin-top:4px;font-size:7px;padding:3px 8px" onclick="event.stopPropagation();abrirActivarMiembro(<?=$m['id']?>,'<?=h(addslashes($m['apellido'].', '.$m_nombre_completo))?>')">✓ ACTIVAR</button><?php endif;?></td>
-<td style="font-size:8px;color:<?=$MU?>"><?=h($m['mbi']??'—')?></td>
-<td><?php if($mtks>0):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 7px;font-size:8px;font-weight:900"><?=$mtks?></span><?php else:?>—<?php endif;?></td>
-<td onclick="event.stopPropagation()"><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td>
-</tr>
-<?php endforeach;?>
+<tbody id="members-tbody">
+<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">CARGANDO...</td></tr>
+</tbody>
 </table></div>
 <div style="padding:7px 14px;font-size:8px;color:<?=$MU?>;border-top:1px solid <?=$CB?>;letter-spacing:1.5px;text-transform:uppercase;background:<?=$BG?>">MOSTRANDO <span id="member-count"><?=count($members)?></span> MIEMBROS</div>
 </div>
@@ -8371,6 +8353,7 @@ document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
 if(id==='GASTOS') loadGastos();
 if(id==='TICKETS'){ loadTicketsTable(function(){ filterTickets(); setTktVista(_tktVista); }); }
+if(id==='MIEMBROS' && typeof loadMembersTable==='function') loadMembersTable(applyMemberFilters);
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
@@ -8656,6 +8639,22 @@ let _mCampOrigen = ''; // '' = cualquier origen · id de campaña (ver verMiembr
 const _M_NEXT_MONTH = '<?= date('Y-m', strtotime('first day of next month')) ?>';
 const _M_GRUPO_PROCESO    = ['IN PROCESS','READY TO ENROLL','PLAN CHANGE','PENDING'];
 const _M_GRUPO_CANCELADOS = ['CANCELED','DENIED','CERRADO','DISENROLLED'];
+
+// La tabla de Miembros ya no viene armada en cada carga de la página
+// completa — se pide aparte al abrir esa pestaña (y al restaurarla tras un
+// softReload). cb() corre después de que las filas ya están en el DOM.
+function loadMembersTable(cb){
+  const tbody = document.getElementById('members-tbody');
+  if(!tbody){ if(typeof cb==='function') cb(); return; }
+  fetch('api.php?action=get_members_table').then(r=>r.json()).then(d=>{
+    if(d.ok) tbody.innerHTML = d.data.html || '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN MIEMBROS</td></tr>';
+    else tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR AL CARGAR</td></tr>';
+    if(typeof cb==='function') cb();
+  }).catch(()=>{
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR DE RED</td></tr>';
+    if(typeof cb==='function') cb();
+  });
+}
 
 function applyMemberFilters(){
     const q = (document.getElementById('member-search')?.value||'').toLowerCase().trim();
@@ -10322,6 +10321,13 @@ function softReload(done){
             else if(typeof filterTickets==='function'){ filterTickets(); }
           };
           if(typeof loadTicketsTable==='function'){ loadTicketsTable(_afterTktLoad); } else { _afterTktLoad(); }
+        }
+      }catch(e){}
+      // MIEMBROS: la tabla ya no viene incluida en el HTML fresco (se pide
+      // aparte) — hay que volver a pedirla y reaplicar los filtros activos.
+      try{
+        if(active.id==='tab-MIEMBROS' && typeof loadMembersTable==='function'){
+          loadMembersTable(typeof applyMemberFilters==='function' ? applyMemberFilters : undefined);
         }
       }catch(e){}
       // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual

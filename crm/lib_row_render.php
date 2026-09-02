@@ -181,6 +181,86 @@ function render_ticket_row_from_data(array $t, array $ns_list, bool $admin): str
     return ob_get_clean();
 }
 
+/* Badge de origen de un miembro (campaña / referido / fuente) — texto
+ * siempre visible, no un icono con tooltip. $camps_by_id: [campana_id =>
+ * nombre]; $names_by_id: [miembro_id => "nombre apellido"] (para resolver
+ * "referido por" otro miembro ya cargado). Misma lógica que origen_badge_html()
+ * en index.php, para poder pintar la tabla completa de Miembros sin
+ * consultar la campaña/el referente UNO POR UNO. */
+function row_origen_badge(array $m, array $camps_by_id, array $names_by_id): string {
+    $bg = '#F1EFE8'; $col = '#7A90A4'; $bc = '#D8D4C8'; $texto = null; $tip = '';
+    if (!empty($m['campana_origen_id']) && isset($camps_by_id[$m['campana_origen_id']])) {
+        $nombreCamp = $camps_by_id[$m['campana_origen_id']];
+        $bg = '#FEF8EE'; $col = '#C07A1A'; $bc = '#F5D5A0';
+        $texto = '📣 '.h(mb_strimwidth($nombreCamp, 0, 16, '…'));
+        $tip = 'Campaña: '.$nombreCamp;
+    } elseif (!empty($m['referido_por_miembro_id']) && isset($names_by_id[$m['referido_por_miembro_id']])) {
+        $nombreRef = $names_by_id[$m['referido_por_miembro_id']];
+        $bg = '#EAF5F0'; $col = '#1E7A5C'; $bc = '#8DCFBA';
+        $texto = '🤝 REF: '.h(mb_strimwidth($nombreRef, 0, 14, '…'));
+        $tip = 'Referido por: '.$nombreRef;
+    } elseif (!empty($m['referido_por_texto'])) {
+        $bg = '#EAF5F0'; $col = '#1E7A5C'; $bc = '#8DCFBA';
+        $texto = '🤝 REF: '.h(mb_strimwidth($m['referido_por_texto'], 0, 14, '…'));
+        $tip = 'Referido por: '.$m['referido_por_texto'];
+    } elseif (!empty($m['fuente'])) {
+        $texto = h($m['fuente']);
+        $tip = 'Origen: '.$m['fuente'];
+    }
+    if ($texto === null) return '';
+    return '<span title="'.h($tip).'" style="background:'.$bg.';color:'.$col.';border:1px solid '.$bc.';border-radius:4px;padding:1px 6px;font-size:7px;font-weight:900;margin-left:4px;white-space:nowrap">'.$texto.'</span>';
+}
+
+/* Arma el <tr> de UN miembro a partir de datos YA cargados — usado por
+ * render_members_table_html para pintar la tabla completa sin repetir
+ * consultas por fila (los mapas de origen/tickets ya vienen precargados). */
+function render_member_row_from_data(array $m, int $mtks, array $camps_by_id, array $names_by_id): string {
+    $P1='#1B4A6B'; $P2='#2876A8'; $MU='#7A90A4'; $TX='#1B3A5C';
+    $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??''));
+    ob_start();
+    ?><tr class="member-row" data-id="<?=$m['id']?>" data-estado="<?=h($m['estado'])?>" data-fecha="<?=h($m['fecha_efectiva'])?>" data-subestado="<?=h($m['subestado']??'')?>" data-mes="<?=h(substr($m['fecha_efectiva']??'',0,7))?>" data-agente="<?=h($m['agente_id'])?>" data-campana-origen="<?=h($m['campana_origen_id']??'')?>" data-search="<?=h(strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??'')))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
+<td><div style="display:flex;gap:7px;align-items:center"><?=row_av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?><?=row_origen_badge($m,$camps_by_id,$names_by_id)?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?></div></div></div></td>
+<td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
+<td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
+<td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
+<td><?=row_badge($m['estado'])?><?php if($m['estado']==='IN PROCESS'):?><br><button class="btn btn-gr btn-sm" style="margin-top:4px;font-size:7px;padding:3px 8px" onclick="event.stopPropagation();abrirActivarMiembro(<?=$m['id']?>,'<?=h(addslashes($m['apellido'].', '.$m_nombre_completo))?>')">✓ ACTIVAR</button><?php endif;?></td>
+<td style="font-size:8px;color:<?=$MU?>"><?=h($m['mbi']??'—')?></td>
+<td><?php if($mtks>0):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 7px;font-size:8px;font-weight:900"><?=$mtks?></span><?php else:?>—<?php endif;?></td>
+<td onclick="event.stopPropagation()"><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td>
+</tr>
+    <?php
+    return ob_get_clean();
+}
+
+/* Arma el <tbody> completo de la tabla de Miembros — se pide aparte (al
+ * abrir la pestaña Miembros) en vez de venir ya armada en cada carga de la
+ * página completa. Mismo criterio/orden que usaba antes index.php. */
+function render_members_table_html(PDO $pdo): string {
+    $members = $pdo->query("SELECT m.*,u.nombre as agente_nombre,u.color as agente_color,u.iniciales as agente_ini,
+        (SELECT COUNT(*) FROM soa WHERE miembro_id=m.id AND estado='FIRMADO') as has_soa
+        FROM miembros m LEFT JOIN usuarios u ON m.agente_id=u.id ORDER BY m.apellido,m.nombre")->fetchAll();
+
+    $camps_by_id = [];
+    try { foreach ($pdo->query("SELECT id,nombre FROM campanas") as $c) { $camps_by_id[$c['id']] = $c['nombre']; } } catch (Exception $e) {}
+    $names_by_id = [];
+    foreach ($members as $m) { $names_by_id[$m['id']] = trim($m['nombre'].' '.$m['apellido']); }
+
+    // Tickets abiertos por miembro — una sola consulta agrupada en vez de
+    // una por miembro.
+    $tks_por_miembro = [];
+    try {
+        foreach ($pdo->query("SELECT miembro_id, COUNT(*) as n FROM tickets WHERE estado!='CERRADO' AND miembro_id IS NOT NULL GROUP BY miembro_id") as $r) {
+            $tks_por_miembro[$r['miembro_id']] = (int)$r['n'];
+        }
+    } catch (Exception $e) {}
+
+    $html = '';
+    foreach ($members as $m) {
+        $html .= render_member_row_from_data($m, $tks_por_miembro[$m['id']] ?? 0, $camps_by_id, $names_by_id);
+    }
+    return $html;
+}
+
 /* Trae UN ticket + sus next steps y arma su <tr> — usado por ticket_row.php
  * (refresco vía fetch aparte) Y directamente por api.php (para devolver la
  * fila ya lista en la MISMA respuesta de guardar/cambiar estado, sin

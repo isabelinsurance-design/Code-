@@ -456,6 +456,14 @@ case 'get_historial_mes':
     jsonOk(['historial' => $rows->fetchAll(PDO::FETCH_ASSOC), 'mes' => $mes]);
     break;
 
+case 'get_members_table':
+    // Todo el <tbody> de la pestaña Miembros — se pide al abrir esa pestaña
+    // en vez de venir ya armado en cada carga de la página completa (ver
+    // render_members_table_html en lib_row_render.php).
+    $pdo = db();
+    jsonOk(['html' => render_members_table_html($pdo)]);
+    break;
+
 case 'save_member':
     $d = $_POST;
     $pdo = db();
