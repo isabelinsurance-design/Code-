@@ -1622,33 +1622,14 @@ try{
 }catch(Exception $e){}
 $notif_unread=0;
 try{$nq=$pdo->prepare("SELECT COUNT(*) FROM notificaciones WHERE user_id=? AND leido=0");$nq->execute([$uid]);$notif_unread=(int)$nq->fetchColumn();}catch(Exception $e){}
-// ─── SMS (TWILIO) — conversaciones agrupadas por teléfono ────────────────
-$sms_unread=0; $sms_conversaciones=[]; $sms_last_id=0;
+// ─── SMS (TWILIO) — solo lo barato (contadores) en cada carga de página.
+// La lista de conversaciones (antes calculada aquí con 2 consultas POR
+// conversación) ahora se pide aparte al abrir la pestaña COMUNICACIÓN —
+// ver action=get_sms_conversaciones en api.php y loadSmsConversaciones() más abajo.
+$sms_unread=0; $sms_last_id=0;
 try{
     $sms_unread=(int)$pdo->query("SELECT COUNT(*) FROM sms_mensajes WHERE direccion='ENTRANTE' AND leido=0")->fetchColumn();
     $sms_last_id=(int)$pdo->query("SELECT COALESCE(MAX(id),0) FROM sms_mensajes")->fetchColumn();
-    $sms_rows=$pdo->query("
-        SELECT s.telefono, MAX(s.created_at) AS ultimo_fecha,
-               SUM(CASE WHEN s.direccion='ENTRANTE' AND s.leido=0 THEN 1 ELSE 0 END) AS no_leidos
-        FROM sms_mensajes s GROUP BY s.telefono ORDER BY ultimo_fecha DESC LIMIT 200
-    ")->fetchAll(PDO::FETCH_ASSOC);
-    foreach($sms_rows as $sr){
-        $ult=$pdo->prepare("SELECT cuerpo,direccion FROM sms_mensajes WHERE telefono=? ORDER BY id DESC LIMIT 1");
-        $ult->execute([$sr['telefono']]);
-        $u=$ult->fetch(PDO::FETCH_ASSOC);
-        $mq=$pdo->prepare("SELECT id,nombre,apellido FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
-        $mq->execute([$sr['telefono'],$sr['telefono']]);
-        $mm=$mq->fetch(PDO::FETCH_ASSOC);
-        $sms_conversaciones[]=[
-            'telefono'=>$sr['telefono'],
-            'ultimo_fecha'=>$sr['ultimo_fecha'],
-            'no_leidos'=>(int)$sr['no_leidos'],
-            'ultimo_mensaje'=>$u['cuerpo']??'',
-            'ultimo_direccion'=>$u['direccion']??'',
-            'miembro_id'=>$mm['id']??null,
-            'nombre'=>$mm?trim($mm['nombre'].' '.$mm['apellido']):null,
-        ];
-    }
 }catch(Exception $e){}
 $sms_plantillas=[];
 try{ $sms_plantillas=$pdo->query("SELECT * FROM sms_plantillas ORDER BY orden ASC, id ASC")->fetchAll(PDO::FETCH_ASSOC); }catch(Exception $e){}
@@ -6657,20 +6638,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <input type="text" id="sms-conv-filter" class="form-input" placeholder="🔎 Buscar..." autocomplete="off" oninput="filterSmsConv(this)" style="background:#fff">
     </div>
     <div id="sms-conv-list" style="flex:1;min-height:0;overflow-y:auto">
-      <?php if(empty($sms_conversaciones)):?>
-      <div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN MENSAJES TODAVÍA</div>
-      <?php else: foreach($sms_conversaciones as $sc): ?>
-      <div class="sms-conv-row" data-tel="<?=h($sc['telefono'])?>" data-search="<?=h(strtolower(($sc['nombre']??'').' '.$sc['telefono']))?>" style="padding:10px 14px;border-bottom:1px solid <?=$CB?>;cursor:pointer;<?=$sc['no_leidos']>0?'background:#FDF0EE':''?>" onclick="seleccionarHiloSms('<?=h($sc['telefono'])?>','<?=h(addslashes($sc['nombre']??''))?>',this)">
-        <div style="display:flex;justify-content:space-between;gap:6px">
-          <span style="font-size:10px;font-weight:900;color:<?=$P1?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?=$sc['nombre']?h($sc['nombre']):h($sc['telefono'])?></span>
-          <span style="font-size:7px;color:<?=$MU?>;flex-shrink:0;white-space:nowrap"><?=date('m/d h:i A',strtotime($sc['ultimo_fecha']))?></span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px">
-          <span style="font-size:9px;color:<?=$MU?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?=$sc['ultimo_direccion']==='SALIENTE'?'TÚ: ':''?><?=h(substr($sc['ultimo_mensaje'],0,50))?></span>
-          <?php if($sc['no_leidos']>0):?><span class="nbadge sms-conv-badge" style="background:#B83232;color:#fff;border:1px solid #B83232;flex-shrink:0"><?=$sc['no_leidos']?></span><?php endif;?>
-        </div>
-      </div>
-      <?php endforeach; endif;?>
+      <div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">CARGANDO...</div>
     </div>
   </div>
   <!-- PANEL PRINCIPAL -->
@@ -8543,6 +8511,7 @@ document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
 if(id==='GASTOS') loadGastos();
 if(id==='TICKETS'){ filterTickets(); setTktVista(_tktVista); }
+if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
 }
@@ -10188,6 +10157,36 @@ function filterSmsConv(input){
   const q=(input.value||'').toLowerCase().trim();
   document.querySelectorAll('.sms-conv-row').forEach(r=>{ r.style.display=(!q||(r.dataset.search||'').includes(q))?'':'none'; });
 }
+// La lista de conversaciones de SMS se pide aparte (en vez de venir ya
+// armada en cada carga de la página completa) — se llama al abrir la
+// pestaña COMUNICACIÓN y al restaurar esa pestaña después de un softReload.
+function loadSmsConversaciones(){
+  const list = document.getElementById('sms-conv-list');
+  if(!list) return;
+  fetch('api.php?action=get_sms_conversaciones').then(r=>r.json()).then(d=>{
+    if(!d.ok){ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">ERROR AL CARGAR</div>'; return; }
+    const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    const convs = d.data.conversaciones||[];
+    if(!convs.length){ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN MENSAJES TODAVÍA</div>'; return; }
+    list.innerHTML = convs.map(sc=>{
+      const nombre = sc.nombre ? esc(sc.nombre) : esc(sc.telefono);
+      const search = esc(((sc.nombre||'')+' '+sc.telefono).toLowerCase());
+      const fecha = sc.ultimo_fecha ? new Date(sc.ultimo_fecha.replace(' ','T')).toLocaleString('en-US',{month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit'}) : '';
+      const msgPrefix = sc.ultimo_direccion==='SALIENTE' ? 'TÚ: ' : '';
+      const msg = esc((sc.ultimo_mensaje||'').slice(0,50));
+      const noLeidos = parseInt(sc.no_leidos||0);
+      return '<div class="sms-conv-row" data-tel="'+esc(sc.telefono)+'" data-search="'+search+'" style="padding:10px 14px;border-bottom:1px solid <?=$CB?>;cursor:pointer;'+(noLeidos>0?'background:#FDF0EE':'')+'" onclick="seleccionarHiloSms(\''+esc(sc.telefono).replace(/'/g,"\\'")+'\',\''+nombre.replace(/'/g,"\\'")+'\',this)">'
+        +'<div style="display:flex;justify-content:space-between;gap:6px">'
+        +'<span style="font-size:10px;font-weight:900;color:<?=$P1?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+nombre+'</span>'
+        +'<span style="font-size:7px;color:<?=$MU?>;flex-shrink:0;white-space:nowrap">'+fecha+'</span>'
+        +'</div>'
+        +'<div style="display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:2px">'
+        +'<span style="font-size:9px;color:<?=$MU?>;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+msgPrefix+msg+'</span>'
+        +(noLeidos>0?'<span class="nbadge sms-conv-badge" style="background:#B83232;color:#fff;border:1px solid #B83232;flex-shrink:0">'+noLeidos+'</span>':'')
+        +'</div></div>';
+    }).join('');
+  }).catch(()=>{ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">ERROR DE RED</div>'; });
+}
 // El botón "SMS" del encabezado del perfil (profile.php) ya llamaba a esta
 // función desde antes, pero nunca se había definido — por eso el botón no
 // hacía nada al presionarlo.
@@ -10450,11 +10449,15 @@ function softReload(done){
           setCampVista(_campVista);
         }
       }catch(e){}
-      // COMUNICACIÓN/SMS: si había una conversación abierta, se vuelve a
-      // seleccionar (si no, el softReload la reemplaza por la pantalla vacía).
+      // COMUNICACIÓN/SMS: la lista de conversaciones ya no viene incluida en
+      // el HTML (se pide aparte), así que hay que volver a pedirla — y, si
+      // había una conversación abierta, se vuelve a seleccionar.
       try{
-        if(active.id==='tab-COMUNICACION' && _smsHiloAbierto && typeof seleccionarHiloSms==='function'){
-          seleccionarHiloSms(_smsHiloAbierto, _smsHiloNombre);
+        if(active.id==='tab-COMUNICACION'){
+          if(typeof loadSmsConversaciones==='function') loadSmsConversaciones();
+          if(_smsHiloAbierto && typeof seleccionarHiloSms==='function'){
+            seleccionarHiloSms(_smsHiloAbierto, _smsHiloNombre);
+          }
         }
       }catch(e){}
       // Reabrir acordeón recién creado de reuniones / campañas (si aplica)

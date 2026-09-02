@@ -1621,6 +1621,58 @@ case 'sms_get_nuevos':
     jsonOk(['nuevos' => $nuevos, 'unread' => $unread, 'max_id' => $maxId]);
     break;
 
+case 'get_sms_conversaciones':
+    // Lista de conversaciones agrupadas por teléfono para la barra lateral
+    // de SMS — se pide aparte (al abrir COMUNICACIÓN) en vez de calcularse
+    // en cada carga de la página entera. Antes esto hacía 2 consultas POR
+    // conversación (hasta ~400 extra con 200 conversaciones); ahora son 2
+    // consultas en total, sin importar cuántas conversaciones haya.
+    $pdo = db();
+    asegurarTablaSms($pdo);
+    $rows = $pdo->query("
+        SELECT s.telefono, MAX(s.created_at) AS ultimo_fecha,
+               SUM(CASE WHEN s.direccion='ENTRANTE' AND s.leido=0 THEN 1 ELSE 0 END) AS no_leidos
+        FROM sms_mensajes s GROUP BY s.telefono ORDER BY ultimo_fecha DESC LIMIT 200
+    ")->fetchAll(PDO::FETCH_ASSOC);
+    $telefonos = array_column($rows, 'telefono');
+    $ultimos = []; $miembros = [];
+    if ($telefonos) {
+        $ph = implode(',', array_fill(0, count($telefonos), '?'));
+        $st = $pdo->prepare("
+            SELECT s.telefono, s.cuerpo, s.direccion
+            FROM sms_mensajes s
+            INNER JOIN (
+                SELECT telefono, MAX(id) AS max_id FROM sms_mensajes WHERE telefono IN ($ph) GROUP BY telefono
+            ) mx ON mx.telefono = s.telefono AND mx.max_id = s.id
+        ");
+        $st->execute($telefonos);
+        foreach ($st->fetchAll(PDO::FETCH_ASSOC) as $u) { $ultimos[$u['telefono']] = $u; }
+
+        $mq = $pdo->prepare("SELECT id, nombre, apellido, telefono, telefono2 FROM miembros WHERE telefono IN ($ph) OR telefono2 IN ($ph)");
+        $mq->execute(array_merge($telefonos, $telefonos));
+        foreach ($mq->fetchAll(PDO::FETCH_ASSOC) as $m) {
+            if (!empty($m['telefono']))  $miembros[$m['telefono']]  = $m;
+            if (!empty($m['telefono2'])) $miembros[$m['telefono2']] = $m;
+        }
+    }
+    $conversaciones = [];
+    foreach ($rows as $sr) {
+        $tel = $sr['telefono'];
+        $u   = $ultimos[$tel] ?? null;
+        $mm  = $miembros[$tel] ?? null;
+        $conversaciones[] = [
+            'telefono'         => $tel,
+            'ultimo_fecha'     => $sr['ultimo_fecha'],
+            'no_leidos'        => (int)$sr['no_leidos'],
+            'ultimo_mensaje'   => $u['cuerpo'] ?? '',
+            'ultimo_direccion' => $u['direccion'] ?? '',
+            'miembro_id'       => $mm['id'] ?? null,
+            'nombre'           => $mm ? trim($mm['nombre'].' '.$mm['apellido']) : null,
+        ];
+    }
+    jsonOk(['conversaciones' => $conversaciones]);
+    break;
+
 case 'sms_get_hilo':
     $pdo = db();
     asegurarTablaSms($pdo);
