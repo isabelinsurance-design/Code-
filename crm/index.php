@@ -1067,8 +1067,25 @@ try {
         promovido TINYINT(1) DEFAULT 0,
         agente_id INT,
         ultima_actividad DATETIME DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_cc_campana (campana_id),
+        INDEX idx_cc_agente (agente_id),
+        INDEX idx_cc_miembro (miembro_id)
     )");
+    // Índices para tablas que ya existían de antes de agregar los de arriba
+    // (CREATE TABLE IF NOT EXISTS no los agrega si la tabla ya existe) — la
+    // pestaña de Campañas filtra/junta por estas columnas todo el tiempo y
+    // sin índice MySQL tiene que revisar la tabla entera cada vez.
+    $_idx_add = function(PDO $pdo, string $tabla, string $indice, string $ddl) {
+        try {
+            $chk = $pdo->prepare("SELECT 1 FROM information_schema.statistics WHERE table_schema=DATABASE() AND table_name=? AND index_name=? LIMIT 1");
+            $chk->execute([$tabla, $indice]);
+            if (!$chk->fetch()) $pdo->exec($ddl);
+        } catch (Exception $e) {}
+    };
+    $_idx_add($pdo, 'campana_contactos', 'idx_cc_campana', "ALTER TABLE campana_contactos ADD INDEX idx_cc_campana (campana_id)");
+    $_idx_add($pdo, 'campana_contactos', 'idx_cc_agente',  "ALTER TABLE campana_contactos ADD INDEX idx_cc_agente (agente_id)");
+    $_idx_add($pdo, 'campana_contactos', 'idx_cc_miembro', "ALTER TABLE campana_contactos ADD INDEX idx_cc_miembro (miembro_id)");
     // Migración: agregar TODAS las columnas que falten si la tabla ya
     // existía de antes de forma más antigua/incompleta (CREATE TABLE IF NOT
     // EXISTS no agrega columnas a una tabla que ya existe).
@@ -1097,8 +1114,12 @@ try {
         canal VARCHAR(30) DEFAULT 'LLAMADA',
         resultado VARCHAR(100),
         notas TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_cl_campana (campana_id),
+        INDEX idx_cl_contacto (contacto_id)
     )");
+    $_idx_add($pdo, 'campana_logs', 'idx_cl_campana',  "ALTER TABLE campana_logs ADD INDEX idx_cl_campana (campana_id)");
+    $_idx_add($pdo, 'campana_logs', 'idx_cl_contacto', "ALTER TABLE campana_logs ADD INDEX idx_cl_contacto (contacto_id)");
 } catch (Exception $e) {}
 // ─── TABLAS LISTAS DE EVENTO (confirmaciones/asistencia — ej. celebraciones) ─
 try {
@@ -1389,6 +1410,10 @@ foreach($citas as $__c){ if(!empty($__c['miembro_id'])) $citas_por_miembro[$__c[
 try { $pdo->exec("CREATE TABLE IF NOT EXISTS asistencia_breaks (id INT AUTO_INCREMENT PRIMARY KEY, asistencia_id INT NOT NULL, break_out TIME NOT NULL, break_in TIME DEFAULT NULL, INDEX idx_asis (asistencia_id))"); } catch (Exception $e) {}
 $mci=$pdo->prepare("SELECT * FROM asistencia WHERE agente_id=? AND fecha=?");$mci->execute([$uid,$today]);$my_ci=$mci->fetch();
 $tcq=$pdo->prepare("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.fecha=?");$tcq->execute([$today]);$today_ckins=$tcq->fetchAll();
+// Breaks de HOY para todos los empleados de una sola vez — varias tarjetitas
+// del CRM (dashboard, asistencia, reportes) antes hacían esta misma consulta
+// una vez POR CADA empleado; ahora la comparten.
+$_xb_today_batch = extra_breaks_batch($pdo, array_column($today_ckins, 'id'));
 $open_tks = count(array_filter($tickets_open, fn($t) => in_array($t['tipo'] ?? '', $TIPO_MIEMBRO, true)));
 $hoy_fecha = date('Y-m-d');
 
@@ -1689,6 +1714,28 @@ function extra_breaks(PDO $pdo, ?int $asistencia_id): array {
         }
         return [$secs, $pares];
     } catch (Exception $e) { return [0, []]; }
+}
+// Igual que extra_breaks() pero para MUCHOS registros de asistencia de una
+// sola vez (una sola consulta con WHERE...IN en vez de una por fila) — usar
+// en cualquier tabla/listado que muestre varios días/empleados a la vez,
+// para no repetir la misma consulta cientos de veces en una sola carga.
+// Devuelve [asistencia_id => [segundos_totales, lista_de_pares]].
+function extra_breaks_batch(PDO $pdo, array $asistencia_ids): array {
+    $ids = array_values(array_unique(array_filter(array_map('intval', $asistencia_ids))));
+    $out = [];
+    foreach ($ids as $id) $out[$id] = [0, []];
+    if (!$ids) return $out;
+    try {
+        $ph = implode(',', array_fill(0, count($ids), '?'));
+        $st = $pdo->prepare("SELECT asistencia_id, break_out, break_in FROM asistencia_breaks WHERE asistencia_id IN ($ph) ORDER BY asistencia_id, break_out ASC");
+        $st->execute($ids);
+        foreach ($st->fetchAll() as $r) {
+            $aid = (int)$r['asistencia_id'];
+            $out[$aid][1][] = ['out'=>$r['break_out'], 'in'=>$r['break_in']];
+            if ($r['break_in']) $out[$aid][0] += max(0, strtotime("1970-01-01 {$r['break_in']}") - strtotime("1970-01-01 {$r['break_out']}"));
+        }
+    } catch (Exception $e) {}
+    return $out;
 }
 function generarNotificacionesRetencion(PDO $pdo, array $users_all):void {
 // Candado diario: si ya se generaron hoy, no repetir el trabajo en cada carga.
@@ -2227,7 +2274,7 @@ if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8p
 </div>
 </div>
 <?php if($admin):?><div class="card"><div class="card-header"><div class="card-title">◐ ASISTENCIA HOY</div><button class="btn btn-gh btn-sm" onclick="showTab('ASISTENCIA')">DETALLE →</button></div><div style="display:flex;overflow-x:auto;padding:11px 14px;gap:9px">
-<?php foreach($agents as $ag):$ci=array_filter($today_ckins,fn($c)=>$c['agente_id']==$ag['id']);$ci=reset($ci)?:null;[$_xb1,]=extra_breaks($pdo,$ci['id']??null);$w=calc_hours($ci['check_in']??null,$ci['lunch_out']??null,$ci['lunch_in']??null,$ci['check_out']??null,$ci['break_out']??null,$ci['break_in']??null,$_xb1);?>
+<?php foreach($agents as $ag):$ci=array_filter($today_ckins,fn($c)=>$c['agente_id']==$ag['id']);$ci=reset($ci)?:null;[$_xb1,]=$_xb_today_batch[(int)($ci['id']??0)]??[0,[]];$w=calc_hours($ci['check_in']??null,$ci['lunch_out']??null,$ci['lunch_in']??null,$ci['check_out']??null,$ci['break_out']??null,$ci['break_in']??null,$_xb1);?>
 <div style="min-width:105px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 12px;text-align:center;border-top:3px solid <?=h($ag['color'])?>"><?=av(h($ag['iniciales']),h($ag['color']),30)?><div style="font-weight:900;font-size:10px;color:<?=$P1?>;margin-top:5px"><?=h(explode(' ',$ag['nombre'])[0])?></div><div style="font-size:8px;color:<?=$ci&&$ci['check_in']?'#1E7A5C':'#B83232'?>;font-weight:800;margin-top:2px"><?=$ci&&$ci['check_in']?'✓ '.substr($ci['check_in'],0,5):'—'?></div><div style="font-size:11px;font-weight:900;color:<?=$P1?>"><?=$w??'—'?></div></div>
 <?php endforeach;?></div></div><?php endif;?>
 </div><!-- /DASHBOARD -->
@@ -6217,7 +6264,7 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
 <?php foreach($agents as $ag):
   $ci2 = array_filter($today_ckins, fn($c)=>$c['agente_id']==$ag['id']);
   $ci2 = reset($ci2)?:null;
-  [$_xb2, $_xbp2] = extra_breaks($pdo, $ci2['id']??null);
+  [$_xb2, $_xbp2] = $_xb_today_batch[(int)($ci2['id']??0)] ?? [0, []];
   $w2  = calc_hours(
     $ci2['check_in']??null,$ci2['lunch_out']??null,$ci2['lunch_in']??null,
     $ci2['check_out']??null,$ci2['break_out']??null,$ci2['break_in']??null,$_xb2
@@ -6278,6 +6325,7 @@ $asist_q = $pdo->prepare(
 );
 $asist_q->execute([$q_inicio, $q_fin]);
 $rows_q = $asist_q->fetchAll();
+$_xb_quincena_batch = extra_breaks_batch($pdo, array_column($rows_q, 'id'));
 ?>
 <div class="card">
   <div class="card-header">
@@ -6305,7 +6353,7 @@ $rows_q = $asist_q->fetchAll();
       <?php
       $dias_es = ['','Dom','Lun','Mar','Mié','Jue','Vie','Sáb'];
       foreach($rows_q as $c):
-        [$_xbq, $_xbpq] = extra_breaks($pdo, $c['id']??null);
+        [$_xbq, $_xbpq] = $_xb_quincena_batch[(int)($c['id']??0)] ?? [0, []];
         $w3 = calc_hours(
           $c['check_in'],$c['lunch_out'],$c['lunch_in'],
           $c['check_out'],$c['break_out']??null,$c['break_in']??null,$_xbq
@@ -6367,8 +6415,14 @@ $rows_q = $asist_q->fetchAll();
     $cq = $admin
         ? $pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id ORDER BY a.fecha DESC,u.nombre")
         : $pdo->query("SELECT a.*,u.nombre,u.color,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON a.agente_id=u.id WHERE a.agente_id=$uid ORDER BY a.fecha DESC");
+    $cq = $cq->fetchAll();
+    // Antes esto hacía UNA consulta de breaks POR CADA fila del historial
+    // completo (que crece para siempre, sin límite) — cientos/miles de
+    // consultas extra en cada carga de esta pestaña. Ahora es una sola
+    // consulta para todas las filas.
+    $_xb_hist_batch = extra_breaks_batch($pdo, array_column($cq, 'id'));
     foreach($cq as $c):
-      [$_xbh, $_xbph] = extra_breaks($pdo, $c['id']??null);
+      [$_xbh, $_xbph] = $_xb_hist_batch[(int)($c['id']??0)] ?? [0, []];
       $w3 = calc_hours(
         $c['check_in'],$c['lunch_out'],$c['lunch_in'],
         $c['check_out'],$c['break_out']??null,$c['break_in']??null,$_xbh
@@ -7090,7 +7144,7 @@ $rep_json = [];
 foreach ($agents as $ag) {
     $r2  = null; foreach ($reportes_hoy as $rr) { if ($rr['agente_id']==$ag['id']) { $r2=$rr; break; } }
     $ci3 = null; foreach ($today_ckins as $c) { if ($c['agente_id']==$ag['id']) { $ci3=$c; break; } }
-    [$_xb3,] = extra_breaks($pdo, $ci3['id']??null);
+    [$_xb3,] = $_xb_today_batch[(int)($ci3['id']??0)] ?? [0, []];
     $horas = calc_hours($ci3['check_in']??null,$ci3['lunch_out']??null,$ci3['lunch_in']??null,$ci3['check_out']??null,$ci3['break_out']??null,$ci3['break_in']??null,$_xb3);
     $agtks = count(array_filter($tickets, fn($t) => ((!empty($t['asignado_a']) ? $t['asignado_a']==$ag['id'] : $t['agente_id']==$ag['id']) && $t['estado']!=='CERRADO' && in_array($t['tipo']??'',$TIPO_MIEMBRO,true) && (empty($t['sla_fecha']) || $t['sla_fecha'] <= $today))));
     $ck    = $checklist_stats[$ag['id']] ?? null;

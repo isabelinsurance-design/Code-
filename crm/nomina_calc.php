@@ -18,8 +18,28 @@ function quincena_rango(int $year, int $month, int $q): array {
     return [$inicio, $fin];
 }
 
+// ── Breaks adicionales de VARIOS registros de asistencia de una sola vez
+// (una consulta con WHERE...IN en vez de una por registro) — devuelve
+// [asistencia_id => [['break_out'=>..,'break_in'=>..], ...]].
+function asistencia_breaks_batch(PDO $pdo, array $asistencia_ids): array {
+    $ids = array_values(array_unique(array_filter(array_map('intval', $asistencia_ids))));
+    $out = [];
+    if (!$ids) return $out;
+    try {
+        $ph = implode(',', array_fill(0, count($ids), '?'));
+        $bx = $pdo->prepare("SELECT asistencia_id, break_out, break_in FROM asistencia_breaks WHERE asistencia_id IN ($ph)");
+        $bx->execute($ids);
+        foreach ($bx->fetchAll() as $b) {
+            $out[(int)$b['asistencia_id']][] = $b;
+        }
+    } catch (Exception $e) {}
+    return $out;
+}
+
 // ── Segundos trabajados en un registro de asistencia ────────────────────────
-function segundos_trabajados(PDO $pdo, array $r): int {
+// $breaks_extra: filas de asistencia_breaks de ESTE registro (ya cargadas de
+// antemano con asistencia_breaks_batch — evita una consulta por registro).
+function segundos_trabajados(array $r, array $breaks_extra = []): int {
     if (!$r['check_in'] || !$r['check_out']) return 0;
     $ci = strtotime('1970-01-01 ' . $r['check_in']);
     $co = strtotime('1970-01-01 ' . $r['check_out']);
@@ -37,14 +57,9 @@ function segundos_trabajados(PDO $pdo, array $r): int {
         $t -= max(0, $bi - $bo);
     }
     // descontar breaks adicionales (más de uno por día)
-    if (!empty($r['id'])) {
-        try {
-            $bx = $pdo->prepare("SELECT break_out, break_in FROM asistencia_breaks WHERE asistencia_id=? AND break_in IS NOT NULL");
-            $bx->execute([$r['id']]);
-            foreach ($bx->fetchAll() as $b) {
-                $t -= max(0, strtotime('1970-01-01 ' . $b['break_in']) - strtotime('1970-01-01 ' . $b['break_out']));
-            }
-        } catch (Exception $e) {}
+    foreach ($breaks_extra as $b) {
+        if (empty($b['break_in'])) continue;
+        $t -= max(0, strtotime('1970-01-01 ' . $b['break_in']) - strtotime('1970-01-01 ' . $b['break_out']));
     }
     return max(0, $t);
 }
@@ -93,24 +108,19 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
     );
     $stmt->execute([$ag['id'], $fecha_inicio, $fecha_fin]);
     $registros = $stmt->fetchAll();
+    // Una sola consulta para los breaks adicionales de TODOS los registros
+    // de esta quincena, en vez de 1-2 consultas por cada registro.
+    $breaks_por_registro = asistencia_breaks_batch($pdo, array_column($registros, 'id'));
 
     $seg_trabajados   = 0;
     $dias_con_checkin = 0;
     $detalle = [];
     foreach ($registros as $r) {
-        $seg = segundos_trabajados($pdo, $r);
+        $breaks_extra = $breaks_por_registro[(int)($r['id'] ?? 0)] ?? [];
+        $seg = segundos_trabajados($r, $breaks_extra);
         $seg_trabajados += $seg;
         if ($r['check_in'] && $r['check_out']) $dias_con_checkin++;
-        // Breaks adicionales (más de uno en el día) — mismo patrón que ya
-        // usa index.php, para poder mostrar "+N" en el detalle diario.
-        $extra_breaks_count = 0;
-        if (!empty($r['id'])) {
-            try {
-                $bxc = $pdo->prepare("SELECT COUNT(*) FROM asistencia_breaks WHERE asistencia_id=?");
-                $bxc->execute([$r['id']]);
-                $extra_breaks_count = (int)$bxc->fetchColumn();
-            } catch (Exception $e) {}
-        }
+        $extra_breaks_count = count($breaks_extra);
         $detalle[] = [
             'fecha'      => $r['fecha'],
             'dow'        => $r['dow'],
