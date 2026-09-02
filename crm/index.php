@@ -1366,6 +1366,14 @@ if ($admin) {
 }
 // Separate open vs all for dashboard counts
 $tickets_open = array_filter($tickets, fn($t) => $t['estado'] !== 'CERRADO');
+// Conteo de tickets abiertos POR miembro — una sola pasada por $tickets_open
+// en vez de recorrer TODOS los tickets por CADA miembro en la lista (con 300
+// miembros y 300 tickets eso eran ~90,000 revisiones en vez de 300).
+$_tks_abiertos_por_miembro = [];
+foreach ($tickets_open as $t) {
+    if (empty($t['miembro_id'])) continue;
+    $_tks_abiertos_por_miembro[$t['miembro_id']] = ($_tks_abiertos_por_miembro[$t['miembro_id']] ?? 0) + 1;
+}
 
 // === TIPOS DE TICKET — el sistema decide la categoría según el tipo elegido ===
 $TIPO_MIEMBRO  = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
@@ -1376,19 +1384,9 @@ $TIPO_TAREA    = ['SOPORTE','TASK','MARKETING','NEXTIVA','ENTRENAMIENTO','CRM','
 $TIPO_PROBLEMA = ['PROBLEMA'];
 $TIPOS_TODOS   = array_merge($TIPO_MIEMBRO, $TIPO_TAREA, $TIPO_PROBLEMA);
 
-// Cargar next_steps de todos los tickets (ordenados: pendientes primero por fecha, luego completados)
-$next_steps_por_ticket = [];
-try {
-  foreach ($pdo->query("SELECT ns.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
-                        FROM ticket_next_steps ns
-                        LEFT JOIN usuarios u ON ns.agente_id = u.id
-                        ORDER BY ns.completado ASC,
-                                 CASE WHEN ns.fecha_programada IS NULL THEN 1 ELSE 0 END,
-                                 ns.fecha_programada ASC,
-                                 ns.id ASC") as $ns) {
-    $next_steps_por_ticket[$ns['ticket_id']][] = $ns;
-  }
-} catch (Exception $e) { /* tabla aún no existe — primera vez */ }
+// (los next steps de cada ticket ya no se cargan aquí para TODOS los tickets
+// en cada carga de página — la tabla de Tickets los pide aparte, batcheados,
+// al abrir esa pestaña: ver render_tickets_table_html en lib_row_render.php)
 
 // Asegurar que el estado admita REAGENDAR (antes solo PENDIENTE/COMPLETADA/CANCELADA)
 try { $pdo->exec("ALTER TABLE citas MODIFY estado VARCHAR(20) NOT NULL DEFAULT 'PENDIENTE'"); } catch (Exception $e) {}
@@ -4510,7 +4508,7 @@ $MESES_ES = ['01'=>'ENERO','02'=>'FEBRERO','03'=>'MARZO','04'=>'ABRIL','05'=>'MA
 </div>
 <div class="card"><div style="overflow-x:auto"><table id="members-table">
 <tr><th>MIEMBRO</th><th>TELÉFONO</th><th>CIUDAD</th><th>PLAN/CARRIER</th><th>ESTADO</th><th>MBI</th><th>TKT</th><th></th></tr>
-<?php foreach($members as $m):$mtks=count(array_filter($tickets,fn($t)=>$t['miembro_id']==$m['id']&&$t['estado']!=='CERRADO'));?>
+<?php foreach($members as $m):$mtks=$_tks_abiertos_por_miembro[$m['id']]??0;?>
 <?php $m_nombre_completo = trim($m['nombre'].' '.($m['middle_name']??'')); ?>
 <tr class="member-row" data-id="<?=$m['id']?>" data-estado="<?=$m['estado']?>" data-fecha="<?=$m['fecha_efectiva']?>" data-subestado="<?=$m['subestado']??''?>" data-mes="<?=substr($m['fecha_efectiva']??''  ,0,7)?>" data-agente="<?=$m['agente_id']?>" data-campana-origen="<?=h($m['campana_origen_id']??'')?>" data-search="<?=strtolower($m['apellido'].' '.$m_nombre_completo.' '.$m['telefono'].' '.$m['mbi'].' '.$m['carrier'].' '.$m['zip'].' '.($m['direccion_calle']??'').' '.($m['ciudad']??''))?>" style="cursor:pointer" onclick="openProfile(<?=$m['id']?>)">
 <td><div style="display:flex;gap:7px;align-items:center"><?=av(h($m['agente_ini']??'?'),h($m['agente_color']??$P2),24)?><div><div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($m['apellido'].', '.$m_nombre_completo)?><?=(!empty($m['has_soa'])&&$m['has_soa']==0)?'<span style="color:#B83232;font-size:9px" title="SOA PENDIENTE"> </span>':''?><?=(!empty($m['sales_allegation']))?'<span style="background:#B83232;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="SALES ALLEGATION">⚠ ALLEG.</span>':''?><?=(($m['subestado']??'')==='DECEASED')?'<span style="background:#3A3A3A;color:#fff;border-radius:4px;padding:1px 5px;font-size:7px;font-weight:900;margin-left:4px" title="FALLECIDO/A">🕊 FALLECIDO</span>':''?><?=origen_badge_html($m,$_origen_campanas,$_origen_miembros_nombre)?></div><div style="font-size:8px;color:<?=$MU?>"><?=$m['dob']?(date('Y')-date('Y',strtotime($m['dob']))).' AÑOS':''?><?php if($m['alerta_activa']):?> <?php endif;?></div></div></div></td>
@@ -5959,146 +5957,8 @@ $tkt_tarea_cnt    = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t[
   <th style="padding:8px 14px;border-bottom:2px solid <?=$CB?>"></th>
 </tr>
 </thead>
-<tbody>
-<?php foreach($tickets as $t):
-  $sla_vence  = $t['sla_fecha'] ?? null;
-  // Un ticket "EN PROCESO" ya se está trabajando — no tiene sentido marcarlo
-  // como vencido/atrasado igual que uno que nadie ha tocado todavía.
-  $_no_vence  = in_array($t['estado'], ['CERRADO','EN PROCESO'], true);
-  $sla_alert  = $sla_vence && $sla_vence <= date('Y-m-d', strtotime('+1 day')) && !$_no_vence;
-  $resp_id    = !empty($t['asignado_a']) ? $t['asignado_a'] : $t['agente_id'];
-  $is_closed  = $t['estado']==='CERRADO';
-  $prio       = $t['prioridad'] ?? 'MEDIA';
-  $left_color = ['ALTA'=>'#B83232','MEDIA'=>'#C07A1A','BAJA'=>'#2876A8'][$prio] ?? '#2876A8';
-
-  // Determinar nombre de cliente con fallbacks (string vacío != null)
-  $cli = trim($t['miembro_nombre'] ?? '');
-  if ($cli === '') $cli = trim($t['cliente'] ?? '');
-  if ($cli === '') $cli = trim($t['nombre_referencia'] ?? '');
-  if ($cli === '') $cli = '—';
-  $display_name = h(mb_substr($cli, 0, 28));
-
-  // Responsable: priorizar asignado, si no, creador
-  if (!empty($t['asignado_nombre'])) {
-      $resp_nombre = $t['asignado_nombre'];
-      $resp_ini    = $t['asignado_ini']   ?? '?';
-      $resp_color  = $t['asignado_color'] ?? $P2;
-  } else {
-      $resp_nombre = $t['agente_nombre'] ?? null;
-      $resp_ini    = $t['agente_ini']    ?? '?';
-      $resp_color  = $t['agente_color']  ?? $P2;
-  }
-?>
-<tr class="ticket-row<?=$is_closed?' tkt-cerrada':''?>"
-    data-id="<?=(int)$t['id']?>"
-    style="border-left:3px solid <?=$left_color?>;<?=$is_closed?'opacity:.6':''?>"
-    data-vista="<?=in_array($t['tipo'],$TIPO_MIEMBRO,true)?'miembro':(in_array($t['tipo'],$TIPO_PROBLEMA,true)?'problema':'tarea')?>"
-    data-prio="<?=h($prio)?>"
-    data-estado="<?=h($t['estado']??'')?>"
-    data-tipo="<?=h($t['tipo']??'')?>"
-    data-resp="<?=h($resp_id??'')?>"
-    data-fecha="<?=h($t['fecha_creacion']??'')?>"
-    data-sla="<?=h($sla_vence??'')?>"
-    data-search="<?=strtolower(h(implode(' ',[$t['miembro_nombre']??'',$t['cliente']??'',$t['descripcion']??'',$t['tipo']??'',$t['fuente']??'',$t['resultado']??'',$t['nombre_referencia']??''])))?>">
-
-  <!-- Indicador de prioridad (columna de color) -->
-  <td style="padding:0;width:4px;background:<?=$left_color?>"></td>
-
-  <!-- Cliente -->
-  <td style="padding:10px 14px;white-space:nowrap">
-    <div style="font-size:10px;font-weight:900;color:<?=$P1?>;<?=!empty($t['miembro_id'])?'cursor:pointer':''?>"
-         <?php if(!empty($t['miembro_id'])):?>onclick="openProfile(<?=$t['miembro_id']?>)"<?php endif;?>><?=$display_name?></div>
-    <div style="font-size:8px;color:<?=$MU?>;margin-top:1px">#<?=$t['id']?><?=$t['fuente']?' · '.h(mb_substr($t['fuente'],0,12)):'';?></div>
-  </td>
-
-  <!-- Descripción -->
-  <td style="padding:10px 14px;max-width:280px">
-    <div style="font-size:10px;color:<?=$TX?>;line-height:1.4"><?=h(mb_substr($t['descripcion']??'',0,90))?><?=mb_strlen($t['descripcion']??'')>90?'…':''?></div>
-    <?php if(!empty($t['notas'])):?>
-    <div style="font-size:8px;color:<?=$MU?>;margin-top:3px">💬 <?=h(mb_substr($t['notas'],0,55))?><?=mb_strlen($t['notas'])>55?'…':''?></div>
-    <?php endif;?>
-    <?php
-      // Mostrar el próximo Next Step pendiente (si hay)
-      $ns_list  = $next_steps_por_ticket[$t['id']] ?? [];
-      $ns_pend  = array_values(array_filter($ns_list, fn($n)=>!$n['completado']));
-      $ns_total_pend = count($ns_pend);
-      if ($ns_total_pend > 0):
-        $ns_proximo = $ns_pend[0];
-        $ns_vencido = !empty($ns_proximo['fecha_programada']) && $ns_proximo['fecha_programada'] < date('Y-m-d') && !$_no_vence;
-    ?>
-    <div style="margin-top:4px;background:<?=$ns_vencido?'#FDF0EE':$BG?>;border:1px solid <?=$ns_vencido?'#EFA09A':$CB?>;border-radius:7px;padding:4px 7px;display:flex;align-items:center;gap:6px">
-      <span style="font-size:9px;color:<?=$ns_vencido?'#B83232':$P2?>;font-weight:900">→</span>
-      <div style="flex:1;min-width:0">
-        <div style="font-size:8px;font-weight:800;color:<?=$ns_vencido?'#B83232':$TX?>;line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?=h(mb_substr($ns_proximo['descripcion'],0,60))?></div>
-        <?php if(!empty($ns_proximo['fecha_programada'])):?>
-        <div style="font-size:7px;color:<?=$ns_vencido?'#B83232':$MU?>;font-weight:700">
-          <?=$ns_vencido?'⚠ VENCIDO ':'📅 '?><?=date('m/d/Y',strtotime($ns_proximo['fecha_programada']))?>
-          <?php if($ns_total_pend>1):?> · +<?=$ns_total_pend-1?> más<?php endif;?>
-        </div>
-        <?php elseif($ns_total_pend>1):?>
-        <div style="font-size:7px;color:<?=$MU?>;font-weight:700">+<?=$ns_total_pend-1?> más pendientes</div>
-        <?php endif;?>
-      </div>
-    </div>
-    <?php endif;?>
-    <?php if($sla_alert):?><div style="margin-top:3px"><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:1px 6px;font-size:7px;font-weight:900">⚠ SLA VENCIDO</span></div><?php endif;?>
-  </td>
-
-  <!-- Tipo -->
-  <td style="padding:10px 14px;white-space:nowrap">
-    <span style="font-size:8px;color:<?=$MU?>;font-weight:700"><?=h($t['tipo']??'OTRO')?></span>
-  </td>
-
-  <!-- Prioridad -->
-  <td style="padding:10px 14px"><?=badge($prio,true)?></td>
-
-  <!-- Estado -->
-  <td style="padding:10px 14px"><?=badge($t['estado']??'ABIERTO',true)?></td>
-
-  <!-- Responsable -->
-  <td style="padding:10px 14px;white-space:nowrap">
-    <?php if($resp_nombre): ?>
-    <div style="display:flex;gap:5px;align-items:center">
-      <?=av(h($resp_ini),h($resp_color),20)?>
-      <span style="font-size:9px;font-weight:900;color:<?=$P1?>"><?=h(explode(' ',$resp_nombre)[0])?></span>
-    </div>
-    <?php else:?><span style="font-size:8px;color:<?=$MU?>">—</span><?php endif;?>
-  </td>
-
-  <!-- SLA / Seguimiento -->
-    <td style="padding:10px 14px;white-space:nowrap;font-size:9px">
-        <?php if($sla_vence && !$is_closed):?>
-          <div style="font-weight:900;<?=$sla_alert?'color:#B83232':'color:'.$MU?>"><?=date('m/d/Y',strtotime($sla_vence))?></div>
-        <?php elseif($t['fecha_seguimiento']??null):?>
-          <div style="color:<?=$MU?>"><?=date('m/d/Y',strtotime($t['fecha_seguimiento']))?></div>
-        <?php else:?><span style="color:<?=$MU?>">—</span><?php endif;?>
-      </td>
-
-  <!-- Creado -->
-    <td style="padding:10px 14px;white-space:nowrap;font-size:9px;color:<?=$MU?>">
-        <?=!empty($t['fecha_creacion']) ? date('m/d/Y',strtotime($t['fecha_creacion'])) : '—'?>
-      </td>
-
-  <!-- Acciones -->
-  <td style="padding:10px 14px;white-space:nowrap">
-    <?php if(!$is_closed):?>
-    <div style="display:flex;gap:3px">
-      <button class="btn btn-gh btn-sm" onclick="updateTicket(<?=$t['id']?>)" title="Editar" style="padding:5px 10px">✎</button>
-      <button class="btn btn-bl btn-sm" onclick="quickTktStatus(<?=$t['id']?>,'EN PROCESO')" title="En Proceso" style="padding:5px 10px">▶</button>
-      <button class="btn btn-gr btn-sm" onclick="closeTicket(<?=$t['id']?>)" title="Cerrar" style="padding:5px 10px">✓</button>
-    </div>
-    <?php else:?>
-    <div style="display:flex;gap:3px;align-items:center">
-      <span style="font-size:8px;color:#1E7A5C;font-weight:900">✓</span>
-      <button class="btn btn-gh btn-sm" onclick="verTicketCerrado(<?=$t['id']?>)" title="Ver detalle" style="padding:5px 10px;font-size:9px">👁 VER</button>
-      <?php if($admin):?>
-      <button class="btn btn-sky btn-sm" onclick="updateTicket(<?=$t['id']?>)" title="Reabrir/Editar" style="padding:5px 10px;font-size:9px">✎</button>
-      <?php endif;?>
-    </div>
-    <?php endif;?>
-  </td>
-</tr>
-<?php endforeach; ?>
+<tbody id="tkt-tbody">
+<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">CARGANDO...</td></tr>
 </tbody>
 </table>
 </div>
@@ -8510,7 +8370,7 @@ document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
 if(id==='GASTOS') loadGastos();
-if(id==='TICKETS'){ filterTickets(); setTktVista(_tktVista); }
+if(id==='TICKETS'){ loadTicketsTable(function(){ filterTickets(); setTktVista(_tktVista); }); }
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
@@ -9327,6 +9187,23 @@ function limpiarTktFiltros(){
   ['tkt-prio','tkt-tipo','tkt-resp'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
   const s = document.getElementById('tkt-search'); if(s) s.value='';
   filterTickets();
+}
+
+// La tabla de Tickets ya no viene armada en cada carga de la página completa
+// — se pide aparte al abrir esa pestaña (y al restaurarla tras un
+// softReload). cb() corre después de que las filas ya están en el DOM, para
+// que el filtro/vista se aplique sobre las filas reales.
+function loadTicketsTable(cb){
+  const tbody = document.getElementById('tkt-tbody');
+  if(!tbody){ if(typeof cb==='function') cb(); return; }
+  fetch('api.php?action=get_tickets_table').then(r=>r.json()).then(d=>{
+    if(d.ok) tbody.innerHTML = d.data.html || '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN TICKETS</td></tr>';
+    else tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR AL CARGAR</td></tr>';
+    if(typeof cb==='function') cb();
+  }).catch(()=>{
+    tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR DE RED</td></tr>';
+    if(typeof cb==='function') cb();
+  });
 }
 
 function filterTickets(){
@@ -10438,8 +10315,13 @@ function softReload(done){
               p.classList.toggle('tkt-pill-on', pid===_tktFiltroEstado);
             });
           }
-          if(typeof setTktVista==='function' && typeof _tktVista!=='undefined'){ setTktVista(_tktVista); }
-          else if(typeof filterTickets==='function'){ filterTickets(); }
+          // La tabla ya no viene incluida en el HTML fresco (se pide aparte) —
+          // hay que volver a pedirla antes de aplicar filtro/vista.
+          var _afterTktLoad = function(){
+            if(typeof setTktVista==='function' && typeof _tktVista!=='undefined'){ setTktVista(_tktVista); }
+            else if(typeof filterTickets==='function'){ filterTickets(); }
+          };
+          if(typeof loadTicketsTable==='function'){ loadTicketsTable(_afterTktLoad); } else { _afterTktLoad(); }
         }
       }catch(e){}
       // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual

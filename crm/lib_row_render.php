@@ -27,49 +27,34 @@ function row_av(string $i, string $c, int $z = 24): string {
     return "<div style=\"width:{$z}px;height:{$z}px;border-radius:50%;background:$c;display:flex;align-items:center;justify-content:center;font-size:".round($z*.32)."px;font-weight:900;color:#fff;flex-shrink:0;font-family:'DM Sans',sans-serif\">$i</div>";
 }
 
-/* Arma el <tr> de UN ticket — usado por ticket_row.php (refresco vía fetch
- * aparte) Y directamente por api.php (para devolver la fila ya lista en la
- * MISMA respuesta de guardar/cambiar estado, sin necesitar un segundo viaje
- * al servidor). $uid puede venir como string u int, por eso las comparaciones
- * con != / == en vez de estrictas. Devuelve null si el ticket no existe o si
- * el usuario (no-admin) no tiene permiso para verlo. */
-function render_ticket_row_html(PDO $pdo, int $id, bool $admin, $uid): ?string {
-    $tkt_select = "SELECT t.*,
-                          u.nombre   as agente_nombre,    u.color   as agente_color,    u.iniciales   as agente_ini,
-                          a.nombre   as asignado_nombre,  a.color   as asignado_color,  a.iniciales   as asignado_ini,
-                          TRIM(CONCAT(COALESCE(m.nombre,''),' ',COALESCE(m.apellido,''))) as miembro_nombre,
-                          m.telefono as miembro_telefono, m.estado  as miembro_estado
-                   FROM tickets t
-                   LEFT JOIN usuarios u ON t.agente_id  = u.id
-                   LEFT JOIN usuarios a ON t.asignado_a = a.id
-                   LEFT JOIN miembros m ON t.miembro_id = m.id
-                   WHERE t.id=?";
-    $stm = $pdo->prepare($tkt_select);
-    $stm->execute([$id]);
-    $t = $stm->fetch();
-    if (!$t) return null;
-    if (!$admin && $t['asignado_a'] != $uid && !(empty($t['asignado_a']) && $t['agente_id'] == $uid)) {
-        return null;
-    }
+const TICKET_TIPO_MIEMBRO  = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
+                  'SERVICIO AL CLIENTE','LLAMADA','LLAMADA PERDIDA','CITA DENTAL','URGENTE'];
+const TICKET_TIPO_PROBLEMA = ['PROBLEMA'];
 
-    $ns_list = [];
-    try {
-        $ns_st = $pdo->prepare("SELECT ns.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
-                                FROM ticket_next_steps ns
-                                LEFT JOIN usuarios u ON ns.agente_id = u.id
-                                WHERE ns.ticket_id=?
-                                ORDER BY ns.completado ASC,
-                                         CASE WHEN ns.fecha_programada IS NULL THEN 1 ELSE 0 END,
-                                         ns.fecha_programada ASC, ns.id ASC");
-        $ns_st->execute([$id]);
-        $ns_list = $ns_st->fetchAll();
-    } catch (Exception $e) { /* tabla aún no existe */ }
+/* La consulta base de un ticket (con los joins de agente/asignado/miembro)
+ * — la usan tanto render_ticket_row_html (un solo id) como
+ * render_tickets_table_html (todos los tickets visibles de una vez). */
+function ticket_row_select(): string {
+    return "SELECT t.*,
+                   u.nombre   as agente_nombre,    u.color   as agente_color,    u.iniciales   as agente_ini,
+                   a.nombre   as asignado_nombre,  a.color   as asignado_color,  a.iniciales   as asignado_ini,
+                   TRIM(CONCAT(COALESCE(m.nombre,''),' ',COALESCE(m.apellido,''))) as miembro_nombre,
+                   m.telefono as miembro_telefono, m.estado  as miembro_estado
+            FROM tickets t
+            LEFT JOIN usuarios u ON t.agente_id  = u.id
+            LEFT JOIN usuarios a ON t.asignado_a = a.id
+            LEFT JOIN miembros m ON t.miembro_id = m.id";
+}
 
+/* Arma el <tr> de UN ticket a partir de datos YA cargados (sin consultar la
+ * base de datos) — usado tanto para pintar una sola fila como para pintar la
+ * tabla completa (ahí se llama una vez por ticket, con los next steps ya
+ * agrupados de antemano, para no repetir una consulta por fila). */
+function render_ticket_row_from_data(array $t, array $ns_list, bool $admin): string {
     $P1='#1B4A6B'; $P2='#2876A8'; $BG='#EBF4F9'; $CB='#C8DFF0'; $MU='#7A90A4'; $TX='#1B3A5C';
 
-    $TIPO_MIEMBRO  = ['FOLLOW UP','QUEJA','CAMBIO DE DOCTOR','CLIENTE','CITA','APLICACION',
-                      'SERVICIO AL CLIENTE','LLAMADA','LLAMADA PERDIDA','CITA DENTAL','URGENTE'];
-    $TIPO_PROBLEMA = ['PROBLEMA'];
+    $TIPO_MIEMBRO  = TICKET_TIPO_MIEMBRO;
+    $TIPO_PROBLEMA = TICKET_TIPO_PROBLEMA;
 
     $sla_vence  = $t['sla_fecha'] ?? null;
     $_no_vence  = in_array($t['estado'], ['CERRADO','EN PROCESO'], true);
@@ -194,4 +179,83 @@ function render_ticket_row_html(PDO $pdo, int $id, bool $admin, $uid): ?string {
 </tr>
     <?php
     return ob_get_clean();
+}
+
+/* Trae UN ticket + sus next steps y arma su <tr> — usado por ticket_row.php
+ * (refresco vía fetch aparte) Y directamente por api.php (para devolver la
+ * fila ya lista en la MISMA respuesta de guardar/cambiar estado, sin
+ * necesitar un segundo viaje al servidor). $uid puede venir como string u
+ * int, por eso las comparaciones con != / == en vez de estrictas. Devuelve
+ * null si el ticket no existe o si el usuario (no-admin) no tiene permiso. */
+function render_ticket_row_html(PDO $pdo, int $id, bool $admin, $uid): ?string {
+    $stm = $pdo->prepare(ticket_row_select()." WHERE t.id=?");
+    $stm->execute([$id]);
+    $t = $stm->fetch();
+    if (!$t) return null;
+    if (!$admin && $t['asignado_a'] != $uid && !(empty($t['asignado_a']) && $t['agente_id'] == $uid)) {
+        return null;
+    }
+
+    $ns_list = [];
+    try {
+        $ns_st = $pdo->prepare("SELECT ns.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
+                                FROM ticket_next_steps ns
+                                LEFT JOIN usuarios u ON ns.agente_id = u.id
+                                WHERE ns.ticket_id=?
+                                ORDER BY ns.completado ASC,
+                                         CASE WHEN ns.fecha_programada IS NULL THEN 1 ELSE 0 END,
+                                         ns.fecha_programada ASC, ns.id ASC");
+        $ns_st->execute([$id]);
+        $ns_list = $ns_st->fetchAll();
+    } catch (Exception $e) { /* tabla aún no existe */ }
+
+    return render_ticket_row_from_data($t, $ns_list, $admin);
+}
+
+/* Arma el <tbody> completo de la tabla de Tickets — todos los tickets que
+ * ese usuario puede ver (mismo criterio que usaba antes index.php: admin ve
+ * todos, agente solo donde es responsable/creador), con los next steps de
+ * TODOS esos tickets pre-cargados en una sola consulta (WHERE...IN) en vez
+ * de una consulta por ticket. Se pide aparte (al abrir la pestaña Tickets)
+ * en vez de venir ya armada en cada carga de la página completa. */
+function render_tickets_table_html(PDO $pdo, bool $admin, $uid): string {
+    $sql = ticket_row_select();
+    if ($admin) {
+        $stm = $pdo->query("$sql
+            ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
+                     IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
+                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
+        $tickets = $stm->fetchAll();
+    } else {
+        $stm = $pdo->prepare("$sql
+            WHERE t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?)
+            ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
+                     IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
+                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
+        $stm->execute([$uid, $uid]);
+        $tickets = $stm->fetchAll();
+    }
+
+    $ns_por_ticket = [];
+    try {
+        $ids = array_column($tickets, 'id');
+        if ($ids) {
+            $ph = implode(',', array_fill(0, count($ids), '?'));
+            $ns_st = $pdo->prepare("SELECT ns.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
+                                    FROM ticket_next_steps ns
+                                    LEFT JOIN usuarios u ON ns.agente_id = u.id
+                                    WHERE ns.ticket_id IN ($ph)
+                                    ORDER BY ns.completado ASC,
+                                             CASE WHEN ns.fecha_programada IS NULL THEN 1 ELSE 0 END,
+                                             ns.fecha_programada ASC, ns.id ASC");
+            $ns_st->execute($ids);
+            foreach ($ns_st->fetchAll() as $ns) { $ns_por_ticket[$ns['ticket_id']][] = $ns; }
+        }
+    } catch (Exception $e) { /* tabla aún no existe */ }
+
+    $html = '';
+    foreach ($tickets as $t) {
+        $html .= render_ticket_row_from_data($t, $ns_por_ticket[$t['id']] ?? [], $admin);
+    }
+    return $html;
 }

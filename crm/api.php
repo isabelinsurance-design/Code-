@@ -607,6 +607,14 @@ case 'save_member':
     break;
 
 // ── TICKETS ──────────────────────────────────────────────────
+case 'get_tickets_table':
+    // Todo el <tbody> de la pestaña Tickets — se pide al abrir esa pestaña
+    // en vez de venir ya armado en cada carga de la página completa (ver
+    // render_tickets_table_html en lib_row_render.php).
+    $pdo = db();
+    jsonOk(['html' => render_tickets_table_html($pdo, $admin, $uid)]);
+    break;
+
 case 'close_ticket':
     $pdo = db(); // <--- CONEXIÓN AÑADIDA
     $id   = (int)($_POST['id'] ?? 0);
