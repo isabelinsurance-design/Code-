@@ -1793,7 +1793,6 @@ case 'toggle_checklist':
     
 case 'get_reportes_historicos':
     $pdo   = db();
-    if (!$admin) jsonErr('Sin acceso');
     $from  = $_POST['from']  ?? date('Y-m-01');
     $to    = $_POST['to']    ?? date('Y-m-d');
     $ag_id = !empty($_POST['agente_id']) ? (int)$_POST['agente_id'] : null;

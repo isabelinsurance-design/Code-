@@ -1656,7 +1656,7 @@ $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']))
 // ─────────────────────────────────────────────────────────────────────────────
 
 $tabs_admin=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO'];
+$tabs_agent=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
 $ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
 $tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
@@ -6917,9 +6917,138 @@ $SECUENCIAS=[
 </div><!-- /RECURSOS -->
 
 
-<!-- REPORTES (admin) -->
-<?php if($admin):?>
+<!-- REPORTES (visible a todos los empleados) -->
 <div id="tab-REPORTES" class="tab-pane">
+
+<?php
+// ─── REPORTE DEL DÍA — ASEGURANZAS ────────────────────────────────────────
+// El chequeo diario de Isabel: revisa el portal de cada aseguranza para ver
+// si hay cancelados. Activos/En Proceso salen solos de los datos del CRM —
+// aquí solo hace falta marcar los cancelados que encuentre cada día.
+$RDA_GRUPO_PROCESO = ['IN PROCESS','READY TO ENROLL','PENDING','PLAN CHANGE'];
+$rda_hoy = date('Y-m-d');
+$rda_por_carrier = [];
+foreach ($members as $m) {
+    $car = trim($m['carrier'] ?? '');
+    if ($car === '') continue; // sin aseguranza asignada — no aplica a este reporte
+    if (!isset($rda_por_carrier[$car])) $rda_por_carrier[$car] = ['activos'=>0,'en_proceso'=>0,'cancelados_hoy'=>0];
+    if ($m['estado'] === 'ACTIVE') {
+        $rda_por_carrier[$car]['activos']++;
+    } elseif (in_array($m['estado'], $RDA_GRUPO_PROCESO, true)) {
+        $rda_por_carrier[$car]['en_proceso']++;
+    }
+    if ($m['estado'] === 'CANCELED' && ($m['fecha_cancelacion'] ?? '') === $rda_hoy) {
+        $rda_por_carrier[$car]['cancelados_hoy']++;
+    }
+}
+ksort($rda_por_carrier);
+
+$rda_cancelados_hoy = array_values(array_filter($members, fn($m) => $m['estado']==='CANCELED' && ($m['fecha_cancelacion']??'')===$rda_hoy));
+usort($rda_cancelados_hoy, fn($a,$b)=>strcmp($a['apellido'].$a['nombre'], $b['apellido'].$b['nombre']));
+
+$rda_activos_total       = count(array_filter($members, fn($m)=>$m['estado']==='ACTIVE'));
+$rda_nuevos_prox_mes     = count($ef_mes_proximo ?? []);
+$rda_apps_por_hacer_tot  = count(array_filter($tickets_open, fn($t)=>($t['tipo']??'')==='APLICACION'));
+?>
+<div style="margin-bottom:8px;font-size:11px;font-weight:900;color:<?=$P1?>;letter-spacing:2px;text-transform:uppercase">📋 REPORTE DEL DÍA — ASEGURANZAS</div>
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;flex-wrap:wrap;gap:8px">
+  <div style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">📅 <?=date('d/m/Y',strtotime($rda_hoy))?></div>
+  <div style="display:flex;gap:6px">
+    <button class="btn btn-p btn-sm" onclick="openModal('modal-marcar-cancelado')">+ MARCAR CANCELADO</button>
+    <button class="btn btn-gh btn-sm" onclick="window.open('reporte_dia_print.php','_blank')">🖨 DESCARGAR PDF</button>
+  </div>
+</div>
+
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+  <?php foreach([
+    ['◉', $rda_activos_total, 'TOTAL MIEMBROS ACTIVOS', '#1E7A5C'],
+    ['📅', $rda_nuevos_prox_mes, 'NUEVOS PRÓXIMO MES', $P2],
+    ['📋', $rda_apps_por_hacer_tot, 'APLICACIONES POR HACER', '#5B3FAF'],
+    ['⚠', count($rda_cancelados_hoy), 'CANCELADOS HOY', count($rda_cancelados_hoy)>0?'#B83232':$MU],
+  ] as [$ic,$v,$lb,$c]):?>
+  <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:12px 14px;text-align:center">
+    <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px"><?=$ic?> <?=$lb?></div>
+    <div style="font-size:20px;font-weight:900;color:<?=$c?>"><?=$v?></div>
+  </div>
+  <?php endforeach;?>
+</div>
+
+<div class="card" style="margin-bottom:14px;overflow-x:auto">
+<table>
+<tr><th>ASEGURANZA</th><th style="text-align:center">ACTIVOS</th><th style="text-align:center">EN PROCESO</th><th style="text-align:center">CANCELADOS HOY</th></tr>
+<?php if(empty($rda_por_carrier)):?>
+<tr><td colspan="4" style="text-align:center;padding:18px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN MIEMBROS CON ASEGURANZA ASIGNADA</td></tr>
+<?php else:?>
+<?php foreach($rda_por_carrier as $rda_car=>$rda_d):?>
+<tr>
+  <td style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($rda_car)?></td>
+  <td style="text-align:center;font-size:10px;font-weight:900;color:#1E7A5C"><?=$rda_d['activos']?></td>
+  <td style="text-align:center;font-size:10px;font-weight:900;color:<?=$P2?>"><?=$rda_d['en_proceso']?></td>
+  <td style="text-align:center;font-size:10px;font-weight:900;<?=$rda_d['cancelados_hoy']>0?'color:#B83232':'color:'.$MU?>"><?=$rda_d['cancelados_hoy']?></td>
+</tr>
+<?php endforeach;?>
+<tr style="background:<?=$BG?>;font-weight:900">
+  <td style="font-size:9px;color:<?=$P1?>">TOTAL</td>
+  <td style="text-align:center;font-size:10px;color:#1E7A5C"><?=array_sum(array_column($rda_por_carrier,'activos'))?></td>
+  <td style="text-align:center;font-size:10px;color:<?=$P2?>"><?=array_sum(array_column($rda_por_carrier,'en_proceso'))?></td>
+  <td style="text-align:center;font-size:10px;color:#B83232"><?=array_sum(array_column($rda_por_carrier,'cancelados_hoy'))?></td>
+</tr>
+<?php endif;?>
+</table>
+</div>
+
+<div class="card" style="margin-bottom:18px">
+<div class="card-header"><div class="card-title">⚠ CANCELADOS HOY</div></div>
+<?php if(empty($rda_cancelados_hoy)):?>
+<div style="padding:18px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">✓ NINGUNO POR AHORA</div>
+<?php else:?>
+<?php foreach($rda_cancelados_hoy as $rda_m):?>
+<div style="padding:8px 15px;border-bottom:1px solid <?=$CB?>;display:flex;gap:8px;align-items:center;cursor:pointer" onclick="openProfile(<?=$rda_m['id']?>)">
+  <div style="flex:1">
+    <div style="font-weight:900;font-size:10px;color:<?=$P1?>"><?=h($rda_m['apellido'].', '.$rda_m['nombre'])?></div>
+    <div style="font-size:8px;color:<?=$MU?>"><?=h($rda_m['carrier']??'—')?> · CANCELADO <?=date('m/d/Y',strtotime($rda_m['fecha_cancelacion']))?></div>
+  </div>
+</div>
+<?php endforeach;?>
+<?php endif;?>
+</div>
+
+<!-- MODAL: MARCAR CANCELADO -->
+<div id="modal-marcar-cancelado" class="modal-overlay"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">⚠ MARCAR MIEMBRO COMO CANCELADO</div><button class="modal-close" onclick="closeModal('modal-marcar-cancelado')">✕</button></div>
+  <div class="form-group">
+    <label class="form-label">MIEMBRO</label>
+    <div class="mpick-wrap">
+      <input type="text" id="rda-mpick-input" class="form-input" placeholder="Buscar miembro por nombre o teléfono..." autocomplete="off" oninput="mpickSearch('rda-mpick-input','rda-miembro-id','rda-mpick-drop',this.value,false)">
+      <div id="rda-mpick-drop" class="mpick-drop"></div>
+    </div>
+    <input type="hidden" id="rda-miembro-id" value="">
+  </div>
+  <div class="form-group">
+    <label class="form-label">FECHA DE CANCELACIÓN</label>
+    <input type="date" id="rda-fecha-cancelacion" class="form-input" value="<?=$rda_hoy?>">
+  </div>
+  <button class="btn btn-p btn-sm" style="width:100%" onclick="marcarCancelado()">✓ MARCAR CANCELADO</button>
+</div></div>
+<script>
+function marcarCancelado(){
+  const id = document.getElementById('rda-miembro-id').value;
+  const fecha = document.getElementById('rda-fecha-cancelacion').value;
+  if(!id){ toast('⚠ Busca y selecciona un miembro'); return; }
+  if(!fecha){ toast('⚠ Falta la fecha de cancelación'); return; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_member',id,estado:'CANCELED',fecha_cancelacion:fecha})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){
+        toast('✓ MIEMBRO MARCADO COMO CANCELADO');
+        closeModal('modal-marcar-cancelado');
+        document.getElementById('rda-mpick-input').value='';
+        document.getElementById('rda-miembro-id').value='';
+        if(typeof softReload==='function') softReload();
+      } else toast('⚠ '+(d.error||'Error al guardar'));
+    })
+    .catch(()=>toast('⚠ ERROR DE CONEXIÓN — INTENTA DE NUEVO'));
+}
+</script>
 
 <?php
 // ─── REPORTE DE CAMPAÑAS (conectado a CAMPAÑAS) ──────────────────────────────
@@ -7267,7 +7396,6 @@ function showRepDetalle(agId) {
 </script>
 
 </div><!-- /REPORTES -->
-<?php endif;?> 
 
 <!-- ════════════════════════════════════════════════════════
      TAB: CONTACTOS (Cuentas + Referidos)
