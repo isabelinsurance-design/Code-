@@ -64,6 +64,15 @@ if (!twilio_firma_valida()) { _sip_log($pdo, 'firma_invalida'); _sip_responder('
 // asegurar formato +1XXXXXXXXXX — sin esto, un número de 10 dígitos sin
 // el "1" al inicio puede llegar mal formado a Twilio y la llamada falla.
 $to_crudo = $_POST['To'] ?? '';
+
+// Si el teléfono envió 11 dígitos y el '1' quedó al final (ej. 32340241451),
+// movemos el '1' del final al principio.
+$solo_numeros = preg_replace('/\D/', '', $to_crudo);
+if (strlen($solo_numeros) === 11 && substr($solo_numeros, -1) === '1' && substr($solo_numeros, 0, 1) !== '1') {
+    $solo_numeros = '1' . substr($solo_numeros, 0, 10);
+    $to_crudo = '+' . $solo_numeros;
+}
+
 $to = normalizar_tel($to_crudo);
 
 if ($to === '') {
