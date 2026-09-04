@@ -206,6 +206,76 @@ case 'edit_asistencia':
     break;
 
 // ── RECORDATORIOS Y NOTAS (equipo) ────────────────────────────
+case 'save_plan_comparacion':
+    $pdo = db();
+    // Migración defensiva — este endpoint puede correr antes de que
+    // index.php haya creado la tabla en este proceso del servidor.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS planes_comparacion (
+        id INT AUTO_INCREMENT PRIMARY KEY, nombre_plan VARCHAR(200) NOT NULL,
+        carrier VARCHAR(100), tipo VARCHAR(60), numero_plan VARCHAR(30), condados TEXT, anio INT,
+        requisito_elegibilidad TEXT, prima_mensual VARCHAR(150), reembolso_parte_b VARCHAR(100),
+        deducible VARCHAR(100), deducible_parte_d VARCHAR(150), moop VARCHAR(100),
+        umbral_gastos_bolsillo_parte_d VARCHAR(100), hospital_internado TEXT, hospital_ambulatorio VARCHAR(150),
+        centro_quirurgico_ambulatorio VARCHAR(150), medico_primario VARCHAR(100), especialistas VARCHAR(100),
+        atencion_preventiva VARCHAR(100), atencion_emergencia VARCHAR(150), servicios_urgentes VARCHAR(100),
+        emergencia_mundial VARCHAR(150), ambulancia VARCHAR(150), diagnostico_laboratorio VARCHAR(150),
+        rayos_x VARCHAR(100), radiologia_terapeutica VARCHAR(150), examen_auditivo VARCHAR(150),
+        audifonos VARCHAR(200), dental_preventivo TEXT, dental_integral TEXT, examen_vision VARCHAR(150),
+        anteojos VARCHAR(200), salud_mental_internado TEXT, salud_mental_ambulatorio VARCHAR(150),
+        enfermeria_especializada TEXT, terapia_fisica_habla VARCHAR(150), transporte VARCHAR(200),
+        rx_deducible VARCHAR(150), rx_nivel1 VARCHAR(150), rx_nivel2 VARCHAR(150), rx_nivel3 VARCHAR(150),
+        rx_nivel4 VARCHAR(150), rx_nivel5 VARCHAR(150), rx_nivel6 VARCHAR(150), rx_insulina VARCHAR(150),
+        rx_vacunas VARCHAR(200), otc_mensual VARCHAR(150), gimnasio VARCHAR(100), pers VARCHAR(100),
+        quiropractico_acupuntura VARCHAR(200), podologia VARCHAR(150), telesalud VARCHAR(150), dme VARCHAR(100),
+        apoyo_hogar VARCHAR(200), comidas_post_hospital VARCHAR(200), extras_json TEXT, notas TEXT,
+        activo TINYINT(1) DEFAULT 1, agregado_por INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_pc_carrier (carrier), KEY idx_pc_activo (activo)
+    )");
+    $nombre_plan = trim($_POST['nombre_plan'] ?? '');
+    if ($nombre_plan === '') jsonErr('El nombre del plan es obligatorio');
+    $pc_fields = [
+        'carrier','tipo','numero_plan','condados','anio','requisito_elegibilidad',
+        'prima_mensual','reembolso_parte_b','deducible','deducible_parte_d','moop','umbral_gastos_bolsillo_parte_d',
+        'hospital_internado','hospital_ambulatorio','centro_quirurgico_ambulatorio',
+        'medico_primario','especialistas','atencion_preventiva',
+        'atencion_emergencia','servicios_urgentes','emergencia_mundial','ambulancia',
+        'diagnostico_laboratorio','rayos_x','radiologia_terapeutica',
+        'examen_auditivo','audifonos','dental_preventivo','dental_integral',
+        'examen_vision','anteojos','salud_mental_internado','salud_mental_ambulatorio',
+        'enfermeria_especializada','terapia_fisica_habla','transporte',
+        'rx_deducible','rx_nivel1','rx_nivel2','rx_nivel3','rx_nivel4','rx_nivel5','rx_nivel6','rx_insulina','rx_vacunas',
+        'otc_mensual','gimnasio','pers','quiropractico_acupuntura','podologia','telesalud','dme',
+        'apoyo_hogar','comidas_post_hospital','extras_json','notas',
+    ];
+    $pc_vals = [$nombre_plan];
+    foreach ($pc_fields as $pcf) {
+        $v = trim($_POST[$pcf] ?? '');
+        $pc_vals[] = ($v === '') ? null : $v;
+    }
+    $pid = (int)($_POST['id'] ?? 0);
+    if ($pid) {
+        $sets = implode(',', array_map(fn($f) => "$f=?", $pc_fields));
+        $pc_vals[] = $pid;
+        $pdo->prepare("UPDATE planes_comparacion SET nombre_plan=?, $sets WHERE id=?")->execute($pc_vals);
+    } else {
+        $cols = implode(',', array_merge(['nombre_plan'], $pc_fields, ['agregado_por']));
+        $ph   = implode(',', array_fill(0, count($pc_fields) + 2, '?'));
+        $pc_vals[] = $uid;
+        $pdo->prepare("INSERT INTO planes_comparacion ($cols) VALUES ($ph)")->execute($pc_vals);
+    }
+    jsonOkNotify([], 'RECURSOS');
+    break;
+
+case 'delete_plan_comparacion':
+    $pdo = db();
+    $pid = (int)($_POST['id'] ?? 0);
+    if (!$pid) jsonErr('ID requerido');
+    $pdo->prepare("UPDATE planes_comparacion SET activo=0 WHERE id=?")->execute([$pid]);
+    jsonOkNotify([], 'RECURSOS');
+    break;
+
 case 'save_recordatorio':
     $pdo = db();
     $pdo->exec("CREATE TABLE IF NOT EXISTS recordatorios (

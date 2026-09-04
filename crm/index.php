@@ -1339,6 +1339,81 @@ try {
     sort($rec_cats);
 } catch (Exception $e) {}
 
+// ─── COMPARAR PLANES (catálogo de beneficios por plan, para comparar lado a
+// lado — se llena a mano desde el Summary of Benefits de cada plan) ─────────
+$planes_comparacion = [];
+try {
+    $pdo->exec("CREATE TABLE IF NOT EXISTS planes_comparacion (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        nombre_plan VARCHAR(200) NOT NULL,
+        carrier VARCHAR(100),
+        tipo VARCHAR(60),
+        numero_plan VARCHAR(30),
+        condados TEXT,
+        anio INT,
+        requisito_elegibilidad TEXT,
+        prima_mensual VARCHAR(150),
+        reembolso_parte_b VARCHAR(100),
+        deducible VARCHAR(100),
+        deducible_parte_d VARCHAR(150),
+        moop VARCHAR(100),
+        umbral_gastos_bolsillo_parte_d VARCHAR(100),
+        hospital_internado TEXT,
+        hospital_ambulatorio VARCHAR(150),
+        centro_quirurgico_ambulatorio VARCHAR(150),
+        medico_primario VARCHAR(100),
+        especialistas VARCHAR(100),
+        atencion_preventiva VARCHAR(100),
+        atencion_emergencia VARCHAR(150),
+        servicios_urgentes VARCHAR(100),
+        emergencia_mundial VARCHAR(150),
+        ambulancia VARCHAR(150),
+        diagnostico_laboratorio VARCHAR(150),
+        rayos_x VARCHAR(100),
+        radiologia_terapeutica VARCHAR(150),
+        examen_auditivo VARCHAR(150),
+        audifonos VARCHAR(200),
+        dental_preventivo TEXT,
+        dental_integral TEXT,
+        examen_vision VARCHAR(150),
+        anteojos VARCHAR(200),
+        salud_mental_internado TEXT,
+        salud_mental_ambulatorio VARCHAR(150),
+        enfermeria_especializada TEXT,
+        terapia_fisica_habla VARCHAR(150),
+        transporte VARCHAR(200),
+        rx_deducible VARCHAR(150),
+        rx_nivel1 VARCHAR(150),
+        rx_nivel2 VARCHAR(150),
+        rx_nivel3 VARCHAR(150),
+        rx_nivel4 VARCHAR(150),
+        rx_nivel5 VARCHAR(150),
+        rx_nivel6 VARCHAR(150),
+        rx_insulina VARCHAR(150),
+        rx_vacunas VARCHAR(200),
+        otc_mensual VARCHAR(150),
+        gimnasio VARCHAR(100),
+        pers VARCHAR(100),
+        quiropractico_acupuntura VARCHAR(200),
+        podologia VARCHAR(150),
+        telesalud VARCHAR(150),
+        dme VARCHAR(100),
+        apoyo_hogar VARCHAR(200),
+        comidas_post_hospital VARCHAR(200),
+        extras_json TEXT,
+        notas TEXT,
+        activo TINYINT(1) DEFAULT 1,
+        agregado_por INT,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+        KEY idx_pc_carrier (carrier),
+        KEY idx_pc_activo (activo)
+    )");
+    $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
+        FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
+        WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
+} catch (Exception $e) {}
+
 // ─── LISTAS (catálogo de reportes/archivos Excel importantes) ────────────────
 $listas_excel = [];
 try {
@@ -6626,7 +6701,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
-<?php foreach(['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':($rt==='LISTAS'?'📊 LISTAS':$rt)?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?><?=($rt==='LISTAS'&&count($listas_excel)>0)?' <span class="nbadge">'.count($listas_excel).'</span>':''?></button><?php endforeach;?>
+<?php foreach(['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PLANES','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':($rt==='LISTAS'?'📊 LISTAS':($rt==='PLANES'?'📋 COMPARAR PLANES':$rt))?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?><?=($rt==='LISTAS'&&count($listas_excel)>0)?' <span class="nbadge">'.count($listas_excel).'</span>':''?><?=($rt==='PLANES'&&count($planes_comparacion)>0)?' <span class="nbadge">'.count($planes_comparacion).'</span>':''?></button><?php endforeach;?>
 </div>
 
 <!-- ══════════ RECORDATORIOS Y NOTAS ══════════ -->
@@ -6864,6 +6939,188 @@ $carriers_info=[
 <?php endforeach;?>
 </div>
 </div>
+<!-- ══════════ COMPARAR PLANES ══════════ -->
+<?php
+// Un solo lugar define los campos: de aquí sale tanto el formulario de
+// agregar/editar como la tabla de comparación — así no hay que mantener la
+// lista de ~55 campos en dos lugares distintos.
+$PLAN_CAMPOS = [
+  'IDENTIFICACIÓN' => [
+    'carrier'=>'Aseguranza','tipo'=>'Tipo de plan (HMO, HMO C-SNP, PPO...)','numero_plan'=>'Número de plan (ej. H3815-039)',
+    'condados'=>'Condados de cobertura','anio'=>'Año','requisito_elegibilidad'=>'Requisitos de elegibilidad (SNP, dual, etc.)',
+  ],
+  'PRIMAS Y DEDUCIBLES' => [
+    'prima_mensual'=>'Prima mensual','reembolso_parte_b'=>'Reembolso Parte B','deducible'=>'Deducible',
+    'deducible_parte_d'=>'Deducible Parte D','moop'=>'Máximo de bolsillo (MOOP)','umbral_gastos_bolsillo_parte_d'=>'Umbral gastos bolsillo Parte D',
+  ],
+  'HOSPITAL' => [
+    'hospital_internado'=>'Hospital internado','hospital_ambulatorio'=>'Hospital ambulatorio','centro_quirurgico_ambulatorio'=>'Centro quirúrgico ambulatorio',
+  ],
+  'CONSULTAS MÉDICAS' => [
+    'medico_primario'=>'Médico primario','especialistas'=>'Especialistas','atencion_preventiva'=>'Atención preventiva',
+  ],
+  'URGENCIAS Y EMERGENCIAS' => [
+    'atencion_emergencia'=>'Atención de emergencia','servicios_urgentes'=>'Servicios urgentes',
+    'emergencia_mundial'=>'Emergencia/urgencia en el mundo','ambulancia'=>'Ambulancia',
+  ],
+  'DIAGNÓSTICO' => [
+    'diagnostico_laboratorio'=>'Procedimientos/laboratorio','rayos_x'=>'Rayos X','radiologia_terapeutica'=>'Radiología terapéutica',
+  ],
+  'AUDITIVO' => [ 'examen_auditivo'=>'Examen de rutina','audifonos'=>'Audífonos' ],
+  'DENTAL' => [ 'dental_preventivo'=>'Diagnóstico/preventivo','dental_integral'=>'Integral (restauración, endodoncia, etc.)' ],
+  'VISIÓN' => [ 'examen_vision'=>'Examen de rutina','anteojos'=>'Anteojos/lentes de contacto' ],
+  'SALUD MENTAL' => [ 'salud_mental_internado'=>'Hospital internado','salud_mental_ambulatorio'=>'Terapia/psiquiatría' ],
+  'REHABILITACIÓN' => [ 'enfermeria_especializada'=>'Enfermería especializada (SNF)','terapia_fisica_habla'=>'Terapia física y del habla' ],
+  'TRANSPORTE' => [ 'transporte'=>'Transporte' ],
+  'MEDICAMENTOS (PARTE D)' => [
+    'rx_deducible'=>'Deducible','rx_nivel1'=>'Nivel 1 (genérico preferido)','rx_nivel2'=>'Nivel 2 (genérico)',
+    'rx_nivel3'=>'Nivel 3 (marca preferida)','rx_nivel4'=>'Nivel 4 (no preferido)','rx_nivel5'=>'Nivel 5 (especializado)',
+    'rx_nivel6'=>'Nivel 6 (atención selecta)','rx_insulina'=>'Insulina','rx_vacunas'=>'Vacunas',
+  ],
+  'BENEFICIOS ADICIONALES' => [
+    'otc_mensual'=>'OTC (asignación mensual)','gimnasio'=>'Aptitud física / gimnasio','pers'=>'PERS (botón de emergencia)',
+    'quiropractico_acupuntura'=>'Quiropráctico / Acupuntura','podologia'=>'Podología','telesalud'=>'Telesalud',
+    'dme'=>'Equipo médico duradero','apoyo_hogar'=>'Apoyo en el hogar / cuidadores','comidas_post_hospital'=>'Comidas post-hospitalización',
+  ],
+];
+?>
+<div id="rtab-PLANES" style="display:none">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
+    <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
+    <div style="display:flex;gap:6px">
+      <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()" disabled>⚖ COMPARAR SELECCIONADOS</button>
+      <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
+    </div>
+  </div>
+
+  <div id="plan-comparacion-wrap" style="display:none;margin-bottom:16px"></div>
+
+  <div id="plan-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
+  <?php if (empty($planes_comparacion)): ?>
+    <div class="card" style="grid-column:1/-1;padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
+  <?php else: foreach ($planes_comparacion as $pl): ?>
+    <div class="card plan-card" data-id="<?=$pl['id']?>" style="border-top:3px solid <?=$P1?>">
+      <div style="padding:12px 14px 8px">
+        <div style="display:flex;gap:8px;align-items:flex-start">
+          <input type="checkbox" class="plan-check" value="<?=$pl['id']?>" onchange="actualizarBotonComparar()" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:10px;font-weight:900;color:<?=$P1?>"><?=h($pl['nombre_plan'])?></div>
+            <div style="font-size:8px;color:<?=$MU?>;margin-top:1px"><?=h($pl['carrier']??'—')?><?=$pl['tipo']?' · '.h($pl['tipo']):''?></div>
+          </div>
+        </div>
+        <div style="margin-top:8px;font-size:8px;color:<?=$TX?>;line-height:1.6">
+          <?php if($pl['prima_mensual']):?><div><b>Prima:</b> <?=h($pl['prima_mensual'])?></div><?php endif;?>
+          <?php if($pl['moop']):?><div><b>MOOP:</b> <?=h($pl['moop'])?></div><?php endif;?>
+        </div>
+        <div style="display:flex;gap:6px;margin-top:10px">
+          <button class="btn btn-gh btn-sm" style="flex:1" onclick="abrirPlanForm(<?=$pl['id']?>)">✎ EDITAR</button>
+          <button class="btn btn-re btn-sm" onclick="eliminarPlanComparacion(<?=$pl['id']?>)">✕</button>
+        </div>
+      </div>
+    </div>
+  <?php endforeach; endif; ?>
+  </div>
+</div>
+<!-- MODAL: AGREGAR/EDITAR PLAN -->
+<div id="modal-plan-comparacion" class="modal-overlay"><div class="modal" style="max-width:720px">
+  <div class="modal-header"><div class="modal-title" id="plan-form-title">+ AGREGAR PLAN</div><button class="modal-close" onclick="closeModal('modal-plan-comparacion')">✕</button></div>
+  <form id="plan-form" onsubmit="guardarPlanComparacion(event)" style="max-height:70vh;overflow-y:auto;padding-right:6px">
+    <input type="hidden" id="plan-id" name="id">
+    <div class="form-group"><label class="form-label">NOMBRE DEL PLAN *</label><input type="text" id="plan-nombre_plan" name="nombre_plan" class="form-input" required placeholder="Ej. Alignment Health Silicon (HMO C-SNP) 045"></div>
+    <?php foreach ($PLAN_CAMPOS as $seccion => $campos): ?>
+    <div style="margin-top:14px;margin-bottom:6px;font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid <?=$CB?>;padding-bottom:4px"><?=h($seccion)?></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
+      <?php foreach ($campos as $campo => $etiqueta): ?>
+      <div class="form-group"><label class="form-label"><?=h($etiqueta)?></label><textarea id="plan-<?=$campo?>" name="<?=$campo?>" class="form-input" rows="1" style="min-height:34px"></textarea></div>
+      <?php endforeach; ?>
+    </div>
+    <?php endforeach; ?>
+    <div style="margin-top:14px;margin-bottom:6px;font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid <?=$CB?>;padding-bottom:4px">OTROS BENEFICIOS / NOTAS</div>
+    <div class="form-group"><label class="form-label">Otros beneficios (uno por línea — ej. lo que solo tienen los planes SNP)</label><textarea id="plan-extras_json" name="extras_json" class="form-input" rows="3" placeholder="Purificador de aire: 1 al año&#10;Subsidio elementos esenciales: $129/mes&#10;Servicios para mascotas: 7 días de alojamiento"></textarea></div>
+    <div class="form-group"><label class="form-label">Notas</label><textarea id="plan-notas" name="notas" class="form-input" rows="2"></textarea></div>
+    <button type="submit" class="btn btn-p btn-sm" style="width:100%;margin-top:8px">✓ GUARDAR PLAN</button>
+  </form>
+</div></div>
+<script>
+const PLANES_DATA = <?=json_encode(array_values($planes_comparacion), JSON_UNESCAPED_UNICODE)?>;
+const PLAN_CAMPOS = <?=json_encode($PLAN_CAMPOS, JSON_UNESCAPED_UNICODE)?>;
+
+function abrirPlanForm(id){
+  const form = document.getElementById('plan-form');
+  form.reset();
+  document.getElementById('plan-id').value = id || '';
+  document.getElementById('plan-form-title').textContent = id ? '✎ EDITAR PLAN' : '+ AGREGAR PLAN';
+  if(id){
+    const p = PLANES_DATA.find(x => x.id == id);
+    if(p){
+      Object.keys(p).forEach(k=>{
+        const el = document.getElementById('plan-'+k);
+        if(el) el.value = p[k] || '';
+      });
+    }
+  }
+  openModal('modal-plan-comparacion');
+}
+function guardarPlanComparacion(e){
+  e.preventDefault();
+  const fd = new FormData(e.target);
+  fd.append('action','save_plan_comparacion');
+  const btn = e.target.querySelector('[type=submit]');
+  if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ PLAN GUARDADO'); closeModal('modal-plan-comparacion'); if(typeof softReload==='function') softReload(); }
+      else { toast('⚠ '+(d.error||'Error al guardar')); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR PLAN'; } }
+    })
+    .catch(()=>{ toast('⚠ ERROR DE CONEXIÓN'); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR PLAN'; } });
+}
+function eliminarPlanComparacion(id){
+  if(!confirm('¿Eliminar este plan de la comparación?')) return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'delete_plan_comparacion',id})})
+    .then(r=>r.json()).then(d=>{
+      if(d.ok){ toast('✓ ELIMINADO'); if(typeof softReload==='function') softReload(); }
+      else toast('⚠ '+(d.error||'Error'));
+    });
+}
+function actualizarBotonComparar(){
+  const n = document.querySelectorAll('.plan-check:checked').length;
+  const btn = document.getElementById('plan-compare-btn');
+  if(btn) btn.disabled = n < 2;
+}
+function mostrarComparacionPlanes(){
+  const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
+  const planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
+  if(planes.length < 2) return;
+  const wrap = document.getElementById('plan-comparacion-wrap');
+  let html = '<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
+  html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th>' + planes.map(p=>'<th>'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
+  Object.keys(PLAN_CAMPOS).forEach(seccion=>{
+    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>';
+    Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
+      const algunTiene = planes.some(p => (p[campo]||'').trim() !== '');
+      if(!algunTiene) return;
+      html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
+        + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p[campo]||'—')+'</td>').join('') + '</tr>';
+    });
+  });
+  const algunExtra = planes.some(p => (p.extras_json||'').trim() !== '');
+  if(algunExtra){
+    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>';
+    html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Extras</td>'
+      + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.extras_json||'—')+'</td>').join('') + '</tr>';
+  }
+  const algunNota = planes.some(p => (p.notas||'').trim() !== '');
+  if(algunNota){
+    html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Notas</td>'
+      + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
+  }
+  html += '</table></div>';
+  wrap.innerHTML = html;
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+</script>
 <div id="rtab-PORTALES" style="display:none"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
 <div class="card" style="border-top:3px solid <?=$P1?>"><div class="card-header"><div class="card-title"> CARRIERS</div></div><div style="padding:11px"><?php foreach([['SCAN','(800)559-3500','provider.scanhealthplan.com'],['ANTHEM','(888)254-2764','anthem.com/ca/provider'],['HUMANA','(800)448-6262','humana.com/provider'],['ALIGNMENT','(855)265-7217','alignmenthealthcare.com'],['LA CARE','(213)438-5700','lacare.org/provider'],['HEALTH NET','(800)641-7761','healthnet.com/provider'],['MOLINA','(888)858-2150','molinahealthcare.com'],['UNITED HEALTHCARE','(877)842-3210','uhcprovider.com']] as [$c,$tel,$web]):?><div class="portal-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=$c?></span><span style="font-size:9px;font-weight:800;color:<?=$P2?>"><?=$tel?></span></div><div style="font-size:8px;color:<?=$P2?>"> <?=$web?></div></div><?php endforeach;?></div></div>
 <div class="card" style="border-top:3px solid #1E7A8C"><div class="card-header"><div class="card-title"> DENTALES</div></div><div style="padding:11px"><?php foreach([['DENTALQUEST (SCAN)','(800)544-0718'],['LIBERTY DENTAL (ANTHEM/LA CARE)','(888)352-7924'],['HUMANA DENTAL','(800)233-4013'],['MOLINA DENTAL','(888)858-2150'],['HEALTH NET DENTAL','(800)641-7761']] as [$d,$tel]):?><div class="portal-card" style="border-left-color:#1E7A8C"><div style="font-weight:900;font-size:9px;color:<?=$P1?>;margin-bottom:3px"><?=$d?></div><div style="font-size:9px;font-weight:800;color:#1E7A8C"><?=$tel?></div></div><?php endforeach;?></div></div>
@@ -8555,7 +8812,7 @@ function irAMiembros(estado) {
     }
 }
 function showComTab(id){['SMS','LLAMADAS','EMAILS','HISTORIAL'].forEach(t=>{const el=document.getElementById('ctab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-ctab]').forEach(b=>b.classList.toggle('active',b.dataset.ctab===id));}
-function showRecTab(id){['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));}
+function showRecTab(id){['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PLANES','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));try{sessionStorage.setItem('recTab',id);}catch(e){}}
 // ── RECORDATORIOS Y NOTAS ──
 function submitRecordatorio(e){
   e.preventDefault();
@@ -10525,6 +10782,14 @@ function softReload(done){
       try{
         if(active.id==='tab-DASHBOARD' && typeof _dashRestoreOpenCards==='function'){
           _dashRestoreOpenCards();
+        }
+      }catch(e){}
+      // RECURSOS: mantener la sub-pestaña activa (Planes, Scripts, etc.) —
+      // si no, el refresco automático siempre la vuelve a Recordatorios.
+      try{
+        if(active.id==='tab-RECURSOS'){
+          var _recTab = sessionStorage.getItem('recTab');
+          if(_recTab && typeof showRecTab==='function') showRecTab(_recTab);
         }
       }catch(e){}
       // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual
