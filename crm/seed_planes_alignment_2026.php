@@ -20,26 +20,42 @@ $pdo = db();
 $pdo->exec("CREATE TABLE IF NOT EXISTS planes_comparacion (
     id INT AUTO_INCREMENT PRIMARY KEY, nombre_plan VARCHAR(200) NOT NULL,
     carrier VARCHAR(100), tipo VARCHAR(60), numero_plan VARCHAR(30), condados TEXT, anio INT,
-    requisito_elegibilidad TEXT, prima_mensual VARCHAR(150), reembolso_parte_b VARCHAR(100),
-    deducible VARCHAR(100), deducible_parte_d VARCHAR(150), moop VARCHAR(100),
-    umbral_gastos_bolsillo_parte_d VARCHAR(100), hospital_internado TEXT, hospital_ambulatorio VARCHAR(150),
-    centro_quirurgico_ambulatorio VARCHAR(150), medico_primario VARCHAR(100), especialistas VARCHAR(100),
-    atencion_preventiva VARCHAR(100), atencion_emergencia VARCHAR(150), servicios_urgentes VARCHAR(100),
-    emergencia_mundial VARCHAR(150), ambulancia VARCHAR(150), diagnostico_laboratorio VARCHAR(150),
-    rayos_x VARCHAR(100), radiologia_terapeutica VARCHAR(150), examen_auditivo VARCHAR(150),
-    audifonos VARCHAR(200), dental_preventivo TEXT, dental_integral TEXT, examen_vision VARCHAR(150),
-    anteojos VARCHAR(200), salud_mental_internado TEXT, salud_mental_ambulatorio VARCHAR(150),
-    enfermeria_especializada TEXT, terapia_fisica_habla VARCHAR(150), transporte VARCHAR(200),
-    rx_deducible VARCHAR(150), rx_nivel1 VARCHAR(150), rx_nivel2 VARCHAR(150), rx_nivel3 VARCHAR(150),
-    rx_nivel4 VARCHAR(150), rx_nivel5 VARCHAR(150), rx_nivel6 VARCHAR(150), rx_insulina VARCHAR(150),
-    rx_vacunas VARCHAR(200), otc_mensual VARCHAR(150), gimnasio VARCHAR(100), pers VARCHAR(100),
-    quiropractico_acupuntura VARCHAR(200), podologia VARCHAR(150), telesalud VARCHAR(150), dme VARCHAR(100),
-    apoyo_hogar VARCHAR(200), comidas_post_hospital VARCHAR(200), extras_json TEXT, notas TEXT,
+    requisito_elegibilidad TEXT, prima_mensual TEXT, reembolso_parte_b TEXT,
+    deducible TEXT, deducible_parte_d TEXT, moop TEXT,
+    umbral_gastos_bolsillo_parte_d TEXT, hospital_internado TEXT, hospital_ambulatorio TEXT,
+    centro_quirurgico_ambulatorio TEXT, medico_primario TEXT, especialistas TEXT,
+    atencion_preventiva TEXT, atencion_emergencia TEXT, servicios_urgentes TEXT,
+    emergencia_mundial TEXT, ambulancia TEXT, diagnostico_laboratorio TEXT,
+    rayos_x TEXT, radiologia_terapeutica TEXT, examen_auditivo TEXT,
+    audifonos TEXT, dental_preventivo TEXT, dental_integral TEXT, examen_vision TEXT,
+    anteojos TEXT, salud_mental_internado TEXT, salud_mental_ambulatorio TEXT,
+    enfermeria_especializada TEXT, terapia_fisica_habla TEXT, transporte TEXT,
+    rx_deducible TEXT, rx_nivel1 TEXT, rx_nivel2 TEXT, rx_nivel3 TEXT,
+    rx_nivel4 TEXT, rx_nivel5 TEXT, rx_nivel6 TEXT, rx_insulina TEXT,
+    rx_vacunas TEXT, otc_mensual TEXT, gimnasio TEXT, pers TEXT,
+    quiropractico_acupuntura TEXT, podologia TEXT, telesalud TEXT, dme TEXT,
+    apoyo_hogar TEXT, comidas_post_hospital TEXT, extras_json TEXT, notas TEXT,
     activo TINYINT(1) DEFAULT 1, agregado_por INT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     KEY idx_pc_carrier (carrier), KEY idx_pc_activo (activo)
 )");
+// Si la tabla ya existía con VARCHAR (del intento anterior), se ensancha a
+// TEXT antes de intentar insertar de nuevo.
+$_pc_check = $pdo->query("SHOW COLUMNS FROM planes_comparacion LIKE 'rx_insulina'")->fetch();
+if ($_pc_check && stripos($_pc_check['Type'], 'text') === false) {
+    foreach ([
+        'prima_mensual','reembolso_parte_b','deducible','deducible_parte_d','moop','umbral_gastos_bolsillo_parte_d',
+        'hospital_ambulatorio','centro_quirurgico_ambulatorio','medico_primario','especialistas','atencion_preventiva',
+        'atencion_emergencia','servicios_urgentes','emergencia_mundial','ambulancia','diagnostico_laboratorio',
+        'rayos_x','radiologia_terapeutica','examen_auditivo','audifonos','examen_vision','anteojos',
+        'salud_mental_ambulatorio','terapia_fisica_habla','transporte','rx_deducible','rx_nivel1','rx_nivel2',
+        'rx_nivel3','rx_nivel4','rx_nivel5','rx_nivel6','rx_insulina','rx_vacunas','otc_mensual','gimnasio','pers',
+        'quiropractico_acupuntura','podologia','telesalud','dme','apoyo_hogar','comidas_post_hospital',
+    ] as $_pcc) {
+        try { $pdo->exec("ALTER TABLE planes_comparacion MODIFY COLUMN $_pcc TEXT"); } catch (Exception $e) {}
+    }
+}
 
 // ── Campos compartidos por los 3 planes (idénticos en el documento) ─────────
 $comun = [
