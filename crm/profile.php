@@ -400,7 +400,7 @@ display: block;
     <?php if ($m['prescripciones']): ?><div style="background:#EAF4F6;border:1px solid #8DC8D0;border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:9px"><b style="color:#1E7A8C">◎ PRESCRIPCIONES:</b> <?= h($m['prescripciones']) ?></div><?php endif; ?>
     <?php if ($m['condiciones_cronicas']): ?><div style="background:#FDF0EE;border:1px solid #EFA09A;border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:9px"><b style="color:#B83232">◈ CONDICIONES:</b> <?= h($m['condiciones_cronicas']) ?></div><?php endif; ?>
     <?php if ($m['especialistas']): ?><div style="background:#F3F0FB;border:1px solid #C2B0E8;border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:9px"><b style="color:#5B3FAF">👨‍⚕️ ESPECIALISTAS:</b> <?= h($m['especialistas']) ?></div><?php endif; ?>
-    <?php if ($m['extras']): ?><div style="background:#FEF8EE;border:1px solid #F5D5A0;border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:9px"><b style="color:#C07A1A">📌 EXTRAS:</b> <?= h($m['extras']) ?></div><?php endif; ?>
+    <?php if ($m['extras']): ?><div style="background:#FEF8EE;border:1px solid #F5D5A0;border-radius:8px;padding:7px 11px;margin-bottom:7px;font-size:9px;line-height:1.6"><b style="color:#C07A1A">📌 EXTRAS:</b> <?= nl2br(h($m['extras'])) ?></div><?php endif; ?>
 
     <!-- Llamadas retención (nuevo sistema) -->
     <?php if ($m['estado'] === 'ACTIVE'): ?>

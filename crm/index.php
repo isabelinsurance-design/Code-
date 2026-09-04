@@ -481,7 +481,27 @@ if (!empty($_POST['camp_ajax'])) {
             $cn = $pdo_c->prepare("SELECT nombre,canal FROM campanas WHERE id=?"); $cn->execute([$ct['campana_id']]); $camp = $cn->fetch(PDO::FETCH_ASSOC);
             $fuente_map = ['FACEBOOK'=>'FACEBOOK LEAD','INSTAGRAM'=>'FACEBOOK LEAD','EVENTO'=>'EVENTO COMUNIDAD','REFERIDO'=>'REFERIDO MIEMBRO','GOOGLE'=>'GOOGLE'];
             $fuente = $fuente_map[$camp['canal'] ?? ''] ?? 'OTRO';
+            // No perder lo que ya se sabía del contacto: notas que se
+            // escribieron en la campaña, y las columnas extra del CSV
+            // (fecha de nacimiento, ciudad, plan actual, etc. — lo que sea
+            // que traía esa lista) — todo queda visible de una vez en el
+            // perfil del prospecto en vez de tener que volver a la campaña.
             $extras = 'Promovido de campaña: ' . ($camp['nombre'] ?? '');
+            if (!empty($ct['notas'])) {
+                $extras .= "\n\nNotas de campaña:\n" . $ct['notas'];
+            }
+            if (!empty($ct['datos_extra'])) {
+                $de = json_decode($ct['datos_extra'], true);
+                if (is_array($de) && $de) {
+                    $de_lineas = [];
+                    foreach ($de as $de_k => $de_v) {
+                        $de_v = trim((string)$de_v);
+                        if ($de_v === '') continue;
+                        $de_lineas[] = "- $de_k: $de_v";
+                    }
+                    if ($de_lineas) $extras .= "\n\nDatos de la lista importada:\n" . implode("\n", $de_lineas);
+                }
+            }
             $ins = $pdo_c->prepare("INSERT INTO miembros (nombre,apellido,telefono,email,estado,agente_id,fuente,extras,campana_origen_id,created_by) VALUES (?,?,?,?,'PROSPECT',?,?,?,?,?)");
             $ins->execute([$ct['nombre'], $ct['apellido'] ?: '', $ct['telefono'], $ct['email'], $ct['agente_id'] ?: $uid_c, $fuente, $extras, $ct['campana_id'], $uid_c]);
             $nid = (int)$pdo_c->lastInsertId();
