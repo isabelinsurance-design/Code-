@@ -7012,10 +7012,23 @@ $PLAN_CAMPOS = [
 
   <div id="plan-comparacion-wrap" style="display:none;margin-bottom:16px"></div>
 
-  <div id="plan-cards-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
+  <div id="plan-cards-grid">
   <?php if (empty($planes_comparacion)): ?>
-    <div class="card" style="grid-column:1/-1;padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
-  <?php else: foreach ($planes_comparacion as $pl): ?>
+    <div class="card" style="padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
+  <?php else:
+    // Ya vienen ordenados por carrier desde la consulta — se agrupan bajo
+    // un encabezado por cada aseguranza en vez de mezclarlos todos juntos.
+    $planes_por_carrier = [];
+    foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
+  ?>
+  <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
+    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
+      <div style="font-size:10px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px"><?=h($pc_carrier)?></div>
+      <div style="flex:1;height:1px;background:<?=$CB?>"></div>
+      <div style="font-size:8px;color:<?=$MU?>;font-weight:800"><?=count($pc_planes)?> PLAN<?=count($pc_planes)>1?'ES':''?></div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
+    <?php foreach ($pc_planes as $pl): ?>
     <div class="card plan-card" data-id="<?=$pl['id']?>" style="border-top:3px solid <?=$P1?>">
       <div style="padding:12px 14px 8px">
         <div style="display:flex;gap:8px;align-items:flex-start">
@@ -7034,6 +7047,8 @@ $PLAN_CAMPOS = [
           <button class="btn btn-re btn-sm" onclick="eliminarPlanComparacion(<?=$pl['id']?>)">✕</button>
         </div>
       </div>
+    </div>
+    <?php endforeach; ?>
     </div>
   <?php endforeach; endif; ?>
   </div>
