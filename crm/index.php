@@ -5746,7 +5746,7 @@ $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
     <?php endif;?>
     <div style="display:flex;gap:4px;flex-wrap:wrap">
       <?php if($is_reagendar):?>
-        <button class="btn btn-p btn-sm" onclick="editarCita(<?=$c['id']?>)" title="Poner nueva fecha/hora" style="flex:1;padding:5px 8px;font-size:8px">📅 REAGENDAR AHORA</button>
+        <button class="btn btn-p btn-sm" onclick="editarCita(<?=$c['id']?>, true)" title="Poner nueva fecha/hora" style="flex:1;padding:5px 8px;font-size:8px">📅 REAGENDAR AHORA</button>
       <?php endif;?>
       <?php if(!$is_done && !$is_canceled && !$is_reagendar):?>
         <button class="btn btn-gr btn-sm" onclick="completarCitaOpciones(<?=$c['id']?>)" title="Completar" style="flex:1;padding:5px 8px;font-size:8px">✓ COMPLETAR</button>
@@ -8691,6 +8691,16 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
       </div>
       <?php endif;?>
 
+      <div class="form-group" id="cita-estado-group" style="display:none">
+        <label class="form-label">ESTADO</label>
+        <select name="estado" id="cita-estado" class="form-input">
+          <option value="PENDIENTE">◷ PENDIENTE</option>
+          <option value="COMPLETADA">✓ COMPLETADA</option>
+          <option value="CANCELADA">✕ CANCELADA</option>
+          <option value="REAGENDAR">↺ POSIBLE PARA REAGENDAR</option>
+        </select>
+      </div>
+
       <div class="form-group">
         <label class="form-label">NOTAS</label>
         <textarea name="notas" id="cita-notas" class="form-input" rows="3" placeholder="Detalles, recordatorios, link de Zoom, dirección, etc." style="text-transform:none;font-family:'DM Sans',sans-serif"></textarea>
@@ -11612,13 +11622,17 @@ function cancelarCita(id){
     .then(r=>r.json()).then(d=>{if(d.ok){toast('✓ CITA CANCELADA');saveTabAndReload();}else toast(d.error||'Error');});
 }
 
-function editarCita(id){
+function editarCita(id, forzarPendiente){
   fetch('api.php?action=get_cita&id='+id)
     .then(r=>r.json()).then(d=>{
       if(!d.ok){ toast(d.error||'Error'); return; }
       const c = d.data;
       document.getElementById('cita-modal-title').textContent = '✎ EDITAR CITA #'+c.id;
       document.getElementById('cita-id').value = c.id;
+      const estadoGroup = document.getElementById('cita-estado-group');
+      if(estadoGroup) estadoGroup.style.display = '';
+      const estadoSel = document.getElementById('cita-estado');
+      if(estadoSel) estadoSel.value = forzarPendiente ? 'PENDIENTE' : (c.estado || 'PENDIENTE');
       // Modo cliente
       if(c.miembro_id){
         setCitaClienteMode('miembro');
@@ -11672,6 +11686,8 @@ function abrirNuevaCita(){
   document.getElementById('cita-fecha').value = new Date().toISOString().slice(0,10);
   document.getElementById('cita-hora').value = '09:00';
   document.getElementById('cita-notas').value = '';
+  const estadoGroup = document.getElementById('cita-estado-group');
+  if(estadoGroup) estadoGroup.style.display = 'none'; // una cita nueva siempre nace PENDIENTE
   setCitaClienteMode('miembro');
   __origOpenModal('cita-form-modal'); // <-- SOLUCIÓN
 }

@@ -1005,9 +1005,21 @@ case 'update_cita':
     $hora      = $_POST['hora']      ?? '09:00:00';
     $notas     = trim($_POST['notas']??'') ?: null;
     $agente    = $admin ? (intval($_POST['agente_id']??$row['agente_id']) ?: $row['agente_id']) : $row['agente_id'];
-
-    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=IF(estado IN ('CANCELADA','REAGENDAR'),'PENDIENTE',estado) WHERE id=?")
-        ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $id]);
+    // El formulario de editar ahora deja elegir el estado directamente
+    // (PENDIENTE/COMPLETADA/CANCELADA/REAGENDAR) — si no viene uno válido
+    // (ej. formularios viejos en caché), se conserva el comportamiento de
+    // siempre: reactivar a PENDIENTE si estaba cancelada/para reagendar.
+    $estados_validos = ['PENDIENTE','COMPLETADA','CANCELADA','REAGENDAR'];
+    $estado_post = strtoupper(trim($_POST['estado'] ?? ''));
+    if (in_array($estado_post, $estados_validos, true)) {
+        $estado_sql = '?';
+        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $estado_post, $id];
+    } else {
+        $estado_sql = "IF(estado IN ('CANCELADA','REAGENDAR'),'PENDIENTE',estado)";
+        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $id];
+    }
+    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=$estado_sql WHERE id=?")
+        ->execute($params);
     jsonOkNotify([], 'CITAS');
     break;
 
