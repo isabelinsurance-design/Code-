@@ -5867,6 +5867,7 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
       ▦ TODAS (<?=count($citas_view)?>)
     </button>
   </div>
+  <div id="cita-count" style="padding:8px 2px 0;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px"></div>
 </div>
 
 <!-- ─── PENDIENTES ─── -->
@@ -8859,6 +8860,7 @@ if(id==='BONOS') loadBonos();
 if(id==='GASTOS') loadGastos();
 if(id==='TICKETS'){ loadTicketsTable(function(){ filterTickets(); setTktVista(_tktVista); }); }
 if(id==='MIEMBROS' && typeof loadMembersTable==='function') loadMembersTable(applyMemberFilters);
+if(id==='CITAS' && typeof filtrarCitas==='function') filtrarCitas();
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
@@ -11821,6 +11823,18 @@ function filtrarCitas(){
     const visibles = [...g.querySelectorAll('.cita-card')].filter(c=>c.style.display!=='none').length;
     g.style.display = visibles>0 ? '' : 'none';
   });
+
+  // Contador — cuántas citas se están mostrando en la sub-pestaña activa,
+  // igual que ya muestran Miembros y Tickets. Se compara con la propiedad
+  // .style.display (no con el texto del atributo) para que dé igual si
+  // viene como "display:none" o "display: none".
+  const paneActivo = Array.from(document.querySelectorAll('.csub-pane')).find(p=>p.style.display!=='none');
+  const cnt = document.getElementById('cita-count');
+  if(cnt){
+    const total = paneActivo ? paneActivo.querySelectorAll('.cita-card').length : 0;
+    const visibles = paneActivo ? [...paneActivo.querySelectorAll('.cita-card')].filter(c=>c.style.display!=='none').length : 0;
+    cnt.textContent = visibles ? visibles+' cita'+(visibles>1?'s':'')+' mostrada'+(visibles>1?'s':'')+(visibles<total?' de '+total:'') : (total?'0 citas mostradas':'');
+  }
 }
 
 function resetCitaFiltros(){
