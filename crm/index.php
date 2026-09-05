@@ -5863,6 +5863,9 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
       ✕ CANCELADAS (<?=count($citas_canceladas)?>)
     </button>
     <?php endif;?>
+    <button class="cita-subtab" data-csub="todas" onclick="cambiarSubtabCitas('todas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ▦ TODAS (<?=count($citas_view)?>)
+    </button>
   </div>
 </div>
 
@@ -5944,6 +5947,21 @@ $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
   </div>
 </div>
 <?php endif;?>
+
+<!-- ─── TODAS (sin importar el estado) ─── -->
+<div id="csub-todas" class="csub-pane" style="display:none">
+  <?php
+  $citas_todas = $citas_view;
+  usort($citas_todas, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
+  ?>
+  <?php if(!count($citas_todas)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS TODAVÍA</div>
+  <?php else:?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_todas as $c) $render_cita($c); ?>
+  </div>
+  <?php endif;?>
+</div>
 
 </div><!-- /CITAS -->
 <!-- TICKETS -->
