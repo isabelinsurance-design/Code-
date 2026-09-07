@@ -11667,7 +11667,8 @@ function submitAppForm(e) {
 function cancelarCita(id){
   if(!confirm('¿Cancelar esta cita?\n\nEsta acción se puede deshacer editando la cita.'))return;
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'cancel_cita',id})})
-    .then(r=>r.json()).then(d=>{if(d.ok){toast('✓ CITA CANCELADA');saveTabAndReload();}else toast(d.error||'Error');});
+    .then(r=>r.json()).then(d=>{if(d.ok){toast('✓ CITA CANCELADA');saveTabAndReload();}else toast(d.error||'Error');})
+    .catch(()=>toast('⚠ Error de red — intenta de nuevo'));
 }
 
 function editarCita(id, forzarPendiente){
@@ -11702,7 +11703,8 @@ function editarCita(id, forzarPendiente){
       const ag = document.getElementById('cita-agente');
       if(ag && c.agente_id) ag.value = c.agente_id;
       openModal('cita-form-modal');
-    });
+    })
+    .catch(()=>toast('⚠ Error de red — intenta de nuevo'));
 }
 
 function setCitaClienteMode(mode){
@@ -11772,7 +11774,8 @@ function crearTicketDesdeCita(citaId){
       setFld('fuente', 'CRM');
       setFld('asignado_a', c.agente_id || '');
       openModal('ticket-form-modal');
-    });
+    })
+    .catch(()=>toast('⚠ Error de red — intenta de nuevo'));
 }
 
 function cambiarSubtabCitas(sub){
@@ -12069,6 +12072,14 @@ function submitCita(e){
   const fd = new FormData(e.target);
   const id = document.getElementById('cita-id').value;
   fd.append('action', id ? 'update_cita' : 'save_cita');
+  // Si escribió un nombre en el buscador de "MIEMBRO REGISTRADO" pero nunca
+  // hizo clic en ninguna sugerencia (ej. un prospecto que todavía no está en
+  // la base de datos), no bloquear el guardado — usar ese texto como nombre
+  // del cliente, igual que en modo "NOMBRE LIBRE".
+  if(!fd.get('miembro_id') && !fd.get('cliente').trim()){
+    const mpickVal = (document.getElementById('cita-mpick-input')?.value||'').trim();
+    if(mpickVal) fd.set('cliente', mpickVal);
+  }
   // Validar: o miembro_id o cliente, no puede ir vacío
   if(!fd.get('miembro_id') && !fd.get('cliente').trim()){
     toast('⚠ Debes seleccionar un miembro o escribir el nombre del cliente');
@@ -12081,10 +12092,15 @@ function submitCita(e){
         closeModal('cita-form-modal');
         saveTabAndReload();
       } else toast(d.error||'Error al guardar');
-    });
+    })
+    // Sin este catch, si el servidor fallaba (error de red, sesión vencida,
+    // respuesta no-JSON) la promesa se rechazaba en silencio: no aparecía
+    // ningún error y la cita se sentía como que "no se guardaba" sin más
+    // explicación — ahora sí se avisa qué pasó.
+    .catch(()=>toast('⚠ Error de red — intenta de nuevo (si sigue igual, recarga la página con Ctrl+F5)'));
 }
-function submitLlamada(e){e.preventDefault();const fd=new FormData(e.target);fd.append('action','save_llamada');fetch('api.php',{method:'POST',body:new URLSearchParams(fd)}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ REGISTRADA');closeModal('llamada-form-modal');saveTabAndReload();}});}
-function devolverLlamada(id){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'devolver_llamada',id})}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ DEVUELTA');saveTabAndReload();}});}
+function submitLlamada(e){e.preventDefault();const fd=new FormData(e.target);fd.append('action','save_llamada');fetch('api.php',{method:'POST',body:new URLSearchParams(fd)}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ REGISTRADA');closeModal('llamada-form-modal');saveTabAndReload();}else toast(d.error||'Error al guardar');}).catch(()=>toast('⚠ Error de red — intenta de nuevo'));}
+function devolverLlamada(id){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'devolver_llamada',id})}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ DEVUELTA');saveTabAndReload();}else toast(d.error||'Error');}).catch(()=>toast('⚠ Error de red — intenta de nuevo'));}
 </script>
 
 <div id="urgentes-popup" style="display:none;position:fixed;top:20px;right:20px;z-index:9999;max-width:320px">
