@@ -10782,6 +10782,12 @@ function softReload(done){
     }
     if(el.style && el.style.display){ disp[el.id] = el.style.display; }
   });
+  // CITAS: recordar qué sub-pestaña estaba activa (Próximas, Reagendar,
+  // Atrasadas...) antes del refresco — el HTML fresco siempre trae "Próximas"
+  // por defecto, así que sin esto cada acción (completar, cancelar, editar)
+  // hacía que la vista "saltara" de vuelta y se perdieran los filtros.
+  var _citaSubActiva = null;
+  try{ var _csb = active.querySelector('.cita-subtab.active'); if(_csb) _citaSubActiva = _csb.dataset.csub; }catch(e){}
   // 2) Pedir la página fresca con timeout (para no quedar colgados)
   var ctrl = (typeof AbortController!=='undefined') ? new AbortController() : null;
   var killer = setTimeout(function(){ try{ ctrl && ctrl.abort(); }catch(e){} }, 8000);
@@ -10852,6 +10858,28 @@ function softReload(done){
         if(active.id==='tab-RECURSOS'){
           var _recTab = sessionStorage.getItem('recTab');
           if(_recTab && typeof showRecTab==='function') showRecTab(_recTab);
+        }
+      }catch(e){}
+      // CITAS: mantener la sub-pestaña activa y el filtro de periodo
+      // (Día/Semana/Mes/Año) — igual que RECURSOS con su sub-pestaña. Los
+      // valores de búsqueda/fecha/agente/tipo/modalidad ya se restauran
+      // arriba (son inputs/selects con id, entran en el "vals" genérico).
+      try{
+        if(active.id==='tab-CITAS'){
+          var _csbFresco = _citaSubActiva ? document.getElementById('csub-'+_citaSubActiva) : null;
+          if(typeof cambiarSubtabCitas==='function'){
+            cambiarSubtabCitas(_csbFresco ? _citaSubActiva : 'proximas');
+          } else if(typeof filtrarCitas==='function'){
+            filtrarCitas();
+          }
+          if(typeof window._citaPeriodo!=='undefined'){
+            document.querySelectorAll('.cita-periodo-btn').forEach(function(b){
+              var on = b.dataset.periodo===window._citaPeriodo;
+              b.style.background = on ? '#1B4A6B' : '#fff';
+              b.style.color      = on ? '#fff'     : '#7A90A4';
+              b.classList.toggle('active', on);
+            });
+          }
         }
       }catch(e){}
       // CAMPAÑAS: restaurar si estaba en la vista de LISTAS DE EVENTO, igual
