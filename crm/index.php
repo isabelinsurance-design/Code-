@@ -2890,11 +2890,15 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     </div>
     <button class="btn btn-p btn-sm" onclick="openCampForm()">+ NUEVA CAMPAÑA</button>
   </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:11px">
-    <button class="btn btn-p btn-sm camp-filter" onclick="filterCamp('todas',this)">TODAS</button>
-    <button class="btn btn-gh btn-sm camp-filter" onclick="filterCamp('ACTIVA',this)">ACTIVAS</button>
-    <button class="btn btn-gh btn-sm camp-filter" onclick="filterCamp('CERRADA',this)">CERRADAS</button>
+  <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center">
+    <div class="form-group" style="max-width:380px;flex:1;min-width:220px;margin-bottom:0">
+      <input type="text" id="camp-global-search" class="form-input" placeholder="🔎 Buscar en TODAS las campañas — nombre, teléfono, notas, cualquier dato..." autocomplete="off" oninput="filterCampGlobal()">
+    </div>
+    <button class="btn btn-p btn-sm camp-filter" data-active="1" data-filtro="todas" onclick="filterCamp('todas',this)">TODAS</button>
+    <button class="btn btn-gh btn-sm camp-filter" data-filtro="ACTIVA" onclick="filterCamp('ACTIVA',this)">ACTIVAS</button>
+    <button class="btn btn-gh btn-sm camp-filter" data-filtro="CERRADA" onclick="filterCamp('CERRADA',this)">CERRADAS</button>
   </div>
+  <div id="camp-global-cnt" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-top:7px"></div>
 </div>
 <div style="background:#EBF5FB;border:1px solid #A9D0E8;border-left:4px solid #1B5E8C;border-radius:10px;padding:9px 14px;margin-bottom:14px;font-size:8px;color:#1B5E8C;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">
   ℹ️ Los contactos de campaña viven aquí en su propio pipeline. Solo entran al PIPELINE real del CRM cuando presionas <b>▲ PIPELINE</b> — ahí se crea el miembro como prospecto.
@@ -2911,7 +2915,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
   $cpl=($camp_costo>0 && $n_ct>0)?$camp_costo/$n_ct:null;
   $est_c=$c['estado']; $estb=$est_c==='ACTIVA'?['#1E7A5C','#EAF5F0']:($est_c==='PAUSADA'?['#C07A1A','#FEF8EE']:['#7A90A4','#F1F1F1']);
 ?>
-<div class="card camp-card" data-estado="<?=h($c['estado'])?>" style="margin-bottom:10px;border-left:4px solid <?=$cl[0]?>">
+<div class="card camp-card" data-estado="<?=h($c['estado'])?>" data-search="<?=h(strtolower($c['nombre'].' '.($c['canal']??'').' '.($c['descripcion']??'')))?>" style="margin-bottom:10px;border-left:4px solid <?=$cl[0]?>">
   <div class="card-header" style="cursor:pointer;flex-wrap:wrap;gap:9px" onclick="campToggleCard(<?=$c['id']?>)">
     <div style="display:flex;align-items:center;gap:10px;min-width:0;flex:1">
       <div style="min-width:0">
@@ -3091,7 +3095,14 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       $extraParaFiltro = [];
       foreach ($extraChips as $ek => $ev) { $extraParaFiltro[$ek] = trim((string)$ev); }
     ?>
-    <div class="cc-contact-card" data-search="<?=h(strtolower($nm.' '.($ct['telefono']??'')))?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-habla-ingles="<?=!empty($ct['habla_ingles'])?'1':'0'?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
+    <?php
+      // Búsqueda "por cualquier dato" — no solo nombre/teléfono: también notas
+      // reales y todas las columnas extra que trajo el CSV subido (ciudad,
+      // idioma, aseguranza actual, lo que sea que haya traído la lista).
+      $ct_search_extra = implode(' ', array_map('strval', $extraChips));
+      $ct_search = strtolower(trim($nm.' '.($ct['telefono']??'').' '.($ct['email']??'').' '.$notasReales.' '.($ct['agente_nombre']??'').' '.$ct_search_extra));
+    ?>
+    <div class="cc-contact-card" data-search="<?=h($ct_search)?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-habla-ingles="<?=!empty($ct['habla_ingles'])?'1':'0'?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -3447,9 +3458,75 @@ function campToggleCard(id){
   try{ if(open)sessionStorage.removeItem('campOpen'); else sessionStorage.setItem('campOpen',id); }catch(e){}
 }
 function filterCamp(f,btn){
-  document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';});
-  if(btn)btn.className='btn btn-p btn-sm camp-filter';
+  window._campEstadoFiltro = f;
+  document.querySelectorAll('#tab-CAMPANAS .camp-filter').forEach(function(b){b.className='btn btn-gh btn-sm camp-filter';b.removeAttribute('data-active');});
+  if(btn){btn.className='btn btn-p btn-sm camp-filter';btn.setAttribute('data-active','1');}
   document.querySelectorAll('#tab-CAMPANAS .camp-card').forEach(function(c){ c.style.display=(f==='todas'||c.dataset.estado===f)?'':'none'; });
+}
+// Búsqueda GENERAL — a diferencia del buscador que ya tenía cada campaña
+// (que solo busca DENTRO de esa campaña ya abierta), esto busca en TODAS las
+// campañas a la vez: por nombre/canal de la campaña, o por cualquier dato de
+// sus contactos (nombre, teléfono, email, notas, agente, o cualquier columna
+// extra que haya traído el CSV subido). Al encontrar coincidencias, abre
+// automáticamente las campañas donde aparecen para que se vean de una vez.
+var _campSearchAbierta = null; // qué campañas estaban abiertas antes de empezar a buscar
+function filterCampGlobal(){
+  var q = (document.getElementById('camp-global-search')?.value||'').toLowerCase().trim();
+  var cards = document.querySelectorAll('#tab-CAMPANAS #camp-view-campanas .camp-card');
+  var cnt = document.getElementById('camp-global-cnt');
+
+  if(q && !_campSearchAbierta){
+    // Primera letra de esta búsqueda: recordar qué campañas ya estaban
+    // abiertas para dejarlas como estaban al borrar la búsqueda.
+    _campSearchAbierta = {};
+    cards.forEach(function(card){
+      var body = card.querySelector('[id^="camp-body-"]');
+      if(body) _campSearchAbierta[body.id] = body.style.display !== 'none';
+    });
+  }
+
+  if(!q){
+    cards.forEach(function(card){
+      var body = card.querySelector('[id^="camp-body-"]');
+      if(body && _campSearchAbierta && _campSearchAbierta.hasOwnProperty(body.id)){
+        body.style.display = _campSearchAbierta[body.id] ? 'block' : 'none';
+      }
+      card.querySelectorAll('.cc-contact-card').forEach(function(c){ c.style.display=''; });
+    });
+    _campSearchAbierta = null;
+    var activeBtn = document.querySelector('#tab-CAMPANAS .camp-filter[data-active="1"]');
+    filterCamp(window._campEstadoFiltro||'todas', activeBtn);
+    if(cnt) cnt.textContent = '';
+    return;
+  }
+
+  var totalCamps = 0, totalContactos = 0;
+  cards.forEach(function(card){
+    var nombreMatch = (card.dataset.search||'').includes(q);
+    var body = card.querySelector('[id^="camp-body-"]');
+    var contactos = card.querySelectorAll('.cc-contact-card');
+    var algunContactoMatch = false, contactosVisibles = 0;
+    contactos.forEach(function(c){
+      if((c.dataset.search||'').includes(q)){ algunContactoMatch = true; contactosVisibles++; }
+    });
+    var camMatch = nombreMatch || algunContactoMatch;
+    card.style.display = camMatch ? '' : 'none';
+    if(camMatch){
+      totalCamps++;
+      if(body) body.style.display = 'block';
+      // Si hay contactos que coinciden, mostrar solo esos; si la campaña
+      // solo coincidió por su nombre/canal, dejar todos sus contactos visibles.
+      contactos.forEach(function(c){
+        c.style.display = algunContactoMatch ? ((c.dataset.search||'').includes(q) ? '' : 'none') : '';
+      });
+      totalContactos += algunContactoMatch ? contactosVisibles : contactos.length;
+    }
+  });
+  if(cnt){
+    cnt.textContent = totalCamps
+      ? (totalContactos+' contacto'+(totalContactos!==1?'s':'')+' en '+totalCamps+' campaña'+(totalCamps!==1?'s':''))
+      : 'SIN RESULTADOS';
+  }
 }
 function verPerfilContacto(id){
   var src=document.getElementById('cc-perfil-'+id);
@@ -10887,6 +10964,17 @@ function softReload(done){
       try{
         if(active.id==='tab-CAMPANAS' && typeof setCampVista==='function' && typeof _campVista!=='undefined'){
           setCampVista(_campVista);
+        }
+        // El HTML fresco resetea qué botón (TODAS/ACTIVAS/CERRADAS) se ve
+        // activo y reabre/cierra campañas a su estado original — hay que
+        // reaplicar el filtro de estado y, si había una búsqueda general
+        // escrita (ya se restauró su texto arriba, junto con los demás
+        // inputs), volver a correrla para que la vista quede como estaba.
+        if(active.id==='tab-CAMPANAS' && typeof filterCamp==='function'){
+          window._campSearchAbierta = null; // las campañas viejas que recordaba ya no existen
+          var _cebtn = document.querySelector('#tab-CAMPANAS .camp-filter[data-filtro="'+(window._campEstadoFiltro||'todas')+'"]');
+          filterCamp(window._campEstadoFiltro||'todas', _cebtn);
+          if(typeof filterCampGlobal==='function') filterCampGlobal();
         }
       }catch(e){}
       // COMUNICACIÓN/SMS: la lista de conversaciones ya no viene incluida en
