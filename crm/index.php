@@ -1126,6 +1126,17 @@ try {
     foreach ($cc_add as $col => $ddl) {
         if (!in_array($col, $cc_cols, true)) { try { $pdo->exec("ALTER TABLE campana_contactos $ddl"); } catch (Exception $e) {} }
     }
+    // La línea de arriba solo AGREGA la columna 'estado' si no existía —
+    // en servidores donde ya existía de antes (más angosta, ej. VARCHAR(10)
+    // o VARCHAR(15)) nunca se ensanchaba, y valores como 'NO_INTERESADO' o
+    // 'EN PIPELINE' (11-13 caracteres) se truncaban con un error SQL. Aquí
+    // se revisa el ancho real y se ensancha solo si hace falta.
+    try {
+        $_cc_est_chk = $pdo->query("SHOW COLUMNS FROM campana_contactos LIKE 'estado'")->fetch();
+        if ($_cc_est_chk && preg_match('/varchar\((\d+)\)/i', $_cc_est_chk['Type'], $_cc_est_m) && (int)$_cc_est_m[1] < 30) {
+            $pdo->exec("ALTER TABLE campana_contactos MODIFY COLUMN estado VARCHAR(30) DEFAULT 'ACTIVO'");
+        }
+    } catch (Exception $e) {}
     $pdo->exec("CREATE TABLE IF NOT EXISTS campana_logs (
         id INT AUTO_INCREMENT PRIMARY KEY,
         campana_id INT NOT NULL,
