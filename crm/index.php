@@ -3107,7 +3107,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
       $ct_search_extra = implode(' ', array_map('strval', $extraChips));
       $ct_search = strtolower(trim($nm.' '.($ct['telefono']??'').' '.($ct['email']??'').' '.$notasReales.' '.($ct['agente_nombre']??'').' '.$ct_search_extra));
     ?>
-    <div class="cc-contact-card" data-search="<?=h($ct_search)?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-habla-ingles="<?=!empty($ct['habla_ingles'])?'1':'0'?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
+    <div class="cc-contact-card" id="cc-card-<?=$ct['id']?>" data-search="<?=h($ct_search)?>" data-estado="<?=h($ct['estado']??'')?>" data-agente="<?=h($ct['agente_nombre']??'')?>" data-ultimo-resultado="<?=h($lastlog['resultado']??'')?>" data-contestado="<?=h($ct_contestado)?>" data-habla-ingles="<?=!empty($ct['habla_ingles'])?'1':'0'?>" data-extra="<?=h(json_encode($extraParaFiltro,JSON_UNESCAPED_UNICODE))?>" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px">
       <div style="display:flex;gap:9px;align-items:center;flex-wrap:wrap">
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
@@ -3122,7 +3122,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
-            <?php if($lastlog):?><span style="font-size:8px;color:<?=$MU?>">ÚLTIMO: <?=h($lastlog['canal'])?> — <?=h($lastlog['resultado'])?></span><?php endif;?>
+            <span id="cc-ultimo-<?=$ct['id']?>" style="font-size:8px;color:<?=$MU?><?=$lastlog?'':';display:none'?>">ÚLTIMO: <?=$lastlog?h($lastlog['canal']).' — '.h($lastlog['resultado']):''?></span>
             <?php $hi=!empty($ct['habla_ingles']);?>
             <button type="button" class="btn btn-sm" data-on="<?=$hi?'1':'0'?>" onclick="toggleHablaIngles(<?=$ct['id']?>,this)" style="font-size:7px;padding:2px 8px;background:<?=$hi?'#1B5E8C':'#fff'?>;color:<?=$hi?'#fff':'#7A90A4'?>;border:1px solid <?=$hi?'#1B5E8C':'#C8DFF0'?>" title="Marca si esta persona habla inglés">🇬🇧 HABLA INGLÉS</button>
             <?php if(!empty($ct['agente_id'])):?>
@@ -3701,18 +3701,52 @@ function openCcLog(campId,ctId,name){
 function saveLog(e){e.preventDefault();var f=e.target;var camp=f.campana_id.value;
   var btn=document.getElementById('cc-log-btn');
   if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
-  var p='action=log_actividad&campana_id='+encodeURIComponent(camp)+'&contacto_id='+encodeURIComponent(f.contacto_id.value)+'&canal='+encodeURIComponent(f.canal.value)+'&resultado='+encodeURIComponent(f.resultado.value)+'&nuevo_estado='+encodeURIComponent(f.nuevo_estado.value)+'&notas='+encodeURIComponent(f.notas.value);
+  var ctId=f.contacto_id.value, canal=f.canal.value, resultado=f.resultado.value, notas=f.notas.value, nuevoEstado=f.nuevo_estado.value;
+  var p='action=log_actividad&campana_id='+encodeURIComponent(camp)+'&contacto_id='+encodeURIComponent(ctId)+'&canal='+encodeURIComponent(canal)+'&resultado='+encodeURIComponent(resultado)+'&nuevo_estado='+encodeURIComponent(nuevoEstado)+'&notas='+encodeURIComponent(notas);
   campPost(p,false).then(function(d){
     if(btn){ btn.disabled=false; btn.textContent='GUARDAR REGISTRO'; }
     if(d&&d.ok){
-      if(typeof toast==='function')toast('✓ REGISTRADO'+(f.canal.value==='LLAMADA'?' — CONTADO EN TU REPORTE DIARIO':''));
-      try{sessionStorage.setItem('campOpen',camp);}catch(e){}
+      if(typeof toast==='function')toast('✓ REGISTRADO'+(canal==='LLAMADA'?' — CONTADO EN TU REPORTE DIARIO':''));
       closeModal('modal-cc-log');
-      _campReload();
+      // Registrar una llamada es de las acciones que más se repiten en
+      // Campañas — en vez de recargar TODA la página (150-200 consultas)
+      // solo para ver este registro reflejado, se actualiza nada más esta
+      // tarjeta con los mismos datos que se acaban de guardar. Se siente
+      // instantáneo; el resto de la página se sincroniza sola la próxima
+      // vez que algo la refresque.
+      _actualizarContactoTrasRegistro(ctId, canal, resultado, notas, nuevoEstado);
     } else {
       if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo registrar'));
     }
   }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR REGISTRO'; } if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function _actualizarContactoTrasRegistro(ctId, canal, resultado, notas, nuevoEstado){
+  var card = document.getElementById('cc-card-'+ctId);
+  if(!card) return;
+  var ultimo = document.getElementById('cc-ultimo-'+ctId);
+  if(ultimo){ ultimo.textContent = 'ÚLTIMO: '+canal+' — '+resultado; ultimo.style.display = ''; }
+  // Mismo criterio "contestó" que usa el reporte diario — para que los
+  // filtros de RESULTADO/CONTESTÓ que ya existen sigan funcionando bien
+  // sobre esta tarjeta sin tener que releerla del servidor.
+  var NO_CONTESTO = ['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado'];
+  card.dataset.ultimoResultado = resultado;
+  card.dataset.contestado = NO_CONTESTO.indexOf(resultado)!==-1 ? 'NO' : 'SI';
+  var hist = document.getElementById('cc-hist-'+ctId);
+  if(hist){
+    var hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=String(hoy.getFullYear()).slice(-2);
+    var entryHtml = '<div style="display:flex;gap:8px;padding:6px 0;border-bottom:1px solid #C8DFF0">'
+      + '<span style="font-size:8px;font-weight:900;color:#2876A8;min-width:54px">'+dd+'/'+mm+'/'+yy+'</span>'
+      + '<div style="flex:1"><div style="font-size:9px;font-weight:700;color:#1B3A5C">'+esc(canal)+' — '+esc(resultado)+'</div>'
+      + (notas?('<div style="font-size:8px;color:#7A90A4">'+esc(notas)+'</div>'):'')
+      + '</div></div>';
+    if(hist.textContent.trim()==='SIN ACTIVIDAD REGISTRADA') hist.innerHTML = entryHtml;
+    else hist.insertAdjacentHTML('afterbegin', entryHtml);
+  }
+  if(nuevoEstado){
+    var sel = card.querySelector('select[onchange^="ccEstado("]');
+    if(sel) sel.value = nuevoEstado;
+    card.dataset.estado = nuevoEstado;
+  }
 }
 function promoverContacto(id,name){
   if(!confirm('¿Pasar a '+(name||'este contacto')+' al PIPELINE real del CRM? Se creará como prospecto.'))return;
