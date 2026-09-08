@@ -3112,6 +3112,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <div style="flex:1;min-width:0">
           <div style="display:flex;gap:7px;align-items:center;flex-wrap:wrap">
             <span onclick="verPerfilContacto(<?=$ct['id']?>)" style="font-weight:900;font-size:10px;color:<?=$P1?>;cursor:pointer;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.textDecorationColor='<?=$P1?>'" onmouseout="this.style.textDecorationColor='transparent'" title="Ver perfil completo"><?=h($nm)?></span>
+            <span id="cc-estado-<?=$ct['id']?>">
             <?php if($ct['promovido']):?>
               <span style="background:<?=$ce[1]?>;color:<?=$ce[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=$ce[2]?></span>
             <?php else:?>
@@ -3119,12 +3120,14 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
                 <?php foreach(['ACTIVO','INTERESADO','CITA','INSCRITO','NO_INTERESADO','DESCARTADO'] as $es):?><option value="<?=$es?>"<?=$ct['estado']===$es?' selected':''?>><?=str_replace('_',' ',$es)?></option><?php endforeach;?>
               </select>
             <?php endif;?>
+            </span>
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
             <span id="cc-ultimo-<?=$ct['id']?>" style="font-size:8px;color:<?=$MU?><?=$lastlog?'':';display:none'?>">ÚLTIMO: <?=$lastlog?h($lastlog['canal']).' — '.h($lastlog['resultado']):''?></span>
             <?php $hi=!empty($ct['habla_ingles']);?>
             <button type="button" class="btn btn-sm" data-on="<?=$hi?'1':'0'?>" onclick="toggleHablaIngles(<?=$ct['id']?>,this)" style="font-size:7px;padding:2px 8px;background:<?=$hi?'#1B5E8C':'#fff'?>;color:<?=$hi?'#fff':'#7A90A4'?>;border:1px solid <?=$hi?'#1B5E8C':'#C8DFF0'?>" title="Marca si esta persona habla inglés">🇬🇧 HABLA INGLÉS</button>
+            <span id="cc-reclamo-<?=$ct['id']?>">
             <?php if(!empty($ct['agente_id'])):?>
               <span style="display:inline-flex;align-items:center;gap:4px;background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:20px;padding:1px 8px 1px 3px;font-size:8px;font-weight:900">
                 <?=av(h($ct['agente_ini']??'?'),h($ct['agente_color']??$P2),14)?> 🙋 <?=h(explode(' ',$ct['agente_nombre']??'?')[0])?>
@@ -3133,6 +3136,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
             <?php elseif(!$ct['promovido']):?>
               <button class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 8px" onclick="reclamarContacto(<?=$ct['id']?>)">🙋 RECLAMAR</button>
             <?php endif;?>
+            </span>
           </div>
         </div>
         <div style="display:flex;gap:4px;flex-wrap:wrap;align-items:center">
@@ -3140,6 +3144,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
           <a href="tel:<?=h($ct['telefono'])?>" class="btn btn-bl btn-sm" style="font-size:8px">LLAMAR</a>
           <a href="https://wa.me/<?=$ph_wa?>" target="_blank" class="btn btn-gr btn-sm" style="font-size:8px">WA</a>
           <?php endif;?>
+          <span id="cc-acciones-<?=$ct['id']?>">
           <?php if($ct['promovido']):?>
             <button class="btn btn-am btn-sm" style="font-size:8px" onclick="openProfile(<?=$ct['miembro_id']?>)">◉ VER PERFIL</button>
           <?php else:?>
@@ -3148,6 +3153,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
             <button class="btn btn-gh btn-sm" style="font-size:8px" onclick="openCcForm(<?=$ct['campana_id']?>,<?=$ct['id']?>)">✎</button>
             <button class="btn btn-re btn-sm" style="font-size:8px" onclick="deleteContacto(<?=$ct['id']?>)">✕</button>
           <?php endif;?>
+          </span>
         </div>
       </div>
       <?php if($notasReales):?><div style="font-size:9px;color:<?=$TX?>;margin-top:6px;white-space:pre-wrap"><?=h($notasReales)?></div><?php endif;?>
@@ -3678,7 +3684,16 @@ function saveContacto(e){e.preventDefault();var f=e.target;
     if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; }
   }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; } });
 }
-function deleteContacto(id){if(!confirm('¿Eliminar este contacto y su historial?'))return;campPost('action=delete_contacto&id='+id,true);}
+function deleteContacto(id){
+  if(!confirm('¿Eliminar este contacto y su historial?'))return;
+  campPost('action=delete_contacto&id='+id,false).then(function(d){
+    if(d&&d.ok){
+      var card=document.getElementById('cc-card-'+id);
+      if(card) card.remove();
+      if(typeof toast==='function')toast('✓ Eliminado');
+    } else if(typeof toast==='function') toast('⚠ '+((d&&d.error)||'Error'));
+  });
+}
 function ccEstado(id,val){campPost('action=update_contacto_estado&id='+id+'&estado='+encodeURIComponent(val),false).then(function(){if(typeof toast==='function')toast('Estado actualizado');});}
 function ccUpdateOutcomes(){
   var canal=document.getElementById('cc-log-canal').value;
@@ -3751,18 +3766,48 @@ function _actualizarContactoTrasRegistro(ctId, canal, resultado, notas, nuevoEst
 function promoverContacto(id,name){
   if(!confirm('¿Pasar a '+(name||'este contacto')+' al PIPELINE real del CRM? Se creará como prospecto.'))return;
   campPost('action=promover_contacto&id='+id,false).then(function(d){
-    if(d&&d.ok){ if(typeof toast==='function')toast('✓ Movido al pipeline'); _campReload(); }
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ Movido al pipeline');
+      // En vez de recargar toda la página, se refleja en el momento: la
+      // tarjeta pasa a mostrar "EN PIPELINE" y el botón para ver el perfil
+      // del prospecto recién creado.
+      var mid = d.data && d.data.miembro_id;
+      var estadoWrap = document.getElementById('cc-estado-'+id);
+      if(estadoWrap) estadoWrap.innerHTML = '<span style="background:#FEF8EE;color:#C07A1A;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900">EN PIPELINE</span>';
+      var accWrap = document.getElementById('cc-acciones-'+id);
+      if(accWrap && mid) accWrap.innerHTML = '<button class="btn btn-am btn-sm" style="font-size:8px" onclick="openProfile('+mid+')">◉ VER PERFIL</button>';
+      var card = document.getElementById('cc-card-'+id);
+      if(card) card.dataset.estado = 'EN PIPELINE';
+    } else if(typeof toast==='function') toast('⚠ '+((d&&d.error)||'Error'));
   });
 }
 function reclamarContacto(id){
   campPost('action=reclamar_contacto&id='+id,false).then(function(d){
-    if(d&&d.ok){ if(typeof toast==='function')toast('🙋 RECLAMADO — ya es tuyo'); _campReload(); }
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('🙋 RECLAMADO — ya es tuyo');
+      var wrap = document.getElementById('cc-reclamo-'+id);
+      if(wrap){
+        wrap.innerHTML = '<span style="display:inline-flex;align-items:center;gap:4px;background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:20px;padding:1px 8px 1px 3px;font-size:8px;font-weight:900">'
+          + '<span style="width:14px;height:14px;border-radius:50%;background:'+MI_COLOR+';display:flex;align-items:center;justify-content:center;font-size:4px;font-weight:900;color:#fff;flex-shrink:0;font-family:\'DM Sans\',sans-serif">'+esc(MI_INICIALES)+'</span>'
+          + ' 🙋 '+esc(NOMBRE_USUARIO)
+          + ' <a href="javascript:void(0)" onclick="liberarContacto('+id+')" style="color:#5B3FAF;text-decoration:underline;margin-left:2px">liberar</a>'
+          + '</span>';
+      }
+      var card = document.getElementById('cc-card-'+id);
+      if(card) card.dataset.agente = NOMBRE_USUARIO;
+    } else if(typeof toast==='function') toast('⚠ '+((d&&d.error)||'Error'));
   });
 }
 function liberarContacto(id){
   if(!confirm('¿Liberar este contacto para que cualquiera lo pueda reclamar?'))return;
   campPost('action=liberar_contacto&id='+id,false).then(function(d){
-    if(d&&d.ok){ if(typeof toast==='function')toast('✓ Liberado'); _campReload(); }
+    if(d&&d.ok){
+      if(typeof toast==='function')toast('✓ Liberado');
+      var wrap = document.getElementById('cc-reclamo-'+id);
+      if(wrap) wrap.innerHTML = '<button class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 8px" onclick="reclamarContacto('+id+')">🙋 RECLAMAR</button>';
+      var card = document.getElementById('cc-card-'+id);
+      if(card) card.dataset.agente = '';
+    } else if(typeof toast==='function') toast('⚠ '+((d&&d.error)||'Error'));
   });
 }
 function toggleHablaIngles(id,btn){
@@ -9018,6 +9063,8 @@ if(confirm('¿Registrar ' + labels[nextField] + ' ahora?')){ doCheckin(nextField
 }
 // ── VOZ DEL BOT ────────────────────────────────────────
 const NOMBRE_USUARIO = "<?=h(explode(' ',$user['nombre'])[0])?>";
+const MI_INICIALES = "<?=h($user['iniciales'] ?? '?')?>";
+const MI_COLOR = "<?=h($user['color'] ?? '#2876A8')?>";
 const TICKETS_HOY = <?=$open_tks?>;
 const ALERTAS_HOY = <?=(int)($alertas_hoy??0)?>;
 const HAY_REPORTE = <?=(!$admin&&$my_reporte&&$my_reporte['enviado'])?'true':'false'?>;
