@@ -1,0 +1,1492 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Estrategia Integral AEP 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,400;0,9..144,600;1,9..144,300;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+<style>
+:root{
+  --bg:#F7F3EC; --surface:#FFFFFF; --surface-2:#FBF7EF; --sunken:#F1E9DA;
+  --border:#E4DAC7; --border-strong:#D2C4A8;
+  --gold:#C9A96E; --gold-dk:#8F6A2E; --gold-lt:#F4EBD8;
+  --teal:#4A7B9D; --teal-dk:#2C5A75; --teal-lt:#E9F1F7;
+  --green:#2E7D55; --green-lt:#E7F3EC;
+  --amber:#A9660A; --amber-lt:#FAEFDB;
+  --red:#AF382A; --red-lt:#F9E9E6;
+  --text:#2C2416; --text-mid:#5C4A30; --text-muted:#8A7A60;
+  --shadow:0 1px 2px rgba(44,36,22,.05), 0 10px 30px -22px rgba(44,36,22,.45);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#16120E; --surface:#1E1915; --surface-2:#241E18; --sunken:#110F0C;
+    --border:#39312A; --border-strong:#50442F;
+    --gold:#D9B87C; --gold-dk:#E8CE9C; --gold-lt:#2C2418;
+    --teal:#84B2CC; --teal-dk:#A6CCE1; --teal-lt:#1A2730;
+    --green:#71C296; --green-lt:#152419;
+    --amber:#E0A652; --amber-lt:#2B2113;
+    --red:#E08A7B; --red-lt:#2C1A17;
+    --text:#F0E7D6; --text-mid:#C7BAA2; --text-muted:#968A75;
+    --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.8);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#16120E; --surface:#1E1915; --surface-2:#241E18; --sunken:#110F0C;
+  --border:#39312A; --border-strong:#50442F;
+  --gold:#D9B87C; --gold-dk:#E8CE9C; --gold-lt:#2C2418;
+  --teal:#84B2CC; --teal-dk:#A6CCE1; --teal-lt:#1A2730;
+  --green:#71C296; --green-lt:#152419;
+  --amber:#E0A652; --amber-lt:#2B2113;
+  --red:#E08A7B; --red-lt:#2C1A17;
+  --text:#F0E7D6; --text-mid:#C7BAA2; --text-muted:#968A75;
+  --shadow:0 1px 2px rgba(0,0,0,.4), 0 10px 30px -20px rgba(0,0,0,.8);
+}
+
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:'DM Sans',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  font-size:15.5px; line-height:1.68; -webkit-font-smoothing:antialiased;
+}
+h1,h2,h3,h4{text-wrap:balance; margin:0}
+p{margin:0}
+a{color:var(--teal-dk)}
+:focus-visible{outline:2px solid var(--gold); outline-offset:3px; border-radius:3px}
+@media (prefers-reduced-motion: reduce){*{animation:none !important; transition:none !important}}
+
+.mono{font-family:'DM Mono',ui-monospace,monospace}
+.eyebrow{
+  font-family:'DM Mono',ui-monospace,monospace; font-size:10px; letter-spacing:.22em;
+  text-transform:uppercase; color:var(--text-muted);
+}
+
+/* ── MASTHEAD ── */
+.masthead{
+  border-bottom:1px solid var(--border);
+  background:linear-gradient(180deg,var(--surface),var(--bg));
+}
+.masthead-inner{max-width:1180px; margin:0 auto; padding:34px 28px 30px}
+.crest{display:flex; align-items:baseline; gap:14px; flex-wrap:wrap}
+.crest .rule{flex:1; height:1px; background:var(--border); min-width:30px}
+h1{
+  font-family:'Fraunces',Georgia,serif; font-weight:300; font-size:clamp(32px,5.2vw,52px);
+  line-height:1.04; letter-spacing:-.015em; margin:18px 0 0;
+}
+h1 em{font-style:italic; color:var(--gold-dk)}
+.deck{
+  max-width:62ch; margin-top:14px; color:var(--text-mid); font-size:16.5px;
+}
+.stamp{
+  display:inline-flex; align-items:center; gap:8px; margin-top:18px;
+  font-family:'DM Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--text-muted);
+}
+.stamp b{color:var(--gold-dk); font-weight:500}
+
+/* ── KEY FIGURES ── */
+.figures{
+  display:grid; grid-template-columns:repeat(auto-fit,minmax(158px,1fr));
+  gap:1px; background:var(--border); border:1px solid var(--border);
+  border-radius:14px; overflow:hidden; margin-top:30px;
+}
+.fig{background:var(--surface); padding:18px 20px}
+.fig .n{
+  font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:34px; line-height:1;
+  letter-spacing:-.02em; font-variant-numeric:tabular-nums;
+}
+.fig:first-child .n{color:var(--gold-dk)}
+.fig .l{margin-top:7px; font-size:12.5px; color:var(--text-muted); line-height:1.4}
+
+/* ── SHELL ── */
+.shell{
+  max-width:1180px; margin:0 auto; padding:0 28px 90px;
+  display:grid; grid-template-columns:212px minmax(0,1fr); gap:52px; align-items:start;
+}
+.rail{position:sticky; top:22px; padding-top:38px}
+.rail-title{margin-bottom:12px}
+.rail ol{list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:1px}
+.rail a{
+  display:flex; gap:9px; padding:6px 9px; border-radius:7px; text-decoration:none;
+  color:var(--text-mid); font-size:12.8px; line-height:1.35; border-left:2px solid transparent;
+}
+.rail a:hover{background:var(--gold-lt); color:var(--text)}
+.rail a.on{background:var(--gold-lt); color:var(--gold-dk); font-weight:700; border-left-color:var(--gold)}
+.rail a .rn{font-family:'DM Mono',ui-monospace,monospace; font-size:10px; color:var(--text-muted); padding-top:2px}
+.rail a.on .rn{color:var(--gold-dk)}
+
+.doc{padding-top:38px; min-width:0}
+section{scroll-margin-top:20px; padding-bottom:46px}
+section + section{border-top:1px solid var(--border); padding-top:44px}
+h2{
+  font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:clamp(24px,3.2vw,31px);
+  line-height:1.12; letter-spacing:-.01em; margin:8px 0 0;
+}
+h2 em{font-style:italic; color:var(--gold-dk)}
+h3{
+  font-family:'Fraunces',Georgia,serif; font-weight:400; font-size:20px; line-height:1.25;
+  margin:36px 0 0;
+}
+h4{
+  font-family:'DM Sans',sans-serif; font-weight:700; font-size:13px; letter-spacing:.02em;
+  margin:26px 0 0; color:var(--text);
+}
+.doc p{max-width:68ch; margin-top:15px; color:var(--text-mid)}
+.doc p.lead{font-size:17px; color:var(--text)}
+.doc p strong{color:var(--text)}
+.doc ul{max-width:68ch; margin:14px 0 0; padding-left:0; list-style:none}
+.doc ul li{position:relative; padding-left:20px; margin-top:6px; color:var(--text-mid)}
+.doc ul li::before{
+  content:""; position:absolute; left:5px; top:11px; width:5px; height:1.5px; background:var(--gold);
+}
+.doc ol.steps{max-width:68ch; margin:16px 0 0; padding-left:22px}
+.doc ol.steps li{margin-top:8px; color:var(--text-mid); padding-left:4px}
+.cols2{columns:2; column-gap:34px}
+.cols2 li{break-inside:avoid}
+@media (max-width:640px){.cols2{columns:1}}
+
+/* ── DEVICES ── */
+.callout{
+  margin-top:24px; padding:18px 22px; background:var(--gold-lt);
+  border-left:2px solid var(--gold); border-radius:0 10px 10px 0; max-width:68ch;
+}
+.callout p{margin:0; color:var(--text)}
+.callout p + p{margin-top:10px}
+.callout .eyebrow{display:block; margin-bottom:8px}
+
+.axiom{
+  margin-top:24px; max-width:68ch;
+  font-family:'Fraunces',Georgia,serif; font-style:italic; font-weight:300;
+  font-size:22px; line-height:1.35; color:var(--text);
+}
+.axiom span{color:var(--gold-dk); font-style:normal; font-weight:400}
+
+.script{
+  margin-top:18px; padding:20px 22px; background:var(--surface); border:1px solid var(--border);
+  border-radius:12px; max-width:68ch; box-shadow:var(--shadow);
+}
+.script .who{display:block; margin-bottom:10px}
+.script p{
+  margin:0; color:var(--text); font-family:'Fraunces',Georgia,serif; font-weight:300;
+  font-size:17px; line-height:1.5;
+}
+.script p + p{margin-top:12px}
+
+.note{
+  margin-top:16px; max-width:68ch; font-size:13.5px; color:var(--text-muted);
+  padding-left:14px; border-left:1px solid var(--border-strong);
+}
+
+/* ── FLOW CHAIN ── */
+.flow{
+  display:flex; gap:7px; align-items:center; margin-top:22px; padding:14px 2px;
+  overflow-x:auto; scrollbar-width:thin;
+}
+.flow span{
+  flex:0 0 auto; font-family:'DM Mono',ui-monospace,monospace; font-size:10.5px;
+  letter-spacing:.06em; text-transform:uppercase; padding:7px 12px; border-radius:20px;
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text-mid);
+}
+.flow span.hi{background:var(--gold-lt); border-color:var(--gold); color:var(--gold-dk); font-weight:500}
+.flow i{flex:0 0 auto; color:var(--text-muted); font-style:normal; font-size:11px}
+
+/* ── TABLES ── */
+.tablewrap{overflow-x:auto; margin-top:22px; border:1px solid var(--border); border-radius:12px; background:var(--surface)}
+table{border-collapse:collapse; width:100%; font-size:13.5px; min-width:420px}
+th{
+  text-align:left; font-family:'DM Mono',ui-monospace,monospace; font-weight:500;
+  font-size:9.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--text-muted);
+  padding:12px 14px; border-bottom:1px solid var(--border); white-space:nowrap;
+  background:var(--surface-2);
+}
+td{padding:10px 14px; border-bottom:1px solid var(--border); color:var(--text-mid); vertical-align:middle}
+tbody tr:last-child td{border-bottom:none}
+td.num, th.num{text-align:right; font-variant-numeric:tabular-nums; font-family:'DM Mono',ui-monospace,monospace}
+td.k{color:var(--text); font-weight:500}
+tr.total td{background:var(--gold-lt); color:var(--text); font-weight:700; border-top:1px solid var(--gold)}
+
+/* ── PILLS ── */
+.pill{
+  display:inline-flex; align-items:center; gap:5px; padding:2px 9px; border-radius:20px;
+  font-family:'DM Mono',ui-monospace,monospace; font-size:9.5px; letter-spacing:.06em;
+  text-transform:uppercase; border:1px solid; white-space:nowrap;
+}
+.pill.hot{background:var(--red-lt); border-color:var(--red); color:var(--red)}
+.pill.warm{background:var(--amber-lt); border-color:var(--amber); color:var(--amber)}
+.pill.cold{background:var(--teal-lt); border-color:var(--teal); color:var(--teal-dk)}
+.pill.ok{background:var(--green-lt); border-color:var(--green); color:var(--green)}
+.pill.gold{background:var(--gold-lt); border-color:var(--gold); color:var(--gold-dk)}
+
+/* ── CARD GRIDS ── */
+.grid{display:grid; gap:16px; margin-top:24px}
+.grid.g2{grid-template-columns:repeat(auto-fit,minmax(258px,1fr))}
+.grid.g3{grid-template-columns:repeat(auto-fit,minmax(210px,1fr))}
+.card{
+  background:var(--surface); border:1px solid var(--border); border-radius:12px;
+  padding:18px 20px; box-shadow:var(--shadow);
+}
+.card h5{
+  margin:0; font-family:'DM Sans',sans-serif; font-size:14.5px; font-weight:700;
+  display:flex; align-items:center; justify-content:space-between; gap:10px;
+}
+.card .obj{
+  margin-top:10px; font-family:'DM Mono',ui-monospace,monospace; font-size:10.5px;
+  letter-spacing:.08em; text-transform:uppercase; color:var(--gold-dk);
+}
+.card ul{margin-top:10px}
+.card ul li{font-size:13.5px; margin-top:4px}
+.card p{font-size:13.5px; margin-top:10px}
+.card .seq{
+  margin-top:12px; padding-top:12px; border-top:1px dashed var(--border-strong);
+  font-family:'DM Mono',ui-monospace,monospace; font-size:11px; color:var(--text-mid); line-height:1.7;
+}
+
+/* ── AUTOMATION LIST ── */
+.autos{margin-top:24px; border:1px solid var(--border); border-radius:12px; overflow:hidden; background:var(--surface)}
+.auto{display:grid; grid-template-columns:minmax(150px,.85fr) minmax(0,1.15fr); gap:0; border-bottom:1px solid var(--border)}
+.autos .auto:last-child{border-bottom:none}
+.auto .trig{
+  padding:14px 16px; background:var(--surface-2); border-right:1px solid var(--border);
+  font-family:'DM Mono',ui-monospace,monospace; font-size:11px; letter-spacing:.03em;
+  text-transform:uppercase; color:var(--gold-dk); line-height:1.5;
+}
+.auto .act{padding:14px 16px; font-size:13.5px; color:var(--text-mid)}
+.auto .act b{color:var(--text); font-weight:500}
+@media (max-width:620px){
+  .auto{grid-template-columns:1fr}
+  .auto .trig{border-right:none; border-bottom:1px solid var(--border)}
+}
+
+/* ── SOURCES ── */
+.sources{display:grid; grid-template-columns:repeat(auto-fit,minmax(168px,1fr)); gap:14px; margin-top:24px}
+.src{border:1px solid var(--border); border-radius:11px; padding:14px 16px; background:var(--surface)}
+.src .t{font-weight:700; font-size:13.5px}
+.src .d{font-size:12.5px; color:var(--text-muted); margin-top:5px; line-height:1.5}
+
+/* ── TOOL BLOCKS (interactive) ── */
+.tool{
+  margin-top:26px; border:1px solid var(--border-strong); border-radius:14px;
+  background:var(--surface); overflow:hidden; box-shadow:var(--shadow);
+}
+.tool-head{
+  padding:14px 18px; background:var(--surface-2); border-bottom:1px solid var(--border);
+  display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;
+}
+.tool-head .h{font-weight:700; font-size:14px}
+.tool-head .s{font-size:12.5px; color:var(--text-muted); margin-top:2px}
+.tool-body{padding:4px 0}
+.btn{
+  font-family:'DM Mono',ui-monospace,monospace; font-size:10.5px; letter-spacing:.08em;
+  text-transform:uppercase; padding:7px 13px; border-radius:20px; cursor:pointer;
+  border:1px solid var(--border-strong); background:var(--surface); color:var(--text-mid);
+}
+.btn:hover{border-color:var(--gold); color:var(--gold-dk); background:var(--gold-lt)}
+.btn.primary{background:var(--gold-lt); border-color:var(--gold); color:var(--gold-dk); font-weight:500}
+
+input.f, select.f{
+  font-family:'DM Sans',sans-serif; font-size:13px; color:var(--text);
+  background:var(--bg); border:1px solid var(--border-strong); border-radius:7px;
+  padding:5px 8px; width:100%; min-width:0;
+}
+input.f.n{font-family:'DM Mono',ui-monospace,monospace; text-align:right; font-variant-numeric:tabular-nums}
+input.f::placeholder{color:var(--text-muted)}
+select.f{cursor:pointer}
+select.f[data-st="hecho"]{background:var(--green-lt); border-color:var(--green); color:var(--green); font-weight:700}
+select.f[data-st="proceso"]{background:var(--amber-lt); border-color:var(--amber); color:var(--amber); font-weight:700}
+
+.progress{display:flex; align-items:center; gap:12px; padding:14px 18px; border-bottom:1px solid var(--border)}
+.progress .bar{flex:1; height:7px; border-radius:4px; background:var(--sunken); overflow:hidden}
+.progress .bar i{display:block; height:100%; background:var(--green); width:0%; transition:width .25s ease}
+.progress .lbl{font-family:'DM Mono',ui-monospace,monospace; font-size:11px; color:var(--text-mid); white-space:nowrap}
+
+.verdict{
+  padding:16px 18px; border-top:1px solid var(--border); background:var(--surface-2);
+  display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;
+}
+.verdict .big{
+  font-family:'Fraunces',Georgia,serif; font-size:30px; line-height:1; font-variant-numeric:tabular-nums;
+}
+.verdict .txt{font-size:13.5px; color:var(--text-mid); flex:1; min-width:200px}
+.verdict.g .big{color:var(--green)}
+.verdict.a .big{color:var(--amber)}
+.verdict.r .big{color:var(--red)}
+
+/* ── SEMAFORO ── */
+.sem{display:flex; gap:14px; margin-top:22px; flex-wrap:wrap}
+.sem div{
+  flex:1 1 180px; border:1px solid var(--border); border-left-width:3px; border-radius:0 10px 10px 0;
+  padding:12px 16px; background:var(--surface);
+}
+.sem .g{border-left-color:var(--green)}
+.sem .a{border-left-color:var(--amber)}
+.sem .r{border-left-color:var(--red)}
+.sem b{display:block; font-size:13.5px}
+.sem span{font-size:12.5px; color:var(--text-muted)}
+
+/* ── RULES ── */
+.rules{counter-reset:r; margin-top:24px; display:grid; gap:1px; background:var(--border); border:1px solid var(--border); border-radius:12px; overflow:hidden}
+.rules div{
+  counter-increment:r; background:var(--surface); padding:13px 18px 13px 46px; position:relative;
+  font-size:14px; font-weight:500; color:var(--text);
+}
+.rules div::before{
+  content:counter(r,decimal-leading-zero); position:absolute; left:16px; top:14px;
+  font-family:'DM Mono',ui-monospace,monospace; font-size:10px; color:var(--gold-dk);
+}
+
+/* ── CLOSING ── */
+.closing{
+  margin-top:30px; padding:30px 32px; border-radius:16px;
+  background:var(--sunken); border:1px solid var(--border);
+}
+.closing p{
+  max-width:62ch; font-family:'Fraunces',Georgia,serif; font-weight:300; font-size:19px;
+  line-height:1.5; color:var(--text); margin-top:14px;
+}
+.closing p:first-of-type{margin-top:0}
+
+/* ── RESPONSIVE ── */
+@media (max-width:940px){
+  .shell{grid-template-columns:1fr; gap:0}
+  .rail{position:static; padding-top:30px; border-bottom:1px solid var(--border); padding-bottom:22px}
+  .rail ol{flex-direction:row; flex-wrap:wrap; gap:6px}
+  .rail a{border:1px solid var(--border); border-left-width:1px; border-radius:20px; padding:5px 11px}
+  .rail a.on{border-color:var(--gold)}
+  .doc{padding-top:30px}
+}
+@media print{
+  .rail,.btn{display:none}
+  .shell{display:block; max-width:none; padding:0}
+  section{break-inside:avoid-page; border-top:1px solid #ccc}
+  body{background:#fff; font-size:10.5pt}
+}
+</style>
+</head>
+<body>
+
+<header class="masthead">
+  <div class="masthead-inner">
+    <div class="crest">
+      <span class="eyebrow">Medicare with Isabel</span>
+      <span class="rule"></span>
+      <span class="eyebrow">Documento maestro · v1</span>
+    </div>
+    <h1>Estrategia Integral <em>AEP 2026</em></h1>
+    <p class="deck">Análisis de la estrategia recibida, rediseño del sistema, arquitectura de CRM y Twilio, plan de producción por fuentes y plan de acción por bloques — para dejar de administrar listas y empezar a administrar producción.</p>
+    <div class="stamp"><b>AEP</b> 15 oct — 7 dic 2026 <span aria-hidden="true">·</span> <b>Meta</b> 300 aplicaciones</div>
+
+    <div class="figures">
+      <div class="fig"><div class="n">300</div><div class="l">Aplicaciones — meta de AEP</div></div>
+      <div class="fig"><div class="n">39</div><div class="l">Aplicaciones por semana (7.5 semanas)</div></div>
+      <div class="fig"><div class="n">6–7</div><div class="l">Por día entre todo el equipo, 6 días</div></div>
+      <div class="fig"><div class="n">330–350</div><div class="l">Capacidad interna a construir para proteger las 300</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="shell">
+  <nav class="rail" aria-label="Índice del documento">
+    <div class="eyebrow rail-title">Índice</div>
+    <ol>
+      <li><a href="#objetivo" class="on"><span class="rn">01</span><span>El estándar</span></a></li>
+      <li><a href="#recibido"><span class="rn">02</span><span>Lo que recibimos</span></a></li>
+      <li><a href="#diagnostico"><span class="rn">03</span><span>Qué falta todavía</span></a></li>
+      <li><a href="#arquitectura"><span class="rn">04</span><span>Arquitectura del contacto</span></a></li>
+      <li><a href="#auditoria"><span class="rn">05</span><span>Auditoría de data</span></a></li>
+      <li><a href="#campanas"><span class="rn">06</span><span>Las seis campañas</span></a></li>
+      <li><a href="#crm"><span class="rn">07</span><span>CRM + Twilio</span></a></li>
+      <li><a href="#meta300"><span class="rn">08</span><span>De dónde salen las 300</span></a></li>
+      <li><a href="#medicion"><span class="rn">09</span><span>Medición y forecast</span></a></li>
+      <li><a href="#bloques"><span class="rn">10</span><span>Plan de acción · 28 bloques</span></a></li>
+      <li><a href="#operacion"><span class="rn">11</span><span>Rutina diaria y reglas</span></a></li>
+      <li><a href="#guion"><span class="rn">12</span><span>Guion de la reunión</span></a></li>
+    </ol>
+  </nav>
+
+  <main class="doc">
+
+  <!-- ══ 01 ══ -->
+  <section id="objetivo">
+    <div class="eyebrow">01 · Objetivo general</div>
+    <h2>La pregunta correcta no es si la data está <em>organizada</em></h2>
+    <p class="lead">Este documento revisa la estrategia presentada inicialmente, determina qué elementos sí son útiles, identifica con precisión qué falta, y convierte toda la información acumulada durante el año en un sistema de prospección, recuperación, seguimiento, automatización, citas, aplicaciones, miembros, medición y optimización.</p>
+
+    <p>La meta principal es <strong>300 aplicaciones durante AEP</strong>. Pero el objetivo no es simplemente establecer una meta de 300. Necesitamos poder demostrar:</p>
+    <ul class="cols2">
+      <li>de dónde saldrán las aplicaciones;</li>
+      <li>cuántos prospectos existen realmente;</li>
+      <li>cuáles tienen mayor posibilidad de conversión;</li>
+      <li>qué campañas vamos a utilizar;</li>
+      <li>qué canales usará cada campaña;</li>
+      <li>qué acciones serán manuales;</li>
+      <li>qué acciones serán automáticas;</li>
+      <li>quién será responsable;</li>
+      <li>cuándo se realizará cada acción;</li>
+      <li>cómo se calendarizará cada seguimiento;</li>
+      <li>qué nuevas fuentes debemos desarrollar;</li>
+      <li>cómo mediremos diariamente la producción;</li>
+      <li>cómo sabremos anticipadamente si vamos encaminados;</li>
+      <li>qué cambiaremos si la proyección queda corta.</li>
+    </ul>
+
+    <div class="callout">
+      <span class="eyebrow">El estándar bajo el cual se evalúa esta estrategia</span>
+      <p>No: <em>«¿Tenemos los prospectos organizados?»</em></p>
+      <p><strong>Sí: «¿Tenemos un sistema capaz de transformar nuestra base actual de prospectos, citas, aplicaciones, clientes perdidos y nuevos contactos en oportunidades, citas, aplicaciones y miembros medibles?»</strong></p>
+    </div>
+  </section>
+
+  <!-- ══ 02 ══ -->
+  <section id="recibido">
+    <div class="eyebrow">02 · La estrategia recibida</div>
+    <h2>Qué nos dieron y qué de eso <em>sí sirve</em></h2>
+    <p>El documento inicial se tituló <span class="mono">DATA → ANÁLISIS → META → ESTRATEGIA → CALENDARIO</span> y parte de información correspondiente aproximadamente al periodo del 18 de mayo al 5 de septiembre de 2026.</p>
+
+    <div class="tablewrap">
+      <table>
+        <caption class="eyebrow" style="caption-side:top; padding:12px 14px; text-align:left">Cifras del documento original</caption>
+        <thead><tr><th>Concepto</th><th class="num">Cantidad</th><th>Lectura</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Prospectos trabajados</td><td class="num">1,104</td><td>Universo declarado del periodo</td></tr>
+          <tr><td class="k">Contestaron</td><td class="num">409</td><td>Base de contacto efectivo</td></tr>
+          <tr><td class="k">No contestaron</td><td class="num">696</td><td>No son prospectos perdidos</td></tr>
+          <tr><td class="k">Interesados</td><td class="num">32</td><td><span class="pill hot">Caliente</span></td></tr>
+          <tr><td class="k">Citas agendadas</td><td class="num">382</td><td>—</td></tr>
+          <tr><td class="k">Citas realizadas</td><td class="num">330</td><td>Resultado por clasificar</td></tr>
+          <tr><td class="k">Citas no realizadas</td><td class="num">52</td><td>18 presenciales · 34 por llamada</td></tr>
+          <tr><td class="k">Facebook / entrantes</td><td class="num">10</td><td>Fuente digital sin separar</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>No considero que el trabajo inicial deba descartarse</h3>
+    <p>Hay tres elementos que conservamos íntegros.</p>
+
+    <div class="grid g3">
+      <div class="card">
+        <h5>Clasificación por temperatura</h5>
+        <p>Priorizar según nivel de oportunidad es correcto: <span class="pill hot">Calientes</span> interesados, citas no realizadas, quien dijo que sí, aplicaciones sin terminar, citas sin cierre, clientes perdidos y «llámame después» con fecha ya cercana. <span class="pill warm">Tibios</span> «ahora no», «más adelante», interés sin agendar. <span class="pill cold">Fríos</span> nunca contestaron, listas nuevas, prospectos nuevos de campañas.</p>
+      </div>
+      <div class="card">
+        <h5>No descartar a quien no responde</h5>
+        <p>Una persona que no contestó no dijo «no me interesa». Puede no conocer el número, estar trabajando, haber recibido la llamada en mal momento, necesitar otro canal, responder mejor a SMS, responder mejor a otro horario, o necesitar más de un intento. Esa base todavía tiene valor.</p>
+      </div>
+      <div class="card">
+        <h5>Medir más que llamadas</h5>
+        <p>Acierta al decir que no basta con reportar «hoy hicimos 200 llamadas». Propone medir contactos efectivos, interesados, citas agendadas y realizadas, follow-ups, aplicaciones, y calcular <b>Contact Rate</b>, <b>Appointment Rate</b> y <b>Closing Rate</b>. Se conserva — y se amplía.</p>
+      </div>
+    </div>
+
+    <p class="note">También reconoce que las 52 citas no realizadas son una oportunidad importante, porque esas personas ya habían avanzado suficientemente dentro del proceso como para aceptar una cita.</p>
+  </section>
+
+  <!-- ══ 03 ══ -->
+  <section id="diagnostico">
+    <div class="eyebrow">03 · Diagnóstico</div>
+    <h2>El problema no es que esté mal organizada. Todavía <em>no es una estrategia completa</em></h2>
+    <p class="lead">Lo que tenemos se parece más a un resumen de datos, una clasificación básica y un horario de llamadas. El documento pasa de <span class="mono">DATA</span> a <span class="mono">CLASIFICACIÓN</span> y de ahí directamente a <span class="mono">HORARIO DE TRABAJO</span>.</p>
+
+    <p>Propone bloques como 9:00–10:00 Hot Leads, 10:00–11:30 reagendamiento, 11:30–12:30 tibios, 1:30–3:00 no contestaron, 3:00–4:00 nuevos prospectos, 4:00–4:30 seguimiento y data. Eso funciona como <strong>organización operativa</strong>, pero no constituye todavía una estrategia de marketing, seguimiento y conversión.</p>
+
+    <h3>Confunde el trabajo del equipo con la estrategia</h3>
+    <p>Decir «de 9:00 a 10:00 llamamos Hot Leads» nos organiza el día. Pero todavía no responde:</p>
+    <ul class="cols2">
+      <li>¿qué mensaje recibe ese segmento?</li>
+      <li>¿cuál es el objetivo?</li>
+      <li>¿qué canal usar?</li>
+      <li>¿cuándo SMS, cuándo llamada, cuándo email?</li>
+      <li>¿cuántos intentos?</li>
+      <li>¿cuándo se detiene la campaña?</li>
+      <li>¿cuándo se mueve el prospecto?</li>
+      <li>¿quién es responsable?</li>
+      <li>¿qué evento genera la próxima acción?</li>
+      <li>¿qué pasa si responde?</li>
+      <li>¿qué pasa si no responde?</li>
+      <li>¿cuál es el resultado esperado?</li>
+      <li>¿cómo medimos la conversión?</li>
+    </ul>
+
+    <div class="axiom">El horario debe ser la <span>consecuencia</span> de la estrategia — no la estrategia misma.</div>
+
+    <h3>Lista, segmento y campaña no son lo mismo</h3>
+    <p>«32 interesados» es un segmento, no una campaña. Una campaña verdadera se ve así:</p>
+
+    <div class="card" style="max-width:68ch">
+      <h5>Campaña Hot Leads <span class="pill gold">Ejemplo</span></h5>
+      <div class="obj">Objetivo — convertir interés en cita</div>
+      <div class="seq">
+        Acción inicial → llamada inmediata<br/>
+        Si no responde → SMS personal<br/>
+        Segunda acción → nuevo intento<br/>
+        Si dice «llámeme en octubre» → sale de Hot Leads<br/>
+        Pasa a → <b>Follow-Up Octubre</b>, con fecha específica
+      </div>
+    </div>
+
+    <h3>Caliente / tibio / frío no es suficiente</h3>
+    <p>La temperatura es importante, pero no puede sustituir toda la estructura del CRM. Necesitamos separar conceptos que hoy están mezclados en una sola etiqueta.</p>
+  </section>
+
+  <!-- ══ 04 ══ -->
+  <section id="arquitectura">
+    <div class="eyebrow">04 · Arquitectura del contacto</div>
+    <h2>Cinco campos, no una etiqueta</h2>
+    <p class="lead">Cada persona en la base necesita cinco dimensiones independientes. Con una sola de ellas —la temperatura— no se puede administrar producción.</p>
+
+    <div class="grid g2">
+      <div class="card">
+        <h5>1 · Fuente</h5>
+        <p>¿De dónde vino? Llamadas mayo–agosto, aplicaciones, citas, Facebook, referido, Prime Panorama, Prime Van Nuys, Prime Santa Clarita/Valencia, dentista, clínica, evento, website, Google, member retention, Turning 65, llamada entrante, nueva lista, partner.</p>
+      </div>
+      <div class="card">
+        <h5>2 · Status</h5>
+        <p>¿Qué pasó con esa persona? Sin contactar, intento 1, intento 2, no contestó, contestó, interesado, seguimiento, cita agendada, cita realizada, no-show, no venta, aplicación pendiente, aplicación incompleta, aplicación realizada, miembro, cancelado, seguimiento futuro, no interesado, teléfono incorrecto, teléfono desconectado, no contactar.</p>
+      </div>
+      <div class="card">
+        <h5>3 · Temperatura</h5>
+        <p><span class="pill hot">Caliente</span> alta prioridad. <span class="pill warm">Tibio</span> posibilidad real, no inmediata. <span class="pill cold">Frío</span> todavía sin interés confirmado.</p>
+      </div>
+      <div class="card">
+        <h5>4 · Owner</h5>
+        <p>«Reclamado» no es suficiente: una persona puede estar reclamada y seguir sin avanzar. Cada contacto necesita un nombre responsable, visible en la ficha.</p>
+      </div>
+    </div>
+
+    <h4>5 · Próxima acción</h4>
+    <p>Todo prospecto activo debe tener próxima acción, fecha y responsable. Así se ve una ficha administrable:</p>
+
+    <div class="tablewrap" style="max-width:520px">
+      <table>
+        <tbody>
+          <tr><td class="k">Fuente</td><td>Aplicaciones 2026</td></tr>
+          <tr><td class="k">Status</td><td>Aplicación incompleta</td></tr>
+          <tr><td class="k">Temperatura</td><td><span class="pill hot">Caliente</span></td></tr>
+          <tr><td class="k">Owner</td><td class="mono" style="color:var(--text-muted)">____________</td></tr>
+          <tr><td class="k">Última acción</td><td>Llamada</td></tr>
+          <tr><td class="k">Resultado</td><td>Pidió seguimiento</td></tr>
+          <tr><td class="k">Próxima acción</td><td>Llamar</td></tr>
+          <tr><td class="k">Fecha</td><td>1 de octubre</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <h3>El Master List</h3>
+    <p>El objetivo es consolidar todas las listas en una sola. Cada contacto lleva: nombre, teléfono, email, idioma, ZIP, fuente, campaña, owner, status, temperatura, último contacto, resultado, próxima acción, fecha de próxima acción y Medicare status.</p>
+    <p>Y necesitamos listas de excepción que se revisan aparte: sin owner, sin status, sin próxima acción, duplicados, teléfono desconectado, teléfono incorrecto, información incompleta.</p>
+    <div class="axiom">La pregunta que el Master List debe contestar de un vistazo: <span>¿dónde está cada persona y qué tiene que pasar después?</span></div>
+  </section>
+
+  <!-- ══ 05 ══ -->
+  <section id="auditoria">
+    <div class="eyebrow">05 · Primera fase</div>
+    <h2>Auditoría y limpieza de data</h2>
+    <p class="lead">Antes de activar automatizaciones masivas necesitamos saber exactamente qué tenemos. Hoy existen cuatro bases y no reconcilian entre sí.</p>
+
+    <div class="grid g2">
+      <div class="card">
+        <h5>Base 1 — Prospectos llamados <span class="pill warm">Reconciliar</span></h5>
+        <p>Aparecen cifras diferentes: <b>1,075</b> en una tabla y <b>1,104</b> en el documento original. De la lista de 1,075 se mencionan 32 interesados, 211 contestaron, 31 no interesados, 435 no contestaron y 41 teléfonos desconectados — números que todavía no explican el universo completo.</p>
+        <div class="seq">Meta: poder decir «tenemos X personas y sabemos exactamente dónde está cada una».</div>
+      </div>
+      <div class="card">
+        <h5>Base 2 — 494 contactos de aplicaciones</h5>
+        <p>Clasificados hoy como 46 contestaron, 75 no contestaron, 322 sin contactar, 30 teléfonos desconectados, 21 sin interés. Falta la parte comercial.</p>
+        <div class="seq">¿Qué pasó con cada uno? Aplicación realizada · incompleta · efectiva · aparece como miembro · no aparece · canceló · cambió · cliente perdido · recuperable · desconocido.</div>
+      </div>
+      <div class="card">
+        <h5>Base 3 — Aplicaciones efectivas 2026</h5>
+        <p>Revisar especialmente las aplicaciones realizadas entre el <b>15 de octubre y el 31 de diciembre de 2025</b>: total, cuáles aparecen hoy como miembros, cuáles no, canceladas, y las que <b>no aparecen y tampoco están canceladas</b> — esa categoría puede ser la más importante de todas.</p>
+      </div>
+      <div class="card">
+        <h5>Base 4 — Citas</h5>
+        <p>382 agendadas, 330 realizadas, 52 no realizadas (18 presenciales, 34 por llamada). La pregunta abierta es la grande: <b>¿qué pasó con las 330 realizadas?</b></p>
+      </div>
+    </div>
+
+    <h3>Clasificación pendiente de las 330 citas realizadas</h3>
+    <p>Aquí pueden existir muchas oportunidades recuperables. Esta tabla se llena en el Bloque 4.</p>
+    <div class="tablewrap" style="max-width:460px">
+      <table>
+        <thead><tr><th>Resultado</th><th class="num">Cantidad</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Aplicación</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">Miembro efectivo</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">No venta</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">Follow-up</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">Se quedó igual</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">No elegible</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">Canceló posteriormente</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+          <tr><td class="k">Resultado desconocido</td><td class="num" style="color:var(--text-muted)">___</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ 06 ══ -->
+  <section id="campanas">
+    <div class="eyebrow">06 · Campañas</div>
+    <h2>Seis campañas, seis secuencias <em>distintas</em></h2>
+    <p class="lead">No podemos tratar a todos igual. Cada campaña tiene un objetivo propio, una cadencia propia y una condición de salida propia.</p>
+
+    <div class="grid g2">
+      <div class="card">
+        <h5>1 · Hot Leads / Interesados <span class="pill hot">Prioridad</span></h5>
+        <div class="obj">Objetivo — cita inmediata</div>
+        <ul>
+          <li>32 interesados</li>
+          <li>Personas que dijeron sí</li>
+          <li>Aplicaciones pendientes e incompletas</li>
+          <li>Follow-ups de alta intención</li>
+          <li>Nuevos leads calientes</li>
+        </ul>
+        <div class="seq">No necesitan 45 días.<br/>Llamada → SMS → segundo intento → cita.</div>
+      </div>
+
+      <div class="card">
+        <h5>2 · No-Show / Citas no realizadas <span class="pill hot">52</span></h5>
+        <div class="obj">Objetivo — reagendar</div>
+        <p>Son prospectos de mayor valor: ya aceptaron una cita una vez.</p>
+        <div class="seq">Día 1 → SMS<br/>Día 2 → llamada<br/>Día 5 → seguimiento<br/>Si agenda → sale de campaña y pasa a <b>Cita programada</b>.</div>
+      </div>
+
+      <div class="card">
+        <h5>3 · Citas realizadas sin venta</h5>
+        <div class="obj">Objetivo — recuperación</div>
+        <p>Después de clasificar las 330 citas realizadas, identificar: no venta, follow-up, oportunidad futura, AEP Review, todavía interesado.</p>
+      </div>
+
+      <div class="card">
+        <h5>4 · Application Recovery</h5>
+        <div class="obj">Objetivo — determinar qué ocurrió y recuperar</div>
+        <ul>
+          <li>Aplicación incompleta</li>
+          <li>Aplicación no efectiva</li>
+          <li>Cliente que desapareció de la lista</li>
+          <li>Cliente cancelado o perdido</li>
+          <li>Oportunidad recuperable</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <h5>5 · Follow-Up / «Llámame después»</h5>
+        <div class="obj">Objetivo — contactar exactamente cuando corresponde</div>
+        <p>«Ahora no», «más adelante», «en octubre», «cuando reciba mis cambios», fecha específica. Esta campaña depende principalmente del CRM.</p>
+        <div class="seq">Si alguien dice «llámeme el 1 de octubre», el sistema crea <b>Follow-Up — 1 de octubre</b> y genera la tarea ese día.</div>
+      </div>
+
+      <div class="card">
+        <h5>6 · No contestaron <span class="pill cold">Volumen</span></h5>
+        <div class="obj">Objetivo — conseguir respuesta, no vender</div>
+        <p>El primer objetivo de esta campaña no es la cita. Es que la persona responda por algún canal.</p>
+      </div>
+    </div>
+
+    <h3>Cadencia multicanal — No contestaron</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th class="num">Día</th><th>Acción</th><th>Canal</th></tr></thead>
+        <tbody>
+          <tr><td class="num">1</td><td class="k">SMS de presentación / reactivación</td><td>Twilio</td></tr>
+          <tr><td class="num">3</td><td class="k">Llamada</td><td>Teléfono</td></tr>
+          <tr><td class="num">5</td><td class="k">Flyer educativo</td><td>SMS / Email</td></tr>
+          <tr><td class="num">8</td><td class="k">Segunda llamada</td><td>Teléfono</td></tr>
+          <tr><td class="num">12</td><td class="k">Email</td><td>Email</td></tr>
+          <tr><td class="num">16</td><td class="k">SMS</td><td>Twilio</td></tr>
+          <tr><td class="num">21</td><td class="k">Llamada personalizada</td><td>Teléfono</td></tr>
+          <tr><td class="num">30</td><td class="k">Invitación / revisión</td><td>SMS / Email</td></tr>
+          <tr><td class="num">45</td><td class="k">Último intento</td><td>Mixto</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="eyebrow">Regla fundamental de automatización</span>
+      <p><strong>Si una persona responde, la campaña cambia.</strong></p>
+      <p>Alguien está en «No contestaron» y responde «sí, quiero una cita». Sale inmediatamente y pasa a Hot Lead / Cita. No puede seguir recibiendo comunicaciones como si nunca hubiera contestado.</p>
+    </div>
+  </section>
+
+  <!-- ══ 07 ══ -->
+  <section id="crm">
+    <div class="eyebrow">07 · Motor del sistema</div>
+    <h2>CRM + Twilio: el sistema decide <em>qué pasa después</em></h2>
+    <p class="lead">Esta es una de las prioridades más importantes del proyecto. No queremos depender de memoria, notas personales, libretas, ni de que alguien recuerde volver a llamar.</p>
+
+    <div class="flow" role="img" aria-label="Lógica general: trigger, acción, espera, nueva acción, condición, cambio de status o campaña">
+      <span class="hi">Trigger</span><i>→</i><span>Acción</span><i>→</i><span>Espera</span><i>→</i><span>Nueva acción</span><i>→</i><span>Condición</span><i>→</i><span class="hi">Cambio de status / campaña</span>
+    </div>
+
+    <h4>Cómo se ve en la práctica</h4>
+    <p>Arthur llama y selecciona <b>No contestó</b>. El CRM registra el intento. Twilio envía el SMS cuando corresponde. Espera 48 horas. El CRM crea la tarea «volver a llamar». Arthur llama. ¿Respondió? Sí: cambia status y sale de la campaña fría. No: continúa la secuencia.</p>
+
+    <h3>Las 13 automatizaciones prioritarias</h3>
+    <div class="autos">
+      <div class="auto"><div class="trig">Se marca<br/>No contestó</div><div class="act">Registrar intento · aumentar el contador de intentos · enviar SMS cuando corresponda · <b>crear la próxima llamada</b> · continuar la secuencia · detenerla en cuanto responda.</div></div>
+      <div class="auto"><div class="trig">Cambia a<br/>Hot Lead</div><div class="act"><b>Detener campañas frías</b> · crear tarea prioritaria · avisar al owner · establecer próxima acción · aparecer en el dashboard.</div></div>
+      <div class="auto"><div class="trig">Cita<br/>agendada</div><div class="act">Sale de la campaña de prospección · se envía confirmación · se crean recordatorios · aparece en calendario · <b>mantiene owner</b>.</div></div>
+      <div class="auto"><div class="trig">Confirmación<br/>de citas</div><div class="act">SMS de confirmación inmediato · recordatorio antes de la cita · segundo recordatorio el mismo día. Si responde «cancelar» o «cambiar» → <b>tarea de reagendamiento</b>.</div></div>
+      <div class="auto"><div class="trig">La cita cambia a<br/>No-Show</div><div class="act">Cambiar status · entrar automáticamente a <b>No-Show Recovery</b> · enviar SMS · crear llamada · programar próxima acción.</div></div>
+      <div class="auto"><div class="trig">«Llámeme<br/>después»</div><div class="act">Se ingresa la fecha → crear tarea futura · recordarla · <b>evitar campañas innecesarias mientras tanto</b> · reactivar el contacto en la fecha indicada.</div></div>
+      <div class="auto"><div class="trig">Respuesta<br/>de SMS</div><div class="act">Marcar «respondió» · <b>detener campaña fría</b> · crear tarea humana · registrar la respuesta en el historial del contacto.</div></div>
+      <div class="auto"><div class="trig">Post-cita<br/>(obligatorio)</div><div class="act">Seleccionar resultado: aplicación · no venta · follow-up · no elegible · se queda igual · segunda cita · no interesado. Según el resultado, <b>entra automáticamente en la campaña correspondiente</b>.</div></div>
+      <div class="auto"><div class="trig">Application<br/>Recovery</div><div class="act">Ante aplicación pendiente, incompleta o cliente recuperable: crear tarea · SMS · fecha de seguimiento · <b>alerta si vence</b>.</div></div>
+      <div class="auto"><div class="trig">Entra un<br/>lead nuevo</div><div class="act">Crear contacto · asignar fuente · asignar owner · crear tarea · comenzar seguimiento · <b>registrar tiempo de respuesta</b>. Aplica a Facebook, website, referido, evento, dentista, Prime, clínica y cualquier otra fuente.</div></div>
+      <div class="auto"><div class="trig">Tarea<br/>vencida</div><div class="act">Aparece en el dashboard · alerta al owner · aparece en el reporte diario · <b>no desaparece hasta que sea resuelta</b>.</div></div>
+      <div class="auto"><div class="trig">Contacto<br/>sin owner</div><div class="act">Se coloca en <b>Sin asignar</b> y genera alerta.</div></div>
+      <div class="auto"><div class="trig">Opt-out<br/>de SMS</div><div class="act">Marcar opt-out · detener mensajes · <b>evitar futuros textos promocionales</b> desde esa automatización.</div></div>
+    </div>
+
+    <h3>Twilio — sistema de mensajes</h3>
+    <p>Necesitamos una biblioteca de SMS por campaña: Hot Leads, No-Shows, No contestaron, Follow-Up, Application Recovery, confirmación de citas, recordatorios, retención, referidos y lead nuevo. Además hay que definir número de salida, identificación de <b>Medicare with Isabel</b>, tratamiento de respuestas, historial, opt-out e integración con la ficha del contacto.</p>
+    <p class="note">Todos los SMS enviados y recibidos deben quedar registrados en la ficha del contacto.</p>
+
+    <h3>Estrategia multicanal</h3>
+    <p>No debemos depender únicamente de llamadas. Disponemos de llamadas manuales y personalizadas, SMS de Twilio, email, flyers, WhatsApp cuando corresponda, invitaciones, contenido educativo, citas, eventos y member retention.</p>
+    <div class="axiom">La pregunta no es «¿cuántas veces vamos a llamar?», sino <span>¿qué combinación de contactos aumenta la respuesta sin saturar a la persona?</span></div>
+
+    <h3>El calendario es el resultado, no la estrategia</h3>
+    <p>Los mensajes automáticos no tienen que llenar el calendario personal con cientos de eventos. El CRM maneja SMS, emails, flyers, esperas, triggers y cambios de campaña. El calendario humano se concentra en llamadas, citas, follow-ups, reuniones, eventos y todo lo que requiere intervención humana.</p>
+    <div class="flow" role="img" aria-label="Orden correcto: data, limpieza, segmentación, priorización, campañas, automatización, tareas, calendario, resultados, optimización">
+      <span class="hi">Data</span><i>→</i><span>Limpieza</span><i>→</i><span>Segmentación</span><i>→</i><span>Priorización</span><i>→</i><span>Campañas</span><i>→</i><span>Automatización</span><i>→</i><span>Tareas</span><i>→</i><span>Calendario</span><i>→</i><span>Resultados</span><i>→</i><span class="hi">Optimización</span>
+    </div>
+  </section>
+
+  <!-- ══ 08 ══ -->
+  <section id="meta300">
+    <div class="eyebrow">08 · Producción</div>
+    <h2>De dónde salen las 300</h2>
+    <p class="lead">AEP corre del 15 de octubre al 7 de diciembre de 2026. 300 aplicaciones equivalen a unas 39 por semana, o 6–7 diarias entre todo el equipo operando seis días.</p>
+
+    <h3>¿Son alcanzables? Sí. ¿Están aseguradas? Todavía no</h3>
+    <p>El potencial existe —32 interesados identificados, 52 citas no realizadas, el potencial dentro de las 330 citas realizadas, aplicaciones incompletas y perdidas, clientes cancelados, quienes dijeron «después», cientos que no contestaron, 494 contactos de aplicaciones y los nuevos prospectos por generar— pero todavía necesitamos convertirlo en números reales.</p>
+
+    <div class="callout">
+      <span class="eyebrow">Principio de construcción</span>
+      <p><strong>La meta sale de: base actual + recuperación + reactivación + adquisición nueva.</strong> Nunca de una sola fuente.</p>
+    </div>
+
+    <h3>Dos pipelines corriendo en paralelo</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h5>Pipeline 1 — Recuperación / Reactivación</h5>
+        <p>Hot Leads, interesados, No-Shows, citas sin venta, aplicaciones incompletas, clientes perdidos, follow-ups, no contestaron, prospectos antiguos.</p>
+      </div>
+      <div class="card">
+        <h5>Pipeline 2 — Adquisición</h5>
+        <p>Facebook, referidos, eventos, dentistas, clínicas, Prime, médicos, farmacias, Home Care, Senior Centers, organizaciones, Turning 65, website, Google, partners, nuevas campañas.</p>
+      </div>
+    </div>
+    <div class="axiom">Si uno baja, <span>el otro debe compensar</span>.</div>
+
+    <h3>El portafolio de fuentes</h3>
+    <p>No quiero depender de ninguna fuente individual. Si Facebook baja, otras deben producir. Si «No contestaron» convierte poco, recuperación compensa. Si Application Recovery produce menos de lo esperado, eventos, relaciones, referidos y adquisición nueva compensan. Las 300 se ven como <strong>un portafolio de motores de producción</strong>.</p>
+
+    <div class="sources">
+      <div class="src"><div class="t">Fuentes internas</div><div class="d">Prospectos antiguos, Hot Leads, citas, aplicaciones, cancelados, clientes perdidos, no contestaron, retención, referidos de miembros.</div></div>
+      <div class="src"><div class="t">Digital, separado</div><div class="d">No usar «Facebook» como fuente genérica: orgánico, Ads, Messenger, formularios, campaña AEP, campaña Turning 65, campañas educativas, website, Google, llamadas entrantes. Cada una convierte distinto.</div></div>
+      <div class="src"><div class="t">Referidos</div><div class="d">Familiares, amigos, cónyuges, cuidadores, vecinos, personas próximas a Medicare. No se esperan espontáneamente: debe existir una campaña.</div></div>
+      <div class="src"><div class="t">Member Retention</div><div class="d">Dos objetivos: proteger el book y generar oportunidades. En cada revisión pueden aparecer esposo/a, familiares, amigos, vecinos, cuidadores y personas cumpliendo 65. Medimos <b>referidos generados por retención</b>.</div></div>
+      <div class="src"><div class="t">Dentistas</div><div class="d">Cada oficina es una fuente independiente, no escondida dentro de «nuevos prospectos». New Smile Dental debe poder medirse sola: prospectos, contactos, citas, aplicaciones, miembros efectivos.</div></div>
+      <div class="src"><div class="t">Médicos y clínicas</div><div class="d">PCPs, clínicas, grupos médicos, especialistas, centros comunitarios y centros de salud. Cada relación con su propia fuente en el CRM.</div></div>
+      <div class="src"><div class="t">Prime</div><div class="d">Separado por ubicación: Panorama, Van Nuys, Santa Clarita/Valencia. Cada una mide leads, citas, aplicaciones y miembros efectivos.</div></div>
+      <div class="src"><div class="t">Eventos</div><div class="d">Ferias de salud, eventos comunitarios y senior, actividades de clínicas, presentaciones educativas, eventos propios. Cada evento se mide solo: asistentes, contactos, interesados, citas, aplicaciones, costo y costo por aplicación.</div></div>
+      <div class="src"><div class="t">Farmacias · Home Care</div><div class="d">Relaciones comunitarias y contacto directo con seniors, familiares, cuidadores y quienes toman decisiones.</div></div>
+      <div class="src"><div class="t">Senior Centers · Iglesias</div><div class="d">Presentaciones, talleres, eventos, actividades educativas y relaciones con organizaciones comunitarias.</div></div>
+      <div class="src"><div class="t">Empleadores</div><div class="d">Personas próximas a retirarse, empleados cumpliendo 65, personas perdiendo employer coverage y quienes entran a Medicare.</div></div>
+      <div class="src"><div class="t">Partners profesionales</div><div class="d">Agentes que no trabajan Medicare, profesionales financieros, preparadores de impuestos, abogados, realtors, payroll. Cada relación mide último contacto, próxima acción, leads, citas y aplicaciones.</div></div>
+      <div class="src"><div class="t">Turning 65 / New to Medicare</div><div class="d">No se detiene durante AEP: personas cumpliendo 65, nuevos beneficiarios, quienes dejan employer coverage. Mantiene producción todo el año.</div></div>
+      <div class="src"><div class="t">Nuevas listas</div><div class="d">Flujo constante de prospectos nuevos. No podemos descubrir a mitad de noviembre que se acabó el pipeline.</div></div>
+    </div>
+
+    <h3>Plan Meta 300 — capacidad real</h3>
+    <p>Todavía no debemos afirmar «60 van a salir de Application Recovery». Primero llenamos esta tabla con volumen real, contactabilidad y conversión; entonces sabremos si la capacidad llega a 300.</p>
+
+    <div class="tool">
+      <div class="tool-head">
+        <div>
+          <div class="h">Calculadora de capacidad</div>
+          <div class="s">Apps proyectadas = contactables × conversión. El total se recalcula al escribir.</div>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="btn" id="assumeBtn" type="button">Cargar supuestos</button>
+          <button class="btn" id="clearBtn" type="button">Limpiar</button>
+        </div>
+      </div>
+      <div class="tool-body">
+        <div class="tablewrap" style="margin:0; border:none; border-radius:0">
+          <table id="capTable">
+            <thead>
+              <tr>
+                <th>Campaña / Fuente</th>
+                <th class="num" style="width:104px">Personas</th>
+                <th class="num" style="width:112px">Contactables</th>
+                <th class="num" style="width:104px">Conv. %</th>
+                <th class="num" style="width:96px">Apps proy.</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+            <tfoot>
+              <tr class="total">
+                <td>Total proyectado</td>
+                <td class="num" id="tPer">—</td>
+                <td class="num" id="tCon">—</td>
+                <td class="num"></td>
+                <td class="num" id="tApp">0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+      <div class="verdict r" id="capVerdict">
+        <div class="big" id="capBig">0</div>
+        <div class="txt" id="capTxt">Sin datos cargados. La capacidad objetivo es 330–350 aplicaciones proyectadas para proteger 300 reales.</div>
+      </div>
+    </div>
+    <p class="note">Los supuestos precargados son ilustrativos y sirven para ver funcionar la tabla — se reemplazan con los datos reales que salgan de la auditoría (Bloques 1 a 6). Las únicas cifras confirmadas hoy son 32 interesados y 52 citas no realizadas.</p>
+
+    <h3>No diseñar para exactamente 300</h3>
+    <p>Habrá pérdida: no-shows, personas que cambian de opinión, no elegibilidad, aplicaciones no efectivas, falta de respuesta, personas que deciden quedarse igual, cancelaciones. Por eso construimos capacidad superior.</p>
+    <div class="axiom">Objetivo interno: <span>330–350+ oportunidades de aplicación</span> para proteger 300 aplicaciones.</div>
+
+    <h3>El calendario previo</h3>
+    <div class="grid g2">
+      <div class="card">
+        <h5>Septiembre — construir inventario</h5>
+        <p>Septiembre no es un mes de espera. Limpiar data, reconciliar bases, clasificar, identificar Hot Leads y recuperables, crear campañas y automatizaciones, probar mensajes, generar nuevos prospectos, desarrollar relaciones, comenzar a agendar y construir el dashboard.</p>
+      </div>
+      <div class="card">
+        <h5>1 al 14 de octubre — llenar el pipeline</h5>
+        <p>Llegar al 15 de octubre con Hot Leads, follow-ups, citas programadas, clientes recuperables, personas en automatización, nuevas fuentes funcionando y leads nuevos entrando.</p>
+        <div class="seq">El 15 de octubre empieza <b>modo conversión</b>, no «ahora vamos a limpiar la data».</div>
+      </div>
+    </div>
+
+    <h4>Objetivo de pipeline pre-AEP</h4>
+    <div class="tablewrap" style="max-width:520px">
+      <table>
+        <thead><tr><th>Categoría</th><th class="num">Objetivo</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Hot Leads</td><td class="num">100–150</td></tr>
+          <tr><td class="k">Tibios / Follow-Up</td><td class="num">200–300</td></tr>
+          <tr><td class="k">Citas / Revisiones</td><td class="num">125–175</td></tr>
+          <tr><td class="k">Recuperables</td><td class="num">75–125</td></tr>
+          <tr><td class="k">Fríos en automatización</td><td class="num">500+</td></tr>
+          <tr><td class="k">Leads nuevos</td><td class="num">Entrada continua</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ══ 09 ══ -->
+  <section id="medicion">
+    <div class="eyebrow">09 · Medición</div>
+    <h2>Saberlo en octubre, no en <em>diciembre</em></h2>
+    <p class="lead">No quiero descubrir el 1 de diciembre que no llegamos. El sistema debe decirlo desde la tercera semana.</p>
+
+    <h3>Las seis tasas</h3>
+    <div class="tablewrap">
+      <table>
+        <thead><tr><th>Métrica</th><th>Cálculo</th><th>Qué diagnostica</th></tr></thead>
+        <tbody>
+          <tr><td class="k">Contact Rate</td><td class="mono">Contestaron ÷ llamadas</td><td>Calidad de la lista y del horario</td></tr>
+          <tr><td class="k">Interest Rate</td><td class="mono">Interesados ÷ contactos efectivos</td><td>Calidad del mensaje</td></tr>
+          <tr><td class="k">Appointment Rate</td><td class="mono">Citas ÷ contactos efectivos</td><td>Fuerza del cierre a cita</td></tr>
+          <tr><td class="k">Show Rate</td><td class="mono">Citas realizadas ÷ agendadas</td><td>Confirmaciones y recordatorios</td></tr>
+          <tr><td class="k">Closing Rate</td><td class="mono">Aplicaciones ÷ citas realizadas</td><td>Efectividad en la cita</td></tr>
+          <tr><td class="k">Effective Member Rate</td><td class="mono">Miembros efectivos ÷ aplicaciones</td><td>Calidad real de la producción</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <span class="eyebrow">Distinción que no se puede perder</span>
+      <p><strong>Aplicaciones sometidas → aplicaciones efectivas → miembros efectivos.</strong></p>
+      <p>300 aplicaciones sometidas no equivalen necesariamente a 300 miembros efectivos. Medimos las tres etapas por separado.</p>
+    </div>
+
+    <h3>El dashboard</h3>
+    <div class="grid g3">
+      <div class="card"><h5>Actividad</h5><ul><li>Llamadas</li><li>SMS</li><li>Emails</li><li>Contactos</li></ul></div>
+      <div class="card"><h5>Engagement</h5><ul><li>Contestaron</li><li>Respondieron SMS</li><li>Contactos efectivos</li></ul></div>
+      <div class="card"><h5>Interés</h5><ul><li>Hot Leads</li><li>Tibios</li><li>Follow-ups</li></ul></div>
+      <div class="card"><h5>Conversión</h5><ul><li>Citas</li><li>Citas realizadas</li><li>Aplicaciones</li><li>Miembros efectivos</li></ul></div>
+      <div class="card"><h5>Pipeline</h5><ul><li>Hot Leads</li><li>Citas próximas</li><li>Follow-ups vencidos</li><li>Aplicaciones pendientes</li></ul></div>
+      <div class="card"><h5>Por persona</h5><ul><li>Llamadas y contactos efectivos</li><li>Citas y aplicaciones</li><li>Miembros efectivos</li><li>Follow-ups y tareas vencidas</li></ul><p>La evaluación considera la fuente: no se compara igual a quien trabaja Hot Leads que a quien trabaja una lista fría.</p></div>
+    </div>
+
+    <h4>Dashboard por fuente</h4>
+    <p>Cada fuente se mide sola —Hot Leads, No-Shows, aplicaciones, Facebook, referidos, dentistas, clínicas, Prime, eventos, retención, website, Google, Turning 65, partners— con cinco columnas: leads, contactados, citas, apps y efectivos.</p>
+    <p>Para responder: ¿cuál produce más leads? ¿cuál produce mejores leads? ¿cuál genera más citas? ¿más aplicaciones? ¿más miembros efectivos? ¿cuál cuesta menos? ¿cuál tiene mejor closing rate? ¿cuál escalamos, cuál disminuimos, cuál eliminamos?</p>
+
+    <h3>Meta semanal, semáforo y forecast</h3>
+    <p>Escribe el acumulado real de cada semana y el sistema calcula el porcentaje contra la meta y la proyección final al ritmo actual.</p>
+
+    <div class="tool">
+      <div class="tool-head">
+        <div>
+          <div class="h">Forecast AEP</div>
+          <div class="s">Meta acumulada de 39 aplicaciones por semana hasta 300.</div>
+        </div>
+        <button class="btn" id="fcClear" type="button">Limpiar</button>
+      </div>
+      <div class="tool-body">
+        <div class="tablewrap" style="margin:0; border:none; border-radius:0">
+          <table id="fcTable">
+            <thead>
+              <tr>
+                <th>Semana</th>
+                <th class="num" style="width:118px">Meta acumulada</th>
+                <th class="num" style="width:118px">Real acumulado</th>
+                <th class="num" style="width:88px">%</th>
+                <th style="width:130px">Semáforo</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+      <div class="verdict" id="fcVerdict">
+        <div class="big" id="fcBig">—</div>
+        <div class="txt" id="fcTxt">Proyección al cierre de AEP. Se calcula desde la semana más reciente con dato cargado.</div>
+      </div>
+    </div>
+
+    <div class="sem">
+      <div class="g"><b>🟢 Verde — 100% o más</b><span>Vamos en meta. Se mantiene el plan.</span></div>
+      <div class="a"><b>🟡 Amarillo — 90 a 99%</b><span>Ligeramente debajo. Se corrige esta semana.</span></div>
+      <div class="r"><b>🔴 Rojo — menos de 90%</b><span>Se actúa: aumentar volumen, llamadas, citas, Facebook, eventos, referidos, dentistas, relaciones, listas, campañas, follow-up y adquisición.</span></div>
+    </div>
+
+    <h3>Reporte diario</h3>
+    <div class="grid g3">
+      <div class="card"><h5>Producción</h5><ul><li>Aplicaciones hoy vs. meta de hoy</li><li>Aplicaciones de la semana vs. meta semanal</li><li>Acumulado y diferencia</li><li>Proyección AEP</li></ul></div>
+      <div class="card"><h5>Pipeline</h5><ul><li>Hot Leads</li><li>Citas de mañana</li><li>Citas de los próximos tres días</li><li>Follow-ups vencidos</li><li>Aplicaciones pendientes</li></ul></div>
+      <div class="card"><h5>Problemas</h5><ul><li>Personas sin owner</li><li>Tareas vencidas</li><li>Campañas detenidas</li><li>Errores del CRM</li><li>Automatizaciones fallando</li></ul></div>
+    </div>
+  </section>
+
+  <!-- ══ 10 ══ -->
+  <section id="bloques">
+    <div class="eyebrow">10 · Plan de acción</div>
+    <h2>28 bloques con <em>responsable y fecha</em></h2>
+    <p class="lead">No vamos a rehacer lo que ya está hecho. Vamos bloque por bloque marcando <span class="pill ok">Hecho</span> <span class="pill warm">En proceso</span> <span class="pill cold">Pendiente</span>, y todo lo pendiente termina con responsable y fecha.</p>
+
+    <div class="tool">
+      <div class="tool-head">
+        <div>
+          <div class="h">Tablero de bloques</div>
+          <div class="s">Se guarda en este navegador. Úsalo en vivo durante la reunión.</div>
+        </div>
+        <div style="display:flex; gap:8px">
+          <button class="btn primary" id="copyBtn" type="button">Copiar resumen</button>
+          <button class="btn" id="resetBtn" type="button">Reiniciar</button>
+        </div>
+      </div>
+      <div class="progress">
+        <span class="lbl" id="progLbl">0 de 28 hechos</span>
+        <span class="bar"><i id="progBar"></i></span>
+        <span class="lbl" id="progPct">0%</span>
+      </div>
+      <div class="tool-body">
+        <div class="tablewrap" style="margin:0; border:none; border-radius:0">
+          <table id="blkTable">
+            <thead>
+              <tr>
+                <th style="width:34px">#</th>
+                <th>Bloque</th>
+                <th style="width:132px">Estatus</th>
+                <th style="width:150px">Responsable</th>
+                <th style="width:140px">Fecha</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <h3>Bloque 27 — Gap Analysis</h3>
+    <p>Con la calculadora de capacidad llena y el tablero completo, el Gap Analysis contesta cinco preguntas: ¿qué fuente falta? ¿cuántos leads adicionales necesitamos? ¿qué campaña debe escalar? ¿dónde necesitamos más tiempo? ¿dónde necesitamos más adquisición?</p>
+    <div class="tablewrap" style="max-width:420px">
+      <table>
+        <tbody>
+          <tr><td class="k">Meta</td><td class="num">300</td></tr>
+          <tr><td class="k">Proyección actual</td><td class="num" id="gapProj">—</td></tr>
+          <tr><td class="k">Diferencia</td><td class="num" id="gapDiff">—</td></tr>
+          <tr class="total"><td>Capacidad deseada</td><td class="num">330–350</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">La proyección se toma de la calculadora de capacidad de la sección 08.</p>
+  </section>
+
+  <!-- ══ 11 ══ -->
+  <section id="operacion">
+    <div class="eyebrow">11 · Operación diaria</div>
+    <h2>Cómo se trabaja el día una vez implementado</h2>
+    <p class="lead">El orden de prioridad es fijo: Hot Leads · citas y follow-up · recovery · reactivación · nueva adquisición · actualizar CRM · dashboard y reporte.</p>
+
+    <div class="grid g2">
+      <div class="card"><h5>Bloque A — Hot Leads + Follow-Up</h5><p>Lo primero del día, siempre. Horario y responsable se asignan en la reunión.</p></div>
+      <div class="card"><h5>Bloque B — Recovery</h5><p>No-Shows, no venta, Application Recovery, clientes recuperables.</p></div>
+      <div class="card"><h5>Bloque C — Reactivación</h5><p>No contestaron, prospectos fríos, bases antiguas.</p></div>
+      <div class="card"><h5>Bloque D — Nueva adquisición</h5><p>Rotando por días: dentistas, clínicas, Prime, eventos, Facebook, referidos, retención, partners, Turning 65.</p></div>
+      <div class="card"><h5>Bloque E — CRM</h5><p>Todo prospecto trabajado termina con resultado, status, temperatura, próxima acción y fecha. Sin excepción.</p></div>
+      <div class="card"><h5>Bloque F — Reporte</h5><p>Llamadas, contactos, interesados, citas, aplicaciones, efectivos, Hot Leads, follow-ups, tareas vencidas y forecast.</p></div>
+    </div>
+
+    <h3>Las diez reglas de operación</h3>
+    <div class="rules">
+      <div>Ningún contacto activo sin próxima acción.</div>
+      <div>Ningún prospecto sin owner.</div>
+      <div>Ningún resultado solamente en notas.</div>
+      <div>Si responde, cambia de campaña.</div>
+      <div>Si agenda, se detiene la campaña de prospección.</div>
+      <div>Hot Leads primero.</div>
+      <div>Debe existir nueva adquisición todas las semanas.</div>
+      <div>Cada fuente debe medirse.</div>
+      <div>Cada campaña debe medirse.</div>
+      <div>Cada semana se revisa el forecast hacia 300.</div>
+    </div>
+
+    <h3>Qué necesitamos descubrir todavía</h3>
+    <div class="grid g3">
+      <div class="card"><h5>Llamadas</h5><p>De quienes contestaron: cuántos dijeron sí, cuántos no, cuántos «después», cuántos pidieron seguimiento, cuántos agendaron cita. Sabemos que 32 quedaron como interesados.</p></div>
+      <div class="card"><h5>Aplicaciones</h5><p>Cuántas realizadas, cuántas pendientes, cuántas perdidas, cuántas canceladas.</p></div>
+      <div class="card"><h5>Clientes</h5><p>Cuántos cancelaron, cuántos son antiguos clientes, cuántos son recuperables.</p></div>
+    </div>
+
+    <h3>Las diez entregas del equipo</h3>
+    <ol class="steps">
+      <li>Master List consolidado.</li>
+      <li>Totales reconciliados entre todas las bases.</li>
+      <li>Clasificación real del pipeline.</li>
+      <li>Campañas iniciales construidas.</li>
+      <li>Owners, próximas acciones y fechas asignadas.</li>
+      <li>CRM + Twilio + automatizaciones funcionando.</li>
+      <li>Dashboard operativo.</li>
+      <li>Plan de nuevas fuentes.</li>
+      <li>Plan Meta 300 con números reales.</li>
+      <li>Gap Analysis.</li>
+    </ol>
+
+    <h3>Las preguntas que el equipo debe poder contestar</h3>
+    <ul class="cols2">
+      <li><b>Data —</b> ¿cuántos prospectos tenemos realmente?</li>
+      <li><b>Pipeline —</b> ¿cuántos calientes, tibios y fríos?</li>
+      <li><b>Recuperación —</b> ¿cuántos clientes y aplicaciones podemos recuperar?</li>
+      <li><b>Citas —</b> ¿cuántas tenemos próximas?</li>
+      <li><b>Producción —</b> ¿cuántas aplicaciones llevamos?</li>
+      <li><b>Proyección —</b> ¿a cuántas llegaremos a este ritmo?</li>
+      <li><b>Fuentes —</b> ¿qué fuente produce más?</li>
+      <li><b>Conversión —</b> ¿qué fuente tiene mejor closing rate?</li>
+      <li><b>Efectivos —</b> ¿cuántos miembros efectivos producimos?</li>
+      <li><b>Meta —</b> ¿estamos matemáticamente encaminados hacia 300?</li>
+    </ul>
+  </section>
+
+  <!-- ══ 12 ══ -->
+  <section id="guion">
+    <div class="eyebrow">12 · Guion de la reunión</div>
+    <h2>La reunión cuenta una historia</h2>
+    <div class="flow" role="img" aria-label="Arco de la reunión">
+      <span>Qué nos dieron</span><i>→</i><span>Qué aprendimos</span><i>→</i><span>Qué sí sirve</span><i>→</i><span>Qué falta</span><i>→</i><span>Qué vamos a construir</span><i>→</i><span>Cómo se automatiza</span><i>→</i><span>De dónde sale la producción</span><i>→</i><span>Cómo medimos las 300</span><i>→</i><span class="hi">Qué se hace ahora</span>
+    </div>
+
+    <h3>1 · Abrir con el objetivo</h3>
+    <div class="script">
+      <span class="eyebrow who">Isabel abre</span>
+      <p>«Quiero que hoy no veamos esto solamente como una estrategia de llamadas. Quiero que salgamos de esta reunión con un sistema claro para trabajar AEP y saber exactamente cómo vamos a intentar llegar a 300 aplicaciones.</p>
+      <p>Tenemos bastante data, prospectos, citas, aplicaciones anteriores y nuevas oportunidades. Lo que necesitamos ahora es convertir todo eso en un sistema organizado de campañas, seguimiento, automatización y producción.»</p>
+    </div>
+
+    <h3>2 · Reconocer lo que ya se hizo</h3>
+    <p>No empezar diciendo «la estrategia estuvo mala».</p>
+    <div class="script">
+      <p>«La estrategia que se preparó tiene cosas útiles. Nos ayudó a organizar la data, identificar personas calientes, tibias y frías, detectar los interesados, las citas no realizadas y reconocer que las personas que no contestaron todavía pueden ser oportunidades.</p>
+      <p>También me gusta que no estemos midiendo solamente llamadas, sino contactos, citas y aplicaciones.»</p>
+    </div>
+
+    <h3>3 · Explicar el problema</h3>
+    <div class="script">
+      <p>«El punto donde creo que tenemos que llevar esto mucho más lejos es que lo que tenemos todavía se parece más a una organización del trabajo que a una estrategia completa.</p>
+      <p>Decir que de 9 a 10 vamos a trabajar Hot Leads me organiza el día. Pero todavía necesito saber qué mensaje reciben, cuántos intentos, por qué canal, qué pasa si contestan, qué pasa si no contestan, cuándo salen de campaña, qué sucede después, quién es responsable y cómo medimos si esa campaña produjo aplicaciones.</p>
+      <p>Eso es lo que quiero construir ahora.»</p>
+    </div>
+
+    <h3>4 · Presentar la nueva visión</h3>
+    <p>Poner en grande el arco completo y explicar que no queremos listas, queremos que cada persona tenga fuente, status, temperatura, owner y próxima acción.</p>
+    <div class="flow"><span class="hi">Data</span><i>→</i><span>Segmentación</span><i>→</i><span>Campañas</span><i>→</i><span>Automatización</span><i>→</i><span>Citas</span><i>→</i><span>Aplicaciones</span><i>→</i><span class="hi">Medición</span></div>
+
+    <h3>5 · Explicar el CRM con un ejemplo</h3>
+    <div class="script">
+      <p>«María no debe aparecer solamente como “reclamada”. Debe decir: fuente Aplicaciones 2026, status aplicación incompleta, temperatura caliente, owner, último contacto, próxima acción llamada, fecha.</p>
+      <p>Entonces cualquiera puede abrir el CRM y saber qué está pasando.»</p>
+    </div>
+
+    <h3>6 · Explicar la limpieza de data</h3>
+    <p>Tenemos diferencias entre 1,075 y 1,104. Tenemos 494 contactos de aplicaciones. Tenemos 382 citas. Y hay que preguntar en voz alta: ¿dónde están los que dijeron sí? ¿dónde los que dijeron después? ¿cuántas de las 330 citas terminaron en aplicación? ¿cuántas no cerraron? ¿cuántas aplicaciones se perdieron? ¿cuántos clientes podemos recuperar? <b>Eso es lo primero que necesitamos descubrir.</b></p>
+
+    <h3>7 · Presentar las seis campañas</h3>
+    <p>Sin leer las secundarias: Hot Leads (cita) · No-Shows (reagendar) · citas sin venta (recuperar) · Application Recovery (recuperar aplicaciones y clientes) · Follow-Up (contactar cuando corresponde) · No contestaron (conseguir respuesta). Cerrar con: «cada campaña necesita una secuencia distinta; no podemos tratar a todos igual».</p>
+
+    <h3>8 · Presentar CRM + Twilio</h3>
+    <div class="script">
+      <p>«Arthur llama. Marca No contestó. El CRM registra el intento. Twilio manda el SMS. El CRM crea la próxima llamada. Si responde, se detiene la campaña fría. Si quiere cita, pasa a Hot Lead. Si dice llámame en octubre, crea el Follow-Up.</p>
+      <p>No quiero depender de memoria.»</p>
+    </div>
+
+    <h3>9 · Presentar las reglas</h3>
+    <p>Cuatro, dichas fuerte: ningún contacto activo sin próxima acción · ningún contacto sin owner · ningún resultado solamente en notas · si responde, cambia de campaña.</p>
+
+    <h3>10 · Presentar la meta de 300</h3>
+    <div class="script">
+      <p>«La segunda parte es producción. La meta es 300 aplicaciones durante AEP: aproximadamente 39 por semana.</p>
+      <p>Hoy todavía no puedo decir que las 300 están aseguradas. Primero tenemos que saber cuánto potencial real tenemos en las bases actuales y cuánto tenemos que producir de fuentes nuevas.»</p>
+    </div>
+
+    <h3>11 · Explicar de dónde pueden salir</h3>
+    <p><b>Recuperación:</b> Hot Leads, No-Shows, citas sin venta, aplicaciones perdidas, clientes perdidos, follow-ups. <b>Reactivación:</b> no contestaron, prospectos antiguos, bases frías. <b>Adquisición:</b> Facebook, referidos, dentistas, médicos, clínicas, Prime, eventos, farmacias, Home Care, Senior Centers, iglesias, organizaciones, website, Google, Turning 65, partners, nuevas campañas.</p>
+    <div class="axiom">«No quiero depender de una sola fuente. <span>Quiero un portafolio de fuentes.</span>»</div>
+
+    <h3>12 · Explicar las nuevas fuentes</h3>
+    <div class="script">
+      <p>«Si New Smile Dental produce 20 prospectos y 8 aplicaciones, quiero saberlo. Si un evento genera 100 contactos y una sola aplicación, también quiero saberlo.»</p>
+    </div>
+
+    <h3>13 · Presentar el dashboard</h3>
+    <p>«No quiero que el reporte diga “hicimos 200 llamadas”.» Quiero producción (contactos, interesados, citas, aplicaciones, efectivos), pipeline (Hot Leads, follow-ups, citas próximas, aplicaciones pendientes), por fuente y por campaña.</p>
+
+    <h3>14 · Presentar el forecast</h3>
+    <div class="script">
+      <p>«El dashboard debe decir: si seguimos así, ¿terminamos en 220, 300 o 350?</p>
+      <p>No quiero descubrir en diciembre que no llegamos. Quiero saberlo en octubre.»</p>
+    </div>
+
+    <h3>15 · Presentar el semáforo</h3>
+    <p>Verde vamos en meta · amarillo ligeramente debajo · rojo hay que actuar. Y en rojo se actúa aumentando adquisición, follow-up, eventos, relaciones, Facebook, referidos, citas y otras fuentes.</p>
+
+    <h3>16 · Pasar al plan de acción</h3>
+    <div class="script">
+      <p>«Ahora viene la parte más importante. No quiero que esto termine como otro documento. Vamos a revisar bloque por bloque qué ya está hecho, qué está en proceso y qué falta.»</p>
+    </div>
+
+    <h3>17 · Revisar los 28 bloques</h3>
+    <p>Con el tablero de la sección 10 abierto en pantalla. Algunos ya estarán avanzados — perfecto, no se rehacen: se marcan <span class="pill ok">Hecho</span>, <span class="pill warm">En proceso</span> o <span class="pill cold">Pendiente</span>.</p>
+
+    <h3>18 · Cómo terminar</h3>
+    <p>La reunión no termina con una conversación general. Termina cuando cada bloque pendiente tiene <strong>responsable y fecha</strong> — data, Master List, citas, aplicaciones, Hot Leads, follow-up, Twilio, automatizaciones, dashboard, dentistas, clínicas y Prime, eventos, referidos, digital, partners, Turning 65 y Meta 300.</p>
+
+    <div class="closing">
+      <span class="eyebrow">Frase final para la reunión</span>
+      <p>«Lo que quiero construir no es solamente un calendario de llamadas.</p>
+      <p>Quiero que cuando abramos el CRM sepamos exactamente quién necesita atención, qué necesita, quién lo está trabajando, qué tiene que pasar después, qué campaña lo produjo, cuántas aplicaciones está produciendo esa campaña y si estamos o no encaminados hacia las 300.</p>
+      <p>Si logramos eso, dejamos de administrar listas y empezamos a administrar producción.»</p>
+    </div>
+
+    <h3>La prueba final de que el sistema funciona</h3>
+    <p>Poder abrir el CRM y contestar de inmediato: ¿quién necesita atención hoy y por qué? ¿qué acción debe recibir? ¿quién es responsable? ¿cuándo debe ocurrir? ¿qué pasó después? ¿cuál es la próxima acción? ¿qué campaña produjo esa oportunidad? ¿de qué fuente vino? ¿cuántas citas y aplicaciones produjo esa fuente? ¿cuántos miembros efectivos? ¿qué campaña convierte mejor? ¿qué aumentamos, qué modificamos, qué eliminamos?</p>
+    <div class="axiom">Y finalmente: <span>¿estamos o no en camino a las 300?</span></div>
+
+    <div class="figures" style="margin-top:34px">
+      <div class="fig"><div class="n" style="font-size:26px">300</div><div class="l"><b>Meta</b> — aplicaciones en AEP</div></div>
+      <div class="fig"><div class="n" style="font-size:15px; font-family:'DM Mono',monospace; line-height:1.5">Datos · Segmentación · Campañas · CRM · Twilio · Automatización · Conversión · Medición · Optimización</div><div class="l"><b>Método</b></div></div>
+      <div class="fig"><div class="n" style="font-size:17px; font-family:'DM Sans',sans-serif; line-height:1.35">Dejar de trabajar listas sueltas y empezar a construir un sistema de producción</div><div class="l"><b>Objetivo de la reunión</b></div></div>
+    </div>
+  </section>
+
+  </main>
+</div>
+
+<script>
+(function(){
+  'use strict';
+  var STORE = 'aep2026_maestro_v1';
+  var state = {caps:{}, fc:{}, blk:{}};
+  try{ var raw = localStorage.getItem(STORE); if(raw) state = Object.assign(state, JSON.parse(raw)); }catch(e){}
+  function save(){ try{ localStorage.setItem(STORE, JSON.stringify(state)); }catch(e){} }
+
+  /* ── Índice: sección activa ── */
+  var links = Array.prototype.slice.call(document.querySelectorAll('.rail a'));
+  var secs = links.map(function(a){ return document.getElementById(a.getAttribute('href').slice(1)); });
+  if('IntersectionObserver' in window){
+    var io = new IntersectionObserver(function(entries){
+      entries.forEach(function(en){
+        if(!en.isIntersecting) return;
+        var i = secs.indexOf(en.target);
+        if(i < 0) return;
+        links.forEach(function(l){ l.classList.remove('on'); });
+        links[i].classList.add('on');
+      });
+    }, {rootMargin:'-10% 0px -75% 0px'});
+    secs.forEach(function(s){ if(s) io.observe(s); });
+  }
+
+  /* ── 08 · Calculadora de capacidad ── */
+  var CAPS = [
+    ['hot','Hot Leads / Interesados', 32],
+    ['nos','No-Shows (citas no realizadas)', 52],
+    ['csv','Citas realizadas sin venta', null],
+    ['app','Aplicaciones perdidas / incompletas', null],
+    ['fup','Follow-Up («llámame después»)', null],
+    ['ncn','No contestaron', null],
+    ['fbk','Facebook y digital', null],
+    ['ref','Referidos', null],
+    ['den','Dentistas', null],
+    ['cli','Clínicas y médicos', null],
+    ['pri','Prime (3 ubicaciones)', null],
+    ['eve','Eventos', null],
+    ['ret','Member Retention', null],
+    ['t65','Turning 65', null],
+    ['adq','Nueva adquisición', null]
+  ];
+  var capBody = document.querySelector('#capTable tbody');
+  CAPS.forEach(function(row){
+    var id = row[0];
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="k">' + row[1] + '</td>' +
+      '<td class="num"><input class="f n" type="number" min="0" inputmode="numeric" data-cap="' + id + '" data-f="per" placeholder="—"/></td>' +
+      '<td class="num"><input class="f n" type="number" min="0" inputmode="numeric" data-cap="' + id + '" data-f="con" placeholder="—"/></td>' +
+      '<td class="num"><input class="f n" type="number" min="0" max="100" inputmode="decimal" data-cap="' + id + '" data-f="cvr" placeholder="—"/></td>' +
+      '<td class="num" data-out="' + id + '" style="color:var(--text-muted)">—</td>';
+    capBody.appendChild(tr);
+    if(!state.caps[id]) state.caps[id] = {per: row[2], con:null, cvr:null};
+  });
+
+  function num(v){ var n = parseFloat(v); return isFinite(n) ? n : null; }
+
+  function renderCaps(){
+    var tp = 0, tc = 0, ta = 0, any = false;
+    CAPS.forEach(function(row){
+      var id = row[0], d = state.caps[id] || {};
+      ['per','con','cvr'].forEach(function(f){
+        var el = document.querySelector('[data-cap="' + id + '"][data-f="' + f + '"]');
+        if(el && document.activeElement !== el) el.value = (d[f] === null || d[f] === undefined) ? '' : d[f];
+      });
+      var apps = (d.con !== null && d.con !== undefined && d.cvr !== null && d.cvr !== undefined) ? d.con * d.cvr / 100 : null;
+      var out = document.querySelector('[data-out="' + id + '"]');
+      if(apps === null){ out.textContent = '—'; out.style.color = 'var(--text-muted)'; }
+      else { out.textContent = Math.round(apps); out.style.color = 'var(--text)'; any = true; ta += apps; }
+      if(d.per) tp += d.per;
+      if(d.con) tc += d.con;
+    });
+    document.getElementById('tPer').textContent = tp ? tp.toLocaleString('es-MX') : '—';
+    document.getElementById('tCon').textContent = tc ? tc.toLocaleString('es-MX') : '—';
+    var total = Math.round(ta);
+    document.getElementById('tApp').textContent = any ? total : '0';
+
+    var v = document.getElementById('capVerdict');
+    var big = document.getElementById('capBig');
+    var txt = document.getElementById('capTxt');
+    big.textContent = any ? total : '0';
+    v.classList.remove('g','a','r');
+    if(!any){
+      v.classList.add('r');
+      txt.textContent = 'Faltan contactables y conversión para proyectar. La capacidad objetivo es 330–350 aplicaciones proyectadas para proteger 300 reales.';
+    } else if(total >= 330){
+      v.classList.add('g');
+      txt.textContent = 'Capacidad suficiente: ' + total + ' aplicaciones proyectadas cubren las 300 con margen para la pérdida esperada.';
+    } else if(total >= 300){
+      v.classList.add('a');
+      txt.textContent = 'Llega a 300 pero sin colchón. Faltan ' + (330 - total) + ' aplicaciones proyectadas para llegar a la capacidad deseada de 330.';
+    } else {
+      v.classList.add('r');
+      txt.textContent = 'Faltan ' + (300 - total) + ' aplicaciones para la meta y ' + (330 - total) + ' para la capacidad deseada de 330. Hay que abrir fuentes o subir conversión.';
+    }
+    document.getElementById('gapProj').textContent = any ? total : '—';
+    var gd = document.getElementById('gapDiff');
+    gd.textContent = any ? (total - 300 >= 0 ? '+' + (total - 300) : String(total - 300)) : '—';
+    gd.style.color = any ? (total >= 300 ? 'var(--green)' : 'var(--red)') : '';
+  }
+
+  capBody.addEventListener('input', function(e){
+    var el = e.target;
+    if(!el.dataset.cap) return;
+    state.caps[el.dataset.cap][el.dataset.f] = num(el.value);
+    save(); renderCaps();
+  });
+
+  document.getElementById('assumeBtn').addEventListener('click', function(){
+    var A = {hot:[32,28,35], nos:[52,45,30], csv:[null,null,12], app:[null,null,25], fup:[null,null,20],
+             ncn:[null,null,4], fbk:[null,null,8], ref:[null,null,35], den:[null,null,20], cli:[null,null,20],
+             pri:[null,null,20], eve:[null,null,10], ret:[null,null,30], t65:[null,null,25], adq:[null,null,6]};
+    Object.keys(A).forEach(function(id){
+      var a = A[id];
+      if(a[0] !== null) state.caps[id].per = a[0];
+      if(a[1] !== null) state.caps[id].con = a[1];
+      state.caps[id].cvr = a[2];
+    });
+    save(); renderCaps();
+  });
+  document.getElementById('clearBtn').addEventListener('click', function(){
+    CAPS.forEach(function(r){ state.caps[r[0]] = {per:null, con:null, cvr:null}; });
+    save(); renderCaps();
+  });
+
+  /* ── 09 · Forecast semanal ── */
+  var META = [39,78,117,156,195,234,273,300];
+  var LBL = ['Semana 1','Semana 2','Semana 3','Semana 4','Semana 5','Semana 6','Semana 7','Cierre AEP'];
+  var fcBody = document.querySelector('#fcTable tbody');
+  META.forEach(function(m,i){
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="k">' + LBL[i] + '</td>' +
+      '<td class="num">' + m + '</td>' +
+      '<td class="num"><input class="f n" type="number" min="0" inputmode="numeric" data-fc="' + i + '" placeholder="—"/></td>' +
+      '<td class="num" data-pct="' + i + '" style="color:var(--text-muted)">—</td>' +
+      '<td data-sem="' + i + '"></td>';
+    fcBody.appendChild(tr);
+  });
+
+  function renderFc(){
+    var lastI = -1, lastV = 0;
+    META.forEach(function(m,i){
+      var v = (state.fc[i] === undefined || state.fc[i] === null) ? null : state.fc[i];
+      var el = document.querySelector('[data-fc="' + i + '"]');
+      if(el && document.activeElement !== el) el.value = (v === null ? '' : v);
+      var pct = document.querySelector('[data-pct="' + i + '"]');
+      var sem = document.querySelector('[data-sem="' + i + '"]');
+      if(v === null){ pct.textContent = '—'; pct.style.color = 'var(--text-muted)'; sem.innerHTML = ''; return; }
+      lastI = i; lastV = v;
+      var p = Math.round(v / m * 100);
+      pct.textContent = p + '%';
+      pct.style.color = 'var(--text)';
+      if(p >= 100) sem.innerHTML = '<span class="pill ok">🟢 En meta</span>';
+      else if(p >= 90) sem.innerHTML = '<span class="pill warm">🟡 Corregir</span>';
+      else sem.innerHTML = '<span class="pill hot">🔴 Actuar</span>';
+    });
+    var v = document.getElementById('fcVerdict');
+    var big = document.getElementById('fcBig');
+    var txt = document.getElementById('fcTxt');
+    v.classList.remove('g','a','r');
+    if(lastI < 0){
+      big.textContent = '—';
+      txt.textContent = 'Proyección al cierre de AEP. Se calcula desde la semana más reciente con dato cargado.';
+      return;
+    }
+    var proj = Math.round(lastV / META[lastI] * 300);
+    big.textContent = proj;
+    var p = Math.round(lastV / META[lastI] * 100);
+    v.classList.add(p >= 100 ? 'g' : (p >= 90 ? 'a' : 'r'));
+    txt.textContent = 'Al ritmo de ' + LBL[lastI].toLowerCase() + ' (' + lastV + ' de ' + META[lastI] + ') terminamos AEP en ' + proj +
+      ' aplicaciones — ' + (proj >= 300 ? (proj - 300) + ' por encima de la meta.' : (300 - proj) + ' por debajo de la meta.');
+  }
+
+  fcBody.addEventListener('input', function(e){
+    if(!e.target.dataset.fc) return;
+    state.fc[e.target.dataset.fc] = num(e.target.value);
+    save(); renderFc();
+  });
+  document.getElementById('fcClear').addEventListener('click', function(){ state.fc = {}; save(); renderFc(); });
+
+  /* ── 10 · Tablero de 28 bloques ── */
+  var BLOCKS = [
+    ['Auditoría de data','Reconciliar 1,075 vs 1,104, duplicados, confirmar statuses, revisar la base de 494, confirmar citas, marcar información incompleta.'],
+    ['Master List','Fuente, campaña, owner, status, temperatura, último contacto, resultado, próxima acción y fecha para cada contacto.'],
+    ['Clasificación del pipeline','Calientes, tibios y fríos — más interesado, no-show, no venta, aplicación incompleta, cliente perdido, cancelado, follow-up, lead nuevo, referido, Facebook, retención y Turning 65.'],
+    ['Auditoría de citas','Revisar las 52 no realizadas y las 330 realizadas. Entregable: lista de citas recuperables.'],
+    ['Auditoría de aplicaciones','Efectiva, miembro, no aparece, cancelada, incompleta, no efectiva, recuperable, perdida. Entregable: Application Recovery List.'],
+    ['Follow-Ups','Rescatar «llámame después», «en octubre», «cuando llegue AEP», «cuando reciba mis cambios» y los follow-up sin fecha. Todos con owner, próxima acción y fecha.'],
+    ['Campaña Hot Leads','Construir y activar.'],
+    ['Campaña No-Show Recovery','Construir y activar.'],
+    ['Campaña Application Recovery','Construir y activar.'],
+    ['Campaña No Contestaron','Construir la cadencia multicanal de 45 días y activar.'],
+    ['CRM + Twilio','Las 13 automatizaciones: no contestó, hot lead, cita, no-show, follow-up, respuesta SMS, post-cita, recovery, lead nuevo, tarea vencida, sin owner y opt-out.'],
+    ['Biblioteca de SMS','Mensajes para Hot Leads, No-Shows, No contestaron, Follow-Up, Application Recovery, citas, recordatorios, retención, referidos y leads nuevos.'],
+    ['Automatización de citas','Confirmación inmediata, recordatorio previo, recordatorio del mismo día y cancelación que dispara reagendamiento.'],
+    ['Post-cita','Resultado obligatorio y movimiento automático a la campaña que corresponde.'],
+    ['Lead nuevo','Creación, fuente, owner, tarea, seguimiento y tiempo de respuesta.'],
+    ['Dentistas','Pipeline y lista de oficinas. Cada oficina mide leads, citas, aplicaciones y efectivos.'],
+    ['Médicos / Clínicas / Prime','Fuentes independientes, con Prime separado en Panorama, Van Nuys y Santa Clarita/Valencia.'],
+    ['Eventos','Calendario de ferias, eventos senior, community events, educativos y propios. Medir contactos, citas, aplicaciones y costo por aplicación.'],
+    ['Member Retention + Referidos','Proteger el book y generar referidos. Crear el programa Member Referral.'],
+    ['Digital','Separar y medir Facebook orgánico, Ads, Messenger, formularios, website, Google, entrantes, campaña AEP y campaña Turning 65.'],
+    ['Partners','Farmacias, Home Care, Senior Centers, iglesias, organizaciones, empleadores, profesionales, abogados, preparadores de impuestos, realtors y agentes que no trabajan Medicare.'],
+    ['Turning 65','Pipeline continuo que no se detiene durante AEP.'],
+    ['Dashboard por campaña','Leads, contactados, citas, aplicaciones y efectivos.'],
+    ['Dashboard por fuente','Cada fuente medida de forma independiente.'],
+    ['Dashboard por persona','Llamadas, contactos, citas, aplicaciones, efectivos, follow-ups, tareas vencidas y conversiones.'],
+    ['Plan Meta 300','Llenar leads reales, contactables, recuperables, conversión y aplicaciones proyectadas.'],
+    ['Gap Analysis','Meta contra proyección contra capacidad deseada de 330–350.'],
+    ['Pipeline Pre-AEP','Hot Leads, tibios, follow-ups, citas, recuperables, fríos en automatización, leads nuevos por semana y apps proyectadas antes del 15 de octubre.']
+  ];
+  var ST = {pendiente:'Pendiente', proceso:'En proceso', hecho:'Hecho'};
+  var blkBody = document.querySelector('#blkTable tbody');
+  BLOCKS.forEach(function(b,i){
+    var n = i + 1;
+    if(!state.blk[n]) state.blk[n] = {st:'pendiente', who:'', when:''};
+    var opts = Object.keys(ST).map(function(k){ return '<option value="' + k + '">' + ST[k] + '</option>'; }).join('');
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td class="num" style="color:var(--text-muted)">' + (n < 10 ? '0' + n : n) + '</td>' +
+      '<td><div class="k">' + b[0] + '</div><div style="font-size:12.5px; color:var(--text-muted); line-height:1.45; margin-top:2px">' + b[1] + '</div></td>' +
+      '<td><select class="f" data-blk="' + n + '" data-f="st" aria-label="Estatus bloque ' + n + '">' + opts + '</select></td>' +
+      '<td><input class="f" type="text" data-blk="' + n + '" data-f="who" placeholder="Nombre" aria-label="Responsable bloque ' + n + '"/></td>' +
+      '<td><input class="f" type="date" data-blk="' + n + '" data-f="when" aria-label="Fecha bloque ' + n + '"/></td>';
+    blkBody.appendChild(tr);
+  });
+
+  function renderBlk(){
+    var done = 0;
+    BLOCKS.forEach(function(b,i){
+      var n = i + 1, d = state.blk[n];
+      ['st','who','when'].forEach(function(f){
+        var el = document.querySelector('[data-blk="' + n + '"][data-f="' + f + '"]');
+        if(el && document.activeElement !== el) el.value = d[f] || (f === 'st' ? 'pendiente' : '');
+        if(f === 'st' && el) el.setAttribute('data-st', d.st);
+      });
+      if(d.st === 'hecho') done++;
+    });
+    var pct = Math.round(done / BLOCKS.length * 100);
+    document.getElementById('progLbl').textContent = done + ' de ' + BLOCKS.length + ' hechos';
+    document.getElementById('progPct').textContent = pct + '%';
+    document.getElementById('progBar').style.width = pct + '%';
+  }
+
+  blkBody.addEventListener('input', function(e){
+    var el = e.target;
+    if(!el.dataset.blk) return;
+    state.blk[el.dataset.blk][el.dataset.f] = el.value;
+    save(); renderBlk();
+  });
+  blkBody.addEventListener('change', function(e){
+    var el = e.target;
+    if(!el.dataset.blk) return;
+    state.blk[el.dataset.blk][el.dataset.f] = el.value;
+    save(); renderBlk();
+  });
+
+  document.getElementById('resetBtn').addEventListener('click', function(){
+    if(!confirm('¿Reiniciar el tablero? Se borran estatus, responsables y fechas.')) return;
+    BLOCKS.forEach(function(b,i){ state.blk[i + 1] = {st:'pendiente', who:'', when:''}; });
+    save(); renderBlk();
+  });
+
+  document.getElementById('copyBtn').addEventListener('click', function(){
+    var lines = ['PLAN DE ACCIÓN AEP 2026 — 28 BLOQUES', ''];
+    BLOCKS.forEach(function(b,i){
+      var n = i + 1, d = state.blk[n];
+      lines.push((n < 10 ? '0' + n : n) + ' · ' + b[0] +
+        ' — ' + ST[d.st].toUpperCase() +
+        ' · Responsable: ' + (d.who || '____________') +
+        ' · Fecha: ' + (d.when || '__________'));
+    });
+    var btn = this;
+    navigator.clipboard.writeText(lines.join('\n')).then(function(){
+      btn.textContent = 'Copiado ✓';
+      setTimeout(function(){ btn.textContent = 'Copiar resumen'; }, 1800);
+    }).catch(function(){
+      btn.textContent = 'No se pudo copiar';
+      setTimeout(function(){ btn.textContent = 'Copiar resumen'; }, 1800);
+    });
+  });
+
+  renderCaps();
+  renderFc();
+  renderBlk();
+})();
+</script>
+</body>
+</html>
