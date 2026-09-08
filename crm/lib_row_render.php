@@ -339,3 +339,250 @@ function render_tickets_table_html(PDO $pdo, bool $admin, $uid): string {
     }
     return $html;
 }
+
+/* Convierte "YYYY-MM" a "Mes YYYY" en español, sin depender de strftime/
+ * locale del servidor (varía entre hostings). Usada por el agrupado de
+ * citas completadas por mes. */
+function strftime_es(string $ym): string {
+    $meses = [1=>'Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    [$y,$m] = array_map('intval', explode('-', $ym));
+    return ($meses[$m] ?? '?').' '.$y;
+}
+
+/* Arma las 6 sub-pestañas de CITAS (con las tarjetas de cada cita) más los
+ * conteos para los KPIs y los números de cada sub-pestaña. Antes esto se
+ * armaba completo en CADA carga de index.php/softReload — con cientos de
+ * citas eso es mucho HTML repetido aunque el usuario nunca haya abierto esa
+ * pestaña. Ahora se pide aparte (al abrir CITAS, o después de guardar/
+ * completar/cancelar/reagendar una cita), igual que ya hacen
+ * render_tickets_table_html/render_members_table_html. El KPI "HOY/MAÑANA/
+ * 7 DÍAS" en sí (los números chiquitos de arriba) sigue viniendo con la
+ * página normal porque es barato de calcular — lo caro es la lista de
+ * tarjetas, que es lo que aquí se difiere. */
+function render_citas_panel(PDO $pdo): array {
+    $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$MU='#7A90A4';
+
+    $citas = $pdo->query("SELECT c.*,
+                           u.nombre as agente_nombre, u.color as agente_color, u.iniciales as agente_ini,
+                           cu.nombre as completada_nombre, cu.iniciales as completada_ini,
+                           CONCAT(m.apellido,', ',m.nombre) as miembro_nombre,
+                           m.telefono as miembro_telefono, m.estado as miembro_estado
+                    FROM citas c
+                    LEFT JOIN usuarios u  ON c.agente_id      = u.id
+                    LEFT JOIN usuarios cu ON c.completada_por = cu.id
+                    LEFT JOIN miembros m  ON c.miembro_id     = m.id
+                    ORDER BY c.fecha DESC, c.hora ASC")->fetchAll();
+
+    $today_d    = date('Y-m-d');
+    $tomorrow_d = date('Y-m-d', strtotime('+1 day'));
+    $week_end   = date('Y-m-d', strtotime('+7 days'));
+
+    $citas_view = $citas;
+    $citas_pendientes = array_values(array_filter($citas_view, fn($c)=>!in_array($c['estado'], ['COMPLETADA','CANCELADA','REAGENDAR'], true)));
+    $citas_completadas= array_values(array_filter($citas_view, fn($c)=>$c['estado']==='COMPLETADA'));
+    $citas_canceladas = array_values(array_filter($citas_view, fn($c)=>$c['estado']==='CANCELADA'));
+    $citas_reagendar  = array_values(array_filter($citas_view, fn($c)=>$c['estado']==='REAGENDAR'));
+
+    usort($citas_pendientes, fn($a,$b)=>strcmp($a['fecha'].($a['hora']??''), $b['fecha'].($b['hora']??'')));
+    usort($citas_completadas, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
+    usort($citas_reagendar, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
+
+    $citas_hoy_n       = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$today_d));
+    $citas_manana_n    = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$tomorrow_d));
+    $citas_semana_n    = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d && $c['fecha']<=$week_end));
+    $citas_atrasadas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']<$today_d));
+    $citas_proximas_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d));
+
+    $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
+      $is_today    = $c['fecha']==$today_d;
+      $is_tomorrow = $c['fecha']==$tomorrow_d;
+      $is_past     = $c['fecha']<$today_d && $c['estado']!=='COMPLETADA';
+      $is_done     = $c['estado']==='COMPLETADA';
+      $is_canceled = $c['estado']==='CANCELADA';
+      $is_reagendar= $c['estado']==='REAGENDAR';
+      $border_color = $is_canceled ? '#999' : ($is_reagendar ? '#8A5CB8' : ($is_done ? '#1E7A5C' : ($is_past ? '#B83232' : ($is_today ? '#C07A1A' : ($is_tomorrow ? '#2876A8' : $P1)))));
+      $cli = trim($c['miembro_nombre']??'');
+      if ($cli === ', ' || $cli === '') $cli = trim($c['cliente']??'') ?: '— SIN NOMBRE —';
+      $hora_disp = !empty($c['hora']) ? substr($c['hora'],0,5) : '--:--';
+      $agente_color = $c['agente_color'] ?? $P2;
+      $agente_ini   = $c['agente_ini']   ?? '?';
+      ?>
+      <div class="cita-card" data-fecha="<?=h($c['fecha'])?>" data-agente="<?=h($c['agente_id'])?>" data-tipo="<?=h($c['tipo']??'')?>" data-modalidad="<?=h($c['modalidad']??'')?>" data-search="<?=strtolower(h(($cli.' '.($c['tipo']??'').' '.($c['modalidad']??'').' '.($c['notas']??''))))?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;border-radius:10px;padding:11px 13px;<?=$is_done||$is_canceled?'opacity:.65':''?>">
+        <?php if($is_reagendar):?><div style="display:inline-block;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8;border-radius:20px;padding:2px 9px;font-size:7px;font-weight:900;text-transform:uppercase;margin-bottom:6px">↺ POSIBLE PARA REAGENDAR</div><?php endif;?>
+        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
+          <div style="flex:1;min-width:0">
+            <div style="font-size:11px;font-weight:900;color:<?=$P1?>;<?=!empty($c['miembro_id'])?'cursor:pointer':''?>;line-height:1.2"
+                 <?php if(!empty($c['miembro_id'])):?>onclick="openProfile(<?=$c['miembro_id']?>)"<?php endif;?>>
+              <?=h($cli)?>
+            </div>
+            <?php if(!empty($c['miembro_telefono'])):?>
+            <div style="font-size:8px;color:<?=$MU?>;margin-top:2px">📞 <?=h($c['miembro_telefono'])?></div>
+            <?php endif;?>
+          </div>
+          <div style="text-align:right;white-space:nowrap">
+            <div style="font-size:14px;font-weight:900;color:<?=$border_color?>"><?=$hora_disp?></div>
+            <div style="font-size:7px;color:<?=$MU?>;font-weight:800;text-transform:uppercase">
+              <?php if($is_today):?>HOY · <?php elseif($is_tomorrow):?>MAÑANA · <?php elseif($is_past&&!$is_done):?>ATRASADA · <?php endif;?><?=date('m/d/Y',strtotime($c['fecha']))?>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+          <span style="background:<?=$BG?>;color:<?=$P1?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($c['tipo']??'?')?></span>
+          <span style="background:<?=$BG?>;color:<?=$P2?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase">
+            <?=['TELÉFONO'=>'📞','VIDEO'=>'📹','EN CASA'=>'🏠','EN RESTAURANTE'=>'🍽️'][$c['modalidad']??'']??'🏢'?> <?=h($c['modalidad']??'?')?>
+          </span>
+          <span style="display:inline-flex;align-items:center;gap:3px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase;color:<?=$MU?>">
+            <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:<?=h($agente_color)?>;color:#fff;font-size:6px;text-align:center;line-height:11px;font-weight:900"><?=h($agente_ini)?></span>
+            <?=h(explode(' ',$c['agente_nombre']??'?')[0])?>
+          </span>
+        </div>
+        <?php if(!empty($c['notas'])):?>
+          <div style="background:<?=$BG?>;border-radius:7px;padding:6px 8px;font-size:8px;color:<?=$MU?>;margin-bottom:7px;max-height:30px;overflow:hidden;text-transform:none;line-height:1.35"><?=h(mb_substr($c['notas'],0,120))?><?=mb_strlen($c['notas']??'')>120?'…':''?></div>
+        <?php endif;?>
+        <div style="display:flex;gap:4px;flex-wrap:wrap">
+          <?php if($is_reagendar):?>
+            <button class="btn btn-p btn-sm" onclick="editarCita(<?=$c['id']?>, true)" title="Poner nueva fecha/hora" style="flex:1;padding:5px 8px;font-size:8px">📅 REAGENDAR AHORA</button>
+          <?php endif;?>
+          <?php if(!$is_done && !$is_canceled && !$is_reagendar):?>
+            <button class="btn btn-gr btn-sm" onclick="completarCitaOpciones(<?=$c['id']?>)" title="Completar" style="flex:1;padding:5px 8px;font-size:8px">✓ COMPLETAR</button>
+          <?php endif;?>
+          <button class="btn btn-gh btn-sm" onclick="editarCita(<?=$c['id']?>)" title="Editar" style="padding:5px 8px;font-size:8px">✎</button>
+          <button class="btn btn-bl btn-sm" onclick="crearTicketDesdeCita(<?=$c['id']?>)" title="Crear ticket" style="padding:5px 8px;font-size:8px">◈ TICKET</button>
+          <?php if(!empty($c['miembro_id'])):?>
+            <button class="btn btn-p btn-sm" onclick="openProfile(<?=$c['miembro_id']?>)" title="Ver perfil" style="padding:5px 8px;font-size:8px">◉</button>
+          <?php endif;?>
+          <?php if(!$is_done && !$is_canceled):?>
+            <button class="btn btn-r btn-sm" onclick="cancelarCita(<?=$c['id']?>)" title="Cancelar" style="padding:5px 8px;font-size:8px">✕</button>
+          <?php endif;?>
+        </div>
+        <?php if($is_done && !empty($c['completada_at'])):?>
+          <div style="font-size:7px;color:#1E7A5C;font-weight:900;margin-top:5px;text-transform:uppercase">✓ COMPLETADA <?=date('m/d/Y H:i',strtotime($c['completada_at']))?><?=$c['completada_nombre']?' · '.h(explode(' ',$c['completada_nombre'])[0]):''?></div>
+        <?php endif;?>
+      </div>
+      <?php
+    };
+
+    $render_grupo = function($titulo, $color, $citas_arr) use ($render_cita) {
+      if (!count($citas_arr)) return;
+      ?>
+      <div class="cita-grupo" style="margin-bottom:18px">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 0;border-bottom:2px solid <?=$color?>">
+          <span style="font-size:10px;font-weight:900;color:<?=$color?>;text-transform:uppercase;letter-spacing:1px"><?=$titulo?></span>
+          <span style="background:<?=$color?>;color:#fff;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=count($citas_arr)?></span>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+          <?php foreach($citas_arr as $c) $render_cita($c); ?>
+        </div>
+      </div>
+      <?php
+    };
+
+    ob_start();
+    ?>
+<!-- ─── PENDIENTES ─── -->
+<div id="csub-pendientes" class="csub-pane" style="display:none">
+  <?php
+  $g_atrasadas = []; $g_hoy = []; $g_manana = []; $g_semana = []; $g_futuro = [];
+  foreach($citas_pendientes as $c) {
+    if      ($c['fecha'] < $today_d)                                  $g_atrasadas[] = $c;
+    elseif  ($c['fecha'] == $today_d)                                 $g_hoy[]       = $c;
+    elseif  ($c['fecha'] == $tomorrow_d)                              $g_manana[]    = $c;
+    elseif  ($c['fecha'] <= $week_end)                                $g_semana[]    = $c;
+    else                                                              $g_futuro[]    = $c;
+  }
+  $render_grupo('⚠ ATRASADAS — REQUIEREN ATENCIÓN', '#B83232', $g_atrasadas);
+  if (!count($g_atrasadas)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
+      <div style="font-size:32px;margin-bottom:9px">◷</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS ATRASADAS</div>
+      <div style="font-size:8px;color:<?=$MU?>;margin-top:5px">Todo al día. Las de hoy en adelante están en la pestaña PRÓXIMAS.</div>
+    </div>
+  <?php endif;?>
+</div>
+
+<!-- ─── PRÓXIMAS (todas las no completadas, sin ATRASADAS) ─── -->
+<div id="csub-proximas" class="csub-pane">
+  <?php
+  $render_grupo('● HOY · '.date('m/d/Y'),            '#C07A1A', $g_hoy);
+  $render_grupo('► MAÑANA · '.date('m/d/Y',strtotime('+1 day')), '#2876A8', $g_manana);
+  $render_grupo('ESTA SEMANA',                       $P1, $g_semana);
+  $render_grupo('PRÓXIMAS',                          $P2, $g_futuro);
+  if (!count($g_hoy)+count($g_manana)+count($g_semana)+count($g_futuro)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
+      <div style="font-size:32px;margin-bottom:9px">►</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS PRÓXIMAS</div>
+    </div>
+  <?php endif;?>
+</div>
+
+<!-- ─── POSIBLE PARA REAGENDAR ─── -->
+<div id="csub-reagendar" class="csub-pane" style="display:none">
+  <div style="background:#F3EBFA;border:1px solid #D6BCE8;border-radius:9px;padding:9px 12px;font-size:9px;color:#6B3FA0;margin-bottom:11px">↺ Recordatorio para volver a llamar y agendar una nueva cita — la mayoría son prospectos.</div>
+  <?php if(!count($citas_reagendar)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
+      <div style="font-size:32px;margin-bottom:9px">↺</div>
+      <div style="font-size:10px;font-weight:900;text-transform:uppercase;letter-spacing:1px">SIN CITAS POR AHORA</div>
+    </div>
+  <?php else:?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_reagendar as $c) $render_cita($c); ?>
+  </div>
+  <?php endif;?>
+</div>
+
+<!-- ─── COMPLETADAS ─── -->
+<div id="csub-completadas" class="csub-pane" style="display:none">
+  <?php
+  $por_mes = [];
+  foreach($citas_completadas as $c) {
+    $mes = date('Y-m', strtotime($c['fecha']));
+    $por_mes[$mes][] = $c;
+  }
+  foreach($por_mes as $mes=>$arr) {
+    $titulo = strtoupper(strftime_es($mes));
+    $render_grupo($titulo, '#1E7A5C', $arr);
+  }
+  if (!count($citas_completadas)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS COMPLETADAS AÚN</div>
+  <?php endif;?>
+</div>
+
+<!-- ─── CANCELADAS ─── -->
+<div id="csub-canceladas" class="csub-pane" style="display:none">
+  <?php if(!count($citas_canceladas)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS CANCELADAS</div>
+  <?php else:?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_canceladas as $c) $render_cita($c); ?>
+  </div>
+  <?php endif;?>
+</div>
+
+<!-- ─── TODAS (sin importar el estado) ─── -->
+<div id="csub-todas" class="csub-pane" style="display:none">
+  <?php
+  $citas_todas = $citas_view;
+  usort($citas_todas, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
+  ?>
+  <?php if(!count($citas_todas)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS TODAVÍA</div>
+  <?php else:?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_todas as $c) $render_cita($c); ?>
+  </div>
+  <?php endif;?>
+</div>
+    <?php
+    $html = ob_get_clean();
+
+    return [
+        'html' => $html,
+        'kpis' => [
+            'hoy' => $citas_hoy_n, 'manana' => $citas_manana_n, 'semana' => $citas_semana_n, 'atrasadas' => $citas_atrasadas_n,
+        ],
+        'counts' => [
+            'proximas' => $citas_proximas_n, 'reagendar' => count($citas_reagendar), 'pendientes' => $citas_atrasadas_n,
+            'completadas' => count($citas_completadas), 'canceladas' => count($citas_canceladas), 'todas' => count($citas_view),
+        ],
+    ];
+}

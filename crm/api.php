@@ -1039,6 +1039,16 @@ case 'get_cita':
     jsonOk($c);
     break;
 
+// Las tarjetas de citas (las 6 sub-pestañas) ya no vienen armadas en cada
+// carga de index.php/softReload (ver render_citas_panel en
+// lib_row_render.php) — se piden aparte al abrir la pestaña CITAS, y
+// también después de guardar/completar/cancelar/reagendar una cita, para
+// que esa acción sea instantánea en vez de reconstruir la página entera.
+case 'get_citas_panel':
+    $pdo = db();
+    jsonOk(render_citas_panel($pdo));
+    break;
+
 case 'complete_cita':
     $pdo = db();
     $id  = intval($_POST['id'] ?? 0);
