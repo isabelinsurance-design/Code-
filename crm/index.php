@@ -4480,7 +4480,7 @@ $obs_q->execute([$uid]); $obs = $obs_q->fetchColumn();
 <?php else:?><div style="padding:16px;text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase">SIN CITAS PARA HOY</div><?php endif;?>
 </div>
 <!-- DAILY REPORT -->
-<div class="card" style="border-top:3px solid <?=$G?>">
+<div class="card" id="dash-reporte-card" style="border-top:3px solid <?=$G?>">
 <div class="card-header">
 <div class="card-title">▦ REPORTE DEL DÍA</div>
 <?=badge($my_reporte&&$my_reporte['enviado']?'ENVIADO ✓':'PENDIENTE',true)?>
@@ -10890,6 +10890,20 @@ function softReload(done){
       if(!fresh){ _softReloadDone(); return; }
       var scrollY = window.scrollY;
       active.innerHTML = fresh.innerHTML;
+      // Sincronizar en silencio la tarjeta "REPORTE DEL DÍA" del Dashboard,
+      // aunque esa no sea la pestaña activa — sus números (llamadas,
+      // contestaron, citas, tickets...) se calculan al cargar la página, así
+      // que sin esto se quedaban viejos hasta recargar: registrabas una
+      // llamada en Campañas y, al ir al Dashboard, seguía mostrando el
+      // número de antes. Como ya tenemos la página fresca completa aquí, de
+      // una vez actualizamos esa tarjeta también, esté o no a la vista.
+      try{
+        if(active.id!=='tab-DASHBOARD'){
+          var freshRpt = doc.getElementById('dash-reporte-card');
+          var curRpt = document.getElementById('dash-reporte-card');
+          if(freshRpt && curRpt) curRpt.innerHTML = freshRpt.innerHTML;
+        }
+      }catch(e){}
       // 3) Restaurar estado del usuario sobre el contenido fresco
       Object.keys(disp).forEach(function(id){
         var el = document.getElementById(id);
