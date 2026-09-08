@@ -2897,7 +2897,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
   </div>
   <div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:11px;align-items:center">
     <div class="form-group" style="max-width:380px;flex:1;min-width:220px;margin-bottom:0">
-      <input type="text" id="camp-global-search" class="form-input" placeholder="🔎 Buscar en TODAS las campañas — nombre, teléfono, notas, cualquier dato..." autocomplete="off" oninput="filterCampGlobal()">
+      <input type="text" id="camp-global-search" class="form-input" placeholder="🔎 Buscar en TODAS las campañas — nombre, teléfono, notas, cualquier dato..." autocomplete="off" oninput="_debouncedCall('campGlobal',filterCampGlobal)">
     </div>
     <button class="btn btn-p btn-sm camp-filter" data-active="1" data-filtro="todas" onclick="filterCamp('todas',this)">TODAS</button>
     <button class="btn btn-gh btn-sm camp-filter" data-filtro="ACTIVA" onclick="filterCamp('ACTIVA',this)">ACTIVAS</button>
@@ -3018,7 +3018,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <?php $cc_num_extra = count($cc_extra_por_camp[$c['id']] ?? []); ?>
     <div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;margin-bottom:10px">
       <div class="form-group" style="max-width:320px;flex:1;margin-bottom:0">
-        <input type="text" class="form-input cc-search-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="filterCc(this,<?=$c['id']?>)">
+        <input type="text" class="form-input cc-search-input" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="_debouncedCall('cc-<?=$c['id']?>',filterCc.bind(null,this,<?=$c['id']?>))">
       </div>
       <button type="button" class="btn btn-gh btn-sm" onclick="toggleCcFiltros(<?=$c['id']?>,this)">▾ FILTROS<?=$cc_num_extra?' (+'.$cc_num_extra.' DEL ARCHIVO)':''?></button>
       <button type="button" class="btn btn-gh btn-sm" onclick="limpiarCcFiltros(<?=$c['id']?>)" style="color:#B83232;border-color:#EFA09A">✕ LIMPIAR FILTROS</button>
@@ -4709,7 +4709,7 @@ uksort($estados_presentes, function($a,$b) use($orden_pref){
 <div style="display:flex;gap:8px;margin-bottom:11px;flex-wrap:wrap;align-items:center">
 <div style="display:flex;align-items:center;gap:10px;background:#fff;border:2px solid <?=$CB?>;border-radius:12px;padding:10px 15px;flex:1;max-width:400px;box-shadow:0 2px 8px rgba(0,0,0,.05)">
 <span style="font-size:16px;color:<?=$P2?>"> </span>
-<input type="text" id="member-search" placeholder="BUSCAR POR NOMBRE, TEL, MBI, DIRECCIÓN..." onkeyup="smartSearch()" style="background:transparent;border:none;outline:none;font-size:13px;width:100%;font-family:'DM Sans',sans-serif;text-transform:uppercase;color:<?=$TX?>">
+<input type="text" id="member-search" placeholder="BUSCAR POR NOMBRE, TEL, MBI, DIRECCIÓN..." onkeyup="_debouncedCall('members',smartSearch)" style="background:transparent;border:none;outline:none;font-size:13px;width:100%;font-family:'DM Sans',sans-serif;text-transform:uppercase;color:<?=$TX?>">
 
 </div>
 <select id="filter-estado" onchange="filterMembers()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase"><option value="">TODOS LOS ESTADOS</option><?php foreach($estados_presentes as $e=>$c): if($e==='(SIN ESTADO)') continue; ?><option value="<?=h($e)?>"><?=h($e)?> (<?=$c?>)</option><?php endforeach;?></select>
@@ -5440,7 +5440,7 @@ $t65_pipe_count = count(array_filter($pipe_pros, fn($m)=>strtolower($m['fuente']
 <div style="display:flex; justify-content:flex-end; align-items:center; margin-bottom:16px; flex-wrap:wrap; gap:10px;">
     <div style="display:flex; gap:7px; align-items:center; flex-wrap:wrap;">
         <input type="text" id="pipe-search" placeholder="🔍 Buscar prospecto..."
-            oninput="filterPipeProspects()"
+            oninput="_debouncedCall('pipe',filterPipeProspects)"
             style="border:1.5px solid #C8DFF0; border-radius:9px; padding:7px 11px; font-size:9px; background:#fff; font-family:'DM Sans',sans-serif; font-weight:700; width:180px; outline:none; color:#1B3A5C;">
         <?php if($admin):?>
         <select id="pipe-agente-filter" onchange="filterPipeProspects()" style="border:1.5px solid #C8DFF0; border-radius:9px; padding:7px 10px; font-size:9px; background:#fff; font-family:'DM Sans',sans-serif; font-weight:800; text-transform:uppercase;">
@@ -5839,7 +5839,7 @@ $citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$
 <!-- FILTROS Y SUB-TABS -->
 <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 13px;margin-bottom:13px">
   <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px">
-    <input type="search" id="cita-search" placeholder=" Buscar por nombre, tipo, notas..." onkeyup="filtrarCitas()" style="flex:1;min-width:180px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:7px 11px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
+    <input type="search" id="cita-search" placeholder=" Buscar por nombre, tipo, notas..." onkeyup="_debouncedCall('citas',filtrarCitas)" style="flex:1;min-width:180px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:7px 11px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
     <input type="date" id="cita-fecha-filtro" onchange="filtrarCitas()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
     <div style="display:flex;gap:0;border:1px solid <?=$CB?>;border-radius:8px;overflow:hidden">
       <?php foreach(['dia'=>'DÍA','semana'=>'SEMANA','mes'=>'MES','anio'=>'AÑO'] as $pv=>$pl):?>
@@ -5982,7 +5982,7 @@ $tkt_tarea_cnt    = count(array_filter($mis_tickets_stats, fn($t)=>!in_array($t[
     <!-- Campos señuelo: evitan que Chrome rellene el buscador con credenciales guardadas -->
     <input type="text" style="display:none" name="username_fake" autocomplete="username">
     <input type="password" style="display:none" name="password_fake" autocomplete="new-password">
-    <input type="search" id="tkt-search" oninput="filterTickets()" placeholder="🔍  Buscar por cliente, descripción, tipo…"
+    <input type="search" id="tkt-search" oninput="_debouncedCall('tickets',filterTickets)" placeholder="🔍  Buscar por cliente, descripción, tipo…"
       value="" autocomplete="off" spellcheck="false"
       style="flex:2;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 12px;font-size:11px;font-family:'DM Sans',sans-serif;background:<?=$BG?>;color:<?=$TX?>">
 
@@ -8757,6 +8757,18 @@ foreach($acts as $i=>$a):?>
 
 <script>
 const ADMIN=<?=$admin?'true':'false'?>;const UID=<?=$uid?>;
+// ── BUSCADORES — esperar a que dejes de escribir antes de filtrar ──────────
+// Con listas grandes (miembros, tickets, citas, contactos de campaña),
+// filtrar en CADA letra que se teclea puede tardar lo suficiente como para
+// que el navegador se sienta "trabado" al escribir (la siguiente tecla no
+// se ve hasta que termina el filtro anterior). Esperando un instante después
+// de la última tecla, escribir se siente instantáneo y el filtro corre una
+// sola vez cuando de verdad haces una pausa.
+var _searchTimers = {};
+function _debouncedCall(key, fn, wait){
+  clearTimeout(_searchTimers[key]);
+  _searchTimers[key] = setTimeout(fn, wait || 220);
+}
 // ── CSRF: todo POST por fetch lleva el token de la sesión (api.php lo verifica) ──
 const CSRF_TOKEN='<?=h($_SESSION['csrf_token'] ?? '')?>';
 // ── AVISOS EN VIVO: URL del ws-relay (vacío si no está configurado en config.php) ──
@@ -8795,7 +8807,18 @@ if(id==='BONOS') loadBonos();
 if(id==='GASTOS') loadGastos();
 if(id==='TICKETS'){ loadTicketsTable(function(){ filterTickets(); setTktVista(_tktVista); }); }
 if(id==='MIEMBROS' && typeof loadMembersTable==='function') loadMembersTable(applyMemberFilters);
-if(id==='CITAS' && typeof refreshCitasPanel==='function') refreshCitasPanel();
+// Antes Citas era puro mostrar/ocultar (instantáneo) porque todo venía
+// pre-armado en la página. Ahora las tarjetas se piden aparte — pero solo
+// hace falta pedirlas la PRIMERA vez que se abre la pestaña en esta
+// sesión; después de eso ya quedan en pantalla y cambiar de pestaña vuelve
+// a ser instantáneo, igual que antes. Cada acción (guardar/completar/
+// cancelar/reagendar) las sigue refrescando por su cuenta con
+// refreshCitasPanel(), así que no hace falta pedirlas de nuevo cada vez
+// que solo estás viendo la pestaña.
+if(id==='CITAS' && !window._citasPanelCargado && typeof refreshCitasPanel==='function'){
+  window._citasPanelCargado = true;
+  refreshCitasPanel();
+}
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
