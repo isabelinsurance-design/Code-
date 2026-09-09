@@ -5064,10 +5064,10 @@ foreach($_ret_stats as $_rs) {
 <td><?php if($_rm['carrier']): ?><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:1px 7px;font-size:8px;font-weight:900"><?=htmlspecialchars($_rm['carrier'])?></span><?php else: ?>—<?php endif; ?></td>
 <td style="font-size:8px;color:#7A90A4"><?=$_rm['fecha_efe']?></td>
 <td style="text-align:center"><span style="font-weight:900;font-size:12px;color:<?=$_dc?>"><?=$_dias?>d</span></td>
-<td><?=$_chip_b?></td>
-<td><?=$_chip_30?></td>
-<td><?=$_chip_60?></td>
-<td><?=$_chip_90?></td>
+<td id="ret-chip-<?=$_mid?>-BIENVENIDA"><?=$_chip_b?></td>
+<td id="ret-chip-<?=$_mid?>-30"><?=$_chip_30?></td>
+<td id="ret-chip-<?=$_mid?>-60"><?=$_chip_60?></td>
+<td id="ret-chip-<?=$_mid?>-90"><?=$_chip_90?></td>
 <td style="text-align:center">
 <?php if($_rm['q30']): ?>
 <span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900">✓</span>
@@ -5274,7 +5274,27 @@ function saveRetSimple(resultado){
   var notas=document.getElementById('rsm-notas').value;
   var fd=new FormData();
   fd.append('action','save_retencion_llamada');fd.append('miembro_id',mid);fd.append('tipo',tipo);fd.append('resultado',resultado);fd.append('notas',notas);
-  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){if(d.ok){if(typeof toast==='function')toast('Llamada registrada');closeModal('ret-simple-modal');softReload();}else if(typeof toast==='function')toast('Error: '+(d.error||'No se pudo guardar'));});
+  fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      if(typeof toast==='function')toast('Llamada registrada');
+      closeModal('ret-simple-modal');
+      // En vez de recargar toda la página, se actualiza en el momento nada
+      // más la insignia (BIENVENIDA/30/60/90) que se acaba de registrar.
+      var cell = document.getElementById('ret-chip-'+mid+'-'+tipo);
+      if(cell){
+        cell.innerHTML = _retChipHtml(mid, tipo, resultado);
+        var row = cell.closest('.ret-row');
+        if(row) row.dataset['pend'+(tipo==='BIENVENIDA'?'B':tipo)] = '0';
+      }
+    } else if(typeof toast==='function') toast('Error: '+(d.error||'No se pudo guardar'));
+  });
+}
+function _retChipHtml(mid, tipo, resultado){
+  var st = resultado==='NO CONTESTÓ' ? ['#FDF0EE','#B83232','#EFA09A','✕ NO CONT.']
+         : resultado==='BUZÓN'       ? ['#FEF8EE','#C07A1A','#F5D5A0','📬 BUZÓN']
+         :                              ['#EAF5F0','#1E7A5C','#8DCFBA','✓ CONTESTÓ'];
+  var hoy=new Date(), dd=String(hoy.getDate()).padStart(2,'0'), mm=String(hoy.getMonth()+1).padStart(2,'0'), yy=String(hoy.getFullYear()).slice(-2);
+  return "<div style='text-align:center'><button class='btn btn-sm' onclick='openRetSimple("+mid+",\""+tipo+"\")' title='Cambiar resultado' style='background:"+st[0]+";color:"+st[1]+";border:1.5px solid "+st[2]+";font-size:8px;font-weight:900;padding:3px 8px'>"+st[3]+"</button><div style='font-size:7px;color:#7A90A4'>"+dd+"/"+mm+"/"+yy+"</div></div>";
 }
 // Traducción del cuestionario 30 días — solo para LEER, no cambia lo que se guarda
 // (el value= de cada campo se manda igual, solo se traduce el texto visible).
