@@ -129,7 +129,10 @@ case 'checkin':
     ];
     $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
         ->execute([$uid, $labels[$field], $labels[$field].' — '.$t]);
-    jsonOk(['time'=>$t,'hora'=>$t,'field'=>$field]);
+    // La tarjeta de CHECK IN del Dashboard se devuelve ya armada en la misma
+    // respuesta — así marcar la hora se siente instantáneo, sin tener que
+    // reconstruir toda la página (ver render_checkin_card en lib_row_render.php).
+    jsonOk(['time'=>$t,'hora'=>$t,'field'=>$field,'html'=>render_checkin_card($pdo, $uid, date('Y-m-d'))]);
     break;
 
 // ── BREAKS ADICIONALES ──────────────────────────────────────────
@@ -152,7 +155,7 @@ case 'break_start':
     $pdo->prepare("INSERT INTO asistencia_breaks (asistencia_id, break_out) VALUES (?,?)")->execute([$row['id'], $t]);
     $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
         ->execute([$uid, 'SALIDA BREAK', 'SALIDA BREAK (adicional) — '.$t]);
-    jsonOk(['hora'=>$t]);
+    jsonOk(['hora'=>$t,'html'=>render_checkin_card($pdo, $uid, date('Y-m-d'))]);
     break;
 
 case 'break_end':
@@ -169,7 +172,7 @@ case 'break_end':
     $pdo->prepare("UPDATE asistencia_breaks SET break_in=? WHERE id=?")->execute([$t, $b['id']]);
     $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
         ->execute([$uid, 'REGRESO BREAK', 'REGRESO BREAK (adicional) — '.$t]);
-    jsonOk(['hora'=>$t]);
+    jsonOk(['hora'=>$t,'html'=>render_checkin_card($pdo, $uid, date('Y-m-d'))]);
     break;
 
 // ── CORREGIR ASISTENCIA (admin) ───────────────────────────────

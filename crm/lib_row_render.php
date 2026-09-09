@@ -586,3 +586,92 @@ function render_citas_panel(PDO $pdo): array {
         ],
     ];
 }
+
+/* Cuántas horas trabajó (o null si aún no hace check-out) — descuenta
+ * almuerzo, el primer break y cualquier break extra. */
+function calc_hours(?string $ci,?string $lo,?string $li,?string $co,?string $bo=null,?string $bi=null,int $extraBreakSecs=0):?string{
+    if(!$ci||!$co)return null;
+    $s=strtotime("1970-01-01 $ci");$e=strtotime("1970-01-01 $co");$t=$e-$s;
+    if($lo&&$li){$ls=strtotime("1970-01-01 $lo");$le=strtotime("1970-01-01 $li");$t-=($le-$ls);}
+    if($bo&&$bi){$bs=strtotime("1970-01-01 $bo");$be=strtotime("1970-01-01 $bi");$t-=($be-$bs);}
+    $t-=max(0,$extraBreakSecs);
+    if($t<=0)return null;
+    return floor($t/3600).'H '.floor(($t%3600)/60).'M';
+}
+/* Breaks EXTRA de un día de asistencia (más allá del primer break_out/
+ * break_in). Devuelve [segundos_totales, lista_de_pares]. */
+function extra_breaks(PDO $pdo, ?int $asistencia_id): array {
+    if (!$asistencia_id) return [0, []];
+    try {
+        $rows = $pdo->prepare("SELECT break_out, break_in FROM asistencia_breaks WHERE asistencia_id=? ORDER BY break_out ASC");
+        $rows->execute([$asistencia_id]);
+        $secs = 0; $pares = [];
+        foreach ($rows->fetchAll() as $r) {
+            $pares[] = ['out'=>$r['break_out'], 'in'=>$r['break_in']];
+            if ($r['break_in']) $secs += max(0, strtotime("1970-01-01 {$r['break_in']}") - strtotime("1970-01-01 {$r['break_out']}"));
+        }
+        return [$secs, $pares];
+    } catch (Exception $e) { return [0, []]; }
+}
+
+/* Arma la tarjeta "CHECK IN" del Dashboard (pasos, botón inteligente,
+ * breaks extra, registro libre) — antes cualquier check-in/break disparaba
+ * un softReload() completo (150-200 consultas) solo para reflejar la hora
+ * marcada. Ahora se pide aparte, igual que Citas/Tickets/Miembros, y el
+ * botón se siente instantáneo. Solo aplica a agentes (no admins, que no
+ * ven esta tarjeta). */
+function render_checkin_card(PDO $pdo, int $uid, string $today): string {
+    $P1='#1B4A6B';$TX='#1B3A5C';$MU='#7A90A4';$CB='#C8DFF0';
+
+    $mci = $pdo->prepare("SELECT * FROM asistencia WHERE agente_id=? AND fecha=?");
+    $mci->execute([$uid, $today]);
+    $my_ci = $mci->fetch();
+
+    $steps=[['ci','CHECK-IN'],['lo','ALMUERZO'],['li','REGRESO  DE ALMUERZO.'],['bo','BREAK'],['bi','REGRESO DE BREAK'],['co','CHECK-OUT']];
+    $vals=['ci'=>$my_ci['check_in']??null,'lo'=>$my_ci['lunch_out']??null,'li'=>$my_ci['lunch_in']??null,'bo'=>$my_ci['break_out']??null,'bi'=>$my_ci['break_in']??null,'co'=>$my_ci['check_out']??null];
+    $bk=['bo','bi'];
+    $ns=null; foreach($steps as $s){ if(!$vals[$s[0]]){ $ns=$s; break; } }
+    [$_xb_secs,$_xb_pares]=extra_breaks($pdo,$my_ci['id']??null);
+    $_xb_abierto=count($_xb_pares)>0 && end($_xb_pares)['in']===null;
+    $_xb_disponible=!empty($vals['bo'])&&!empty($vals['bi'])&&empty($vals['co']);
+    $worked=calc_hours($vals['ci'],$vals['lo'],$vals['li'],$vals['co'],$vals['bo'],$vals['bi'],$_xb_secs);
+
+    ob_start(); ?>
+<div class="card-header"><div class="card-title">CHECK IN— <?=$today?></div><?php if($worked):?><span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:3px 11px;font-size:9px;font-weight:900"> <?=$worked?></span><?php endif;?></div>
+<div style="padding:14px 16px">
+<div class="ci-steps"><?php foreach($steps as $s):$done=!empty($vals[$s[0]]);$cur=!$done&&$ns&&$ns[0]===$s[0];?><div class="ci-step<?=$done?' done':($cur?' cur':'').' '.(in_array($s[0],$bk)?' brk':'')?>"><div class="ci-step-icon"><?=$done?'✓':($cur?'◐':'○')?></div><div class="ci-step-lbl"><?=$s[1]?></div><?php if($vals[$s[0]]):?><div class="ci-step-val" style="color:<?=$done?'#1E7A5C':'#1B5E8C'?>"><?=substr($vals[$s[0]],0,5)?></div><?php endif;?></div><?php endforeach;?></div>
+<?php if($ns):?><button class="btn btn-p btn-full" style="margin-bottom: 8px;" onclick="doCheckin('<?=$ns[0]?>')"><?=in_array($ns[0],$bk)?' ':'◐'?> <?=$ns[1]?></button><?php endif;?>
+<!-- BOTÓN INTELIGENTE — detecta siguiente paso automáticamente -->
+<button class="btn btn-p btn-full" style="margin-bottom:10px" onclick="registroHora()">
+◐ REGISTRAR SIGUIENTE MOVIMIENTO
+</button>
+<!-- BREAKS ADICIONALES — se pueden tomar varios, no solo uno -->
+<?php if($_xb_disponible || count($_xb_pares)):?>
+<div style="margin-bottom:10px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:9px;padding:10px 12px">
+<div style="font-size:7px;font-weight:900;color:#C07A1A;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px">BREAKS ADICIONALES</div>
+<?php foreach($_xb_pares as $p):?>
+<div style="font-size:9px;color:<?=$TX?>;margin-bottom:3px">⏱ <?=substr($p['out'],0,5)?> – <?=$p['in']?substr($p['in'],0,5):'<span style="color:#C07A1A;font-weight:900">EN CURSO</span>'?></div>
+<?php endforeach;?>
+<?php if($_xb_abierto):?>
+<button class="btn btn-am btn-full" style="margin-top:5px" onclick="doExtraBreak('end')">◐ TERMINAR ESTE BREAK</button>
+<?php elseif($_xb_disponible):?>
+<button class="btn btn-gh btn-full" style="margin-top:5px" onclick="doExtraBreak('start')">+ TOMAR OTRO BREAK</button>
+<?php endif;?>
+</div>
+<?php endif;?>
+<!-- BOTONES LIBRES — cualquier orden -->
+<div style="margin-top:10px;border-top:1px solid <?=$CB?>;padding-top:10px">
+<div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:7px">REGISTRO LIBRE — CUALQUIER ORDEN</div>
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+<?php foreach(['ci'=>['CHECK-IN','check_in'],'lo'=>['SAL.ALM.','lunch_out'],'li'=>['REG.ALM.','lunch_in'],'bo'=>['SAL.BREAK','break_out'],'bi'=>['REG.BREAK','break_in'],'co'=>['SALIDA','check_out']] as $k=>[$lbl,$dbcol]):$vl=$my_ci[$dbcol]??null;?>
+<?php $ico=['ci'=>'◐','lo'=>' ','li'=>' ','bo'=>' ','bi'=>' ','co'=>' '];$cls=$vl?($k==='co'?'btn-re':($k==='lo'||$k==='bo'?'btn-am':'btn-gr')):'btn-gh';$lbl_show=$vl?('✓ '.$lbl.': '.substr($vl,0,5)):($ico[$k].' '.$lbl);?>
+<button class="btn <?=$cls?> btn-sm" style="padding:10px 6px;font-size:9px;font-weight:900;letter-spacing:.3px" onclick="doCheckin('<?=$k?>')"><?=$lbl_show?></button>
+<?php endforeach;?>
+</div>
+</div>
+<?php if($my_ci&&$my_ci['check_out']):?><div style="margin-top:9px;background:#EAF5F0;border:1px solid #8DCFBA;border-radius:8px;padding:8px;font-size:8px;font-weight:900;color:#1E7A5C;text-align:center;text-transform:uppercase">✓ DÍA COMPLETO · <?=$worked?></div>
+<?php elseif(!$my_ci):?><div style="margin-top:9px;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:8px;padding:8px;font-size:8px;color:#C07A1A;text-transform:uppercase">⚠ SIN CHECK-IN</div><?php endif;?>
+</div>
+    <?php
+    return ob_get_clean();
+}

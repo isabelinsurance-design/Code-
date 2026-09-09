@@ -2199,7 +2199,7 @@ foreach ($users_all as $u) {
 $_xb_abierto=count($_xb_pares)>0 && end($_xb_pares)['in']===null;
 $_xb_disponible=!empty($vals['bo'])&&!empty($vals['bi'])&&empty($vals['co']); // ya se tomó el primer break y no se ha hecho check-out
 $worked=calc_hours($vals['ci'],$vals['lo'],$vals['li'],$vals['co'],$vals['bo'],$vals['bi'],$_xb_secs);?>
-<div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px">
+<div class="card" id="dash-checkin-card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px">
 <div class="card-header"><div class="card-title">CHECK IN— <?=$today?></div><?php if($worked):?><span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:3px 11px;font-size:9px;font-weight:900"> <?=$worked?></span><?php endif;?></div>
 <div style="padding:14px 16px">
 <div class="ci-steps"><?php foreach($steps as $s):$done=!empty($vals[$s[0]]);$cur=!$done&&$ns&&$ns[0]===$s[0];?><div class="ci-step<?=$done?' done':($cur?' cur':'').' '.(in_array($s[0],$bk)?' brk':'')?>"><div class="ci-step-icon"><?=$done?'✓':($cur?'◐':'○')?></div><div class="ci-step-lbl"><?=$s[1]?></div><?php if($vals[$s[0]]):?><div class="ci-step-val" style="color:<?=$done?'#1E7A5C':'#1B5E8C'?>"><?=substr($vals[$s[0]],0,5)?></div><?php endif;?></div><?php endforeach;?></div>
@@ -9107,16 +9107,26 @@ hablar(`Excelente trabajo hoy, ${NOMBRE_USUARIO}. Descansa y nos vemos mañana.`
 }
 fetch('api.php',{method:'POST',body:new URLSearchParams({action:'checkin',field})})
 .then(r=>r.json()).then(d=>{
-if(d.ok){const h=d.data?.hora||d.data?.time||'';toast('✓ '+h);setTimeout(()=>softReload(),400);}
+if(d.ok){
+  const h=d.data?.hora||d.data?.time||'';toast('✓ '+h);
+  // La tarjeta de CHECK IN ya viene armada en la misma respuesta — se
+  // reemplaza en el momento, sin recargar toda la página.
+  _actualizarCheckinCard(d.data?.html);
+}
 else toast(d.error||'Error');
 });
 }
 function doExtraBreak(accion){
 fetch('api.php',{method:'POST',body:new URLSearchParams({action:accion==='start'?'break_start':'break_end'})})
 .then(r=>r.json()).then(d=>{
-if(d.ok){const h=d.data?.hora||'';toast('✓ '+h);setTimeout(()=>softReload(),400);}
+if(d.ok){const h=d.data?.hora||'';toast('✓ '+h);_actualizarCheckinCard(d.data?.html);}
 else toast(d.error||'Error');
 });
+}
+function _actualizarCheckinCard(html){
+  if(!html) return;
+  var card = document.getElementById('dash-checkin-card');
+  if(card) card.innerHTML = html;
 }
 // ── BATTLE PLAN ────────────────────────────────────────
 window.addEventListener('load',()=>{
