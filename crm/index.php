@@ -10993,7 +10993,17 @@ function softReload(done){
 // registran las compañeras, SIN interrumpir lo que estás haciendo. Es el
 // respaldo por si los avisos en vivo de arriba no están configurados, se
 // cortan, o el relay está caído — así nunca dependemos de una sola vía.
-window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || 8000; // 8 s — para que varios agentes vean los cambios de los demás casi al instante
+// Si los avisos en vivo (ws-relay) están configurados, ESE es el que avisa
+// al instante cuando alguien más guarda algo — este intervalo pasa a ser
+// puro respaldo por si el relay se cae, así que no hace falta que sea
+// agresivo. Sin relay configurado, sigue siendo la única forma de ver
+// cambios de las compañeras, por eso ahí sí se queda rápido (8s).
+// Esto importa MUCHO: cada vuelta de este intervalo reconstruye la página
+// entera (150-200 consultas) — a cada 8 segundos, en CADA pestaña abierta
+// de CADA persona, todo el día, eso es carga constante sobre el hosting
+// aunque nadie esté haciendo nada. Con el relay configurado, 45s de sobra
+// para un respaldo.
+window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || (RELAY_WS_URL ? 45000 : 8000);
 // Solo bloqueamos si hubo tecleo hace poco (no basta con tener el foco en
 // una caja de búsqueda/filtro sin usarla — si no, el refresco se quedaba
 // congelado en cualquier pestaña con buscador, aunque ya no estuvieras
