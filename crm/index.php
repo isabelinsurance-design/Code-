@@ -7871,7 +7871,7 @@ $ref_colores = ['NUEVO'=>['#EBF4F9','#1B4A6B','#A9CDE0'],'INTENTANDO'=>['#FEF8EE
 <?php if(empty($refs_all)):?>
 <div style="text-align:center;padding:32px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">👥 AÚN NO HAY REFERIDOS — AGRÉGALOS DESDE UNA CUENTA</div>
 <?php else: foreach($refs_all as $rf): $col_r=$ref_colores[$rf['estado']]??['#F5F5F5','#7A90A4','#C8DFF0']; $conv=$rf['estado']==='EN PIPELINE'; ?>
-<div class="ref-card" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$col_r[1]?>;border-radius:11px;padding:12px 16px;display:flex;gap:12px;align-items:flex-start"
+<div class="ref-card" id="ref-card-<?=$rf['id']?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$col_r[1]?>;border-radius:11px;padding:12px 16px;display:flex;gap:12px;align-items:flex-start"
      data-nombre="<?=strtolower(h($rf['nombre'].' '.$rf['apellido']))?>" data-estado="<?=h($rf['estado'])?>" data-cuenta="<?=(int)$rf['cuenta_id']?>"
      data-x-nombre="<?=h(trim($rf['nombre'].' '.($rf['apellido']??'')))?>" data-x-estado="<?=h($rf['estado'])?>"
      data-x-telefono="<?=h($rf['telefono']??'')?>" data-x-cuenta="<?=h($rf['cuenta_nombre']??'')?>"
@@ -13996,8 +13996,10 @@ function saveRef() {
     fetch('index.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{ if(d.ok){toast('✓ REFERIDO GUARDADO');closeModal('modal-ref-form');if(cueCurrentId&&document.getElementById('modal-cue-detalle').classList.contains('open'))openCueDetalle(cueCurrentId,'REFERIDOS');else saveTabAndReload();}else{toast('⚠ '+(d.error||'Error'));btn.disabled=false;btn.textContent='GUARDAR ➜';} }).catch(()=>{btn.disabled=false;btn.textContent='GUARDAR ➜';});
 }
 function updateEstadoRef(rid, estado) {
+    // El <select> ya muestra el nuevo valor solo (es nativo del navegador) —
+    // no hace falta recargar toda la página nada más para guardarlo.
     const fd=new FormData(); fd.append('cue_ajax','1'); fd.append('action','update_estado_referido'); fd.append('rid',rid); fd.append('estado',estado);
-    fetch('index.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{ if(d.ok){toast('✓ ESTADO ACTUALIZADO');saveTabAndReload();}else toast('⚠ '+(d.error||'Error')); });
+    fetch('index.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{ if(d.ok){toast('✓ ESTADO ACTUALIZADO');}else toast('⚠ '+(d.error||'Error')); });
 }
 function convertirRef(rid) {
     if(!confirm('¿Mover este referido al pipeline como PROSPECTO?\n\nSe creará en Miembros con estado PROSPECT.')) return;
@@ -14007,7 +14009,13 @@ function convertirRef(rid) {
 function deleteRef(rid) {
     if(!confirm('¿Eliminar este referido?')) return;
     const fd=new FormData(); fd.append('cue_ajax','1'); fd.append('action','delete_referido'); fd.append('rid',rid);
-    fetch('index.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{ if(d.ok){toast('✓ ELIMINADO');saveTabAndReload();}else toast('⚠ '+(d.error||'Error')); });
+    fetch('index.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{
+      if(d.ok){
+        toast('✓ ELIMINADO');
+        const card=document.getElementById('ref-card-'+rid);
+        if(card) card.remove(); else saveTabAndReload();
+      } else toast('⚠ '+(d.error||'Error'));
+    });
 }
 
 // ── Modal Detalle de Cuenta ───────────────────────────────────────
