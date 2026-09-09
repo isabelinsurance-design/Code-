@@ -5653,7 +5653,7 @@ if(count($t65_pipe)>0):
                         </div>
                     </div>
                     <?php if($es_recuperacion):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">⚠ <?=h($m['estado'])?></span><?php endif;?>
-                    <?php if($temp_badge): echo $temp_badge; endif; ?>
+                    <span id="pipe-badge-<?=$m['id']?>"><?=$temp_badge?></span>
                 </div>
 
                 <!-- Nota rápida -->
@@ -5669,9 +5669,9 @@ if(count($t65_pipe)>0):
 
                 <!-- Cambiar temperatura (solo prospectos) -->
                 <?php if($colkey === 'pros'): ?>
-                <div style="display:flex; gap:3px; margin-top:6px; flex-wrap:wrap;">
+                <div id="pipe-temp-<?=$m['id']?>" style="display:flex; gap:3px; margin-top:6px; flex-wrap:wrap;">
                     <?php foreach([''=>['—','#94A3B8'],'hot'=>['🔥','#C03A1A'],'warm'=>['🌡','#C07A1A'],'cold'=>['❄','#1B5E8C'],'aep'=>['📋','#5B3FAF'],'t65'=>['🎂','#1E7A5C']] as $tk=>[$ti,$tc]):?>
-                    <button onclick="setProsTemp(<?=$m['id']?>,'<?=$tk?>')"
+                    <button onclick="setProsTemp(<?=$m['id']?>,'<?=$tk?>')" data-tk="<?=$tk?>"
                         style="background:<?=$fuente===$tk?'#EBF4F9':'#F4F8FC'?>; border:1px solid <?=$fuente===$tk?'#1B4A6B':'#E2E8F0'?>; color:<?=$fuente===$tk?'#1B4A6B':$tc?>; border-radius:5px; padding:2px 5px; font-size:9px; cursor:pointer; font-weight:<?=$fuente===$tk?'900':'700'?>; font-family:'DM Sans',sans-serif; flex-shrink:0;"
                         title="<?=$tk===''?'Sin temperatura':strtoupper($tk)?>"><?=$ti?></button>
                     <?php endforeach;?>
@@ -13003,6 +13003,21 @@ function filterPipeProspects(temp) {
     });
 }
 
+var PIPE_TEMP_CFG = {
+  ''    : {color:'#94A3B8'},
+  'hot' : {color:'#C03A1A'},
+  'warm': {color:'#C07A1A'},
+  'cold': {color:'#1B5E8C'},
+  'aep' : {color:'#5B3FAF'},
+  't65' : {color:'#1E7A5C'}
+};
+var PIPE_TEMP_BADGE = {
+  hot:  ['🔥 HOT','pipe-temp-hot'],
+  warm: ['🌡 WARM','pipe-temp-warm'],
+  cold: ['❄ COLD','pipe-temp-cold'],
+  aep:  ['📋 AEP','pipe-temp-aep'],
+  t65:  ['🎂 T65','pipe-temp-t65']
+};
 function setProsTemp(mid, temp) {
     const fd = new FormData();
     fd.append('action', 'set_prospect_temp');
@@ -13011,7 +13026,30 @@ function setProsTemp(mid, temp) {
     fetch('api.php', { method: 'POST', body: fd })
     .then(r => r.json())
     .then(d => {
-        if(d.ok) { toast('✓ TEMPERATURA ACTUALIZADA'); setTimeout(()=>softReload(), 400); }
+        if(d.ok) {
+          toast('✓ TEMPERATURA ACTUALIZADA');
+          // Se actualiza en el momento: los botones de temperatura, la
+          // insignia de arriba de la tarjeta, y el atributo que usa el
+          // filtro — sin recargar toda la página.
+          var row = document.getElementById('pipe-temp-'+mid);
+          if(row){
+            row.querySelectorAll('button[data-tk]').forEach(function(b){
+              var tk = b.dataset.tk, on = tk===temp;
+              var cfg = PIPE_TEMP_CFG[tk] || {color:'#94A3B8'};
+              b.style.background = on ? '#EBF4F9' : '#F4F8FC';
+              b.style.borderColor = on ? '#1B4A6B' : '#E2E8F0';
+              b.style.color = on ? '#1B4A6B' : cfg.color;
+              b.style.fontWeight = on ? '900' : '700';
+            });
+          }
+          var badgeWrap = document.getElementById('pipe-badge-'+mid);
+          if(badgeWrap){
+            var bc = PIPE_TEMP_BADGE[temp];
+            badgeWrap.innerHTML = bc ? ("<span class='pipe-temp-badge "+bc[1]+"'>"+bc[0]+"</span>") : '';
+          }
+          var card = row ? row.closest('.pipe-card') : null;
+          if(card) card.dataset.temp = temp;
+        }
         else toast('⚠ ' + (d.error||'Error'));
     });
 }
