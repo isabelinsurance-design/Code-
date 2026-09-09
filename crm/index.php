@@ -10956,13 +10956,14 @@ function softReload(done){
 // simplemente no hace nada: el refresco automático (más abajo, cada 8s)
 // sigue funcionando igual que siempre como respaldo. Nunca reemplaza al
 // refresco automático, solo lo adelanta cuando puede.
+window._wsRelayAbierto = false; // el refresco automático de respaldo (más abajo) lo consulta para saber qué tan seguido hace falta
 (function(){
   if (!RELAY_WS_URL) return; // no configurado — el CRM sigue funcionando normal
   let ws = null;
   let reconnectDelay = 1000; // empieza en 1s, sube hasta 20s si sigue fallando
   function conectar(){
-    try { ws = new WebSocket(RELAY_WS_URL); } catch(e){ programarReconexion(); return; }
-    ws.onopen = function(){ reconnectDelay = 1000; };
+    try { ws = new WebSocket(RELAY_WS_URL); } catch(e){ window._wsRelayAbierto = false; programarReconexion(); return; }
+    ws.onopen = function(){ reconnectDelay = 1000; window._wsRelayAbierto = true; };
     ws.onmessage = function(ev){
       try {
         const msg = JSON.parse(ev.data);
@@ -10973,8 +10974,8 @@ function softReload(done){
         }
       } catch(e){}
     };
-    ws.onclose = function(){ programarReconexion(); };
-    ws.onerror = function(){ try{ ws.close(); }catch(e){} };
+    ws.onclose = function(){ window._wsRelayAbierto = false; programarReconexion(); };
+    ws.onerror = function(){ window._wsRelayAbierto = false; try{ ws.close(); }catch(e){} };
   }
   function programarReconexion(){
     setTimeout(conectar, reconnectDelay);
@@ -10994,16 +10995,26 @@ function softReload(done){
 // respaldo por si los avisos en vivo de arriba no están configurados, se
 // cortan, o el relay está caído — así nunca dependemos de una sola vía.
 // Si los avisos en vivo (ws-relay) están configurados, ESE es el que avisa
-// al instante cuando alguien más guarda algo — este intervalo pasa a ser
-// puro respaldo por si el relay se cae, así que no hace falta que sea
-// agresivo. Sin relay configurado, sigue siendo la única forma de ver
-// cambios de las compañeras, por eso ahí sí se queda rápido (8s).
-// Esto importa MUCHO: cada vuelta de este intervalo reconstruye la página
-// entera (150-200 consultas) — a cada 8 segundos, en CADA pestaña abierta
-// de CADA persona, todo el día, eso es carga constante sobre el hosting
-// aunque nadie esté haciendo nada. Con el relay configurado, 45s de sobra
-// para un respaldo.
-window.AUTO_REFRESH_MS = window.AUTO_REFRESH_MS || (RELAY_WS_URL ? 45000 : 8000);
+// al instante cuando alguien más guarda algo — este refresco pasa a ser
+// puro respaldo. Y no hace falta que sea igual de seguido todo el tiempo:
+// mientras el relay esté conectado y funcionando, casi no hace falta (90s,
+// nada más por si se perdió algún aviso); si el relay se cae o se está
+// reconectando, se acelera solo (20s) para no depender de una vía caída;
+// y si el relay ni siquiera está configurado, se queda rápido (8s) porque
+// ahí sí es la ÚNICA forma de ver cambios de las compañeras.
+// Esto importa MUCHO: cada vuelta reconstruye la página entera (150-200
+// consultas) — antes esto corría cada 8s en CADA pestaña de CADA persona,
+// todo el día, sin importar si el relay ya estaba avisando al instante.
+function _proximoAutoRefreshMs(){
+  if (!RELAY_WS_URL) return 8000;
+  return window._wsRelayAbierto ? 90000 : 20000;
+}
+(function _autoRefreshLoop(){
+  setTimeout(function(){
+    if(_canAutoRefresh()) softReload();
+    _autoRefreshLoop();
+  }, _proximoAutoRefreshMs());
+})();
 // Solo bloqueamos si hubo tecleo hace poco (no basta con tener el foco en
 // una caja de búsqueda/filtro sin usarla — si no, el refresco se quedaba
 // congelado en cualquier pestaña con buscador, aunque ya no estuvieras
@@ -11025,7 +11036,6 @@ function _canAutoRefresh(){
   if(ae && ae.isContentEditable) return false;
   return true;
 }
-setInterval(function(){ if(_canAutoRefresh()) softReload(); }, window.AUTO_REFRESH_MS);
 // Al volver a la pestaña, refresca — pero con freno para evitar ráfagas
 // (al cambiar de app en el móvil, visibilitychange se dispara muy seguido).
 document.addEventListener('visibilitychange', function(){
