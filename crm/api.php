@@ -2774,6 +2774,103 @@ case 'set_foco_proyecto':
     jsonOk(['es_foco' => $p['es_foco'] ? 0 : 1]);
     break;
 
+// ── BÚSQUEDA GENERAL ─────────────────────────────────────────────
+// Busca "optum" o un nombre en varias áreas a la vez (miembros, notas,
+// campañas, tickets, citas, contactos) y deja limitar en cuáles buscar
+// (parámetro "areas", separado por comas — si no viene, busca en todas).
+case 'busqueda_general':
+    $pdo = db();
+    $q = trim($_GET['q'] ?? $_POST['q'] ?? '');
+    if (mb_strlen($q) < 2) jsonOk(['resultados' => [], 'q' => $q]);
+    $areasParam = $_GET['areas'] ?? $_POST['areas'] ?? '';
+    $areas = array_values(array_filter(array_map('trim', explode(',', $areasParam))));
+    if (!$areas) $areas = ['miembros','notas','campanas','tickets','citas','contactos'];
+    $like = '%'.$q.'%';
+    $resultados = [];
+
+    if (in_array('miembros', $areas, true)) {
+        try {
+            $stm = $pdo->prepare("SELECT id, nombre, apellido, telefono, email, carrier, estado
+                                   FROM miembros
+                                   WHERE nombre LIKE ? OR apellido LIKE ? OR telefono LIKE ? OR email LIKE ?
+                                      OR carrier LIKE ? OR mbi LIKE ? OR direccion_calle LIKE ? OR plan LIKE ?
+                                      OR extras LIKE ? OR condiciones_cronicas LIKE ?
+                                   ORDER BY apellido, nombre LIMIT 25");
+            $stm->execute(array_fill(0, 10, $like));
+            $resultados['miembros'] = $stm->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $resultados['miembros'] = []; }
+    }
+
+    if (in_array('notas', $areas, true)) {
+        try {
+            $stm = $pdo->prepare("SELECT a.id, a.descripcion, a.tipo, a.fecha_hora, a.miembro_id,
+                                          CONCAT(m.apellido,', ',m.nombre) as miembro_nombre
+                                   FROM actividad a LEFT JOIN miembros m ON a.miembro_id=m.id
+                                   WHERE a.descripcion LIKE ?
+                                   ORDER BY a.fecha_hora DESC LIMIT 25");
+            $stm->execute([$like]);
+            $resultados['notas'] = $stm->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $resultados['notas'] = []; }
+    }
+
+    if (in_array('campanas', $areas, true)) {
+        try {
+            $stm = $pdo->prepare("SELECT cc.id, cc.nombre, cc.apellido, cc.telefono, cc.notas, cc.campana_id,
+                                          c.nombre as campana_nombre
+                                   FROM campana_contactos cc LEFT JOIN campanas c ON cc.campana_id=c.id
+                                   WHERE cc.nombre LIKE ? OR cc.apellido LIKE ? OR cc.telefono LIKE ?
+                                      OR cc.notas LIKE ? OR cc.datos_extra LIKE ? OR c.nombre LIKE ?
+                                   ORDER BY cc.id DESC LIMIT 25");
+            $stm->execute(array_fill(0, 6, $like));
+            $resultados['campanas'] = $stm->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $resultados['campanas'] = []; }
+    }
+
+    if (in_array('tickets', $areas, true)) {
+        try {
+            $stm = $pdo->prepare("SELECT t.id, t.cliente, t.descripcion, t.tipo, t.estado, t.miembro_id,
+                                          CONCAT(m.apellido,', ',m.nombre) as miembro_nombre
+                                   FROM tickets t LEFT JOIN miembros m ON t.miembro_id=m.id
+                                   WHERE t.cliente LIKE ? OR t.descripcion LIKE ?
+                                   ORDER BY t.id DESC LIMIT 25");
+            $stm->execute([$like, $like]);
+            $resultados['tickets'] = $stm->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $resultados['tickets'] = []; }
+    }
+
+    if (in_array('citas', $areas, true)) {
+        try {
+            $stm = $pdo->prepare("SELECT c.id, c.cliente, c.notas, c.fecha, c.hora, c.miembro_id, c.estado,
+                                          CONCAT(m.apellido,', ',m.nombre) as miembro_nombre
+                                   FROM citas c LEFT JOIN miembros m ON c.miembro_id=m.id
+                                   WHERE c.cliente LIKE ? OR c.notas LIKE ? OR m.nombre LIKE ? OR m.apellido LIKE ?
+                                   ORDER BY c.fecha DESC LIMIT 25");
+            $stm->execute([$like, $like, $like, $like]);
+            $resultados['citas'] = $stm->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $resultados['citas'] = []; }
+    }
+
+    if (in_array('contactos', $areas, true)) {
+        try {
+            $stmC = $pdo->prepare("SELECT id, nombre, telefono, email, notas FROM cuentas
+                                    WHERE nombre LIKE ? OR telefono LIKE ? OR notas LIKE ? OR ciudad LIKE ?
+                                    ORDER BY nombre LIMIT 15");
+            $stmC->execute([$like, $like, $like, $like]);
+            $cuentas = $stmC->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $cuentas = []; }
+        try {
+            $stmR = $pdo->prepare("SELECT id, nombre, apellido, telefono, notas, estado FROM referidos
+                                    WHERE nombre LIKE ? OR apellido LIKE ? OR telefono LIKE ? OR notas LIKE ?
+                                    ORDER BY id DESC LIMIT 15");
+            $stmR->execute([$like, $like, $like, $like]);
+            $referidos = $stmR->fetchAll(PDO::FETCH_ASSOC);
+        } catch (Exception $e) { $referidos = []; }
+        $resultados['contactos'] = ['cuentas'=>$cuentas, 'referidos'=>$referidos];
+    }
+
+    jsonOk(['resultados' => $resultados, 'q' => $q]);
+    break;
+
 // ── DEFAULT ───────────────────────────────────────────────────
 default:
     jsonErr('Acción no válida: ' . htmlspecialchars($action));

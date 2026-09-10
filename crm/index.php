@@ -1778,11 +1778,11 @@ $cue_total      = count($cuentas_list);
 $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']));
 // ─────────────────────────────────────────────────────────────────────────────
 
-$tabs_admin=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
+$tabs_admin=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
+$tabs_agent=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
-$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
-$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
+$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
+$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$TX='#1B3A5C';
 function badge(?string $s, bool $sm = false) : string {
     $s = $s ?? ''; $map=['ACTIVE'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'IN PROCESS'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PLAN CHANGE'=>['#5B3FAF','#F3F0FB','#C2B0E8'],'SIN HACER'=>['#C07A1A','#FEF8EE','#F5D5A0'],'SIN FIRMAR'=>['#C05C1A','#FEF2EB','#F5C4A0'],'CANCELED'=>['#B83232','#FDF0EE','#EFA09A'],'DENIED'=>['#B83232','#FDF0EE','#EFA09A'],'CERRADO'=>['#888780','#F1EFE8','#B4B2A9'],'DISENROLLED'=>['#993C1D','#FAECE7','#F0997B'],'ACTIVO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'CANCELADO'=>['#B83232','#FDF0EE','#EFA09A'],'PENDIENTE'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PROSPECTO'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ABIERTO'=>['#B83232','#FDF0EE','#EFA09A'],'EN PROCESO'=>['#C07A1A','#FEF8EE','#F5D5A0'],'CERRADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'FIRMADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ALTA'=>['#B83232','#FDF0EE','#EFA09A'],'MEDIA'=>['#C07A1A','#FEF8EE','#F5D5A0'],'BAJA'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ACTIVA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'DEVUELTA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ADMIN'=>['#1B4A6B','#EBF4F9','#C8DFF0'],'EMPLEADO'=>['#1E7A8C','#EAF4F6','#8DC8D0']];$c=$map[$s]??['#7A90A4','#F4F8FC','#C8DFF0'];$p=$sm?'2px 8px':'3px 10px';$f=$sm?'9px':'10px';return "<span style=\"padding:$p;border-radius:20px;font-size:$f;font-weight:800;background:{$c[1]};color:{$c[0]};border:1px solid {$c[2]};white-space:nowrap;letter-spacing:.5px;text-transform:uppercase\">$s</span>";}
@@ -2143,6 +2143,25 @@ foreach ($users_all as $u) {
     }
 }
 ?>
+<!-- BUSCAR — búsqueda general en varias áreas a la vez, con la opción de
+     limitar en cuáles buscar. Los resultados se piden aparte (igual que
+     Citas/Tickets) — esta pestaña en sí no hace ninguna consulta al abrir. -->
+<div id="tab-BUSCAR" class="tab-pane">
+  <div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px">
+    <div style="padding:14px 16px">
+      <input type="search" id="busq-input" placeholder="🔎 Buscar un nombre, aseguranza (ej. Optum), teléfono..." autocomplete="off" oninput="_debouncedCall('busq',ejecutarBusquedaGeneral)" style="width:100%;background:<?=$BG?>;border:1.5px solid <?=$CB?>;border-radius:9px;padding:11px 14px;font-size:12px;font-family:'DM Sans',sans-serif;outline:none">
+      <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin:12px 0 7px">BUSCAR EN</div>
+      <div id="busq-areas" style="display:flex;flex-wrap:wrap;gap:6px">
+        <?php foreach(['miembros'=>'◉ MIEMBROS','notas'=>'📝 NOTAS','campanas'=>'📣 CAMPAÑAS','tickets'=>'◈ TICKETS','citas'=>'◷ CITAS','contactos'=>'🤝 CONTACTOS'] as $bk=>$bl):?>
+        <button type="button" class="busq-area-chip active" data-area="<?=$bk?>" onclick="toggleBusqArea(this)" style="background:<?=$P1?>;color:#fff;border:1.5px solid <?=$P1?>;border-radius:20px;padding:6px 13px;font-size:9px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px"><?=$bl?></button>
+        <?php endforeach;?>
+      </div>
+    </div>
+  </div>
+  <div id="busq-resultados">
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Escribe arriba para buscar en todo el CRM</div>
+  </div>
+</div>
 <!-- DASHBOARD -->
 <div id="tab-DASHBOARD" class="tab-pane active">
 <?php if(!empty($alertas_hoy) && $alertas_hoy>0): ?>
@@ -8874,6 +8893,177 @@ function _debouncedCall(key, fn, wait){
   clearTimeout(_searchTimers[key]);
   _searchTimers[key] = setTimeout(fn, wait || 220);
 }
+// ── BÚSQUEDA GENERAL — busca en varias áreas del CRM a la vez, con la
+// opción de limitar en cuáles ("Miembros" sí, pero "Campañas" no, por
+// ejemplo). Los chips de área se guardan en sessionStorage para que no se
+// tengan que volver a marcar cada vez que se abre la pestaña.
+function toggleBusqArea(btn){
+  var on = !btn.classList.contains('active');
+  btn.classList.toggle('active', on);
+  btn.style.background = on ? '<?=$P1?>' : '#fff';
+  btn.style.color      = on ? '#fff' : '<?=$MU?>';
+  btn.style.borderColor= on ? '<?=$P1?>' : '<?=$CB?>';
+  try{
+    var activos = Array.from(document.querySelectorAll('.busq-area-chip.active')).map(function(b){return b.dataset.area;});
+    sessionStorage.setItem('busqAreas', activos.join(','));
+  }catch(e){}
+  if(document.getElementById('busq-input').value.trim()) ejecutarBusquedaGeneral();
+}
+function _busqAreasActivas(){
+  return Array.from(document.querySelectorAll('.busq-area-chip.active')).map(function(b){return b.dataset.area;}).join(',');
+}
+function ejecutarBusquedaGeneral(){
+  var q = (document.getElementById('busq-input')?.value||'').trim();
+  var wrap = document.getElementById('busq-resultados');
+  if(!wrap) return;
+  if(q.length<2){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Escribe al menos 2 letras para buscar</div>';
+    return;
+  }
+  var areas = _busqAreasActivas();
+  if(!areas){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Activa al menos un área arriba para buscar</div>';
+    return;
+  }
+  wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Buscando…</div>';
+  fetch('api.php?action=busqueda_general&q='+encodeURIComponent(q)+'&areas='+encodeURIComponent(areas))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL BUSCAR</div>'; return; }
+      _renderBusqResultados(d.data.resultados||{}, q);
+    })
+    .catch(function(){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>'; });
+}
+function _busqResalta(txt, q){
+  var s = esc(txt||'');
+  if(!q) return s;
+  try{
+    var re = new RegExp('('+q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');
+    return s.replace(re, '<mark style="background:#FEF3C7;color:inherit;padding:0 1px">$1</mark>');
+  }catch(e){ return s; }
+}
+function _busqCard(titulo, sub, extra, onclick){
+  return '<div onclick="'+onclick+'" style="background:#fff;border:1px solid <?=$CB?>;border-radius:10px;padding:10px 13px;margin-bottom:7px;cursor:pointer" onmouseover="this.style.borderColor=\'<?=$P2?>\'" onmouseout="this.style.borderColor=\'<?=$CB?>\'">'
+    +'<div style="font-weight:900;font-size:10px;color:<?=$P1?>">'+titulo+'</div>'
+    +(sub?'<div style="font-size:8px;color:<?=$MU?>;margin-top:2px">'+sub+'</div>':'')
+    +(extra?'<div style="font-size:8px;color:<?=$TX?>;margin-top:5px;background:<?=$BG?>;border-radius:6px;padding:5px 8px;line-height:1.4">'+extra+'</div>':'')
+    +'</div>';
+}
+function _busqSeccion(titulo, color, itemsHtml){
+  if(!itemsHtml.length) return '';
+  return '<div style="margin-bottom:16px">'
+    +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 0;border-bottom:2px solid '+color+'">'
+    +'<span style="font-size:10px;font-weight:900;color:'+color+';text-transform:uppercase;letter-spacing:1px">'+titulo+'</span>'
+    +'<span style="background:'+color+';color:#fff;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900">'+itemsHtml.length+'</span>'
+    +'</div>'+itemsHtml.join('')+'</div>';
+}
+function _renderBusqResultados(resultados, q){
+  var wrap = document.getElementById('busq-resultados');
+  var secciones = [];
+  var total = 0;
+
+  if(resultados.miembros){
+    var items = resultados.miembros.map(function(m){
+      var sub = [m.telefono, m.carrier, m.estado].filter(Boolean).join(' · ');
+      return _busqCard(_busqResalta((m.apellido||'')+', '+(m.nombre||''), q), esc(sub), null, 'openProfile('+m.id+')');
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('◉ MIEMBROS', '<?=$P1?>', items));
+  }
+  if(resultados.notas){
+    var items = resultados.notas.map(function(n){
+      var sub = (n.miembro_nombre?esc(n.miembro_nombre)+' · ':'')+esc(n.tipo||'')+' · '+(n.fecha_hora||'').substring(0,10);
+      return _busqCard(_busqResalta(n.descripcion||'', q), sub, null, n.miembro_id?('openProfile('+n.miembro_id+')'):'void(0)');
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('📝 NOTAS', '#5B3FAF', items));
+  }
+  if(resultados.campanas){
+    var items = resultados.campanas.map(function(c){
+      var nombre = ((c.nombre||'')+' '+(c.apellido||'')).trim();
+      var sub = [c.telefono, c.campana_nombre].filter(Boolean).map(function(s){return esc(s);}).join(' · ');
+      var extra = c.notas ? _busqResalta(c.notas, q) : null;
+      return _busqCard(_busqResalta(nombre, q), sub, extra, '_busqAbrirCampana('+c.campana_id+','+c.id+')');
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('📣 CAMPAÑAS', '#C07A1A', items));
+  }
+  if(resultados.tickets){
+    var items = resultados.tickets.map(function(t){
+      var nombre = t.miembro_nombre || t.cliente || '(sin nombre)';
+      var sub = [t.tipo, t.estado].filter(Boolean).join(' · ');
+      var extra = t.descripcion ? _busqResalta(t.descripcion.substring(0,140), q) : null;
+      return _busqCard(_busqResalta(nombre, q), esc(sub), extra, "showTab('TICKETS')");
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('◈ TICKETS', '#1B5E8C', items));
+  }
+  if(resultados.citas){
+    var items = resultados.citas.map(function(c){
+      var nombre = c.miembro_nombre || c.cliente || '(sin nombre)';
+      var sub = [c.fecha, (c.hora||'').substring(0,5), c.estado].filter(Boolean).join(' · ');
+      var extra = c.notas ? _busqResalta(c.notas, q) : null;
+      return _busqCard(_busqResalta(nombre, q), esc(sub), extra, "editarCita("+c.id+")");
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('◷ CITAS', '#1E7A8C', items));
+  }
+  if(resultados.contactos){
+    var items = [];
+    (resultados.contactos.cuentas||[]).forEach(function(c){
+      var sub = [c.telefono, c.email].filter(Boolean).join(' · ');
+      var extra = c.notas ? _busqResalta(c.notas, q) : null;
+      items.push(_busqCard(_busqResalta(c.nombre||'', q)+' <span style="font-size:7px;color:<?=$MU?>">(CUENTA)</span>', esc(sub), extra, "showTab('CONTACTOS');openCueDetalle("+c.id+")"));
+    });
+    (resultados.contactos.referidos||[]).forEach(function(r){
+      var nombre = ((r.nombre||'')+' '+(r.apellido||'')).trim();
+      var sub = [r.telefono, r.estado].filter(Boolean).join(' · ');
+      var extra = r.notas ? _busqResalta(r.notas, q) : null;
+      items.push(_busqCard(_busqResalta(nombre, q)+' <span style="font-size:7px;color:<?=$MU?>">(REFERIDO)</span>', esc(sub), extra, "_busqAbrirReferido("+r.id+")"));
+    });
+    total += items.length;
+    secciones.push(_busqSeccion('🤝 CONTACTOS', '#1E7A5C', items));
+  }
+
+  if(!total){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">SIN RESULTADOS PARA "'+esc(q)+'"</div>';
+    return;
+  }
+  wrap.innerHTML = '<div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:10px">'+total+' RESULTADO'+(total!==1?'S':'')+'</div>' + secciones.join('');
+}
+function _busqResaltarTarjeta(el){
+  if(!el) return;
+  el.scrollIntoView({behavior:'smooth', block:'center'});
+  var prevBg = el.style.background;
+  el.style.background = '#FFF6D8';
+  setTimeout(function(){ el.style.background = prevBg || '#fff'; }, 1800);
+}
+function _busqAbrirCampana(campId, ccId){
+  showTab('CAMPANAS');
+  var body = document.getElementById('camp-body-'+campId);
+  if(body && body.style.display==='none' && typeof campToggleCard==='function') campToggleCard(campId);
+  _busqResaltarTarjeta(document.getElementById('cc-card-'+ccId));
+}
+function _busqAbrirReferido(id){
+  showTab('CONTACTOS');
+  if(typeof showCueSubTab==='function') showCueSubTab('REFERIDOS');
+  _busqResaltarTarjeta(document.getElementById('ref-card-'+id));
+}
+document.addEventListener('DOMContentLoaded', function(){
+  try{
+    var guardadas = sessionStorage.getItem('busqAreas');
+    if(guardadas){
+      var set = guardadas.split(',');
+      document.querySelectorAll('.busq-area-chip').forEach(function(b){
+        var on = set.indexOf(b.dataset.area)!==-1;
+        b.classList.toggle('active', on);
+        b.style.background = on ? '<?=$P1?>' : '#fff';
+        b.style.color      = on ? '#fff' : '<?=$MU?>';
+        b.style.borderColor= on ? '<?=$P1?>' : '<?=$CB?>';
+      });
+    }
+  }catch(e){}
+});
 // ── CSRF: todo POST por fetch lleva el token de la sesión (api.php lo verifica) ──
 const CSRF_TOKEN='<?=h($_SESSION['csrf_token'] ?? '')?>';
 // ── AVISOS EN VIVO: URL del ws-relay (vacío si no está configurado en config.php) ──
@@ -8904,8 +9094,8 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
 const el=document.getElementById('tab-'+id);if(el)el.style.display='block';
 document.querySelectorAll('.ntab[data-tab="'+id+'"]').forEach(b=>b.classList.add('active'));
-const names={DASHBOARD:'DASHBOARD','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',REUNIONES:'REUNIONES',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
-const icons={DASHBOARD:'▣','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',REUNIONES:'📅',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
+const names={DASHBOARD:'DASHBOARD',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',REUNIONES:'REUNIONES',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
+const icons={DASHBOARD:'▣',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',REUNIONES:'📅',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
 document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
