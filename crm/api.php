@@ -2871,6 +2871,71 @@ case 'busqueda_general':
     jsonOk(['resultados' => $resultados, 'q' => $q]);
     break;
 
+// ── BÚSQUEDA AVANZADA ────────────────────────────────────────────
+// Elegir una tabla, una o varias columnas de esa tabla, y el valor a
+// filtrar — para cuando la búsqueda general trae demasiados resultados.
+// Los nombres de tabla y columna SOLO pueden venir de este whitelist
+// (nunca se interpola un nombre libre del usuario en el SQL).
+case 'busqueda_avanzada':
+    $pdo = db();
+    $tabla = trim($_GET['tabla'] ?? $_POST['tabla'] ?? '');
+    $colsParam = $_GET['columnas'] ?? $_POST['columnas'] ?? '';
+    $valor = trim($_GET['valor'] ?? $_POST['valor'] ?? '');
+    $columnas = array_values(array_filter(array_map('trim', explode(',', $colsParam))));
+
+    $TABLAS_PERMITIDAS = [
+        'miembros' => [
+            'display' => ['nombre', 'apellido', 'telefono', 'estado', 'carrier'],
+            'cols'    => ['nombre','apellido','telefono','telefono2','email','carrier','plan','tipo_plan','estado',
+                          'subestado','mbi','direccion_calle','ciudad','zip','condiciones_cronicas','prescripciones',
+                          'notas','fuente','pcp','dob'],
+        ],
+        'actividad' => [
+            'display' => ['tipo', 'fecha_hora'],
+            'cols'    => ['descripcion', 'tipo'],
+        ],
+        'campana_contactos' => [
+            'display' => ['nombre', 'apellido', 'telefono', 'estado'],
+            'cols'    => ['nombre','apellido','telefono','email','notas','estado','datos_extra'],
+        ],
+        'tickets' => [
+            'display' => ['cliente', 'tipo', 'estado'],
+            'cols'    => ['cliente','tipo','prioridad','estado','descripcion','notas','resultado','fuente'],
+        ],
+        'citas' => [
+            'display' => ['cliente', 'tipo', 'estado', 'fecha'],
+            'cols'    => ['cliente','tipo','modalidad','estado','notas','fecha'],
+        ],
+        'cuentas' => [
+            'display' => ['nombre', 'telefono', 'tipo'],
+            'cols'    => ['nombre','telefono','email','direccion','ciudad','notas','tipo'],
+        ],
+        'referidos' => [
+            'display' => ['nombre', 'apellido', 'telefono', 'estado'],
+            'cols'    => ['nombre','apellido','telefono','notas','estado','idioma'],
+        ],
+    ];
+
+    if (!isset($TABLAS_PERMITIDAS[$tabla])) jsonErr('Tabla no válida');
+    $cfg = $TABLAS_PERMITIDAS[$tabla];
+    $columnas = array_values(array_intersect($columnas, $cfg['cols']));
+    if (!$columnas) jsonErr('Selecciona al menos una columna');
+    if ($valor === '') jsonOk(['filas' => [], 'columnas' => [], 'tabla' => $tabla]);
+
+    $mostrarCols = array_values(array_unique(array_merge(['id'], $cfg['display'], $columnas)));
+    $selectSql = implode(',', array_map(fn($c) => "`$c`", $mostrarCols));
+    $whereSql  = implode(' OR ', array_map(fn($c) => "`$c` LIKE ?", $columnas));
+    $params    = array_fill(0, count($columnas), '%'.$valor.'%');
+
+    try {
+        $stm = $pdo->prepare("SELECT $selectSql FROM `$tabla` WHERE $whereSql ORDER BY id DESC LIMIT 50");
+        $stm->execute($params);
+        $filas = $stm->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { $filas = []; }
+
+    jsonOk(['filas' => $filas, 'columnas' => $mostrarCols, 'tabla' => $tabla]);
+    break;
+
 // ── DEFAULT ───────────────────────────────────────────────────
 default:
     jsonErr('Acción no válida: ' . htmlspecialchars($action));

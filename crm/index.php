@@ -2161,6 +2161,37 @@ foreach ($users_all as $u) {
   <div id="busq-resultados">
     <div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Escribe arriba para buscar en todo el CRM</div>
   </div>
+
+  <!-- Búsqueda avanzada: elegir tabla + columna(s) específicas + valor, para
+       casos donde la búsqueda general trae demasiados resultados. -->
+  <div class="card" style="border-top:3px solid <?=$P2?>;margin-bottom:14px">
+    <div style="padding:14px 16px">
+      <div onclick="toggleBusqAvanzada()" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center">
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">🔧 BÚSQUEDA AVANZADA — por tabla y columna específica</div>
+        <span id="busq-av-arrow" style="font-size:10px;color:<?=$MU?>">▼</span>
+      </div>
+      <div id="busq-av-body" style="display:none;margin-top:12px">
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px">TABLA</div>
+        <select id="busq-av-tabla" onchange="_busqAvRenderColumnas()" style="width:100%;background:<?=$BG?>;border:1.5px solid <?=$CB?>;border-radius:9px;padding:9px 12px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none;font-weight:700">
+          <option value="miembros">MIEMBROS</option>
+          <option value="actividad">NOTAS</option>
+          <option value="campana_contactos">CAMPAÑAS (CONTACTOS)</option>
+          <option value="tickets">TICKETS</option>
+          <option value="citas">CITAS</option>
+          <option value="cuentas">CONTACTOS (CUENTAS)</option>
+          <option value="referidos">CONTACTOS (REFERIDOS)</option>
+        </select>
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">COLUMNA(S) DONDE BUSCAR</div>
+        <div id="busq-av-cols" style="display:flex;flex-wrap:wrap;gap:6px"></div>
+        <div style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin:12px 0 6px">VALOR A BUSCAR</div>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <input type="text" id="busq-av-valor" placeholder="Ej. Optum" onkeydown="if(event.key==='Enter')ejecutarBusquedaAvanzada()" style="flex:1;min-width:180px;background:<?=$BG?>;border:1.5px solid <?=$CB?>;border-radius:9px;padding:9px 12px;font-size:11px;font-family:'DM Sans',sans-serif;outline:none">
+          <button type="button" onclick="ejecutarBusquedaAvanzada()" style="background:<?=$P2?>;color:#fff;border:none;border-radius:9px;padding:9px 18px;font-size:9px;font-weight:900;cursor:pointer;text-transform:uppercase;letter-spacing:.5px">BUSCAR</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="busq-av-resultados"></div>
 </div>
 <!-- DASHBOARD -->
 <div id="tab-DASHBOARD" class="tab-pane active">
@@ -9064,6 +9095,103 @@ document.addEventListener('DOMContentLoaded', function(){
     }
   }catch(e){}
 });
+// ── BÚSQUEDA AVANZADA — elegir una tabla, una o varias columnas de esa
+// tabla, y el valor a filtrar (para cuando la búsqueda general trae
+// demasiados resultados y hace falta algo más específico). La lista de
+// columnas de cada tabla debe coincidir con el whitelist de api.php
+// (case 'busqueda_avanzada') — nunca se manda un nombre de columna libre.
+const BUSQ_AV_TABLAS = {
+  miembros: {cols:[
+    ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['telefono2','TELÉFONO 2'],['email','EMAIL'],
+    ['carrier','ASEGURANZA'],['plan','PLAN'],['tipo_plan','TIPO DE PLAN'],['estado','ESTADO'],['subestado','SUBESTADO'],
+    ['mbi','MBI'],['direccion_calle','DIRECCIÓN'],['ciudad','CIUDAD'],['zip','ZIP'],
+    ['condiciones_cronicas','CONDICIONES CRÓNICAS'],['prescripciones','PRESCRIPCIONES'],['notas','NOTAS'],
+    ['fuente','FUENTE'],['pcp','DOCTOR (PCP)'],['dob','FECHA DE NACIMIENTO']
+  ]},
+  actividad: {cols:[['descripcion','DESCRIPCIÓN'],['tipo','TIPO']]},
+  campana_contactos: {cols:[
+    ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['email','EMAIL'],
+    ['notas','NOTAS'],['estado','ESTADO'],['datos_extra','DATOS EXTRA']
+  ]},
+  tickets: {cols:[
+    ['cliente','CLIENTE'],['tipo','TIPO'],['prioridad','PRIORIDAD'],['estado','ESTADO'],
+    ['descripcion','DESCRIPCIÓN'],['notas','NOTAS'],['resultado','RESULTADO'],['fuente','FUENTE']
+  ]},
+  citas: {cols:[
+    ['cliente','CLIENTE'],['tipo','TIPO'],['modalidad','MODALIDAD'],['estado','ESTADO'],['notas','NOTAS'],['fecha','FECHA']
+  ]},
+  cuentas: {cols:[
+    ['nombre','NOMBRE'],['telefono','TELÉFONO'],['email','EMAIL'],['direccion','DIRECCIÓN'],
+    ['ciudad','CIUDAD'],['notas','NOTAS'],['tipo','TIPO']
+  ]},
+  referidos: {cols:[
+    ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['notas','NOTAS'],['estado','ESTADO'],['idioma','IDIOMA']
+  ]}
+};
+function toggleBusqAvanzada(){
+  var body = document.getElementById('busq-av-body');
+  var arrow = document.getElementById('busq-av-arrow');
+  var abierto = body.style.display !== 'none';
+  body.style.display = abierto ? 'none' : 'block';
+  arrow.textContent = abierto ? '▼' : '▲';
+  if(!abierto && !document.getElementById('busq-av-cols').children.length) _busqAvRenderColumnas();
+}
+function _busqAvRenderColumnas(){
+  var tabla = document.getElementById('busq-av-tabla').value;
+  var cfg = BUSQ_AV_TABLAS[tabla];
+  var wrap = document.getElementById('busq-av-cols');
+  wrap.innerHTML = cfg.cols.map(function(c){
+    return '<button type="button" class="busq-av-col-chip" data-col="'+c[0]+'" onclick="_toggleBusqAvCol(this)" style="background:#fff;color:<?=$MU?>;border:1.5px solid <?=$CB?>;border-radius:20px;padding:6px 13px;font-size:9px;font-weight:900;cursor:pointer;font-family:\'DM Sans\',sans-serif;text-transform:uppercase;letter-spacing:.5px">'+c[1]+'</button>';
+  }).join('');
+}
+function _toggleBusqAvCol(btn){
+  var on = !btn.classList.contains('active');
+  btn.classList.toggle('active', on);
+  btn.style.background = on ? '<?=$P2?>' : '#fff';
+  btn.style.color      = on ? '#fff' : '<?=$MU?>';
+  btn.style.borderColor= on ? '<?=$P2?>' : '<?=$CB?>';
+}
+function _busqAvEtiqueta(tabla, col){
+  var f = (BUSQ_AV_TABLAS[tabla]?.cols||[]).find(function(c){return c[0]===col;});
+  return f ? f[1] : col.toUpperCase();
+}
+function ejecutarBusquedaAvanzada(){
+  var tabla = document.getElementById('busq-av-tabla').value;
+  var cols = Array.from(document.querySelectorAll('.busq-av-col-chip.active')).map(function(b){return b.dataset.col;});
+  var valor = document.getElementById('busq-av-valor').value.trim();
+  var wrap = document.getElementById('busq-av-resultados');
+  if(!cols.length){ wrap.innerHTML = '<div style="padding:14px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">Selecciona al menos una columna</div>'; return; }
+  if(!valor){ wrap.innerHTML = '<div style="padding:14px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">Escribe un valor a buscar</div>'; return; }
+  wrap.innerHTML = '<div style="padding:20px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Buscando…</div>';
+  fetch('api.php?action=busqueda_avanzada&tabla='+encodeURIComponent(tabla)+'&columnas='+encodeURIComponent(cols.join(','))+'&valor='+encodeURIComponent(valor))
+    .then(function(r){return r.json();})
+    .then(function(d){
+      if(!d.ok){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+esc(d.error||'ERROR AL BUSCAR')+'</div>'; return; }
+      _renderBusqAvResultados(d.data.filas||[], d.data.columnas||[], tabla, valor);
+    })
+    .catch(function(){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>'; });
+}
+function _renderBusqAvResultados(filas, columnas, tabla, valor){
+  var wrap = document.getElementById('busq-av-resultados');
+  if(!filas.length){
+    wrap.innerHTML = '<div style="padding:30px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">SIN RESULTADOS</div>';
+    return;
+  }
+  var cols = columnas.filter(function(c){return c!=='id';});
+  var clickable = tabla==='miembros';
+  var html = '<div class="card" style="overflow-x:auto;padding:0"><table style="width:100%;border-collapse:collapse;font-size:9px">';
+  html += '<thead><tr>' + cols.map(function(c){return '<th style="text-align:left;padding:8px 10px;color:<?=$MU?>;text-transform:uppercase;font-size:8px;border-bottom:2px solid <?=$CB?>;white-space:nowrap">'+_busqAvEtiqueta(tabla,c)+'</th>';}).join('') + '</tr></thead><tbody>';
+  filas.forEach(function(f){
+    html += '<tr'+(clickable?' onclick="openProfile('+f.id+')" style="cursor:pointer"':'')+' onmouseover="this.style.background=\'<?=$BG?>\'" onmouseout="this.style.background=\'\'">';
+    html += cols.map(function(c){
+      var v = f[c]==null?'':String(f[c]);
+      return '<td style="padding:8px 10px;border-bottom:1px solid <?=$CB?>;color:<?=$TX?>">'+_busqResalta(v, valor)+'</td>';
+    }).join('');
+    html += '</tr>';
+  });
+  html += '</tbody></table></div>';
+  wrap.innerHTML = '<div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">'+filas.length+' RESULTADO'+(filas.length!==1?'S':'')+'</div>' + html;
+}
 // ── CSRF: todo POST por fetch lleva el token de la sesión (api.php lo verifica) ──
 const CSRF_TOKEN='<?=h($_SESSION['csrf_token'] ?? '')?>';
 // ── AVISOS EN VIVO: URL del ws-relay (vacío si no está configurado en config.php) ──
