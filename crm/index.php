@@ -9106,26 +9106,26 @@ const BUSQ_AV_TABLAS = {
     ['carrier','ASEGURANZA'],['plan','PLAN'],['tipo_plan','TIPO DE PLAN'],['estado','ESTADO'],['subestado','SUBESTADO'],
     ['mbi','MBI'],['direccion_calle','DIRECCIÓN'],['ciudad','CIUDAD'],['zip','ZIP'],
     ['condiciones_cronicas','CONDICIONES CRÓNICAS'],['prescripciones','PRESCRIPCIONES'],['notas','NOTAS'],
-    ['fuente','FUENTE'],['pcp','DOCTOR (PCP)'],['dob','FECHA DE NACIMIENTO']
+    ['fuente','FUENTE'],['pcp','DOCTOR (PCP)'],['dob','FECHA DE NACIMIENTO'],['agente','AGENTE']
   ]},
-  actividad: {cols:[['descripcion','DESCRIPCIÓN'],['tipo','TIPO']]},
+  actividad: {cols:[['descripcion','DESCRIPCIÓN'],['tipo','TIPO'],['agente','AGENTE']]},
   campana_contactos: {cols:[
     ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['email','EMAIL'],
-    ['notas','NOTAS'],['estado','ESTADO'],['datos_extra','DATOS EXTRA']
+    ['notas','NOTAS'],['estado','ESTADO'],['datos_extra','DATOS EXTRA'],['agente','AGENTE']
   ]},
   tickets: {cols:[
     ['cliente','CLIENTE'],['tipo','TIPO'],['prioridad','PRIORIDAD'],['estado','ESTADO'],
-    ['descripcion','DESCRIPCIÓN'],['notas','NOTAS'],['resultado','RESULTADO'],['fuente','FUENTE']
+    ['descripcion','DESCRIPCIÓN'],['notas','NOTAS'],['resultado','RESULTADO'],['fuente','FUENTE'],['agente','AGENTE']
   ]},
   citas: {cols:[
-    ['cliente','CLIENTE'],['tipo','TIPO'],['modalidad','MODALIDAD'],['estado','ESTADO'],['notas','NOTAS'],['fecha','FECHA']
+    ['cliente','CLIENTE'],['tipo','TIPO'],['modalidad','MODALIDAD'],['estado','ESTADO'],['notas','NOTAS'],['fecha','FECHA'],['agente','AGENTE']
   ]},
   cuentas: {cols:[
     ['nombre','NOMBRE'],['telefono','TELÉFONO'],['email','EMAIL'],['direccion','DIRECCIÓN'],
-    ['ciudad','CIUDAD'],['notas','NOTAS'],['tipo','TIPO']
+    ['ciudad','CIUDAD'],['notas','NOTAS'],['tipo','TIPO'],['agente','AGENTE']
   ]},
   referidos: {cols:[
-    ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['notas','NOTAS'],['estado','ESTADO'],['idioma','IDIOMA']
+    ['nombre','NOMBRE'],['apellido','APELLIDO'],['telefono','TELÉFONO'],['notas','NOTAS'],['estado','ESTADO'],['idioma','IDIOMA'],['agente','AGENTE']
   ]}
 };
 function toggleBusqAvanzada(){
@@ -9152,6 +9152,7 @@ function _toggleBusqAvCol(btn){
   btn.style.borderColor= on ? '<?=$P2?>' : '<?=$CB?>';
 }
 function _busqAvEtiqueta(tabla, col){
+  if(col==='agente_nombre') return 'AGENTE';
   var f = (BUSQ_AV_TABLAS[tabla]?.cols||[]).find(function(c){return c[0]===col;});
   return f ? f[1] : col.toUpperCase();
 }

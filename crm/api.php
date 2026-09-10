@@ -2918,22 +2918,39 @@ case 'busqueda_avanzada':
 
     if (!isset($TABLAS_PERMITIDAS[$tabla])) jsonErr('Tabla no válida');
     $cfg = $TABLAS_PERMITIDAS[$tabla];
-    $columnas = array_values(array_intersect($columnas, $cfg['cols']));
+    // 'agente' es una columna virtual: las 7 tablas tienen agente_id, pero se
+    // filtra por el NOMBRE del agente (vía JOIN a usuarios), no por el id.
+    $columnas = array_values(array_intersect($columnas, array_merge($cfg['cols'], ['agente'])));
     if (!$columnas) jsonErr('Selecciona al menos una columna');
     if ($valor === '') jsonOk(['filas' => [], 'columnas' => [], 'tabla' => $tabla]);
 
-    $mostrarCols = array_values(array_unique(array_merge(['id'], $cfg['display'], $columnas)));
-    $selectSql = implode(',', array_map(fn($c) => "`$c`", $mostrarCols));
-    $whereSql  = implode(' OR ', array_map(fn($c) => "`$c` LIKE ?", $columnas));
-    $params    = array_fill(0, count($columnas), '%'.$valor.'%');
+    $usaAgente = in_array('agente', $columnas, true);
+    $colsReales = array_values(array_diff($columnas, ['agente']));
+
+    $mostrarCols = array_values(array_unique(array_merge(['id'], $cfg['display'], $colsReales)));
+    $selectPartes = array_map(fn($c) => "`$tabla`.`$c`", $mostrarCols);
+    $wherePartes  = array_map(fn($c) => "`$tabla`.`$c` LIKE ?", $colsReales);
+    $params       = array_fill(0, count($colsReales), '%'.$valor.'%');
+    $join = '';
+    if ($usaAgente) {
+        $join = "LEFT JOIN usuarios ag ON `$tabla`.agente_id = ag.id";
+        $selectPartes[] = "ag.nombre AS agente_nombre";
+        $wherePartes[]  = "ag.nombre LIKE ?";
+        $params[]       = '%'.$valor.'%';
+    }
 
     try {
-        $stm = $pdo->prepare("SELECT $selectSql FROM `$tabla` WHERE $whereSql ORDER BY id DESC LIMIT 50");
+        $sql = "SELECT ".implode(',', $selectPartes)." FROM `$tabla` $join
+                WHERE ".implode(' OR ', $wherePartes)." ORDER BY `$tabla`.id DESC LIMIT 50";
+        $stm = $pdo->prepare($sql);
         $stm->execute($params);
         $filas = $stm->fetchAll(PDO::FETCH_ASSOC);
     } catch (Exception $e) { $filas = []; }
 
-    jsonOk(['filas' => $filas, 'columnas' => $mostrarCols, 'tabla' => $tabla]);
+    $mostrarColsFinal = $mostrarCols;
+    if ($usaAgente) $mostrarColsFinal[] = 'agente_nombre';
+
+    jsonOk(['filas' => $filas, 'columnas' => $mostrarColsFinal, 'tabla' => $tabla]);
     break;
 
 // ── DEFAULT ───────────────────────────────────────────────────
