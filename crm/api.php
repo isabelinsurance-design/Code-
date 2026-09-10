@@ -2927,13 +2927,36 @@ case 'busqueda_avanzada':
     $usaAgente = in_array('agente', $columnas, true);
     $colsReales = array_values(array_diff($columnas, ['agente']));
 
+    // citas y tickets tienen un campo "cliente" de texto libre que suele
+    // quedar VACÍO cuando la cita/ticket está ligada a un miembro YA
+    // REGISTRADO (el nombre se saca del miembro, no de ese campo) — por
+    // eso salía en blanco. Se resuelve con el nombre del miembro ligado
+    // (miembro_id) cuando "cliente" está vacío, igual que ya se hace en
+    // el resto de la app (ver lib_row_render.php).
+    $usaMiembroParaCliente = in_array($tabla, ['citas', 'tickets'], true);
+
     $mostrarCols = array_values(array_unique(array_merge(['id'], $cfg['display'], $colsReales)));
-    $selectPartes = array_map(fn($c) => "`$tabla`.`$c`", $mostrarCols);
-    $wherePartes  = array_map(fn($c) => "`$tabla`.`$c` LIKE ?", $colsReales);
-    $params       = array_fill(0, count($colsReales), '%'.$valor.'%');
+    $selectPartes = array_map(function($c) use ($tabla, $usaMiembroParaCliente) {
+        if ($usaMiembroParaCliente && $c === 'cliente') {
+            return "COALESCE(NULLIF(TRIM(`$tabla`.`cliente`),''), NULLIF(TRIM(CONCAT(COALESCE(mm.apellido,''),' ',COALESCE(mm.nombre,''))),''), '— SIN NOMBRE —') AS cliente";
+        }
+        return "`$tabla`.`$c`";
+    }, $mostrarCols);
+    $wherePartes = [];
+    $params = [];
+    foreach ($colsReales as $c) {
+        if ($usaMiembroParaCliente && $c === 'cliente') {
+            $wherePartes[] = "(`$tabla`.`cliente` LIKE ? OR mm.nombre LIKE ? OR mm.apellido LIKE ?)";
+            $params[] = '%'.$valor.'%'; $params[] = '%'.$valor.'%'; $params[] = '%'.$valor.'%';
+        } else {
+            $wherePartes[] = "`$tabla`.`$c` LIKE ?";
+            $params[] = '%'.$valor.'%';
+        }
+    }
     $join = '';
+    if ($usaMiembroParaCliente) $join .= " LEFT JOIN miembros mm ON `$tabla`.miembro_id = mm.id";
     if ($usaAgente) {
-        $join = "LEFT JOIN usuarios ag ON `$tabla`.agente_id = ag.id";
+        $join .= " LEFT JOIN usuarios ag ON `$tabla`.agente_id = ag.id";
         $selectPartes[] = "ag.nombre AS agente_nombre";
         $wherePartes[]  = "ag.nombre LIKE ?";
         $params[]       = '%'.$valor.'%';
