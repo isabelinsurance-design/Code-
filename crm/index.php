@@ -2648,25 +2648,25 @@ $m_done=count(array_filter($reuniones,fn($r)=>$r['status']==='done'));
       <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px">ACCIONES / ACUERDOS</div>
       <?php foreach($accs as $a):?>
       <div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid <?=$CB?>">
-        <div onclick="mtgToggleAccion(<?=$a['id']?>)" style="width:17px;height:17px;border-radius:5px;border:1.5px solid <?=$a['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$a['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#fff;font-size:9px;font-weight:900"><?=$a['done']?'✓':''?></div>
-        <span style="flex:1;font-size:10px;color:<?=$a['done']?$MU:$TX?>;<?=$a['done']?'text-decoration:line-through':''?>"><?=h($a['texto'])?></span>
+        <div id="mtg-acc-cb-<?=$a['id']?>" data-done="<?=$a['done']?'1':'0'?>" onclick="mtgToggleAccion(<?=$a['id']?>)" style="width:17px;height:17px;border-radius:5px;border:1.5px solid <?=$a['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$a['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#fff;font-size:9px;font-weight:900"><?=$a['done']?'✓':''?></div>
+        <span id="mtg-acc-txt-<?=$a['id']?>" style="flex:1;font-size:10px;color:<?=$a['done']?$MU:$TX?>;<?=$a['done']?'text-decoration:line-through':''?>"><?=h($a['texto'])?></span>
         <?php if($a['responsable']&&isset($mtg_umap[$a['responsable']])):$ua=$mtg_umap[$a['responsable']];?><?=av(h($ua['iniciales']),h($ua['color']??'#2876A8'),20)?><?php endif;?>
       </div>
       <?php endforeach;?>
       <input type="text" class="form-input" style="font-size:9px;padding:6px 9px;margin-top:7px;text-transform:none" placeholder="+ NUEVA ACCIÓN... (ENTER)" onkeydown="if(event.key==='Enter'){event.preventDefault();mtgAddAccion(<?=$r['id']?>,this);}">
     </div>
     <?php foreach($secs as $sec): $items=$item_by_s[$sec['id']]??[]; $sd=count(array_filter($items,fn($i)=>$i['done'])); $sp=count($items)?round($sd/count($items)*100):0;?>
-    <div style="margin-bottom:13px">
+    <div id="mtg-sec-<?=$sec['id']?>" style="margin-bottom:13px">
       <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;margin-bottom:7px">
         <span style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:.5px"><?=h($sec['nombre'])?></span>
-        <?php if(count($items)>0):?><span style="font-size:8px;font-weight:900;color:<?=$sp==100?'#1E7A5C':'#1B5E8C'?>"><?=$sd?>/<?=count($items)?> · <?=$sp?>%</span><?php endif;?>
+        <?php if(count($items)>0):?><span id="mtg-sec-progress-<?=$sec['id']?>" style="font-size:8px;font-weight:900;color:<?=$sp==100?'#1E7A5C':'#1B5E8C'?>"><?=$sd?>/<?=count($items)?> · <?=$sp?>%</span><?php endif;?>
       </div>
       <?php foreach($items as $it):?>
-      <div style="background:#fff;border:1.5px solid <?=$it['done']?'#8DCFBA':$CB?>;border-radius:9px;padding:10px 12px;margin-bottom:6px">
+      <div class="mtg-item-card" id="mtg-item-<?=$it['id']?>" data-done="<?=$it['done']?'1':'0'?>" style="background:#fff;border:1.5px solid <?=$it['done']?'#8DCFBA':$CB?>;border-radius:9px;padding:10px 12px;margin-bottom:6px">
         <div style="display:flex;gap:9px;align-items:flex-start">
-          <div onclick="mtgToggleItem(<?=$it['id']?>)" style="width:18px;height:18px;border-radius:5px;border:1.5px solid <?=$it['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$it['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:1px;color:#fff;font-size:10px;font-weight:900"><?=$it['done']?'✓':''?></div>
+          <div id="mtg-item-cb-<?=$it['id']?>" onclick="mtgToggleItem(<?=$it['id']?>)" style="width:18px;height:18px;border-radius:5px;border:1.5px solid <?=$it['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$it['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:1px;color:#fff;font-size:10px;font-weight:900"><?=$it['done']?'✓':''?></div>
           <div style="flex:1;min-width:0">
-            <div style="font-size:10px;font-weight:700;color:<?=$it['done']?$MU:$TX?>;line-height:1.5;<?=$it['done']?'text-decoration:line-through':''?>"><?=h($it['texto'])?></div>
+            <div id="mtg-item-txt-<?=$it['id']?>" style="font-size:10px;font-weight:700;color:<?=$it['done']?$MU:$TX?>;line-height:1.5;<?=$it['done']?'text-decoration:line-through':''?>"><?=h($it['texto'])?></div>
             <?php $rav=mtg_avs($it['responsables'],$mtg_umap); if($rav):?><div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap"><?=$rav?></div><?php endif;?>
             <input type="text" class="form-input" style="font-size:9px;padding:5px 8px;margin-top:6px;text-transform:none" placeholder="NOTA..." value="<?=h($it['notas'])?>" onchange="mtgItemNota(<?=$it['id']?>,this.value)">
           </div>
@@ -2714,8 +2714,48 @@ function mtgPost(params,reload){
    .then(function(d){ if(!d||!d.ok){ if(typeof toast==='function')toast('Error: '+((d&&d.error)||'')); return d; } if(reload){_mtgReload();} return d; })
    .catch(function(){ if(typeof toast==='function')toast('Error de red'); });
 }
-function mtgToggleItem(i){mtgPost('action=toggle_item&item_id='+i,true);}
-function mtgToggleAccion(a){mtgPost('action=toggle_accion&accion_id='+a,true);}
+// Marcar un punto de la agenda o una acción como hecha es de lo que más se
+// repite DURANTE una reunión — antes cada clic recargaba toda la página
+// (150-200 consultas). Ahora se voltea en el momento en pantalla y el
+// guardado pasa en segundo plano, sin esperar ni recargar nada.
+function mtgToggleItem(i){
+  var cb = document.getElementById('mtg-item-cb-'+i);
+  var card = document.getElementById('mtg-item-'+i);
+  var txt = document.getElementById('mtg-item-txt-'+i);
+  var nowDone = !(card && card.dataset.done==='1');
+  if(card){ card.dataset.done = nowDone?'1':'0'; card.style.borderColor = nowDone?'#8DCFBA':'#C8DFF0'; }
+  if(cb){
+    cb.style.borderColor = nowDone?'#1E7A5C':'#C8DFF0';
+    cb.style.background  = nowDone?'#1E7A5C':'#fff';
+    cb.textContent = nowDone?'✓':'';
+  }
+  if(txt){ txt.style.color = nowDone?'#7A90A4':'#1B3A5C'; txt.style.textDecoration = nowDone?'line-through':'none'; }
+  var sec = card ? card.closest('[id^="mtg-sec-"]') : null;
+  if(sec){
+    var totalInSec = sec.querySelectorAll('.mtg-item-card').length;
+    var doneInSec  = sec.querySelectorAll('.mtg-item-card[data-done="1"]').length;
+    var pctEl = document.getElementById('mtg-sec-progress-'+sec.id.replace('mtg-sec-',''));
+    if(pctEl && totalInSec){
+      var pct = Math.round(doneInSec/totalInSec*100);
+      pctEl.textContent = doneInSec+'/'+totalInSec+' · '+pct+'%';
+      pctEl.style.color = pct===100 ? '#1E7A5C' : '#1B5E8C';
+    }
+  }
+  mtgPost('action=toggle_item&item_id='+i,false);
+}
+function mtgToggleAccion(a){
+  var cb  = document.getElementById('mtg-acc-cb-'+a);
+  var txt = document.getElementById('mtg-acc-txt-'+a);
+  var nowDone = !(cb && cb.dataset.done==='1');
+  if(cb){
+    cb.dataset.done = nowDone?'1':'0';
+    cb.style.borderColor = nowDone?'#1E7A5C':'#C8DFF0';
+    cb.style.background  = nowDone?'#1E7A5C':'#fff';
+    cb.textContent = nowDone?'✓':'';
+  }
+  if(txt){ txt.style.color = nowDone?'#7A90A4':'#1B3A5C'; txt.style.textDecoration = nowDone?'line-through':'none'; }
+  mtgPost('action=toggle_accion&accion_id='+a,false);
+}
 function mtgItemNota(i,v){mtgPost('action=update_item_nota&item_id='+i+'&nota='+encodeURIComponent(v),false).then(function(){if(typeof toast==='function')toast('Nota guardada');});}
 function mtgAddItem(r,s,inp){if(!inp.value.trim())return;mtgPost('action=add_item&reunion_id='+r+'&seccion_id='+s+'&texto='+encodeURIComponent(inp.value.trim()),true);}
 function mtgAddAccion(r,inp){if(!inp.value.trim())return;mtgPost('action=add_accion&reunion_id='+r+'&texto='+encodeURIComponent(inp.value.trim()),true);}
