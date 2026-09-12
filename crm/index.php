@@ -709,6 +709,30 @@ if (!empty($_POST['camp_ajax'])) {
             $id = (int)($_POST['id'] ?? 0);
             $pdo_c->prepare("DELETE FROM lista_evento_miembros WHERE id=?")->execute([$id]);
             echo json_encode(['ok'=>true]); break;
+        // Agregar TODOS los miembros que coincidan con un filtro (aseguranza
+        // y/o estado) de un jalón, en vez de buscarlos uno por uno — pedido
+        // explícito de Isabel: "quiero una lista con los miembros de Anthem".
+        case 'bulk_add_miembros_lista':
+            $lista_id = (int)($_POST['lista_id'] ?? 0);
+            $carrier  = trim($_POST['carrier'] ?? '');
+            $estado   = trim($_POST['estado'] ?? '');
+            if (!$lista_id) { echo json_encode(['ok'=>false,'error'=>'Lista requerida']); break; }
+            if ($carrier === '' && $estado === '') { echo json_encode(['ok'=>false,'error'=>'Elige al menos una aseguranza o un estado']); break; }
+            $where = []; $params = [];
+            if ($carrier !== '') { $where[] = 'carrier = ?'; $params[] = $carrier; }
+            if ($estado !== '')  { $where[] = 'estado = ?';  $params[] = $estado; }
+            $mids = $pdo_c->prepare('SELECT id FROM miembros WHERE '.implode(' AND ', $where));
+            $mids->execute($params);
+            $miembro_ids = $mids->fetchAll(PDO::FETCH_COLUMN);
+            if (!$miembro_ids) { echo json_encode(['ok'=>true,'agregados'=>0,'total_filtro'=>0]); break; }
+            $ins = $pdo_c->prepare('INSERT IGNORE INTO lista_evento_miembros (lista_id,miembro_id) VALUES (?,?)');
+            $agregados = 0;
+            foreach ($miembro_ids as $mid) {
+                $ins->execute([$lista_id, (int)$mid]);
+                if ($ins->rowCount() > 0) $agregados++;
+            }
+            echo json_encode(['ok'=>true,'agregados'=>$agregados,'total_filtro'=>count($miembro_ids)]);
+            break;
 
         default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
     }} catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
@@ -3381,6 +3405,24 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
         <button type="button" class="btn btn-p btn-sm" onclick="addMiembroLista(<?=$le['id']?>)">+ AGREGAR</button>
       </div>
     </div>
+    <div class="form-group" style="max-width:560px;margin-top:12px">
+      <label class="form-label">➕ AGREGAR POR FILTRO — todos los que coincidan de un jalón (ej. todos los de ANTHEM)</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <select id="le-bulk-carrier-<?=$le['id']?>" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700;min-width:170px">
+          <option value="">CUALQUIER ASEGURANZA</option>
+          <?php foreach(['SCAN','ANTHEM','HUMANA','ALIGNMENT','LA CARE','HEALTH NET','MOLINA','UNITED HEALTHCARE'] as $_bc):?>
+          <option value="<?=$_bc?>"><?=$_bc?></option>
+          <?php endforeach;?>
+        </select>
+        <select id="le-bulk-estado-<?=$le['id']?>" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700;min-width:170px">
+          <option value="">CUALQUIER ESTADO</option>
+          <?php foreach(['ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','PROSPECT','PENDING','CANCELED','DENIED','CERRADO','DISENROLLED'] as $_be):?>
+          <option value="<?=$_be?>"><?=$_be?></option>
+          <?php endforeach;?>
+        </select>
+        <button type="button" class="btn btn-p btn-sm" onclick="bulkAddMiembrosLista(<?=$le['id']?>)">+ AGREGAR TODOS LOS QUE COINCIDAN</button>
+      </div>
+    </div>
     <?php if(empty($lem)):?>
     <div class="le-empty" style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
     <?php else:?>
@@ -4079,6 +4121,27 @@ function addMiembroLista(listaId){
       mpickClear('le-mpick-input-'+listaId,'le-mpick-hidden-'+listaId,'le-mpick-drop-'+listaId);
     }
   });
+}
+function bulkAddMiembrosLista(listaId){
+  var carrier = document.getElementById('le-bulk-carrier-'+listaId).value;
+  var estado  = document.getElementById('le-bulk-estado-'+listaId).value;
+  if(!carrier && !estado){ if(typeof toast==='function')toast('⚠ Elige al menos una aseguranza o un estado'); return; }
+  var btn = document.querySelector('#le-body-'+listaId+' [onclick="bulkAddMiembrosLista('+listaId+')"]');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='AGREGANDO...'; }
+  campPost('action=bulk_add_miembros_lista&lista_id='+listaId+'&carrier='+encodeURIComponent(carrier)+'&estado='+encodeURIComponent(estado), false)
+    .then(function(d){
+      if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR TODOS LOS QUE COINCIDAN'; }
+      if(d&&d.ok){
+        if(!d.total_filtro){ if(typeof toast==='function')toast('⚠ No hay miembros con ese filtro'); return; }
+        if(typeof toast==='function')toast('✓ '+d.agregados+' MIEMBRO'+(d.agregados!==1?'S':'')+' AGREGADO'+(d.agregados!==1?'S':'')+(d.agregados<d.total_filtro?' ('+(d.total_filtro-d.agregados)+' ya estaban en la lista)':''));
+        // La tabla puede crecer bastante (decenas de miembros de un jalón) —
+        // más simple y seguro recargar la vista que armar cada fila a mano.
+        try{sessionStorage.setItem('leOpen',listaId);sessionStorage.setItem('campVistaKeep','listas');}catch(e){}
+        _campVista='listas';
+        _campReload();
+      } else if(d&&d.error){ if(typeof toast==='function')toast('⚠ '+d.error); }
+    })
+    .catch(function(){ if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR TODOS LOS QUE COINCIDAN'; } if(typeof toast==='function')toast('⚠ Error de red'); });
 }
 function updateMiembroLista(id,cambios){
   var p='action=update_miembro_lista&id='+id;
