@@ -7412,15 +7412,18 @@ $rda_por_carrier = [];
 foreach ($members as $m) {
     $car = trim($m['carrier'] ?? '');
     if ($car === '') continue; // sin aseguranza asignada — no aplica a este reporte
+    $rda_es_activo   = $m['estado'] === 'ACTIVE';
+    $rda_es_proceso  = in_array($m['estado'], $RDA_GRUPO_PROCESO, true);
+    $rda_es_canc_hoy = $m['estado'] === 'CANCELED' && ($m['fecha_cancelacion'] ?? '') === $rda_hoy;
+    // Si el miembro no aporta nada a ninguna de las 3 columnas (ej. está
+    // CANCELED de hace tiempo, DENIED, PROSPECT...) no se muestra su
+    // aseguranza — así no salen carriers "fantasma" con puros ceros solo
+    // porque algún miembro viejo/mal capturado quedó con esa aseguranza.
+    if (!$rda_es_activo && !$rda_es_proceso && !$rda_es_canc_hoy) continue;
     if (!isset($rda_por_carrier[$car])) $rda_por_carrier[$car] = ['activos'=>0,'en_proceso'=>0,'cancelados_hoy'=>0];
-    if ($m['estado'] === 'ACTIVE') {
-        $rda_por_carrier[$car]['activos']++;
-    } elseif (in_array($m['estado'], $RDA_GRUPO_PROCESO, true)) {
-        $rda_por_carrier[$car]['en_proceso']++;
-    }
-    if ($m['estado'] === 'CANCELED' && ($m['fecha_cancelacion'] ?? '') === $rda_hoy) {
-        $rda_por_carrier[$car]['cancelados_hoy']++;
-    }
+    if ($rda_es_activo) $rda_por_carrier[$car]['activos']++;
+    elseif ($rda_es_proceso) $rda_por_carrier[$car]['en_proceso']++;
+    if ($rda_es_canc_hoy) $rda_por_carrier[$car]['cancelados_hoy']++;
 }
 ksort($rda_por_carrier);
 
