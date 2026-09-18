@@ -3028,10 +3028,16 @@ try{
         elseif($gr['direccion']==='ENTRANTE'){ $gastos_in['n']+=(int)$gr['n']; $gastos_in['costo']+=(float)$gr['costo']; }
     }
 
-    $gastos_por_campana = $pdo->query("SELECT c.id, c.nombre, COUNT(s.id) n, COALESCE(SUM(s.costo_estimado),0) costo
-                                        FROM sms_mensajes s JOIN campanas c ON s.campana_id=c.id
-                                        WHERE s.direccion='SALIENTE' AND COALESCE(s.estado,'')!='error'
-                                        GROUP BY c.id, c.nombre ORDER BY costo DESC")->fetchAll(PDO::FETCH_ASSOC);
+    // LEFT JOIN (no INNER): si una campaña se borra, sus mensajes ya
+    // enviados (y su costo) NO deben desaparecer de este reporte — con
+    // INNER JOIN se esfumaban en cuanto se eliminaba la campaña, aunque el
+    // dinero sí se haya gastado de verdad. Se agrupa por campana_id (no
+    // por nombre) para no mezclar dos campañas distintas que ya no existen
+    // bajo la misma etiqueta genérica.
+    $gastos_por_campana = $pdo->query("SELECT s.campana_id AS id, COALESCE(c.nombre,'CAMPAÑA ELIMINADA') AS nombre, COUNT(s.id) n, COALESCE(SUM(s.costo_estimado),0) costo
+                                        FROM sms_mensajes s LEFT JOIN campanas c ON s.campana_id=c.id
+                                        WHERE s.direccion='SALIENTE' AND COALESCE(s.estado,'')!='error' AND s.campana_id IS NOT NULL
+                                        GROUP BY s.campana_id, c.nombre ORDER BY costo DESC")->fetchAll(PDO::FETCH_ASSOC);
 
     $gastos_por_mes = $pdo->query("SELECT DATE_FORMAT(created_at,'%Y-%m') mes,
                                            SUM(CASE WHEN direccion='SALIENTE' AND COALESCE(estado,'')!='error' THEN 1 ELSE 0 END) enviados,
@@ -3979,6 +3985,10 @@ function cerrarEnvioMasivo(){
   if(_emState && _emState.enviando){
     if(!confirm('¿Detener el envío? Ya se mandaron '+_emState.enviados+' mensajes.')) return;
     _emState.cancelado = true;
+    // Suelta el candado del servidor ya mismo — si no, nadie podría volver
+    // a mandarle a esta campaña hasta que el candado se vea "abandonado"
+    // (90 segundos), aunque Isabel ya haya dicho explícitamente que pare.
+    fetch('api.php',{method:'POST',body:new URLSearchParams({action:'campana_envio_masivo_cancelar',campana_id:_emState.campId})}).catch(function(){});
     return;
   }
   closeModal('modal-camp-envio');

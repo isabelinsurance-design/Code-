@@ -49,28 +49,26 @@ $errorMsg = trim($_POST['ErrorMessage'] ?? '') ?: null;
 
 if ($sid === '' || $status === '') _status_responder();
 
-// Twilio puede REENVIAR el mismo status callback (timeout, red, etc.) — si
-// ya habíamos guardado ESTE MISMO estado para este mensaje, es un reenvío
-// del mismo evento, no una transición nueva. Sin este chequeo, un solo
-// fallo real se podría contar dos veces en sms_fallos y bloquear un
-// número después de UN fallo real (no dos) por pura casualidad de un
-// reenvío del webhook.
-$estadoPrevio = null;
-try {
-    $fq = $pdo->prepare("SELECT estado FROM sms_mensajes WHERE twilio_sid = ? LIMIT 1");
-    $fq->execute([$sid]);
-    $filaPrevia = $fq->fetch(PDO::FETCH_ASSOC);
-    $estadoPrevio = $filaPrevia['estado'] ?? null;
-} catch (Exception $e) {}
-$esReenvioDelMismoEvento = ($estadoPrevio !== null && $estadoPrevio === $status);
+// Twilio puede REENVIAR el mismo status callback (timeout, red, etc.) casi
+// al mismo tiempo que la primera entrega — un simple "leer el estado,
+// compararlo, y luego actualizar" deja una rendija de tiempo en el medio
+// donde las DOS peticiones pueden leer el estado viejo antes de que
+// cualquiera de las dos alcance a guardar el nuevo, y las dos concluirían
+// "esto es una transición nueva" — contando un solo fallo real dos veces en
+// sms_fallos y bloqueando un número después de UN fallo (no dos).
+//
+// En vez de leer-y-comparar-y-actualizar por separado, se hace todo en un
+// solo UPDATE con condición: MySQL solo dice "sí cambié algo" (rowCount>0)
+// para la petición que de verdad encontró el estado viejo distinto — con
+// dos peticiones casi simultáneas, la segunda espera a que la primera
+// termine (bloqueo de fila) y al re-leer ya ve el estado que la primera
+// acaba de guardar, así que su propio UPDATE no cambia nada (rowCount=0).
+// No hay ninguna rendija de tiempo en medio: es una sola operación atómica.
+$upd = $pdo->prepare("UPDATE sms_mensajes SET estado = ? WHERE twilio_sid = ? AND (estado IS NULL OR estado != ?)");
+$upd->execute([$status, $sid, $status]);
+$esTransicionNueva = $upd->rowCount() > 0;
 
-// Reflejar el estado final en el hilo de SMS de COMUNICACIÓN — esto solo
-// necesita el SID, sin importar si "To" viene vacío por algo raro.
-try {
-    $pdo->prepare("UPDATE sms_mensajes SET estado = ? WHERE twilio_sid = ?")->execute([$status, $sid]);
-} catch (Exception $e) {}
-
-if (!$esReenvioDelMismoEvento && $telefono !== '') {
+if ($esTransicionNueva && $telefono !== '') {
     if (in_array($status, ['failed', 'undelivered'], true)) {
         try { sms_registrar_fallo_envio($pdo, $telefono, $codigo, $errorMsg); } catch (Exception $e) {}
     } elseif ($status === 'delivered') {

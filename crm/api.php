@@ -1921,14 +1921,39 @@ case 'campana_envio_masivo_lote':
     }
     $cursor     = max(0, (int)($_POST['cursor'] ?? 0));
     $limit      = min(15, max(1, (int)($_POST['limit'] ?? 8)));
+    if (!$campana_id) jsonErr('Campaña requerida');
+    if ($mensaje === '' && $flyer_url === '') jsonErr('Escribe un mensaje o adjunta un flyer');
+
     // "desde" marca cuándo empezó ESTE envío — lo calcula el servidor (no el
     // navegador) para no depender de que el reloj del navegador esté bien
     // puesto, y se lo manda de vuelta al frontend en el primer lote para que
     // lo reenvíe en los siguientes.
-    $desde = trim($_POST['desde'] ?? '');
-    if ($desde === '') $desde = date('Y-m-d H:i:s');
-    if (!$campana_id) jsonErr('Campaña requerida');
-    if ($mensaje === '' && $flyer_url === '') jsonErr('Escribe un mensaje o adjunta un flyer');
+    //
+    // CANDADO: al EMPEZAR un envío (cursor=0) se checa que no haya OTRO
+    // envío activo ahora mismo para esta misma campaña (dos pestañas, o dos
+    // agentes, mandando el mismo botón casi al mismo tiempo) — sin esto,
+    // cada uno corre su propio conteo de "a quién ya le mandé" y ambos le
+    // mandan y cobran a la MISMA lista completa. Si el candado está
+    // "abandonado" (nadie le mandó latido en más de 90s — la pestaña que lo
+    // empezó se cerró o se cayó la conexión a medio envío), se retoma
+    // heredando su "desde" en vez de reiniciar, para no volver a mandarle
+    // a quien ya había recibido el mensaje en el intento anterior.
+    if ($cursor === 0) {
+        // El "desde" para un envío NUEVO siempre lo calcula la base de
+        // datos (NOW()) — nunca lo que mande el navegador — así siempre
+        // se compara contra "created_at" en el mismo reloj.
+        $desde = campana_envio_lock_tomar($pdo, $campana_id, $uid);
+        if ($desde === null) {
+            jsonErr('Ya hay un envío en curso ahora mismo para esta campaña (otra pestaña, o otro agente) — espera a que termine antes de mandar otro.');
+        }
+    } else {
+        campana_envio_lock_latido($pdo, $campana_id);
+        // En lotes después del primero, "desde" es el que el servidor ya
+        // había calculado y le devolvió al navegador en el primer lote —
+        // solo lo repite, nunca lo calcula de nuevo.
+        $desde = trim($_POST['desde'] ?? '');
+        if ($desde === '') $desde = date('Y-m-d H:i:s'); // por si acaso, nunca debería pasar pasado el primer lote
+    }
 
     // Se pagina por "id > cursor", NO por OFFSET. Un contacto se puede
     // bloquear (sms_opt_out) A MITAD del envío — por STOP o por fallar al
@@ -2009,9 +2034,20 @@ case 'campana_envio_masivo_lote':
     // Si trajo MENOS de lo que se pidió, ya no queda nada más — sin
     // depender de comparar contra un "total" que puede haber cambiado.
     $done = count($lote) < $limit;
+    if ($done) campana_envio_lock_soltar($pdo, $campana_id); // libera el candado ya mismo, no hace falta esperar a que se vea "abandonado"
     $data = ['enviados' => $enviados, 'fallidos' => $fallidos, 'errores' => $errores, 'procesados' => count($lote), 'cursor' => $siguienteCursor, 'desde' => $desde, 'done' => $done];
     if ($done) jsonOkNotify($data, 'CAMPANAS');
     jsonOk($data);
+    break;
+
+// Se llama cuando Isabel le da "DETENER ENVÍO" a mitad de un envío masivo —
+// suelta el candado de una vez para que se pueda volver a mandar de
+// inmediato, en vez de tener que esperar los 90s de "abandonado".
+case 'campana_envio_masivo_cancelar':
+    $pdo = db();
+    $campana_id = (int)($_POST['campana_id'] ?? 0);
+    if ($campana_id) campana_envio_lock_soltar($pdo, $campana_id);
+    jsonOk();
     break;
 
 case 'toggle_checklist':

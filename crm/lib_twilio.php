@@ -46,6 +46,107 @@ function asegurarTablaSmsMensajes(PDO $pdo): void {
         if (!in_array('campana_id', $cols, true))     $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN campana_id INT DEFAULT NULL");
         if (!in_array('es_mms', $cols, true))         $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN es_mms TINYINT(1) DEFAULT 0");
         if (!in_array('costo_estimado', $cols, true)) $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN costo_estimado DECIMAL(8,4) DEFAULT 0.0000");
+
+        // Único por twilio_sid — si Twilio REENVÍA el mismo webhook (timeout,
+        // red) casi al mismo tiempo que la primera entrega todavía se está
+        // procesando, un simple "busca-si-existe-y-si-no-inserta" puede dejar
+        // pasar las dos peticiones (ninguna alcanzó a ver la fila de la otra
+        // todavía) y duplicar el mensaje — y su costo — en el reporte de
+        // GASTOS. Con esta llave, MySQL rechaza la segunda inserción sola,
+        // sin ninguna ventana de tiempo en medio. Los NULL (envíos que Twilio
+        // nunca aceptó) no cuentan como duplicados entre sí.
+        if (!$pdo->query("SHOW INDEX FROM sms_mensajes WHERE Key_name = 'uniq_twilio_sid'")->fetch()) {
+            try {
+                $pdo->exec("ALTER TABLE sms_mensajes ADD UNIQUE KEY uniq_twilio_sid (twilio_sid)");
+            } catch (Exception $e) {
+                // Ya había sids duplicados guardados de antes de esta
+                // protección (posiblemente por la misma condición de carrera
+                // que esto corrige) — se limpian (se deja el de menor id) y
+                // se reintenta una sola vez.
+                try {
+                    $pdo->exec("DELETE s1 FROM sms_mensajes s1
+                                 INNER JOIN sms_mensajes s2 ON s1.twilio_sid = s2.twilio_sid AND s1.id > s2.id
+                                 WHERE s1.twilio_sid IS NOT NULL");
+                    $pdo->exec("ALTER TABLE sms_mensajes ADD UNIQUE KEY uniq_twilio_sid (twilio_sid)");
+                } catch (Exception $e2) {}
+            }
+        }
+    } catch (Exception $e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  CANDADO DE ENVÍO MASIVO — evita que la MISMA campaña se mande dos
+//  veces al mismo tiempo (dos pestañas, o la misma persona dándole doble
+//  clic) y protege contra "cerré la pestaña a mitad del envío y lo volví
+//  a abrir": en vez de reiniciar el conteo de "a quién ya le mandé" desde
+//  cero (lo que podría volver a texear y cobrarle a gente que ya había
+//  recibido el mensaje en el intento anterior), el envío nuevo HEREDA el
+//  punto de partida ("desde") del intento abandonado, así que la
+//  exclusión de "ya se le mandó en este envío" sigue protegiendo aunque
+//  técnicamente sea una petición nueva.
+// ═══════════════════════════════════════════════════════════════════
+const CAMPANA_ENVIO_LOCK_STALE_SEG = 90; // sin "latido" por más de esto = abandonado
+
+function asegurarTablaCampanaEnvioLock(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS campana_envio_lock (
+            campana_id    INT NOT NULL PRIMARY KEY,
+            desde         DATETIME NOT NULL,
+            iniciado_por  INT DEFAULT NULL,
+            ultimo_latido TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+    } catch (Exception $e) {}
+}
+
+// Se llama SOLO al iniciar un envío (cursor=0). Devuelve el "desde" que se
+// debe usar (heredado de un intento abandonado, o uno nuevo), o null si YA
+// hay un envío realmente activo para esta campaña ahora mismo (otra
+// pestaña, u otro agente) y no se debe dejar mandar.
+function campana_envio_lock_tomar(PDO $pdo, int $campana_id, int $uid): ?string {
+    asegurarTablaCampanaEnvioLock($pdo);
+    $q = $pdo->prepare("SELECT desde, ultimo_latido FROM campana_envio_lock WHERE campana_id = ?");
+    $q->execute([$campana_id]);
+    $existente = $q->fetch(PDO::FETCH_ASSOC);
+
+    if ($existente) {
+        $segundosDesdeLatido = time() - strtotime($existente['ultimo_latido']);
+        if ($segundosDesdeLatido < CAMPANA_ENVIO_LOCK_STALE_SEG) {
+            return null; // hay un envío activo de verdad ahora mismo — no se puede empezar otro
+        }
+        // Abandonado — se retoma heredando su "desde" para no volver a
+        // mandarle a quien ya recibió el mensaje en el intento anterior.
+        $pdo->prepare("UPDATE campana_envio_lock SET iniciado_por = ?, ultimo_latido = NOW() WHERE campana_id = ?")
+            ->execute([$uid, $campana_id]);
+        return $existente['desde'];
+    }
+
+    // "desde" se calcula con NOW() de la BASE DE DATOS (no con la hora de
+    // PHP) — es la misma hora que usa "created_at" en sms_mensajes al
+    // guardar cada envío. Si se calculara con la hora del servidor web y
+    // ese reloj estuviera aunque sea unos segundos adelantado del reloj de
+    // la base de datos (común en hosting compartido, donde no siempre son
+    // la misma máquina), la comparación "created_at >= desde" podría fallar
+    // y dejar mandar dos veces al mismo número dentro del mismo envío.
+    $pdo->prepare("INSERT INTO campana_envio_lock (campana_id, desde, iniciado_por) VALUES (?, NOW(), ?)")
+        ->execute([$campana_id, $uid]);
+    $q2 = $pdo->prepare("SELECT desde FROM campana_envio_lock WHERE campana_id = ?");
+    $q2->execute([$campana_id]);
+    return $q2->fetchColumn();
+}
+
+// Late en cada lote (incluido el primero) para que el candado no se vea
+// "abandonado" solo porque el envío de una campaña grande está tardando.
+function campana_envio_lock_latido(PDO $pdo, int $campana_id): void {
+    try {
+        $pdo->prepare("UPDATE campana_envio_lock SET ultimo_latido = NOW() WHERE campana_id = ?")->execute([$campana_id]);
+    } catch (Exception $e) {}
+}
+
+// Se llama cuando el envío termina (o se cancela) para soltar el candado
+// de inmediato, en vez de esperar a que se detecte como abandonado.
+function campana_envio_lock_soltar(PDO $pdo, int $campana_id): void {
+    try {
+        $pdo->prepare("DELETE FROM campana_envio_lock WHERE campana_id = ?")->execute([$campana_id]);
     } catch (Exception $e) {}
 }
 
@@ -116,10 +217,14 @@ function sms_backfill_costos_historicos(PDO $pdo, int $limite = 1500): int {
     try {
         // No se toca un envío que de plano falló (Twilio nunca lo aceptó,
         // por lo tanto nunca se cobró) — a esos les toca quedarse en 0.
+        // COALESCE(estado,'') porque en SQL "algo = 'error'" da NULL (ni
+        // verdadero ni falso) cuando estado es NULL, y NOT(NULL) sigue
+        // siendo NULL — la fila se hubiera colado fuera del WHERE sin
+        // avisar, dejando su gasto real sin contar para siempre.
         $q = $pdo->prepare("SELECT id, cuerpo, direccion FROM sms_mensajes
                              WHERE costo_estimado = 0
                                AND cuerpo IS NOT NULL AND cuerpo != ''
-                               AND NOT (direccion = 'SALIENTE' AND estado = 'error')
+                               AND NOT (direccion = 'SALIENTE' AND COALESCE(estado,'') = 'error')
                              LIMIT $limite");
         $q->execute();
         $filas = $q->fetchAll(PDO::FETCH_ASSOC);

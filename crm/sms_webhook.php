@@ -57,26 +57,13 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') { _sms_log($pdo, 'metodo_no_post'); _
 if (!defined('TWILIO_AUTH_TOKEN') || !TWILIO_AUTH_TOKEN) { _sms_log($pdo, 'sin_auth_token_configurado'); _twilio_responder_vacio(503); }
 
 // ─── Validar firma de Twilio ──────────────────────────────────────────────
-// Twilio firma cada petición con HMAC-SHA1 (URL completa + parámetros del
-// POST ordenados alfabéticamente y concatenados), usando el Auth Token como
-// llave. Si no coincide, la petición no vino de Twilio de verdad.
-//
-// Se usan los headers X-Forwarded-Proto/Host cuando existen (Bluehost y la
-// mayoría de hostings compartidos ponen el sitio detrás de un proxy/balanceador
-// de SSL — sin esto, $_SERVER['HTTPS'] a veces no queda marcado aunque el
-// visitante sí entró por https, y la URL reconstruida (http:// en vez de
-// https://) nunca iba a coincidir con la firma que calculó Twilio).
-$firma_recibida = $_SERVER['HTTP_X_TWILIO_SIGNATURE'] ?? '';
-$proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
-$host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? '');
-$url_completa = $proto . '://' . $host . ($_SERVER['REQUEST_URI'] ?? '');
-$datos = $url_completa;
-$params = $_POST;
-ksort($params);
-foreach ($params as $k => $v) { $datos .= $k . $v; }
-$firma_esperada = base64_encode(hash_hmac('sha1', $datos, TWILIO_AUTH_TOKEN, true));
-$firma_ok = $firma_recibida && hash_equals($firma_esperada, $firma_recibida);
-if (!$firma_ok) { _sms_log($pdo, 'firma_invalida', null, false); _twilio_responder_vacio(403); }
+// Misma función que usa sms_status_webhook.php (twilio_firma_valida(), en
+// lib_twilio.php) — antes cada webhook traía su propia copia de este
+// cálculo; con dos copias, arreglar o mejorar la validación en una y
+// olvidar la otra dejaría ese webhook vulnerable sin que se notara (y
+// esto protege, entre otras cosas, contra que alguien invente entregas o
+// fallos falsos que inflarían o esconderían gastos reales).
+if (!twilio_firma_valida()) { _sms_log($pdo, 'firma_invalida', null, false); _twilio_responder_vacio(403); }
 
 if (!$pdo) { _sms_log($pdo, 'sin_conexion_bd', null, true); _twilio_responder_vacio(500); }
 
@@ -91,18 +78,6 @@ $sid      = trim($_POST['MessageSid'] ?? '');
 $esMms    = ((int)($_POST['NumMedia'] ?? 0)) > 0;
 if ($telefono === '') { _sms_log($pdo, 'sin_telefono_from', null, true); _twilio_responder_vacio(); }
 
-// ─── Twilio a veces REENVÍA el mismo webhook (si tardamos en responder o
-// hay un problema de red pasajero) — sin este chequeo, el mismo SMS
-// entrante se guardaría dos veces y se contaría el doble en GASTOS aunque
-// Twilio solo lo haya cobrado una vez.
-if ($sid !== '') {
-    try {
-        $dq = $pdo->prepare("SELECT id FROM sms_mensajes WHERE twilio_sid = ? AND direccion = 'ENTRANTE' LIMIT 1");
-        $dq->execute([$sid]);
-        if ($dq->fetch()) { _sms_log($pdo, 'duplicado_ignorado', $telefono, true); _twilio_responder_vacio(); }
-    } catch (Exception $e) {}
-}
-
 // ─── Enlazar con un miembro existente si el teléfono coincide ────────────
 $miembro_id = null;
 try {
@@ -116,10 +91,23 @@ try {
     // Twilio también cobra por RECIBIR, no solo por mandar — se guarda el
     // costo estimado de este mensaje entrante igual que se hace con los
     // salientes, para el reporte de GASTOS de Campañas.
+    //
+    // INSERT IGNORE (no "busca-si-existe-y-si-no-inserta"): Twilio a veces
+    // REENVÍA el mismo webhook (timeout, red) casi al mismo tiempo que la
+    // primera entrega todavía se está guardando — un simple SELECT antes
+    // del INSERT deja una rendija de tiempo donde las dos peticiones
+    // pueden no ver la fila de la otra todavía y duplicar el mensaje (y su
+    // costo) en GASTOS. Con la llave única de twilio_sid + INSERT IGNORE,
+    // MySQL rechaza sola la segunda inserción, sin ninguna rendija.
     $costo = sms_calcular_costo($cuerpo, $esMms, false);
-    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, leido, es_mms, costo_estimado)
-                   VALUES (?, ?, 'ENTRANTE', ?, 'recibido', ?, 0, ?, ?)")
-        ->execute([$telefono, $miembro_id, $cuerpo, $sid ?: null, $esMms ? 1 : 0, $costo]);
+    $ins = $pdo->prepare("INSERT IGNORE INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, leido, es_mms, costo_estimado)
+                   VALUES (?, ?, 'ENTRANTE', ?, 'recibido', ?, 0, ?, ?)");
+    $ins->execute([$telefono, $miembro_id, $cuerpo, $sid ?: null, $esMms ? 1 : 0, $costo]);
+    if ($ins->rowCount() === 0 && $sid !== '') {
+        // No se insertó nada — ese twilio_sid ya estaba guardado (reenvío).
+        _sms_log($pdo, 'duplicado_ignorado', $telefono, true);
+        _twilio_responder_vacio();
+    }
     _sms_log($pdo, 'ok', $telefono, true);
     // Avisa a los navegadores conectados (si el relay de avisos en vivo está
     // configurado) para que la pestaña de SMS se refresque casi al instante,
