@@ -93,6 +93,40 @@ function sms_calcular_costo(string $texto, bool $esMms, bool $saliente): float {
     return round($segmentos * ($saliente ? TWILIO_COSTO_SMS_SEGMENTO_OUT : TWILIO_COSTO_SMS_SEGMENTO_IN), 4);
 }
 
+// Rellena el costo estimado de los mensajes que ya existían ANTES de que
+// esta columna existiera (todo el historial de COMUNICACIÓN de antes de
+// este cambio tiene costo_estimado=0 porque nunca se calculó) — así el
+// reporte de GASTOS de Campañas no empieza en ceros, sino con todo el
+// historial real de SMS que ya se habían mandado/recibido. Se corre solo
+// (nada que Isabel tenga que hacer a mano) la primera vez que se abre esa
+// pantalla, en tandas, hasta que ya no quede nada pendiente por calcular.
+function sms_backfill_costos_historicos(PDO $pdo, int $limite = 1500): int {
+    asegurarTablaSmsMensajes($pdo);
+    try {
+        // No se toca un envío que de plano falló (Twilio nunca lo aceptó,
+        // por lo tanto nunca se cobró) — a esos les toca quedarse en 0.
+        $q = $pdo->prepare("SELECT id, cuerpo, direccion FROM sms_mensajes
+                             WHERE costo_estimado = 0
+                               AND cuerpo IS NOT NULL AND cuerpo != ''
+                               AND NOT (direccion = 'SALIENTE' AND estado = 'error')
+                             LIMIT $limite");
+        $q->execute();
+        $filas = $q->fetchAll(PDO::FETCH_ASSOC);
+    } catch (Exception $e) { return 0; }
+    if (!$filas) return 0;
+
+    $upd = $pdo->prepare("UPDATE sms_mensajes SET costo_estimado = ? WHERE id = ?");
+    $actualizados = 0;
+    foreach ($filas as $f) {
+        // El historial viejo nunca guardó si algo era MMS (esa columna
+        // tampoco existía) — se asume que no, ya que el envío de flyers
+        // por MMS es una función nueva y no existía antes de este cambio.
+        $costo = sms_calcular_costo($f['cuerpo'], false, $f['direccion'] === 'SALIENTE');
+        try { $upd->execute([$costo, $f['id']]); $actualizados++; } catch (Exception $e) {}
+    }
+    return $actualizados;
+}
+
 // Convierte una ruta relativa dentro del CRM (ej. "uploads/flyers/x.jpg",
 // tal como se guarda en la base de datos) en una URL pública completa —
 // para un MMS, Twilio necesita poder DESCARGAR la imagen desde internet,

@@ -3004,6 +3004,11 @@ $gastos_sms_out=['n'=>0,'costo'=>0.0]; $gastos_mms_out=['n'=>0,'costo'=>0.0]; $g
 $gastos_por_campana=[]; $gastos_por_mes=[];
 try{
     asegurarTablaSmsMensajes($pdo);
+    // Rellena de una vez el costo de los mensajes de COMUNICACIÓN que ya
+    // existían antes de este reporte — así el historial no empieza en
+    // ceros. Solo hace trabajo real la primera vez; después no encuentra
+    // nada pendiente y no vuelve a tocar la tabla.
+    sms_backfill_costos_historicos($pdo);
     $gastos_total = (float)$pdo->query("SELECT COALESCE(SUM(costo_estimado),0) FROM sms_mensajes")->fetchColumn();
     $gmq = $pdo->prepare("SELECT COALESCE(SUM(costo_estimado),0) FROM sms_mensajes WHERE created_at >= ?");
     $gmq->execute([date('Y-m-01')]);
