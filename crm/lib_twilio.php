@@ -47,6 +47,11 @@ function twilio_enviar_sms(string $to, string $body, ?string $mediaUrl = null): 
         'Body' => $body,
     ];
     if ($mediaUrl) $campos['MediaUrl'] = $mediaUrl;
+    // Aceptar un mensaje para enviarlo no es lo mismo que ENTREGARLO — Twilio
+    // cobra por intentarlo aunque nunca llegue. Sin este StatusCallback, el
+    // CRM nunca se entera de que un número está muerto y le sigue intentando
+    // mandar (dinero perdido) en cada envío masivo futuro.
+    try { $campos['StatusCallback'] = twilio_url_publica('sms_status_webhook.php'); } catch (Exception $e) {}
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
@@ -67,7 +72,7 @@ function twilio_enviar_sms(string $to, string $body, ?string $mediaUrl = null): 
     if ($code >= 200 && $code < 300 && !empty($data['sid'])) {
         return ['ok' => true, 'sid' => $data['sid'], 'estado' => $data['status'] ?? 'queued'];
     }
-    return ['ok' => false, 'error' => $data['message'] ?? ('Twilio respondió con error ' . $code)];
+    return ['ok' => false, 'error' => $data['message'] ?? ('Twilio respondió con error ' . $code), 'codigo' => isset($data['code']) ? (string)$data['code'] : null];
 }
 
 // ═══════════════════════════════════════════════════════════════════
@@ -105,6 +110,76 @@ function sms_esta_optout(PDO $pdo, string $telefono): bool {
     $q = $pdo->prepare("SELECT 1 FROM sms_opt_out WHERE telefono = ?");
     $q->execute([$telefono]);
     return (bool) $q->fetchColumn();
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  NÚMEROS QUE NUNCA ENTREGAN (dinero perdido) — Twilio cobra por
+//  INTENTAR mandar el SMS, no por que de verdad llegue. Un número
+//  desconectado, mal escrito, o que bloqueó los mensajes de Twilio va a
+//  fallar SIEMPRE — sin esto, cada envío masivo futuro le vuelve a
+//  intentar (y a cobrar) sin que nadie se dé cuenta de por qué el número
+//  de fallidos no baja.
+// ═══════════════════════════════════════════════════════════════════
+function asegurarTablaSmsFallos(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_fallos (
+            telefono      VARCHAR(20) NOT NULL PRIMARY KEY,
+            veces         INT NOT NULL DEFAULT 0,
+            ultimo_codigo VARCHAR(20) DEFAULT NULL,
+            ultimo_error  VARCHAR(255) DEFAULT NULL,
+            updated_at    TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        )");
+    } catch (Exception $e) {}
+}
+
+// Códigos de error de Twilio que SIEMPRE significan que ese número nunca
+// va a poder recibir un SMS — no hace falta esperar un segundo fallo para
+// bloquearlo (número mal formado, no es celular/no soporta SMS, etc.).
+const SMS_CODIGOS_PERMANENTES = ['21211', '21214', '21614', '30006'];
+// A partir de cuántos fallos (con cualquier otro código, ej. "buzón no
+// disponible" o "bloqueado por el carrier") se asume que ya no vale la
+// pena seguir intentándole — puede ser temporal la primera vez, pero no
+// dos veces seguidas.
+const SMS_FALLOS_PARA_BLOQUEAR = 2;
+
+// Se llama tanto si Twilio rechaza el envío al instante (número mal
+// formado — se sabe en el momento) como cuando avisa DESPUÉS, por el
+// status callback, que no se pudo entregar (número desconectado,
+// bloqueado...) — un solo lugar para decidir cuándo ya es un número
+// "perdido" y agregarlo a la misma lista que ya usa el STOP.
+function sms_registrar_fallo_envio(PDO $pdo, string $telefono, ?string $codigo, ?string $error): void {
+    $telefono = normalizar_tel($telefono);
+    if ($telefono === '') return;
+    asegurarTablaSmsFallos($pdo);
+    try {
+        $pdo->prepare("INSERT INTO sms_fallos (telefono, veces, ultimo_codigo, ultimo_error) VALUES (?, 1, ?, ?)
+                       ON DUPLICATE KEY UPDATE veces = veces + 1, ultimo_codigo = VALUES(ultimo_codigo), ultimo_error = VALUES(ultimo_error)")
+            ->execute([$telefono, $codigo, $error ? mb_substr($error, 0, 255) : null]);
+        $q = $pdo->prepare("SELECT veces FROM sms_fallos WHERE telefono = ?");
+        $q->execute([$telefono]);
+        $veces = (int) $q->fetchColumn();
+    } catch (Exception $e) { $veces = 1; }
+
+    $esPermanente = $codigo && in_array((string) $codigo, SMS_CODIGOS_PERMANENTES, true);
+    if ($esPermanente || $veces >= SMS_FALLOS_PARA_BLOQUEAR) {
+        asegurarTablaSmsOptOut($pdo);
+        $motivo = $esPermanente
+            ? ('Número inválido (Twilio ' . $codigo . ')')
+            : ('Falló ' . $veces . ' veces al enviar — no se le vuelve a intentar');
+        try {
+            $pdo->prepare("INSERT INTO sms_opt_out (telefono, motivo) VALUES (?, ?)
+                           ON DUPLICATE KEY UPDATE motivo = VALUES(motivo)")->execute([$telefono, $motivo]);
+        } catch (Exception $e) {}
+    }
+}
+
+// Cuando SÍ se confirma la entrega, el historial de fallos viejo ya no
+// sirve de nada (el número resultó estar bien después de todo).
+function sms_limpiar_fallos_envio(PDO $pdo, string $telefono): void {
+    $telefono = normalizar_tel($telefono);
+    if ($telefono === '') return;
+    asegurarTablaSmsFallos($pdo);
+    try { $pdo->prepare("DELETE FROM sms_fallos WHERE telefono = ?")->execute([$telefono]); } catch (Exception $e) {}
 }
 
 // Valida que un webhook (SMS o de voz/SIP) realmente venga de Twilio —

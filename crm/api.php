@@ -1839,6 +1839,10 @@ case 'sms_enviar':
     $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
                    VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")
         ->execute([$telefono, $miembro_id_sms, $cuerpo, $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid]);
+    // Si Twilio lo rechazó al instante (ej. número mal formado), que quede
+    // registrado ya mismo — no hace falta esperar el status callback para
+    // saber que ESTE número nunca iba a poder recibirlo.
+    if (!$res['ok']) sms_registrar_fallo_envio($pdo, $telefono, $res['codigo'] ?? null, $res['error'] ?? null);
     if (!$res['ok']) jsonErr($res['error']);
     jsonOkNotify(['sid' => $res['sid']], 'COMUNICACION');
     break;
@@ -1943,7 +1947,15 @@ case 'campana_envio_masivo_lote':
         $res = twilio_enviar_sms($ct['telefono'], $cuerpo, $flyer_url ?: null);
         $canal     = $flyer_url ? 'FLYER' : 'SMS';
         $resultado = $res['ok'] ? 'Enviado' : ('Error: ' . $res['error']);
-        if ($res['ok']) $enviados++; else { $fallidos++; $errores[] = ($nombreCt ?: 'Sin nombre') . ': ' . $res['error']; }
+        if ($res['ok']) {
+            $enviados++;
+        } else {
+            $fallidos++;
+            $errores[] = ($nombreCt ?: 'Sin nombre') . ': ' . $res['error'];
+            // Rechazado al instante (ej. número mal formado) — no hace falta
+            // esperar el status callback para saber que este no va a servir.
+            sms_registrar_fallo_envio($pdo, $ct['telefono'], $res['codigo'] ?? null, $res['error'] ?? null);
+        }
 
         $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
                        VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")

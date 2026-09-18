@@ -2874,7 +2874,7 @@ try{
  // Números que respondieron STOP — para mostrar el aviso en su tarjeta y
  // que quede claro por qué el envío masivo ya no los va a incluir.
  asegurarTablaSmsOptOut($pdo);
- foreach($pdo->query("SELECT telefono FROM sms_opt_out") as $oo) $cc_optout_set[$oo['telefono']]=true;
+ foreach($pdo->query("SELECT telefono, motivo FROM sms_opt_out") as $oo) $cc_optout_set[$oo['telefono']]=$oo['motivo'];
 }catch(Exception $e){}
 $camp_total=count($campanas);
 $camp_activas=count(array_filter($campanas,fn($c)=>$c['estado']==='ACTIVA'));
@@ -3243,7 +3243,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
-            <?php if(!empty($ct['telefono']) && isset($cc_optout_set[$ct['telefono']])):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900" title="Respondió STOP — no se le puede volver a escribir, ni se le incluye en el envío masivo">🚫 STOP</span><?php endif;?>
+            <?php if(!empty($ct['telefono']) && isset($cc_optout_set[$ct['telefono']])):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900" title="<?=h($cc_optout_set[$ct['telefono']] ?: 'No se le puede volver a escribir')?> — no se le incluye en el envío masivo">🚫 NO CONTACTAR</span><?php endif;?>
             <span id="cc-ultimo-<?=$ct['id']?>" style="font-size:8px;color:<?=$MU?><?=$lastlog?'':';display:none'?>">ÚLTIMO: <?=$lastlog?h($lastlog['canal']).' — '.h($lastlog['resultado']):''?></span>
             <?php $hi=!empty($ct['habla_ingles']);?>
             <button type="button" class="btn btn-sm" data-on="<?=$hi?'1':'0'?>" onclick="toggleHablaIngles(<?=$ct['id']?>,this)" style="font-size:7px;padding:2px 8px;background:<?=$hi?'#1B5E8C':'#fff'?>;color:<?=$hi?'#fff':'#7A90A4'?>;border:1px solid <?=$hi?'#1B5E8C':'#C8DFF0'?>" title="Marca si esta persona habla inglés">🇬🇧 HABLA INGLÉS</button>
@@ -3905,7 +3905,7 @@ function _emActualizarConteo(){
       var txt = _emTotalActual>0
         ? '📱 LE LLEGARÍA A '+_emTotalActual+' CONTACTO'+(_emTotalActual!==1?'S':'')+' CON TELÉFONO'
         : '⚠ NINGÚN CONTACTO CON TELÉFONO COINCIDE CON ESE FILTRO';
-      if(optout>0) txt += ' (🚫 '+optout+' NO SE INCLUYE'+(optout!==1?'N':'')+' — YA RESPONDIÓ'+(optout!==1?'N':'')+' STOP)';
+      if(optout>0) txt += ' (🚫 '+optout+' NO SE INCLUYE'+(optout!==1?'N':'')+' — RESPONDIERON STOP O EL NÚMERO YA FALLÓ ANTES)';
       document.getElementById('em-conteo').textContent = txt;
       _emActualizarBoton();
     })
