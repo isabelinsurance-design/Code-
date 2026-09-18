@@ -18,6 +18,81 @@ function twilio_configurado(): bool {
         && defined('TWILIO_FROM_NUMBER') && TWILIO_FROM_NUMBER;
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  sms_mensajes — se define AQUÍ (no en api.php) porque los webhooks
+//  (sms_webhook.php, sms_status_webhook.php) no cargan api.php pero sí
+//  necesitan la MISMA tabla — antes cada archivo traía su propia copia
+//  del CREATE TABLE, fácil de desincronizar al agregar columnas nuevas.
+// ═══════════════════════════════════════════════════════════════════
+function asegurarTablaSmsMensajes(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
+            id INT AUTO_INCREMENT PRIMARY KEY,
+            telefono VARCHAR(20) NOT NULL,
+            miembro_id INT NULL,
+            direccion VARCHAR(10) NOT NULL,
+            cuerpo TEXT,
+            estado VARCHAR(30) DEFAULT NULL,
+            twilio_sid VARCHAR(64) DEFAULT NULL,
+            agente_id INT NULL,
+            leido TINYINT(1) DEFAULT 0,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            INDEX idx_telefono (telefono),
+            INDEX idx_miembro (miembro_id)
+        )");
+        // Migración: columnas para el reporte de GASTOS de Campañas — no
+        // truena si la tabla ya existía de antes de este cambio.
+        $cols = $pdo->query("SHOW COLUMNS FROM sms_mensajes")->fetchAll(PDO::FETCH_COLUMN);
+        if (!in_array('campana_id', $cols, true))     $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN campana_id INT DEFAULT NULL");
+        if (!in_array('es_mms', $cols, true))         $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN es_mms TINYINT(1) DEFAULT 0");
+        if (!in_array('costo_estimado', $cols, true)) $pdo->exec("ALTER TABLE sms_mensajes ADD COLUMN costo_estimado DECIMAL(8,4) DEFAULT 0.0000");
+    } catch (Exception $e) {}
+}
+
+// ═══════════════════════════════════════════════════════════════════
+//  COSTO ESTIMADO — Twilio no manda el precio real en el status callback
+//  (solo se sabe consultando cada mensaje por separado en su API, lo cual
+//  sería una llamada extra por cada SMS). En vez de eso se ESTIMA con las
+//  tarifas típicas de EEUU y el mismo cálculo de "segmentos" que usa
+//  cualquier proveedor de SMS — sirve para llevar un historial de gastos
+//  sin depender de la API. Para el cobro EXACTO, la consola de Twilio
+//  (Billing) siempre es la fuente real.
+//  Ajustable: si tu tarifa real es distinta, define estas 4 constantes en
+//  config.php ANTES de que se cargue este archivo y se usan esas en vez.
+// ═══════════════════════════════════════════════════════════════════
+if (!defined('TWILIO_COSTO_SMS_SEGMENTO_OUT')) define('TWILIO_COSTO_SMS_SEGMENTO_OUT', 0.0079);
+if (!defined('TWILIO_COSTO_SMS_SEGMENTO_IN'))  define('TWILIO_COSTO_SMS_SEGMENTO_IN',  0.0075);
+if (!defined('TWILIO_COSTO_MMS_OUT'))          define('TWILIO_COSTO_MMS_OUT',          0.02);
+if (!defined('TWILIO_COSTO_MMS_IN'))           define('TWILIO_COSTO_MMS_IN',           0.01);
+
+// Cuenta los "segmentos" de un SMS igual que lo hace cualquier operador:
+// si el texto trae SOLO caracteres del alfabeto GSM-7 caben 160 por
+// segmento (153 si son varios); en cuanto aparece un caracter fuera de
+// ese conjunto (muy común en español: "á, é, í, ó, ú" NO están en GSM-7,
+// aunque "ñ, ¿, ¡" sí) el mensaje completo se manda en UCS-2 y caben
+// solo 70 por segmento (67 si son varios) — por eso un mensaje en
+// español casi siempre pesa más segmentos de lo que parece por su
+// longitud.
+function sms_calcular_segmentos(string $texto): int {
+    static $gsm7 = "@£\$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà^{}\\[~]|€";
+    $len = mb_strlen($texto);
+    if ($len === 0) return 1;
+    $esGsm7 = true;
+    for ($i = 0; $i < $len; $i++) {
+        if (mb_strpos($gsm7, mb_substr($texto, $i, 1)) === false) { $esGsm7 = false; break; }
+    }
+    $porSegmento = $esGsm7 ? ($len <= 160 ? 160 : 153) : ($len <= 70 ? 70 : 67);
+    return max(1, (int) ceil($len / $porSegmento));
+}
+
+// Costo estimado de UN mensaje — $saliente=false es para mensajes
+// ENTRANTES (Twilio también cobra por recibir, no solo por mandar).
+function sms_calcular_costo(string $texto, bool $esMms, bool $saliente): float {
+    if ($esMms) return $saliente ? TWILIO_COSTO_MMS_OUT : TWILIO_COSTO_MMS_IN;
+    $segmentos = sms_calcular_segmentos($texto);
+    return round($segmentos * ($saliente ? TWILIO_COSTO_SMS_SEGMENTO_OUT : TWILIO_COSTO_SMS_SEGMENTO_IN), 4);
+}
+
 // Convierte una ruta relativa dentro del CRM (ej. "uploads/flyers/x.jpg",
 // tal como se guarda en la base de datos) en una URL pública completa —
 // para un MMS, Twilio necesita poder DESCARGAR la imagen desde internet,

@@ -2993,6 +2993,40 @@ try{
 }catch(Exception $e){}
 $le_total=count($listas_evento);
 $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l);
+
+// ── GASTOS DE SMS/MMS (Twilio) — historial ESTIMADO para Campañas ──────
+// "Estimado" porque Twilio no manda el precio real en el status callback
+// (solo consultando cada mensaje por separado en su API) — se calcula con
+// las tarifas típicas de EEUU. Para el cobro exacto, la consola de Twilio
+// (Billing) siempre es la fuente real.
+$gastos_total=0.0; $gastos_mes=0.0;
+$gastos_sms_out=['n'=>0,'costo'=>0.0]; $gastos_mms_out=['n'=>0,'costo'=>0.0]; $gastos_in=['n'=>0,'costo'=>0.0];
+$gastos_por_campana=[]; $gastos_por_mes=[];
+try{
+    asegurarTablaSmsMensajes($pdo);
+    $gastos_total = (float)$pdo->query("SELECT COALESCE(SUM(costo_estimado),0) FROM sms_mensajes")->fetchColumn();
+    $gmq = $pdo->prepare("SELECT COALESCE(SUM(costo_estimado),0) FROM sms_mensajes WHERE created_at >= ?");
+    $gmq->execute([date('Y-m-01')]);
+    $gastos_mes = (float)$gmq->fetchColumn();
+
+    foreach($pdo->query("SELECT direccion, es_mms, COUNT(*) n, COALESCE(SUM(costo_estimado),0) costo
+                          FROM sms_mensajes GROUP BY direccion, es_mms") as $gr){
+        if($gr['direccion']==='SALIENTE' && !$gr['es_mms'])      $gastos_sms_out=['n'=>(int)$gr['n'],'costo'=>(float)$gr['costo']];
+        elseif($gr['direccion']==='SALIENTE' && $gr['es_mms'])   $gastos_mms_out=['n'=>(int)$gr['n'],'costo'=>(float)$gr['costo']];
+        elseif($gr['direccion']==='ENTRANTE'){ $gastos_in['n']+=(int)$gr['n']; $gastos_in['costo']+=(float)$gr['costo']; }
+    }
+
+    $gastos_por_campana = $pdo->query("SELECT c.id, c.nombre, COUNT(s.id) n, COALESCE(SUM(s.costo_estimado),0) costo
+                                        FROM sms_mensajes s JOIN campanas c ON s.campana_id=c.id
+                                        WHERE s.direccion='SALIENTE'
+                                        GROUP BY c.id, c.nombre ORDER BY costo DESC")->fetchAll(PDO::FETCH_ASSOC);
+
+    $gastos_por_mes = $pdo->query("SELECT DATE_FORMAT(created_at,'%Y-%m') mes,
+                                           SUM(CASE WHEN direccion='SALIENTE' THEN 1 ELSE 0 END) enviados,
+                                           SUM(CASE WHEN direccion='ENTRANTE' THEN 1 ELSE 0 END) recibidos,
+                                           COALESCE(SUM(costo_estimado),0) costo
+                                    FROM sms_mensajes GROUP BY mes ORDER BY mes DESC LIMIT 12")->fetchAll(PDO::FETCH_ASSOC);
+}catch(Exception $e){}
 ?>
 <div style="display:flex;gap:0;margin-bottom:13px;background:#fff;border:1px solid <?=$CB?>;border-radius:13px;overflow:hidden">
   <button id="cvtab-campanas" onclick="setCampVista('campanas')"
@@ -3000,8 +3034,12 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     📣 CAMPAÑAS <span id="cvtab-campanas-cnt" style="background:rgba(255,255,255,.25);border-radius:20px;padding:1px 8px;font-size:8px"><?=$camp_total?></span>
   </button>
   <button id="cvtab-listas" onclick="setCampVista('listas')"
-    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;border-right:1px solid <?=$CB?>;display:flex;align-items:center;justify-content:center;gap:6px">
     🎉 LISTAS DE EVENTO <span id="cvtab-listas-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px"><?=$le_total?></span>
+  </button>
+  <button id="cvtab-gastos" onclick="setCampVista('gastos')"
+    style="flex:1;padding:12px 16px;border:none;cursor:pointer;font-size:9px;font-weight:900;letter-spacing:2px;text-transform:uppercase;font-family:'DM Sans',sans-serif;background:#fff;color:<?=$MU?>;display:flex;align-items:center;justify-content:center;gap:6px">
+    💰 GASTOS SMS <span id="cvtab-gastos-cnt" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:1px 8px;font-size:8px">$<?=number_format($gastos_total,2)?></span>
   </button>
 </div>
 <div id="camp-view-campanas">
@@ -3460,6 +3498,65 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
   </div>
 </div>
 <?php endforeach;?>
+</div>
+</div>
+
+<!-- GASTOS DE SMS/MMS (estimado) -->
+<div id="camp-view-gastos" style="display:none">
+  <div class="card" style="border-top:3px solid <?=$P2?>;margin-bottom:14px;padding:13px 16px">
+    <div class="card-title" style="font-size:11px">💰 GASTOS DE SMS / MMS (TWILIO)</div>
+    <div style="font-size:8px;color:<?=$MU?>;letter-spacing:.5px;text-transform:uppercase;margin-top:5px;line-height:1.7">
+      ⚠ COSTO ESTIMADO según tarifa típica de Twilio en EEUU — no es el cobro exacto (varía según tu tipo de número y el país del destinatario). Para el monto real que te cobra Twilio, revisa tu consola de Twilio → Billing.
+    </div>
+  </div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;margin-bottom:14px">
+    <?php foreach([
+      ['💰', '$'.number_format($gastos_total,2), 'GASTADO EN TOTAL', $P1],
+      ['📅', '$'.number_format($gastos_mes,2), 'GASTADO ESTE MES', $P2],
+      ['📤', $gastos_sms_out['n'].' · $'.number_format($gastos_sms_out['costo'],2), 'SMS ENVIADOS', '#1E7A5C'],
+      ['🖼', $gastos_mms_out['n'].' · $'.number_format($gastos_mms_out['costo'],2), 'FLYERS (MMS) ENVIADOS', '#C07A1A'],
+      ['📥', $gastos_in['n'].' · $'.number_format($gastos_in['costo'],2), 'RECIBIDOS', '#5B3FAF'],
+    ] as [$ic,$v,$lb,$c]):?>
+    <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:12px 14px;text-align:center">
+      <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px"><?=$ic?> <?=$lb?></div>
+      <div style="font-size:15px;font-weight:900;color:<?=$c?>"><?=$v?></div>
+    </div>
+    <?php endforeach;?>
+  </div>
+
+  <div class="card" style="margin-bottom:14px;overflow-x:auto">
+    <div class="card-header"><div class="card-title" style="font-size:10px">POR CAMPAÑA — ENVÍOS MASIVOS</div></div>
+    <table>
+    <tr><th>CAMPAÑA</th><th style="text-align:center">MENSAJES ENVIADOS</th><th style="text-align:right">COSTO ESTIMADO</th></tr>
+    <?php if(empty($gastos_por_campana)):?>
+    <tr><td colspan="3" style="text-align:center;padding:18px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">TODAVÍA NO HAY ENVÍOS MASIVOS REGISTRADOS</td></tr>
+    <?php else: foreach($gastos_por_campana as $gc):?>
+    <tr>
+      <td style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($gc['nombre'])?></td>
+      <td style="text-align:center;font-size:10px;font-weight:900;color:<?=$TX?>"><?=$gc['n']?></td>
+      <td style="text-align:right;font-size:10px;font-weight:900;color:#B83232">$<?=number_format($gc['costo'],2)?></td>
+    </tr>
+    <?php endforeach; endif;?>
+    </table>
+  </div>
+
+  <div class="card" style="margin-bottom:18px;overflow-x:auto">
+    <div class="card-header"><div class="card-title" style="font-size:10px">HISTORIAL POR MES</div></div>
+    <table>
+    <tr><th>MES</th><th style="text-align:center">ENVIADOS</th><th style="text-align:center">RECIBIDOS</th><th style="text-align:right">COSTO</th></tr>
+    <?php if(empty($gastos_por_mes)):?>
+    <tr><td colspan="4" style="text-align:center;padding:18px;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN DATOS TODAVÍA</td></tr>
+    <?php else: foreach($gastos_por_mes as $gm):?>
+    <tr>
+      <?php $_gm_meses=['01'=>'ENE','02'=>'FEB','03'=>'MAR','04'=>'ABR','05'=>'MAY','06'=>'JUN','07'=>'JUL','08'=>'AGO','09'=>'SEP','10'=>'OCT','11'=>'NOV','12'=>'DIC']; [$_gm_y,$_gm_m]=explode('-',$gm['mes']); ?>
+      <td style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=($_gm_meses[$_gm_m]??$_gm_m).' '.$_gm_y?></td>
+      <td style="text-align:center;font-size:9px;color:<?=$TX?>"><?=$gm['enviados']?></td>
+      <td style="text-align:center;font-size:9px;color:<?=$TX?>"><?=$gm['recibidos']?></td>
+      <td style="text-align:right;font-size:10px;font-weight:900;color:#B83232">$<?=number_format($gm['costo'],2)?></td>
+    </tr>
+    <?php endforeach; endif;?>
+    </table>
+  </div>
 </div>
 </div><!-- /CAMPANAS -->
 
@@ -4220,13 +4317,13 @@ var _campVista='campanas';
 function setCampVista(vista){
   _campVista=vista;
   var onBg='<?=$P1?>', offBg='#fff', onCol='#fff', offCol='<?=$MU?>';
-  var esListas=(vista==='listas');
-  var bC=document.getElementById('cvtab-campanas'), bL=document.getElementById('cvtab-listas');
-  if(bC){ bC.style.background=esListas?offBg:onBg; bC.style.color=esListas?offCol:onCol; }
-  if(bL){ bL.style.background=esListas?onBg:offBg; bL.style.color=esListas?onCol:offCol; }
-  var vC=document.getElementById('camp-view-campanas'), vL=document.getElementById('camp-view-listas');
-  if(vC) vC.style.display=esListas?'none':'';
-  if(vL) vL.style.display=esListas?'':'none';
+  ['campanas','listas','gastos'].forEach(function(v){
+    var activo=(v===vista);
+    var btn=document.getElementById('cvtab-'+v);
+    var view=document.getElementById('camp-view-'+v);
+    if(btn){ btn.style.background=activo?onBg:offBg; btn.style.color=activo?onCol:offCol; }
+    if(view) view.style.display=activo?'':'none';
+  });
 }
 function leToggleCard(id){
   var b=document.getElementById('le-body-'+id); if(!b)return;

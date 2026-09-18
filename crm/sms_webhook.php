@@ -82,25 +82,13 @@ if (!$pdo) { _sms_log($pdo, 'sin_conexion_bd', null, true); _twilio_responder_va
 
 // ─── Asegurar que la tabla exista ─────────────────────────────────────────
 try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        telefono VARCHAR(20) NOT NULL,
-        miembro_id INT NULL,
-        direccion VARCHAR(10) NOT NULL,
-        cuerpo TEXT,
-        estado VARCHAR(30) DEFAULT NULL,
-        twilio_sid VARCHAR(64) DEFAULT NULL,
-        agente_id INT NULL,
-        leido TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_telefono (telefono),
-        INDEX idx_miembro (miembro_id)
-    )");
+    asegurarTablaSmsMensajes($pdo);
 } catch (Exception $e) { _sms_log($pdo, 'error_creando_tabla', null, true); _twilio_responder_vacio(500); }
 
 $telefono = normalizar_tel($_POST['From'] ?? '');
 $cuerpo   = trim($_POST['Body'] ?? '');
 $sid      = trim($_POST['MessageSid'] ?? '');
+$esMms    = ((int)($_POST['NumMedia'] ?? 0)) > 0;
 if ($telefono === '') { _sms_log($pdo, 'sin_telefono_from', null, true); _twilio_responder_vacio(); }
 
 // ─── Enlazar con un miembro existente si el teléfono coincide ────────────
@@ -113,9 +101,13 @@ try {
 } catch (Exception $e) {}
 
 try {
-    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, leido)
-                   VALUES (?, ?, 'ENTRANTE', ?, 'recibido', ?, 0)")
-        ->execute([$telefono, $miembro_id, $cuerpo, $sid ?: null]);
+    // Twilio también cobra por RECIBIR, no solo por mandar — se guarda el
+    // costo estimado de este mensaje entrante igual que se hace con los
+    // salientes, para el reporte de GASTOS de Campañas.
+    $costo = sms_calcular_costo($cuerpo, $esMms, false);
+    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, leido, es_mms, costo_estimado)
+                   VALUES (?, ?, 'ENTRANTE', ?, 'recibido', ?, 0, ?, ?)")
+        ->execute([$telefono, $miembro_id, $cuerpo, $sid ?: null, $esMms ? 1 : 0, $costo]);
     _sms_log($pdo, 'ok', $telefono, true);
     // Avisa a los navegadores conectados (si el relay de avisos en vivo está
     // configurado) para que la pestaña de SMS se refresque casi al instante,

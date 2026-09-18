@@ -17,23 +17,11 @@ $action = $_POST['action'] ?? $_GET['action'] ?? '';
 function jsonOk($data=[]) { echo json_encode(['ok'=>true,'data'=>$data]); exit; }
 function jsonErr($msg) { echo json_encode(['ok'=>false,'error'=>$msg]); exit; }
 
+// La definición real vive en lib_twilio.php (la comparten los webhooks,
+// que no cargan api.php) — se deja esta función para no tener que tocar
+// los 5 lugares de este archivo que ya la llaman como asegurarTablaSms().
 function asegurarTablaSms(PDO $pdo): void {
-    try {
-        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
-            id INT AUTO_INCREMENT PRIMARY KEY,
-            telefono VARCHAR(20) NOT NULL,
-            miembro_id INT NULL,
-            direccion VARCHAR(10) NOT NULL,
-            cuerpo TEXT,
-            estado VARCHAR(30) DEFAULT NULL,
-            twilio_sid VARCHAR(64) DEFAULT NULL,
-            agente_id INT NULL,
-            leido TINYINT(1) DEFAULT 0,
-            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-            INDEX idx_telefono (telefono),
-            INDEX idx_miembro (miembro_id)
-        )");
-    } catch (Exception $e) {}
+    asegurarTablaSmsMensajes($pdo);
 }
 
 function asegurarTablaSmsPlantillas(PDO $pdo): void {
@@ -1836,9 +1824,12 @@ case 'sms_enviar':
         if ($mm = $mq->fetch(PDO::FETCH_ASSOC)) $miembro_id_sms = (int)$mm['id'];
     }
     $res = twilio_enviar_sms($telefono, $cuerpo);
-    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
-                   VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")
-        ->execute([$telefono, $miembro_id_sms, $cuerpo, $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid]);
+    // Si Twilio lo rechazó de plano (nunca lo aceptó para enviarlo) no se
+    // cobra nada — el costo real solo aplica a los que sí quedaron en cola.
+    $costo = $res['ok'] ? sms_calcular_costo($cuerpo, false, true) : 0;
+    $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido, es_mms, costo_estimado)
+                   VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1, 0, ?)")
+        ->execute([$telefono, $miembro_id_sms, $cuerpo, $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid, $costo]);
     // Si Twilio lo rechazó al instante (ej. número mal formado), que quede
     // registrado ya mismo — no hace falta esperar el status callback para
     // saber que ESTE número nunca iba a poder recibirlo.
@@ -1957,9 +1948,12 @@ case 'campana_envio_masivo_lote':
             sms_registrar_fallo_envio($pdo, $ct['telefono'], $res['codigo'] ?? null, $res['error'] ?? null);
         }
 
-        $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
-                       VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")
-            ->execute([normalizar_tel($ct['telefono']), $ct['miembro_id'] ?: null, $cuerpo !== '' ? $cuerpo : '[FLYER]', $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid]);
+        // Si Twilio lo rechazó de plano (nunca lo aceptó para enviarlo) no
+        // se cobra nada — el costo real solo aplica a los que sí se aceptaron.
+        $costo = $res['ok'] ? sms_calcular_costo($cuerpo, (bool) $flyer_url, true) : 0;
+        $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido, campana_id, es_mms, costo_estimado)
+                       VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1, ?, ?, ?)")
+            ->execute([normalizar_tel($ct['telefono']), $ct['miembro_id'] ?: null, $cuerpo !== '' ? $cuerpo : '[FLYER]', $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid, $campana_id, $flyer_url ? 1 : 0, $costo]);
 
         // El log/actividad de la campaña ya existe para llamadas — se
         // reusa igual aquí para que "ÚLTIMO: ..." también refleje los

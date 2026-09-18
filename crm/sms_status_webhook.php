@@ -39,22 +39,7 @@ $pdo = null;
 try { $pdo = db(); } catch (Exception $e) {}
 if (!$pdo) _status_responder(500);
 
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS sms_mensajes (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        telefono VARCHAR(20) NOT NULL,
-        miembro_id INT NULL,
-        direccion VARCHAR(10) NOT NULL,
-        cuerpo TEXT,
-        estado VARCHAR(30) DEFAULT NULL,
-        twilio_sid VARCHAR(64) DEFAULT NULL,
-        agente_id INT NULL,
-        leido TINYINT(1) DEFAULT 0,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        INDEX idx_telefono (telefono),
-        INDEX idx_miembro (miembro_id)
-    )");
-} catch (Exception $e) {}
+try { asegurarTablaSmsMensajes($pdo); } catch (Exception $e) {}
 
 $sid      = trim($_POST['MessageSid'] ?? $_POST['SmsSid'] ?? '');
 $status   = strtolower(trim($_POST['MessageStatus'] ?? $_POST['SmsStatus'] ?? ''));
