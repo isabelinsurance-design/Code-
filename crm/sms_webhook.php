@@ -91,6 +91,18 @@ $sid      = trim($_POST['MessageSid'] ?? '');
 $esMms    = ((int)($_POST['NumMedia'] ?? 0)) > 0;
 if ($telefono === '') { _sms_log($pdo, 'sin_telefono_from', null, true); _twilio_responder_vacio(); }
 
+// ─── Twilio a veces REENVÍA el mismo webhook (si tardamos en responder o
+// hay un problema de red pasajero) — sin este chequeo, el mismo SMS
+// entrante se guardaría dos veces y se contaría el doble en GASTOS aunque
+// Twilio solo lo haya cobrado una vez.
+if ($sid !== '') {
+    try {
+        $dq = $pdo->prepare("SELECT id FROM sms_mensajes WHERE twilio_sid = ? AND direccion = 'ENTRANTE' LIMIT 1");
+        $dq->execute([$sid]);
+        if ($dq->fetch()) { _sms_log($pdo, 'duplicado_ignorado', $telefono, true); _twilio_responder_vacio(); }
+    } catch (Exception $e) {}
+}
+
 // ─── Enlazar con un miembro existente si el teléfono coincide ────────────
 $miembro_id = null;
 try {

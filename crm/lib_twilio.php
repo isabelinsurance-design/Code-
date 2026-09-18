@@ -72,16 +72,27 @@ if (!defined('TWILIO_COSTO_MMS_IN'))           define('TWILIO_COSTO_MMS_IN',    
 // aunque "ñ, ¿, ¡" sí) el mensaje completo se manda en UCS-2 y caben
 // solo 70 por segmento (67 si son varios) — por eso un mensaje en
 // español casi siempre pesa más segmentos de lo que parece por su
-// longitud.
+// longitud. Los caracteres de la "tabla extendida" de GSM-7 (^ { } \ [ ~
+// ] | €) cuentan DOBLE dentro de un mensaje GSM-7 — sin este detalle un
+// mensaje con "€", por ejemplo, se subestimaba.
 function sms_calcular_segmentos(string $texto): int {
-    static $gsm7 = "@£\$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà^{}\\[~]|€";
+    static $gsm7Basico    = "@£\$¥èéùìòÇ\nØø\rÅåΔ_ΦΓΛΩΠΨΣΘΞÆæßÉ !\"#¤%&'()*+,-./0123456789:;<=>?¡ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÑÜ§¿abcdefghijklmnopqrstuvwxyzäöñüà";
+    static $gsm7Extendido = "^{}\\[~]|€";
     $len = mb_strlen($texto);
     if ($len === 0) return 1;
     $esGsm7 = true;
+    $unidadesGsm7 = 0;
     for ($i = 0; $i < $len; $i++) {
-        if (mb_strpos($gsm7, mb_substr($texto, $i, 1)) === false) { $esGsm7 = false; break; }
+        $c = mb_substr($texto, $i, 1);
+        if (mb_strpos($gsm7Basico, $c) !== false) { $unidadesGsm7 += 1; continue; }
+        if (mb_strpos($gsm7Extendido, $c) !== false) { $unidadesGsm7 += 2; continue; }
+        $esGsm7 = false; break;
     }
-    $porSegmento = $esGsm7 ? ($len <= 160 ? 160 : 153) : ($len <= 70 ? 70 : 67);
+    if ($esGsm7) {
+        $porSegmento = $unidadesGsm7 <= 160 ? 160 : 153;
+        return max(1, (int) ceil($unidadesGsm7 / $porSegmento));
+    }
+    $porSegmento = $len <= 70 ? 70 : 67;
     return max(1, (int) ceil($len / $porSegmento));
 }
 

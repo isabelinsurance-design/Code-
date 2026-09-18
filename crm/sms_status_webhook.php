@@ -49,13 +49,28 @@ $errorMsg = trim($_POST['ErrorMessage'] ?? '') ?: null;
 
 if ($sid === '' || $status === '') _status_responder();
 
+// Twilio puede REENVIAR el mismo status callback (timeout, red, etc.) — si
+// ya habíamos guardado ESTE MISMO estado para este mensaje, es un reenvío
+// del mismo evento, no una transición nueva. Sin este chequeo, un solo
+// fallo real se podría contar dos veces en sms_fallos y bloquear un
+// número después de UN fallo real (no dos) por pura casualidad de un
+// reenvío del webhook.
+$estadoPrevio = null;
+try {
+    $fq = $pdo->prepare("SELECT estado FROM sms_mensajes WHERE twilio_sid = ? LIMIT 1");
+    $fq->execute([$sid]);
+    $filaPrevia = $fq->fetch(PDO::FETCH_ASSOC);
+    $estadoPrevio = $filaPrevia['estado'] ?? null;
+} catch (Exception $e) {}
+$esReenvioDelMismoEvento = ($estadoPrevio !== null && $estadoPrevio === $status);
+
 // Reflejar el estado final en el hilo de SMS de COMUNICACIÓN — esto solo
 // necesita el SID, sin importar si "To" viene vacío por algo raro.
 try {
     $pdo->prepare("UPDATE sms_mensajes SET estado = ? WHERE twilio_sid = ?")->execute([$status, $sid]);
 } catch (Exception $e) {}
 
-if ($telefono !== '') {
+if (!$esReenvioDelMismoEvento && $telefono !== '') {
     if (in_array($status, ['failed', 'undelivered'], true)) {
         try { sms_registrar_fallo_envio($pdo, $telefono, $codigo, $errorMsg); } catch (Exception $e) {}
     } elseif ($status === 'delivered') {

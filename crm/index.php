@@ -3014,8 +3014,15 @@ try{
     $gmq->execute([date('Y-m-01')]);
     $gastos_mes = (float)$gmq->fetchColumn();
 
+    // "Enviados" NO cuenta los que Twilio rechazó de plano (esos nunca se
+    // mandaron de verdad, cuestan $0) — si no, el número de "enviados" se
+    // ve inflado con intentos fallidos aunque el monto en dólares ya salía
+    // bien (un fallido siempre suma $0, así que filtrarlo del conteo no
+    // cambia ningún total, solo lo hace más honesto).
     foreach($pdo->query("SELECT direccion, es_mms, COUNT(*) n, COALESCE(SUM(costo_estimado),0) costo
-                          FROM sms_mensajes GROUP BY direccion, es_mms") as $gr){
+                          FROM sms_mensajes
+                          WHERE NOT (direccion='SALIENTE' AND COALESCE(estado,'')='error')
+                          GROUP BY direccion, es_mms") as $gr){
         if($gr['direccion']==='SALIENTE' && !$gr['es_mms'])      $gastos_sms_out=['n'=>(int)$gr['n'],'costo'=>(float)$gr['costo']];
         elseif($gr['direccion']==='SALIENTE' && $gr['es_mms'])   $gastos_mms_out=['n'=>(int)$gr['n'],'costo'=>(float)$gr['costo']];
         elseif($gr['direccion']==='ENTRANTE'){ $gastos_in['n']+=(int)$gr['n']; $gastos_in['costo']+=(float)$gr['costo']; }
@@ -3023,11 +3030,11 @@ try{
 
     $gastos_por_campana = $pdo->query("SELECT c.id, c.nombre, COUNT(s.id) n, COALESCE(SUM(s.costo_estimado),0) costo
                                         FROM sms_mensajes s JOIN campanas c ON s.campana_id=c.id
-                                        WHERE s.direccion='SALIENTE'
+                                        WHERE s.direccion='SALIENTE' AND COALESCE(s.estado,'')!='error'
                                         GROUP BY c.id, c.nombre ORDER BY costo DESC")->fetchAll(PDO::FETCH_ASSOC);
 
     $gastos_por_mes = $pdo->query("SELECT DATE_FORMAT(created_at,'%Y-%m') mes,
-                                           SUM(CASE WHEN direccion='SALIENTE' THEN 1 ELSE 0 END) enviados,
+                                           SUM(CASE WHEN direccion='SALIENTE' AND COALESCE(estado,'')!='error' THEN 1 ELSE 0 END) enviados,
                                            SUM(CASE WHEN direccion='ENTRANTE' THEN 1 ELSE 0 END) recibidos,
                                            COALESCE(SUM(costo_estimado),0) costo
                                     FROM sms_mensajes GROUP BY mes ORDER BY mes DESC LIMIT 12")->fetchAll(PDO::FETCH_ASSOC);
@@ -4027,7 +4034,7 @@ function confirmarEnvioMasivo(){
   }
   if(!confirm('Esto va a mandar '+_emTotalActual+' mensaje'+(_emTotalActual!==1?'s':'')+' por Twilio (cada uno tiene costo). ¿Confirmas que quieres enviarlo?')) return;
 
-  _emState = {campId:campId, estado:estado, mensaje:mensaje, flyerUrl:'', offset:0, total:_emTotalActual, enviados:0, fallidos:0, errores:[], cancelado:false, enviando:true};
+  _emState = {campId:campId, estado:estado, mensaje:mensaje, flyerUrl:'', cursor:0, desde:'', procesados:0, total:_emTotalActual, enviados:0, fallidos:0, errores:[], cancelado:false, enviando:true};
   document.getElementById('em-btn-enviar').disabled = true;
   document.getElementById('em-btn-cancelar').textContent = 'DETENER ENVÍO';
   document.getElementById('em-progreso-wrap').style.display = '';
@@ -4050,15 +4057,17 @@ function _emEnviarSiguienteLote(){
   if(!_emState || _emState.cancelado){ _emTerminarEnvio(); return; }
   var p = new URLSearchParams({
     action:'campana_envio_masivo_lote', campana_id:_emState.campId, mensaje:_emState.mensaje,
-    flyer_url:_emState.flyerUrl, estado:_emState.estado, offset:_emState.offset, limit:8
+    flyer_url:_emState.flyerUrl, estado:_emState.estado, cursor:_emState.cursor, desde:_emState.desde, limit:8
   });
   fetch('api.php',{method:'POST',body:p}).then(function(r){return r.json();}).then(function(d){
     if(!d.ok){ if(typeof toast==='function')toast('⚠ '+(d.error||'Error al enviar')); _emTerminarEnvio(); return; }
     _emState.enviados += d.data.enviados;
     _emState.fallidos += d.data.fallidos;
     _emState.errores = _emState.errores.concat(d.data.errores||[]);
-    _emState.offset = d.data.procesados;
-    _emSetProgreso(d.data.procesados, d.data.total, _emState.enviados, _emState.fallidos);
+    _emState.procesados += d.data.procesados;
+    _emState.cursor = d.data.cursor;
+    _emState.desde = d.data.desde || _emState.desde;
+    _emSetProgreso(_emState.procesados, _emState.total, _emState.enviados, _emState.fallidos);
     if(d.data.done || _emState.cancelado){ _emTerminarEnvio(); return; }
     _emEnviarSiguienteLote();
   }).catch(function(){ if(typeof toast==='function')toast('⚠ Error de red — el envío se detuvo a la mitad'); _emTerminarEnvio(); });

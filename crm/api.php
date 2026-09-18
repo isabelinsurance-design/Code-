@@ -1911,26 +1911,67 @@ case 'campana_envio_masivo_lote':
     $mensaje    = trim($_POST['mensaje'] ?? '');
     $flyer_url  = trim($_POST['flyer_url'] ?? '');
     $estado_f   = trim($_POST['estado'] ?? '');
-    $offset     = max(0, (int)($_POST['offset'] ?? 0));
+    // Si el navegador todavía tiene cargada una versión vieja de la página
+    // (de antes de este cambio) mandaría "offset" en vez de "cursor" — sin
+    // este aviso, el servidor lo tomaría como cursor=0 SIEMPRE y volvería a
+    // mandar el mismo primer lote una y otra vez sin parar (dinero perdido
+    // de verdad). Mejor cortarlo con un mensaje claro que pedir que recargue.
+    if (!isset($_POST['cursor']) && isset($_POST['offset'])) {
+        jsonErr('Esta pantalla quedó con una versión vieja cargada — recarga la página (Ctrl+F5) antes de mandar el envío');
+    }
+    $cursor     = max(0, (int)($_POST['cursor'] ?? 0));
     $limit      = min(15, max(1, (int)($_POST['limit'] ?? 8)));
+    // "desde" marca cuándo empezó ESTE envío — lo calcula el servidor (no el
+    // navegador) para no depender de que el reloj del navegador esté bien
+    // puesto, y se lo manda de vuelta al frontend en el primer lote para que
+    // lo reenvíe en los siguientes.
+    $desde = trim($_POST['desde'] ?? '');
+    if ($desde === '') $desde = date('Y-m-d H:i:s');
     if (!$campana_id) jsonErr('Campaña requerida');
     if ($mensaje === '' && $flyer_url === '') jsonErr('Escribe un mensaje o adjunta un flyer');
 
-    // Nunca mandarle a alguien que ya respondió STOP.
-    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != '' AND telefono NOT IN (SELECT telefono FROM sms_opt_out)";
-    $params = [$campana_id];
+    // Se pagina por "id > cursor", NO por OFFSET. Un contacto se puede
+    // bloquear (sms_opt_out) A MITAD del envío — por STOP o por fallar al
+    // mandarle — y eso encoge el conjunto que cumple el filtro. Con OFFSET,
+    // ese encogimiento recorre la ventana de la siguiente página y se salta
+    // contactos sin mandarles nada (y sin que se note, porque el contador
+    // de "procesados" igual cuadra contra un total que también encogió).
+    // Con un cursor por id esto no pasa: cada lote solo pide "lo que sigue
+    // después del último id que ya se intentó", sin importar cuántos se
+    // hayan excluido mientras tanto.
+    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != '' AND telefono NOT IN (SELECT telefono FROM sms_opt_out) AND id > ?";
+    $params = [$campana_id, $cursor];
     if ($estado_f !== '') { $where .= ' AND estado = ?'; $params[] = $estado_f; }
+    // Si dos contactos de esta campaña comparten el mismo teléfono (persona
+    // duplicada en la lista — la importación de CSV ya evita esto, pero un
+    // "+ NUEVO CONTACTO" a mano no), no se le manda dos veces en el MISMO
+    // envío: se excluye cualquier teléfono que ya haya recibido un mensaje
+    // de ESTE envío (desde que se confirmó, no de campañas viejas — así una
+    // campaña futura a la misma gente sigue funcionando normal).
+    if ($desde !== '') {
+        $where .= " AND telefono NOT IN (SELECT telefono FROM sms_mensajes WHERE campana_id = ? AND created_at >= ?)";
+        $params[] = $campana_id; $params[] = $desde;
+    }
 
-    $cq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $where");
-    $cq->execute($params);
-    $total = (int)$cq->fetchColumn();
-
-    $lq = $pdo->prepare("SELECT * FROM campana_contactos WHERE $where ORDER BY id ASC LIMIT $limit OFFSET $offset");
+    $lq = $pdo->prepare("SELECT * FROM campana_contactos WHERE $where ORDER BY id ASC LIMIT $limit");
     $lq->execute($params);
     $lote = $lq->fetchAll(PDO::FETCH_ASSOC);
 
-    $enviados = 0; $fallidos = 0; $errores = [];
+    $enviados = 0; $fallidos = 0; $errores = []; $siguienteCursor = $cursor;
+    // Si dos contactos de la campaña comparten el mismo teléfono (duplicado
+    // en la lista importada), el filtro de sms_opt_out no alcanza a
+    // protegerlos entre sí DENTRO del mismo lote — el bloqueo del primero
+    // se guarda hasta después, cuando el segundo ya se hubiera intentado
+    // mandar en este mismo ciclo. Se evita mandándole solo una vez por
+    // lote a cada teléfono, sin importar cuántos contactos lo compartan.
+    $telefonosYaEnviadosEnEsteLote = [];
     foreach ($lote as $ct) {
+        $siguienteCursor = max($siguienteCursor, (int) $ct['id']);
+        $telNorm = normalizar_tel($ct['telefono']);
+        if ($telNorm !== '' && isset($telefonosYaEnviadosEnEsteLote[$telNorm])) {
+            continue; // mismo número ya atendido en este lote — no se duplica el envío ni el costo
+        }
+        if ($telNorm !== '') $telefonosYaEnviadosEnEsteLote[$telNorm] = true;
         $nombreCt = trim(($ct['nombre'] ?? '') . ' ' . ($ct['apellido'] ?? ''));
         // {NOMBRE} deja mandar el mismo mensaje personalizado a todos sin
         // tener que escribirlo contacto por contacto.
@@ -1965,9 +2006,10 @@ case 'campana_envio_masivo_lote':
         } catch (Exception $e) {}
     }
 
-    $procesados = $offset + count($lote);
-    $done = $procesados >= $total;
-    $data = ['enviados' => $enviados, 'fallidos' => $fallidos, 'errores' => $errores, 'procesados' => $procesados, 'total' => $total, 'done' => $done];
+    // Si trajo MENOS de lo que se pidió, ya no queda nada más — sin
+    // depender de comparar contra un "total" que puede haber cambiado.
+    $done = count($lote) < $limit;
+    $data = ['enviados' => $enviados, 'fallidos' => $fallidos, 'errores' => $errores, 'procesados' => count($lote), 'cursor' => $siguienteCursor, 'desde' => $desde, 'done' => $done];
     if ($done) jsonOkNotify($data, 'CAMPANAS');
     jsonOk($data);
     break;
