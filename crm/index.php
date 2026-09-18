@@ -3055,6 +3055,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
     <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
       <button class="btn btn-sky btn-sm" onclick="openCcImport(<?=$c['id']?>)">⤒ SUBIR LISTA (CSV)</button>
+      <button class="btn btn-sky btn-sm" onclick="abrirEnvioMasivo(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')">📤 ENVIAR SMS / FLYER</button>
       <button class="btn btn-gh btn-sm" onclick="toggleCcReporte(<?=$c['id']?>,this)">📊 REPORTE</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
       <button class="btn btn-re btn-sm" onclick="deleteCampana(<?=$c['id']?>)">✕ ELIMINAR</button>
@@ -3483,6 +3484,57 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
   </form>
 </div></div>
 
+<!-- MODAL: ENVÍO MASIVO A UNA CAMPAÑA (SMS / MMS con flyer, por Twilio) -->
+<div id="modal-camp-envio" class="modal-overlay"><div class="modal">
+  <div class="modal-header"><div class="modal-title">📤 ENVIAR SMS / FLYER</div><button class="modal-close" onclick="cerrarEnvioMasivo()">✕</button></div>
+  <input type="hidden" id="em-campana-id">
+  <div id="em-campana-nombre" style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-bottom:12px"></div>
+  <?php if(!twilio_configurado()):?>
+  <div style="background:#FEF8EE;border:1px solid #F5D5A0;padding:11px 14px;margin-bottom:14px;border-radius:9px;font-size:9px;color:#7A5B12;text-transform:uppercase;font-weight:800">⚠ TWILIO TODAVÍA NO ESTÁ CONFIGURADO — NO SE PUEDEN ENVIAR MENSAJES HASTA CONFIGURARLO.</div>
+  <?php endif;?>
+  <div id="em-body">
+    <div class="form-group">
+      <label class="form-label">SOLO A LOS QUE ESTÉN EN ESTADO (OPCIONAL)</label>
+      <select id="em-estado" class="form-input" onchange="_emActualizarConteo()">
+        <option value="">TODOS LOS CONTACTOS DE LA CAMPAÑA</option>
+        <option value="ACTIVO">ACTIVO</option>
+        <option value="INTERESADO">INTERESADO</option>
+        <option value="CITA">CITA AGENDADA</option>
+        <option value="INSCRITO">INSCRITO</option>
+        <option value="NO_INTERESADO">NO INTERESADO</option>
+        <option value="DESCARTADO">DESCARTADO</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label class="form-label">MENSAJE <span style="font-weight:400;text-transform:none;color:<?=$MU?>">— escribe {NOMBRE} donde quieras que se ponga el nombre de cada quien</span></label>
+      <textarea id="em-mensaje" class="form-input" rows="4" style="text-transform:none" placeholder="Hola {NOMBRE}, le escribimos de Medicare with Isabel..." oninput="_emActualizarBoton()"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">FLYER (OPCIONAL — imagen JPG/PNG, se manda como MMS)</label>
+      <input type="file" id="em-flyer-input" accept="image/*" onchange="_emFlyerElegido(this)">
+      <div id="em-flyer-preview" style="display:none;margin-top:8px">
+        <img id="em-flyer-img" style="max-width:160px;max-height:160px;border-radius:9px;border:1.5px solid <?=$CB?>">
+        <button type="button" class="btn btn-gh btn-sm" onclick="_emQuitarFlyer()" style="margin-left:8px">✕ QUITAR</button>
+      </div>
+    </div>
+    <label style="display:flex;align-items:center;gap:7px;font-size:9px;color:<?=$TX?>;text-transform:uppercase;letter-spacing:.5px;margin:10px 0;cursor:pointer">
+      <input type="checkbox" id="em-stop" checked style="width:15px;height:15px;cursor:pointer">
+      AGREGAR AL FINAL "Responda STOP para dejar de recibir mensajes" (RECOMENDADO)
+    </label>
+    <div id="em-conteo" style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;font-weight:800;margin-bottom:6px">CALCULANDO A CUÁNTOS LES LLEGARÍA…</div>
+    <div id="em-progreso-wrap" style="display:none;margin-bottom:10px">
+      <div style="background:<?=$BG?>;border-radius:20px;height:16px;overflow:hidden;border:1px solid <?=$CB?>">
+        <div id="em-progreso-barra" style="height:100%;width:0%;background:<?=$P2?>;transition:width .2s"></div>
+      </div>
+      <div id="em-progreso-txt" style="font-size:9px;color:<?=$MU?>;text-transform:uppercase;margin-top:5px"></div>
+    </div>
+    <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
+      <button type="button" class="btn btn-gh btn-sm" id="em-btn-cancelar" onclick="cerrarEnvioMasivo()">CANCELAR</button>
+      <button type="button" class="btn btn-p btn-sm" id="em-btn-enviar" onclick="confirmarEnvioMasivo()" disabled>ENVIAR</button>
+    </div>
+  </div>
+</div></div>
+
 <!-- MODAL: NUEVO/EDITAR CONTACTO -->
 <div id="modal-cc-perfil" class="modal-overlay"><div class="modal">
   <div class="modal-header"><div class="modal-title">PERFIL DEL CONTACTO</div><button class="modal-close" onclick="closeModal('modal-cc-perfil')">✕</button></div>
@@ -3787,6 +3839,136 @@ function saveCampana(e){e.preventDefault();var f=e.target;
   }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='GUARDAR'; } });
 }
 function deleteCampana(id){if(!confirm('¿Eliminar esta campaña? Se borrarán sus contactos y registros.'))return;try{sessionStorage.removeItem('campOpen');}catch(e){}campPost('action=delete_campana&id='+id,true);}
+// ── ENVÍO MASIVO A UNA CAMPAÑA (SMS / flyer por MMS, vía Twilio) ──
+// Se manda en lotes chicos (ver _emEnviarSiguienteLote) para que campañas
+// grandes no truenen el servidor por timeout — cada lote avanza la barra
+// de progreso, y se puede detener a la mitad si algo se ve mal.
+var _emState = null;
+var _emFlyerFile = null;
+var _emTotalActual = 0;
+function abrirEnvioMasivo(campId, campNombre){
+  if(_emState && _emState.enviando){ if(typeof toast==='function')toast('⚠ Ya hay un envío en curso — espera a que termine o detenlo primero'); return; }
+  document.getElementById('em-campana-id').value = campId;
+  document.getElementById('em-campana-nombre').textContent = campNombre;
+  document.getElementById('em-estado').value = '';
+  document.getElementById('em-mensaje').value = '';
+  document.getElementById('em-stop').checked = true;
+  _emQuitarFlyer();
+  document.getElementById('em-progreso-wrap').style.display = 'none';
+  document.getElementById('em-btn-cancelar').textContent = 'CANCELAR';
+  document.getElementById('em-btn-enviar').textContent = 'ENVIAR';
+  document.getElementById('em-btn-enviar').disabled = true;
+  openModal('modal-camp-envio');
+  _emActualizarConteo();
+}
+function cerrarEnvioMasivo(){
+  if(_emState && _emState.enviando){
+    if(!confirm('¿Detener el envío? Ya se mandaron '+_emState.enviados+' mensajes.')) return;
+    _emState.cancelado = true;
+    return;
+  }
+  closeModal('modal-camp-envio');
+}
+function _emFlyerElegido(input){
+  var f = input.files && input.files[0];
+  if(!f) return;
+  if(f.size > 5*1024*1024){ if(typeof toast==='function')toast('⚠ La imagen no puede pesar más de 5MB'); input.value=''; return; }
+  _emFlyerFile = f;
+  var reader = new FileReader();
+  reader.onload = function(e){
+    document.getElementById('em-flyer-img').src = e.target.result;
+    document.getElementById('em-flyer-preview').style.display = '';
+  };
+  reader.readAsDataURL(f);
+  _emActualizarBoton();
+}
+function _emQuitarFlyer(){
+  _emFlyerFile = null;
+  var inp = document.getElementById('em-flyer-input'); if(inp) inp.value = '';
+  document.getElementById('em-flyer-preview').style.display = 'none';
+  _emActualizarBoton();
+}
+function _emActualizarConteo(){
+  var campId = document.getElementById('em-campana-id').value;
+  var estado = document.getElementById('em-estado').value;
+  document.getElementById('em-conteo').textContent = 'CALCULANDO A CUÁNTOS LES LLEGARÍA…';
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'campana_envio_masivo_contar',campana_id:campId,estado:estado})})
+    .then(function(r){return r.json();})
+    .then(function(d){
+      _emTotalActual = (d && d.ok) ? d.data.total : 0;
+      document.getElementById('em-conteo').textContent = _emTotalActual>0
+        ? '📱 LE LLEGARÍA A '+_emTotalActual+' CONTACTO'+(_emTotalActual!==1?'S':'')+' CON TELÉFONO'
+        : '⚠ NINGÚN CONTACTO CON TELÉFONO COINCIDE CON ESE FILTRO';
+      _emActualizarBoton();
+    })
+    .catch(function(){ document.getElementById('em-conteo').textContent = '⚠ No se pudo calcular — intenta de nuevo'; _emTotalActual=0; _emActualizarBoton(); });
+}
+function _emActualizarBoton(){
+  var mensaje = document.getElementById('em-mensaje').value.trim();
+  var btn = document.getElementById('em-btn-enviar');
+  btn.disabled = !(_emTotalActual>0 && (mensaje!=='' || _emFlyerFile) && <?=twilio_configurado()?'true':'false'?>);
+}
+function confirmarEnvioMasivo(){
+  var campId = document.getElementById('em-campana-id').value;
+  var estado = document.getElementById('em-estado').value;
+  var mensaje = document.getElementById('em-mensaje').value.trim();
+  if(document.getElementById('em-stop').checked && mensaje && !/\bSTOP\b/i.test(mensaje)){
+    mensaje += ' Responda STOP para dejar de recibir mensajes.';
+  }
+  if(!confirm('Esto va a mandar '+_emTotalActual+' mensaje'+(_emTotalActual!==1?'s':'')+' por Twilio (cada uno tiene costo). ¿Confirmas que quieres enviarlo?')) return;
+
+  _emState = {campId:campId, estado:estado, mensaje:mensaje, flyerUrl:'', offset:0, total:_emTotalActual, enviados:0, fallidos:0, errores:[], cancelado:false, enviando:true};
+  document.getElementById('em-btn-enviar').disabled = true;
+  document.getElementById('em-btn-cancelar').textContent = 'DETENER ENVÍO';
+  document.getElementById('em-progreso-wrap').style.display = '';
+  _emSetProgreso(0, _emTotalActual, 0, 0);
+
+  if(_emFlyerFile){
+    var fd = new FormData();
+    fd.append('action','campana_flyer_subir');
+    fd.append('flyer', _emFlyerFile);
+    fetch('api.php',{method:'POST',body:fd}).then(function(r){return r.json();}).then(function(d){
+      if(!d.ok){ if(typeof toast==='function')toast('⚠ '+(d.error||'No se pudo subir el flyer')); _emTerminarEnvio(); return; }
+      _emState.flyerUrl = d.data.url;
+      _emEnviarSiguienteLote();
+    }).catch(function(){ if(typeof toast==='function')toast('⚠ Error de red al subir el flyer'); _emTerminarEnvio(); });
+  } else {
+    _emEnviarSiguienteLote();
+  }
+}
+function _emEnviarSiguienteLote(){
+  if(!_emState || _emState.cancelado){ _emTerminarEnvio(); return; }
+  var p = new URLSearchParams({
+    action:'campana_envio_masivo_lote', campana_id:_emState.campId, mensaje:_emState.mensaje,
+    flyer_url:_emState.flyerUrl, estado:_emState.estado, offset:_emState.offset, limit:8
+  });
+  fetch('api.php',{method:'POST',body:p}).then(function(r){return r.json();}).then(function(d){
+    if(!d.ok){ if(typeof toast==='function')toast('⚠ '+(d.error||'Error al enviar')); _emTerminarEnvio(); return; }
+    _emState.enviados += d.data.enviados;
+    _emState.fallidos += d.data.fallidos;
+    _emState.errores = _emState.errores.concat(d.data.errores||[]);
+    _emState.offset = d.data.procesados;
+    _emSetProgreso(d.data.procesados, d.data.total, _emState.enviados, _emState.fallidos);
+    if(d.data.done || _emState.cancelado){ _emTerminarEnvio(); return; }
+    _emEnviarSiguienteLote();
+  }).catch(function(){ if(typeof toast==='function')toast('⚠ Error de red — el envío se detuvo a la mitad'); _emTerminarEnvio(); });
+}
+function _emSetProgreso(procesados, total, enviados, fallidos){
+  var pct = total>0 ? Math.round(procesados*100/total) : 0;
+  document.getElementById('em-progreso-barra').style.width = pct+'%';
+  document.getElementById('em-progreso-txt').textContent = procesados+' / '+total+' — ✓ '+enviados+' enviados'+(fallidos>0?' · ⚠ '+fallidos+' fallidos':'');
+}
+function _emTerminarEnvio(){
+  var cancelado = !!(_emState && _emState.cancelado);
+  var enviados = _emState ? _emState.enviados : 0;
+  var fallidos = _emState ? _emState.fallidos : 0;
+  if(_emState) _emState.enviando = false;
+  document.getElementById('em-btn-cancelar').textContent = 'CERRAR';
+  document.getElementById('em-btn-enviar').disabled = true;
+  if(typeof toast==='function'){
+    toast((cancelado?'⏹ ENVÍO DETENIDO — ':'✓ ENVÍO TERMINADO — ')+enviados+' enviados'+(fallidos>0?', '+fallidos+' fallidos':''));
+  }
+}
 function openCcForm(campId,ctId){
   document.getElementById('cc-id').value=ctId||'';
   document.getElementById('cc-campana-id').value=campId||'';

@@ -1869,6 +1869,94 @@ case 'sms_plantilla_eliminar':
     jsonOk();
     break;
 
+// ── ENVÍO MASIVO A UNA CAMPAÑA (SMS o MMS con flyer, por Twilio) ──
+// Sube el flyer UNA vez (esto) y el envío real se hace en lotes chicos
+// (ver 'campana_envio_masivo_lote') para no arriesgar un timeout del
+// servidor si la campaña tiene muchos contactos.
+case 'campana_flyer_subir':
+    if (empty($_FILES['flyer']['tmp_name'])) jsonErr('No se recibió ninguna imagen');
+    if (($_FILES['flyer']['error'] ?? 1) !== UPLOAD_ERR_OK) jsonErr('Error al subir la imagen');
+    if ($_FILES['flyer']['size'] > 5 * 1024 * 1024) jsonErr('La imagen no puede pesar más de 5MB');
+    $ext = strtolower(pathinfo($_FILES['flyer']['name'], PATHINFO_EXTENSION));
+    if (!in_array($ext, ['jpg', 'jpeg', 'png', 'gif', 'webp'], true)) jsonErr('Formato no permitido — usa JPG, PNG, GIF o WEBP');
+    $dir = __DIR__ . '/uploads/flyers/';
+    if (!is_dir($dir)) mkdir($dir, 0755, true);
+    $fname = 'flyer_' . time() . '_' . mt_rand(1000, 9999) . '.' . $ext;
+    if (!move_uploaded_file($_FILES['flyer']['tmp_name'], $dir . $fname)) jsonErr('Error al guardar la imagen');
+    jsonOk(['url' => twilio_url_publica('uploads/flyers/' . $fname)]);
+    break;
+
+// Cuenta cuántos contactos coinciden con el filtro SIN mandar nada — para
+// mostrar "esto le va a llegar a N personas" antes de que Isabel confirme.
+case 'campana_envio_masivo_contar':
+    $pdo = db();
+    $campana_id = (int)($_POST['campana_id'] ?? 0);
+    $estado_f   = trim($_POST['estado'] ?? '');
+    if (!$campana_id) jsonErr('Campaña requerida');
+    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != ''";
+    $params = [$campana_id];
+    if ($estado_f !== '') { $where .= ' AND estado = ?'; $params[] = $estado_f; }
+    $cq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $where");
+    $cq->execute($params);
+    jsonOk(['total' => (int)$cq->fetchColumn()]);
+    break;
+
+case 'campana_envio_masivo_lote':
+    $pdo = db();
+    asegurarTablaSms($pdo);
+    $campana_id = (int)($_POST['campana_id'] ?? 0);
+    $mensaje    = trim($_POST['mensaje'] ?? '');
+    $flyer_url  = trim($_POST['flyer_url'] ?? '');
+    $estado_f   = trim($_POST['estado'] ?? '');
+    $offset     = max(0, (int)($_POST['offset'] ?? 0));
+    $limit      = min(15, max(1, (int)($_POST['limit'] ?? 8)));
+    if (!$campana_id) jsonErr('Campaña requerida');
+    if ($mensaje === '' && $flyer_url === '') jsonErr('Escribe un mensaje o adjunta un flyer');
+
+    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != ''";
+    $params = [$campana_id];
+    if ($estado_f !== '') { $where .= ' AND estado = ?'; $params[] = $estado_f; }
+
+    $cq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $where");
+    $cq->execute($params);
+    $total = (int)$cq->fetchColumn();
+
+    $lq = $pdo->prepare("SELECT * FROM campana_contactos WHERE $where ORDER BY id ASC LIMIT $limit OFFSET $offset");
+    $lq->execute($params);
+    $lote = $lq->fetchAll(PDO::FETCH_ASSOC);
+
+    $enviados = 0; $fallidos = 0; $errores = [];
+    foreach ($lote as $ct) {
+        $nombreCt = trim(($ct['nombre'] ?? '') . ' ' . ($ct['apellido'] ?? ''));
+        // {NOMBRE} deja mandar el mismo mensaje personalizado a todos sin
+        // tener que escribirlo contacto por contacto.
+        $cuerpo = $mensaje !== '' ? str_replace('{NOMBRE}', $nombreCt !== '' ? $nombreCt : 'cliente', $mensaje) : '';
+        $res = twilio_enviar_sms($ct['telefono'], $cuerpo, $flyer_url ?: null);
+        $canal     = $flyer_url ? 'FLYER' : 'SMS';
+        $resultado = $res['ok'] ? 'Enviado' : ('Error: ' . $res['error']);
+        if ($res['ok']) $enviados++; else { $fallidos++; $errores[] = ($nombreCt ?: 'Sin nombre') . ': ' . $res['error']; }
+
+        $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, leido)
+                       VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, 1)")
+            ->execute([normalizar_tel($ct['telefono']), $ct['miembro_id'] ?: null, $cuerpo !== '' ? $cuerpo : '[FLYER]', $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error', $res['sid'] ?? null, $uid]);
+
+        // El log/actividad de la campaña ya existe para llamadas — se
+        // reusa igual aquí para que "ÚLTIMO: ..." también refleje los
+        // envíos masivos, sin tumbar el envío si esa tabla no existe.
+        try {
+            $pdo->prepare("INSERT INTO campana_logs (campana_id,contacto_id,agente_id,canal,resultado,notas) VALUES (?,?,?,?,?,?)")
+                ->execute([$campana_id, $ct['id'], $uid, $canal, $resultado, $mensaje]);
+            $pdo->prepare("UPDATE campana_contactos SET ultima_actividad=NOW() WHERE id=?")->execute([$ct['id']]);
+        } catch (Exception $e) {}
+    }
+
+    $procesados = $offset + count($lote);
+    $done = $procesados >= $total;
+    $data = ['enviados' => $enviados, 'fallidos' => $fallidos, 'errores' => $errores, 'procesados' => $procesados, 'total' => $total, 'done' => $done];
+    if ($done) jsonOkNotify($data, 'CAMPANAS');
+    jsonOk($data);
+    break;
+
 case 'toggle_checklist':
     $pdo = db(); 
     $item_key = trim($_POST['item_key'] ?? '');

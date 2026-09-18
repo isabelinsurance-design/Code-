@@ -18,25 +18,41 @@ function twilio_configurado(): bool {
         && defined('TWILIO_FROM_NUMBER') && TWILIO_FROM_NUMBER;
 }
 
-function twilio_enviar_sms(string $to, string $body): array {
+// Convierte una ruta relativa dentro del CRM (ej. "uploads/flyers/x.jpg",
+// tal como se guarda en la base de datos) en una URL pública completa —
+// para un MMS, Twilio necesita poder DESCARGAR la imagen desde internet,
+// no le sirve una ruta de archivo del servidor.
+function twilio_url_publica(string $rutaRelativa): string {
+    $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
+    $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? '');
+    $dir   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
+    return $proto . '://' . $host . $dir . '/' . ltrim($rutaRelativa, '/');
+}
+
+// $mediaUrl (opcional) manda un MMS con imagen (ej. un flyer) en vez de un
+// SMS de solo texto — debe ser una URL pública (https) donde Twilio pueda
+// descargar la imagen; $body puede ir vacío si solo se manda la imagen.
+function twilio_enviar_sms(string $to, string $body, ?string $mediaUrl = null): array {
     if (!twilio_configurado()) {
         return ['ok' => false, 'error' => 'Twilio no está configurado (faltan TWILIO_SID/TWILIO_AUTH_TOKEN/TWILIO_FROM_NUMBER en config.php)'];
     }
     $to = normalizar_tel($to);
     if ($to === '') return ['ok' => false, 'error' => 'Número de destino inválido'];
-    if (trim($body) === '') return ['ok' => false, 'error' => 'Mensaje vacío'];
+    if (trim($body) === '' && !$mediaUrl) return ['ok' => false, 'error' => 'Mensaje vacío'];
 
     $url = 'https://api.twilio.com/2010-04-01/Accounts/' . TWILIO_SID . '/Messages.json';
+    $campos = [
+        'From' => TWILIO_FROM_NUMBER,
+        'To'   => $to,
+        'Body' => $body,
+    ];
+    if ($mediaUrl) $campos['MediaUrl'] = $mediaUrl;
     $ch = curl_init($url);
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
         CURLOPT_POST           => true,
         CURLOPT_USERPWD        => TWILIO_SID . ':' . TWILIO_AUTH_TOKEN,
-        CURLOPT_POSTFIELDS     => http_build_query([
-            'From' => TWILIO_FROM_NUMBER,
-            'To'   => $to,
-            'Body' => $body,
-        ]),
+        CURLOPT_POSTFIELDS     => http_build_query($campos),
         CURLOPT_TIMEOUT        => 15,
     ]);
     $resp = curl_exec($ch);
