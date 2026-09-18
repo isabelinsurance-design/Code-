@@ -70,6 +70,43 @@ function twilio_enviar_sms(string $to, string $body, ?string $mediaUrl = null): 
     return ['ok' => false, 'error' => $data['message'] ?? ('Twilio respondió con error ' . $code)];
 }
 
+// ═══════════════════════════════════════════════════════════════════
+//  OPT-OUT (STOP) — cuando alguien responde STOP no se le debe volver a
+//  escribir. Se guarda por TELÉFONO (no por miembro_id) porque muchos
+//  contactos de campaña todavía no son miembros del CRM.
+// ═══════════════════════════════════════════════════════════════════
+function asegurarTablaSmsOptOut(PDO $pdo): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS sms_opt_out (
+            telefono   VARCHAR(20) NOT NULL PRIMARY KEY,
+            motivo     VARCHAR(100) DEFAULT NULL,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        )");
+    } catch (Exception $e) {}
+}
+
+// Igual que hace Twilio: se compara el mensaje COMPLETO contra la palabra,
+// no como substring — así "cancelar mi cita" no dispara un opt-out.
+const SMS_PALABRAS_STOP  = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'ALTO', 'BAJA'];
+const SMS_PALABRAS_START = ['START', 'UNSTOP', 'YES'];
+
+function sms_es_palabra_stop(string $cuerpo): bool {
+    return in_array(strtoupper(trim($cuerpo)), SMS_PALABRAS_STOP, true);
+}
+function sms_es_palabra_start(string $cuerpo): bool {
+    return in_array(strtoupper(trim($cuerpo)), SMS_PALABRAS_START, true);
+}
+
+// ¿Este teléfono ya nos pidió que no le mandemos más mensajes?
+function sms_esta_optout(PDO $pdo, string $telefono): bool {
+    asegurarTablaSmsOptOut($pdo);
+    $telefono = normalizar_tel($telefono);
+    if ($telefono === '') return false;
+    $q = $pdo->prepare("SELECT 1 FROM sms_opt_out WHERE telefono = ?");
+    $q->execute([$telefono]);
+    return (bool) $q->fetchColumn();
+}
+
 // Valida que un webhook (SMS o de voz/SIP) realmente venga de Twilio —
 // mismo cálculo que ya se usa en sms_webhook.php (HMAC-SHA1 de la URL
 // completa + los parámetros del POST, con el Auth Token como llave).

@@ -23,6 +23,7 @@
 
 require_once __DIR__ . '/config.php';
 require_once __DIR__ . '/lib_telefono.php';
+require_once __DIR__ . '/lib_twilio.php';
 
 header('Content-Type: text/xml; charset=utf-8');
 
@@ -121,5 +122,22 @@ try {
     // en vez de esperar el refresco automático de hasta 8 segundos.
     if (function_exists('notify_relay')) notify_relay('COMUNICACION');
 } catch (Exception $e) { _sms_log($pdo, 'error_insertando: ' . $e->getMessage(), $telefono, true); }
+
+// ─── STOP / START — que quede marcado de una vez, sin que nadie tenga
+// que revisar el hilo del SMS a mano para saber que ya no se le puede
+// volver a escribir a este número (los envíos masivos de Campañas ya
+// filtran contra esta tabla).
+try {
+    if (sms_es_palabra_stop($cuerpo)) {
+        asegurarTablaSmsOptOut($pdo);
+        $pdo->prepare("INSERT INTO sms_opt_out (telefono, motivo) VALUES (?, 'Respondió STOP')
+                       ON DUPLICATE KEY UPDATE motivo = VALUES(motivo)")->execute([$telefono]);
+        _sms_log($pdo, 'opt_out_registrado', $telefono, true);
+    } elseif (sms_es_palabra_start($cuerpo)) {
+        asegurarTablaSmsOptOut($pdo);
+        $pdo->prepare("DELETE FROM sms_opt_out WHERE telefono = ?")->execute([$telefono]);
+        _sms_log($pdo, 'opt_out_removido', $telefono, true);
+    }
+} catch (Exception $e) { _sms_log($pdo, 'error_optout: ' . $e->getMessage(), $telefono, true); }
 
 _twilio_responder_vacio();

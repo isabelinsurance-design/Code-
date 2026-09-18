@@ -1829,6 +1829,7 @@ case 'sms_enviar':
     $miembro_id_sms = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
     if ($telefono === '') jsonErr('Teléfono requerido');
     if ($cuerpo === '') jsonErr('Escribe un mensaje');
+    if (sms_esta_optout($pdo, $telefono)) jsonErr('Este número respondió STOP — no se le puede volver a escribir a menos que responda START');
     if (!$miembro_id_sms) {
         $mq = $pdo->prepare("SELECT id FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
         $mq->execute([$telefono, $telefono]);
@@ -1890,20 +1891,27 @@ case 'campana_flyer_subir':
 // mostrar "esto le va a llegar a N personas" antes de que Isabel confirme.
 case 'campana_envio_masivo_contar':
     $pdo = db();
+    asegurarTablaSmsOptOut($pdo);
     $campana_id = (int)($_POST['campana_id'] ?? 0);
     $estado_f   = trim($_POST['estado'] ?? '');
     if (!$campana_id) jsonErr('Campaña requerida');
-    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != ''";
+    $whereBase = "campana_id = ? AND telefono IS NOT NULL AND telefono != ''";
     $params = [$campana_id];
-    if ($estado_f !== '') { $where .= ' AND estado = ?'; $params[] = $estado_f; }
-    $cq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $where");
+    if ($estado_f !== '') { $whereBase .= ' AND estado = ?'; $params[] = $estado_f; }
+    // Nunca contar (ni luego mandar) a alguien que ya respondió STOP — pero
+    // sí se avisa cuántos se están dejando fuera por eso, para que no
+    // parezca que el número "no cuadra" sin explicación.
+    $cq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $whereBase AND telefono NOT IN (SELECT telefono FROM sms_opt_out)");
     $cq->execute($params);
-    jsonOk(['total' => (int)$cq->fetchColumn()]);
+    $oq = $pdo->prepare("SELECT COUNT(*) FROM campana_contactos WHERE $whereBase AND telefono IN (SELECT telefono FROM sms_opt_out)");
+    $oq->execute($params);
+    jsonOk(['total' => (int)$cq->fetchColumn(), 'excluidos_optout' => (int)$oq->fetchColumn()]);
     break;
 
 case 'campana_envio_masivo_lote':
     $pdo = db();
     asegurarTablaSms($pdo);
+    asegurarTablaSmsOptOut($pdo);
     $campana_id = (int)($_POST['campana_id'] ?? 0);
     $mensaje    = trim($_POST['mensaje'] ?? '');
     $flyer_url  = trim($_POST['flyer_url'] ?? '');
@@ -1913,7 +1921,8 @@ case 'campana_envio_masivo_lote':
     if (!$campana_id) jsonErr('Campaña requerida');
     if ($mensaje === '' && $flyer_url === '') jsonErr('Escribe un mensaje o adjunta un flyer');
 
-    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != ''";
+    // Nunca mandarle a alguien que ya respondió STOP.
+    $where  = "campana_id = ? AND telefono IS NOT NULL AND telefono != '' AND telefono NOT IN (SELECT telefono FROM sms_opt_out)";
     $params = [$campana_id];
     if ($estado_f !== '') { $where .= ' AND estado = ?'; $params[] = $estado_f; }
 

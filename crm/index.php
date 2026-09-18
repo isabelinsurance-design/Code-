@@ -2864,13 +2864,17 @@ document.addEventListener('DOMContentLoaded',function(){
 <?php
 $CANAL_COL=['FACEBOOK'=>['#1B5E8C','#EBF5FB'],'INSTAGRAM'=>['#5B3FAF','#F3F0FB'],'EVENTO'=>['#1E7A5C','#EAF5F0'],'REFERIDO'=>['#C07A1A','#FEF8EE'],'GOOGLE'=>['#B83232','#FDF0EE'],'OTRO'=>['#7A90A4','#F1F1F1']];
 $CC_EST=['ACTIVO'=>['#1B5E8C','#EBF5FB','ACTIVO'],'INTERESADO'=>['#1E7A5C','#EAF5F0','INTERESADO'],'CITA'=>['#5B3FAF','#F3F0FB','CITA AGENDADA'],'INSCRITO'=>['#1E7A5C','#EAF5F0','INSCRITO'],'NO_INTERESADO'=>['#B83232','#FDF0EE','NO INTERESADO'],'DESCARTADO'=>['#7A90A4','#F1F1F1','DESCARTADO'],'EN PIPELINE'=>['#C07A1A','#FEF8EE','EN PIPELINE']];
-$campanas=[];$cc_by_camp=[];$clog_by_contacto=[];
+$campanas=[];$cc_by_camp=[];$clog_by_contacto=[];$cc_optout_set=[];
 try{
  $campanas=$pdo->query("SELECT c.*, u.iniciales as agente_ini, u.color as agente_color FROM campanas c LEFT JOIN usuarios u ON c.agente_id=u.id ORDER BY FIELD(c.estado,'ACTIVA','PAUSADA','CERRADA'), c.created_at DESC")->fetchAll();
  foreach($pdo->query("SELECT cc.*, u.nombre as agente_nombre, u.iniciales as agente_ini, u.color as agente_color
                        FROM campana_contactos cc LEFT JOIN usuarios u ON cc.agente_id=u.id
                        ORDER BY cc.promovido ASC, cc.id DESC") as $ct)$cc_by_camp[$ct['campana_id']][]=$ct;
  foreach($pdo->query("SELECT * FROM campana_logs ORDER BY id DESC") as $lg)$clog_by_contacto[$lg['contacto_id']][]=$lg;
+ // Números que respondieron STOP — para mostrar el aviso en su tarjeta y
+ // que quede claro por qué el envío masivo ya no los va a incluir.
+ asegurarTablaSmsOptOut($pdo);
+ foreach($pdo->query("SELECT telefono FROM sms_opt_out") as $oo) $cc_optout_set[$oo['telefono']]=true;
 }catch(Exception $e){}
 $camp_total=count($campanas);
 $camp_activas=count(array_filter($campanas,fn($c)=>$c['estado']==='ACTIVA'));
@@ -3239,6 +3243,7 @@ $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l)
           </div>
           <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:3px;align-items:center">
             <?php if($ct['telefono']):?><span style="font-size:8px;color:<?=$MU?>">📞 <?=h($ct['telefono'])?></span><?php endif;?>
+            <?php if(!empty($ct['telefono']) && isset($cc_optout_set[$ct['telefono']])):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900" title="Respondió STOP — no se le puede volver a escribir, ni se le incluye en el envío masivo">🚫 STOP</span><?php endif;?>
             <span id="cc-ultimo-<?=$ct['id']?>" style="font-size:8px;color:<?=$MU?><?=$lastlog?'':';display:none'?>">ÚLTIMO: <?=$lastlog?h($lastlog['canal']).' — '.h($lastlog['resultado']):''?></span>
             <?php $hi=!empty($ct['habla_ingles']);?>
             <button type="button" class="btn btn-sm" data-on="<?=$hi?'1':'0'?>" onclick="toggleHablaIngles(<?=$ct['id']?>,this)" style="font-size:7px;padding:2px 8px;background:<?=$hi?'#1B5E8C':'#fff'?>;color:<?=$hi?'#fff':'#7A90A4'?>;border:1px solid <?=$hi?'#1B5E8C':'#C8DFF0'?>" title="Marca si esta persona habla inglés">🇬🇧 HABLA INGLÉS</button>
@@ -3896,9 +3901,12 @@ function _emActualizarConteo(){
     .then(function(r){return r.json();})
     .then(function(d){
       _emTotalActual = (d && d.ok) ? d.data.total : 0;
-      document.getElementById('em-conteo').textContent = _emTotalActual>0
+      var optout = (d && d.ok) ? (d.data.excluidos_optout||0) : 0;
+      var txt = _emTotalActual>0
         ? '📱 LE LLEGARÍA A '+_emTotalActual+' CONTACTO'+(_emTotalActual!==1?'S':'')+' CON TELÉFONO'
         : '⚠ NINGÚN CONTACTO CON TELÉFONO COINCIDE CON ESE FILTRO';
+      if(optout>0) txt += ' (🚫 '+optout+' NO SE INCLUYE'+(optout!==1?'N':'')+' — YA RESPONDIÓ'+(optout!==1?'N':'')+' STOP)';
+      document.getElementById('em-conteo').textContent = txt;
       _emActualizarBoton();
     })
     .catch(function(){ document.getElementById('em-conteo').textContent = '⚠ No se pudo calcular — intenta de nuevo'; _emTotalActual=0; _emActualizarBoton(); });
