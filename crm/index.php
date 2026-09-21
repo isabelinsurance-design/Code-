@@ -3570,6 +3570,14 @@ try{
     <?php if(empty($lem)):?>
     <div class="le-empty" style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
     <?php else:?>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
+      <label class="form-label" style="margin:0">FILTRAR POR ESTADO</label>
+      <select id="le-filtro-estado-<?=$le['id']?>" onchange="filtrarListaPorEstado(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700">
+        <option value="">TODOS</option>
+        <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"><?=h($_est_op)?></option><?php endforeach;?>
+      </select>
+      <span id="le-count-<?=$le['id']?>" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase"></span>
+    </div>
     <div class="le-table-wrap" style="overflow-x:auto;margin-top:10px">
     <table class="le-table" style="width:100%;border-collapse:collapse">
       <tr>
@@ -3599,7 +3607,7 @@ try{
         </td>
         <?php endforeach;?>
         <td style="padding:6px 8px">
-          <select onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value})" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
+          <select class="le-estado-sel" onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value});filtrarListaPorEstado(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
             <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"<?=($_lm['estado']??'PENDIENTE')===$_est_op?' selected':''?>><?=h($_est_op)?></option><?php endforeach;?>
           </select>
         </td>
@@ -4488,6 +4496,27 @@ var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
 // aquí el mismo render de fecha/dropdown que ya hace PHP sería duplicar
 // la lógica dos veces y arriesgarse a que se desincronicen.
 var LE_COLUMNAS_COUNT=<?=json_encode(array_map('count', $lec_by_lista))?>;
+// Filtra las filas de una lista de evento por el estado (PENDIENTE,
+// CONFIRMADO, etc.) — lee el valor directo del <select> de cada fila
+// (no un data-attribute aparte) para que nunca se desincronice con lo
+// que la fila muestra de verdad.
+function filtrarListaPorEstado(listaId){
+  var sel = document.getElementById('le-filtro-estado-'+listaId);
+  var filtro = sel ? sel.value : '';
+  var body = document.getElementById('le-body-'+listaId);
+  if(!body) return;
+  var filas = body.querySelectorAll('[data-le-row]');
+  var visibles = 0;
+  filas.forEach(function(fila){
+    var estSel = fila.querySelector('.le-estado-sel');
+    var estado = estSel ? estSel.value : '';
+    var mostrar = !filtro || estado === filtro;
+    fila.style.display = mostrar ? '' : 'none';
+    if(mostrar) visibles++;
+  });
+  var cnt = document.getElementById('le-count-'+listaId);
+  if(cnt) cnt.textContent = filtro ? ('MOSTRANDO '+visibles+' DE '+filas.length) : '';
+}
 function toggleColOpciones(listaId){
   var tipo = document.getElementById('le-col-tipo-'+listaId).value;
   document.getElementById('le-col-opciones-'+listaId).style.display = (tipo==='dropdown') ? '' : 'none';
@@ -4523,7 +4552,7 @@ function guardarValorColumna(columnaId, miembroListaId, valor){
 }
 // _membersData.label/tel ya vienen escapados con h() desde PHP (ver
 // _membersData más abajo), así que se insertan tal cual sin re-escaparlos.
-function _leRowHtml(rowId, miembro){
+function _leRowHtml(rowId, miembro, listaId){
   var nombre = miembro ? miembro.label.split(' · ')[0] : '—';
   var tel    = miembro && miembro.tel ? miembro.tel : '—';
   var midAttr= miembro ? miembro.id : 0;
@@ -4531,7 +4560,7 @@ function _leRowHtml(rowId, miembro){
   return '<tr style="border-top:1px solid <?=$CB?>" data-le-row="'+rowId+'">'
     + '<td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile('+midAttr+')">'+nombre+'</td>'
     + '<td style="padding:6px 8px;font-size:9px;color:<?=$MU?>">'+tel+'</td>'
-    + '<td style="padding:6px 8px"><select onchange="updateMiembroLista('+rowId+',{estado:this.value})" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
+    + '<td style="padding:6px 8px"><select class="le-estado-sel" onchange="updateMiembroLista('+rowId+',{estado:this.value});filtrarListaPorEstado('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
     + '<td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista('+rowId+',{asistio:this.checked?1:0})" style="width:16px;height:16px;cursor:pointer"></td>'
     + '<td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button></td>'
     + '</tr>';
@@ -4564,6 +4593,12 @@ function addMiembroLista(listaId){
         var empty=body.querySelector('.le-empty'); if(empty) empty.remove();
         var table=body.querySelector('table.le-table');
         if(!table){
+          var opts='<option value="">TODOS</option>'+LE_ESTADO_OPTS.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+          var toolbar=document.createElement('div'); toolbar.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px';
+          toolbar.innerHTML='<label class="form-label" style="margin:0">FILTRAR POR ESTADO</label>'
+            +'<select id="le-filtro-estado-'+listaId+'" onchange="filtrarListaPorEstado('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff;font-weight:700">'+opts+'</select>'
+            +'<span id="le-count-'+listaId+'" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase"></span>';
+          body.appendChild(toolbar);
           var wrap=document.createElement('div'); wrap.className='le-table-wrap'; wrap.style.cssText='overflow-x:auto;margin-top:10px';
           wrap.innerHTML='<table class="le-table" style="width:100%;border-collapse:collapse"><tr>'
             +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>'
@@ -4573,7 +4608,8 @@ function addMiembroLista(listaId){
           body.appendChild(wrap);
           table=wrap.querySelector('table');
         }
-        table.insertAdjacentHTML('beforeend', _leRowHtml(d.id, miembro));
+        table.insertAdjacentHTML('beforeend', _leRowHtml(d.id, miembro, listaId));
+        filtrarListaPorEstado(listaId);
       }
       mpickClear('le-mpick-input-'+listaId,'le-mpick-hidden-'+listaId,'le-mpick-drop-'+listaId);
     }
