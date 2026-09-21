@@ -733,6 +733,40 @@ if (!empty($_POST['camp_ajax'])) {
             }
             echo json_encode(['ok'=>true,'agregados'=>$agregados,'total_filtro'=>count($miembro_ids)]);
             break;
+        // Columnas extra que Isabel arma a su gusto para UNA lista en
+        // particular (ej. "FECHA DE LLAMADA", o un dropdown "¿VA A IR?"
+        // con sus propias opciones "Sí va, No va, Tal vez").
+        case 'lista_columna_agregar':
+            $lista_id = (int)($_POST['lista_id'] ?? 0);
+            $nombre   = trim($_POST['nombre'] ?? '');
+            $tipo     = trim($_POST['tipo'] ?? 'fecha');
+            if (!$lista_id || $nombre === '') { echo json_encode(['ok'=>false,'error'=>'Nombre de columna requerido']); break; }
+            if (!in_array($tipo, ['fecha','dropdown'], true)) $tipo = 'fecha';
+            $opcionesJson = null;
+            if ($tipo === 'dropdown') {
+                $opciones = array_values(array_filter(array_map('trim', explode(',', $_POST['opciones'] ?? '')), fn($o)=>$o!==''));
+                if (!$opciones) { echo json_encode(['ok'=>false,'error'=>'Escribe al menos una opción para el dropdown']); break; }
+                $opcionesJson = json_encode($opciones, JSON_UNESCAPED_UNICODE);
+            }
+            $orden = (int)$pdo_c->query("SELECT COALESCE(MAX(orden),0)+1 FROM lista_evento_columnas WHERE lista_id=".$lista_id)->fetchColumn();
+            $pdo_c->prepare("INSERT INTO lista_evento_columnas (lista_id,nombre,tipo,opciones,orden) VALUES (?,?,?,?,?)")
+                  ->execute([$lista_id, $nombre, $tipo, $opcionesJson, $orden]);
+            echo json_encode(['ok'=>true,'id'=>$pdo_c->lastInsertId()]);
+            break;
+        case 'lista_columna_eliminar':
+            $id = (int)($_POST['id'] ?? 0);
+            $pdo_c->prepare("DELETE FROM lista_evento_valores WHERE columna_id=?")->execute([$id]);
+            $pdo_c->prepare("DELETE FROM lista_evento_columnas WHERE id=?")->execute([$id]);
+            echo json_encode(['ok'=>true]); break;
+        case 'lista_valor_guardar':
+            $columna_id = (int)($_POST['columna_id'] ?? 0);
+            $ml_id      = (int)($_POST['miembro_lista_id'] ?? 0);
+            $valor      = trim($_POST['valor'] ?? '');
+            if (!$columna_id || !$ml_id) { echo json_encode(['ok'=>false,'error'=>'Datos incompletos']); break; }
+            $pdo_c->prepare("INSERT INTO lista_evento_valores (columna_id,miembro_lista_id,valor) VALUES (?,?,?)
+                              ON DUPLICATE KEY UPDATE valor=VALUES(valor)")
+                  ->execute([$columna_id, $ml_id, $valor]);
+            echo json_encode(['ok'=>true]); break;
 
         default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
     }} catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
@@ -1196,6 +1230,27 @@ try {
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         UNIQUE KEY uniq_lista_miembro (lista_id, miembro_id),
         INDEX idx_lista (lista_id)
+    )");
+    // Columnas EXTRA que cada lista define a su gusto (ej. "FECHA DE
+    // LLAMADA", o un dropdown "¿VA A IR?" con sus propias opciones) — cada
+    // lista tiene las suyas, no son fijas para todas.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS lista_evento_columnas (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        lista_id INT NOT NULL,
+        nombre VARCHAR(100) NOT NULL,
+        tipo VARCHAR(20) NOT NULL DEFAULT 'fecha',
+        opciones TEXT DEFAULT NULL,
+        orden INT DEFAULT 0,
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+        INDEX idx_columna_lista (lista_id)
+    )");
+    // El valor de cada columna extra, por cada miembro agregado a la lista.
+    $pdo->exec("CREATE TABLE IF NOT EXISTS lista_evento_valores (
+        id INT AUTO_INCREMENT PRIMARY KEY,
+        columna_id INT NOT NULL,
+        miembro_lista_id INT NOT NULL,
+        valor VARCHAR(255) DEFAULT NULL,
+        UNIQUE KEY uniq_columna_miembro (columna_id, miembro_lista_id)
     )");
 } catch (Exception $e) {}
 // ─── TABLAS PLANEACIÓN (metas, roadmap, planes día/semana/mes) ───────────────
@@ -2984,12 +3039,16 @@ foreach ($cc_by_camp as $cid => $lista) {
 
 // ── LISTAS DE EVENTO (confirmaciones/asistencia de miembros ya existentes) ──
 $LEM_ESTADOS = ['PENDIENTE'=>['#7A90A4','#F1F1F1'],'CONFIRMADO'=>['#1E7A5C','#EAF5F0'],'NO CONFIRMADO'=>['#B83232','#FDF0EE'],'ASISTIÓ'=>['#1B5E8C','#EBF5FB'],'NO ASISTIÓ'=>['#993C1D','#FAECE7']];
-$listas_evento=[]; $lem_by_lista=[];
+$listas_evento=[]; $lem_by_lista=[]; $lec_by_lista=[]; $lev_by_ml=[];
 try{
  $listas_evento=$pdo->query("SELECT le.*, u.iniciales as agente_ini, u.color as agente_color FROM listas_evento le LEFT JOIN usuarios u ON le.agente_id=u.id ORDER BY le.fecha DESC, le.created_at DESC")->fetchAll();
  foreach($pdo->query("SELECT lem.*, m.nombre, m.apellido, m.telefono
                        FROM lista_evento_miembros lem JOIN miembros m ON m.id=lem.miembro_id
                        ORDER BY m.apellido, m.nombre") as $lm) $lem_by_lista[$lm['lista_id']][]=$lm;
+ // Columnas extra que cada lista se armó a su gusto, y el valor guardado
+ // de cada una por cada miembro agregado.
+ foreach($pdo->query("SELECT * FROM lista_evento_columnas ORDER BY orden, id") as $lc) $lec_by_lista[$lc['lista_id']][]=$lc;
+ foreach($pdo->query("SELECT * FROM lista_evento_valores") as $lv) $lev_by_ml[$lv['miembro_lista_id']][$lv['columna_id']]=$lv['valor'];
 }catch(Exception $e){}
 $le_total=count($listas_evento);
 $le_miembros_total=0; foreach($lem_by_lista as $l) $le_miembros_total+=count($l);
@@ -3485,6 +3544,29 @@ try{
         <button type="button" class="btn btn-p btn-sm" onclick="bulkAddMiembrosLista(<?=$le['id']?>)">+ AGREGAR TODOS LOS QUE COINCIDAN</button>
       </div>
     </div>
+    <?php $_lecs = $lec_by_lista[$le['id']] ?? []; ?>
+    <div class="form-group" style="max-width:600px;margin-top:12px">
+      <label class="form-label">📋 COLUMNAS EXTRA DE ESTA LISTA — fechas o dropdowns a tu gusto (ej. FECHA DE LLAMADA, o un dropdown "¿VA A IR?")</label>
+      <?php if($_lecs):?>
+      <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
+        <?php foreach($_lecs as $_lc):?>
+        <span style="display:inline-flex;align-items:center;gap:5px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:3px 6px 3px 10px;font-size:8px;font-weight:800;color:<?=$TX?>">
+          <?=$_lc['tipo']==='fecha'?'📅':'▾'?> <?=h($_lc['nombre'])?>
+          <a href="javascript:void(0)" onclick="eliminarColumnaLista(<?=$_lc['id']?>,<?=$le['id']?>)" style="color:#B83232;font-weight:900;padding:0 2px;text-decoration:none">✕</a>
+        </span>
+        <?php endforeach;?>
+      </div>
+      <?php endif;?>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+        <input type="text" id="le-col-nombre-<?=$le['id']?>" placeholder="Nombre de la columna (ej. FECHA DE LLAMADA)" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif">
+        <select id="le-col-tipo-<?=$le['id']?>" onchange="toggleColOpciones(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700">
+          <option value="fecha">📅 FECHA</option>
+          <option value="dropdown">▾ DROPDOWN (TÚ PONES LAS OPCIONES)</option>
+        </select>
+        <input type="text" id="le-col-opciones-<?=$le['id']?>" placeholder="Opciones separadas por coma (ej. Sí va, No va, Tal vez)" style="display:none;flex:2;min-width:220px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif">
+        <button type="button" class="btn btn-sky btn-sm" onclick="agregarColumnaLista(<?=$le['id']?>)">+ AGREGAR COLUMNA</button>
+      </div>
+    </div>
     <?php if(empty($lem)):?>
     <div class="le-empty" style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
     <?php else:?>
@@ -3493,6 +3575,9 @@ try{
       <tr>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">TELÉFONO</th>
+        <?php foreach($_lecs as $_lc):?>
+        <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px;white-space:nowrap"><?=h($_lc['nombre'])?></th>
+        <?php endforeach;?>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ESTADO</th>
         <th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th>
         <th></th>
@@ -3501,6 +3586,18 @@ try{
       <tr style="border-top:1px solid <?=$CB?>" data-le-row="<?=(int)$_lm['id']?>">
         <td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile(<?=(int)$_lm['miembro_id']?>)"><?=h($_lm_nombre)?></td>
         <td style="padding:6px 8px;font-size:9px;color:<?=$MU?>"><?=h($_lm['telefono']?:'—')?></td>
+        <?php foreach($_lecs as $_lc): $_valGuardado = $lev_by_ml[$_lm['id']][$_lc['id']] ?? ''; ?>
+        <td style="padding:6px 8px">
+          <?php if($_lc['tipo']==='fecha'):?>
+          <input type="date" value="<?=h($_valGuardado)?>" onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif">
+          <?php else: $_opciones = json_decode($_lc['opciones'] ?? '[]', true) ?: []; ?>
+          <select onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
+            <option value="">—</option>
+            <?php foreach($_opciones as $_op):?><option value="<?=h($_op)?>"<?=$_valGuardado===$_op?' selected':''?>><?=h($_op)?></option><?php endforeach;?>
+          </select>
+          <?php endif;?>
+        </td>
+        <?php endforeach;?>
         <td style="padding:6px 8px">
           <select onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value})" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
             <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"<?=($_lm['estado']??'PENDIENTE')===$_est_op?' selected':''?>><?=h($_est_op)?></option><?php endforeach;?>
@@ -4385,6 +4482,45 @@ function deleteLista(id){
   campPost('action=delete_lista_evento&id='+id,true);
 }
 var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
+// Cuántas columnas extra tiene cada lista — si una lista ya tiene
+// columnas propias, agregar un miembro (o una columna) recarga esa
+// sección en vez de intentar armar la fila a mano en JS, porque replicar
+// aquí el mismo render de fecha/dropdown que ya hace PHP sería duplicar
+// la lógica dos veces y arriesgarse a que se desincronicen.
+var LE_COLUMNAS_COUNT=<?=json_encode(array_map('count', $lec_by_lista))?>;
+function toggleColOpciones(listaId){
+  var tipo = document.getElementById('le-col-tipo-'+listaId).value;
+  document.getElementById('le-col-opciones-'+listaId).style.display = (tipo==='dropdown') ? '' : 'none';
+}
+function agregarColumnaLista(listaId){
+  var nombre = document.getElementById('le-col-nombre-'+listaId).value.trim();
+  var tipo   = document.getElementById('le-col-tipo-'+listaId).value;
+  var opciones = document.getElementById('le-col-opciones-'+listaId).value.trim();
+  if(!nombre){ if(typeof toast==='function')toast('⚠ Escribe un nombre para la columna'); return; }
+  if(tipo==='dropdown' && !opciones){ if(typeof toast==='function')toast('⚠ Escribe al menos una opción, separadas por coma'); return; }
+  var btn=document.querySelector('#le-body-'+listaId+' [onclick="agregarColumnaLista('+listaId+')"]');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='AGREGANDO...'; }
+  campPost('action=lista_columna_agregar&lista_id='+listaId+'&nombre='+encodeURIComponent(nombre)+'&tipo='+encodeURIComponent(tipo)+'&opciones='+encodeURIComponent(opciones), false)
+    .then(function(d){
+      if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR COLUMNA'; }
+      if(d&&d.ok){
+        if(typeof toast==='function')toast('✓ COLUMNA AGREGADA');
+        try{sessionStorage.setItem('leOpen',listaId);sessionStorage.setItem('campVistaKeep','listas');}catch(e){}
+        _campVista='listas';
+        _campReload();
+      } else if(typeof toast==='function') toast('⚠ '+((d&&d.error)||'No se pudo agregar la columna'));
+    }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR COLUMNA'; } if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function eliminarColumnaLista(columnaId, listaId){
+  if(!confirm('¿Eliminar esta columna? Se pierden los valores guardados en ella para todos los miembros.'))return;
+  try{sessionStorage.setItem('leOpen',listaId);sessionStorage.setItem('campVistaKeep','listas');}catch(e){}
+  _campVista='listas';
+  campPost('action=lista_columna_eliminar&id='+columnaId,true);
+}
+function guardarValorColumna(columnaId, miembroListaId, valor){
+  campPost('action=lista_valor_guardar&columna_id='+columnaId+'&miembro_lista_id='+miembroListaId+'&valor='+encodeURIComponent(valor), false)
+    .then(function(d){ if(d&&d.ok){ if(typeof toast==='function')toast('✓ GUARDADO'); } else if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo guardar')); });
+}
 // _membersData.label/tel ya vienen escapados con h() desde PHP (ver
 // _membersData más abajo), así que se insertan tal cual sin re-escaparlos.
 function _leRowHtml(rowId, miembro){
@@ -4411,6 +4547,16 @@ function addMiembroLista(listaId){
     if(btn){ btn.disabled=false; btn.textContent='+ AGREGAR'; }
     if(d&&d.ok){
       if(typeof toast==='function')toast('✓ MIEMBRO AGREGADO');
+      // Si esta lista tiene columnas extra propias (fecha/dropdown), se
+      // recarga en vez de armar la fila a mano en JS — así no hay que
+      // repetir aquí el mismo render de columnas que ya hace PHP.
+      if((LE_COLUMNAS_COUNT[listaId]||0) > 0){
+        try{sessionStorage.setItem('leOpen',listaId);sessionStorage.setItem('campVistaKeep','listas');}catch(e){}
+        _campVista='listas';
+        mpickClear('le-mpick-input-'+listaId,'le-mpick-hidden-'+listaId,'le-mpick-drop-'+listaId);
+        _campReload();
+        return;
+      }
       // Actualiza la tabla al instante — no depende de que se recargue toda
       // la página (antes había que refrescar a mano para ver el cambio).
       var body=document.getElementById('le-body-'+listaId);
