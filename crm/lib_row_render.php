@@ -165,6 +165,7 @@ function render_ticket_row_from_data(array $t, array $ns_list, bool $admin): str
       <button class="btn btn-gh btn-sm" onclick="updateTicket(<?=$t['id']?>)" title="Editar" style="padding:5px 10px">✎</button>
       <button class="btn btn-bl btn-sm" onclick="quickTktStatus(<?=$t['id']?>,'EN PROCESO')" title="En Proceso" style="padding:5px 10px">▶</button>
       <button class="btn btn-gr btn-sm" onclick="closeTicket(<?=$t['id']?>)" title="Cerrar" style="padding:5px 10px">✓</button>
+      <button class="btn btn-am btn-sm" onclick="abrirFollowUpForm('TICKET',<?=(int)$t['id']?>,<?=(int)($t['miembro_id']??0)?>,'<?=h(addslashes($cli))?>','<?=h(addslashes($t['miembro_telefono']??''))?>',null,'Seguimiento ticket #<?=(int)$t['id']?>')" title="Agregar follow up" style="padding:5px 10px">☑</button>
     </div>
     <?php else:?>
     <div style="display:flex;gap:3px;align-items:center">
@@ -458,6 +459,7 @@ function render_citas_panel(PDO $pdo): array {
           <?php endif;?>
           <button class="btn btn-gh btn-sm" onclick="editarCita(<?=$c['id']?>)" title="Editar" style="padding:5px 8px;font-size:8px">✎</button>
           <button class="btn btn-bl btn-sm" onclick="crearTicketDesdeCita(<?=$c['id']?>)" title="Crear ticket" style="padding:5px 8px;font-size:8px">◈ TICKET</button>
+          <button class="btn btn-am btn-sm" onclick="abrirFollowUpForm('CITA',<?=(int)$c['id']?>,<?=(int)($c['miembro_id']??0)?>,'<?=h(addslashes($cli))?>','<?=h(addslashes($c['miembro_telefono']??''))?>',null,'Seguimiento de cita')" title="Agregar follow up" style="padding:5px 8px;font-size:8px">☑ FU</button>
           <?php if(!empty($c['miembro_id'])):?>
             <button class="btn btn-p btn-sm" onclick="openProfile(<?=$c['miembro_id']?>)" title="Ver perfil" style="padding:5px 8px;font-size:8px">◉</button>
           <?php endif;?>

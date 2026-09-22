@@ -3426,6 +3426,7 @@ try{
             <button class="btn btn-re btn-sm" style="font-size:8px" onclick="deleteContacto(<?=$ct['id']?>)">✕</button>
           <?php endif;?>
           </span>
+          <button class="btn btn-am btn-sm" style="font-size:8px" title="Agregar follow up" onclick="abrirFollowUpForm('CAMPANA',<?=(int)$ct['id']?>,<?=(int)($ct['miembro_id']??0)?>,'<?=h(addslashes($nm))?>','<?=h(addslashes($ct['telefono']??''))?>',<?=(int)$ct['campana_id']?>,'Seguimiento de campaña')">☑ FU</button>
         </div>
       </div>
       <?php if($notasReales):?><div style="font-size:9px;color:<?=$TX?>;margin-top:6px;white-space:pre-wrap"><?=h($notasReales)?></div><?php endif;?>
@@ -3479,6 +3480,7 @@ try{
           <?php else:?><button class="btn btn-gh btn-sm" onclick="reclamarContacto(<?=$ct['id']?>)">🙋 RECLAMAR</button><?php endif;?>
           <button class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-perfil');openCcForm(<?=$ct['campana_id']?>,<?=$ct['id']?>)">✎ EDITAR</button>
           <?php endif;?>
+          <button class="btn btn-am btn-sm" title="Agregar follow up" onclick="closeModal('modal-cc-perfil');abrirFollowUpForm('CAMPANA',<?=(int)$ct['id']?>,<?=(int)($ct['miembro_id']??0)?>,'<?=h(addslashes($nm))?>','<?=h(addslashes($ct['telefono']??''))?>',<?=(int)$ct['campana_id']?>,'Seguimiento de campaña')">☑ FOLLOW UP</button>
         </div>
         <?php if($extraChips):?>
         <div style="font-size:8px;font-weight:900;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">DATOS DEL ARCHIVO SUBIDO</div>
@@ -3668,7 +3670,10 @@ try{
           <span style="color:<?=$MU?>;font-size:9px">—</span>
           <?php endif;?>
         </td>
-        <td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista(<?=(int)$_lm['id']?>)">✕</button></td>
+        <td style="padding:6px 8px;text-align:right;white-space:nowrap">
+          <button class="btn btn-am btn-sm" style="font-size:8px" title="Agregar follow up" onclick="abrirFollowUpForm('LISTA',<?=(int)$_lm['id']?>,<?=(int)$_lm['miembro_id']?>,'<?=h(addslashes($_lm_nombre))?>','<?=h(addslashes($_lm['telefono']??''))?>',null,'Seguimiento de lista: <?=h(addslashes($le['nombre']))?>')">☑</button>
+          <button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista(<?=(int)$_lm['id']?>)">✕</button>
+        </td>
       </tr>
       <?php endforeach;?>
     </table>
@@ -4645,7 +4650,10 @@ function _leRowHtml(rowId, miembro, listaId){
     + '<td style="padding:6px 8px"><select class="le-estado-sel" onchange="updateMiembroLista('+rowId+',{estado:this.value});filtrarLista('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
     + '<td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista('+rowId+',{asistio:this.checked?1:0})" style="width:16px;height:16px;cursor:pointer"></td>'
     + '<td class="le-editor-cell" style="padding:6px 8px;text-align:center"><span style="color:<?=$MU?>;font-size:9px">—</span></td>'
-    + '<td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button></td>'
+    + '<td style="padding:6px 8px;text-align:right;white-space:nowrap">'
+    + '<button class="btn btn-am btn-sm" style="font-size:8px" title="Agregar follow up" onclick="abrirFollowUpForm(\'LISTA\','+rowId+','+midAttr+',\''+nombre+'\',\''+(tel==='—'?'':tel)+'\',null,\'Seguimiento de lista\')">☑</button>'
+    + '<button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button>'
+    + '</td>'
     + '</tr>';
 }
 function addMiembroLista(listaId){

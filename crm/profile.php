@@ -303,6 +303,7 @@ display: block;
             style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.9);border-color:rgba(255,255,255,.2)">◌ SMS</button>
 
         <button onclick="openTicketForm(<?= $id ?>)" class="btn btn-am btn-sm" style="background:rgba(192,122,26,.3);color:#FDE68A;border-color:rgba(192,122,26,.4)">◈ TICKET</button>
+        <button onclick="abrirFollowUpForm('MIEMBRO',<?= $id ?>,<?= $id ?>,'<?= h(addslashes(trim($m['nombre'].' '.$m['apellido']))) ?>','<?= h(addslashes($m['telefono']??'')) ?>',null,'Seguimiento')" class="btn btn-am btn-sm" style="background:rgba(30,84,140,.3);color:#BFE0FA;border-color:rgba(30,84,140,.4)">☑ FOLLOW UP</button>
         <?php if ($m['estado'] === 'ACTIVE'): ?>
         <button onclick="openCambioPlanModal()" class="btn btn-gh btn-sm" style="background:rgba(30,122,92,.3);color:#6EE7C0;border-color:rgba(30,122,92,.4)">🔄 CAMBIO DE PLAN</button>
         <?php endif; ?>
