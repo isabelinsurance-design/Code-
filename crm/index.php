@@ -6589,6 +6589,9 @@ $citas_manana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$t
 $citas_semana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d && $c['fecha']<=$week_end));
 $citas_atrasadas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']<$today_d));
 $citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d));
+// Vista aparte pedida por Isabel: todas las citas de tipo AEP juntas, sin
+// importar su estado — útil en temporada AEP para verlas todas de un jalón.
+$citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP'));
 ?>
 
 <!-- HEADER + KPIs + acciones -->
@@ -6673,6 +6676,9 @@ $citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$
     </button>
     <button class="cita-subtab" data-csub="todas" onclick="cambiarSubtabCitas('todas')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
       ▦ TODAS (<span id="citas-cnt-todas"><?=count($citas_view)?></span>)
+    </button>
+    <button class="cita-subtab" data-csub="aep" onclick="cambiarSubtabCitas('aep')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      📋 AEP (<span id="citas-cnt-aep"><?=$citas_aep_n?></span>)
     </button>
   </div>
   <div id="cita-count" style="padding:8px 2px 0;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px"></div>
@@ -12894,6 +12900,7 @@ function _aplicarCitasKpisYConteos(kpis, counts){
   set('citas-cnt-completadas', counts.completadas);
   set('citas-cnt-canceladas', counts.canceladas);
   set('citas-cnt-todas', counts.todas);
+  set('citas-cnt-aep', counts.aep);
   var cancBtn = document.getElementById('citas-subtab-btn-canceladas');
   if(cancBtn) cancBtn.style.display = counts.canceladas>0 ? '' : 'none';
 }

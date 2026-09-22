@@ -582,6 +582,22 @@ function render_citas_panel(PDO $pdo): array {
   </div>
   <?php endif;?>
 </div>
+
+<!-- ─── AEP (vista aparte, pedida por Isabel — todas las citas de tipo AEP,
+     sin importar el estado, para verlas todas juntas en temporada AEP) ─── -->
+<div id="csub-aep" class="csub-pane" style="display:none">
+  <?php
+  $citas_aep = array_values(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP'));
+  usort($citas_aep, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
+  ?>
+  <?php if(!count($citas_aep)):?>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS AEP TODAVÍA</div>
+  <?php else:?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+    <?php foreach($citas_aep as $c) $render_cita($c); ?>
+  </div>
+  <?php endif;?>
+</div>
     <?php
     $html = ob_get_clean();
 
@@ -593,6 +609,7 @@ function render_citas_panel(PDO $pdo): array {
         'counts' => [
             'proximas' => $citas_proximas_n, 'reagendar' => count($citas_reagendar), 'pendientes' => $citas_atrasadas_n,
             'completadas' => count($citas_completadas), 'canceladas' => count($citas_canceladas), 'todas' => count($citas_view),
+            'aep' => count($citas_aep),
         ],
     ];
 }
