@@ -4,6 +4,7 @@ require_once 'config.php';
 require_once 'lib_telefono.php';
 require_once 'lib_twilio.php';
 require_once 'lib_row_render.php';
+require_once 'lib_followups.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -1078,6 +1079,104 @@ case 'reagendar_cita':
     if (!$row) jsonErr('Cita no encontrada');
     $pdo->prepare("UPDATE citas SET estado='REAGENDAR' WHERE id=?")->execute([$id]);
     jsonOkNotify([], 'CITAS');
+    break;
+
+// ── FOLLOW UPS (recordatorios de seguimiento — se pueden crear desde
+// Tickets, Campañas, Listas de Evento, Citas o el perfil de un miembro;
+// pedido de Isabel para saber en un solo lugar qué hay que hacer cada
+// día). Igual que Citas: las tarjetas se piden aparte al abrir la
+// pestaña, y también después de crear/completar/reagendar/cancelar uno,
+// para que se sienta instantáneo. ──────────────────────────────────
+case 'get_follow_ups_panel':
+    $pdo = db();
+    jsonOk(render_followups_panel($pdo));
+    break;
+
+case 'follow_up_crear':
+    $pdo = db();
+    asegurarTablaFollowUps($pdo);
+    $titulo = trim($_POST['titulo'] ?? '');
+    if ($titulo === '') jsonErr('Escribe qué hay que hacer');
+    $miembro_id     = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
+    $nombre_libre   = trim($_POST['nombre_libre'] ?? '') ?: null;
+    $telefono_libre = trim($_POST['telefono_libre'] ?? '') ?: null;
+    if (!$miembro_id && !$nombre_libre) jsonErr('Elige un miembro o escribe un nombre');
+    $origen_tipo = trim($_POST['origen_tipo'] ?? 'MANUAL');
+    if (!array_key_exists($origen_tipo, FOLLOWUP_ORIGENES)) $origen_tipo = 'MANUAL';
+    $origen_id  = !empty($_POST['origen_id']) ? (int)$_POST['origen_id'] : null;
+    $campana_id = !empty($_POST['campana_id']) ? (int)$_POST['campana_id'] : null;
+    $notas      = trim($_POST['notas'] ?? '') ?: null;
+    $agente_id  = !empty($_POST['agente_id']) ? (int)$_POST['agente_id'] : $uid;
+    if (!empty($_POST['dias_despues'])) {
+        $fecha = followup_fecha_mas_dias((int)$_POST['dias_despues']);
+    } else {
+        $fecha = trim($_POST['fecha'] ?? '');
+        if ($fecha === '') jsonErr('Elige una fecha');
+    }
+    $pdo->prepare("INSERT INTO follow_ups (miembro_id,nombre_libre,telefono_libre,origen_tipo,origen_id,campana_id,titulo,notas,fecha,agente_id,creado_por)
+                   VALUES (?,?,?,?,?,?,?,?,?,?,?)")
+        ->execute([$miembro_id,$nombre_libre,$telefono_libre,$origen_tipo,$origen_id,$campana_id,$titulo,$notas,$fecha,$agente_id,$uid]);
+    jsonOkNotify(['id'=>$pdo->lastInsertId()], 'FOLLOWUPS');
+    break;
+
+// Al completar, se puede encadenar el SIGUIENTE follow up automáticamente
+// X días después (según lo que se ponga en la respuesta) — igual que un
+// "follow-up task" de Salesforce, sin tener que crearlo aparte a mano.
+case 'follow_up_completar':
+    $pdo = db();
+    asegurarTablaFollowUps($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $prev = $pdo->prepare("SELECT * FROM follow_ups WHERE id=?");
+    $prev->execute([$id]);
+    $row = $prev->fetch();
+    if (!$row) jsonErr('Follow up no encontrado');
+
+    $notas_completado = trim($_POST['notas_completado'] ?? '');
+    $sets = "estado='COMPLETADO', completado_por=?, completado_at=NOW()";
+    $vals = [$uid];
+    if ($notas_completado !== '') {
+        $sets .= ", notas = TRIM(CONCAT(COALESCE(notas,''), CASE WHEN COALESCE(notas,'')='' THEN '' ELSE '\n' END, ?))";
+        $vals[] = $notas_completado;
+    }
+    $vals[] = $id;
+    $pdo->prepare("UPDATE follow_ups SET $sets WHERE id=?")->execute($vals);
+
+    $siguiente_id = null;
+    $dias = (int)($_POST['siguiente_dias'] ?? 0);
+    if ($dias > 0) {
+        $siguiente_titulo = trim($_POST['siguiente_titulo'] ?? '') ?: $row['titulo'];
+        $ins = $pdo->prepare("INSERT INTO follow_ups (miembro_id,nombre_libre,telefono_libre,origen_tipo,origen_id,campana_id,titulo,notas,fecha,agente_id,creado_por)
+                               VALUES (?,?,?,?,?,?,?,?,?,?,?)");
+        $ins->execute([$row['miembro_id'],$row['nombre_libre'],$row['telefono_libre'],$row['origen_tipo'],$row['origen_id'],$row['campana_id'],
+                        $siguiente_titulo, null, followup_fecha_mas_dias($dias), $row['agente_id'], $uid]);
+        $siguiente_id = $pdo->lastInsertId();
+    }
+    jsonOkNotify(['siguiente_id'=>$siguiente_id], 'FOLLOWUPS');
+    break;
+
+case 'follow_up_reagendar':
+    $pdo = db();
+    asegurarTablaFollowUps($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    if (!empty($_POST['dias_despues'])) {
+        $fecha = followup_fecha_mas_dias((int)$_POST['dias_despues']);
+    } else {
+        $fecha = trim($_POST['fecha'] ?? '');
+        if ($fecha === '') jsonErr('Elige una fecha');
+    }
+    $pdo->prepare("UPDATE follow_ups SET fecha=?, estado='PENDIENTE' WHERE id=?")->execute([$fecha, $id]);
+    jsonOkNotify([], 'FOLLOWUPS');
+    break;
+
+case 'follow_up_cancelar':
+    $pdo = db();
+    asegurarTablaFollowUps($pdo);
+    $id = (int)($_POST['id'] ?? 0);
+    if (!$id) jsonErr('ID inválido');
+    $pdo->prepare("UPDATE follow_ups SET estado='CANCELADO' WHERE id=?")->execute([$id]);
+    jsonOkNotify([], 'FOLLOWUPS');
     break;
 
 // ── REPORTE DIARIO ────────────────────────────────────────────

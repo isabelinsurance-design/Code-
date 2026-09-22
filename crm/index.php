@@ -6,8 +6,10 @@ require_once 'session_boot.php';
 require_once 'config.php';
 require_once 'lib_telefono.php';
 require_once 'lib_twilio.php';
+require_once 'lib_followups.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
+asegurarTablaFollowUps($pdo);
 // Se crea aquí (antes de los manejadores AJAX que hacen exit más abajo) para
 // que la tabla siempre exista sin importar qué parte de la página se pida.
 try {
@@ -1877,15 +1879,28 @@ $cue_total      = count($cuentas_list);
 $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']));
 // ─────────────────────────────────────────────────────────────────────────────
 
-$tabs_admin=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
+$tabs_admin=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
+$tabs_agent=['DASHBOARD','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
-$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
-$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
+$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
+$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$TX='#1B3A5C';
 function badge(?string $s, bool $sm = false) : string {
     $s = $s ?? ''; $map=['ACTIVE'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'IN PROCESS'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PLAN CHANGE'=>['#5B3FAF','#F3F0FB','#C2B0E8'],'SIN HACER'=>['#C07A1A','#FEF8EE','#F5D5A0'],'SIN FIRMAR'=>['#C05C1A','#FEF2EB','#F5C4A0'],'CANCELED'=>['#B83232','#FDF0EE','#EFA09A'],'DENIED'=>['#B83232','#FDF0EE','#EFA09A'],'CERRADO'=>['#888780','#F1EFE8','#B4B2A9'],'DISENROLLED'=>['#993C1D','#FAECE7','#F0997B'],'ACTIVO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'CANCELADO'=>['#B83232','#FDF0EE','#EFA09A'],'PENDIENTE'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PROSPECTO'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ABIERTO'=>['#B83232','#FDF0EE','#EFA09A'],'EN PROCESO'=>['#C07A1A','#FEF8EE','#F5D5A0'],'CERRADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'FIRMADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ALTA'=>['#B83232','#FDF0EE','#EFA09A'],'MEDIA'=>['#C07A1A','#FEF8EE','#F5D5A0'],'BAJA'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ACTIVA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'DEVUELTA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ADMIN'=>['#1B4A6B','#EBF4F9','#C8DFF0'],'EMPLEADO'=>['#1E7A8C','#EAF4F6','#8DC8D0']];$c=$map[$s]??['#7A90A4','#F4F8FC','#C8DFF0'];$p=$sm?'2px 8px':'3px 10px';$f=$sm?'9px':'10px';return "<span style=\"padding:$p;border-radius:20px;font-size:$f;font-weight:800;background:{$c[1]};color:{$c[0]};border:1px solid {$c[2]};white-space:nowrap;letter-spacing:.5px;text-transform:uppercase\">$s</span>";}
 function av(string $i,string $c,int $z=28):string{return "<div style=\"width:{$z}px;height:{$z}px;border-radius:50%;background:$c;display:flex;align-items:center;justify-content:center;font-size:".round($z*.32)."px;font-weight:900;color:#fff;flex-shrink:0;font-family:'DM Sans',sans-serif\">$i</div>";}
+// Botones rápidos "HOY/MAÑANA/+N DÍAS" para los formularios de FOLLOW UPS
+// (crear/completar-encadenar/reagendar) — pedido de Isabel: "follow ups
+// automáticos días después según lo que se ponga en la respuesta". Un solo
+// helper para no repetir el mismo HTML de botones 3 veces.
+function fu_quick_dias_html(string $targetId): string {
+    $opts = [0=>'HOY',1=>'MAÑANA',3=>'+3D',7=>'+7D',14=>'+14D',30=>'+30D'];
+    $html = '<div style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:6px">';
+    foreach ($opts as $dias=>$label) {
+        $html .= '<button type="button" class="btn btn-gh btn-sm" onclick="fuSetQuickDate(\''.$targetId.'\','.$dias.',this)" style="font-size:8px;padding:5px 9px">'.$label.'</button>';
+    }
+    $html .= '</div>';
+    return $html;
+}
 function calc_hours(?string $ci,?string $lo,?string $li,?string $co,?string $bo=null,?string $bi=null,int $extraBreakSecs=0):?string{if(!$ci||!$co)return null;$s=strtotime("1970-01-01 $ci");$e=strtotime("1970-01-01 $co");$t=$e-$s;if($lo&&$li){$ls=strtotime("1970-01-01 $lo");$le=strtotime("1970-01-01 $li");$t-=($le-$ls);}if($bo&&$bi){$bs=strtotime("1970-01-01 $bo");$be=strtotime("1970-01-01 $bi");$t-=($be-$bs);}$t-=max(0,$extraBreakSecs);if($t<=0)return null;return floor($t/3600).'H '.floor(($t%3600)/60).'M';}
 // Breaks EXTRA de un día de asistencia (más allá del primer break_out/break_in de la fila).
 // Devuelve [segundos_totales, lista_de_pares ['out'=>hh:mm,'in'=>hh:mm|null]].
@@ -6694,6 +6709,94 @@ $citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' 
 </div>
 
 </div><!-- /CITAS -->
+
+<!-- FOLLOW UPS -->
+<div id="tab-FOLLOWUPS" class="tab-pane">
+<?php
+// ─── Pre-procesado de FOLLOW UPS — solo lo BARATO (conteos) ───────────────
+// Las tarjetas se piden aparte, igual que ya hace CITAS (ver
+// loadFollowUpsPanel()/refreshFollowUpsPanel() más abajo y
+// render_followups_panel() en lib_followups.php).
+$fu_hoy_n = $fu_atrasados_n = $fu_proximos_n = $fu_completados_n = $fu_cancelados_n = 0;
+try {
+    $_fu_today = date('Y-m-d'); $_fu_week_end = date('Y-m-d', strtotime('+7 days'));
+    $q = $pdo->prepare("SELECT COUNT(*) FROM follow_ups WHERE estado='PENDIENTE' AND fecha=?"); $q->execute([$_fu_today]); $fu_hoy_n = (int)$q->fetchColumn();
+    $q = $pdo->prepare("SELECT COUNT(*) FROM follow_ups WHERE estado='PENDIENTE' AND fecha<?");  $q->execute([$_fu_today]); $fu_atrasados_n = (int)$q->fetchColumn();
+    $q = $pdo->prepare("SELECT COUNT(*) FROM follow_ups WHERE estado='PENDIENTE' AND fecha>?");  $q->execute([$_fu_today]); $fu_proximos_n = (int)$q->fetchColumn();
+    $fu_completados_n = (int)$pdo->query("SELECT COUNT(*) FROM follow_ups WHERE estado='COMPLETADO'")->fetchColumn();
+    $fu_cancelados_n  = (int)$pdo->query("SELECT COUNT(*) FROM follow_ups WHERE estado='CANCELADO'")->fetchColumn();
+    $q = $pdo->prepare("SELECT COUNT(*) FROM follow_ups WHERE estado='PENDIENTE' AND fecha>=? AND fecha<=?"); $q->execute([$_fu_today,$_fu_week_end]); $fu_semana_n = (int)$q->fetchColumn();
+} catch (Exception $e) { $fu_semana_n = 0; }
+$fu_todos_n = $fu_hoy_n + $fu_atrasados_n + $fu_proximos_n + $fu_completados_n + $fu_cancelados_n;
+?>
+
+<div style="display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:11px;margin-bottom:13px">
+  <div style="display:flex;gap:7px;flex-wrap:wrap">
+    <div style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid #C07A1A;border-radius:9px;padding:7px 12px;min-width:75px">
+      <div style="font-size:7px;color:<?=$MU?>;font-weight:900;text-transform:uppercase">HOY</div>
+      <div id="fu-kpi-hoy" style="font-size:18px;font-weight:900;color:#C07A1A"><?=$fu_hoy_n?></div>
+    </div>
+    <div style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$P1?>;border-radius:9px;padding:7px 12px;min-width:75px">
+      <div style="font-size:7px;color:<?=$MU?>;font-weight:900;text-transform:uppercase">7 DÍAS</div>
+      <div id="fu-kpi-semana" style="font-size:18px;font-weight:900;color:<?=$P1?>"><?=$fu_semana_n?></div>
+    </div>
+    <div id="fu-kpi-atrasados-card" style="background:#fff;border:1px solid #F4C8C8;border-left:4px solid #B83232;border-radius:9px;padding:7px 12px;min-width:75px<?=$fu_atrasados_n>0?'':';display:none'?>">
+      <div style="font-size:7px;color:#B83232;font-weight:900;text-transform:uppercase">⚠ ATRASADOS</div>
+      <div id="fu-kpi-atrasados-n" style="font-size:18px;font-weight:900;color:#B83232"><?=$fu_atrasados_n?></div>
+    </div>
+  </div>
+  <div style="display:flex;gap:6px;flex-wrap:wrap">
+    <button class="btn btn-b btn-sm" onclick="abrirFollowUpForm('MANUAL',null,null,null,null,null,'')">+ NUEVO FOLLOW UP</button>
+  </div>
+</div>
+
+<!-- FILTROS Y SUB-TABS -->
+<div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 13px;margin-bottom:13px">
+  <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px">
+    <input type="search" id="fu-search" placeholder=" Buscar por nombre, teléfono, motivo, notas..." onkeyup="_debouncedCall('fu',filtrarFollowUps)" style="flex:1;min-width:180px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:7px 11px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
+    <?php if($admin):?>
+    <select id="fu-agente-filtro" onchange="filtrarFollowUps()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
+      <option value="">Todos los agentes</option>
+      <?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?>
+    </select>
+    <?php endif;?>
+    <select id="fu-origen-filtro" onchange="filtrarFollowUps()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
+      <option value="">Todos los orígenes</option>
+      <?php foreach(FOLLOWUP_ORIGENES as $_fk=>$_fv):?><option value="<?=$_fk?>"><?=$_fv[0]?> <?=$_fv[1]?></option><?php endforeach;?>
+    </select>
+    <button class="btn btn-gh btn-sm" onclick="resetFollowUpFiltros()" style="font-size:8px">↺ LIMPIAR</button>
+  </div>
+  <div style="display:flex;gap:0;border-bottom:1px solid <?=$CB?>;flex-wrap:wrap">
+    <button class="fu-subtab active" data-fsub="hoy" onclick="cambiarSubtabFollowUps('hoy')" style="background:none;border:none;border-bottom:3px solid <?=$P1?>;color:<?=$P1?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ● HOY (<span id="fu-cnt-hoy"><?=$fu_hoy_n?></span>)
+    </button>
+    <button class="fu-subtab" data-fsub="atrasados" onclick="cambiarSubtabFollowUps('atrasados')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ⚠ ATRASADOS (<span id="fu-cnt-atrasados"><?=$fu_atrasados_n?></span>)
+    </button>
+    <button class="fu-subtab" data-fsub="proximos" onclick="cambiarSubtabFollowUps('proximos')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ► PRÓXIMOS (<span id="fu-cnt-proximos"><?=$fu_proximos_n?></span>)
+    </button>
+    <button class="fu-subtab" data-fsub="completados" onclick="cambiarSubtabFollowUps('completados')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ✓ COMPLETADOS (<span id="fu-cnt-completados"><?=$fu_completados_n?></span>)
+    </button>
+    <button class="fu-subtab" id="fu-subtab-btn-cancelados" data-fsub="cancelados" onclick="cambiarSubtabFollowUps('cancelados')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px<?=$fu_cancelados_n?'':';display:none'?>">
+      ✕ CANCELADOS (<span id="fu-cnt-cancelados"><?=$fu_cancelados_n?></span>)
+    </button>
+    <button class="fu-subtab" data-fsub="todos" onclick="cambiarSubtabFollowUps('todos')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
+      ▦ TODOS (<span id="fu-cnt-todos"><?=$fu_todos_n?></span>)
+    </button>
+  </div>
+  <div id="fu-count" style="padding:8px 2px 0;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px"></div>
+</div>
+
+<!-- Las tarjetas (las 6 sub-pestañas) se piden aparte — ver
+     loadFollowUpsPanel()/refreshFollowUpsPanel() y api.php?action=get_follow_ups_panel /
+     render_followups_panel() en lib_followups.php. -->
+<div id="followups-panes-wrap">
+  <div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Cargando follow ups…</div>
+</div>
+</div><!-- /FOLLOW UPS -->
+
 <!-- TICKETS -->
 <div id="tab-TICKETS" class="tab-pane">
 
@@ -9480,6 +9583,90 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
     <button type="button" class="btn btn-gh btn-sm" onclick="volverCitaChoiceStep1()" style="width:100%;padding:10px;font-size:9px">← VOLVER</button>
   </div>
 </div></div>
+<!-- FOLLOW UPS — crear / completar (con encadenar el siguiente) / reagendar.
+     Un solo modal de "crear" reusado desde Tickets, Campañas, Listas,
+     Citas y el perfil de un miembro vía abrirFollowUpForm(...). -->
+<div class="modal-overlay" id="followup-form-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">☑ NUEVO FOLLOW UP</div><button class="modal-close" onclick="closeModal('followup-form-modal')">✕</button></div>
+  <form id="fu-form" onsubmit="guardarFollowUp(event)">
+    <input type="hidden" id="fu-origen-tipo" value="MANUAL">
+    <input type="hidden" id="fu-origen-id" value="">
+    <input type="hidden" id="fu-campana-id" value="">
+    <input type="hidden" id="fu-miembro-id" value="">
+    <input type="hidden" id="fu-nombre-libre" value="">
+    <input type="hidden" id="fu-telefono-libre" value="">
+    <div id="fu-quien-display" style="display:none;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:8px 11px;font-size:9px;font-weight:900;color:<?=$P1?>;margin-bottom:10px;text-transform:uppercase"></div>
+    <div class="form-group" id="fu-mpick-wrap" style="display:none">
+      <label class="form-label">¿PARA QUIÉN? (buscar por nombre o tel.)</label>
+      <div class="mpick-wrap">
+        <input type="text" id="fu-mpick-input" class="form-input" placeholder="Escribe nombre o teléfono para buscar..." autocomplete="off" oninput="mpickSearch('fu-mpick-input','fu-mpick-hidden','fu-mpick-drop',this.value,false)">
+        <input type="hidden" id="fu-mpick-hidden" value="">
+        <button type="button" class="mpick-clear" onclick="mpickClear('fu-mpick-input','fu-mpick-hidden','fu-mpick-drop')" title="Limpiar">×</button>
+        <div id="fu-mpick-drop" class="mpick-drop"></div>
+      </div>
+    </div>
+    <div class="form-group">
+      <label class="form-label">¿QUÉ HAY QUE HACER? *</label>
+      <input type="text" id="fu-titulo" class="form-input" placeholder="Ej: Llamar para confirmar documentos" required>
+    </div>
+    <div class="form-group">
+      <label class="form-label">NOTAS (opcional)</label>
+      <textarea id="fu-notas" class="form-input" rows="2" style="text-transform:none"></textarea>
+    </div>
+    <div class="form-group">
+      <label class="form-label">¿CUÁNDO?</label>
+      <?=fu_quick_dias_html('fu-fecha')?>
+      <input type="date" id="fu-fecha" class="form-input">
+    </div>
+    <?php if($admin):?>
+    <div class="form-group">
+      <label class="form-label">AGENTE RESPONSABLE</label>
+      <select id="fu-agente" class="form-input">
+        <option value="">— YO (<?=h(explode(' ',$user['nombre'])[0])?>) —</option>
+        <?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h($u['nombre'])?></option><?php endforeach;?>
+      </select>
+    </div>
+    <?php endif;?>
+    <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px">
+      <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('followup-form-modal')">CANCELAR</button>
+      <button type="submit" id="fu-form-btn" class="btn btn-b btn-sm">☑ GUARDAR FOLLOW UP</button>
+    </div>
+  </form>
+</div></div>
+
+<div class="modal-overlay" id="followup-completar-modal"><div class="modal modal-sm">
+  <div class="modal-header"><div class="modal-title">✓ COMPLETAR FOLLOW UP</div><button class="modal-close" onclick="closeModal('followup-completar-modal')">✕</button></div>
+  <input type="hidden" id="fuc-id" value="">
+  <div class="form-group">
+    <label class="form-label">¿QUÉ PASÓ? (opcional)</label>
+    <textarea id="fuc-notas" class="form-input" rows="2" style="text-transform:none" placeholder="Ej: Contestó, dijo que ya mandó los documentos"></textarea>
+  </div>
+  <div class="form-group">
+    <label class="form-label">🔔 ¿NECESITA OTRO FOLLOW UP DESPUÉS?</label>
+    <?=fu_quick_dias_html('fuc-siguiente-fecha')?>
+    <input type="date" id="fuc-siguiente-fecha" class="form-input" style="margin-bottom:8px">
+    <input type="text" id="fuc-siguiente-titulo" class="form-input" placeholder="(deja vacío para usar el mismo motivo)">
+  </div>
+  <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('followup-completar-modal')">CANCELAR</button>
+    <button type="button" id="fuc-btn" class="btn btn-gr btn-sm" onclick="ejecutarCompletarFollowUp()">✓ MARCAR COMPLETADO</button>
+  </div>
+</div></div>
+
+<div class="modal-overlay" id="followup-reagendar-modal"><div class="modal modal-sm" style="max-width:360px">
+  <div class="modal-header"><div class="modal-title">↻ REAGENDAR FOLLOW UP</div><button class="modal-close" onclick="closeModal('followup-reagendar-modal')">✕</button></div>
+  <input type="hidden" id="fur-id" value="">
+  <div class="form-group">
+    <label class="form-label">NUEVA FECHA</label>
+    <?=fu_quick_dias_html('fur-fecha')?>
+    <input type="date" id="fur-fecha" class="form-input">
+  </div>
+  <div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px">
+    <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('followup-reagendar-modal')">CANCELAR</button>
+    <button type="button" id="fur-btn" class="btn btn-b btn-sm" onclick="ejecutarReagendarFollowUp()">↻ REAGENDAR</button>
+  </div>
+</div></div>
+
 <div class="modal-overlay" id="llamada-form-modal"><div class="modal modal-sm"><div class="modal-header"><div class="modal-title">◌ REGISTRAR LLAMADA</div><button class="modal-close" onclick="closeModal('llamada-form-modal')">✕</button></div><form onsubmit="submitLlamada(event)"><div class="grid-2"><div class="form-group"><label class="form-label">NÚMERO *</label><input type="text" name="numero" class="form-input" placeholder="(818) 555-0000" required></div><div class="form-group"><label class="form-label">ORIGEN</label><select name="origen" class="form-input"><option>TWILIO</option><option>NEXTIVA</option><option>OTRO</option></select></div></div><div style="display:flex;gap:7px;justify-content:flex-end;margin-top:8px"><button type="button" class="btn btn-gh btn-sm" onclick="closeModal('llamada-form-modal')">CANCELAR</button><button type="submit" class="btn btn-b btn-sm">◌ REGISTRAR</button></div></form></div></div>
 <?php if($admin):?><div class="modal-overlay" id="finance-modal"><div class="modal" style="max-width:900px;background:#0B1E3D;border:1px solid rgba(255,255,255,.1)"><div id="finance-login" style="text-align:center;padding:30px"><div style="font-size:11px;font-weight:900;color:#fff;letter-spacing:4px;text-transform:uppercase;margin-bottom:14px">◎ PORTAL FINANCIERO</div><div id="fin-err" style="display:none;background:rgba(184,50,50,.2);color:#FCA5A5;border:1px solid rgba(184,50,50,.3);border-radius:9px;padding:8px;font-size:9px;font-weight:900;margin-bottom:12px;text-transform:uppercase">CONTRASEÑA INCORRECTA</div><input type="password" id="fin-pwd" placeholder="••••••••" style="width:100%;max-width:280px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);border-radius:9px;padding:10px 13px;font-size:13px;font-family:'DM Sans',sans-serif;outline:none;color:#fff;box-sizing:border-box;letter-spacing:2px;margin-bottom:10px;display:block;margin-left:auto;margin-right:auto"><button onclick="financeAuth()" style="background:rgba(196,154,42,.2);color:#E8C354;border:1px solid rgba(196,154,42,.3);border-radius:11px;padding:11px 30px;font-size:10px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;letter-spacing:3px;text-transform:uppercase">INGRESAR →</button></div><div id="finance-content" style="display:none"><div style="padding:0 22px;display:flex;align-items:center;height:56px;border-bottom:1px solid rgba(255,255,255,.08)"><div style="font-size:11px;font-weight:900;color:#E8C354;letter-spacing:4px;text-transform:uppercase">◎ PORTAL FINANCIERO</div><div style="margin-left:auto;display:flex;gap:7px"><span style="background:rgba(30,122,92,.2);color:#6EE7B7;border:1px solid rgba(30,122,92,.3);border-radius:20px;padding:3px 11px;font-size:8px;font-weight:900;text-transform:uppercase"> ISABEL FUENTES</span><button onclick="closeFinance()" style="background:rgba(184,50,50,.2);color:#FCA5A5;border:1px solid rgba(184,50,50,.3);border-radius:9px;padding:5px 12px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">× SALIR</button></div></div><div id="fin-kpis" style="display:flex;gap:9px;flex-wrap:wrap;padding:16px 22px 0"></div><div style="padding:14px 22px"><div style="display:flex;border-bottom:1px solid rgba(255,255,255,.08);margin-bottom:14px"><?php foreach(['RESUMEN','POR CARRIER','POR AGENTE','DISCREPANCIAS'] as $ft):?><button class="ntab<?=$ft==='RESUMEN'?' active':''?>" onclick="showFinTab('<?=$ft?>')" data-ftab="<?=$ft?>" style="color:rgba(255,255,255,.5);border-bottom-color:transparent"><?=$ft?></button><?php endforeach;?></div><div id="fin-table"></div></div></div><div style="text-align:right;padding:10px 22px;border-top:1px solid rgba(255,255,255,.08)"><button onclick="closeModal('finance-modal')" style="background:rgba(255,255,255,.1);color:rgba(255,255,255,.6);border:none;border-radius:9px;padding:6px 14px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">CERRAR</button></div></div></div><?php endif;?>
 
@@ -9865,8 +10052,8 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
 const el=document.getElementById('tab-'+id);if(el)el.style.display='block';
 document.querySelectorAll('.ntab[data-tab="'+id+'"]').forEach(b=>b.classList.add('active'));
-const names={DASHBOARD:'DASHBOARD',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',REUNIONES:'REUNIONES',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
-const icons={DASHBOARD:'▣',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',REUNIONES:'📅',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
+const names={DASHBOARD:'DASHBOARD',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',REUNIONES:'REUNIONES',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
+const icons={DASHBOARD:'▣',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',REUNIONES:'📅',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
 document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
@@ -9884,6 +10071,10 @@ if(id==='MIEMBROS' && typeof loadMembersTable==='function') loadMembersTable(app
 if(id==='CITAS' && !window._citasPanelCargado && typeof refreshCitasPanel==='function'){
   window._citasPanelCargado = true;
   refreshCitasPanel();
+}
+if(id==='FOLLOWUPS' && !window._followupsPanelCargado && typeof refreshFollowUpsPanel==='function'){
+  window._followupsPanelCargado = true;
+  refreshFollowUpsPanel();
 }
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
@@ -13024,6 +13215,248 @@ function resetCitaFiltros(){
     b.classList.toggle('active', on);
   });
   filtrarCitas();
+}
+
+// ═══════════════ FOLLOW UPS ═══════════════
+// Mismo patrón que CITAS: las tarjetas se piden aparte (loadFollowUpsPanel/
+// refreshFollowUpsPanel + api.php?action=get_follow_ups_panel /
+// render_followups_panel() en lib_followups.php), y cada acción (crear/
+// completar/reagendar/cancelar) refresca el panel para sentirse instantáneo.
+function loadFollowUpsPanel(cb){
+  var wrap = document.getElementById('followups-panes-wrap');
+  if(!wrap){ if(typeof cb==='function') cb(); return; }
+  fetch('api.php?action=get_follow_ups_panel').then(function(r){return r.json();}).then(function(d){
+    if(d.ok){
+      wrap.innerHTML = d.data.html;
+      _aplicarFollowUpsKpisYConteos(d.data.kpis, d.data.counts);
+    } else {
+      wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR FOLLOW UPS</div>';
+    }
+    if(typeof cb==='function') cb();
+  }).catch(function(){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>';
+    if(typeof cb==='function') cb();
+  });
+}
+function refreshFollowUpsPanel(){
+  var subActivoEl = document.querySelector('.fu-subtab.active');
+  var subActivo = subActivoEl ? subActivoEl.dataset.fsub : 'hoy';
+  loadFollowUpsPanel(function(){
+    var target = document.getElementById('fsub-'+subActivo);
+    if(typeof cambiarSubtabFollowUps==='function') cambiarSubtabFollowUps(target ? subActivo : 'hoy');
+  });
+}
+function _aplicarFollowUpsKpisYConteos(kpis, counts){
+  if(!kpis || !counts) return;
+  var set = function(id,val){ var el=document.getElementById(id); if(el) el.textContent=val; };
+  set('fu-kpi-hoy', kpis.hoy);
+  set('fu-kpi-semana', kpis.semana);
+  set('fu-kpi-atrasados-n', kpis.atrasados);
+  var atrCard = document.getElementById('fu-kpi-atrasados-card');
+  if(atrCard) atrCard.style.display = kpis.atrasados>0 ? '' : 'none';
+  set('fu-cnt-hoy', counts.hoy);
+  set('fu-cnt-atrasados', counts.atrasados);
+  set('fu-cnt-proximos', counts.proximos);
+  set('fu-cnt-completados', counts.completados);
+  set('fu-cnt-cancelados', counts.cancelados);
+  set('fu-cnt-todos', counts.todos);
+  var cancBtn = document.getElementById('fu-subtab-btn-cancelados');
+  if(cancBtn) cancBtn.style.display = counts.cancelados>0 ? '' : 'none';
+}
+function cambiarSubtabFollowUps(sub){
+  document.querySelectorAll('.fu-subtab').forEach(function(b){
+    if(b.dataset.fsub===sub){
+      b.style.borderBottom = '3px solid #1B4A6B';
+      b.style.color = '#1B4A6B';
+      b.classList.add('active');
+    } else {
+      b.style.borderBottom = '3px solid transparent';
+      b.style.color = '#7A90A4';
+      b.classList.remove('active');
+    }
+  });
+  document.querySelectorAll('.fsub-pane').forEach(function(p){ p.style.display='none'; });
+  const target = document.getElementById('fsub-'+sub);
+  if(target) target.style.display = '';
+  filtrarFollowUps();
+}
+function filtrarFollowUps(){
+  const q       = (document.getElementById('fu-search')?.value||'').toLowerCase().trim();
+  const agente  = document.getElementById('fu-agente-filtro')?.value||'';
+  const origen  = document.getElementById('fu-origen-filtro')?.value||'';
+
+  document.querySelectorAll('.fu-card').forEach(function(c){
+    let show = true;
+    if(q && !(c.dataset.search||'').includes(q)) show = false;
+    if(agente && c.dataset.agente!==agente) show = false;
+    if(origen && c.dataset.origen!==origen) show = false;
+    c.style.display = show ? '' : 'none';
+  });
+
+  document.querySelectorAll('.fu-grupo').forEach(function(g){
+    const visibles = [...g.querySelectorAll('.fu-card')].filter(function(c){ return c.style.display!=='none'; }).length;
+    g.style.display = visibles>0 ? '' : 'none';
+  });
+
+  const paneActivo = Array.from(document.querySelectorAll('.fsub-pane')).find(function(p){ return p.style.display!=='none'; });
+  const cnt = document.getElementById('fu-count');
+  if(cnt){
+    const total = paneActivo ? paneActivo.querySelectorAll('.fu-card').length : 0;
+    const visibles = paneActivo ? [...paneActivo.querySelectorAll('.fu-card')].filter(function(c){ return c.style.display!=='none'; }).length : 0;
+    cnt.textContent = visibles ? visibles+' follow up'+(visibles>1?'s':'')+' mostrado'+(visibles>1?'s':'')+(visibles<total?' de '+total:'') : (total?'0 follow ups mostrados':'');
+  }
+}
+function resetFollowUpFiltros(){
+  ['fu-search','fu-agente-filtro','fu-origen-filtro'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el) el.value = '';
+  });
+  filtrarFollowUps();
+}
+// "HOY + N días" en JS — mismo cálculo que followup_fecha_mas_dias() en
+// lib_followups.php, para los botones rápidos +3D/+7D/etc.
+function _fuFechaMasDias(dias){
+  var d = new Date();
+  d.setDate(d.getDate() + dias);
+  var y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return y+'-'+m+'-'+day;
+}
+function fuSetQuickDate(inputId, dias, btn){
+  var el = document.getElementById(inputId);
+  if(el) el.value = _fuFechaMasDias(dias);
+  if(btn && btn.parentElement){
+    btn.parentElement.querySelectorAll('button').forEach(function(b){ b.style.background=''; b.style.color=''; b.classList.remove('active'); });
+    btn.style.background = '#1B4A6B'; btn.style.color = '#fff'; btn.classList.add('active');
+  }
+}
+// Abre el modal de "+ FOLLOW UP" — reusado desde Tickets, Campañas, Listas
+// de Evento, Citas y el perfil de un miembro. Si ya se sabe quién es
+// (miembroId, o al menos un nombre/teléfono de contexto), se muestra fijo
+// en vez del buscador — no tiene sentido volver a buscar a alguien que ya
+// se tiene enfrente en pantalla.
+function abrirFollowUpForm(origenTipo, origenId, miembroId, nombreMostrar, telMostrar, campanaId, tituloSugerido){
+  var f = document.getElementById('fu-form');
+  if(f) f.reset();
+  document.getElementById('fu-origen-tipo').value = origenTipo || 'MANUAL';
+  document.getElementById('fu-origen-id').value = origenId || '';
+  document.getElementById('fu-campana-id').value = campanaId || '';
+  document.getElementById('fu-miembro-id').value = miembroId || '';
+  document.getElementById('fu-nombre-libre').value = miembroId ? '' : (nombreMostrar || '');
+  document.getElementById('fu-telefono-libre').value = miembroId ? '' : (telMostrar || '');
+  document.getElementById('fu-titulo').value = tituloSugerido || '';
+  document.getElementById('fu-notas').value = '';
+  var quienDisplay = document.getElementById('fu-quien-display');
+  var mpickWrap = document.getElementById('fu-mpick-wrap');
+  if(miembroId || nombreMostrar){
+    quienDisplay.style.display = '';
+    quienDisplay.textContent = 'PARA: '+(nombreMostrar||'')+(telMostrar?' · '+telMostrar:'');
+    mpickWrap.style.display = 'none';
+  } else {
+    quienDisplay.style.display = 'none';
+    mpickWrap.style.display = '';
+    mpickClear('fu-mpick-input','fu-mpick-hidden','fu-mpick-drop');
+  }
+  document.getElementById('fu-fecha').value = _fuFechaMasDias(0);
+  var ag = document.getElementById('fu-agente'); if(ag) ag.value = '';
+  openModal('followup-form-modal');
+}
+function guardarFollowUp(e){
+  e.preventDefault();
+  var titulo = document.getElementById('fu-titulo').value.trim();
+  if(!titulo){ toast('⚠ Escribe qué hay que hacer'); return; }
+  var miembroId = document.getElementById('fu-miembro-id').value;
+  var mpickHidden = document.getElementById('fu-mpick-hidden');
+  if(!miembroId && mpickHidden && mpickHidden.value) miembroId = mpickHidden.value;
+  var nombreLibre = document.getElementById('fu-nombre-libre').value;
+  var telLibre = document.getElementById('fu-telefono-libre').value;
+  if(!miembroId && !nombreLibre){ toast('⚠ Busca y elige a quién es el follow up'); return; }
+  var fecha = document.getElementById('fu-fecha').value;
+  if(!fecha){ toast('⚠ Elige una fecha'); return; }
+  var agEl = document.getElementById('fu-agente');
+  var btn = document.getElementById('fu-form-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({
+    action: 'follow_up_crear',
+    origen_tipo: document.getElementById('fu-origen-tipo').value,
+    origen_id: document.getElementById('fu-origen-id').value,
+    campana_id: document.getElementById('fu-campana-id').value,
+    miembro_id: miembroId||'',
+    nombre_libre: nombreLibre||'',
+    telefono_libre: telLibre||'',
+    titulo: titulo,
+    notas: document.getElementById('fu-notas').value,
+    fecha: fecha,
+    agente_id: agEl ? agEl.value : ''
+  })}).then(function(r){return r.json();}).then(function(d){
+    if(btn){ btn.disabled=false; btn.textContent='☑ GUARDAR FOLLOW UP'; }
+    if(d.ok){
+      toast('✓ FOLLOW UP CREADO');
+      closeModal('followup-form-modal');
+      if(typeof refreshFollowUpsPanel==='function') refreshFollowUpsPanel();
+    } else toast('⚠ '+(d.error||'No se pudo crear'));
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='☑ GUARDAR FOLLOW UP'; } toast('⚠ Error de red'); });
+}
+function completarFollowUp(id){
+  document.getElementById('fuc-id').value = id;
+  document.getElementById('fuc-notas').value = '';
+  document.getElementById('fuc-siguiente-fecha').value = '';
+  document.getElementById('fuc-siguiente-titulo').value = '';
+  openModal('followup-completar-modal');
+}
+function ejecutarCompletarFollowUp(){
+  var id = document.getElementById('fuc-id').value;
+  var siguienteFecha = document.getElementById('fuc-siguiente-fecha').value;
+  var hoy = _fuFechaMasDias(0);
+  var siguienteDias = '';
+  if(siguienteFecha){
+    var d1 = new Date(hoy+'T00:00:00'), d2 = new Date(siguienteFecha+'T00:00:00');
+    siguienteDias = Math.max(1, Math.round((d2-d1)/86400000));
+  }
+  var btn = document.getElementById('fuc-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({
+    action: 'follow_up_completar',
+    id: id,
+    notas_completado: document.getElementById('fuc-notas').value,
+    siguiente_dias: siguienteDias,
+    siguiente_titulo: document.getElementById('fuc-siguiente-titulo').value
+  })}).then(function(r){return r.json();}).then(function(d){
+    if(btn){ btn.disabled=false; btn.textContent='✓ MARCAR COMPLETADO'; }
+    if(d.ok){
+      toast(d.data && d.data.siguiente_id ? '✓ COMPLETADO — SIGUIENTE FOLLOW UP CREADO' : '✓ COMPLETADO');
+      closeModal('followup-completar-modal');
+      if(typeof refreshFollowUpsPanel==='function') refreshFollowUpsPanel();
+    } else toast('⚠ '+(d.error||'No se pudo completar'));
+  }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='✓ MARCAR COMPLETADO'; } toast('⚠ Error de red'); });
+}
+function reagendarFollowUp(id){
+  document.getElementById('fur-id').value = id;
+  document.getElementById('fur-fecha').value = '';
+  openModal('followup-reagendar-modal');
+}
+function ejecutarReagendarFollowUp(){
+  var id = document.getElementById('fur-id').value;
+  var fecha = document.getElementById('fur-fecha').value;
+  if(!fecha){ toast('⚠ Elige una fecha'); return; }
+  var btn = document.getElementById('fur-btn');
+  if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'follow_up_reagendar', id:id, fecha:fecha})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(btn){ btn.disabled=false; btn.textContent='↻ REAGENDAR'; }
+      if(d.ok){
+        toast('✓ REAGENDADO');
+        closeModal('followup-reagendar-modal');
+        if(typeof refreshFollowUpsPanel==='function') refreshFollowUpsPanel();
+      } else toast('⚠ '+(d.error||'No se pudo reagendar'));
+    }).catch(function(){ if(btn){ btn.disabled=false; btn.textContent='↻ REAGENDAR'; } toast('⚠ Error de red'); });
+}
+function cancelarFollowUp(id){
+  if(!confirm('¿Cancelar este follow up?')) return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'follow_up_cancelar', id:id})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){ toast('✓ CANCELADO'); if(typeof refreshFollowUpsPanel==='function') refreshFollowUpsPanel(); }
+      else toast('⚠ '+(d.error||'No se pudo cancelar'));
+    }).catch(function(){ toast('⚠ Error de red'); });
 }
 
 function exportCitasCSV(){
