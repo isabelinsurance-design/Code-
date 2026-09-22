@@ -6589,9 +6589,11 @@ $citas_manana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']==$t
 $citas_semana_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d && $c['fecha']<=$week_end));
 $citas_atrasadas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']<$today_d));
 $citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d));
-// Vista aparte pedida por Isabel: todas las citas de tipo AEP juntas, sin
-// importar su estado — útil en temporada AEP para verlas todas de un jalón.
-$citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP'));
+// Vista aparte pedida por Isabel: todas las citas de tipo AEP del año en
+// curso juntas, sin importar su estado — útil en temporada AEP para verlas
+// todas de un jalón sin que se mezclen con años anteriores.
+$_anio_actual = date('Y');
+$citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' && substr($c['fecha']??'',0,4)===$_anio_actual));
 ?>
 
 <!-- HEADER + KPIs + acciones -->
@@ -6678,7 +6680,7 @@ $citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP')
       ▦ TODAS (<span id="citas-cnt-todas"><?=count($citas_view)?></span>)
     </button>
     <button class="cita-subtab" data-csub="aep" onclick="cambiarSubtabCitas('aep')" style="background:none;border:none;border-bottom:3px solid transparent;color:<?=$MU?>;font-weight:900;font-size:9px;padding:8px 15px;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:1px">
-      📋 AEP (<span id="citas-cnt-aep"><?=$citas_aep_n?></span>)
+      📋 AEP <?=$_anio_actual?> (<span id="citas-cnt-aep"><?=$citas_aep_n?></span>)
     </button>
   </div>
   <div id="cita-count" style="padding:8px 2px 0;font-size:9px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px"></div>

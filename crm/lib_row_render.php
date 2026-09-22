@@ -583,15 +583,17 @@ function render_citas_panel(PDO $pdo): array {
   <?php endif;?>
 </div>
 
-<!-- ─── AEP (vista aparte, pedida por Isabel — todas las citas de tipo AEP,
-     sin importar el estado, para verlas todas juntas en temporada AEP) ─── -->
+<!-- ─── AEP (vista aparte, pedida por Isabel — todas las citas de tipo AEP
+     del año en curso, sin importar el estado, para verlas todas juntas en
+     temporada AEP sin que se mezclen con las de años anteriores) ─── -->
 <div id="csub-aep" class="csub-pane" style="display:none">
   <?php
-  $citas_aep = array_values(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP'));
+  $_anio_actual = date('Y');
+  $citas_aep = array_values(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' && substr($c['fecha']??'',0,4)===$_anio_actual));
   usort($citas_aep, fn($a,$b)=>strcmp($b['fecha'].($b['hora']??''), $a['fecha'].($a['hora']??'')));
   ?>
   <?php if(!count($citas_aep)):?>
-    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS AEP TODAVÍA</div>
+    <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN CITAS AEP <?=$_anio_actual?> TODAVÍA</div>
   <?php else:?>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
     <?php foreach($citas_aep as $c) $render_cita($c); ?>
