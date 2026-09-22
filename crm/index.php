@@ -741,7 +741,7 @@ if (!empty($_POST['camp_ajax'])) {
             $nombre   = trim($_POST['nombre'] ?? '');
             $tipo     = trim($_POST['tipo'] ?? 'fecha');
             if (!$lista_id || $nombre === '') { echo json_encode(['ok'=>false,'error'=>'Nombre de columna requerido']); break; }
-            if (!in_array($tipo, ['fecha','dropdown'], true)) $tipo = 'fecha';
+            if (!in_array($tipo, ['fecha','dropdown','texto','numero'], true)) $tipo = 'fecha';
             $opcionesJson = null;
             if ($tipo === 'dropdown') {
                 $opciones = array_values(array_filter(array_map('trim', explode(',', $_POST['opciones'] ?? '')), fn($o)=>$o!==''));
@@ -3546,21 +3546,24 @@ try{
     </div>
     <?php $_lecs = $lec_by_lista[$le['id']] ?? []; ?>
     <div class="form-group" style="max-width:600px;margin-top:12px">
-      <label class="form-label">📋 COLUMNAS EXTRA DE ESTA LISTA — fechas o dropdowns a tu gusto (ej. FECHA DE LLAMADA, o un dropdown "¿VA A IR?")</label>
+      <label class="form-label">📋 COLUMNAS EXTRA DE ESTA LISTA — fecha, notas, número o dropdown a tu gusto (ej. FECHA DE LLAMADA, NOTAS, CANTIDAD DE LLAMADAS, o un dropdown "¿VA A IR?")</label>
+      <?php $_LEC_ICONOS = ['fecha'=>'📅','dropdown'=>'▾','texto'=>'📝','numero'=>'#']; ?>
       <?php if($_lecs):?>
       <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px">
         <?php foreach($_lecs as $_lc):?>
         <span style="display:inline-flex;align-items:center;gap:5px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:3px 6px 3px 10px;font-size:8px;font-weight:800;color:<?=$TX?>">
-          <?=$_lc['tipo']==='fecha'?'📅':'▾'?> <?=h($_lc['nombre'])?>
+          <?=$_LEC_ICONOS[$_lc['tipo']]??'▾'?> <?=h($_lc['nombre'])?>
           <a href="javascript:void(0)" onclick="eliminarColumnaLista(<?=$_lc['id']?>,<?=$le['id']?>)" style="color:#B83232;font-weight:900;padding:0 2px;text-decoration:none">✕</a>
         </span>
         <?php endforeach;?>
       </div>
       <?php endif;?>
       <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
-        <input type="text" id="le-col-nombre-<?=$le['id']?>" placeholder="Nombre de la columna (ej. FECHA DE LLAMADA)" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif">
+        <input type="text" id="le-col-nombre-<?=$le['id']?>" placeholder="Nombre de la columna (ej. NOTAS, CANTIDAD DE LLAMADAS)" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif">
         <select id="le-col-tipo-<?=$le['id']?>" onchange="toggleColOpciones(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700">
           <option value="fecha">📅 FECHA</option>
+          <option value="texto">📝 TEXTO / NOTAS</option>
+          <option value="numero"># NÚMERO (EJ. CANTIDAD DE LLAMADAS)</option>
           <option value="dropdown">▾ DROPDOWN (TÚ PONES LAS OPCIONES)</option>
         </select>
         <input type="text" id="le-col-opciones-<?=$le['id']?>" placeholder="Opciones separadas por coma (ej. Sí va, No va, Tal vez)" style="display:none;flex:2;min-width:220px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:8px 10px;font-size:10px;font-family:'DM Sans',sans-serif">
@@ -3571,8 +3574,9 @@ try{
     <div class="le-empty" style="font-size:9px;color:<?=$MU?>;padding:12px 0;text-transform:uppercase">SIN MIEMBROS AGREGADOS TODAVÍA</div>
     <?php else:?>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px">
-      <label class="form-label" style="margin:0">FILTRAR POR ESTADO</label>
-      <select id="le-filtro-estado-<?=$le['id']?>" onchange="filtrarListaPorEstado(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700">
+      <input type="text" id="le-buscar-<?=$le['id']?>" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="_debouncedCall('lelist-<?=$le['id']?>',function(){filtrarLista(<?=$le['id']?>)})" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 10px;font-size:9px;font-family:'DM Sans',sans-serif">
+      <label class="form-label" style="margin:0">ESTADO</label>
+      <select id="le-filtro-estado-<?=$le['id']?>" onchange="filtrarLista(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff;font-weight:700">
         <option value="">TODOS</option>
         <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"><?=h($_est_op)?></option><?php endforeach;?>
       </select>
@@ -3590,24 +3594,31 @@ try{
         <th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th>
         <th></th>
       </tr>
-      <?php foreach($lem as $_lm): $_lm_nombre = trim($_lm['apellido'].', '.$_lm['nombre']); ?>
-      <tr style="border-top:1px solid <?=$CB?>" data-le-row="<?=(int)$_lm['id']?>">
+      <?php foreach($lem as $_lm): $_lm_nombre = trim($_lm['apellido'].', '.$_lm['nombre']); $_lm_search = h(strtolower($_lm_nombre.' '.($_lm['telefono']??''))); ?>
+      <tr style="border-top:1px solid <?=$CB?>" data-le-row="<?=(int)$_lm['id']?>" data-search="<?=$_lm_search?>">
         <td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile(<?=(int)$_lm['miembro_id']?>)"><?=h($_lm_nombre)?></td>
         <td style="padding:6px 8px;font-size:9px;color:<?=$MU?>"><?=h($_lm['telefono']?:'—')?></td>
         <?php foreach($_lecs as $_lc): $_valGuardado = $lev_by_ml[$_lm['id']][$_lc['id']] ?? ''; ?>
         <td style="padding:6px 8px">
           <?php if($_lc['tipo']==='fecha'):?>
           <input type="date" value="<?=h($_valGuardado)?>" onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif">
-          <?php else: $_opciones = json_decode($_lc['opciones'] ?? '[]', true) ?: []; ?>
+          <?php elseif($_lc['tipo']==='dropdown'): $_opciones = json_decode($_lc['opciones'] ?? '[]', true) ?: []; ?>
           <select onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
             <option value="">—</option>
             <?php foreach($_opciones as $_op):?><option value="<?=h($_op)?>"<?=$_valGuardado===$_op?' selected':''?>><?=h($_op)?></option><?php endforeach;?>
           </select>
+          <?php elseif($_lc['tipo']==='numero'):?>
+          <div style="display:flex;align-items:center;gap:4px">
+            <input type="number" id="le-val-<?=$_lc['id']?>-<?=(int)$_lm['id']?>" value="<?=h($_valGuardado)?>" onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="width:55px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif">
+            <button type="button" class="btn btn-gh btn-sm" style="padding:2px 7px;font-size:9px" onclick="incrementarNumeroColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>)">+1</button>
+          </div>
+          <?php else:?>
+          <input type="text" value="<?=h($_valGuardado)?>" onchange="guardarValorColumna(<?=$_lc['id']?>,<?=(int)$_lm['id']?>,this.value)" style="width:100%;min-width:120px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px;font-family:'DM Sans',sans-serif;text-transform:none">
           <?php endif;?>
         </td>
         <?php endforeach;?>
         <td style="padding:6px 8px">
-          <select class="le-estado-sel" onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value});filtrarListaPorEstado(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
+          <select class="le-estado-sel" onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{estado:this.value});filtrarLista(<?=$le['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:'DM Sans',sans-serif;background:#fff">
             <?php foreach(array_keys($LEM_ESTADOS) as $_est_op):?><option value="<?=h($_est_op)?>"<?=($_lm['estado']??'PENDIENTE')===$_est_op?' selected':''?>><?=h($_est_op)?></option><?php endforeach;?>
           </select>
         </td>
@@ -4497,12 +4508,15 @@ var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
 // la lógica dos veces y arriesgarse a que se desincronicen.
 var LE_COLUMNAS_COUNT=<?=json_encode(array_map('count', $lec_by_lista))?>;
 // Filtra las filas de una lista de evento por el estado (PENDIENTE,
-// CONFIRMADO, etc.) — lee el valor directo del <select> de cada fila
-// (no un data-attribute aparte) para que nunca se desincronice con lo
-// que la fila muestra de verdad.
-function filtrarListaPorEstado(listaId){
+// CONFIRMADO, etc.) Y por el texto del buscador (nombre o teléfono) — lee
+// el valor directo del <select>/<input> de cada fila o su data-search (no
+// un data-attribute aparte para el estado) para que nunca se desincronice
+// con lo que la fila muestra de verdad.
+function filtrarLista(listaId){
   var sel = document.getElementById('le-filtro-estado-'+listaId);
   var filtro = sel ? sel.value : '';
+  var buscadorEl = document.getElementById('le-buscar-'+listaId);
+  var busqueda = buscadorEl ? buscadorEl.value.trim().toLowerCase() : '';
   var body = document.getElementById('le-body-'+listaId);
   if(!body) return;
   var filas = body.querySelectorAll('[data-le-row]');
@@ -4510,12 +4524,13 @@ function filtrarListaPorEstado(listaId){
   filas.forEach(function(fila){
     var estSel = fila.querySelector('.le-estado-sel');
     var estado = estSel ? estSel.value : '';
-    var mostrar = !filtro || estado === filtro;
+    var texto = fila.getAttribute('data-search') || '';
+    var mostrar = (!filtro || estado === filtro) && (!busqueda || texto.indexOf(busqueda) !== -1);
     fila.style.display = mostrar ? '' : 'none';
     if(mostrar) visibles++;
   });
   var cnt = document.getElementById('le-count-'+listaId);
-  if(cnt) cnt.textContent = filtro ? ('MOSTRANDO '+visibles+' DE '+filas.length) : '';
+  cnt && (cnt.textContent = (filtro || busqueda) ? ('MOSTRANDO '+visibles+' DE '+filas.length) : '');
 }
 function toggleColOpciones(listaId){
   var tipo = document.getElementById('le-col-tipo-'+listaId).value;
@@ -4550,6 +4565,13 @@ function guardarValorColumna(columnaId, miembroListaId, valor){
   campPost('action=lista_valor_guardar&columna_id='+columnaId+'&miembro_lista_id='+miembroListaId+'&valor='+encodeURIComponent(valor), false)
     .then(function(d){ if(d&&d.ok){ if(typeof toast==='function')toast('✓ GUARDADO'); } else if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo guardar')); });
 }
+function incrementarNumeroColumna(columnaId, miembroListaId){
+  var input = document.getElementById('le-val-'+columnaId+'-'+miembroListaId);
+  if(!input) return;
+  var actual = parseInt(input.value, 10) || 0;
+  input.value = actual + 1;
+  guardarValorColumna(columnaId, miembroListaId, input.value);
+}
 // _membersData.label/tel ya vienen escapados con h() desde PHP (ver
 // _membersData más abajo), así que se insertan tal cual sin re-escaparlos.
 function _leRowHtml(rowId, miembro, listaId){
@@ -4557,10 +4579,11 @@ function _leRowHtml(rowId, miembro, listaId){
   var tel    = miembro && miembro.tel ? miembro.tel : '—';
   var midAttr= miembro ? miembro.id : 0;
   var opts = LE_ESTADO_OPTS.map(function(o){ return '<option value="'+o+'"'+(o==='PENDIENTE'?' selected':'')+'>'+o+'</option>'; }).join('');
-  return '<tr style="border-top:1px solid <?=$CB?>" data-le-row="'+rowId+'">'
+  var busq = (nombre+' '+tel).toLowerCase().replace(/"/g,'&quot;');
+  return '<tr style="border-top:1px solid <?=$CB?>" data-le-row="'+rowId+'" data-search="'+busq+'">'
     + '<td style="padding:6px 8px;font-size:9px;font-weight:800;color:<?=$P1?>;cursor:pointer" onclick="openProfile('+midAttr+')">'+nombre+'</td>'
     + '<td style="padding:6px 8px;font-size:9px;color:<?=$MU?>">'+tel+'</td>'
-    + '<td style="padding:6px 8px"><select class="le-estado-sel" onchange="updateMiembroLista('+rowId+',{estado:this.value});filtrarListaPorEstado('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
+    + '<td style="padding:6px 8px"><select class="le-estado-sel" onchange="updateMiembroLista('+rowId+',{estado:this.value});filtrarLista('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
     + '<td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista('+rowId+',{asistio:this.checked?1:0})" style="width:16px;height:16px;cursor:pointer"></td>'
     + '<td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button></td>'
     + '</tr>';
@@ -4595,8 +4618,9 @@ function addMiembroLista(listaId){
         if(!table){
           var opts='<option value="">TODOS</option>'+LE_ESTADO_OPTS.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
           var toolbar=document.createElement('div'); toolbar.style.cssText='display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:12px';
-          toolbar.innerHTML='<label class="form-label" style="margin:0">FILTRAR POR ESTADO</label>'
-            +'<select id="le-filtro-estado-'+listaId+'" onchange="filtrarListaPorEstado('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff;font-weight:700">'+opts+'</select>'
+          toolbar.innerHTML='<input type="text" id="le-buscar-'+listaId+'" placeholder="🔎 Buscar por nombre o teléfono..." autocomplete="off" oninput="_debouncedCall(\'lelist-'+listaId+'\',function(){filtrarLista('+listaId+')})" style="flex:1;min-width:180px;border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 10px;font-size:9px;font-family:\'DM Sans\',sans-serif">'
+            +'<label class="form-label" style="margin:0">ESTADO</label>'
+            +'<select id="le-filtro-estado-'+listaId+'" onchange="filtrarLista('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:6px 9px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff;font-weight:700">'+opts+'</select>'
             +'<span id="le-count-'+listaId+'" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase"></span>';
           body.appendChild(toolbar);
           var wrap=document.createElement('div'); wrap.className='le-table-wrap'; wrap.style.cssText='overflow-x:auto;margin-top:10px';
@@ -4609,7 +4633,7 @@ function addMiembroLista(listaId){
           table=wrap.querySelector('table');
         }
         table.insertAdjacentHTML('beforeend', _leRowHtml(d.id, miembro, listaId));
-        filtrarListaPorEstado(listaId);
+        filtrarLista(listaId);
       }
       mpickClear('le-mpick-input-'+listaId,'le-mpick-hidden-'+listaId,'le-mpick-drop-'+listaId);
     }
