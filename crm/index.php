@@ -6648,6 +6648,11 @@ $citas_proximas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$
       <option value="EN CASA">En casa</option>
       <option value="EN RESTAURANTE">En restaurante</option>
     </select>
+    <select id="cita-modgrupo-filtro" onchange="filtrarCitas()" title="Agrupa las modalidades en solo dos: por teléfono/video, o en persona" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none;font-weight:700">
+      <option value="">📞/🏢 Teléfono o en persona</option>
+      <option value="REMOTA">📞 SOLO POR TELÉFONO/VIDEO</option>
+      <option value="PRESENCIAL">🏢 SOLO EN PERSONA</option>
+    </select>
     <button class="btn btn-gh btn-sm" onclick="resetCitaFiltros()" style="font-size:8px">↺ LIMPIAR</button>
   </div>
   <div style="display:flex;gap:0;border-bottom:1px solid <?=$CB?>;flex-wrap:wrap">
@@ -12964,6 +12969,7 @@ function filtrarCitas(){
   const agente  = document.getElementById('cita-agente-filtro')?.value||'';
   const tipo    = document.getElementById('cita-tipo-filtro')?.value||'';
   const moda    = document.getElementById('cita-modalidad-filtro')?.value||'';
+  const modaGrp = document.getElementById('cita-modgrupo-filtro')?.value||'';
   const rango   = fecha ? _rangoCitaPeriodo(fecha, window._citaPeriodo||'dia') : null;
 
   document.querySelectorAll('.cita-card').forEach(c=>{
@@ -12973,6 +12979,7 @@ function filtrarCitas(){
     if(agente && c.dataset.agente!==agente) show = false;
     if(tipo && c.dataset.tipo!==tipo) show = false;
     if(moda && c.dataset.modalidad!==moda) show = false;
+    if(modaGrp && c.dataset.modalidadGrupo!==modaGrp) show = false;
     c.style.display = show ? '' : 'none';
   });
 
@@ -12996,7 +13003,7 @@ function filtrarCitas(){
 }
 
 function resetCitaFiltros(){
-  ['cita-search','cita-fecha-filtro','cita-agente-filtro','cita-tipo-filtro','cita-modalidad-filtro'].forEach(id=>{
+  ['cita-search','cita-fecha-filtro','cita-agente-filtro','cita-tipo-filtro','cita-modalidad-filtro','cita-modgrupo-filtro'].forEach(id=>{
     const el = document.getElementById(id);
     if(el) el.value = '';
   });

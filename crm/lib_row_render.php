@@ -360,7 +360,7 @@ function strftime_es(string $ym): string {
  * página normal porque es barato de calcular — lo caro es la lista de
  * tarjetas, que es lo que aquí se difiere. */
 function render_citas_panel(PDO $pdo): array {
-    $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$MU='#7A90A4';
+    $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$MU='#7A90A4';$G='#1E7A5C';
 
     $citas = $pdo->query("SELECT c.*,
                            u.nombre as agente_nombre, u.color as agente_color, u.iniciales as agente_ini,
@@ -393,7 +393,7 @@ function render_citas_panel(PDO $pdo): array {
     $citas_atrasadas_n = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']<$today_d));
     $citas_proximas_n  = count(array_filter($citas_pendientes, fn($c)=>$c['fecha']>=$today_d));
 
-    $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$today_d,$tomorrow_d) {
+    $render_cita = function($c) use ($P1,$P2,$MU,$BG,$CB,$G,$today_d,$tomorrow_d) {
       $is_today    = $c['fecha']==$today_d;
       $is_tomorrow = $c['fecha']==$tomorrow_d;
       $is_past     = $c['fecha']<$today_d && $c['estado']!=='COMPLETADA';
@@ -406,8 +406,18 @@ function render_citas_panel(PDO $pdo): array {
       $hora_disp = !empty($c['hora']) ? substr($c['hora'],0,5) : '--:--';
       $agente_color = $c['agente_color'] ?? $P2;
       $agente_ini   = $c['agente_ini']   ?? '?';
+      // Isabel pidió que se note claro, a la vista y en los filtros, si una
+      // cita es POR TELÉFONO (o video — no está el prospecto en persona) o
+      // EN PERSONA (oficina, en su casa, en un restaurante) — esto se usa
+      // sobre todo en temporada AEP para saber cuántas citas fueron
+      // telefónicas vs en persona.
+      $moda = $c['modalidad'] ?? '';
+      $es_remota = in_array($moda, ['TELÉFONO','VIDEO'], true);
+      $moda_grupo = $es_remota ? 'REMOTA' : 'PRESENCIAL';
+      $moda_color = $es_remota ? $P2 : $G;
+      $moda_icono = ['TELÉFONO'=>'📞','VIDEO'=>'📹','EN CASA'=>'🏠','EN RESTAURANTE'=>'🍽️'][$moda] ?? '🏢';
       ?>
-      <div class="cita-card" data-fecha="<?=h($c['fecha'])?>" data-agente="<?=h($c['agente_id'])?>" data-tipo="<?=h($c['tipo']??'')?>" data-modalidad="<?=h($c['modalidad']??'')?>" data-search="<?=strtolower(h(($cli.' '.($c['tipo']??'').' '.($c['modalidad']??'').' '.($c['notas']??''))))?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;border-radius:10px;padding:11px 13px;<?=$is_done||$is_canceled?'opacity:.65':''?>">
+      <div class="cita-card" data-fecha="<?=h($c['fecha'])?>" data-agente="<?=h($c['agente_id'])?>" data-tipo="<?=h($c['tipo']??'')?>" data-modalidad="<?=h($c['modalidad']??'')?>" data-modalidad-grupo="<?=$moda_grupo?>" data-search="<?=strtolower(h(($cli.' '.($c['tipo']??'').' '.($c['modalidad']??'').' '.($c['notas']??''))))?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;border-radius:10px;padding:11px 13px;<?=$is_done||$is_canceled?'opacity:.65':''?>">
         <?php if($is_reagendar):?><div style="display:inline-block;background:#F3EBFA;color:#6B3FA0;border:1px solid #D6BCE8;border-radius:20px;padding:2px 9px;font-size:7px;font-weight:900;text-transform:uppercase;margin-bottom:6px">↺ POSIBLE PARA REAGENDAR</div><?php endif;?>
         <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
           <div style="flex:1;min-width:0">
@@ -428,8 +438,8 @@ function render_citas_panel(PDO $pdo): array {
         </div>
         <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
           <span style="background:<?=$BG?>;color:<?=$P1?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase"><?=h($c['tipo']??'?')?></span>
-          <span style="background:<?=$BG?>;color:<?=$P2?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase">
-            <?=['TELÉFONO'=>'📞','VIDEO'=>'📹','EN CASA'=>'🏠','EN RESTAURANTE'=>'🍽️'][$c['modalidad']??'']??'🏢'?> <?=h($c['modalidad']??'?')?>
+          <span title="<?=$es_remota?'NO estuvo en persona con el prospecto':'Estuvo en persona con el prospecto'?>" style="background:<?=$moda_color?>;color:#fff;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase">
+            <?=$moda_icono?> <?=h($moda?:'?')?>
           </span>
           <span style="display:inline-flex;align-items:center;gap:3px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase;color:<?=$MU?>">
             <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:<?=h($agente_color)?>;color:#fff;font-size:6px;text-align:center;line-height:11px;font-weight:900"><?=h($agente_ini)?></span>
