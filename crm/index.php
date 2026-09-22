@@ -702,6 +702,10 @@ if (!empty($_POST['camp_ajax'])) {
             if (isset($_POST['asistio'])) { $sets[] = 'asistio=?'; $vals[] = !empty($_POST['asistio']) ? 1 : 0; }
             if (isset($_POST['notas']))   { $sets[] = 'notas=?';   $vals[] = trim($_POST['notas']); }
             if (!$sets) { echo json_encode(['ok'=>false,'error'=>'Nada que actualizar']); break; }
+            // Que quede quién fue el último empleado en tocar a esta persona
+            // dentro de la lista (para saber quién trabajó con ella).
+            $sets[] = 'ultimo_editor_id=?'; $vals[] = $uid_c;
+            $sets[] = 'ultimo_editor_at=NOW()';
             $vals[] = $id;
             $pdo_c->prepare("UPDATE lista_evento_miembros SET " . implode(',', $sets) . " WHERE id=?")->execute($vals);
             echo json_encode(['ok'=>true]); break;
@@ -766,6 +770,10 @@ if (!empty($_POST['camp_ajax'])) {
             $pdo_c->prepare("INSERT INTO lista_evento_valores (columna_id,miembro_lista_id,valor) VALUES (?,?,?)
                               ON DUPLICATE KEY UPDATE valor=VALUES(valor)")
                   ->execute([$columna_id, $ml_id, $valor]);
+            // Guardar una columna extra (NOTAS, CANTIDAD DE LLAMADAS, etc.)
+            // también cuenta como "trabajar con esta persona".
+            $pdo_c->prepare("UPDATE lista_evento_miembros SET ultimo_editor_id=?, ultimo_editor_at=NOW() WHERE id=?")
+                  ->execute([$uid_c, $ml_id]);
             echo json_encode(['ok'=>true]); break;
 
         default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
@@ -1231,6 +1239,18 @@ try {
         UNIQUE KEY uniq_lista_miembro (lista_id, miembro_id),
         INDEX idx_lista (lista_id)
     )");
+    // Quién fue el último empleado en tocar a este miembro dentro de la
+    // lista (cambiar ESTADO/ASISTIÓ, o guardar una columna extra como
+    // NOTAS o CANTIDAD DE LLAMADAS) — para saber quién trabajó con esa
+    // persona sin tener que preguntar.
+    $lem_cols = $pdo->query("SHOW COLUMNS FROM lista_evento_miembros")->fetchAll(PDO::FETCH_COLUMN);
+    $lem_add = [
+        'ultimo_editor_id' => "ADD COLUMN ultimo_editor_id INT DEFAULT NULL",
+        'ultimo_editor_at' => "ADD COLUMN ultimo_editor_at DATETIME DEFAULT NULL",
+    ];
+    foreach ($lem_add as $col => $ddl) {
+        if (!in_array($col, $lem_cols, true)) { try { $pdo->exec("ALTER TABLE lista_evento_miembros $ddl"); } catch (Exception $e) {} }
+    }
     // Columnas EXTRA que cada lista define a su gusto (ej. "FECHA DE
     // LLAMADA", o un dropdown "¿VA A IR?" con sus propias opciones) — cada
     // lista tiene las suyas, no son fijas para todas.
@@ -3042,8 +3062,10 @@ $LEM_ESTADOS = ['PENDIENTE'=>['#7A90A4','#F1F1F1'],'CONFIRMADO'=>['#1E7A5C','#EA
 $listas_evento=[]; $lem_by_lista=[]; $lec_by_lista=[]; $lev_by_ml=[];
 try{
  $listas_evento=$pdo->query("SELECT le.*, u.iniciales as agente_ini, u.color as agente_color FROM listas_evento le LEFT JOIN usuarios u ON le.agente_id=u.id ORDER BY le.fecha DESC, le.created_at DESC")->fetchAll();
- foreach($pdo->query("SELECT lem.*, m.nombre, m.apellido, m.telefono
+ foreach($pdo->query("SELECT lem.*, m.nombre, m.apellido, m.telefono,
+                       ue.nombre as editor_nombre, ue.iniciales as editor_ini, ue.color as editor_color
                        FROM lista_evento_miembros lem JOIN miembros m ON m.id=lem.miembro_id
+                       LEFT JOIN usuarios ue ON ue.id=lem.ultimo_editor_id
                        ORDER BY m.apellido, m.nombre") as $lm) $lem_by_lista[$lm['lista_id']][]=$lm;
  // Columnas extra que cada lista se armó a su gusto, y el valor guardado
  // de cada una por cada miembro agregado.
@@ -3592,6 +3614,7 @@ try{
         <?php endforeach;?>
         <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ESTADO</th>
         <th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th>
+        <th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">QUIÉN TRABAJÓ</th>
         <th></th>
       </tr>
       <?php foreach($lem as $_lm): $_lm_nombre = trim($_lm['apellido'].', '.$_lm['nombre']); $_lm_search = h(strtolower($_lm_nombre.' '.($_lm['telefono']??''))); ?>
@@ -3623,6 +3646,13 @@ try{
           </select>
         </td>
         <td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista(<?=(int)$_lm['id']?>,{asistio:this.checked?1:0})"<?=!empty($_lm['asistio'])?' checked':''?> style="width:16px;height:16px;cursor:pointer"></td>
+        <td class="le-editor-cell" style="padding:6px 8px;text-align:center">
+          <?php if(!empty($_lm['ultimo_editor_id'])):?>
+          <span title="<?=h($_lm['editor_nombre']??'?')?> · <?=h($_lm['ultimo_editor_at']?date('d/m/Y g:i A', strtotime($_lm['ultimo_editor_at'])):'')?>"><?=av(h($_lm['editor_ini']??'?'),h($_lm['editor_color']??$P2),20)?></span>
+          <?php else:?>
+          <span style="color:<?=$MU?>;font-size:9px">—</span>
+          <?php endif;?>
+        </td>
         <td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista(<?=(int)$_lm['id']?>)">✕</button></td>
       </tr>
       <?php endforeach;?>
@@ -4501,6 +4531,20 @@ function deleteLista(id){
   campPost('action=delete_lista_evento&id='+id,true);
 }
 var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
+// Datos del empleado con la sesión abierta ahora mismo — para pintar al
+// instante el ícono de "quién trabajó" en la fila que se acaba de editar,
+// sin tener que esperar a que se recargue la página para verlo.
+var LE_MI_INI    = <?=json_encode(h($user['iniciales']??'?'))?>;
+var LE_MI_COLOR  = <?=json_encode(h($user['color']??$P2))?>;
+var LE_MI_NOMBRE = <?=json_encode(h($user['nombre']??''))?>;
+function _leMarcarEditorLocal(rowId){
+  var fila = document.querySelector('[data-le-row="'+rowId+'"]');
+  if(!fila) return;
+  var celda = fila.querySelector('.le-editor-cell');
+  if(!celda) return;
+  celda.innerHTML = '<span title="'+LE_MI_NOMBRE+' · Justo ahora">'
+    + '<div style="width:20px;height:20px;border-radius:50%;background:'+LE_MI_COLOR+';display:flex;align-items:center;justify-content:center;font-size:7px;font-weight:900;color:#fff;font-family:\'DM Sans\',sans-serif;margin:0 auto">'+LE_MI_INI+'</div></span>';
+}
 // Cuántas columnas extra tiene cada lista — si una lista ya tiene
 // columnas propias, agregar un miembro (o una columna) recarga esa
 // sección en vez de intentar armar la fila a mano en JS, porque replicar
@@ -4563,7 +4607,7 @@ function eliminarColumnaLista(columnaId, listaId){
 }
 function guardarValorColumna(columnaId, miembroListaId, valor){
   campPost('action=lista_valor_guardar&columna_id='+columnaId+'&miembro_lista_id='+miembroListaId+'&valor='+encodeURIComponent(valor), false)
-    .then(function(d){ if(d&&d.ok){ if(typeof toast==='function')toast('✓ GUARDADO'); } else if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo guardar')); });
+    .then(function(d){ if(d&&d.ok){ if(typeof toast==='function')toast('✓ GUARDADO'); _leMarcarEditorLocal(miembroListaId); } else if(typeof toast==='function')toast('⚠ '+((d&&d.error)||'No se pudo guardar')); });
 }
 function incrementarNumeroColumna(columnaId, miembroListaId){
   var input = document.getElementById('le-val-'+columnaId+'-'+miembroListaId);
@@ -4585,6 +4629,7 @@ function _leRowHtml(rowId, miembro, listaId){
     + '<td style="padding:6px 8px;font-size:9px;color:<?=$MU?>">'+tel+'</td>'
     + '<td style="padding:6px 8px"><select class="le-estado-sel" onchange="updateMiembroLista('+rowId+',{estado:this.value});filtrarLista('+listaId+')" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 7px;font-size:9px;font-family:\'DM Sans\',sans-serif;background:#fff">'+opts+'</select></td>'
     + '<td style="padding:6px 8px;text-align:center"><input type="checkbox" onchange="updateMiembroLista('+rowId+',{asistio:this.checked?1:0})" style="width:16px;height:16px;cursor:pointer"></td>'
+    + '<td class="le-editor-cell" style="padding:6px 8px;text-align:center"><span style="color:<?=$MU?>;font-size:9px">—</span></td>'
     + '<td style="padding:6px 8px;text-align:right"><button class="btn btn-re btn-sm" style="font-size:8px" onclick="removeMiembroLista('+rowId+')">✕</button></td>'
     + '</tr>';
 }
@@ -4628,7 +4673,8 @@ function addMiembroLista(listaId){
             +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">MIEMBRO</th>'
             +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">TELÉFONO</th>'
             +'<th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ESTADO</th>'
-            +'<th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th><th></th></tr></table>';
+            +'<th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">ASISTIÓ</th>'
+            +'<th style="text-align:center;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:5px 8px">QUIÉN TRABAJÓ</th><th></th></tr></table>';
           body.appendChild(wrap);
           table=wrap.querySelector('table');
         }
@@ -4663,7 +4709,7 @@ function bulkAddMiembrosLista(listaId){
 function updateMiembroLista(id,cambios){
   var p='action=update_miembro_lista&id='+id;
   Object.keys(cambios).forEach(function(k){ p+='&'+k+'='+encodeURIComponent(cambios[k]); });
-  campPost(p,false).then(function(d){ if(d&&d.ok && typeof toast==='function')toast('✓ Actualizado'); });
+  campPost(p,false).then(function(d){ if(d&&d.ok){ if(typeof toast==='function')toast('✓ Actualizado'); _leMarcarEditorLocal(id); } });
 }
 function removeMiembroLista(id){
   if(!confirm('¿Quitar a este miembro de la lista?'))return;
