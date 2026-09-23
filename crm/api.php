@@ -5,6 +5,7 @@ require_once 'lib_telefono.php';
 require_once 'lib_twilio.php';
 require_once 'lib_row_render.php';
 require_once 'lib_followups.php';
+require_once 'lib_google_calendar.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -975,7 +976,10 @@ case 'save_cita':
     $pdo->prepare("INSERT INTO citas (miembro_id,agente_id,cliente,tipo,modalidad,fecha,hora,estado,notas)
                    VALUES (?,?,?,?,?,?,?,?,?)")
         ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, 'PENDIENTE', $notas]);
-    jsonOkNotify(['id'=>$pdo->lastInsertId()], 'CITAS');
+    $nuevaCitaId = $pdo->lastInsertId();
+    $citaSync = google_calendar_obtener_cita_para_sync($pdo, $nuevaCitaId);
+    if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
+    jsonOkNotify(['id'=>$nuevaCitaId], 'CITAS');
     break;
 
 case 'update_cita':
@@ -1012,6 +1016,8 @@ case 'update_cita':
     }
     $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=$estado_sql WHERE id=?")
         ->execute($params);
+    $citaSync = google_calendar_obtener_cita_para_sync($pdo, $id);
+    if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
     jsonOkNotify([], 'CITAS');
     break;
 
@@ -1051,6 +1057,8 @@ case 'complete_cita':
     if (!$row) jsonErr('Cita no encontrada');
     $pdo->prepare("UPDATE citas SET estado='COMPLETADA', completada_por=?, completada_at=NOW() WHERE id=?")
         ->execute([$uid, $id]);
+    $citaSync = google_calendar_obtener_cita_para_sync($pdo, $id);
+    if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
     jsonOkNotify([], 'CITAS');
     break;
 
@@ -1063,6 +1071,10 @@ case 'cancel_cita':
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
     $pdo->prepare("UPDATE citas SET estado='CANCELADA' WHERE id=?")->execute([$id]);
+    // Que la cita cancelada desaparezca también del calendario de Google —
+    // si no, Isabel la seguiría viendo ahí como si siguiera en pie.
+    $citaSync = google_calendar_obtener_cita_para_sync($pdo, $id);
+    if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
     jsonOkNotify([], 'CITAS');
     break;
 
@@ -1078,6 +1090,19 @@ case 'reagendar_cita':
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
     $pdo->prepare("UPDATE citas SET estado='REAGENDAR' WHERE id=?")->execute([$id]);
+    jsonOkNotify([], 'CITAS');
+    break;
+
+// ── GOOGLE CALENDAR (sincroniza Citas con el calendario de Isabel) ──
+case 'google_calendar_estado':
+    $pdo = db();
+    jsonOk(google_calendar_estado($pdo));
+    break;
+
+case 'google_calendar_desconectar':
+    if (!$admin) jsonErr('Solo un administrador puede desconectar Google Calendar');
+    $pdo = db();
+    google_calendar_desconectar($pdo);
     jsonOkNotify([], 'CITAS');
     break;
 

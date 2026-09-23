@@ -7,9 +7,11 @@ require_once 'config.php';
 require_once 'lib_telefono.php';
 require_once 'lib_twilio.php';
 require_once 'lib_followups.php';
+require_once 'lib_google_calendar.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
 asegurarTablaFollowUps($pdo);
+asegurarTablaGoogleCalendar($pdo);
 // Se crea aquí (antes de los manejadores AJAX que hacen exit más abajo) para
 // que la tabla siempre exista sin importar qué parte de la página se pida.
 try {
@@ -6645,6 +6647,25 @@ $citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' 
   </div>
 </div>
 
+<?php if($admin): $gcal_estado = google_calendar_estado($pdo); ?>
+<!-- GOOGLE CALENDAR — un solo calendario (el de Isabel) recibe todas las citas -->
+<div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:9px 13px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
+  <div style="display:flex;align-items:center;gap:8px;font-size:9px">
+    <span>📅 GOOGLE CALENDAR:</span>
+    <span id="gcal-status-text" style="font-weight:900;color:<?=$gcal_estado['conectado']?$G:$MU?>">
+      <?=$gcal_estado['conectado'] ? '✓ CONECTADO'.(!empty($gcal_estado['email'])?' — '.h($gcal_estado['email']):'') : 'NO CONECTADO'?>
+    </span>
+  </div>
+  <div id="gcal-actions">
+    <?php if($gcal_estado['conectado']):?>
+    <button class="btn btn-gh btn-sm" onclick="desconectarGoogleCalendar()" style="font-size:8px">DESCONECTAR</button>
+    <?php else:?>
+    <a href="google_calendar_connect.php" class="btn btn-b btn-sm" style="font-size:8px;text-decoration:none">CONECTAR CON GOOGLE →</a>
+    <?php endif;?>
+  </div>
+</div>
+<?php endif;?>
+
 <!-- FILTROS Y SUB-TABS -->
 <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 13px;margin-bottom:13px">
   <div style="display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-bottom:9px">
@@ -13224,6 +13245,43 @@ function resetCitaFiltros(){
   });
   filtrarCitas();
 }
+
+// ═══════════════ GOOGLE CALENDAR (sincroniza Citas) ═══════════════
+function desconectarGoogleCalendar(){
+  if(!confirm('¿Desconectar Google Calendar? Las citas dejan de sincronizarse (las que ya están en tu calendario no se borran).')) return;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'google_calendar_desconectar'})})
+    .then(function(r){return r.json();}).then(function(d){
+      if(d.ok){ if(typeof toast==='function')toast('✓ DESCONECTADO'); refreshGoogleCalendarEstado(); }
+      else if(typeof toast==='function') toast('⚠ '+(d.error||'Error'));
+    }).catch(function(){ if(typeof toast==='function')toast('⚠ Error de red'); });
+}
+function refreshGoogleCalendarEstado(){
+  var txt = document.getElementById('gcal-status-text');
+  var actions = document.getElementById('gcal-actions');
+  if(!txt || !actions) return;
+  fetch('api.php?action=google_calendar_estado').then(function(r){return r.json();}).then(function(d){
+    if(!d.ok) return;
+    if(d.data.conectado){
+      txt.textContent = '✓ CONECTADO' + (d.data.email ? ' — '+d.data.email : '');
+      txt.style.color = '#1E7A5C';
+      actions.innerHTML = '<button class="btn btn-gh btn-sm" onclick="desconectarGoogleCalendar()" style="font-size:8px">DESCONECTAR</button>';
+    } else {
+      txt.textContent = 'NO CONECTADO';
+      txt.style.color = '#7A90A4';
+      actions.innerHTML = '<a href="google_calendar_connect.php" class="btn btn-b btn-sm" style="font-size:8px;text-decoration:none">CONECTAR CON GOOGLE →</a>';
+    }
+  }).catch(function(){});
+}
+<?php if(isset($_GET['google_cal'])):?>
+document.addEventListener('DOMContentLoaded', function(){
+  <?php if($_GET['google_cal']==='ok'):?>
+  if(typeof toast==='function') toast('✓ GOOGLE CALENDAR CONECTADO<?=!empty($_GET['email'])?' — '.h($_GET['email']):''?>');
+  <?php else:?>
+  if(typeof toast==='function') toast('⚠ '+<?=json_encode($_GET['msg']??'No se pudo conectar')?>);
+  <?php endif;?>
+  refreshGoogleCalendarEstado();
+});
+<?php endif;?>
 
 // ═══════════════ FOLLOW UPS ═══════════════
 // Mismo patrón que CITAS: las tarjetas se piden aparte (loadFollowUpsPanel/

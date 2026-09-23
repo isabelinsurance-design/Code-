@@ -46,6 +46,18 @@ define('DIAS_RETENCION', 90);    // Días activo para consolidar bono
 define('CRM_NAME',       'Medicare with Isabel');
 define('CRM_WEB',        'withisabelfuentes.com');
 
+// ─── GOOGLE CALENDAR (opcional) — sincroniza Citas con tu calendario ─
+// Sin esto configurado, Citas sigue funcionando normal — solo no se
+// sincroniza con Google. Sácalos de https://console.cloud.google.com/
+// (crea un proyecto → "APIs y servicios" → Pantalla de consentimiento
+// OAuth → Credenciales → "Crear credenciales" → ID de cliente de OAuth,
+// tipo "Aplicación web"). El URI de redirección DEBE ser exactamente:
+//   https://TU_DOMINIO/crm/google_calendar_callback.php
+define('GOOGLE_CLIENT_ID',     getenv('GOOGLE_CLIENT_ID')     ?: '');
+define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '');
+define('GOOGLE_REDIRECT_URI',  getenv('GOOGLE_REDIRECT_URI')  ?: 'https://'.CRM_WEB.'/crm/google_calendar_callback.php');
+define('GOOGLE_CALENDAR_TZ',   getenv('GOOGLE_CALENDAR_TZ')   ?: 'America/Los_Angeles');
+
 date_default_timezone_set('America/Los_Angeles');
 
 // ─── CONEXIÓN PDO ─────────────────────────────────────────────────
