@@ -20,8 +20,18 @@
 
 function google_calendar_configurado(): bool {
     return defined('GOOGLE_CLIENT_ID') && GOOGLE_CLIENT_ID
-        && defined('GOOGLE_CLIENT_SECRET') && GOOGLE_CLIENT_SECRET
-        && defined('GOOGLE_REDIRECT_URI') && GOOGLE_REDIRECT_URI;
+        && defined('GOOGLE_CLIENT_SECRET') && GOOGLE_CLIENT_SECRET;
+}
+
+/* El URI al que Google redirige después de dar permiso. Se puede fijar a
+ * mano con GOOGLE_REDIRECT_URI en config.php (por si el dominio del CRM
+ * no es CRM_WEB), pero normalmente no hace falta — se arma solo a partir
+ * de CRM_WEB, que config.php ya define para otras cosas. Así, conectar
+ * Google Calendar solo requiere pegar GOOGLE_CLIENT_ID/SECRET y nada más. */
+function google_calendar_redirect_uri(): string {
+    if (defined('GOOGLE_REDIRECT_URI') && GOOGLE_REDIRECT_URI) return GOOGLE_REDIRECT_URI;
+    $dominio = defined('CRM_WEB') && CRM_WEB ? CRM_WEB : ($_SERVER['HTTP_HOST'] ?? '');
+    return 'https://' . $dominio . '/crm/google_calendar_callback.php';
 }
 
 function asegurarTablaGoogleCalendar(PDO $pdo): void {
@@ -67,7 +77,7 @@ function google_calendar_desconectar(PDO $pdo): void {
 function google_calendar_auth_url(string $state): string {
     $params = [
         'client_id'     => GOOGLE_CLIENT_ID,
-        'redirect_uri'  => GOOGLE_REDIRECT_URI,
+        'redirect_uri'  => google_calendar_redirect_uri(),
         'response_type' => 'code',
         'scope'         => 'https://www.googleapis.com/auth/calendar.events',
         'access_type'   => 'offline',
@@ -108,7 +118,7 @@ function google_calendar_exchange_code(PDO $pdo, string $code, int $uid): array 
         'code'          => $code,
         'client_id'     => GOOGLE_CLIENT_ID,
         'client_secret' => GOOGLE_CLIENT_SECRET,
-        'redirect_uri'  => GOOGLE_REDIRECT_URI,
+        'redirect_uri'  => google_calendar_redirect_uri(),
         'grant_type'    => 'authorization_code',
     ]);
     if (!$r['ok']) return $r;

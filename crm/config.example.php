@@ -53,9 +53,11 @@ define('CRM_WEB',        'withisabelfuentes.com');
 // OAuth → Credenciales → "Crear credenciales" → ID de cliente de OAuth,
 // tipo "Aplicación web"). El URI de redirección DEBE ser exactamente:
 //   https://TU_DOMINIO/crm/google_calendar_callback.php
+// Solo hacen falta estas 2 — GOOGLE_REDIRECT_URI es opcional, se arma
+// solo a partir de CRM_WEB si no la defines aquí (ver google_calendar_redirect_uri()
+// en lib_google_calendar.php).
 define('GOOGLE_CLIENT_ID',     getenv('GOOGLE_CLIENT_ID')     ?: '');
 define('GOOGLE_CLIENT_SECRET', getenv('GOOGLE_CLIENT_SECRET') ?: '');
-define('GOOGLE_REDIRECT_URI',  getenv('GOOGLE_REDIRECT_URI')  ?: 'https://'.CRM_WEB.'/crm/google_calendar_callback.php');
 define('GOOGLE_CALENDAR_TZ',   getenv('GOOGLE_CALENDAR_TZ')   ?: 'America/Los_Angeles');
 
 date_default_timezone_set('America/Los_Angeles');
