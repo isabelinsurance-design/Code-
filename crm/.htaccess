@@ -1,0 +1,16 @@
+# El link que Google manda de vuelta después de dar permiso (con el
+# "code" de un solo uso) trae caracteres que el firewall genérico de
+# Bluehost (ModSecurity) a veces confunde con un ataque, aunque es un
+# login legítimo de Google. Esto apaga esa revisión SOLO para ese
+# archivo — el resto del CRM sigue protegido igual que siempre.
+<IfModule mod_security.c>
+    <FilesMatch "^google_calendar_callback\.php$">
+        SecFilterEngine Off
+        SecFilterScanPOST Off
+    </FilesMatch>
+</IfModule>
+<IfModule mod_security2.c>
+    <FilesMatch "^google_calendar_callback\.php$">
+        SecRuleEngine Off
+    </FilesMatch>
+</IfModule>
