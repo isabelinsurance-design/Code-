@@ -6647,8 +6647,11 @@ $citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' 
   </div>
 </div>
 
-<?php if($admin): $gcal_estado = google_calendar_estado($pdo); ?>
-<!-- GOOGLE CALENDAR — un solo calendario (el de Isabel) recibe todas las citas -->
+<?php $gcal_estado = google_calendar_estado($pdo); ?>
+<!-- GOOGLE CALENDAR — un solo calendario (el de Isabel) recibe todas las
+     citas de todos los agentes. Todos pueden VER si está conectado (para
+     saber si sus citas se están reflejando ahí); solo un admin puede
+     conectar/desconectar la cuenta. -->
 <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:9px 13px;margin-bottom:13px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap">
   <div style="display:flex;align-items:center;gap:8px;font-size:9px">
     <span>📅 GOOGLE CALENDAR:</span>
@@ -6657,14 +6660,15 @@ $citas_aep_n = count(array_filter($citas_view, fn($c)=>($c['tipo']??'')==='AEP' 
     </span>
   </div>
   <div id="gcal-actions">
-    <?php if($gcal_estado['conectado']):?>
+    <?php if(!$admin):?>
+      <?php if(!$gcal_estado['conectado']):?><span style="font-size:8px;color:<?=$MU?>">Solo un admin puede conectarlo</span><?php endif;?>
+    <?php elseif($gcal_estado['conectado']):?>
     <button class="btn btn-gh btn-sm" onclick="desconectarGoogleCalendar()" style="font-size:8px">DESCONECTAR</button>
     <?php else:?>
     <a href="google_calendar_connect.php" class="btn btn-b btn-sm" style="font-size:8px;text-decoration:none">CONECTAR CON GOOGLE →</a>
     <?php endif;?>
   </div>
 </div>
-<?php endif;?>
 
 <!-- FILTROS Y SUB-TABS -->
 <div style="background:#fff;border:1px solid <?=$CB?>;border-radius:11px;padding:10px 13px;margin-bottom:13px">
@@ -13255,6 +13259,7 @@ function desconectarGoogleCalendar(){
       else if(typeof toast==='function') toast('⚠ '+(d.error||'Error'));
     }).catch(function(){ if(typeof toast==='function')toast('⚠ Error de red'); });
 }
+var GCAL_ES_ADMIN = <?=$admin?'true':'false'?>;
 function refreshGoogleCalendarEstado(){
   var txt = document.getElementById('gcal-status-text');
   var actions = document.getElementById('gcal-actions');
@@ -13264,11 +13269,13 @@ function refreshGoogleCalendarEstado(){
     if(d.data.conectado){
       txt.textContent = '✓ CONECTADO' + (d.data.email ? ' — '+d.data.email : '');
       txt.style.color = '#1E7A5C';
-      actions.innerHTML = '<button class="btn btn-gh btn-sm" onclick="desconectarGoogleCalendar()" style="font-size:8px">DESCONECTAR</button>';
+      actions.innerHTML = GCAL_ES_ADMIN ? '<button class="btn btn-gh btn-sm" onclick="desconectarGoogleCalendar()" style="font-size:8px">DESCONECTAR</button>' : '';
     } else {
       txt.textContent = 'NO CONECTADO';
       txt.style.color = '#7A90A4';
-      actions.innerHTML = '<a href="google_calendar_connect.php" class="btn btn-b btn-sm" style="font-size:8px;text-decoration:none">CONECTAR CON GOOGLE →</a>';
+      actions.innerHTML = GCAL_ES_ADMIN
+        ? '<a href="google_calendar_connect.php" class="btn btn-b btn-sm" style="font-size:8px;text-decoration:none">CONECTAR CON GOOGLE →</a>'
+        : '<span style="font-size:8px;color:#7A90A4">Solo un admin puede conectarlo</span>';
     }
   }).catch(function(){});
 }
