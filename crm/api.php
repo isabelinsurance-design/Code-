@@ -1100,7 +1100,6 @@ case 'google_calendar_estado':
     break;
 
 case 'google_calendar_desconectar':
-    if (!$admin) jsonErr('Solo un administrador puede desconectar Google Calendar');
     $pdo = db();
     google_calendar_desconectar($pdo);
     jsonOkNotify([], 'CITAS');
