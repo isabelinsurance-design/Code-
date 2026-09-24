@@ -546,9 +546,16 @@ case 'get_members_table':
 case 'save_member':
     $d = $_POST;
     $pdo = db();
-    asegurarColumnasReferido($pdo);
-
-    $existing_cols = $pdo->query("SHOW COLUMNS FROM miembros")->fetchAll(PDO::FETCH_COLUMN);
+    // Antes esto corría afuera de cualquier try/catch — un tropiezo pasajero
+    // de la base de datos aquí (conexión, lock, timeout) tronaba la petición
+    // completa sin responder nada, y el navegador solo veía "ERROR DE RED"
+    // sin explicación, en vez de un mensaje claro que invite a reintentar.
+    try {
+        asegurarColumnasReferido($pdo);
+        $existing_cols = $pdo->query("SHOW COLUMNS FROM miembros")->fetchAll(PDO::FETCH_COLUMN);
+    } catch (Exception $e) {
+        jsonErr('No se pudo conectar con la base de datos — espera un momento e intenta guardar de nuevo');
+    }
     $all_fields = ['nombre','middle_name','apellido','telefono','telefono2','estado','subestado','agente_id',
         'dob','sexo','idioma','estado_civil','pareja_id','direccion_calle','direccion_apto','ciudad','county','zip',
         'mbi','member_id','parte_a','parte_b','medical','medical_nivel','ss','elegibilidad','fecha_efectiva',
