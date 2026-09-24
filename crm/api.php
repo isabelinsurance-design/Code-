@@ -1128,10 +1128,11 @@ case 'follow_up_crear':
     asegurarTablaFollowUps($pdo);
     $titulo = trim($_POST['titulo'] ?? '');
     if ($titulo === '') jsonErr('Escribe qué hay que hacer');
+    // "Para quién" es opcional — hay follow ups que no son de una persona
+    // en particular (ej. una tarea suelta), pedido de Isabel.
     $miembro_id     = !empty($_POST['miembro_id']) ? (int)$_POST['miembro_id'] : null;
     $nombre_libre   = trim($_POST['nombre_libre'] ?? '') ?: null;
     $telefono_libre = trim($_POST['telefono_libre'] ?? '') ?: null;
-    if (!$miembro_id && !$nombre_libre) jsonErr('Elige un miembro o escribe un nombre');
     $origen_tipo = trim($_POST['origen_tipo'] ?? 'MANUAL');
     if (!array_key_exists($origen_tipo, FOLLOWUP_ORIGENES)) $origen_tipo = 'MANUAL';
     $origen_id  = !empty($_POST['origen_id']) ? (int)$_POST['origen_id'] : null;

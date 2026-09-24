@@ -98,6 +98,10 @@ function render_followups_panel(PDO $pdo): array {
     $fu_atrasados_n = count($fu_atrasados);
     $fu_semana_n    = count(array_filter($fu_pendientes, fn($f)=>$f['fecha']>=$today_d && $f['fecha']<=$week_end));
 
+    // Lista (renglones de tabla), no tarjetas — pedido de Isabel: en
+    // tarjetas cuesta leer varios de un jalón. "Para quién" ya no es
+    // obligatorio (hay follow ups que no son de una persona, ej. una
+    // tarea suelta), así que esa columna se deja vacía ("—") si no aplica.
     $render_fu = function($f) use ($P1,$P2,$MU,$BG,$CB,$TX,$G,$R,$A,$today_d) {
       $is_pendiente = $f['estado']==='PENDIENTE';
       $is_done      = $f['estado']==='COMPLETADO';
@@ -106,54 +110,53 @@ function render_followups_panel(PDO $pdo): array {
       $is_today     = $is_pendiente && $f['fecha']==$today_d;
       $border_color = $is_cancel ? '#999' : ($is_done ? $G : ($is_past ? $R : ($is_today ? $A : $P1)));
       $cli = trim($f['miembro_nombre']??'');
-      if ($cli===', '||$cli==='') $cli = trim($f['nombre_libre']??'') ?: '— SIN NOMBRE —';
+      if ($cli===', ') $cli = '';
+      if ($cli==='') $cli = trim($f['nombre_libre']??'');
       $tel = $f['miembro_telefono'] ?? $f['telefono_libre'] ?? '';
       [$oIcono,$oLabel] = FOLLOWUP_ORIGENES[$f['origen_tipo']] ?? ['✎','Manual'];
       $origenTxt = $oLabel . (!empty($f['campana_nombre']) ? ' · '.$f['campana_nombre'] : '');
+      $fechaTxt = $is_today ? 'HOY' : ($is_past ? 'ATRASADO' : date('m/d/Y',strtotime($f['fecha'])));
       ?>
-      <div class="fu-card" data-id="<?=(int)$f['id']?>" data-fecha="<?=h($f['fecha'])?>" data-agente="<?=h($f['agente_id']??'')?>" data-origen="<?=h($f['origen_tipo']??'')?>" data-search="<?=strtolower(h(($cli.' '.$tel.' '.$f['titulo'].' '.($f['notas']??'').' '.($f['campana_nombre']??''))))?>" style="background:#fff;border:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;border-radius:10px;padding:11px 13px;<?=$is_done||$is_cancel?'opacity:.65':''?>">
-        <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:6px">
-          <div style="flex:1;min-width:0">
-            <div style="font-size:11px;font-weight:900;color:<?=$P1?>;<?=!empty($f['miembro_id'])?'cursor:pointer':''?>;line-height:1.2"
-                 <?php if(!empty($f['miembro_id'])):?>onclick="openProfile(<?=(int)$f['miembro_id']?>)"<?php endif;?>><?=h($cli)?></div>
-            <?php if($tel):?><div style="font-size:8px;color:<?=$MU?>;margin-top:2px">📞 <?=h($tel)?></div><?php endif;?>
-          </div>
-          <div style="text-align:right;white-space:nowrap">
-            <div style="font-size:7px;color:<?=$MU?>;font-weight:800;text-transform:uppercase">
-              <?php if($is_today):?>HOY<?php elseif($is_past):?>ATRASADO<?php elseif($is_pendiente):?><?=date('m/d/Y',strtotime($f['fecha']))?><?php else:?><?=date('m/d/Y',strtotime($f['fecha']))?><?php endif;?>
-            </div>
-          </div>
-        </div>
-        <div style="font-size:10px;font-weight:800;color:<?=$TX?>;line-height:1.35;margin-bottom:5px"><?=h($f['titulo'])?></div>
-        <?php if(!empty($f['notas'])):?>
-          <div style="background:<?=$BG?>;border-radius:7px;padding:6px 8px;font-size:8px;color:<?=$MU?>;margin-bottom:7px;text-transform:none;line-height:1.35"><?=h(mb_substr($f['notas'],0,140))?><?=mb_strlen($f['notas']??'')>140?'…':''?></div>
-        <?php endif;?>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:7px">
+      <tr class="fu-card" data-id="<?=(int)$f['id']?>" data-fecha="<?=h($f['fecha'])?>" data-agente="<?=h($f['agente_id']??'')?>" data-origen="<?=h($f['origen_tipo']??'')?>" data-search="<?=strtolower(h(($cli.' '.$tel.' '.$f['titulo'].' '.($f['notas']??'').' '.($f['campana_nombre']??''))))?>" style="border-top:1px solid <?=$CB?>;border-left:4px solid <?=$border_color?>;<?=$is_done||$is_cancel?'opacity:.6':''?>">
+        <td style="padding:8px 10px;white-space:nowrap;font-size:9px;font-weight:900;color:<?=$border_color?>"><?=$fechaTxt?></td>
+        <td style="padding:8px 10px;white-space:nowrap">
+          <?php if($cli):?>
+          <div style="font-size:10px;font-weight:900;color:<?=$P1?>;<?=!empty($f['miembro_id'])?'cursor:pointer':''?>" <?php if(!empty($f['miembro_id'])):?>onclick="openProfile(<?=(int)$f['miembro_id']?>)"<?php endif;?>><?=h($cli)?></div>
+          <?php if($tel):?><div style="font-size:8px;color:<?=$MU?>">📞 <?=h($tel)?></div><?php endif;?>
+          <?php else:?><span style="color:<?=$MU?>;font-size:9px">—</span><?php endif;?>
+        </td>
+        <td style="padding:8px 10px;min-width:200px">
+          <div style="font-size:10px;font-weight:800;color:<?=$TX?>;line-height:1.3"><?=h($f['titulo'])?></div>
+          <?php if(!empty($f['notas'])):?><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;line-height:1.3"><?=h(mb_substr($f['notas'],0,100))?><?=mb_strlen($f['notas'])>100?'…':''?></div><?php endif;?>
+        </td>
+        <td style="padding:8px 10px;white-space:nowrap">
           <span style="background:<?=$BG?>;color:<?=$P1?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase"><?=$oIcono?> <?=h($origenTxt)?></span>
+        </td>
+        <td style="padding:8px 10px;white-space:nowrap">
           <?php if(!empty($f['agente_nombre'])):?>
-          <span style="display:inline-flex;align-items:center;gap:3px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:2px 7px;font-size:7px;font-weight:900;text-transform:uppercase;color:<?=$MU?>">
-            <span style="display:inline-block;width:11px;height:11px;border-radius:50%;background:<?=h($f['agente_color']??$P2)?>;color:#fff;font-size:6px;text-align:center;line-height:11px;font-weight:900"><?=h($f['agente_ini']??'?')?></span>
+          <span style="display:inline-flex;align-items:center;gap:4px;font-size:8px;font-weight:900;color:<?=$MU?>">
+            <span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:<?=h($f['agente_color']??$P2)?>;color:#fff;font-size:6px;text-align:center;line-height:14px;font-weight:900"><?=h($f['agente_ini']??'?')?></span>
             <?=h(explode(' ',$f['agente_nombre'])[0])?>
           </span>
-          <?php endif;?>
-        </div>
+          <?php else:?><span style="color:<?=$MU?>;font-size:9px">—</span><?php endif;?>
+        </td>
+        <td style="padding:8px 10px;text-align:right;white-space:nowrap">
         <?php if($is_pendiente):?>
-        <div style="display:flex;gap:4px;flex-wrap:wrap">
-          <button class="btn btn-gr btn-sm" onclick="completarFollowUp(<?=(int)$f['id']?>)" title="Completar" style="flex:1;padding:5px 8px;font-size:8px">✓ COMPLETAR</button>
+          <button class="btn btn-gr btn-sm" onclick="completarFollowUp(<?=(int)$f['id']?>)" title="Completar" style="padding:5px 8px;font-size:8px">✓</button>
           <button class="btn btn-gh btn-sm" onclick="reagendarFollowUp(<?=(int)$f['id']?>)" title="Reagendar" style="padding:5px 8px;font-size:8px">↻</button>
           <?php if(!empty($f['miembro_id'])):?><button class="btn btn-p btn-sm" onclick="openProfile(<?=(int)$f['miembro_id']?>)" title="Ver perfil" style="padding:5px 8px;font-size:8px">◉</button><?php endif;?>
           <button class="btn btn-r btn-sm" onclick="cancelarFollowUp(<?=(int)$f['id']?>)" title="Cancelar" style="padding:5px 8px;font-size:8px">✕</button>
-        </div>
         <?php elseif($is_done):?>
-          <div style="font-size:7px;color:<?=$G?>;font-weight:900;text-transform:uppercase">✓ COMPLETADO <?=!empty($f['completado_at'])?date('m/d/Y',strtotime($f['completado_at'])):''?><?=$f['completado_nombre']?' · '.h(explode(' ',$f['completado_nombre'])[0]):''?></div>
+          <span style="font-size:7px;color:<?=$G?>;font-weight:900;text-transform:uppercase">✓ COMPLETADO <?=!empty($f['completado_at'])?date('m/d/Y',strtotime($f['completado_at'])):''?><?=$f['completado_nombre']?' · '.h(explode(' ',$f['completado_nombre'])[0]):''?></span>
         <?php elseif($is_cancel):?>
-          <div style="font-size:7px;color:<?=$MU?>;font-weight:900;text-transform:uppercase">✕ CANCELADO</div>
+          <span style="font-size:7px;color:<?=$MU?>;font-weight:900;text-transform:uppercase">✕ CANCELADO</span>
         <?php endif;?>
-      </div>
+        </td>
+      </tr>
       <?php
     };
 
-    $render_grupo = function($titulo, $color, $arr) use ($render_fu) {
+    $render_grupo = function($titulo, $color, $arr) use ($render_fu,$MU,$CB) {
       if (!count($arr)) return;
       ?>
       <div class="fu-grupo" style="margin-bottom:18px">
@@ -161,8 +164,18 @@ function render_followups_panel(PDO $pdo): array {
           <span style="font-size:10px;font-weight:900;color:<?=$color?>;text-transform:uppercase;letter-spacing:1px"><?=$titulo?></span>
           <span style="background:<?=$color?>;color:#fff;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=count($arr)?></span>
         </div>
-        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
+        <div style="overflow-x:auto;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
+        <table style="width:100%;border-collapse:collapse">
+          <tr>
+            <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:6px 10px">CUÁNDO</th>
+            <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:6px 10px">PARA QUIÉN</th>
+            <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:6px 10px">QUÉ HAY QUE HACER</th>
+            <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:6px 10px">ORIGEN</th>
+            <th style="text-align:left;font-size:8px;color:<?=$MU?>;text-transform:uppercase;padding:6px 10px">AGENTE</th>
+            <th></th>
+          </tr>
           <?php foreach($arr as $f) $render_fu($f); ?>
+        </table>
         </div>
       </div>
       <?php
@@ -192,33 +205,24 @@ function render_followups_panel(PDO $pdo): array {
   <?php endif;?>
 </div>
 <div id="fsub-completados" class="fsub-pane" style="display:none">
-  <?php if(!count($fu_completados)):?>
+  <?php $render_grupo('✓ COMPLETADOS', $G, $fu_completados);
+  if (!count($fu_completados)):?>
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN FOLLOW UPS COMPLETADOS AÚN</div>
-  <?php else:?>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
-    <?php foreach($fu_completados as $f) $render_fu($f); ?>
-  </div>
   <?php endif;?>
 </div>
 <div id="fsub-cancelados" class="fsub-pane" style="display:none">
-  <?php if(!count($fu_cancelados)):?>
+  <?php $render_grupo('✕ CANCELADOS', $MU, $fu_cancelados);
+  if (!count($fu_cancelados)):?>
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN FOLLOW UPS CANCELADOS</div>
-  <?php else:?>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
-    <?php foreach($fu_cancelados as $f) $render_fu($f); ?>
-  </div>
   <?php endif;?>
 </div>
 <div id="fsub-todos" class="fsub-pane" style="display:none">
   <?php
   $fu_todos = $fu;
   usort($fu_todos, fn($a,$b)=>strcmp($b['fecha'], $a['fecha']));
+  $render_grupo('▦ TODOS', $P1, $fu_todos);
   if (!count($fu_todos)):?>
     <div style="padding:40px;text-align:center;color:<?=$MU?>;background:#fff;border:1px solid <?=$CB?>;border-radius:11px;font-size:10px;font-weight:900;text-transform:uppercase">SIN FOLLOW UPS TODAVÍA</div>
-  <?php else:?>
-  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:9px">
-    <?php foreach($fu_todos as $f) $render_fu($f); ?>
-  </div>
   <?php endif;?>
 </div>
     <?php

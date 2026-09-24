@@ -9627,7 +9627,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
     <input type="hidden" id="fu-telefono-libre" value="">
     <div id="fu-quien-display" style="display:none;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:8px 11px;font-size:9px;font-weight:900;color:<?=$P1?>;margin-bottom:10px;text-transform:uppercase"></div>
     <div class="form-group" id="fu-mpick-wrap" style="display:none">
-      <label class="form-label">¿PARA QUIÉN? (buscar por nombre o tel.)</label>
+      <label class="form-label">¿PARA QUIÉN? (opcional — déjalo vacío si no es de una persona)</label>
       <div class="mpick-wrap">
         <input type="text" id="fu-mpick-input" class="form-input" placeholder="Escribe nombre o teléfono para buscar..." autocomplete="off" oninput="mpickSearch('fu-mpick-input','fu-mpick-hidden','fu-mpick-drop',this.value,false)">
         <input type="hidden" id="fu-mpick-hidden" value="">
@@ -13440,7 +13440,7 @@ function guardarFollowUp(e){
   if(!miembroId && mpickHidden && mpickHidden.value) miembroId = mpickHidden.value;
   var nombreLibre = document.getElementById('fu-nombre-libre').value;
   var telLibre = document.getElementById('fu-telefono-libre').value;
-  if(!miembroId && !nombreLibre){ toast('⚠ Busca y elige a quién es el follow up'); return; }
+  // "Para quién" es opcional — puede ser una tarea suelta sin persona.
   var fecha = document.getElementById('fu-fecha').value;
   if(!fecha){ toast('⚠ Elige una fecha'); return; }
   var agEl = document.getElementById('fu-agente');
