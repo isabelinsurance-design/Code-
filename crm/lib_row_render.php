@@ -224,7 +224,7 @@ function render_member_row_from_data(array $m, int $mtks, array $camps_by_id, ar
 <td style="font-size:9px;color:<?=$MU?>"><?=h($m['telefono'])?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['ciudad'])?></td>
 <td><?php if($m['plan']):?><div style="font-size:9px;font-weight:800;color:<?=$TX?>"><?=h($m['plan'])?></div><div style="font-size:8px;color:<?=$P2?>"><?=h($m['carrier'])?></div><?php else:?><span style="color:<?=$MU?>;font-size:8px">—</span><?php endif;?></td>
-<td><?=row_badge($m['estado'])?><?php if($m['estado']==='IN PROCESS'):?><br><button class="btn btn-gr btn-sm" style="margin-top:4px;font-size:7px;padding:3px 8px" onclick="event.stopPropagation();abrirActivarMiembro(<?=$m['id']?>,'<?=h(addslashes($m['apellido'].', '.$m_nombre_completo))?>')">✓ ACTIVAR</button><?php endif;?></td>
+<td><?=row_badge($m['estado'])?><?php if($m['estado']==='IN PROCESS'):?><br><button class="btn btn-gr btn-sm" style="margin-top:4px;font-size:7px;padding:3px 8px" onclick="event.stopPropagation();abrirActivarMiembro(<?=$m['id']?>,'<?=h(addslashes($m['apellido'].', '.$m_nombre_completo))?>','<?=h($m['fecha_efectiva']??'')?>')">✓ ACTIVAR</button><?php endif;?></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['mbi']??'—')?></td>
 <td><?php if($mtks>0):?><span style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A;border-radius:20px;padding:2px 7px;font-size:8px;font-weight:900"><?=$mtks?></span><?php else:?>—<?php endif;?></td>
 <td onclick="event.stopPropagation()"><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td>

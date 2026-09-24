@@ -11931,10 +11931,14 @@ fetch('api.php',{method:'POST',body:new URLSearchParams({action:'send_notif',use
 }
 function sendNotif(){const uid=document.getElementById('notif-target')?.value;const msg=document.getElementById('notif-msg')?.value.trim();if(!uid||uid==='0'){toast('⚠ SELECCIONA UN DESTINATARIO');return;}if(!msg){toast('⚠ ESCRIBE UN MENSAJE');return;}fetch('api.php',{method:'POST',body:new URLSearchParams({action:'send_notif',user_id:uid,mensaje:msg})}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ NOTIFICACIÓN ENVIADA');const el=document.getElementById('notif-msg');if(el)el.value='';}else toast('⚠ ERROR: '+(d.error||'No se pudo enviar — revisa la BD'));}).catch(()=>toast('⚠ ERROR DE RED'));}
 document.addEventListener('click',e=>{const p=document.getElementById('notif-dropdown');if(p&&p.classList.contains('open')&&!p.contains(e.target)&&!e.target.closest('.hbtn'))p.classList.remove('open');});
-function abrirActivarMiembro(id,nombre){
+function abrirActivarMiembro(id,nombre,fechaEfectivaActual){
   document.getElementById('am-miembro-id').value=id;
   document.getElementById('am-nombre').textContent=nombre;
-  document.getElementById('am-fecha').value=new Date().toISOString().slice(0,10);
+  // Si el miembro ya tenía una fecha efectiva puesta (ej. la fecha
+  // planeada desde que estaba EN PROCESO), se respeta esa en vez de
+  // reemplazarla por la de hoy — pedido de Isabel para no perder esa
+  // fecha por accidente al activarlo.
+  document.getElementById('am-fecha').value = fechaEfectivaActual || new Date().toISOString().slice(0,10);
   openModal('modal-activar-miembro');
 }
 function guardarActivarMiembro(){
