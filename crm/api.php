@@ -87,9 +87,14 @@ try {
   $cols = $pdo_m->query("SHOW COLUMNS FROM chat_mensajes")->fetchAll(PDO::FETCH_COLUMN);
   if (!in_array('recipient_id',$cols))
     $pdo_m->exec("ALTER TABLE chat_mensajes ADD COLUMN recipient_id INT NULL DEFAULT NULL, ADD COLUMN es_dm TINYINT(1) NOT NULL DEFAULT 0");
-} catch(Exception $e){}
+} catch(Throwable $e){}
 
 // ── SINGLE try/catch wrapping ONE switch ─────────────────────
+// Throwable (no solo Exception) para que un error de PHP real — no nada
+// más una excepción de base de datos — también caiga aquí y regrese un
+// JSON con el error, en vez de dejar la respuesta en blanco y que el
+// navegador la muestre como "⚠ ERROR DE RED" (que es justo lo que pasa
+// cuando fetch().then(r=>r.json()) recibe una respuesta vacía/rota).
 try {
 switch ($action) {
 
@@ -3313,7 +3318,7 @@ default:
     break;
 
 } // end switch
-} catch (Exception $e) {
+} catch (Throwable $e) {
     jsonErr('Error del servidor: ' . $e->getMessage());
 }
 
