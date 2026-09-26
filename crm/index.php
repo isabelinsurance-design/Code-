@@ -10504,6 +10504,10 @@ function filterPolizas(){const c=document.getElementById('pol-carrier')?.value.t
 // ── TICKETS FILTROS Y VISTA ───────────────────────────────────────────
 let _tktFiltroEstado = 'ACTIVOS'; // por defecto: solo activos
 let _tktVista        = 'miembro'; // por defecto: tickets de miembros
+// Los tickets CERRADOS ya no vienen incluidos por default (pedido de
+// Isabel: cargarlos todos de un jalón cada vez sentía la pantalla lenta)
+// — se piden aparte, una sola vez, la primera vez que hace falta verlos.
+let _tktCerradosCargados = false;
 
 function setTktVista(vista){
   _tktVista = vista;
@@ -10959,6 +10963,10 @@ function limpiarTktFiltros(){
 function loadTicketsTable(cb){
   const tbody = document.getElementById('tkt-tbody');
   if(!tbody){ if(typeof cb==='function') cb(); return; }
+  // Esto siempre trae solo los ACTIVOS (rápido) — cualquier tanda de
+  // cerrados que hubiera quedado cargada de antes se reemplaza, así que
+  // hay que volver a pedirlos si hacen falta otra vez.
+  _tktCerradosCargados = false;
   fetch('api.php?action=get_tickets_table').then(r=>r.json()).then(d=>{
     if(d.ok) tbody.innerHTML = d.data.html || '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN TICKETS</td></tr>';
     else tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR AL CARGAR</td></tr>';
@@ -10969,7 +10977,31 @@ function loadTicketsTable(cb){
   });
 }
 
+// Trae los tickets CERRADOS (junto con los activos, todo en un combo) —
+// se llama solo la primera vez que hace falta verlos (filtro CERRADO o
+// TODOS), no en cada carga de la pestaña.
+function cargarTicketsCerrados(cb){
+  const tbody = document.getElementById('tkt-tbody');
+  if(!tbody){ _tktCerradosCargados = true; if(typeof cb==='function') cb(); return; }
+  fetch('api.php?action=get_tickets_table&incluir_cerrados=1').then(r=>r.json()).then(d=>{
+    _tktCerradosCargados = true;
+    if(d.ok) tbody.innerHTML = d.data.html || tbody.innerHTML;
+    else if(typeof toast==='function') toast('⚠ No se pudieron cargar los tickets cerrados');
+    if(typeof cb==='function') cb();
+  }).catch(()=>{
+    _tktCerradosCargados = true;
+    if(typeof toast==='function') toast('⚠ Error de red al cargar los cerrados — intenta de nuevo');
+    if(typeof cb==='function') cb();
+  });
+}
+
 function filterTickets(){
+  // El filtro pide ver CERRADOS/TODOS antes de que se hayan pedido —
+  // se traen aparte una sola vez y se vuelve a filtrar cuando ya estén.
+  if((_tktFiltroEstado==='CERRADO' || _tktFiltroEstado==='') && !_tktCerradosCargados){
+    cargarTicketsCerrados(filterTickets);
+    return;
+  }
   const search = (document.getElementById('tkt-search')?.value||'').toLowerCase();
   const estado = _tktFiltroEstado;
   const prio   = document.getElementById('tkt-prio')?.value||'';

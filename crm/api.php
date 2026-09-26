@@ -704,9 +704,12 @@ case 'save_member':
 case 'get_tickets_table':
     // Todo el <tbody> de la pestaña Tickets — se pide al abrir esa pestaña
     // en vez de venir ya armado en cada carga de la página completa (ver
-    // render_tickets_table_html en lib_row_render.php).
+    // render_tickets_table_html en lib_row_render.php). Por default NO trae
+    // los tickets CERRADOS (los cerrados se piden aparte, una sola vez,
+    // solo si alguien de verdad los necesita ver — pedido de Isabel).
     $pdo = db();
-    jsonOk(['html' => render_tickets_table_html($pdo, $admin, $uid)]);
+    $incluirCerrados = !empty($_GET['incluir_cerrados']) || !empty($_POST['incluir_cerrados']);
+    jsonOk(['html' => render_tickets_table_html($pdo, $admin, $uid, $incluirCerrados)]);
     break;
 
 case 'close_ticket':

@@ -298,18 +298,29 @@ function render_ticket_row_html(PDO $pdo, int $id, bool $admin, $uid): ?string {
  * todos, agente solo donde es responsable/creador), con los next steps de
  * TODOS esos tickets pre-cargados en una sola consulta (WHERE...IN) en vez
  * de una consulta por ticket. Se pide aparte (al abrir la pestaña Tickets)
- * en vez de venir ya armada en cada carga de la página completa. */
-function render_tickets_table_html(PDO $pdo, bool $admin, $uid): string {
+ * en vez de venir ya armada en cada carga de la página completa.
+ *
+ * $incluirCerrados=false (default): NO trae los tickets ya CERRADOS — con
+ * meses/años de historial, traerlos todos de un jalón en cada carga de la
+ * pestaña es justo lo que hacía sentir "muy lento" a Tickets (pedido de
+ * Isabel: que los cerrados se carguen solo cuando de verdad se necesiten).
+ * El front pide el combo completo aparte, una sola vez, la primera vez que
+ * alguien elige ver CERRADOS o TODOS (ver cargarTicketsCerrados() en JS). */
+function render_tickets_table_html(PDO $pdo, bool $admin, $uid, bool $incluirCerrados = false): string {
     $sql = ticket_row_select();
+    $filtroCerrados = $incluirCerrados ? '' : "t.estado != 'CERRADO'";
     if ($admin) {
+        $where = $filtroCerrados ? "WHERE $filtroCerrados" : '';
         $stm = $pdo->query("$sql
+            $where
             ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                      IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
                      IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
         $tickets = $stm->fetchAll();
     } else {
+        $where = "WHERE (t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?))" . ($filtroCerrados ? " AND $filtroCerrados" : '');
         $stm = $pdo->prepare("$sql
-            WHERE t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?)
+            $where
             ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                      IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
                      IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
