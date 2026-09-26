@@ -810,32 +810,40 @@ case 'save_ticket':
     $fecha_cierre       = ($estado === 'CERRADO') ? date('Y-m-d') : null;
     $tiempo_resolucion  = ($estado === 'CERRADO') ? '0 min' : null;
 
-    $sql = "INSERT INTO tickets (miembro_id, agente_id, asignado_a, cliente, tipo, prioridad, estado, descripcion, notas, resultado, fuente, nombre_referencia, fecha_creacion, fecha_seguimiento, fecha_cierre, sla_fecha, tiempo_resolucion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,CURDATE(),?,?,?,?)";
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute([
-        $miembro_id, $uid, $asignado_a, ($cliente ?: null), $tipo, $prioridad,
-        $estado, $descripcion, ($notas ?: null), ($resultado ?: null), $fuente, $nombre_referencia,
-        $fecha_seguimiento, $fecha_cierre, $sla_fecha, $tiempo_resolucion
-    ]);
-    $new_id = (int)$pdo->lastInsertId();
+    // Todo lo que sigue va envuelto en try/catch — antes un tropiezo
+    // pasajero de la base de datos aquí tronaba la petición sin responder
+    // nada ("se presiona GUARDAR y no pasa nada"), en vez de un mensaje
+    // claro invitando a reintentar.
+    try {
+        $sql = "INSERT INTO tickets (miembro_id, agente_id, asignado_a, cliente, tipo, prioridad, estado, descripcion, notas, resultado, fuente, nombre_referencia, fecha_creacion, fecha_seguimiento, fecha_cierre, sla_fecha, tiempo_resolucion) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,CURDATE(),?,?,?,?)";
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute([
+            $miembro_id, $uid, $asignado_a, ($cliente ?: null), $tipo, $prioridad,
+            $estado, $descripcion, ($notas ?: null), ($resultado ?: null), $fuente, $nombre_referencia,
+            $fecha_seguimiento, $fecha_cierre, $sla_fecha, $tiempo_resolucion
+        ]);
+        $new_id = (int)$pdo->lastInsertId();
 
-    if (!empty($_POST['next_steps_json'])) {
-        $steps = json_decode($_POST['next_steps_json'], true);
-        if (is_array($steps)) {
-            $ins = $pdo->prepare("INSERT INTO ticket_next_steps (ticket_id, descripcion, fecha_programada, completado, fecha_completado, agente_id) VALUES (?,?,?,?,?,?)");
-            foreach ($steps as $s) {
-                $desc = trim($s['descripcion'] ?? '');
-                if ($desc === '') continue;
-                $fp   = !empty($s['fecha_programada']) ? $s['fecha_programada'] : null;
-                $comp = !empty($s['completado']) ? 1 : 0;
-                $fc   = $comp ? date('Y-m-d H:i:s') : null;
-                $ins->execute([$new_id, $desc, $fp, $comp, $fc, $uid]);
+        if (!empty($_POST['next_steps_json'])) {
+            $steps = json_decode($_POST['next_steps_json'], true);
+            if (is_array($steps)) {
+                $ins = $pdo->prepare("INSERT INTO ticket_next_steps (ticket_id, descripcion, fecha_programada, completado, fecha_completado, agente_id) VALUES (?,?,?,?,?,?)");
+                foreach ($steps as $s) {
+                    $desc = trim($s['descripcion'] ?? '');
+                    if ($desc === '') continue;
+                    $fp   = !empty($s['fecha_programada']) ? $s['fecha_programada'] : null;
+                    $comp = !empty($s['completado']) ? 1 : 0;
+                    $fc   = $comp ? date('Y-m-d H:i:s') : null;
+                    $ins->execute([$new_id, $desc, $fp, $comp, $fc, $uid]);
+                }
             }
         }
-    }
 
-    if ($estado === 'CERRADO') completarNextStepsDelTicket($pdo, $new_id, $uid);
-    jsonOkNotify(['id' => $new_id], 'TICKETS');
+        if ($estado === 'CERRADO') completarNextStepsDelTicket($pdo, $new_id, $uid);
+        jsonOkNotify(['id' => $new_id], 'TICKETS');
+    } catch (Exception $e) {
+        jsonErr('No se pudo guardar el ticket — intenta de nuevo en un momento');
+    }
     break;
 
 case 'get_ticket':
@@ -883,6 +891,11 @@ case 'update_ticket':
         jsonErr('Sin permiso para editar este ticket');
     }
 
+    // Todo lo que sigue va envuelto en try/catch — antes un tropiezo
+    // pasajero de la base de datos aquí tronaba la petición sin responder
+    // nada ("se presiona GUARDAR y no pasa nada"), en vez de un mensaje
+    // claro invitando a reintentar.
+    try {
     if (isset($_POST['estado']) && count($_POST) <= 4) {
         $new_estado = $_POST['estado'];
         $extras = [];
@@ -964,6 +977,9 @@ case 'update_ticket':
     }
 
     jsonOkNotify(['row_html' => render_ticket_row_html($pdo, $id, $admin, $uid)], 'TICKETS');
+    } catch (Exception $e) {
+        jsonErr('No se pudo guardar el ticket — intenta de nuevo en un momento');
+    }
     break;
 
 // ── CITAS ─────────────────────────────────────────────────────
