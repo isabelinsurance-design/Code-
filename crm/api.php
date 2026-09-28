@@ -6,6 +6,7 @@ require_once 'lib_twilio.php';
 require_once 'lib_row_render.php';
 require_once 'lib_followups.php';
 require_once 'lib_google_calendar.php';
+require_once 'lib_live.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -1145,6 +1146,15 @@ case 'google_calendar_desconectar':
 case 'get_follow_ups_panel':
     $pdo = db();
     jsonOk(render_followups_panel($pdo));
+    break;
+
+// ── TODAY LIVE — qué está haciendo cada persona ahora mismo (pedido de
+// Isabel: citas, tickets abiertos/cerrados, miembros por estado, llamadas
+// desglosadas). Todo de solo lectura — ver render_live_panel() en
+// lib_live.php. Visible para todos los empleados, no solo admin.
+case 'get_live_panel':
+    $pdo = db();
+    jsonOk(render_live_panel($pdo));
     break;
 
 case 'follow_up_crear':
