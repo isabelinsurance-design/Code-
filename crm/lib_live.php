@@ -42,10 +42,16 @@ function render_live_panel(PDO $pdo): array {
 
     // Tickets abiertos ahora mismo (+ urgentes + tipo APLICACION), por dueño real
     // (asignado_a si existe, si no el agente_id original — mismo criterio que
-    // ya usa el resto del CRM para "de quién es este ticket").
+    // ya usa el resto del CRM para "de quién es este ticket", ej. $resp_id en
+    // lib_row_render.php: !empty($t['asignado_a']) ? asignado_a : agente_id).
+    // OJO: NULLIF(asignado_a,0) es a propósito — asignado_a se guarda como 0
+    // (no NULL) cuando no hay reasignación, y un COALESCE normal se hubiera
+    // quedado con ese 0 en vez de caer al agente_id, dejando esos tickets
+    // fuera de la cuenta de TODOS los empleados (por eso no aparecían apps
+    // pendientes de Samia aunque sí las tenía).
     $tkAbiertos = [];
     try {
-        $q = $pdo->query("SELECT COALESCE(asignado_a, agente_id) owner_id, COUNT(*) total,
+        $q = $pdo->query("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total,
                                   SUM(tipo='APLICACION') apps, SUM(prioridad='ALTA') urgentes
                            FROM tickets WHERE estado != 'CERRADO' GROUP BY owner_id");
         foreach ($q->fetchAll() as $r) $tkAbiertos[(int)$r['owner_id']] = $r;
@@ -54,7 +60,7 @@ function render_live_panel(PDO $pdo): array {
     // Tickets cerrados HOY, por dueño real
     $tkCerradosHoy = [];
     try {
-        $q = $pdo->prepare("SELECT COALESCE(asignado_a, agente_id) owner_id, COUNT(*) total
+        $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total
                              FROM tickets WHERE estado='CERRADO' AND DATE(fecha_cierre)=? GROUP BY owner_id");
         $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
