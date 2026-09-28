@@ -62,7 +62,9 @@ function render_live_panel(PDO $pdo): array {
 
     // Miembros por estado — pedido de Isabel: esto es GENERAL de toda la
     // cartera, no por persona (a diferencia de citas/tickets/llamadas, que
-    // sí son por agente).
+    // sí son por agente). "POR HACER" es SIN HACER/SIN FIRMAR (papeleo sin
+    // terminar) — PROSPECT es otra cosa (leads nuevos) y NO cuenta aquí,
+    // aclarado por Isabel.
     $miembrosTot = ['activos'=>0,'proceso'=>0,'por_hacer'=>0];
     try {
         $q = $pdo->query("SELECT estado, COUNT(*) n FROM miembros GROUP BY estado");
@@ -71,7 +73,7 @@ function render_live_panel(PDO $pdo): array {
                 $miembrosTot['activos'] += (int)$r['n'];
             } elseif (in_array($r['estado'], ['IN PROCESS','READY TO ENROLL','PLAN CHANGE','PENDING'], true)) {
                 $miembrosTot['proceso'] += (int)$r['n'];
-            } elseif ($r['estado'] === 'PROSPECT') {
+            } elseif (in_array($r['estado'], ['SIN HACER','SIN FIRMAR'], true)) {
                 $miembrosTot['por_hacer'] += (int)$r['n'];
             }
         }
