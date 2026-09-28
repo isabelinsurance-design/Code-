@@ -565,6 +565,40 @@ if (!empty($_POST['camp_ajax'])) {
                 }
             }
             $detectado = $map['nombre'] !== null; // si no reconocimos ni el nombre, usamos el orden fijo de siempre
+
+            // Sin encabezado real: algunas listas (ej. exportadas de una hoja de
+            // cálculo de seguimiento de llamadas) NO traen fila de títulos — la
+            // primera línea ya es un contacto de verdad. Si no se reconoció NI
+            // nombre NI teléfono por nombre de columna, pero esa primera fila sí
+            // trae un valor que se ve como un teléfono real, se adivinan nombre/
+            // teléfono por el CONTENIDO de esa fila en vez de asumir el orden fijo
+            // de siempre — que agarraría columnas equivocadas (pasó con una lista
+            // real de Isabel: la 1ª columna era un ID interno, no el nombre, y la
+            // 3ª era literalmente la palabra "NULL" en vez de un teléfono).
+            $sinEncabezadoReal = false;
+            if ($map['nombre'] === null && $map['telefono'] === null) {
+                $telSniff = null;
+                foreach ($header as $i => $val) {
+                    if (strlen(preg_replace('/\D/', '', (string)$val)) >= 10 && normalizar_tel($val) !== '') { $telSniff = $i; break; }
+                }
+                if ($telSniff !== null) {
+                    $nombreSniff = null;
+                    foreach ($header as $i => $val) {
+                        if ($i === $telSniff) continue;
+                        $val = trim((string)$val);
+                        if ($val === '' || strtoupper($val) === 'NULL') continue;
+                        if (!preg_match('/[a-zA-ZÀ-ÿ]/', $val)) continue; // sin letras (ID, fecha, etc.) — no es un nombre
+                        $nombreSniff = $i; break;
+                    }
+                    if ($nombreSniff !== null) {
+                        $map['nombre'] = $nombreSniff;
+                        $map['telefono'] = $telSniff;
+                        $detectado = true;
+                        $sinEncabezadoReal = true;
+                    }
+                }
+            }
+
             // Columnas que no reconocimos — no se pierden, se agregan a las notas
             $usadas = array_filter($map, fn($v)=>$v!==null);
             $extraCols = [];
@@ -575,7 +609,11 @@ if (!empty($_POST['camp_ajax'])) {
             $erroresPorNombreVacio = 0; $erroresPorInsert = 0; $primerErrorInsert = null;
             $ins = $pdo_c->prepare("INSERT INTO campana_contactos (campana_id,nombre,apellido,telefono,email,notas,datos_extra,estado) VALUES (?,?,?,?,?,?,?,'ACTIVO')");
             $chk = $pdo_c->prepare("SELECT id FROM campana_contactos WHERE campana_id=? AND telefono=? AND telefono<>''");
-            while (($data=fgetcsv($handle, null, ",", "\"", "\\"))!==false) {
+            // Si la fila que se leyó como "encabezado" en realidad ya era un
+            // contacto (caso sin encabezado real, arriba), se procesa igual que
+            // cualquier otra fila — si no, se pierde ese primer contacto.
+            $filaPendiente = $sinEncabezadoReal ? [$header] : [];
+            while (($data = $filaPendiente ? array_shift($filaPendiente) : fgetcsv($handle, null, ",", "\"", "\\")) !== false) {
                 if (count($primerasFilas) < 2) $primerasFilas[] = ['cuenta_columnas'=>count($data), 'valores'=>array_slice($data,0,8)];
                 if (count($data)<1) continue;
                 if ($detectado) {
