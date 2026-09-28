@@ -48,6 +48,12 @@ function asegurarTablaFollowUps(PDO $pdo): void {
             INDEX idx_fu_miembro (miembro_id),
             INDEX idx_fu_agente (agente_id)
         )");
+        // La tabla ya existía antes de agregar esta columna (cadena de
+        // reintentos "no contestó" en Campañas, pedido de Isabel) — hay que
+        // agregarla a mano en instalaciones que ya tenían follow_ups creada.
+        if (!$pdo->query("SHOW COLUMNS FROM follow_ups LIKE 'cadena_intento'")->fetch()) {
+            $pdo->exec("ALTER TABLE follow_ups ADD COLUMN cadena_intento INT DEFAULT NULL");
+        }
     } catch (Exception $e) {}
 }
 

@@ -451,6 +451,7 @@ if (!empty($_POST['camp_ajax'])) {
             $res   = trim($_POST['resultado'] ?? '');
             $nt    = trim($_POST['notas'] ?? '');
             $nuevo_estado = trim($_POST['nuevo_estado'] ?? '');
+            $agregarFu = !empty($_POST['agregar_followup']);
             if (!$coid) { echo json_encode(['ok'=>false,'error'=>'Contacto requerido']); break; }
             $pdo_c->prepare("INSERT INTO campana_logs (campana_id,contacto_id,agente_id,canal,resultado,notas) VALUES (?,?,?,?,?,?)")
                   ->execute([$cid,$coid,$uid_c,$canal,$res,$nt]);
@@ -458,6 +459,10 @@ if (!empty($_POST['camp_ajax'])) {
                 $pdo_c->prepare("UPDATE campana_contactos SET estado=?, ultima_actividad=NOW() WHERE id=?")->execute([$nuevo_estado,$coid]);
             else
                 $pdo_c->prepare("UPDATE campana_contactos SET ultima_actividad=NOW() WHERE id=?")->execute([$coid]);
+            $ctq = $pdo_c->prepare("SELECT nombre, apellido, telefono, miembro_id FROM campana_contactos WHERE id=?");
+            $ctq->execute([$coid]);
+            $ctRow = $ctq->fetch(PDO::FETCH_ASSOC) ?: [];
+            $nombreContacto = trim(($ctRow['nombre'] ?? '').' '.($ctRow['apellido'] ?? ''));
             // Si fue por LLAMADA, que también cuente en el reporte diario del
             // agente (lo mismo que hace el botón "REGISTRAR LLAMADA").
             if ($canal === 'LLAMADA') {
@@ -472,15 +477,56 @@ if (!empty($_POST['camp_ajax'])) {
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )");
                 } catch (Exception $e) {}
-                $ctq = $pdo_c->prepare("SELECT nombre, apellido, telefono, miembro_id FROM campana_contactos WHERE id=?");
-                $ctq->execute([$coid]);
-                $ctRow = $ctq->fetch(PDO::FETCH_ASSOC) ?: [];
-                $nombreLibre = trim(($ctRow['nombre'] ?? '').' '.($ctRow['apellido'] ?? ''));
                 $contesto = in_array($res, ['No contestó','Dejó buzón','Teléfono desconectado','Número equivocado'], true) ? 0 : 1;
                 $pdo_c->prepare("INSERT INTO llamadas_prospectos (agente_id, miembro_id, nombre_libre, telefono, contesto, resultado, notas) VALUES (?,?,?,?,?,?,?)")
-                      ->execute([$uid_c, $ctRow['miembro_id'] ?? null, $nombreLibre, $ctRow['telefono'] ?? '', $contesto, $res, $nt]);
+                      ->execute([$uid_c, $ctRow['miembro_id'] ?? null, $nombreContacto, $ctRow['telefono'] ?? '', $contesto, $res, $nt]);
             }
-            jsonOkNotify([], 'CAMPANAS');
+
+            // ── Cadena de follow ups por "no contestó" (pedido de Isabel) ──
+            // Si ya había un follow up PENDIENTE de esta cadena para este
+            // contacto, este registro es justo el intento que lo resuelve —
+            // se marca completado sin importar el resultado (si contestó, la
+            // cadena termina aquí sola; si no, sigue abajo). "Teléfono
+            // desconectado"/"Número equivocado" NUNCA encadenan — volver a
+            // llamar a un número muerto no sirve (aclarado por Isabel).
+            $followupInfo = null;
+            $CADENA_ELEGIBLES = ['No contestó', 'Dejó buzón'];
+            $CADENA_DIAS = [1 => 1, 2 => 3, 3 => 5]; // intento → días después (el 3 es el último)
+            try {
+                asegurarTablaFollowUps($pdo_c);
+                $prevQ = $pdo_c->prepare("SELECT * FROM follow_ups WHERE origen_tipo='CAMPANA' AND origen_id=? AND cadena_intento IS NOT NULL ORDER BY id DESC LIMIT 1");
+                $prevQ->execute([$coid]);
+                $prevFu = $prevQ->fetch(PDO::FETCH_ASSOC);
+                $prevPendiente = $prevFu && $prevFu['estado'] === 'PENDIENTE';
+                if ($prevPendiente) {
+                    $pdo_c->prepare("UPDATE follow_ups SET estado='COMPLETADO', completado_por=?, completado_at=NOW() WHERE id=?")
+                          ->execute([$uid_c, $prevFu['id']]);
+                }
+                if ($agregarFu && in_array($res, $CADENA_ELEGIBLES, true)) {
+                    $siguienteIntento = $prevPendiente ? ((int)$prevFu['cadena_intento'] + 1) : 1;
+                    if (isset($CADENA_DIAS[$siguienteIntento])) {
+                        $dias = $CADENA_DIAS[$siguienteIntento];
+                        $fecha = followup_fecha_mas_dias($dias);
+                        $tieneMiembro = !empty($ctRow['miembro_id']);
+                        $pdo_c->prepare("INSERT INTO follow_ups
+                                (miembro_id,nombre_libre,telefono_libre,origen_tipo,origen_id,campana_id,titulo,fecha,estado,agente_id,creado_por,cadena_intento)
+                                VALUES (?,?,?,?,?,?,?,?,'PENDIENTE',?,?,?)")
+                              ->execute([
+                                  $tieneMiembro ? $ctRow['miembro_id'] : null,
+                                  $tieneMiembro ? null : $nombreContacto,
+                                  $tieneMiembro ? null : ($ctRow['telefono'] ?? ''),
+                                  'CAMPANA', $coid, $cid,
+                                  'Volver a llamar — intento ' . $siguienteIntento . ' de 3',
+                                  $fecha, $uid_c, $uid_c, $siguienteIntento,
+                              ]);
+                        $followupInfo = ['creado' => true, 'fecha' => $fecha, 'intento' => $siguienteIntento];
+                    } else {
+                        $followupInfo = ['creado' => false, 'motivo' => 'Ya se hicieron los 3 intentos de esta cadena'];
+                    }
+                }
+            } catch (Throwable $e) {}
+
+            jsonOkNotify(['followup' => $followupInfo], 'CAMPANAS');
         case 'promover_contacto':
             $id = (int)($_POST['id'] ?? 0);
             $q = $pdo_c->prepare("SELECT * FROM campana_contactos WHERE id=?"); $q->execute([$id]); $ct = $q->fetch(PDO::FETCH_ASSOC);
@@ -3953,12 +3999,18 @@ try{
       <div class="form-group"><label class="form-label">CANAL</label><select name="canal" id="cc-log-canal" class="form-input" onchange="ccUpdateOutcomes()">
         <option value="LLAMADA">📞 LLAMADA</option><option value="WHATSAPP">💬 WHATSAPP</option><option value="FLYER">📄 FLYER</option><option value="CITA">🤝 CITA</option>
       </select></div>
-      <div class="form-group"><label class="form-label">RESULTADO</label><select name="resultado" id="cc-log-resultado" class="form-input" style="text-transform:none"></select></div>
+      <div class="form-group"><label class="form-label">RESULTADO</label><select name="resultado" id="cc-log-resultado" class="form-input" style="text-transform:none" onchange="ccUpdateFollowupToggle()"></select></div>
     </div>
     <div class="form-group"><label class="form-label">ACTUALIZAR ESTADO A (OPCIONAL)</label><select name="nuevo_estado" id="cc-log-estado" class="form-input">
       <option value="">— NO CAMBIAR —</option><option value="ACTIVO">ACTIVO</option><option value="INTERESADO">INTERESADO</option><option value="CITA">CITA AGENDADA</option><option value="INSCRITO">INSCRITO</option><option value="NO_INTERESADO">NO INTERESADO</option><option value="DESCARTADO">DESCARTADO</option>
     </select></div>
     <div class="form-group"><label class="form-label">NOTAS</label><textarea name="notas" id="cc-log-notas" class="form-input" rows="2" style="text-transform:none" placeholder="QUÉ DIJO, PRÓXIMO PASO..."></textarea></div>
+    <div class="form-group" id="cc-log-fu-wrap" style="display:none;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;padding:9px 11px;margin-bottom:0">
+      <label style="display:flex;align-items:center;gap:7px;font-size:9px;color:<?=$TX?>;text-transform:uppercase;letter-spacing:.5px;cursor:pointer">
+        <input type="checkbox" id="cc-log-fu" checked style="width:15px;height:15px;cursor:pointer">
+        ☑ AGREGAR FOLLOW UP PARA VOLVER A LLAMAR
+      </label>
+    </div>
     <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
       <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-cc-log')">CANCELAR</button>
       <button type="submit" class="btn btn-p btn-sm" id="cc-log-btn">GUARDAR REGISTRO</button>
@@ -4380,6 +4432,18 @@ function ccUpdateOutcomes(){
   var sel=document.getElementById('cc-log-resultado');
   var opts=CAMP_OUTCOMES[canal]||[];
   sel.innerHTML=opts.map(function(o){return '<option value="'+o+'">'+o+'</option>';}).join('');
+  ccUpdateFollowupToggle();
+}
+// La cadena de "volver a llamar" solo aplica si de verdad no se pudo hablar
+// con la persona (no contestó / dejó buzón) — un teléfono desconectado o un
+// número equivocado nunca se agenda de nuevo, llamar otra vez a un número
+// muerto no sirve (pedido de Isabel).
+var CC_CADENA_ELEGIBLES = ['No contestó','Dejó buzón'];
+function ccUpdateFollowupToggle(){
+  var resultado = document.getElementById('cc-log-resultado').value;
+  var wrap = document.getElementById('cc-log-fu-wrap');
+  if(!wrap) return;
+  wrap.style.display = CC_CADENA_ELEGIBLES.indexOf(resultado)!==-1 ? '' : 'none';
 }
 function openCcLog(campId,ctId,name){
   document.getElementById('cc-log-campana').value=campId;
@@ -4389,6 +4453,8 @@ function openCcLog(campId,ctId,name){
   ccUpdateOutcomes();
   document.getElementById('cc-log-estado').value='';
   document.getElementById('cc-log-notas').value='';
+  var fuChk=document.getElementById('cc-log-fu'); if(fuChk) fuChk.checked=true;
+  ccUpdateFollowupToggle();
   var hist=document.getElementById('cc-hist-'+ctId);
   document.getElementById('cc-log-history').innerHTML=hist?hist.innerHTML:'';
   openModal('modal-cc-log');
@@ -4397,11 +4463,17 @@ function saveLog(e){e.preventDefault();var f=e.target;var camp=f.campana_id.valu
   var btn=document.getElementById('cc-log-btn');
   if(btn){ if(btn.disabled) return; btn.disabled=true; btn.textContent='GUARDANDO...'; }
   var ctId=f.contacto_id.value, canal=f.canal.value, resultado=f.resultado.value, notas=f.notas.value, nuevoEstado=f.nuevo_estado.value;
-  var p='action=log_actividad&campana_id='+encodeURIComponent(camp)+'&contacto_id='+encodeURIComponent(ctId)+'&canal='+encodeURIComponent(canal)+'&resultado='+encodeURIComponent(resultado)+'&nuevo_estado='+encodeURIComponent(nuevoEstado)+'&notas='+encodeURIComponent(notas);
+  var fuWrapVisible=document.getElementById('cc-log-fu-wrap').style.display!=='none';
+  var agregarFu=(fuWrapVisible && document.getElementById('cc-log-fu').checked)?1:0;
+  var p='action=log_actividad&campana_id='+encodeURIComponent(camp)+'&contacto_id='+encodeURIComponent(ctId)+'&canal='+encodeURIComponent(canal)+'&resultado='+encodeURIComponent(resultado)+'&nuevo_estado='+encodeURIComponent(nuevoEstado)+'&notas='+encodeURIComponent(notas)+'&agregar_followup='+agregarFu;
   campPost(p,false).then(function(d){
     if(btn){ btn.disabled=false; btn.textContent='GUARDAR REGISTRO'; }
     if(d&&d.ok){
-      if(typeof toast==='function')toast('✓ REGISTRADO'+(canal==='LLAMADA'?' — CONTADO EN TU REPORTE DIARIO':''));
+      var msg='✓ REGISTRADO'+(canal==='LLAMADA'?' — CONTADO EN TU REPORTE DIARIO':'');
+      var fu=d.data&&d.data.followup;
+      if(fu&&fu.creado) msg+=' — ☑ FOLLOW UP AGREGADO PARA EL '+fu.fecha+' (intento '+fu.intento+'/3)';
+      else if(fu&&fu.motivo) msg+=' — '+fu.motivo;
+      if(typeof toast==='function')toast(msg);
       closeModal('modal-cc-log');
       // Registrar una llamada es de las acciones que más se repiten en
       // Campañas — en vez de recargar TODA la página (150-200 consultas)
