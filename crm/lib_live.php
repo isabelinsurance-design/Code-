@@ -133,7 +133,15 @@ function render_live_panel(PDO $pdo): array {
     $totTrabajando = 0;
     foreach ($asis as $a) { if (!empty($a['check_in']) && empty($a['check_out'])) $totTrabajando++; }
 
+    // Todo lo de aquí hasta ob_get_clean() va dentro de un try — si algo
+    // truena A MITAD de armar el HTML (ej. un dato inesperado en un bucle),
+    // el buffer de ob_start() se queda abierto con HTML a medias adentro, y
+    // ESE HTML termina pegado por delante del JSON de error de api.php →
+    // respuesta que ya no es JSON válido → "ERROR DE RED" en vez de un
+    // error legible, aunque el try/catch general de api.php sí atrapó el
+    // error. Por eso el catch de aquí abajo bota el buffer a propósito.
     ob_start();
+    try {
     ?>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px">
       <?php
@@ -210,6 +218,10 @@ function render_live_panel(PDO $pdo): array {
       ↻ Se actualiza sola cada 45 segundos · Última actualización: <?=date('h:i:s A')?>
     </div>
     <?php
+    } catch (Throwable $e) {
+        ob_end_clean();
+        return ['html' => '<div style="padding:30px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">No se pudo armar TODAY LIVE — intenta de nuevo en un momento</div>'];
+    }
     $html = ob_get_clean();
 
     return ['html' => $html];

@@ -181,7 +181,13 @@ function render_followups_panel(PDO $pdo): array {
       <?php
     };
 
+    // Igual que en TODAY LIVE (lib_live.php): todo esto va en un try — si
+    // algo truena a mitad de armar el HTML, hay que botar el buffer de
+    // ob_start() a propósito, si no ese HTML a medias se pega por delante
+    // del JSON de error y la respuesta deja de ser JSON válido ("ERROR DE
+    // RED" en vez de un error legible).
     ob_start();
+    try {
     ?>
 <div id="fsub-hoy" class="fsub-pane">
   <?php $render_grupo('● HOY · '.date('m/d/Y'), $A, $fu_hoy);
@@ -226,6 +232,10 @@ function render_followups_panel(PDO $pdo): array {
   <?php endif;?>
 </div>
     <?php
+    } catch (Throwable $e) {
+        ob_end_clean();
+        return ['html' => '<div style="padding:30px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">No se pudieron armar los follow ups — intenta de nuevo en un momento</div>'];
+    }
     $html = ob_get_clean();
 
     return [
