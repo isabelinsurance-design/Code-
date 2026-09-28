@@ -17,6 +17,18 @@ $user = $_SESSION['user'];
 $admin = $user['rol'] === 'admin';
 $uid = $user['id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
+// Ya leímos lo que hacía falta de la sesión — soltamos el candado del
+// archivo de sesión YA MISMO, en vez de tenerlo agarrado los 2-3 segundos
+// (o más, si el servidor va lento) que dura el resto de esta petición. El
+// chat y los SMS se sondean solos cada 8 segundos desde el navegador de
+// cada quien — sin esto, esas peticiones de fondo bloqueaban CUALQUIER
+// guardado que cayera al mismo tiempo (misma sesión = mismo candado),
+// sintiéndose como que "cada cierto tiempo no se puede guardar nada".
+// 'finance_auth' es la única acción que SÍ necesita escribir en la sesión
+// (desbloquea el portal financiero), así que esa se deja como estaba.
+if ($action !== 'finance_auth') {
+    session_write_close();
+}
 function jsonOk($data=[]) { echo json_encode(['ok'=>true,'data'=>$data]); exit; }
 function jsonErr($msg) { echo json_encode(['ok'=>false,'error'=>$msg]); exit; }
 

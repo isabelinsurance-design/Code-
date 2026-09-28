@@ -10,6 +10,17 @@ require_once 'lib_followups.php';
 require_once 'lib_google_calendar.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
+// Ya leímos lo que hacía falta de la sesión — soltamos el candado del
+// archivo de sesión ya mismo, en vez de tenerlo agarrado durante TODA esta
+// página (150-200 consultas en una carga completa). El chat y los SMS se
+// sondean solos cada 8 segundos desde el navegador — sin esto, cualquier
+// guardado (en esta pestaña u otra) que cayera mientras esta página seguía
+// cargando se quedaba esperando a que soltara el candado, sintiéndose como
+// que "cada cierto tiempo no se puede guardar nada". index.php no vuelve a
+// escribir en la sesión en ningún lado (solo la lee), así que esto es
+// seguro — ver auth() en config.php, que ya no vuelve a bloquearla si
+// se le llama otra vez más abajo (ej. dentro del manejador de camp_ajax).
+session_write_close();
 asegurarTablaFollowUps($pdo);
 asegurarTablaGoogleCalendar($pdo);
 // Se crea aquí (antes de los manejadores AJAX que hacen exit más abajo) para

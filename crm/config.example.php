@@ -77,8 +77,17 @@ function db(): PDO {
 }
 
 // ─── SESIÓN / AUTENTICACIÓN ───────────────────────────────────────
+// OJO: solo arranca la sesión si todavía no tenemos al usuario cargado en
+// memoria — api.php e index.php cierran la sesión (session_write_close())
+// apenas la leen, para no dejar el archivo de sesión bloqueado mientras
+// dura toda la petición (con el chat y los SMS sondeando cada 8 segundos,
+// esto bloqueaba cualquier guardado que cayera al mismo tiempo — se sentía
+// como que "cada cierto tiempo no se puede guardar nada"). Si aquí se
+// pidiera session_start() de nuevo solo porque ya se cerró, se volvería a
+// bloquear el archivo para el resto de esa petición — por eso el chequeo
+// extra de "¿ya tengo $_SESSION['user'] en memoria?" antes de reabrirla.
 function auth(): array {
-    if (session_status() === PHP_SESSION_NONE) session_start();
+    if (session_status() === PHP_SESSION_NONE && empty($_SESSION['user'])) session_start();
     if (empty($_SESSION['user'])) { header('Location: login.php'); exit; }
     return $_SESSION['user'];
 }
