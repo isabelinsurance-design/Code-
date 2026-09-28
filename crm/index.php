@@ -430,6 +430,16 @@ if (!empty($_POST['camp_ajax'])) {
             $pdo_c->prepare("DELETE FROM campana_logs WHERE contacto_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campana_contactos WHERE id=?")->execute([$id]);
             jsonOkNotify([], 'CAMPANAS');
+        // Borra TODOS los contactos de una campaña de un jalón — pensado para
+        // cuando una lista se subió mal (ej. un CSV sin fila de títulos que
+        // dejó nombres/teléfonos revueltos) y hay que empezar de cero en vez
+        // de borrar uno por uno antes de volver a subir la lista corregida.
+        case 'vaciar_contactos_campana':
+            $cid = (int)($_POST['campana_id'] ?? 0);
+            if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
+            $pdo_c->prepare("DELETE FROM campana_logs WHERE contacto_id IN (SELECT id FROM campana_contactos WHERE campana_id=?)")->execute([$cid]);
+            $pdo_c->prepare("DELETE FROM campana_contactos WHERE campana_id=?")->execute([$cid]);
+            jsonOkNotify([], 'CAMPANAS');
         case 'update_contacto_estado':
             $id = (int)($_POST['id'] ?? 0); $est = trim($_POST['estado'] ?? '');
             $pdo_c->prepare("UPDATE campana_contactos SET estado=? WHERE id=?")->execute([$est, $id]);
@@ -3266,6 +3276,7 @@ try{
     <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
       <button class="btn btn-sky btn-sm" onclick="openCcImport(<?=$c['id']?>)">⤒ SUBIR LISTA (CSV)</button>
+      <button class="btn btn-gh btn-sm" onclick="vaciarContactosCampana(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')" title="Borra todos los contactos de esta campaña — úsalo si una lista se subió mal, antes de volver a subirla">🗑 VACIAR CONTACTOS</button>
       <button class="btn btn-sky btn-sm" onclick="abrirEnvioMasivo(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')">📤 ENVIAR SMS / FLYER</button>
       <button class="btn btn-gh btn-sm" onclick="toggleCcReporte(<?=$c['id']?>,this)">📊 REPORTE</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
@@ -3987,6 +3998,11 @@ function campPost(params,reload){
    .then(function(r){return r.json();})
    .then(function(d){ if(!d||!d.ok){ if(typeof toast==='function')toast('Error: '+((d&&d.error)||'')); return d; } if(reload){_campReload();} return d; })
    .catch(function(){ if(typeof toast==='function')toast('Error de red'); });
+}
+function vaciarContactosCampana(id, nombre){
+  if(!confirm('¿BORRAR TODOS los contactos de "'+nombre+'"?\n\nEsto NO se puede deshacer. Úsalo solo si la lista se subió mal (ej. nombres/teléfonos revueltos) y vas a volver a subirla corregida.')) return;
+  if(!confirm('Confirma otra vez: se van a borrar TODOS los contactos de esta campaña ahora mismo.')) return;
+  campPost('action=vaciar_contactos_campana&campana_id='+id, true);
 }
 function campToggleCard(id){
   var b=document.getElementById('camp-body-'+id); if(!b)return;
