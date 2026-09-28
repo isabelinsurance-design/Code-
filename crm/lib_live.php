@@ -2,8 +2,9 @@
 /* ═══════════════════════════════════════════════════════════════════
  *  LIB_LIVE.PHP — "TODAY LIVE": qué está haciendo cada persona hoy,
  *  de un vistazo (pedido de Isabel: citas, tickets abiertos/cerrados,
- *  miembros activos/en proceso/por hacer, apps pendientes, llamadas
- *  desglosadas por tipo).
+ *  apps pendientes, llamadas desglosadas por tipo — todo por persona —
+ *  más miembros activos/en proceso/por hacer como total GENERAL de la
+ *  cartera, no por persona).
  *
  *  Todo son SELECTs de solo lectura, agrupados por agente en una sola
  *  consulta por tabla (nunca una consulta por empleado) — igual que
@@ -59,19 +60,19 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
     } catch (Throwable $e) {}
 
-    // Miembros agrupados (activos / en proceso / por hacer), por agente dueño
-    $miembros = [];
+    // Miembros por estado — pedido de Isabel: esto es GENERAL de toda la
+    // cartera, no por persona (a diferencia de citas/tickets/llamadas, que
+    // sí son por agente).
+    $miembrosTot = ['activos'=>0,'proceso'=>0,'por_hacer'=>0];
     try {
-        $q = $pdo->query("SELECT agente_id, estado, COUNT(*) n FROM miembros GROUP BY agente_id, estado");
+        $q = $pdo->query("SELECT estado, COUNT(*) n FROM miembros GROUP BY estado");
         foreach ($q->fetchAll() as $r) {
-            $aid = (int)$r['agente_id'];
-            if (!isset($miembros[$aid])) $miembros[$aid] = ['activos'=>0,'proceso'=>0,'por_hacer'=>0];
             if ($r['estado'] === 'ACTIVE') {
-                $miembros[$aid]['activos'] += (int)$r['n'];
+                $miembrosTot['activos'] += (int)$r['n'];
             } elseif (in_array($r['estado'], ['IN PROCESS','READY TO ENROLL','PLAN CHANGE','PENDING'], true)) {
-                $miembros[$aid]['proceso'] += (int)$r['n'];
+                $miembrosTot['proceso'] += (int)$r['n'];
             } elseif ($r['estado'] === 'PROSPECT') {
-                $miembros[$aid]['por_hacer'] += (int)$r['n'];
+                $miembrosTot['por_hacer'] += (int)$r['n'];
             }
         }
     } catch (Throwable $e) {}
@@ -125,7 +126,6 @@ function render_live_panel(PDO $pdo): array {
     $totTkCerrHoy  = array_sum($tkCerradosHoy);
     $totApps       = array_sum(array_column($tkAbiertos, 'apps'));
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
-    $totActivos    = array_sum(array_column($miembros, 'activos'));
     $totLlamadas   = array_sum($llProspHoy) + array_sum($llRetHoy) + array_sum($llPerdHoy);
     $totFuPend     = array_sum($fuPend);
     $totTrabajando = 0;
@@ -147,8 +147,12 @@ function render_live_panel(PDO $pdo): array {
       $kpi('⚠ URGENTES', $totUrgentes, $R);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
       $kpi('APPS PENDIENTES', $totApps, $P2);
-      $kpi('MIEMBROS ACTIVOS', $totActivos, $G);
       $kpi('LLAMADAS HOY', $totLlamadas, $P1);
+      // Miembros — general de toda la cartera, no por persona (a propósito
+      // no van en la tabla de abajo).
+      $kpi('◉ MIEMBROS ACTIVOS', $miembrosTot['activos'], $G);
+      $kpi('◉ MIEMBROS EN PROCESO', $miembrosTot['proceso'], $P2);
+      $kpi('◉ MIEMBROS POR HACER', $miembrosTot['por_hacer'], $A);
       if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
       if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
       ?>
@@ -158,14 +162,14 @@ function render_live_panel(PDO $pdo): array {
     <table style="width:100%;border-collapse:collapse;font-size:9px;white-space:nowrap">
       <thead>
         <tr style="background:<?=$BG?>">
-          <?php foreach (['EMPLEADO','AHORA','CITAS HOY','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','MIEMBROS (ACT · PROC · POR HACER)','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
+          <?php foreach (['EMPLEADO','AHORA','CITAS HOY','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
           <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid <?=$CB?>"><?=$col?></th>
           <?php endforeach;?>
         </tr>
       </thead>
       <tbody>
         <?php if (!count($usuarios)):?>
-        <tr><td colspan="9" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
+        <tr><td colspan="8" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
@@ -173,7 +177,6 @@ function render_live_panel(PDO $pdo): array {
             $c  = $citas[$aid]      ?? ['total'=>0,'completadas'=>0];
             $tk = $tkAbiertos[$aid] ?? ['total'=>0,'apps'=>0,'urgentes'=>0];
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
-            $m  = $miembros[$aid]   ?? ['activos'=>0,'proceso'=>0,'por_hacer'=>0];
             $lp = $llProspHoy[$aid] ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
             $lm = $llPerdHoy[$aid]  ?? 0;
@@ -194,7 +197,6 @@ function render_live_panel(PDO $pdo): array {
           </td>
           <td style="padding:8px 10px;color:<?=$tkCerr>0?$G:$MU?>;font-weight:<?=$tkCerr>0?'800':'400'?>"><?=$tkCerr?></td>
           <td style="padding:8px 10px;color:<?=((int)$tk['apps'])>0?$P2:$MU?>;font-weight:<?=((int)$tk['apps'])>0?'800':'400'?>"><?=(int)$tk['apps']?></td>
-          <td style="padding:8px 10px"><?=$m['activos']?> · <?=$m['proceso']?> · <?=$m['por_hacer']?></td>
           <td style="padding:8px 10px"><?=$lp?> · <?=$lr?> · <?=$lm?></td>
           <td style="padding:8px 10px;color:<?=$fu>0?$A:$MU?>;font-weight:<?=$fu>0?'800':'400'?>"><?=$fu?></td>
         </tr>
