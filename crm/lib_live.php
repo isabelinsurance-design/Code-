@@ -215,7 +215,7 @@ function render_live_panel(PDO $pdo): array {
     </table>
     </div>
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:8px">
-      ↻ Se actualiza sola cada 45 segundos · Última actualización: <?=date('h:i:s A')?>
+      Última actualización: <?=date('h:i:s A')?> · dale a ACTUALIZAR AHORA para traer los datos más recientes
     </div>
     <?php
     } catch (Throwable $e) {

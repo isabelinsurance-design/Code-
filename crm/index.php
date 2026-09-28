@@ -2574,9 +2574,10 @@ if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8p
 </div><!-- /DASHBOARD -->
 
 <!-- TODAY LIVE — qué está haciendo cada persona hoy, de un vistazo (pedido
-     de Isabel). Todo se pide aparte con loadLivePanel() y se refresca sola
-     cada 45 segundos mientras la pestaña está abierta (ver showTab() y
-     api.php?action=get_live_panel / render_live_panel() en lib_live.php). -->
+     de Isabel). Se carga una vez al abrir la pestaña y de ahí en adelante
+     solo se vuelve a pedir con el botón ACTUALIZAR AHORA — sin refresco
+     automático (pedido de Isabel; ver showTab() y api.php?action=
+     get_live_panel / render_live_panel() en lib_live.php). -->
 <div id="tab-TODAYLIVE" class="tab-pane">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:10px;color:#7A90A4;text-transform:uppercase;letter-spacing:1px">🔴 EN VIVO — qué está haciendo cada persona hoy</div>
@@ -10120,15 +10121,10 @@ if(id==='FOLLOWUPS' && !window._followupsPanelCargado && typeof refreshFollowUps
   window._followupsPanelCargado = true;
   refreshFollowUpsPanel();
 }
-// TODAY LIVE: siempre se refresca al entrar (es justo el punto — que sea
-// en vivo) y mientras la pestaña esté abierta se vuelve a pedir sola cada
-// 45 segundos. Al salir de la pestaña se detiene, para no seguir pidiendo
-// datos de algo que nadie está viendo.
-if(window._liveInterval){ clearInterval(window._liveInterval); window._liveInterval=null; }
-if(id==='TODAYLIVE' && typeof loadLivePanel==='function'){
-  loadLivePanel();
-  window._liveInterval = setInterval(loadLivePanel, 45000);
-}
+// TODAY LIVE: se carga al entrar a la pestaña, pero de ahí en adelante
+// solo se vuelve a pedir cuando se le da al botón ACTUALIZAR AHORA — pedido
+// de Isabel, sin refresco automático de por medio.
+if(id==='TODAYLIVE' && typeof loadLivePanel==='function') loadLivePanel();
 if(id==='COMUNICACION' && typeof loadSmsConversaciones==='function') loadSmsConversaciones();
 if(id==='MI DÍA' && window._refreshChecklist) setTimeout(window._refreshChecklist, 50);
 try{sessionStorage.setItem('activeTab',id);}catch(e){}
