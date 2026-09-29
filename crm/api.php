@@ -7,6 +7,7 @@ require_once 'lib_row_render.php';
 require_once 'lib_followups.php';
 require_once 'lib_google_calendar.php';
 require_once 'lib_live.php';
+require_once 'lib_retencion.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -1167,6 +1168,14 @@ case 'get_follow_ups_panel':
 case 'get_live_panel':
     $pdo = db();
     jsonOk(render_live_panel($pdo));
+    break;
+
+// La pestaña RETENCIÓN se pide aparte (pedido de Isabel: antes armaba la
+// tabla completa de miembros activos en CADA carga de la página, la vieras
+// o no, y eso hacía sentir todo el CRM lento). Ver lib_retencion.php.
+case 'get_retencion_panel':
+    $pdo = db();
+    jsonOk(render_retencion_panel($pdo));
     break;
 
 case 'follow_up_crear':
