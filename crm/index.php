@@ -10267,22 +10267,22 @@ document.addEventListener('DOMContentLoaded', () => {
   if(tipoSel) tipoSel.addEventListener('change', tktTipoChange);
 });
 function searchMember(num){document.getElementById('member-search').value=num;filterMembers();showTab('MIEMBROS');}
-function submitReporte(e){e.preventDefault();const fd=new FormData(e.target);fd.append('action','save_reporte');const btn=e.target.querySelector('[type=submit]');if(btn){btn.disabled=true;btn.textContent='ENVIANDO...';}fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()).then(d=>{if(d.ok){toast('✓ REPORTE ENVIADO — BUEN TRABAJO! ✓');// Reload so the page shows the submitted summary instead of the form
-saveTabAndReload();}else{toast(d.error||'Error al enviar');if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}}}).catch(()=>{if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}toast('⚠ Error de red');});}
+function submitReporte(e){e.preventDefault();const fd=new FormData(e.target);fd.append('action','save_reporte');const btn=e.target.querySelector('[type=submit]');if(btn){btn.disabled=true;btn.textContent='ENVIANDO...';}fetchJson('api.php',{method:'POST',body:fd}).then(d=>{if(d.ok){toast('✓ REPORTE ENVIADO — BUEN TRABAJO! ✓');// Reload so the page shows the submitted summary instead of the form
+saveTabAndReload();}else{toast(d.error||'Error al enviar');if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}}}).catch(err=>{if(btn){btn.disabled=false;btn.textContent='▦ ENVIAR REPORTE';}toast('⚠ '+((err&&err.message)||'ERROR DE RED'));});}
 // Admin reabre el reporte de un agente (reconteo / agregar notas)
 function reabrirReporte(aid, nombre, fecha){
   if(!confirm('¿Reabrir el reporte de '+(nombre||'este agente')+'?\n\nPodrá editarlo de nuevo (se recuentan los tickets cerrados) y reenviarlo.')) return;
   const body={action:'reabrir_reporte', agente_id:aid};
   if(fecha) body.fecha=fecha;
-  fetch('api.php',{method:'POST',body:new URLSearchParams(body)})
-    .then(r=>r.json()).then(d=>{
+  fetchJson('api.php',{method:'POST',body:new URLSearchParams(body)})
+    .then(d=>{
       if(d.ok){
         toast('✓ REPORTE REABIERTO');
         const tabla=document.getElementById('rep-hist-tabla');
         if(typeof buscarHistorial==='function' && tabla && tabla.innerHTML.trim()){ buscarHistorial(); }
         else if(typeof softReload==='function'){ softReload(); }
       } else toast('⚠ '+(d.error||'Error'));
-    }).catch(()=>toast('⚠ Error de conexión'));
+    }).catch(err=>toast('⚠ '+((err&&err.message)||'ERROR DE RED')));
 }
 // Admin corrige la asistencia (check-in/out) de un registro
 function openEditAsistencia(d){
@@ -10329,8 +10329,8 @@ function submitAdminRepEdit(e){
   fd.append('action','admin_edit_reporte');
   const btn = e.target.querySelector('[type=submit]');
   if(btn){ btn.disabled=true; btn.textContent='GUARDANDO...'; }
-  fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
-    .then(r=>r.json()).then(d=>{
+  fetchJson('api.php',{method:'POST',body:new URLSearchParams(fd)})
+    .then(d=>{
       if(d.ok){
         toast('✓ REPORTE ACTUALIZADO');
         closeModal('admin-rep-edit-modal');
@@ -10339,7 +10339,7 @@ function submitAdminRepEdit(e){
         else if(typeof softReload==='function'){ softReload(); }
       } else toast('⚠ '+(d.error||'Error'));
       if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; }
-    }).catch(()=>{ toast('⚠ Error de conexión'); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; } });
+    }).catch(err=>{ toast('⚠ '+((err&&err.message)||'ERROR DE RED')); if(btn){ btn.disabled=false; btn.textContent='✓ GUARDAR CAMBIOS'; } });
 }
 function filterHist(){const ag=document.getElementById('hist-ag')?.value||'';const tipo=document.getElementById('hist-tipo')?.value||'';document.querySelectorAll('.hist-row').forEach(r=>{r.style.display=(!ag||r.dataset.ag===ag)&&(!tipo||r.dataset.tipo===tipo)?'':'none';});}
 
