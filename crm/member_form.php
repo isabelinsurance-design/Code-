@@ -516,8 +516,7 @@ function submitMemberForm(e) {
     if(!form.querySelector('[name="'+n+'"]')?.checked) fd.set(n,'0'); else fd.set(n,'1');
   });
 
-  fetch('api.php',{method:'POST',body:fd})
-    .then(r=>r.json())
+  (typeof fetchJson==='function' ? fetchJson('api.php',{method:'POST',body:fd}) : fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()))
     .then(d=>{
       if(d.ok){
         toast('✓ MIEMBRO GUARDADO');
@@ -544,8 +543,8 @@ function submitMemberForm(e) {
         if(btn){ btn.disabled=false; btn.textContent='◎ GUARDAR MIEMBRO'; }
       }
     })
-    .catch(()=>{
-      toast('⚠ ERROR DE RED — INTENTA DE NUEVO');
+    .catch(err=>{
+      toast('⚠ '+((err&&err.message)||'ERROR DE RED')+' — INTENTA DE NUEVO');
       if(btn){ btn.disabled=false; btn.textContent='◎ GUARDAR MIEMBRO'; }
     });
 }
