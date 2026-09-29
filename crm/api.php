@@ -8,6 +8,7 @@ require_once 'lib_followups.php';
 require_once 'lib_google_calendar.php';
 require_once 'lib_live.php';
 require_once 'lib_retencion.php';
+require_once 'lib_campanas.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -1176,6 +1177,14 @@ case 'get_live_panel':
 case 'get_retencion_panel':
     $pdo = db();
     jsonOk(render_retencion_panel($pdo));
+    break;
+
+// CAMPAÑAS también se pide aparte por la misma razón (armaba TODAS las
+// campañas, contactos, listas de evento y gastos de SMS en cada carga de
+// página — casi 1800 líneas). Ver lib_campanas.php.
+case 'get_campanas_panel':
+    $pdo = db();
+    jsonOk(render_campanas_panel($pdo, $uid, $admin));
     break;
 
 case 'follow_up_crear':
