@@ -475,7 +475,7 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     <div class="grid-3">
       <div class="form-group"><label class="form-label">EVENTO DE CAPTACIÓN</label><input type="text" name="evento" class="form-input" value="<?= h($m['evento']??'') ?>" placeholder="EJ: FERIA SALUD INGLEWOOD 2025"></div>
       <div class="form-group"><label class="form-label">CAMPAÑA / FUENTE ADICIONAL</label><input type="text" name="fuente_campana" class="form-input" value="<?= h($m['fuente_campana']??'') ?>" placeholder="EJ: META ADS Q1, EMAIL BLAST…"></div>
-      <div class="form-group"><label class="form-label">CARPETA DRIVE</label><input type="url" name="carpeta_drive" class="form-input" value="<?= h($m['carpeta_drive']??'') ?>" placeholder="https://drive.google.com/…" style="text-transform:none"></div>
+      <div class="form-group"><label class="form-label">CARPETA DRIVE</label><input type="text" name="carpeta_drive" class="form-input" value="<?= h($m['carpeta_drive']??'') ?>" placeholder="https://drive.google.com/…" style="text-transform:none"></div>
     </div>
     <div style="display:flex;gap:14px;margin-top:5px;flex-wrap:wrap">
       <?php foreach ([['opt_in','OPT-IN SMS'],['opt_out','OPT-OUT'],['info_verificada','INFO VERIFICADA']] as [$n,$l]): ?>
