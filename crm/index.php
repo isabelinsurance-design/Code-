@@ -9585,6 +9585,11 @@ function fetchJson(url, opts){
       try{ data = JSON.parse(txt); }catch(e){}
       if(data) return data;
       // No vino JSON: algo interceptó la respuesta antes de llegar al PHP.
+      // Caso más común: la sesión caducó y api.php redirigió a login.php
+      // (el fetch sigue el redirect solo, así que llega HTML en vez de JSON).
+      if(r.redirected && r.url.indexOf('login.php') > -1){
+        throw new Error('SESIÓN EXPIRADA — RECARGA LA PÁGINA PARA VOLVER A ENTRAR');
+      }
       var t = (txt || '').toLowerCase();
       if(t.indexOf('cloudflare') > -1 || t.indexOf('attention required') > -1 || t.indexOf('just a moment') > -1 || t.indexOf('checking your browser') > -1){
         throw new Error('CLOUDFLARE BLOQUEÓ LA CONEXIÓN — ESPERA UNOS SEGUNDOS Y REINTENTA');
