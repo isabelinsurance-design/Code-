@@ -10758,8 +10758,7 @@ function guardarActivarMiembro(){
   if(!fecha){ if(typeof toast==='function')toast('⚠ Falta la fecha efectiva'); return; }
   const btn=document.getElementById('am-btn');
   btn.disabled=true; btn.textContent='GUARDANDO...';
-  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_member',id,estado:'ACTIVE',fecha_efectiva:fecha})})
-    .then(r=>r.json())
+  fetchJson('api.php',{method:'POST',body:new URLSearchParams({action:'save_member',id,estado:'ACTIVE',fecha_efectiva:fecha})})
     .then(d=>{
       btn.disabled=false; btn.textContent='✓ MARCAR ACTIVO';
       if(d&&d.ok){
@@ -10768,7 +10767,7 @@ function guardarActivarMiembro(){
         if(typeof softReload==='function') softReload();
       } else if(typeof toast==='function') toast('⚠ '+(d&&d.error?d.error:'Error al guardar'));
     })
-    .catch(()=>{ btn.disabled=false; btn.textContent='✓ MARCAR ACTIVO'; if(typeof toast==='function')toast('⚠ Error de conexión'); });
+    .catch(err=>{ btn.disabled=false; btn.textContent='✓ MARCAR ACTIVO'; if(typeof toast==='function')toast('⚠ '+((err&&err.message)||'ERROR DE RED')); });
 }
 function openMemberForm(id=null){
   fetch('member_form.php'+(id?'?id='+id:''))
