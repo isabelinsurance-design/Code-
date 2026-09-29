@@ -5457,7 +5457,7 @@ function cargarHistorial(mes) {
 function loadRetencionPanel(cb){
   var wrap = document.getElementById('retencion-panel-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_retencion_panel').then(function(r){return r.json();}).then(function(d){
+  fetchJson('api.php?action=get_retencion_panel').then(function(d){
     if(d.ok){
       wrap.innerHTML = d.data.html;
       _RET_NOMBRES = d.data.nombres || {};
@@ -5466,8 +5466,8 @@ function loadRetencionPanel(cb){
       wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR RETENCIÓN</div>';
     }
     if(typeof cb==='function') cb();
-  }).catch(function(){
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>';
+  }).catch(function(err){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>';
     if(typeof cb==='function') cb();
   });
 }
@@ -9311,13 +9311,12 @@ function ejecutarBusquedaGeneral(){
     return;
   }
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Buscando…</div>';
-  fetch('api.php?action=busqueda_general&q='+encodeURIComponent(q)+'&areas='+encodeURIComponent(areas))
-    .then(function(r){return r.json();})
+  fetchJson('api.php?action=busqueda_general&q='+encodeURIComponent(q)+'&areas='+encodeURIComponent(areas))
     .then(function(d){
       if(!d.ok){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL BUSCAR</div>'; return; }
       _renderBusqResultados(d.data.resultados||{}, q);
     })
-    .catch(function(){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>'; });
+    .catch(function(err){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>'; });
 }
 function _busqResalta(txt, q){
   var s = esc(txt||'');
@@ -9518,13 +9517,12 @@ function ejecutarBusquedaAvanzada(){
   if(!cols.length){ wrap.innerHTML = '<div style="padding:14px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">Selecciona al menos una columna</div>'; return; }
   if(!valor){ wrap.innerHTML = '<div style="padding:14px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">Escribe un valor a buscar</div>'; return; }
   wrap.innerHTML = '<div style="padding:20px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Buscando…</div>';
-  fetch('api.php?action=busqueda_avanzada&tabla='+encodeURIComponent(tabla)+'&columnas='+encodeURIComponent(cols.join(','))+'&valor='+encodeURIComponent(valor))
-    .then(function(r){return r.json();})
+  fetchJson('api.php?action=busqueda_avanzada&tabla='+encodeURIComponent(tabla)+'&columnas='+encodeURIComponent(cols.join(','))+'&valor='+encodeURIComponent(valor))
     .then(function(d){
       if(!d.ok){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+esc(d.error||'ERROR AL BUSCAR')+'</div>'; return; }
       _renderBusqAvResultados(d.data.filas||[], d.data.columnas||[], tabla, valor);
     })
-    .catch(function(){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>'; });
+    .catch(function(err){ wrap.innerHTML = '<div style="padding:20px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>'; });
 }
 function _renderBusqAvResultados(filas, columnas, tabla, valor){
   var wrap = document.getElementById('busq-av-resultados');
@@ -9572,6 +9570,38 @@ const RELAY_WS_URL='<?=h($_relay_ws_url)?>';
 })();
 let chatLastId=<?=count($chat_msgs)&&end($chat_msgs)?end($chat_msgs)['id']:0?>;
 function toast(msg,dur=2800){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),dur);}
+
+// Envuelve fetch() para que, cuando algo sale mal, el mensaje diga QUÉ pasó
+// de verdad (Cloudflare bloqueando la conexión, sesión caída, servidor caído,
+// sin internet...) en vez del mismo "ERROR DE RED" genérico sin importar la
+// causa. Los .then(d=>{ if(d.ok) ... }) de siempre no cambian — solo el
+// .catch() recibe ahora un Error con .message específico en vez de nada.
+function fetchJson(url, opts){
+  return fetch(url, opts).catch(function(){
+    throw new Error('SIN CONEXIÓN A INTERNET');
+  }).then(function(r){
+    return r.text().then(function(txt){
+      var data = null;
+      try{ data = JSON.parse(txt); }catch(e){}
+      if(data) return data;
+      // No vino JSON: algo interceptó la respuesta antes de llegar al PHP.
+      var t = (txt || '').toLowerCase();
+      if(t.indexOf('cloudflare') > -1 || t.indexOf('attention required') > -1 || t.indexOf('just a moment') > -1 || t.indexOf('checking your browser') > -1){
+        throw new Error('CLOUDFLARE BLOQUEÓ LA CONEXIÓN — ESPERA UNOS SEGUNDOS Y REINTENTA');
+      }
+      if(r.status===401 || r.status===403){
+        throw new Error('SESIÓN EXPIRADA O SIN PERMISO (' + r.status + ') — RECARGA LA PÁGINA');
+      }
+      if(r.status>=500){
+        throw new Error('ERROR EN EL SERVIDOR (' + r.status + ')');
+      }
+      if(!txt || !txt.trim()){
+        throw new Error('EL SERVIDOR NO RESPONDIÓ NADA (POSIBLE ERROR EN EL SERVIDOR)');
+      }
+      throw new Error('RESPUESTA INESPERADA DEL SERVIDOR (' + r.status + ')');
+    });
+  });
+}
 function showTab(id){
 document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
@@ -9913,12 +9943,12 @@ const _M_GRUPO_CANCELADOS = ['CANCELED','DENIED','CERRADO','DISENROLLED'];
 function loadMembersTable(cb){
   const tbody = document.getElementById('members-tbody');
   if(!tbody){ if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_members_table').then(r=>r.json()).then(d=>{
+  fetchJson('api.php?action=get_members_table').then(d=>{
     if(d.ok) tbody.innerHTML = d.data.html || '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN MIEMBROS</td></tr>';
     else tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR AL CARGAR</td></tr>';
     if(typeof cb==='function') cb();
-  }).catch(()=>{
-    tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR DE RED</td></tr>';
+  }).catch(err=>{
+    tbody.innerHTML = '<tr><td colspan="8" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</td></tr>';
     if(typeof cb==='function') cb();
   });
 }
@@ -10470,12 +10500,12 @@ function loadTicketsTable(cb){
   // cerrados que hubiera quedado cargada de antes se reemplaza, así que
   // hay que volver a pedirlos si hacen falta otra vez.
   _tktCerradosCargados = false;
-  fetch('api.php?action=get_tickets_table').then(r=>r.json()).then(d=>{
+  fetchJson('api.php?action=get_tickets_table').then(d=>{
     if(d.ok) tbody.innerHTML = d.data.html || '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">SIN TICKETS</td></tr>';
     else tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR AL CARGAR</td></tr>';
     if(typeof cb==='function') cb();
-  }).catch(()=>{
-    tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">ERROR DE RED</td></tr>';
+  }).catch(err=>{
+    tbody.innerHTML = '<tr><td colspan="10" style="padding:20px;text-align:center;font-size:9px;color:#B83232;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</td></tr>';
     if(typeof cb==='function') cb();
   });
 }
@@ -10486,14 +10516,14 @@ function loadTicketsTable(cb){
 function cargarTicketsCerrados(cb){
   const tbody = document.getElementById('tkt-tbody');
   if(!tbody){ _tktCerradosCargados = true; if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_tickets_table&incluir_cerrados=1').then(r=>r.json()).then(d=>{
+  fetchJson('api.php?action=get_tickets_table&incluir_cerrados=1').then(d=>{
     _tktCerradosCargados = true;
     if(d.ok) tbody.innerHTML = d.data.html || tbody.innerHTML;
     else if(typeof toast==='function') toast('⚠ No se pudieron cargar los tickets cerrados');
     if(typeof cb==='function') cb();
-  }).catch(()=>{
+  }).catch(err=>{
     _tktCerradosCargados = true;
-    if(typeof toast==='function') toast('⚠ Error de red al cargar los cerrados — intenta de nuevo');
+    if(typeof toast==='function') toast('⚠ '+((err&&err.message)||'ERROR DE RED')+' — intenta de nuevo');
     if(typeof cb==='function') cb();
   });
 }
@@ -11338,7 +11368,7 @@ function filterSmsConv(input){
 function loadSmsConversaciones(){
   const list = document.getElementById('sms-conv-list');
   if(!list) return;
-  fetch('api.php?action=get_sms_conversaciones').then(r=>r.json()).then(d=>{
+  fetchJson('api.php?action=get_sms_conversaciones').then(d=>{
     if(!d.ok){ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">ERROR AL CARGAR</div>'; return; }
     const esc = s => String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
     const convs = d.data.conversaciones||[];
@@ -11360,7 +11390,7 @@ function loadSmsConversaciones(){
         +(noLeidos>0?'<span class="nbadge sms-conv-badge" style="background:#B83232;color:#fff;border:1px solid #B83232;flex-shrink:0">'+noLeidos+'</span>':'')
         +'</div></div>';
     }).join('');
-  }).catch(()=>{ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">ERROR DE RED</div>'; });
+  }).catch(err=>{ list.innerHTML='<div class="sms-conv-empty" style="padding:20px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>'; });
 }
 // El botón "SMS" del encabezado del perfil (profile.php) ya llamaba a esta
 // función desde antes, pero nunca se había definido — por eso el botón no
@@ -11928,11 +11958,11 @@ function loadBonos(){
   const agente = isAdmin ? (document.getElementById('bonos-agente')?.value||'all') : 'me';
   let url = 'api.php?action=get_pago_bonos&mes='+encodeURIComponent(mes);
   if(isAdmin && agente !== 'all') url += '&agente_id='+agente;
-  fetch(url).then(r=>r.json()).then(d=>{
+  fetchJson(url).then(d=>{
     if(!d.ok){toast('Error cargando bonos');return;}
     window._bonosRows = d.data.registros||[];
     renderBonos(d.data.registros, d.data.total_pagado, d.data.total_pendiente);
-  }).catch(()=>toast('Error de conexión'));
+  }).catch(err=>toast('⚠ '+((err&&err.message)||'ERROR DE RED')));
 }
 
 function renderBonos(rows, totalPagado, totalPend){
@@ -12644,7 +12674,7 @@ function crearTicketDesdeCita(citaId){
 function loadCitasPanel(cb){
   var wrap = document.getElementById('citas-panes-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_citas_panel').then(function(r){return r.json();}).then(function(d){
+  fetchJson('api.php?action=get_citas_panel').then(function(d){
     if(d.ok){
       wrap.innerHTML = d.data.html;
       _aplicarCitasKpisYConteos(d.data.kpis, d.data.counts);
@@ -12652,8 +12682,8 @@ function loadCitasPanel(cb){
       wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR CITAS</div>';
     }
     if(typeof cb==='function') cb();
-  }).catch(function(){
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>';
+  }).catch(function(err){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>';
     if(typeof cb==='function') cb();
   });
 }
@@ -12844,19 +12874,19 @@ document.addEventListener('DOMContentLoaded', function(){
 function loadLivePanel(cb){
   var wrap = document.getElementById('live-panel-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_live_panel').then(function(r){return r.json();}).then(function(d){
+  fetchJson('api.php?action=get_live_panel').then(function(d){
     if(d.ok) wrap.innerHTML = d.data.html;
     else wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR TODAY LIVE</div>';
     if(typeof cb==='function') cb();
-  }).catch(function(){
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>';
+  }).catch(function(err){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>';
     if(typeof cb==='function') cb();
   });
 }
 function loadFollowUpsPanel(cb){
   var wrap = document.getElementById('followups-panes-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
-  fetch('api.php?action=get_follow_ups_panel').then(function(r){return r.json();}).then(function(d){
+  fetchJson('api.php?action=get_follow_ups_panel').then(function(d){
     if(d.ok){
       wrap.innerHTML = d.data.html;
       _aplicarFollowUpsKpisYConteos(d.data.kpis, d.data.counts);
@@ -12864,8 +12894,8 @@ function loadFollowUpsPanel(cb){
       wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR FOLLOW UPS</div>';
     }
     if(typeof cb==='function') cb();
-  }).catch(function(){
-    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR DE RED</div>';
+  }).catch(function(err){
+    wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>';
     if(typeof cb==='function') cb();
   });
 }
