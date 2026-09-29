@@ -853,25 +853,6 @@ if (!empty($_POST['plan_ajax'])) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── ROLES — AJAX HANDLER ────────────────────────────────────────────────────
-if (!empty($_POST['roles_ajax'])) {
-    header('Content-Type: application/json');
-    $pdo_rl = db(); auth();
-    try {
-        if (($_POST['action'] ?? '') === 'assign_role') {
-            $k = trim($_POST['role_key'] ?? ''); $aid = (int)($_POST['agente_id'] ?? 0);
-            if ($k === '') { echo json_encode(['ok'=>false,'error'=>'role_key vacío']); exit; }
-            if ($aid > 0)
-                $pdo_rl->prepare("INSERT INTO roles_asignacion (role_key,agente_id) VALUES (?,?) ON DUPLICATE KEY UPDATE agente_id=VALUES(agente_id)")->execute([$k,$aid]);
-            else
-                $pdo_rl->prepare("DELETE FROM roles_asignacion WHERE role_key=?")->execute([$k]);
-            echo json_encode(['ok'=>true]);
-        } else { echo json_encode(['ok'=>false,'error'=>'Acción desconocida']); }
-    } catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
-    exit;
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 // --- CREAR TABLA FALTANTE PARA LOS CHECKLISTS DE EFECTIVOS ---
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS efectivos_checks (
@@ -1278,16 +1259,6 @@ try {
         foreach ($pm_seed as $i=>$m) $pm_ins->execute([$m[0],$m[1],$m[2],$m[3],$m[4],$i]);
     }
 } catch (Exception $e) {}
-// ─── TABLA ROLES (asignación de responsabilidades) ───────────────────────────
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS roles_asignacion (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        role_key VARCHAR(20) NOT NULL UNIQUE,
-        agente_id INT,
-        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
-    )");
-} catch (Exception $e) {}
-// ─────────────────────────────────────────────────────────────────────────────
 
 // Contar llamadas de hoy para el reporte — comparar por rango (col >= hoy
 // AND col < mañana) en vez de DATE(col)=? para que MySQL sí pueda usar el
@@ -1844,11 +1815,11 @@ $cue_total      = count($cuentas_list);
 $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']));
 // ─────────────────────────────────────────────────────────────────────────────
 
-$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
+$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
+$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
-$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
-$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
+$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
+$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$TX='#1B3A5C';
 function badge(?string $s, bool $sm = false) : string {
     $s = $s ?? ''; $map=['ACTIVE'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'IN PROCESS'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PLAN CHANGE'=>['#5B3FAF','#F3F0FB','#C2B0E8'],'SIN HACER'=>['#C07A1A','#FEF8EE','#F5D5A0'],'SIN FIRMAR'=>['#C05C1A','#FEF2EB','#F5C4A0'],'CANCELED'=>['#B83232','#FDF0EE','#EFA09A'],'DENIED'=>['#B83232','#FDF0EE','#EFA09A'],'CERRADO'=>['#888780','#F1EFE8','#B4B2A9'],'DISENROLLED'=>['#993C1D','#FAECE7','#F0997B'],'ACTIVO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'CANCELADO'=>['#B83232','#FDF0EE','#EFA09A'],'PENDIENTE'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PROSPECTO'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ABIERTO'=>['#B83232','#FDF0EE','#EFA09A'],'EN PROCESO'=>['#C07A1A','#FEF8EE','#F5D5A0'],'CERRADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'FIRMADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ALTA'=>['#B83232','#FDF0EE','#EFA09A'],'MEDIA'=>['#C07A1A','#FEF8EE','#F5D5A0'],'BAJA'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ACTIVA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'DEVUELTA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ADMIN'=>['#1B4A6B','#EBF4F9','#C8DFF0'],'EMPLEADO'=>['#1E7A8C','#EAF4F6','#8DC8D0']];$c=$map[$s]??['#7A90A4','#F4F8FC','#C8DFF0'];$p=$sm?'2px 8px':'3px 10px';$f=$sm?'9px':'10px';return "<span style=\"padding:$p;border-radius:20px;font-size:$f;font-weight:800;background:{$c[1]};color:{$c[0]};border:1px solid {$c[2]};white-space:nowrap;letter-spacing:.5px;text-transform:uppercase\">$s</span>";}
@@ -4697,83 +4668,6 @@ function planNota(hz){
     .then(function(r){return r.json();}).then(function(d){if(d&&d.ok&&typeof toast==='function')toast('Plan guardado');}).catch(function(){});
 }
 </script>
-
-<!-- ROLES (ACTIVIDADES & ROLES) -->
-<div id="tab-ROLES" class="tab-pane">
-<?php
-$ALL_ROLES=[
- ['r01','Inscripciones & Ventas','Responsable principal de cierres','Cierra la mayoría de inscripciones nuevas. Coordina con Isabel los cierres.'],
- ['r02','Inscripciones & Ventas','Responsable de seguimiento de leads — SLA 60 min','Primera persona que responde a todos los leads nuevos en menos de 60 minutos.'],
- ['r03','Inscripciones & Ventas','Responsable de agenda de Isabel','Coordina y protege el calendario de Isabel para citas de inscripción y eventos.'],
- ['r04','Inscripciones & Ventas','Responsable de carga al portal de aseguradoras','Sube cada inscripción al portal del carrier y captura el número de confirmación el mismo día.'],
- ['r05','Retención de Miembros','Responsable del protocolo Day 1 / 15 / 30 / 90','Ejecuta TODAS las llamadas de retención a nuevos miembros en los días 1, 15, 30 y 90 de cada inscripción.'],
- ['r06','Retención de Miembros','Responsable de casos críticos y escalación a Isabel','Identifica y escala a Isabel cualquier miembro en riesgo de baja, con queja o sin contacto +45 días.'],
- ['r07','Retención de Miembros','Responsable de Google Reviews','Pide la reseña de Google a cada miembro en el Day 30. Un mensaje por miembro, sin insistir. Meta: 50 reviews.'],
- ['r08','Retención de Miembros','Responsable de llamadas pre-AEP a todos los miembros','Septiembre-octubre: llama a los 250+ miembros para retenerlos antes del Annual Enrollment Period.'],
- ['r09','Outreach Comunitario','Responsable de senior centers y eventos comunitarios','Contacta, agenda y ejecuta todos los talleres en senior centers, iglesias y centros comunitarios. Meta: 4 eventos/mes.'],
- ['r10','Outreach Comunitario','Responsable de red de médicos y clínicas referidoras','Construye y mantiene relaciones con clínicas y médicos de Van Nuys. Meta: 10 alianzas para Sep 2026.'],
- ['r11','Outreach Comunitario','Responsable de materiales bilingüe (flyers, checklists)','Diseña y actualiza todos los materiales de campo. Sin logos de carriers. Info de contacto de Isabel incluida.'],
- ['r12','Marketing Digital','Responsable de campañas pagadas Facebook/Instagram','Crea, monitorea y optimiza todas las campañas. Meta: costo por lead menor a $25.'],
- ['r13','Marketing Digital','Responsable de contenido orgánico en redes sociales','Publica 3-5 posts/semana en español. Responde mensajes en menos de 60 min.'],
- ['r14','Marketing Digital','Responsable de compliance de comunicaciones externas','Revisa que TODO contenido y comunicación cumpla regulaciones CMS antes de publicar. Sin carriers, sin comparaciones.'],
- ['r15','CRM & Administración','Responsable de actualización diaria del CRM','Asegura que todos los leads y miembros estén actualizados en el CRM cada día antes de las 6pm.'],
- ['r16','CRM & Administración','Responsable de reportes semanales de métricas','Prepara y presenta semanalmente: inscripciones, pipeline, retención, CPL. Con datos reales del CRM.'],
- ['r17','CRM & Administración','Responsable de asignación de listas de prospectos','Cada sábado se asignan listas. Todos saben qué lista trabaja cada uno. Sin cruce de listas.'],
- ['r18','Operaciones de Oficina','Responsable de suministros y materiales de oficina','Identifica qué falta, informa a Isabel, mantiene inventario básico siempre disponible.'],
- ['r19','Operaciones de Oficina','Responsable de coordinación de agenda de Isabel','Confirma citas 24h antes, evita conflictos, notifica cambios con anticipación.'],
- ['r20','Estrategia & Reportes','Responsable del standup diario (facilitador)','Facilita el check-in matutino. Todas participan, bloqueos se registran, duración máxima 20 min.'],
-];
-$ROLE_ICONS=['Inscripciones & Ventas'=>'💼','Retención de Miembros'=>'🔄','Outreach Comunitario'=>'🏘','Marketing Digital'=>'📱','CRM & Administración'=>'📋','Operaciones de Oficina'=>'🏢','Estrategia & Reportes'=>'📊'];
-$role_asig=[]; try{ foreach($pdo->query("SELECT role_key,agente_id FROM roles_asignacion") as $ra)$role_asig[$ra['role_key']]=(int)$ra['agente_id']; }catch(Exception $e){}
-$roles_by_area=[]; foreach($ALL_ROLES as $r)$roles_by_area[$r[1]][]=$r;
-$role_counts=[]; foreach($role_asig as $rk=>$aid){ if($aid)$role_counts[$aid]=($role_counts[$aid]??0)+1; }
-$rl_total=count($ALL_ROLES); $rl_asig=count(array_filter($role_asig,fn($a)=>$a>0));
-?>
-<div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px;padding:13px 16px">
-  <div class="card-title" style="font-size:11px">🧩 ACTIVIDADES & ROLES</div>
-  <div style="font-size:8px;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-top:3px"><?=$rl_asig?>/<?=$rl_total?> RESPONSABILIDADES ASIGNADAS · ¿QUIÉN HACE QUÉ?</div>
-  <?php if($role_counts):?>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">
-    <?php foreach($users_all as $uu): $cnt=$role_counts[$uu['id']]??0; if($cnt==0)continue; ?>
-    <div style="display:flex;gap:5px;align-items:center;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:20px;padding:3px 11px 3px 4px">
-      <?=av(h($uu['iniciales']),h($uu['color']??$P2),20)?>
-      <span style="font-size:8px;font-weight:900;color:<?=$P1?>"><?=h(explode(' ',$uu['nombre'])[0])?></span>
-      <span style="font-size:8px;font-weight:900;color:<?=$MU?>;background:#fff;border-radius:20px;padding:0 6px"><?=$cnt?></span>
-    </div>
-    <?php endforeach;?>
-  </div>
-  <?php endif;?>
-</div>
-<?php foreach($roles_by_area as $area=>$roles): $ic=$ROLE_ICONS[$area]??'•'; ?>
-<div style="margin-bottom:8px;font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px;padding:4px 0"><?=$ic?> <?=h($area)?></div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:9px;margin-bottom:14px">
-<?php foreach($roles as [$rk,$ar,$nm,$desc]): $asig=$role_asig[$rk]??0; ?>
-<div class="card" style="padding:12px 14px<?=$asig?';border-left:4px solid #1E7A5C':''?>">
-  <div style="font-size:9px;font-weight:900;color:<?=$P1?>;line-height:1.4;margin-bottom:4px"><?=h($nm)?></div>
-  <div style="font-size:8px;color:<?=$MU?>;line-height:1.5;margin-bottom:8px"><?=h($desc)?></div>
-  <select class="form-input" style="font-size:9px;padding:6px 9px;text-transform:none" onchange="assignRole('<?=$rk?>',this.value,this)">
-    <option value="0">— SIN ASIGNAR —</option>
-    <?php foreach($users_all as $uu):?><option value="<?=$uu['id']?>"<?=$asig==$uu['id']?' selected':''?>><?=h($uu['nombre'])?></option><?php endforeach;?>
-  </select>
-</div>
-<?php endforeach;?>
-</div>
-<?php endforeach;?>
-</div><!-- /ROLES -->
-<script>
-function assignRole(key,aid,el){
-  fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'roles_ajax=1&action=assign_role&role_key='+encodeURIComponent(key)+'&agente_id='+aid})
-    .then(function(r){return r.json();})
-    .then(function(d){
-      if(d&&d.ok){ if(typeof toast==='function')toast('Rol asignado'); var card=el.closest('.card'); if(card)card.style.borderLeft=(aid&&aid!=='0')?'4px solid #1E7A5C':'none'; }
-      else if(typeof toast==='function')toast('Error: '+((d&&d.error)||''));
-    }).catch(function(){ if(typeof toast==='function')toast('Error de red'); });
-}
-</script>
-
-
-
-
 
 <!-- MI DÍA — Daily Checklist per role -->
 <div id="tab-MI DÍA" class="tab-pane">
@@ -9859,8 +9753,8 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
 const el=document.getElementById('tab-'+id);if(el)el.style.display='block';
 document.querySelectorAll('.ntab[data-tab="'+id+'"]').forEach(b=>b.classList.add('active'));
-const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
-const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
+const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
+const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
 document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
