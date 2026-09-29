@@ -3499,7 +3499,7 @@ function deleteLista(id){
   _campVista='listas';
   campPost('action=delete_lista_evento&id='+id,true);
 }
-var LE_ESTADO_OPTS=<?=json_encode(array_keys($LEM_ESTADOS))?>;
+var LE_ESTADO_OPTS=<?=json_encode(['PENDIENTE','CONFIRMADO','NO CONFIRMADO','ASISTIÓ','NO ASISTIÓ'])?>;
 // Datos del empleado con la sesión abierta ahora mismo — para pintar al
 // instante el ícono de "quién trabajó" en la fila que se acaba de editar,
 // sin tener que esperar a que se recargue la página para verlo.
