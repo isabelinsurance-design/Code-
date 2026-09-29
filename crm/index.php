@@ -1430,21 +1430,24 @@ try {
 } catch (Exception $e) {}
 // ─────────────────────────────────────────────────────────────────────────────
 
-// Contar llamadas de hoy para el reporte
-$stmt_llam_p = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND DATE(created_at)=?");
-$stmt_llam_p->execute([$uid, $today]);
+// Contar llamadas de hoy para el reporte — comparar por rango (col >= hoy
+// AND col < mañana) en vez de DATE(col)=? para que MySQL sí pueda usar el
+// índice de la columna de fecha; DATE(col)=? obliga a revisar TODAS las
+// filas de la tabla una por una, sin importar cuántas tenga la tabla.
+$stmt_llam_p = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY)");
+$stmt_llam_p->execute([$uid, $today, $today]);
 $mis_llamadas_prospectos_hoy = $stmt_llam_p->fetchColumn();
 
-$stmt_llam_pc = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND DATE(created_at)=? AND contesto=1");
-$stmt_llam_pc->execute([$uid, $today]);
+$stmt_llam_pc = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY) AND contesto=1");
+$stmt_llam_pc->execute([$uid, $today, $today]);
 $mis_llamadas_prosp_conts = $stmt_llam_pc->fetchColumn();
 
-$stmt_llam_pnc = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND DATE(created_at)=? AND contesto=0");
-$stmt_llam_pnc->execute([$uid, $today]);
+$stmt_llam_pnc = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE agente_id=? AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY) AND contesto=0");
+$stmt_llam_pnc->execute([$uid, $today, $today]);
 $mis_llamadas_prosp_no_conts = $stmt_llam_pnc->fetchColumn();
 
-$stmt_llam_s = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE agente_id=? AND tipo='LLAMADA' AND DATE(fecha_creacion)=?");
-$stmt_llam_s->execute([$uid, $today]);
+$stmt_llam_s = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE agente_id=? AND tipo='LLAMADA' AND fecha_creacion>=? AND fecha_creacion<DATE_ADD(?, INTERVAL 1 DAY)");
+$stmt_llam_s->execute([$uid, $today, $today]);
 $mis_llamadas_servicio_hoy = $stmt_llam_s->fetchColumn();
 // ----------------------------------------------------------------
 
@@ -1680,19 +1683,30 @@ $tkt_select = "SELECT t.*,
                LEFT JOIN usuarios a ON t.asignado_a = a.id
                LEFT JOIN miembros m ON t.miembro_id = m.id";
 
+// Esta carga inicial de la página solo necesita los tickets ABIERTOS
+// (siempre) y los CERRADOS de este mes (para el cuadrito "CERRADOS ESTE
+// MES") — no hace falta traer AÑOS de tickets ya cerrados en cada carga de
+// página, solo para calcular unos conteos. Los cerrados más viejos se
+// siguen viendo completos en la pestaña Tickets (se piden aparte ahí,
+// filtro CERRADOS/TODOS — ver render_tickets_table_html()).
+$mes_inicio = date('Y-m-01');
 if ($admin) {
-    $tickets = $pdo->query("$tkt_select
+    $tickets = $pdo->prepare("$tkt_select
+                            WHERE t.estado != 'CERRADO' OR t.fecha_cierre >= ?
                             ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                                      IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
-                                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC")->fetchAll();
+                                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
+    $tickets->execute([$mes_inicio]);
+    $tickets = $tickets->fetchAll();
 } else {
     $stmt = $pdo->prepare("$tkt_select
-                           WHERE t.asignado_a = ?
-                              OR (t.asignado_a IS NULL AND t.agente_id = ?)
+                           WHERE (t.asignado_a = ?
+                              OR (t.asignado_a IS NULL AND t.agente_id = ?))
+                              AND (t.estado != 'CERRADO' OR t.fecha_cierre >= ?)
                            ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                                     IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
                                     IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
-    $stmt->execute([$uid, $uid]);
+    $stmt->execute([$uid, $uid, $mes_inicio]);
     $tickets = $stmt->fetchAll();
 }
 // Separate open vs all for dashboard counts
@@ -1767,8 +1781,8 @@ $mis_apps_hoy = count(array_filter($tickets, function($t) use ($uid, $hoy_fmt) {
 }));
 
 // Contar citas creadas por mí hoy — solo tipos productivos (ENROLLMENT, AEP, T65)
-$stmt_citas_hoy = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE agente_id=? AND DATE(created_at)=? AND tipo IN ('ENROLLMENT','AEP','T65')");
-$stmt_citas_hoy->execute([$uid, $today]);
+$stmt_citas_hoy = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE agente_id=? AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY) AND tipo IN ('ENROLLMENT','AEP','T65')");
+$stmt_citas_hoy->execute([$uid, $today, $today]);
 $mis_citas_creadas_hoy = $stmt_citas_hoy->fetchColumn();
 
 // Contar APPS POR HACER (Tickets de tipo 'APLICACION' abiertos/sin cerrar de mi pertenencia)
@@ -1783,7 +1797,7 @@ $stmt_act = $pdo->prepare("
         SELECT ns.ticket_id AS ticket_ref
         FROM ticket_next_steps ns
         JOIN tickets t ON t.id = ns.ticket_id
-        WHERE ns.agente_id = ? AND DATE(ns.created_at) = ?
+        WHERE ns.agente_id = ? AND ns.created_at >= ? AND ns.created_at < DATE_ADD(?, INTERVAL 1 DAY)
           AND t.tipo IN ($tipos_miembro_sql)
         UNION
         SELECT t.id AS ticket_ref
@@ -1791,12 +1805,12 @@ $stmt_act = $pdo->prepare("
         JOIN tickets t ON t.miembro_id = a.miembro_id
         WHERE a.agente_id = ?
           AND a.tipo IN ('TICKET', 'NOTA')
-          AND DATE(a.fecha_hora) = ?
+          AND a.fecha_hora >= ? AND a.fecha_hora < DATE_ADD(?, INTERVAL 1 DAY)
           AND (t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?))
           AND t.tipo IN ($tipos_miembro_sql)
     ) combined
 ");
-$stmt_act->execute([$uid, $today, $uid, $today, $uid, $uid]);
+$stmt_act->execute([$uid, $today, $today, $uid, $today, $today, $uid, $uid]);
 $tkt_act_count = $mis_actualizados_hoy = (int)$stmt_act->fetchColumn();
 
 
@@ -1812,21 +1826,6 @@ $llamadas=$pdo->query("SELECT l.*,u.iniciales,u.color FROM llamadas_perdidas l L
 $pending_llam=count(array_filter($llamadas,fn($l)=>$l['estado']==='PENDIENTE'));
 $rq=$admin?"SELECT r.*,u.nombre,u.color,u.iniciales FROM reporte_diario r LEFT JOIN usuarios u ON r.agente_id=u.id WHERE r.fecha='$today' ORDER BY u.nombre":"SELECT r.*,u.nombre,u.color,u.iniciales FROM reporte_diario r LEFT JOIN usuarios u ON r.agente_id=u.id WHERE r.agente_id=$uid AND r.fecha='$today' LIMIT 1";
 $reportes_hoy=$pdo->query($rq)->fetchAll();
-
-// Checklist completado por agente hoy
-$checklist_stats = [];
-$stmt_ck = $pdo->query(
-    "SELECT cd.agente_id,
-            COUNT(*) as total,
-            SUM(cd.completado) as completadas
-     FROM checklist_diario cd
-     JOIN tareas_personalizadas tp ON cd.item_key = tp.item_key AND tp.agente_id = cd.agente_id
-     WHERE cd.fecha = '$today'
-     GROUP BY cd.agente_id"
-);
-foreach ($stmt_ck->fetchAll() as $ck) {
-    $checklist_stats[$ck['agente_id']] = $ck;
-}
 
 $my_reporte=$admin?null:($reportes_hoy[0]??null);
 
