@@ -283,69 +283,6 @@ if (!empty($_POST['train_ajax'])) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
-// ─── REUNIONES — AJAX HANDLER ────────────────────────────────────────────────
-if (!empty($_POST['mtg_ajax'])) {
-    header('Content-Type: application/json');
-    $pdo_r = db(); $u_r = auth(); $uid_r = $u_r['id']; $act_r = $_POST['action'] ?? '';
-    try { switch ($act_r) {
-        case 'toggle_item':
-            $iid = (int)($_POST['item_id'] ?? 0);
-            $pdo_r->prepare("UPDATE reuniones_items SET done = 1 - done WHERE id=?")->execute([$iid]);
-            echo json_encode(['ok'=>true]); break;
-        case 'toggle_accion':
-            $aid = (int)($_POST['accion_id'] ?? 0);
-            $pdo_r->prepare("UPDATE reuniones_acciones SET done = 1 - done WHERE id=?")->execute([$aid]);
-            echo json_encode(['ok'=>true]); break;
-        case 'update_item_nota':
-            $iid = (int)($_POST['item_id'] ?? 0); $nt = trim($_POST['nota'] ?? '');
-            $pdo_r->prepare("UPDATE reuniones_items SET notas=? WHERE id=?")->execute([$nt, $iid]);
-            echo json_encode(['ok'=>true]); break;
-        case 'save_notas':
-            $rid = (int)($_POST['reunion_id'] ?? 0); $nt = trim($_POST['notas'] ?? '');
-            $pdo_r->prepare("UPDATE reuniones SET notas=? WHERE id=?")->execute([$nt, $rid]);
-            echo json_encode(['ok'=>true]); break;
-        case 'toggle_status':
-            $rid = (int)($_POST['reunion_id'] ?? 0);
-            $q = $pdo_r->prepare("SELECT status FROM reuniones WHERE id=?"); $q->execute([$rid]); $st = $q->fetchColumn();
-            $new = ($st === 'done') ? 'upcoming' : 'done';
-            $pdo_r->prepare("UPDATE reuniones SET status=? WHERE id=?")->execute([$new, $rid]);
-            echo json_encode(['ok'=>true,'status'=>$new]); break;
-        case 'add_item':
-            $rid = (int)($_POST['reunion_id'] ?? 0); $sid = (int)($_POST['seccion_id'] ?? 0); $tx = trim($_POST['texto'] ?? '');
-            if ($tx === '') { echo json_encode(['ok'=>false,'error'=>'Texto vacío']); break; }
-            $pdo_r->prepare("INSERT INTO reuniones_items (reunion_id,seccion_id,texto,responsables,done,notas,orden) VALUES (?,?,?,'',0,'',999)")->execute([$rid,$sid,$tx]);
-            echo json_encode(['ok'=>true]); break;
-        case 'add_accion':
-            $rid = (int)($_POST['reunion_id'] ?? 0); $tx = trim($_POST['texto'] ?? '');
-            if ($tx === '') { echo json_encode(['ok'=>false,'error'=>'Texto vacío']); break; }
-            $pdo_r->prepare("INSERT INTO reuniones_acciones (reunion_id,texto,responsable,done) VALUES (?,?,?,0)")->execute([$rid,$tx,$uid_r]);
-            echo json_encode(['ok'=>true]); break;
-        case 'add_seccion':
-            $rid = (int)($_POST['reunion_id'] ?? 0); $nm = trim($_POST['nombre'] ?? '');
-            if ($nm === '') { echo json_encode(['ok'=>false,'error'=>'Nombre vacío']); break; }
-            $pdo_r->prepare("INSERT INTO reuniones_secciones (reunion_id,nombre,orden) VALUES (?,?,999)")->execute([$rid,$nm]);
-            echo json_encode(['ok'=>true]); break;
-        case 'new_meeting':
-            $tt = trim($_POST['titulo'] ?? ''); $fe = trim($_POST['fecha'] ?? '');
-            if ($tt === '' || $fe === '') { echo json_encode(['ok'=>false,'error'=>'Falta título o fecha']); break; }
-            $tp = trim($_POST['tipo'] ?? 'semanal'); $rc = trim($_POST['recurrencia'] ?? '');
-            $pdo_r->prepare("INSERT INTO reuniones (titulo,fecha,tipo,status,recurrencia,asistentes,notas,created_by) VALUES (?,?,?,'upcoming',?,'','',?)")
-                  ->execute([$tt,$fe,$tp,$rc,$uid_r]);
-            $nid = (int)$pdo_r->lastInsertId();
-            $pdo_r->prepare("INSERT INTO reuniones_secciones (reunion_id,nombre,orden) VALUES (?, 'Agenda', 0)")->execute([$nid]);
-            echo json_encode(['ok'=>true,'id'=>$nid]); break;
-        case 'delete_meeting':
-            $rid = (int)($_POST['reunion_id'] ?? 0);
-            foreach (['reuniones_items','reuniones_secciones','reuniones_acciones'] as $t)
-                $pdo_r->prepare("DELETE FROM $t WHERE reunion_id=?")->execute([$rid]);
-            $pdo_r->prepare("DELETE FROM reuniones WHERE id=?")->execute([$rid]);
-            echo json_encode(['ok'=>true]); break;
-        default: echo json_encode(['ok'=>false,'error'=>'Acción desconocida']);
-    }} catch (Exception $e) { echo json_encode(['ok'=>false,'error'=>$e->getMessage()]); }
-    exit;
-}
-// ─────────────────────────────────────────────────────────────────────────────
-
 // ─── CAMPAÑAS — AJAX HANDLER ─────────────────────────────────────────────────
 if (!empty($_POST['camp_ajax'])) {
     header('Content-Type: application/json');
@@ -1136,84 +1073,6 @@ try {
         UNIQUE KEY uk_ag_sem (agente_id, semana)
     )");
 } catch (Exception $e) {}
-// ─── TABLAS REUNIONES (meetings: agenda, items, acciones) ────────────────────
-try {
-    $pdo->exec("CREATE TABLE IF NOT EXISTS reuniones (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        ext_id VARCHAR(20) DEFAULT NULL,
-        titulo VARCHAR(255) NOT NULL,
-        fecha DATE,
-        hora VARCHAR(20) DEFAULT NULL,
-        tipo VARCHAR(30) DEFAULT 'semanal',
-        status VARCHAR(20) DEFAULT 'upcoming',
-        recurrencia VARCHAR(120) DEFAULT NULL,
-        asistentes VARCHAR(255) DEFAULT NULL,
-        notas TEXT,
-        created_by INT DEFAULT NULL,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-    )");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS reuniones_secciones (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        reunion_id INT NOT NULL,
-        nombre VARCHAR(255) NOT NULL,
-        orden INT DEFAULT 0
-    )");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS reuniones_items (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        reunion_id INT NOT NULL,
-        seccion_id INT NOT NULL,
-        texto VARCHAR(500) NOT NULL,
-        responsables VARCHAR(255) DEFAULT NULL,
-        done TINYINT(1) DEFAULT 0,
-        notas VARCHAR(500) DEFAULT NULL,
-        orden INT DEFAULT 0
-    )");
-    $pdo->exec("CREATE TABLE IF NOT EXISTS reuniones_acciones (
-        id INT AUTO_INCREMENT PRIMARY KEY,
-        reunion_id INT NOT NULL,
-        texto VARCHAR(500) NOT NULL,
-        responsable INT DEFAULT NULL,
-        done TINYINT(1) DEFAULT 0
-    )");
-    // Sembrar reuniones históricas UNA sola vez (datos del PG system)
-    $mtg_cnt = (int)$pdo->query("SELECT COUNT(*) FROM reuniones")->fetchColumn();
-    if ($mtg_cnt === 0) {
-        $pgmap = [];
-        foreach ([1=>'ISABEL',2=>'SAMIA',3=>'ARLETTE',4=>'SKARLETH'] as $pgid=>$nm) {
-            $rid = $pdo->query("SELECT id FROM usuarios WHERE nombre LIKE ".$pdo->quote($nm.'%')." LIMIT 1")->fetchColumn();
-            if ($rid) $pgmap[$pgid] = (int)$rid;
-        }
-        $as_arr = function($x){ if ($x === null) return []; return is_array($x) ? $x : [$x]; };
-        $mapids = function($arr) use ($pgmap, $as_arr){ $o=[]; foreach($as_arr($arr) as $v){ if(isset($pgmap[(int)$v])) $o[]=$pgmap[(int)$v]; } return implode(',', $o); };
-        $mtg_seed = json_decode(base64_decode('W3siaWQiOiJyMSIsImZlY2hhIjoiMjAyNi0wNC0yNSIsInRpdHVsbyI6IlBsYW5lYWNpw7NuIFNlbWFuYWwg4oCUIFPDoWIgMjUgQWJyIiwidGlwbyI6InNlbWFuYWwiLCJzdGF0dXMiOiJkb25lIiwiYXNpc3RlbnRlcyI6WzEsMiwzLDRdLCJyZWN1cnJlbmNpYSI6IlNlbWFuYWwg4oCUIFPDoWJhZG9zIiwibm90YXMiOiJCbG9xdWVvIGRlIEFybGV0dGUgY29uIGZhcm1hY2lhIGVzY2FsYWRvLiBTYW1pIGVuIGJ1ZW4gcml0bW8uIENvbnRyYXRvIERyLiBNYXJ0w61uZXogZmlybWFkby4iLCJhY2Npb25lcyI6W3siaWQiOiJhMSIsInR4dCI6IkVzY2FsYXIgYmxvcXVlbyBmYXJtYWNpYSIsInJlc3AiOjEsImRvbmUiOnRydWV9LHsiaWQiOiJhMiIsInR4dCI6IlNlZ3VpbWllbnRvIGNvbnRyYXRvcyBTa2FybGV0aCIsInJlc3AiOjQsImRvbmUiOnRydWV9LHsiaWQiOiJhMyIsInR4dCI6IlNhbWk6IGNvbXBsZXRhciBpbnNjcmlwY2lvbmVzIGRlbCBwb3J0YWwiLCJyZXNwIjoyLCJkb25lIjp0cnVlfV0sInNlY2Npb25lcyI6W3sibm9tYnJlIjoiTWV0YXMgZGUgbGEgU2VtYW5hIiwiaXRlbXMiOlt7ImlkIjoiaTEiLCJ0ZXh0byI6IlRpY2tldHMgZGVsIGx1bmVzIOKGkiBjZXJyYWRvcyBlbCBzw6FiYWRvIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiJUb2RvcyBjZXJyYWRvcyJ9LHsiaWQiOiJpMiIsInRleHRvIjoiVmllcm5lczogcmV2aXNpw7NuIGRlIHRpY2tldHMiLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOnRydWUsIm5vdGFzIjoiIn0seyJpZCI6ImkzIiwidGV4dG8iOiJDaXRhcyBwb3IgbGxhbWFkYXMgY29tcGxldGFzIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiUXVlZGFuIDIifSx7ImlkIjoiaTQiLCJ0ZXh0byI6IkxsYW1hZGEgZGlhcmlhIGNvbiBJc2FiZWwiLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOnRydWUsIm5vdGFzIjoiQ3VtcGxpZG8gdG9kb3MgbG9zIGTDrWFzIn0seyJpZCI6Imk1IiwidGV4dG8iOiJQcm95ZWN0b3M6IHJlcG9ydGFyIGN1bXBsaWRvcyArIHByw7N4aW1vcyIsInJlc3AiOlsyLDMsNF0sImRvbmUiOnRydWUsIm5vdGFzIjoiIn0seyJpZCI6Imk2IiwidGV4dG8iOiJOZWNlc2lkYWRlcyBkZSBsYSBvZmljaW5hIOKAlCBBcmxldHRlIiwicmVzcCI6WzNdLCJkb25lIjpmYWxzZSwibm90YXMiOiJQZW5kaWVudGUifV19LHsibm9tYnJlIjoiUmV0ZW5jacOzbiIsIml0ZW1zIjpbeyJpZCI6Imk3IiwidGV4dG8iOiJQcm9ibGVtYXMgY3LDrXRpY29zIGNvbiBtaWVtYnJvcyIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIyIGNhc29zIHJlc3VlbHRvcyJ9XX0seyJub21icmUiOiJWZW50YXMiLCJpdGVtcyI6W3siaWQiOiJpOCIsInRleHRvIjoiTWFya2V0aW5nIGRlIHJlZGVzIiwicmVzcCI6WzEsMiwzLDRdLCJkb25lIjp0cnVlLCJub3RhcyI6IiJ9LHsiaWQiOiJpOSIsInRleHRvIjoiUHJpbWVyYSBsbGFtYWRhIGEgbnVldm9zIGxlYWRzIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiJTYW1pOiA4IMK3IFNrYXJsZXRoOiAxMiJ9LHsiaWQiOiJpMTAiLCJ0ZXh0byI6IlNlZ3VpbWllbnRvIGEgbGVhZHMgY2FsaWVudGVzIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIzIGluc2NyaXBjaW9uZXMgY2VycmFkYXMifV19XX0seyJpZCI6InIyIiwiZmVjaGEiOiIyMDI2LTA0LTExIiwidGl0dWxvIjoiQWdlbmRhIFNlbWFuYWwg4oCUIFPDoWIgMTEgQWJyIiwidGlwbyI6InNlbWFuYWwiLCJzdGF0dXMiOiJkb25lIiwiYXNpc3RlbnRlcyI6WzEsMiwzLDRdLCJyZWN1cnJlbmNpYSI6IlNlbWFuYWwg4oCUIFPDoWJhZG9zIiwibm90YXMiOiJQcm90b2NvbG8gY2hlY2staW5zIDN4IGTDrWEgZGVmaW5pZG8uIiwiYWNjaW9uZXMiOlt7ImlkIjoiYTQiLCJ0eHQiOiJJc2FiZWw6IGF2YW56YXIgZW4gY29udHJhdG9zIiwicmVzcCI6MSwiZG9uZSI6ZmFsc2V9LHsiaWQiOiJhNSIsInR4dCI6IkJhc2UgZGUgZGF0b3MgZGUgcGxhbmVzIiwicmVzcCI6MiwiZG9uZSI6ZmFsc2V9XSwic2VjY2lvbmVzIjpbeyJub21icmUiOiJBY3RpdmlkYWRlcyIsIml0ZW1zIjpbeyJpZCI6ImoxIiwidGV4dG8iOiJDb250cmF0b3MgKElzYWJlbCkiLCJyZXNwIjpbMV0sImRvbmUiOmZhbHNlLCJub3RhcyI6IkVuIHByb2Nlc28ifSx7ImlkIjoiajIiLCJ0ZXh0byI6IkhvcmFyaW9zIGRlbCBlcXVpcG8iLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOnRydWUsIm5vdGFzIjoiIn1dfSx7Im5vbWJyZSI6Ik1ldGFzIiwiaXRlbXMiOlt7ImlkIjoiajMiLCJ0ZXh0byI6IlRpY2tldHMgZGVsIGx1bmVzIOKGkiBjZXJyYWRvcyBlbCBzw6FiYWRvIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiNjAlIn0seyJpZCI6Imo0IiwidGV4dG8iOiJWaWVybmVzOiByZXZpc2nDs24gZGUgdGlja2V0cyIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIifSx7ImlkIjoiajUiLCJ0ZXh0byI6IjE6MSBzZW1hbmFsIGNvbiBjYWRhIG1pZW1icm8iLCJyZXNwIjpbMV0sImRvbmUiOmZhbHNlLCJub3RhcyI6IkZhbHRhIFNrYXJsZXRoIn1dfV19LHsiaWQiOiJyMyIsImZlY2hhIjoiMjAyNi0wMy0yMSIsInRpdHVsbyI6IlJldW5pw7NuIGRlIFByb2Nlc29zIHkgUHJvdG9jb2xvcyIsInRpcG8iOiJvcGVyYWNpb25lcyIsInN0YXR1cyI6ImRvbmUiLCJhc2lzdGVudGVzIjpbMSwyLDMsNF0sInJlY3VycmVuY2lhIjoiTmluZ3VuYSIsIm5vdGFzIjoiSG90cyBQcm9zcGVjdCwgdGlja2V0cywgbMOtbmVhcywgZGlzdHJpYnVjacOzbiBkZSBsaXN0YXMgZGUgcHJvc3BlY3Rvcy4iLCJhY2Npb25lcyI6W3siaWQiOiJhNiIsInR4dCI6IlRvZGFzOiBhY3R1YWxpemFyIEhvdHMgUHJvc3BlY3QiLCJyZXNwIjoyLCJkb25lIjpmYWxzZX0seyJpZCI6ImE3IiwidHh0IjoiUmV2aXNhciBuw7ptZXJvcyBkZSBsw61uZWEgYWwgODE4IiwicmVzcCI6MSwiZG9uZSI6dHJ1ZX0seyJpZCI6ImE4IiwidHh0IjoiQXNpZ25hciBsaXN0YXMgZGUgcHJvc3BlY3RvcyBjYWRhIHPDoWJhZG8iLCJyZXNwIjoxLCJkb25lIjp0cnVlfV0sInNlY2Npb25lcyI6W3sibm9tYnJlIjoiQWN1ZXJkb3MgZGVsIEVxdWlwbyIsIml0ZW1zIjpbeyJpZCI6ImsxIiwidGV4dG8iOiJIb3RzIFByb3NwZWN0OiBhZ3JlZ2FyIHJlYWdlbmRhZG8sIHF1w6kgcGFzw7MgeSBub3RhcyIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiNzAlIn0seyJpZCI6ImsyIiwidGV4dG8iOiJBbCBoYWNlciBjaXRhczogVE9EQSBsYSBpbmZvIGVuIHRpY2tldCIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiODAlIn0seyJpZCI6ImszIiwidGV4dG8iOiJOw7ptZXJvcyBkZSBsw61uZWEgYWwgODE4IiwicmVzcCI6WzFdLCJkb25lIjp0cnVlLCJub3RhcyI6IlZlcmlmaWNhZG8ifSx7ImlkIjoiazQiLCJ0ZXh0byI6IkxsYW1hZGFzIGEgbWllbWJyb3M6IHNpZW1wcmUgZGVsIDMyMy00MDItNDE0NSIsInJlc3AiOlsyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6Ijg1JSJ9LHsiaWQiOiJrNSIsInRleHRvIjoiVG9kYXMgc2FiZXIgZW4gcXXDqSBwbGFuZXMgc2UgaGFjZSBlbCBIUkEiLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IjYwJSJ9XX0seyJub21icmUiOiJQUk9UT0NPTE8g4oCUIERpc3RyaWJ1Y2nDs24gZGUgTGlzdGFzIiwiaXRlbXMiOlt7ImlkIjoiazYiLCJ0ZXh0byI6IkNhZGEgc8OhYmFkbzogSXNhYmVsIGFzaWduYSBsaXN0YXMgZGUgcHJvc3BlY3RvcyIsInJlc3AiOlsxXSwiZG9uZSI6dHJ1ZSwibm90YXMiOiJJbXBsZW1lbnRhZG8ifSx7ImlkIjoiazciLCJ0ZXh0byI6IlRvZGFzIHNhYmVyIHF1w6kgbGlzdGEgdHJhYmFqYSBjYWRhIHVuYSIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiODAlIn1dfV19LHsiaWQiOiJyNCIsImZlY2hhIjoiMjAyNi0wMy0wMiIsInRpdHVsbyI6IlJlc3VtZW4gZGUgTGxhbWFkYSBTZW1hbmFsIiwidGlwbyI6InNlZ3VpbWllbnRvIiwic3RhdHVzIjoiZG9uZSIsImFzaXN0ZW50ZXMiOlsxLDIsMyw0XSwicmVjdXJyZW5jaWEiOiJTZW1hbmFsIiwibm90YXMiOiJSZXNwb25zYWJsZSBkZSBsbGFtYWRhcyAzMC82MC85MCBkw61hcyBhc2lnbmFkby4iLCJhY2Npb25lcyI6W3siaWQiOiJhOSIsInR4dCI6IkFzaWduYXIgcmVzcG9uc2FibGUgbGxhbWFkYXMgMzAvNjAvOTAgZMOtYXMiLCJyZXNwIjoxLCJkb25lIjp0cnVlfSx7ImlkIjoiYTEwIiwidHh0IjoiTGxhbWFyIGEgZWZlY3Rpdm9zIGRlIG1hcnpvIiwicmVzcCI6MiwiZG9uZSI6dHJ1ZX1dLCJzZWNjaW9uZXMiOlt7Im5vbWJyZSI6IkFjdWVyZG9zIiwiaXRlbXMiOlt7ImlkIjoibDEiLCJ0ZXh0byI6IlJlc3BvbnNhYmxlIGRlIGxsYW1hZGFzIDMwLzYwLzkwIGTDrWFzIiwicmVzcCI6WzFdLCJkb25lIjp0cnVlLCJub3RhcyI6IkFzaWduYWRvIn0seyJpZCI6ImwyIiwidGV4dG8iOiJNYXJ0ZXM6IElzYWJlbCBkZXNkZSBjYXNhIOKAlCB0cmFuc2ZlcmlyIGxsYW1hZGFzIiwicmVzcCI6WzEsMiwzLDRdLCJkb25lIjp0cnVlLCJub3RhcyI6IkFjdGl2byJ9LHsiaWQiOiJsMyIsInRleHRvIjoiTGxhbWFyIGEgZWZlY3Rpdm9zIGRlIG1hcnpvIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiJDb21wbGV0YWRvIn1dfV19LHsiaWQiOiJyNSIsImZlY2hhIjoiMjAyNi0wMi0yMSIsInRpdHVsbyI6IlJldW5pw7NuIGRlIE9wZXJhY2lvbmVzIOKAlCBGZWIgMjEiLCJ0aXBvIjoib3BlcmFjaW9uZXMiLCJzdGF0dXMiOiJkb25lIiwiYXNpc3RlbnRlcyI6WzEsMiwzLDRdLCJyZWN1cnJlbmNpYSI6Ik5pbmd1bmEiLCJub3RhcyI6IkltcGxlbWVudGFjacOzbiBkZSBOZXh0aXZhLiBQcm90b2NvbG8gZGUgbWllbWJyb3MgbW9sZXN0b3MgZXN0YWJsZWNpZG8uIiwiYWNjaW9uZXMiOlt7ImlkIjoiYTExIiwidHh0IjoiQ29uZmlndXJhciBsw61uZWEgTmV4dGl2YSIsInJlc3AiOjEsImRvbmUiOnRydWV9LHsiaWQiOiJhMTIiLCJ0eHQiOiJQcm90b2NvbG8gbWllbWJyb3MgbW9sZXN0b3M6IHRyYW5zZmVyZW5jaWEgaW5tZWRpYXRhIGEgSXNhYmVsIiwicmVzcCI6MSwiZG9uZSI6dHJ1ZX0seyJpZCI6ImExMyIsInR4dCI6IkxsYW1hZGFzIHNlZ3VpbWllbnRvIDMwLzYwLzkwIGTDrWFzIiwicmVzcCI6MiwiZG9uZSI6ZmFsc2V9XSwic2VjY2lvbmVzIjpbeyJub21icmUiOiIxLiBOZXh0aXZhIiwiaXRlbXMiOlt7ImlkIjoibjEiLCJ0ZXh0byI6IkltcGxlbWVudGFjacOzbiBudWV2YSBsw61uZWEgTmV4dGl2YSIsInJlc3AiOlsxXSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIifSx7ImlkIjoibjIiLCJ0ZXh0byI6IkNpZXJyZSBkZSBzZXNpb25lcyBhY3RpdmFzIiwicmVzcCI6WzFdLCJkb25lIjp0cnVlLCJub3RhcyI6IiJ9LHsiaWQiOiJuMyIsInRleHRvIjoiUmVzdHJpY2Npw7NuIGRlIGFjY2VzbyIsInJlc3AiOlsxXSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIifV19LHsibm9tYnJlIjoiMi4gUHJvdG9jb2xvcyIsIml0ZW1zIjpbeyJpZCI6Im40IiwidGV4dG8iOiJQUk9UT0NPTE86IG1pZW1icm9zIG1vbGVzdG9zIOKGkiB0cmFuc2ZlcmVuY2lhIElOTUVESUFUQSBhIElzYWJlbCIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6dHJ1ZSwibm90YXMiOiJBY3Rpdm8ifSx7ImlkIjoibjUiLCJ0ZXh0byI6IkTDrWEgZmlqbyBzZW1hbmFsIHBhcmEgY2l0YXMg4oCUIE1hcnRlcyIsInJlc3AiOlsxXSwiZG9uZSI6dHJ1ZSwibm90YXMiOiIifSx7ImlkIjoibjYiLCJ0ZXh0byI6IkxsYW1hZGFzIHNlZ3VpbWllbnRvIDMwLzYwLzkwIGTDrWFzIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiNjAlIn1dfSx7Im5vbWJyZSI6IjMuIEVzdGFuZGFyaXphY2nDs24iLCJpdGVtcyI6W3siaWQiOiJuNyIsInRleHRvIjoiRG9jdW1lbnRhY2nDs24gb2JsaWdhdG9yaWE6IHJlZ2lzdHJvIGV4aGF1c3Rpdm8gZGUgY2FkYSB0aWNrZXQiLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6Ijc1JSJ9XX1dfSx7ImlkIjoicjYiLCJmZWNoYSI6IjIwMjYtMDUtMDIiLCJ0aXR1bG8iOiJQbGFuZWFjacOzbiBTZW1hbmFsIOKAlCBTw6FiIDIgTWF5IiwidGlwbyI6InNlbWFuYWwiLCJzdGF0dXMiOiJ1cGNvbWluZyIsImFzaXN0ZW50ZXMiOlsxLDIsMyw0XSwicmVjdXJyZW5jaWEiOiJTZW1hbmFsIOKAlCBTw6FiYWRvcyIsIm5vdGFzIjoiIiwiYWNjaW9uZXMiOlt7ImlkIjoiYTE0IiwidHh0IjoiVG9kYXMgdHJhZXIgYWN0dWFsaXphY2nDs24gZGUgcHJveWVjdG9zIiwicmVzcCI6MiwiZG9uZSI6ZmFsc2V9LHsiaWQiOiJhMTUiLCJ0eHQiOiJBcmxldHRlOiBsaXN0YSBuZWNlc2lkYWRlcyBkZSBsYSBvZmljaW5hIiwicmVzcCI6MywiZG9uZSI6ZmFsc2V9XSwic2VjY2lvbmVzIjpbeyJub21icmUiOiJNZXRhcyBkZSBsYSBTZW1hbmEiLCJpdGVtcyI6W3siaWQiOiJwMSIsInRleHRvIjoiVGlja2V0cyBkZWwgbHVuZXMg4oaSIGNlcnJhZG9zIGVsIHPDoWJhZG8iLCJyZXNwIjpbMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoicDIiLCJ0ZXh0byI6IlZpZXJuZXM6IHJldmlzacOzbiBkZSB0aWNrZXRzIiwicmVzcCI6WzEsMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoicDMiLCJ0ZXh0byI6IkNpdGFzIHBvciBsbGFtYWRhcyBjb21wbGV0YXMiLCJyZXNwIjpbMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoicDQiLCJ0ZXh0byI6IkxsYW1hZGEgZGlhcmlhIGNvbiBJc2FiZWwiLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJwNSIsInRleHRvIjoiUHJveWVjdG9zOiByZXBvcnRhciBjdW1wbGlkb3MgKyBwcsOzeGltb3MiLCJyZXNwIjpbMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoicDYiLCJ0ZXh0byI6Ik5lY2VzaWRhZGVzIGRlIGxhIG9maWNpbmEg4oCUIEFybGV0dGUiLCJyZXNwIjpbM10sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9XX0seyJub21icmUiOiJSZXRlbmNpw7NuIiwiaXRlbXMiOlt7ImlkIjoicDciLCJ0ZXh0byI6IlByb2JsZW1hcyBjcsOtdGljb3MgY29uIG1pZW1icm9zIiwicmVzcCI6WzEsMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifV19LHsibm9tYnJlIjoiVmVudGFzIiwiaXRlbXMiOlt7ImlkIjoicDgiLCJ0ZXh0byI6Ik1hcmtldGluZyBkZSByZWRlcyIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6InA5IiwidGV4dG8iOiJQcmltZXJhIGxsYW1hZGEg4oCUIG51ZXZvcyBsZWFkcyIsInJlc3AiOlsyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJwMTAiLCJ0ZXh0byI6IlNlZ3VpbWllbnRvIGEgbGVhZHMgY2FsaWVudGVzIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn1dfV19LHsiaWQiOiJyMTAiLCJmZWNoYSI6IjIwMjYtMDUtMDYiLCJ0aXR1bG8iOiJFbnRyZW5hbWllbnRvIGRlbCBFcXVpcG8iLCJ0aXBvIjoiZW50cmVuYW1pZW50byIsInN0YXR1cyI6InVwY29taW5nIiwiYXNpc3RlbnRlcyI6WzEsMiwzLDRdLCJyZWN1cnJlbmNpYSI6Ik1pZXJjb2xlcyIsIm5vdGFzIjoiU2VzaW9uIHNlbWFuYWwgZGUgZW50cmVuYW1pZW50by4gVGVtYXM6IGNvbXBsaWFuY2UsIHNjcmlwdHMgZGUgdmVudGFzLCBoZXJyYW1pZW50YXMsIHByb2R1Y3RvIE1lZGljYXJlLiIsImFjY2lvbmVzIjpbXSwic2VjY2lvbmVzIjpbeyJub21icmUiOiJBZ2VuZGEgZGUgRW50cmVuYW1pZW50byIsIml0ZW1zIjpbeyJpZCI6InRyMSIsInRleHRvIjoiVGVtYSBkZSBsYSBzZW1hbmEg4oCUIGNvbXBsaWFuY2UgbyBzY3JpcHRzIiwicmVzcCI6WzFdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoidHIyIiwidGV4dG8iOiJQcmFjdGljYSBkZSByb2xlLXBsYXkg4oCUIGxsYW1hZGEgZGUgcHJvc3BlY3RvIiwicmVzcCI6WzIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6InRyMyIsInRleHRvIjoiUVx1MDAyNkEg4oCUIGR1ZGFzIGRlbCBlcXVpcG8iLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJ0cjQiLCJ0ZXh0byI6IkFzaWduYWNpb24gZGUgdGFyZWEgcGFyYSBsYSBwcm94aW1hIHNlbWFuYSIsInJlc3AiOlsxXSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn1dfV19LHsiaWQiOiJyNyIsImZlY2hhIjoiMjAyNi0wNC0yOCIsInRpdHVsbyI6IlN0YW5kdXAgRGlhcmlvIiwidGlwbyI6InN0YW5kdXAiLCJzdGF0dXMiOiJ1cGNvbWluZyIsImFzaXN0ZW50ZXMiOlsxLDIsMyw0XSwicmVjdXJyZW5jaWEiOiJMdW5lcyBhIFZpZXJuZXMgwrcgODozMCBBTSIsIm5vdGFzIjoiIiwiYWNjaW9uZXMiOltdLCJzZWNjaW9uZXMiOlt7Im5vbWJyZSI6IkFnZW5kYSDigJQgMzAgbWluIiwiaXRlbXMiOlt7ImlkIjoicTEiLCJ0ZXh0byI6IkxlYWRzIGNhbGllbnRlcyBkZSBhbm9jaGUiLCJyZXNwIjpbMiwzLDRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifSx7ImlkIjoicTIiLCJ0ZXh0byI6IkJsb3F1ZW9zIGFjdGl2b3MgZGVsIGVxdWlwbyIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6InEzIiwidGV4dG8iOiJQcmlvcmlkYWRlcyBkZWwgZMOtYSIsInJlc3AiOlsxLDIsMyw0XSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6InE0IiwidGV4dG8iOiLCv0FsZ28gdXJnZW50ZT8iLCJyZXNwIjpbMSwyLDMsNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9XX1dfSx7ImlkIjoicjgiLCJmZWNoYSI6IjIwMjYtMDQtMjkiLCJ0aXR1bG8iOiIxOjEgSXNhYmVsIFx1MDAyNiBBcmxldHRlIiwidGlwbyI6IjFvbjEiLCJzdGF0dXMiOiJ1cGNvbWluZyIsImFzaXN0ZW50ZXMiOlsxLDNdLCJyZWN1cnJlbmNpYSI6IlF1aW5jZW5hbCIsIm5vdGFzIjoiIiwiYWNjaW9uZXMiOltdLCJzZWNjaW9uZXMiOlt7Im5vbWJyZSI6IkVzdHJ1Y3R1cmEgMToxIiwiaXRlbXMiOlt7ImlkIjoibzEiLCJ0ZXh0byI6IkxvZ3JvcyBkZXNkZSBsYSDDumx0aW1hIDE6MSIsInJlc3AiOlszXSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6Im8yIiwidGV4dG8iOiJCbG9xdWVvcyDigJQgZmFybWFjaWE6IGFjdHVhbGl6YWNpw7NuPyIsInJlc3AiOlszXSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6Im8zIiwidGV4dG8iOiJNZXRhcyDigJQgSEVESVMgb2sgLyBSZXNwdWVzdGEgcXVlamFzIDMwJSIsInJlc3AiOlszXSwiZG9uZSI6ZmFsc2UsIm5vdGFzIjoiIn0seyJpZCI6Im80IiwidGV4dG8iOiLCv1F1w6kgbmVjZXNpdGFzIGRlIElzYWJlbD8iLCJyZXNwIjpbM10sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9XX1dfSx7ImlkIjoicjkiLCJmZWNoYSI6IjIwMjYtMDQtMzAiLCJ0aXR1bG8iOiIxOjEgSXNhYmVsIFx1MDAyNiBTa2FybGV0aCIsInRpcG8iOiIxb24xIiwic3RhdHVzIjoidXBjb21pbmciLCJhc2lzdGVudGVzIjpbMSw0XSwicmVjdXJyZW5jaWEiOiJRdWluY2VuYWwiLCJub3RhcyI6IiIsImFjY2lvbmVzIjpbXSwic2VjY2lvbmVzIjpbeyJub21icmUiOiJFc3RydWN0dXJhIDE6MSIsIml0ZW1zIjpbeyJpZCI6InMxIiwidGV4dG8iOiJMb2dyb3Mg4oCUIGNvbnRyYXRvIERyLiBNYXJ0w61uZXogb2siLCJyZXNwIjpbNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJzMiIsInRleHRvIjoiQmxvcXVlb3Mg4oCUIGxlZ2FsIGNvbiBjcmVkZW5jaWFsZXMiLCJyZXNwIjpbNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJzMyIsInRleHRvIjoiTWV0YXMg4oCUIDUgcHJvdmVlZG9yZXMgNDAlIC8gQ2VydGlmaWNhY2nDs24gb2siLCJyZXNwIjpbNF0sImRvbmUiOmZhbHNlLCJub3RhcyI6IiJ9LHsiaWQiOiJzNCIsInRleHRvIjoiwr9RdcOpIG5lY2VzaXRhcyBkZSBJc2FiZWw/IiwicmVzcCI6WzRdLCJkb25lIjpmYWxzZSwibm90YXMiOiIifV19XX1d'), true);
-        if (is_array($mtg_seed)) {
-            $insM = $pdo->prepare("INSERT INTO reuniones (ext_id,titulo,fecha,tipo,status,recurrencia,asistentes,notas) VALUES (?,?,?,?,?,?,?,?)");
-            $insS = $pdo->prepare("INSERT INTO reuniones_secciones (reunion_id,nombre,orden) VALUES (?,?,?)");
-            $insI = $pdo->prepare("INSERT INTO reuniones_items (reunion_id,seccion_id,texto,responsables,done,notas,orden) VALUES (?,?,?,?,?,?,?)");
-            $insA = $pdo->prepare("INSERT INTO reuniones_acciones (reunion_id,texto,responsable,done) VALUES (?,?,?,?)");
-            foreach ($mtg_seed as $mt) {
-                $insM->execute([
-                    $mt['id'] ?? null, $mt['titulo'] ?? '(SIN TÍTULO)', $mt['fecha'] ?? null,
-                    $mt['tipo'] ?? 'semanal', $mt['status'] ?? 'upcoming', $mt['recurrencia'] ?? '',
-                    $mapids($mt['asistentes'] ?? []), $mt['notas'] ?? ''
-                ]);
-                $rid_seed = (int)$pdo->lastInsertId(); $so = 0;
-                foreach ($as_arr($mt['secciones'] ?? []) as $sec) {
-                    $insS->execute([$rid_seed, $sec['nombre'] ?? 'Agenda', $so++]);
-                    $sid_seed = (int)$pdo->lastInsertId(); $io = 0;
-                    foreach ($as_arr($sec['items'] ?? []) as $it) {
-                        $insI->execute([$rid_seed, $sid_seed, $it['texto'] ?? '', $mapids($it['resp'] ?? []), !empty($it['done']) ? 1 : 0, $it['notas'] ?? '', $io++]);
-                    }
-                }
-                foreach ($as_arr($mt['acciones'] ?? []) as $ac) {
-                    $resp_a = $as_arr($ac['resp'] ?? []); $resp_a = $resp_a[0] ?? null;
-                    $rmap = isset($pgmap[(int)$resp_a]) ? $pgmap[(int)$resp_a] : null;
-                    $insA->execute([$rid_seed, $ac['txt'] ?? '', $rmap, !empty($ac['done']) ? 1 : 0]);
-                }
-            }
-        }
-    }
-} catch (Exception $e) {}
 // ─── TABLAS CAMPAÑAS (campaigns: contactos + logs, pipeline propio) ──────────
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS campanas (
@@ -1985,11 +1844,11 @@ $cue_total      = count($cuentas_list);
 $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']));
 // ─────────────────────────────────────────────────────────────────────────────
 
-$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','REUNIONES','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
+$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
+$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','ROLES','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
-$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','REUNIONES'=>'📅','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
-$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','REUNIONES'=>'REUNIONES','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
+$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','ROLES'=>'🧩','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
+$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','ROLES'=>'ROLES','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$TX='#1B3A5C';
 function badge(?string $s, bool $sm = false) : string {
     $s = $s ?? ''; $map=['ACTIVE'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'IN PROCESS'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PLAN CHANGE'=>['#5B3FAF','#F3F0FB','#C2B0E8'],'SIN HACER'=>['#C07A1A','#FEF8EE','#F5D5A0'],'SIN FIRMAR'=>['#C05C1A','#FEF2EB','#F5C4A0'],'CANCELED'=>['#B83232','#FDF0EE','#EFA09A'],'DENIED'=>['#B83232','#FDF0EE','#EFA09A'],'CERRADO'=>['#888780','#F1EFE8','#B4B2A9'],'DISENROLLED'=>['#993C1D','#FAECE7','#F0997B'],'ACTIVO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'CANCELADO'=>['#B83232','#FDF0EE','#EFA09A'],'PENDIENTE'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PROSPECTO'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ABIERTO'=>['#B83232','#FDF0EE','#EFA09A'],'EN PROCESO'=>['#C07A1A','#FEF8EE','#F5D5A0'],'CERRADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'FIRMADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ALTA'=>['#B83232','#FDF0EE','#EFA09A'],'MEDIA'=>['#C07A1A','#FEF8EE','#F5D5A0'],'BAJA'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ACTIVA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'DEVUELTA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ADMIN'=>['#1B4A6B','#EBF4F9','#C8DFF0'],'EMPLEADO'=>['#1E7A8C','#EAF4F6','#8DC8D0']];$c=$map[$s]??['#7A90A4','#F4F8FC','#C8DFF0'];$p=$sm?'2px 8px':'3px 10px';$f=$sm?'9px':'10px';return "<span style=\"padding:$p;border-radius:20px;font-size:$f;font-weight:800;background:{$c[1]};color:{$c[0]};border:1px solid {$c[2]};white-space:nowrap;letter-spacing:.5px;text-transform:uppercase\">$s</span>";}
@@ -2835,239 +2694,6 @@ function toggleTraining(sem, btn){
   })
   .catch(function(){ if(typeof toast==='function') toast('Error de red'); });
 }
-</script>
-
-<!-- REUNIONES -->
-<div id="tab-REUNIONES" class="tab-pane">
-<?php
-if (!function_exists('mtg_avs')) {
-  function mtg_avs($csv, $umap){ $o=''; foreach(array_filter(explode(',', (string)$csv)) as $uid_x){ if(isset($umap[$uid_x])){ $u=$umap[$uid_x]; $o.=av(h($u['iniciales']), h($u['color']??'#2876A8'), 18); } } return $o; }
-}
-$mtg_umap=[]; foreach($users_all as $uu) $mtg_umap[$uu['id']]=$uu;
-$TIPO_MTG=[
- 'semanal'=>['#1E7A5C','#EAF5F0','SEMANAL'],
- 'operaciones'=>['#5B3FAF','#F3F0FB','OPERACIONES'],
- 'seguimiento'=>['#1E7A8C','#EAF4F6','SEGUIMIENTO'],
- '1on1'=>['#5B3FAF','#F3F0FB','1:1'],
- 'standup'=>['#2876A8','#EBF5FB','STANDUP'],
- 'entrenamiento'=>['#C07A1A','#FEF8EE','ENTRENAMIENTO'],
-];
-$reuniones=[];$sec_by_m=[];$item_by_s=[];$acc_by_m=[];
-try{
- $reuniones=$pdo->query("SELECT * FROM reuniones ORDER BY fecha DESC, id DESC")->fetchAll();
- foreach($pdo->query("SELECT * FROM reuniones_secciones ORDER BY orden,id") as $s)$sec_by_m[$s['reunion_id']][]=$s;
- foreach($pdo->query("SELECT * FROM reuniones_items ORDER BY orden,id") as $it)$item_by_s[$it['seccion_id']][]=$it;
- foreach($pdo->query("SELECT * FROM reuniones_acciones ORDER BY id") as $a)$acc_by_m[$a['reunion_id']][]=$a;
-}catch(Exception $e){}
-$today_m=date('Y-m-d');
-$m_prox=count(array_filter($reuniones,fn($r)=>$r['status']==='upcoming'));
-$m_done=count(array_filter($reuniones,fn($r)=>$r['status']==='done'));
-?>
-<div class="card" style="border-top:3px solid <?=$P1?>;margin-bottom:14px;padding:13px 16px">
-  <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:9px">
-    <div>
-      <div class="card-title" style="font-size:11px">📅 REUNIONES & 1:1</div>
-      <div style="font-size:8px;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-top:3px"><?=count($reuniones)?> REUNIONES · <?=$m_prox?> PRÓXIMAS · <?=$m_done?> HECHAS</div>
-    </div>
-    <button class="btn btn-p btn-sm" onclick="openNewMtg()">+ NUEVA REUNIÓN</button>
-  </div>
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:11px">
-    <button class="btn btn-p btn-sm mtg-filter" onclick="filterMtg('todas',this)">TODAS</button>
-    <button class="btn btn-gh btn-sm mtg-filter" onclick="filterMtg('prox',this)">PRÓXIMAS</button>
-    <button class="btn btn-gh btn-sm mtg-filter" onclick="filterMtg('done',this)">HECHAS</button>
-    <button class="btn btn-gh btn-sm mtg-filter" onclick="filterMtg('1on1',this)">1:1</button>
-  </div>
-</div>
-<?php if(empty($reuniones)):?>
-<div class="card" style="padding:30px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">📅 NO HAY REUNIONES — CREA UNA CON "NUEVA REUNIÓN"</div>
-<?php endif;?>
-<?php foreach($reuniones as $r):
-  $tc=$TIPO_MTG[$r['tipo']]??['#7A90A4','#F4F8FC',strtoupper($r['tipo'])];
-  $d_ts=$r['fecha']?strtotime($r['fecha']):time();
-  $mon=strtoupper(date('M',$d_ts));$day=date('j',$d_ts);
-  if($r['status']==='done'){$stl='HECHA';$stc='#1E7A5C';$stb='#EAF5F0';$stbo='#8DCFBA';}
-  elseif($r['fecha']&&$r['fecha']<$today_m){$stl='PASADA';$stc='#C07A1A';$stb='#FEF8EE';$stbo='#F5D5A0';}
-  else{$stl='PRÓXIMA';$stc='#1B5E8C';$stb='#EBF5FB';$stbo='#A9D0E8';}
-  $secs=$sec_by_m[$r['id']]??[];
-  $all_items=0;$done_items=0;
-  foreach($secs as $sec){foreach($item_by_s[$sec['id']]??[] as $it){$all_items++;if($it['done'])$done_items++;}}
-  $pct=$all_items?round($done_items/$all_items*100):0;
-  $accs=$acc_by_m[$r['id']]??[];
-  $pa=count(array_filter($accs,fn($a)=>!$a['done']));
-?>
-<div class="card mtg-card" data-status="<?=h($r['status'])?>" data-tipo="<?=h($r['tipo'])?>" style="margin-bottom:10px;border-left:4px solid <?=$tc[0]?>">
-  <div class="card-header" style="cursor:pointer;flex-wrap:wrap;gap:9px" onclick="mtgToggleCard(<?=$r['id']?>)">
-    <div style="display:flex;align-items:center;gap:11px;min-width:0;flex:1">
-      <div style="background:<?=$tc[1]?>;border-radius:9px;padding:5px 9px;text-align:center;min-width:42px;flex-shrink:0">
-        <div style="font-size:8px;font-weight:900;color:<?=$tc[0]?>;text-transform:uppercase"><?=$mon?></div>
-        <div style="font-size:17px;font-weight:900;color:<?=$P1?>;line-height:1"><?=$day?></div>
-      </div>
-      <div style="min-width:0">
-        <div class="card-title" style="font-size:10px;white-space:normal"><?=h($r['titulo'])?></div>
-        <div style="display:flex;gap:5px;flex-wrap:wrap;align-items:center;margin-top:4px">
-          <span style="background:<?=$tc[1]?>;color:<?=$tc[0]?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=$tc[2]?></span>
-          <span style="background:<?=$stb?>;color:<?=$stc?>;border:1px solid <?=$stbo?>;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900"><?=$stl?></span>
-          <?php if($r['recurrencia']):?><span style="font-size:8px;color:<?=$MU?>">🔁 <?=h($r['recurrencia'])?></span><?php endif;?>
-          <?php if($pa>0):?><span style="font-size:8px;font-weight:900;color:#C07A1A"><?=$pa?> PEND</span><?php endif;?>
-          <?php if($all_items>0):?><span style="font-size:8px;font-weight:900;color:<?=$pct==100?'#1E7A5C':($pct<40?'#B83232':'#1B5E8C')?>"><?=$done_items?>/<?=$all_items?> · <?=$pct?>%</span><?php endif;?>
-        </div>
-      </div>
-    </div>
-    <span style="font-size:13px;color:<?=$MU?>;flex-shrink:0">▾</span>
-  </div>
-  <div id="mtg-body-<?=$r['id']?>" style="display:none;padding:13px 17px;border-top:1px solid <?=$CB?>">
-    <div style="display:flex;gap:6px;align-items:center;margin-bottom:12px;flex-wrap:wrap">
-      <span style="font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">ASISTENTES:</span>
-      <?php $avs=mtg_avs($r['asistentes'],$mtg_umap); echo $avs?:'<span style="font-size:9px;color:#7A90A4">—</span>';?>
-    </div>
-    <div style="display:flex;gap:7px;margin-bottom:13px;flex-wrap:wrap">
-      <button class="btn <?=$r['status']==='done'?'btn-am':'btn-gr'?> btn-sm" onclick="mtgToggleStatus(<?=$r['id']?>)"><?=$r['status']==='done'?'↺ REABRIR':'✓ MARCAR HECHA'?></button>
-      <button class="btn btn-re btn-sm" onclick="mtgDelete(<?=$r['id']?>)">✕ ELIMINAR</button>
-    </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:5px">NOTAS</div>
-      <textarea id="mtg-notas-<?=$r['id']?>" class="form-input" rows="3" style="text-transform:none"><?=h($r['notas'])?></textarea>
-      <button class="btn btn-gh btn-sm" style="margin-top:6px" onclick="mtgSaveNotas(<?=$r['id']?>)">GUARDAR NOTAS</button>
-    </div>
-    <div style="margin-bottom:14px">
-      <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.2px;margin-bottom:6px">ACCIONES / ACUERDOS</div>
-      <?php foreach($accs as $a):?>
-      <div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-bottom:1px solid <?=$CB?>">
-        <div id="mtg-acc-cb-<?=$a['id']?>" data-done="<?=$a['done']?'1':'0'?>" onclick="mtgToggleAccion(<?=$a['id']?>)" style="width:17px;height:17px;border-radius:5px;border:1.5px solid <?=$a['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$a['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;color:#fff;font-size:9px;font-weight:900"><?=$a['done']?'✓':''?></div>
-        <span id="mtg-acc-txt-<?=$a['id']?>" style="flex:1;font-size:10px;color:<?=$a['done']?$MU:$TX?>;<?=$a['done']?'text-decoration:line-through':''?>"><?=h($a['texto'])?></span>
-        <?php if($a['responsable']&&isset($mtg_umap[$a['responsable']])):$ua=$mtg_umap[$a['responsable']];?><?=av(h($ua['iniciales']),h($ua['color']??'#2876A8'),20)?><?php endif;?>
-      </div>
-      <?php endforeach;?>
-      <input type="text" class="form-input" style="font-size:9px;padding:6px 9px;margin-top:7px;text-transform:none" placeholder="+ NUEVA ACCIÓN... (ENTER)" onkeydown="if(event.key==='Enter'){event.preventDefault();mtgAddAccion(<?=$r['id']?>,this);}">
-    </div>
-    <?php foreach($secs as $sec): $items=$item_by_s[$sec['id']]??[]; $sd=count(array_filter($items,fn($i)=>$i['done'])); $sp=count($items)?round($sd/count($items)*100):0;?>
-    <div id="mtg-sec-<?=$sec['id']?>" style="margin-bottom:13px">
-      <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;margin-bottom:7px">
-        <span style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:.5px"><?=h($sec['nombre'])?></span>
-        <?php if(count($items)>0):?><span id="mtg-sec-progress-<?=$sec['id']?>" style="font-size:8px;font-weight:900;color:<?=$sp==100?'#1E7A5C':'#1B5E8C'?>"><?=$sd?>/<?=count($items)?> · <?=$sp?>%</span><?php endif;?>
-      </div>
-      <?php foreach($items as $it):?>
-      <div class="mtg-item-card" id="mtg-item-<?=$it['id']?>" data-done="<?=$it['done']?'1':'0'?>" style="background:#fff;border:1.5px solid <?=$it['done']?'#8DCFBA':$CB?>;border-radius:9px;padding:10px 12px;margin-bottom:6px">
-        <div style="display:flex;gap:9px;align-items:flex-start">
-          <div id="mtg-item-cb-<?=$it['id']?>" onclick="mtgToggleItem(<?=$it['id']?>)" style="width:18px;height:18px;border-radius:5px;border:1.5px solid <?=$it['done']?'#1E7A5C':'#C8DFF0'?>;background:<?=$it['done']?'#1E7A5C':'#fff'?>;display:flex;align-items:center;justify-content:center;flex-shrink:0;cursor:pointer;margin-top:1px;color:#fff;font-size:10px;font-weight:900"><?=$it['done']?'✓':''?></div>
-          <div style="flex:1;min-width:0">
-            <div id="mtg-item-txt-<?=$it['id']?>" style="font-size:10px;font-weight:700;color:<?=$it['done']?$MU:$TX?>;line-height:1.5;<?=$it['done']?'text-decoration:line-through':''?>"><?=h($it['texto'])?></div>
-            <?php $rav=mtg_avs($it['responsables'],$mtg_umap); if($rav):?><div style="display:flex;gap:3px;margin-top:5px;flex-wrap:wrap"><?=$rav?></div><?php endif;?>
-            <input type="text" class="form-input" style="font-size:9px;padding:5px 8px;margin-top:6px;text-transform:none" placeholder="NOTA..." value="<?=h($it['notas'])?>" onchange="mtgItemNota(<?=$it['id']?>,this.value)">
-          </div>
-        </div>
-      </div>
-      <?php endforeach;?>
-      <input type="text" class="form-input" style="font-size:9px;padding:6px 9px;text-transform:none" placeholder="+ AGREGAR ITEM... (ENTER)" onkeydown="if(event.key==='Enter'){event.preventDefault();mtgAddItem(<?=$r['id']?>,<?=$sec['id']?>,this);}">
-    </div>
-    <?php endforeach;?>
-    <input type="text" class="form-input" style="font-size:9px;padding:6px 9px;text-transform:none" placeholder="+ NUEVA SECCIÓN... (ENTER)" onkeydown="if(event.key==='Enter'){event.preventDefault();mtgAddSeccion(<?=$r['id']?>,this);}">
-  </div>
-</div>
-<?php endforeach;?>
-</div><!-- /REUNIONES -->
-
-<!-- MODAL: NUEVA REUNIÓN -->
-<div id="modal-mtg-new" class="modal-overlay"><div class="modal modal-sm">
-  <div class="modal-header"><div class="modal-title">NUEVA REUNIÓN</div><button class="modal-close" onclick="closeModal('modal-mtg-new')">✕</button></div>
-  <form onsubmit="submitNewMtg(event)">
-    <div class="form-group"><label class="form-label">TÍTULO *</label><input type="text" name="titulo" class="form-input" required></div>
-    <div class="grid-2">
-      <div class="form-group"><label class="form-label">FECHA *</label><input type="date" name="fecha" class="form-input" required></div>
-      <div class="form-group"><label class="form-label">TIPO</label><select name="tipo" class="form-input">
-        <option value="semanal">SEMANAL</option><option value="operaciones">OPERACIONES</option><option value="seguimiento">SEGUIMIENTO</option><option value="1on1">1:1</option><option value="standup">STANDUP</option><option value="entrenamiento">ENTRENAMIENTO</option>
-      </select></div>
-    </div>
-    <div class="form-group"><label class="form-label">RECURRENCIA</label><input type="text" name="recurrencia" class="form-input" placeholder="EJ: SEMANAL — SÁBADOS"></div>
-    <div style="display:flex;justify-content:flex-end;gap:7px;margin-top:8px">
-      <button type="button" class="btn btn-gh btn-sm" onclick="closeModal('modal-mtg-new')">CANCELAR</button>
-      <button type="submit" class="btn btn-p btn-sm">CREAR REUNIÓN</button>
-    </div>
-  </form>
-</div></div>
-<script>
-function mtgToggleCard(id){
-  var b=document.getElementById('mtg-body-'+id); if(!b) return;
-  var open=b.style.display!=='none';
-  b.style.display=open?'none':'block';
-  try{ if(open) sessionStorage.removeItem('mtgOpen'); else sessionStorage.setItem('mtgOpen',id); }catch(e){}
-}
-function _mtgReload(){ if(typeof softReload==='function'){ softReload(); return; } try{sessionStorage.setItem('pendingReload','1');sessionStorage.setItem('activeTab','REUNIONES');sessionStorage.setItem('mtgScroll',window.scrollY);}catch(e){} location.reload(); }
-function mtgPost(params,reload){
-  return fetch(location.pathname,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:'mtg_ajax=1&'+params})
-   .then(function(r){return r.json();})
-   .then(function(d){ if(!d||!d.ok){ if(typeof toast==='function')toast('Error: '+((d&&d.error)||'')); return d; } if(reload){_mtgReload();} return d; })
-   .catch(function(){ if(typeof toast==='function')toast('Error de red'); });
-}
-// Marcar un punto de la agenda o una acción como hecha es de lo que más se
-// repite DURANTE una reunión — antes cada clic recargaba toda la página
-// (150-200 consultas). Ahora se voltea en el momento en pantalla y el
-// guardado pasa en segundo plano, sin esperar ni recargar nada.
-function mtgToggleItem(i){
-  var cb = document.getElementById('mtg-item-cb-'+i);
-  var card = document.getElementById('mtg-item-'+i);
-  var txt = document.getElementById('mtg-item-txt-'+i);
-  var nowDone = !(card && card.dataset.done==='1');
-  if(card){ card.dataset.done = nowDone?'1':'0'; card.style.borderColor = nowDone?'#8DCFBA':'#C8DFF0'; }
-  if(cb){
-    cb.style.borderColor = nowDone?'#1E7A5C':'#C8DFF0';
-    cb.style.background  = nowDone?'#1E7A5C':'#fff';
-    cb.textContent = nowDone?'✓':'';
-  }
-  if(txt){ txt.style.color = nowDone?'#7A90A4':'#1B3A5C'; txt.style.textDecoration = nowDone?'line-through':'none'; }
-  var sec = card ? card.closest('[id^="mtg-sec-"]') : null;
-  if(sec){
-    var totalInSec = sec.querySelectorAll('.mtg-item-card').length;
-    var doneInSec  = sec.querySelectorAll('.mtg-item-card[data-done="1"]').length;
-    var pctEl = document.getElementById('mtg-sec-progress-'+sec.id.replace('mtg-sec-',''));
-    if(pctEl && totalInSec){
-      var pct = Math.round(doneInSec/totalInSec*100);
-      pctEl.textContent = doneInSec+'/'+totalInSec+' · '+pct+'%';
-      pctEl.style.color = pct===100 ? '#1E7A5C' : '#1B5E8C';
-    }
-  }
-  mtgPost('action=toggle_item&item_id='+i,false);
-}
-function mtgToggleAccion(a){
-  var cb  = document.getElementById('mtg-acc-cb-'+a);
-  var txt = document.getElementById('mtg-acc-txt-'+a);
-  var nowDone = !(cb && cb.dataset.done==='1');
-  if(cb){
-    cb.dataset.done = nowDone?'1':'0';
-    cb.style.borderColor = nowDone?'#1E7A5C':'#C8DFF0';
-    cb.style.background  = nowDone?'#1E7A5C':'#fff';
-    cb.textContent = nowDone?'✓':'';
-  }
-  if(txt){ txt.style.color = nowDone?'#7A90A4':'#1B3A5C'; txt.style.textDecoration = nowDone?'line-through':'none'; }
-  mtgPost('action=toggle_accion&accion_id='+a,false);
-}
-function mtgItemNota(i,v){mtgPost('action=update_item_nota&item_id='+i+'&nota='+encodeURIComponent(v),false).then(function(){if(typeof toast==='function')toast('Nota guardada');});}
-function mtgAddItem(r,s,inp){if(!inp.value.trim())return;mtgPost('action=add_item&reunion_id='+r+'&seccion_id='+s+'&texto='+encodeURIComponent(inp.value.trim()),true);}
-function mtgAddAccion(r,inp){if(!inp.value.trim())return;mtgPost('action=add_accion&reunion_id='+r+'&texto='+encodeURIComponent(inp.value.trim()),true);}
-function mtgAddSeccion(r,inp){if(!inp.value.trim())return;mtgPost('action=add_seccion&reunion_id='+r+'&nombre='+encodeURIComponent(inp.value.trim()),true);}
-function mtgSaveNotas(r){var t=document.getElementById('mtg-notas-'+r);if(!t)return;mtgPost('action=save_notas&reunion_id='+r+'&notas='+encodeURIComponent(t.value),false).then(function(){if(typeof toast==='function')toast('Notas guardadas');});}
-function mtgToggleStatus(r){mtgPost('action=toggle_status&reunion_id='+r,true);}
-function mtgDelete(r){if(!confirm('¿Eliminar esta reunión? Esto borrará su agenda y acuerdos.'))return;try{sessionStorage.removeItem('mtgOpen');}catch(e){}mtgPost('action=delete_meeting&reunion_id='+r,true);}
-function filterMtg(f,btn){
-  document.querySelectorAll('#tab-REUNIONES .mtg-filter').forEach(function(b){b.className='btn btn-gh btn-sm mtg-filter';});
-  if(btn)btn.className='btn btn-p btn-sm mtg-filter';
-  document.querySelectorAll('#tab-REUNIONES .mtg-card').forEach(function(c){
-    var s=c.dataset.status,t=c.dataset.tipo;
-    var show=(f==='todas')||(f==='prox'&&s==='upcoming')||(f==='done'&&s==='done')||(f==='1on1'&&t==='1on1');
-    c.style.display=show?'':'none';
-  });
-}
-function openNewMtg(){openModal('modal-mtg-new');}
-function submitNewMtg(e){e.preventDefault();var f=e.target;
-  var p='action=new_meeting&titulo='+encodeURIComponent(f.titulo.value)+'&fecha='+encodeURIComponent(f.fecha.value)+'&tipo='+encodeURIComponent(f.tipo.value)+'&recurrencia='+encodeURIComponent(f.recurrencia.value);
-  mtgPost(p,false).then(function(d){if(d&&d.ok){try{sessionStorage.setItem('mtgOpen',d.id);}catch(e){}_mtgReload();}});
-}
-document.addEventListener('DOMContentLoaded',function(){
-  try{
-    var o=sessionStorage.getItem('mtgOpen'); if(o){var b=document.getElementById('mtg-body-'+o); if(b)b.style.display='block';}
-    var sc=sessionStorage.getItem('mtgScroll'); if(sc){ setTimeout(function(){window.scrollTo(0,parseInt(sc));sessionStorage.removeItem('mtgScroll');},150); }
-  }catch(e){}
-});
 </script>
 
 <!-- CAMPAÑAS -->
@@ -10233,8 +9859,8 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
 const el=document.getElementById('tab-'+id);if(el)el.style.display='block';
 document.querySelectorAll('.ntab[data-tab="'+id+'"]').forEach(b=>b.classList.add('active'));
-const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',REUNIONES:'REUNIONES',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
-const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',REUNIONES:'📅',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
+const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',ROLES:'ROLES',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
+const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',ROLES:'🧩',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
 document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
@@ -12383,8 +12009,7 @@ function softReload(done){
           }
         }
       }catch(e){}
-      // Reabrir acordeón recién creado de reuniones / campañas (si aplica)
-      try{ var mo=sessionStorage.getItem('mtgOpen'); if(mo){ var mb=document.getElementById('mtg-body-'+mo); if(mb) mb.style.display='block'; sessionStorage.removeItem('mtgOpen'); } }catch(e){}
+      // Reabrir acordeón recién creado de campañas (si aplica)
       try{ var co=sessionStorage.getItem('campOpen'); if(co){ var cb=document.getElementById('camp-body-'+co); if(cb) cb.style.display='block'; sessionStorage.removeItem('campOpen'); } }catch(e){}
       try{ var lo=sessionStorage.getItem('leOpen'); if(lo){ var lb=document.getElementById('le-body-'+lo); if(lb) lb.style.display='block'; sessionStorage.removeItem('leOpen'); } }catch(e){}
       // 5) Restaurar scroll
