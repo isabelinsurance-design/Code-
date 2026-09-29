@@ -12052,7 +12052,10 @@ function scrollChat(){const m=document.getElementById('chat-messages');if(m)m.sc
 function sendChat(){const inp=document.getElementById('chat-input');const msg=inp?.value.trim();if(!msg)return;inp.value='';const sendBtn=inp?.nextElementSibling;if(sendBtn)sendBtn.disabled=true;fetch('api.php',{method:'POST',body:new URLSearchParams({action:'send_chat',mensaje:msg})}).then(r=>r.json()).then(d=>{if(d.ok&&d.data){appendChatMsg({id:d.data.id,mensaje:msg,me:true});chatLastId=d.data.id;}else{inp.value=msg;toast('⚠ ERROR AL ENVIAR');}}).catch(()=>{inp.value=msg;toast('⚠ ERROR DE RED');}).finally(()=>{if(sendBtn)sendBtn.disabled=false;});}
 function appendChatMsg(m){const box=document.getElementById('chat-messages');const isMe=m.me||m.user_id==UID;const t=m.created_at?(m.created_at+'').substr(11,5):'';const div=document.createElement('div');div.className='chat-msg '+(isMe?'me':'them');if(m.id)div.dataset.id=m.id;div.innerHTML='<div class="chat-msg-meta">'+(isMe?'TÚ':(m.nombre||'?').split(' ')[0])+' · '+t+'</div>'+(m.mensaje+'').replace(/</g,'&lt;');box.appendChild(div);scrollChat();}
 
-setInterval(()=>{fetch('api.php?action=get_chat&since='+chatLastId).then(r=>r.json()).then(d=>{if(d.ok&&d.data.messages&&d.data.messages.length){d.data.messages.forEach(m=>{if(!document.querySelector('.chat-msg[data-id="'+m.id+'"]')){appendChatMsg(m);if(m.user_id!=UID){const panelOculto=document.getElementById('chat-panel').classList.contains('hidden');if(panelOculto){let b=document.querySelector('.chat-fab-badge');if(!b){b=document.createElement('span');b.className='chat-fab-badge';b.textContent='1';document.querySelector('.chat-fab').appendChild(b);}else{const n=parseInt(b.textContent)||0;b.textContent=(n+1>99)?'99+':String(n+1);}}/* 🔔 Notificación de Windows: cuando el panel está oculto O la pestaña no tiene el foco */if(panelOculto||document.hidden){const remitente=(m.nombre||'Compañero').split(' ')[0];enviarNotificacionPush('💬 '+remitente,m.mensaje);}}}chatLastId=Math.max(chatLastId,m.id);});}}); },8000);
+// Antes cada 8 segundos — se bajó a 20 (menos peticiones de fondo por
+// empleado conectado, para no verse como tráfico "de bot" ante Cloudflare
+// y para no competir tanto por la sesión con los guardados reales).
+setInterval(()=>{fetch('api.php?action=get_chat&since='+chatLastId).then(r=>r.json()).then(d=>{if(d.ok&&d.data.messages&&d.data.messages.length){d.data.messages.forEach(m=>{if(!document.querySelector('.chat-msg[data-id="'+m.id+'"]')){appendChatMsg(m);if(m.user_id!=UID){const panelOculto=document.getElementById('chat-panel').classList.contains('hidden');if(panelOculto){let b=document.querySelector('.chat-fab-badge');if(!b){b=document.createElement('span');b.className='chat-fab-badge';b.textContent='1';document.querySelector('.chat-fab').appendChild(b);}else{const n=parseInt(b.textContent)||0;b.textContent=(n+1>99)?'99+':String(n+1);}}/* 🔔 Notificación de Windows: cuando el panel está oculto O la pestaña no tiene el foco */if(panelOculto||document.hidden){const remitente=(m.nombre||'Compañero').split(' ')[0];enviarNotificacionPush('💬 '+remitente,m.mensaje);}}}chatLastId=Math.max(chatLastId,m.id);});}}); },20000);
 
 // ── SMS — sondeo para avisar de inmediato cuando llega uno nuevo ──────────
 // Corre sin importar en qué pestaña estés (igual que el chat interno de
@@ -12087,6 +12090,8 @@ function enviarNotificacionSms(titulo, mensaje, telefono) {
     Notification.requestPermission();
   }
 }
+// Mismo motivo que el sondeo del chat de arriba: antes cada 8 segundos,
+// se bajó a 20.
 setInterval(()=>{
   fetch('api.php?action=sms_get_nuevos&since='+smsLastId).then(r=>r.json()).then(d=>{
     if(!d.ok || !d.data) return;
@@ -12104,7 +12109,7 @@ setInterval(()=>{
       if (enComunicacion && typeof softReload === 'function') softReload();
     }
   }).catch(()=>{});
-}, 8000);
+}, 20000);
 function toggleNotifPanel(){const p=document.getElementById('notif-dropdown');p.classList.toggle('open');if(p.classList.contains('open'))loadNotifs();}
 function loadNotifs(){fetch('api.php?action=get_notifs').then(r=>r.json()).then(d=>{if(!d.ok)return;const list=document.getElementById('notif-list');if(!d.data.notifs||!d.data.notifs.length){list.innerHTML='<div style="padding:14px;text-align:center;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN NOTIFICACIONES</div>';return;}list.innerHTML=d.data.notifs.map(n=>'<div style="padding:9px 14px;border-bottom:1px solid #EBF4F9;background:'+(n.leido?'#fff':'#FEF8EE')+'" onclick="markNotifRead('+n.id+',this)"><div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase">'+n.tipo+'<span style="float:right;color:#7A90A4;font-weight:400">'+n.created_at.substr(5,11)+'</span></div><div style="font-size:9px;color:#1B3A5C;margin-top:3px">'+n.mensaje+'</div></div>').join('');});}
 function markNotifRead(id,el){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id})});if(el)el.style.background='#fff';}
