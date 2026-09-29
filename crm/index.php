@@ -10772,8 +10772,14 @@ function guardarActivarMiembro(){
 }
 function openMemberForm(id=null){
   fetch('member_form.php'+(id?'?id='+id:''))
-    .then(r=>r.text())
+    .then(function(r){
+      if(!r.ok) throw new Error('ERROR AL ABRIR EL FORMULARIO (' + r.status + ')');
+      return r.text();
+    })
     .then(html=>{
+      if(!html || html.indexOf('mf-estado')===-1){
+        throw new Error('EL FORMULARIO NO CARGÓ BIEN — RECARGA LA PÁGINA (CTRL+F5) E INTENTA DE NUEVO');
+      }
       const c=document.getElementById('member-form-content');
       c.innerHTML=html;
       // Re-crear los <script> para que el navegador los ejecute
@@ -10783,6 +10789,9 @@ function openMemberForm(id=null){
         s.parentNode.replaceChild(n,s);
       });
       openModal('member-form-modal');
+    })
+    .catch(function(err){
+      if(typeof toast==='function') toast('⚠ '+((err&&err.message)||'ERROR DE RED')+' — no se pudo abrir el formulario, intenta de nuevo');
     });
 }
  
