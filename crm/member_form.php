@@ -698,9 +698,23 @@ function refreshMemberRow(id){
     }
   });
 
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('#mf-calle-wrap')) hideDrop();
-  });
+  // OJO: este script se re-ejecuta cada vez que se abre "Editar Miembro"
+  // (el modal se reinserta por AJAX) — si aquí pusiéramos un
+  // document.addEventListener normal, se iría pegando UN LISTENER GLOBAL
+  // MÁS cada vez que se abre el formulario, sin quitar los anteriores
+  // (nunca se llama removeEventListener). Con el tiempo, cientos de
+  // listeners viejos — apuntando a un <input>/<div> ya fuera del DOM —
+  // se quedan corriendo en cada clic de la página entera. Por eso se
+  // pone solo UNA vez (con esta bandera) y busca el drop actual por id
+  // en vez de depender del que existía cuando se creó este listener.
+  if (!window._mfAddrDocClickBound) {
+    window._mfAddrDocClickBound = true;
+    document.addEventListener('click', function(e) {
+      if (e.target.closest('#mf-calle-wrap')) return;
+      const d = document.getElementById('mf-calle-drop');
+      if (d) d.style.display = 'none';
+    });
+  }
 
   input.addEventListener('blur', function() {
     setTimeout(hideDrop, 200);
