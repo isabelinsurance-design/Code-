@@ -267,14 +267,14 @@ function render_live_panel(PDO $pdo): array {
     <table style="width:100%;border-collapse:collapse;font-size:9px;white-space:nowrap">
       <thead>
         <tr style="background:<?=$BG?>">
-          <?php foreach (['EMPLEADO','AHORA','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAM. PROSPECTOS','LLAM. SERVICIO','LLAM. RETENCIÓN','LLAM. PERDIDAS','FOLLOW UPS PEND.'] as $col):?>
+          <?php foreach (['EMPLEADO','AHORA','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAM. PROSPECTOS','LLAM. SERVICIO','LLAM. RETENCIÓN','FOLLOW UPS PEND.'] as $col):?>
           <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid <?=$CB?>"><?=$col?></th>
           <?php endforeach;?>
         </tr>
       </thead>
       <tbody>
         <?php if (!count($usuarios)):?>
-        <tr><td colspan="11" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
+        <tr><td colspan="10" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
@@ -285,7 +285,6 @@ function render_live_panel(PDO $pdo): array {
             $lp = $llProspHoy[$aid] ?? 0;
             $ls = $llServHoy[$aid]  ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
-            $lm = $llPerdHoy[$aid]  ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
         ?>
         <tr style="border-bottom:1px solid <?=$BG?>">
@@ -306,7 +305,6 @@ function render_live_panel(PDO $pdo): array {
           <td style="padding:8px 10px;color:<?=$lp>0?$P2:$MU?>;font-weight:<?=$lp>0?'800':'400'?>"><?=$lp?></td>
           <td style="padding:8px 10px;color:<?=$ls>0?$P2:$MU?>;font-weight:<?=$ls>0?'800':'400'?>"><?=$ls?></td>
           <td style="padding:8px 10px;color:<?=$lr>0?$P2:$MU?>;font-weight:<?=$lr>0?'800':'400'?>"><?=$lr?></td>
-          <td style="padding:8px 10px;color:<?=$lm>0?$R:$MU?>;font-weight:<?=$lm>0?'800':'400'?>"><?=$lm?></td>
           <td style="padding:8px 10px;color:<?=$fu>0?$A:$MU?>;font-weight:<?=$fu>0?'800':'400'?>"><?=$fu?></td>
         </tr>
         <?php endforeach;?>
