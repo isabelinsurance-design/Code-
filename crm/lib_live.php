@@ -120,6 +120,27 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $fuPend[(int)$r['agente_id']] = (int)$r['n'];
     } catch (Throwable $e) {}
 
+    // ── Para las tarjetas "cómo va cada quien hoy" (pedido de Isabel) ───
+    // Llamadas de SERVICIO al cliente HOY (tickets tipo=LLAMADA creados hoy),
+    // por agente — mismo criterio que usa el reporte de MI DÍA
+    // ($mis_llamadas_servicio_hoy en index.php).
+    $llServHoy = [];
+    try {
+        $q = $pdo->prepare("SELECT agente_id, COUNT(*) n FROM tickets WHERE tipo='LLAMADA' AND fecha_creacion>=? AND fecha_creacion<DATE_ADD(?, INTERVAL 1 DAY) GROUP BY agente_id");
+        $q->execute([$hoy, $hoy]);
+        foreach ($q->fetchAll() as $r) $llServHoy[(int)$r['agente_id']] = (int)$r['n'];
+    } catch (Throwable $e) {}
+
+    // Citas que cada quien AGENDÓ hoy (creadas hoy — no las que son PARA
+    // hoy, que es lo que ya cuenta $citas arriba) — mismo criterio que
+    // $mis_citas_creadas_hoy en el reporte de MI DÍA.
+    $citasAgendadasHoy = [];
+    try {
+        $q = $pdo->prepare("SELECT agente_id, COUNT(*) n FROM citas WHERE created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY) AND tipo IN ('ENROLLMENT','AEP','T65') GROUP BY agente_id");
+        $q->execute([$hoy, $hoy]);
+        foreach ($q->fetchAll() as $r) $citasAgendadasHoy[(int)$r['agente_id']] = (int)$r['n'];
+    } catch (Throwable $e) {}
+
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
     $estadoAhora = function (?array $a) use ($G, $A, $MU) {
         if (!$a || empty($a['check_in'])) return ['⚪ SIN CHECK-IN', $MU];
@@ -149,6 +170,62 @@ function render_live_panel(PDO $pdo): array {
     ob_start();
     try {
     ?>
+    <!-- ── TARJETAS "CÓMO VA CADA QUIEN HOY" — sección aparte, rotan solas
+         (pedido de Isabel: de entrada una tarjeta grande de un empleado con
+         citas agendadas/tickets cerrados/llamadas a prospectos/llamadas de
+         servicio, y que vayan saliendo los demás uno por uno — pensado para
+         dejarlo en una pantalla de la oficina). La tabla de abajo sigue
+         igual, aparte, para ver a todos de un jalón. -->
+    <?php if (count($usuarios)):?>
+    <div style="margin-bottom:18px">
+      <div style="font-size:9px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👤 CÓMO VA CADA QUIEN HOY</div>
+      <div id="live-carrusel-wrap" style="position:relative">
+        <?php foreach ($usuarios as $idx => $u):
+            $aid = (int)$u['id'];
+            $cAgend = $citasAgendadasHoy[$aid] ?? 0;
+            $tkCerr = $tkCerradosHoy[$aid] ?? 0;
+            $lp = $llProspHoy[$aid] ?? 0;
+            $ls = $llServHoy[$aid] ?? 0;
+        ?>
+        <div class="live-carrusel-card" style="<?=$idx===0?'':'display:none;'?>background:#fff;border:1px solid <?=$CB?>;border-radius:14px;padding:18px 22px">
+          <div style="display:flex;align-items:center;gap:11px;margin-bottom:15px">
+            <span style="display:inline-flex;width:40px;height:40px;border-radius:50%;background:<?=h($u['color']??$P2)?>;color:#fff;font-size:14px;font-weight:900;align-items:center;justify-content:center;flex-shrink:0"><?=h($u['iniciales']??'?')?></span>
+            <div>
+              <div style="font-size:15px;font-weight:900;color:<?=$P1?>"><?=h($u['nombre'])?></div>
+              <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px">CÓMO VA HOY</div>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px">
+            <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:<?=$P1?>"><?=$cAgend?></div>
+              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">CITAS AGENDADAS</div>
+            </div>
+            <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:<?=$G?>"><?=$tkCerr?></div>
+              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">TICKETS CERRADOS</div>
+            </div>
+            <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:<?=$P2?>"><?=$lp?></div>
+              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">LLAM. PROSPECTOS</div>
+            </div>
+            <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
+              <div style="font-size:24px;font-weight:900;color:<?=$A?>"><?=$ls?></div>
+              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">LLAM. SERVICIO</div>
+            </div>
+          </div>
+        </div>
+        <?php endforeach;?>
+      </div>
+      <?php if (count($usuarios) > 1):?>
+      <div id="live-carrusel-dots" style="display:flex;justify-content:center;gap:5px;margin-top:9px">
+        <?php foreach ($usuarios as $idx => $u):?>
+        <span class="live-carrusel-dot" style="width:6px;height:6px;border-radius:50%;background:<?=$idx===0?$P1:$CB?>"></span>
+        <?php endforeach;?>
+      </div>
+      <?php endif;?>
+    </div>
+    <?php endif;?>
+
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px">
       <?php
       $kpi = function (string $label, $val, string $color) use ($CB): void {

@@ -12151,13 +12151,35 @@ function loadLivePanel(cb){
   var wrap = document.getElementById('live-panel-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
   fetchJson('api.php?action=get_live_panel').then(function(d){
-    if(d.ok) wrap.innerHTML = d.data.html;
+    if(d.ok){ wrap.innerHTML = d.data.html; iniciarCarruselLive(); }
     else wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR TODAY LIVE</div>';
     if(typeof cb==='function') cb();
   }).catch(function(err){
     wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">'+((err&&err.message)||'ERROR DE RED')+'</div>';
     if(typeof cb==='function') cb();
   });
+}
+// Rotación automática de las tarjetas "CÓMO VA CADA QUIEN HOY" — cambia de
+// empleado solo cada 6 segundos (pensado para dejarlo en una pantalla de la
+// oficina). TODAY LIVE se vuelve a pedir CADA VEZ que entras a esa pestaña
+// (no se guarda en caché, a propósito, para traer datos frescos) — por eso
+// aquí siempre se limpia el temporizador anterior antes de poner uno nuevo:
+// si no, cada visita a la pestaña dejaría OTRO temporizador corriendo de
+// fondo para siempre, cada vez más rápido/pesado.
+function iniciarCarruselLive(){
+  if(window._liveCarruselTimer){ clearInterval(window._liveCarruselTimer); window._liveCarruselTimer = null; }
+  var cards = document.querySelectorAll('#live-carrusel-wrap .live-carrusel-card');
+  if(!cards.length) return;
+  var dots = document.querySelectorAll('#live-carrusel-dots .live-carrusel-dot');
+  var i = 0;
+  if(cards.length < 2) return; // nada que rotar con un solo empleado
+  window._liveCarruselTimer = setInterval(function(){
+    cards[i].style.display = 'none';
+    if(dots[i]) dots[i].style.background = '#C8DFF0';
+    i = (i + 1) % cards.length;
+    cards[i].style.display = '';
+    if(dots[i]) dots[i].style.background = '#1B4A6B';
+  }, 6000);
 }
 function loadFollowUpsPanel(cb){
   var wrap = document.getElementById('followups-panes-wrap');
