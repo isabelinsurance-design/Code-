@@ -77,10 +77,17 @@ function render_live_panel(PDO $pdo): array {
     } catch (Throwable $e) {}
 
     // Tickets cerrados HOY, por dueño real
+    // Se excluyen las LLAMADA/LLAMADA PERDIDA — esas ya se cuentan aparte en
+    // LLAM. SERVICIO, y contarlas también aquí las duplicaba e inflaba
+    // "cerrados hoy" con puras llamadas en vez de casos/tickets resueltos
+    // de verdad. Mismo criterio que ya usa $mis_cerrados_hoy en el reporte
+    // de MI DÍA (index.php).
     $tkCerradosHoy = [];
     try {
         $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total
-                             FROM tickets WHERE estado='CERRADO' AND DATE(fecha_cierre)=? GROUP BY owner_id");
+                             FROM tickets WHERE estado='CERRADO' AND DATE(fecha_cierre)=?
+                               AND tipo NOT IN ('LLAMADA','LLAMADA PERDIDA')
+                             GROUP BY owner_id");
         $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
     } catch (Throwable $e) {}
