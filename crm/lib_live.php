@@ -145,16 +145,6 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $llServHoy[(int)$r['agente_id']] = (int)$r['n'];
     } catch (Throwable $e) {}
 
-    // Citas que cada quien AGENDÓ hoy (creadas hoy — no las que son PARA
-    // hoy, que es lo que ya cuenta $citas arriba) — mismo criterio que
-    // $mis_citas_creadas_hoy en el reporte de MI DÍA.
-    $citasAgendadasHoy = [];
-    try {
-        $q = $pdo->prepare("SELECT agente_id, COUNT(*) n FROM citas WHERE created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY) AND tipo IN ('ENROLLMENT','AEP','T65') GROUP BY agente_id");
-        $q->execute([$hoy, $hoy]);
-        foreach ($q->fetchAll() as $r) $citasAgendadasHoy[(int)$r['agente_id']] = (int)$r['n'];
-    } catch (Throwable $e) {}
-
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
     $estadoAhora = function (?array $a) use ($G, $A, $MU) {
         if (!$a || empty($a['check_in'])) return ['⚪ SIN CHECK-IN', $MU];
@@ -196,7 +186,10 @@ function render_live_panel(PDO $pdo): array {
       <div id="live-carrusel-wrap" style="position:relative">
         <?php foreach ($usuarios as $idx => $u):
             $aid = (int)$u['id'];
-            $cAgend = $citasAgendadasHoy[$aid] ?? 0;
+            // Mismo dato que la columna "CITAS PROSPECTO (AGENDADAS HOY)"
+            // de la tabla de abajo — a propósito, para que coincidan
+            // siempre (pedido de Isabel).
+            $cAgend = $citasProspectosHoy[$aid] ?? 0;
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
             $lp = $llProspHoy[$aid] ?? 0;
             $ls = $llServHoy[$aid] ?? 0;
@@ -212,7 +205,7 @@ function render_live_panel(PDO $pdo): array {
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:9px">
             <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
               <div style="font-size:24px;font-weight:900;color:<?=$P1?>"><?=$cAgend?></div>
-              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">CITAS AGENDADAS</div>
+              <div style="font-size:7px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;margin-top:3px">CITAS PROSPECTO</div>
             </div>
             <div style="background:<?=$BG?>;border-radius:10px;padding:11px;text-align:center">
               <div style="font-size:24px;font-weight:900;color:<?=$G?>"><?=$tkCerr?></div>
