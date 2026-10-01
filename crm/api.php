@@ -452,6 +452,31 @@ case 'save_salario':
     jsonOk();
     break;
 
+// ── ACTIVAR/DESACTIVAR EMPLEADO (admin) ───────────────────────
+// Desactivar a alguien (activo=0) ya hace, gratis, que: no pueda volver a
+// iniciar sesión (login.php solo deja entrar con activo=1), desaparezca de
+// la nómina (reporte_nomina.php filtra activo=1) y deje de salir en los
+// menús para asignarle tickets/citas (todos usan $users_all/$agents, que
+// ya filtran activo=1) — no hizo falta tocar nada de eso, solo este switch.
+case 'toggle_usuario_activo':
+    if (!$admin) jsonErr('Solo un administrador puede activar/desactivar empleados');
+    $tid = intval($_POST['id'] ?? 0);
+    $nuevoActivo = !empty($_POST['activo']) ? 1 : 0;
+    if (!$tid) jsonErr('Empleado requerido');
+    if ($tid === (int)$uid) jsonErr('No puedes desactivar tu propia cuenta');
+    $pdo = db();
+    $chk = $pdo->prepare("SELECT nombre FROM usuarios WHERE id=?");
+    $chk->execute([$tid]);
+    $target = $chk->fetch();
+    if (!$target) jsonErr('Empleado no encontrado');
+    $pdo->prepare("UPDATE usuarios SET activo=? WHERE id=?")->execute([$nuevoActivo, $tid]);
+    try {
+        $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
+            ->execute([$uid, 'SISTEMA', ($nuevoActivo ? 'Empleado reactivado: ' : 'Empleado marcado INACTIVO: ') . $target['nombre']]);
+    } catch (Exception $e) {}
+    jsonOk();
+    break;
+
 // ── FECHA DE NACIMIENTO DEL EMPLEADO (para el saludo de cumpleaños) ──
 case 'save_cumple':
     if (!$admin) jsonErr('Solo admin puede configurar cumpleaños');
