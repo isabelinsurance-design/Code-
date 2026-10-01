@@ -31,13 +31,15 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $asis[(int)$r['agente_id']] = $r;
     } catch (Throwable $e) {}
 
-    // Citas de hoy, por agente
-    $citas = [];
+    // CITAS HOY = las que se AGENDARON (crearon) hoy — no las que son PARA
+    // hoy. Aclaración de Isabel: son cosas distintas (alguien puede agendar
+    // hoy una cita para la próxima semana, o agendar hace rato una para
+    // hoy mismo — este cuadrito es de lo primero).
+    $totCitasHoy = 0;
     try {
-        $q = $pdo->prepare("SELECT agente_id, COUNT(*) total, SUM(estado='COMPLETADA') completadas
-                             FROM citas WHERE fecha=? GROUP BY agente_id");
-        $q->execute([$hoy]);
-        foreach ($q->fetchAll() as $r) $citas[(int)$r['agente_id']] = $r;
+        $q = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY)");
+        $q->execute([$hoy, $hoy]);
+        $totCitasHoy = (int)$q->fetchColumn();
     } catch (Throwable $e) {}
 
     // Citas de PROSPECTO agendadas (creadas) HOY, por agente — pedido de
@@ -70,10 +72,20 @@ function render_live_panel(PDO $pdo): array {
     $tkAbiertos = [];
     try {
         $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total,
-                                  SUM(tipo='APLICACION') apps, SUM(prioridad='ALTA') urgentes
+                                  SUM(prioridad='ALTA') urgentes
                            FROM tickets WHERE estado != 'CERRADO' AND (sla_fecha IS NULL OR sla_fecha <= ?) GROUP BY owner_id");
         $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) $tkAbiertos[(int)$r['owner_id']] = $r;
+    } catch (Throwable $e) {}
+
+    // APPS PENDIENTES por agente — aparte de lo de arriba a propósito
+    // (aclaración de Isabel): una aplicación pendiente cuenta aunque su SLA
+    // sea para más adelante, no solo las de hoy/vencidas.
+    $appsAbiertas = [];
+    try {
+        $q = $pdo->query("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) n
+                           FROM tickets WHERE tipo='APLICACION' AND estado != 'CERRADO' GROUP BY owner_id");
+        foreach ($q->fetchAll() as $r) $appsAbiertas[(int)$r['owner_id']] = (int)$r['n'];
     } catch (Throwable $e) {}
 
     // Tickets cerrados HOY, por dueño real
@@ -192,10 +204,16 @@ function render_live_panel(PDO $pdo): array {
     };
 
     // ── Totales de la empresa (tarjetas de arriba) ──────────────────
-    $totCitasHoy   = array_sum(array_column($citas, 'total'));
     $totTkCerrHoy  = array_sum($tkCerradosHoy);
-    $totApps       = array_sum(array_column($tkAbiertos, 'apps'));
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
+    // APPS PENDIENTES = TODOS los tickets tipo APLICACION sin cerrar —
+    // aclaración de Isabel. Aparte de $tkAbiertos a propósito: ese ya trae
+    // solo SLA de hoy/vencido (para "tickets abiertos"/urgentes), pero una
+    // aplicación pendiente cuenta aunque su SLA sea para más adelante.
+    $totApps = 0;
+    try {
+        $totApps = (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE tipo='APLICACION' AND estado != 'CERRADO'")->fetchColumn();
+    } catch (Throwable $e) {}
     $totFuPend     = array_sum($fuPend);
     $totTrabajando = 0;
     foreach ($asis as $a) { if (!empty($a['check_in']) && empty($a['check_out'])) $totTrabajando++; }
@@ -345,7 +363,8 @@ function render_live_panel(PDO $pdo): array {
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
             [$estLabel, $estColor] = $estadoAhora($asis[$aid] ?? null);
-            $tk = $tkAbiertos[$aid] ?? ['total'=>0,'apps'=>0,'urgentes'=>0];
+            $tk = $tkAbiertos[$aid] ?? ['total'=>0,'urgentes'=>0];
+            $apps = $appsAbiertas[$aid] ?? 0;
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
             $citasProsp = $citasProspectosHoy[$aid] ?? 0;
             $lp = $llProspHoy[$aid] ?? 0;
@@ -367,7 +386,7 @@ function render_live_panel(PDO $pdo): array {
             <?php if ((int)$tk['urgentes'] > 0):?><span style="color:<?=$R?>;font-weight:900"> · <?=(int)$tk['urgentes']?> ⚠</span><?php endif;?>
           </td>
           <td style="padding:8px 10px;color:<?=$tkCerr>0?$G:$MU?>;font-weight:<?=$tkCerr>0?'800':'400'?>"><?=$tkCerr?></td>
-          <td style="padding:8px 10px;color:<?=((int)$tk['apps'])>0?$P2:$MU?>;font-weight:<?=((int)$tk['apps'])>0?'800':'400'?>"><?=(int)$tk['apps']?></td>
+          <td style="padding:8px 10px;color:<?=$apps>0?$P2:$MU?>;font-weight:<?=$apps>0?'800':'400'?>"><?=$apps?></td>
           <td style="padding:8px 10px;color:<?=$lp>0?$P2:$MU?>;font-weight:<?=$lp>0?'800':'400'?>"><?=$lp?></td>
           <td style="padding:8px 10px;color:<?=$ls>0?$P2:$MU?>;font-weight:<?=$ls>0?'800':'400'?>"><?=$ls?></td>
           <td style="padding:8px 10px;color:<?=$lr>0?$P2:$MU?>;font-weight:<?=$lr>0?'800':'400'?>"><?=$lr?></td>
