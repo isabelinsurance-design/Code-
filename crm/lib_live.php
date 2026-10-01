@@ -40,6 +40,20 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $citas[(int)$r['agente_id']] = $r;
     } catch (Throwable $e) {}
 
+    // Citas de PROSPECTO agendadas (creadas) HOY, por agente — pedido de
+    // Isabel para la tabla de abajo. tipo_persona es un campo nuevo (si
+    // nadie ha guardado/editado una cita todavía después de este cambio,
+    // la columna puede no existir aún — por eso el try/catch, igual que el
+    // resto de este archivo).
+    $citasProspectosHoy = [];
+    try {
+        $q = $pdo->prepare("SELECT agente_id, COUNT(*) n FROM citas
+                             WHERE tipo_persona='PROSPECTO' AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY)
+                             GROUP BY agente_id");
+        $q->execute([$hoy, $hoy]);
+        foreach ($q->fetchAll() as $r) $citasProspectosHoy[(int)$r['agente_id']] = (int)$r['n'];
+    } catch (Throwable $e) {}
+
     // Tickets abiertos ahora mismo (+ urgentes + tipo APLICACION), por dueño real
     // (asignado_a si existe, si no el agente_id original — mismo criterio que
     // ya usa el resto del CRM para "de quién es este ticket", ej. $resp_id en
@@ -255,14 +269,14 @@ function render_live_panel(PDO $pdo): array {
     <table style="width:100%;border-collapse:collapse;font-size:9px;white-space:nowrap">
       <thead>
         <tr style="background:<?=$BG?>">
-          <?php foreach (['EMPLEADO','AHORA','CITAS HOY','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
+          <?php foreach (['EMPLEADO','AHORA','CITAS HOY','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
           <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid <?=$CB?>"><?=$col?></th>
           <?php endforeach;?>
         </tr>
       </thead>
       <tbody>
         <?php if (!count($usuarios)):?>
-        <tr><td colspan="8" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
+        <tr><td colspan="9" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
@@ -270,6 +284,7 @@ function render_live_panel(PDO $pdo): array {
             $c  = $citas[$aid]      ?? ['total'=>0,'completadas'=>0];
             $tk = $tkAbiertos[$aid] ?? ['total'=>0,'apps'=>0,'urgentes'=>0];
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
+            $citasProsp = $citasProspectosHoy[$aid] ?? 0;
             $lp = $llProspHoy[$aid] ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
             $lm = $llPerdHoy[$aid]  ?? 0;
@@ -284,6 +299,7 @@ function render_live_panel(PDO $pdo): array {
           </td>
           <td style="padding:8px 10px;color:<?=$estColor?>;font-weight:800"><?=$estLabel?></td>
           <td style="padding:8px 10px"><?=(int)$c['total']?> <span style="color:<?=$MU?>">(<?=(int)$c['completadas']?> ✓)</span></td>
+          <td style="padding:8px 10px;color:<?=$citasProsp>0?$P1:$MU?>;font-weight:<?=$citasProsp>0?'800':'400'?>"><?=$citasProsp?></td>
           <td style="padding:8px 10px">
             <?=(int)$tk['total']?>
             <?php if ((int)$tk['urgentes'] > 0):?><span style="color:<?=$R?>;font-weight:900"> · <?=(int)$tk['urgentes']?> ⚠</span><?php endif;?>
