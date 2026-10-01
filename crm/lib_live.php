@@ -269,50 +269,63 @@ function render_live_panel(PDO $pdo): array {
     </div>
     <?php endif;?>
 
-    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px;align-items:stretch">
+    <?php
+    // ── Fila 1: pulso del día, de un vistazo — tarjetitas chicas sueltas ──
+    $kpi = function (string $label, $val, string $color) use ($CB, $MU): void {
+        echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-left:4px solid ' . $color . ';border-radius:9px;padding:8px 13px;min-width:92px;flex:1">'
+           . '<div style="font-size:7px;color:' . $MU . ';font-weight:900;text-transform:uppercase;white-space:nowrap">' . h($label) . '</div>'
+           . '<div style="font-size:19px;font-weight:900;color:' . $color . ';margin-top:2px">' . h((string)$val) . '</div>'
+           . '</div>';
+    };
+    ?>
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px">
       <?php
-      $kpi = function (string $label, $val, string $color) use ($CB): void {
-          echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-left:4px solid ' . $color . ';border-radius:9px;padding:7px 12px;min-width:88px">'
-             . '<div style="font-size:7px;color:#7A90A4;font-weight:900;text-transform:uppercase">' . h($label) . '</div>'
-             . '<div style="font-size:18px;font-weight:900;color:' . $color . '">' . h((string)$val) . '</div>'
-             . '</div>';
-      };
-      // Tarjetitas agrupadas por sección (pedido de Isabel) — cada grupo es
-      // una sola tarjeta con título chiquito arriba y los números adentro,
-      // para diferenciarlas de las tarjetas sueltas de siempre.
-      $kpiGroup = function (string $titulo, array $items) use ($CB, $MU): void {
-          echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-radius:9px;padding:7px 12px">'
-             . '<div style="font-size:7px;color:' . $MU . ';font-weight:900;text-transform:uppercase;margin-bottom:5px">' . h($titulo) . '</div>'
-             . '<div style="display:flex;gap:13px">';
-          foreach ($items as [$label, $val, $color]) {
-              echo '<div><div style="font-size:7px;color:' . $MU . ';font-weight:900;text-transform:uppercase;white-space:nowrap">' . h($label) . '</div>'
-                 . '<div style="font-size:16px;font-weight:900;color:' . $color . '">' . h((string)$val) . '</div></div>';
-          }
-          echo '</div></div>';
-      };
       $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuarios), $G);
       $kpi('CITAS HOY', $totCitasHoy, $P1);
-      $kpiGroup('TICKETS', [
+      $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
+      $kpi('APPS PENDIENTES', $totApps, $P2);
+      $kpi('⚠ URGENTES', $totUrgentes, $R);
+      if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
+      if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
+      ?>
+    </div>
+
+    <?php
+    // ── Fila 2: 3 tarjetas por categoría (pedido de Isabel) — mismo tamaño,
+    // franja de color arriba, y los números separados por una rayita fina
+    // en vez de amontonados, para que se lea ordenado.
+    $kpiGroup = function (string $titulo, string $icono, string $accent, array $items) use ($CB, $MU): void {
+        echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-top:3px solid ' . $accent . ';border-radius:11px;padding:11px 10px 12px">'
+           . '<div style="font-size:8px;color:' . $accent . ';font-weight:900;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:10px">' . $icono . ' ' . h($titulo) . '</div>'
+           . '<div style="display:flex;align-items:stretch">';
+        foreach ($items as $i => [$label, $val, $color]) {
+            if ($i > 0) echo '<div style="width:1px;background:' . $CB . ';margin:0 4px"></div>';
+            echo '<div style="flex:1;min-width:0;text-align:center">'
+               . '<div style="font-size:21px;font-weight:900;color:' . $color . '">' . h((string)$val) . '</div>'
+               . '<div style="font-size:7px;color:' . $MU . ';font-weight:800;text-transform:uppercase;letter-spacing:.3px;margin-top:3px;line-height:1.3">' . h($label) . '</div>'
+               . '</div>';
+        }
+        echo '</div></div>';
+    };
+    ?>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;margin-bottom:13px">
+      <?php
+      $kpiGroup('TICKETS', '◈', $A, [
           ['OVERDUE', $totTkOverdue, $totTkOverdue>0?$R:$MU],
           ['EN PROCESO', $totTkEnProceso, $P2],
       ]);
-      $kpi('⚠ URGENTES', $totUrgentes, $R);
-      $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
-      $kpi('APPS PENDIENTES', $totApps, $P2);
-      $kpiGroup('LLAMADAS', [
+      $kpiGroup('LLAMADAS', '☏', $P1, [
           ['PROSPECTO TOTAL', array_sum($llProspHoy), $P1],
           ['CONTESTARON', $totLlamadasContestaron, $G],
           ['SERVICIO AL CLIENTE', array_sum($llServHoy), $P2],
       ]);
       // Miembros — general de toda la cartera, no por persona (a propósito
       // no van en la tabla de abajo).
-      $kpiGroup('MIEMBROS', [
+      $kpiGroup('MIEMBROS', '◉', $G, [
           ['ACTIVOS', $miembrosTot['activos'], $G],
           ['EN PROCESO', $miembrosTot['proceso'], $P2],
           ['POR HACER', $miembrosTot['por_hacer'], $A],
       ]);
-      if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
-      if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
       ?>
     </div>
 
