@@ -119,6 +119,30 @@ function render_live_panel(PDO $pdo): array {
         foreach ($q->fetchAll() as $r) $llProspHoy[(int)$r['agente_id']] = (int)$r['n'];
     } catch (Throwable $e) {}
 
+    // Llamadas a prospectos HOY que SÍ contestaron — pedido de Isabel para
+    // la tarjeta de LLAMADAS (total de la empresa, no por agente).
+    $totLlamadasContestaron = 0;
+    try {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM llamadas_prospectos WHERE DATE(created_at)=? AND contesto=1");
+        $q->execute([$hoy]);
+        $totLlamadasContestaron = (int)$q->fetchColumn();
+    } catch (Throwable $e) {}
+
+    // Tickets OVERDUE (SLA ya vencido, antes de hoy — no cuenta el que vence
+    // HOY mismo) y EN PROCESO — pedido de Isabel para la tarjeta de TICKETS
+    // (total de la empresa, no por agente; reemplaza el conteo general de
+    // "tickets abiertos" que había antes en esta fila de arriba).
+    $totTkOverdue = 0;
+    try {
+        $q = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE estado != 'CERRADO' AND sla_fecha IS NOT NULL AND sla_fecha < ?");
+        $q->execute([$hoy]);
+        $totTkOverdue = (int)$q->fetchColumn();
+    } catch (Throwable $e) {}
+    $totTkEnProceso = 0;
+    try {
+        $totTkEnProceso = (int)$pdo->query("SELECT COUNT(*) FROM tickets WHERE estado='EN PROCESO'")->fetchColumn();
+    } catch (Throwable $e) {}
+
     // Llamadas de retención (bienvenida/30/60/90) HOY, por quien la completó
     $llRetHoy = [];
     try {
@@ -167,7 +191,6 @@ function render_live_panel(PDO $pdo): array {
 
     // ── Totales de la empresa (tarjetas de arriba) ──────────────────
     $totCitasHoy   = array_sum(array_column($citas, 'total'));
-    $totTkAbiertos = array_sum(array_column($tkAbiertos, 'total'));
     $totTkCerrHoy  = array_sum($tkCerradosHoy);
     $totApps       = array_sum(array_column($tkAbiertos, 'apps'));
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
@@ -245,7 +268,7 @@ function render_live_panel(PDO $pdo): array {
     </div>
     <?php endif;?>
 
-    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px">
+    <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:13px;align-items:stretch">
       <?php
       $kpi = function (string $label, $val, string $color) use ($CB): void {
           echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-left:4px solid ' . $color . ';border-radius:9px;padding:7px 12px;min-width:88px">'
@@ -253,18 +276,39 @@ function render_live_panel(PDO $pdo): array {
              . '<div style="font-size:18px;font-weight:900;color:' . $color . '">' . h((string)$val) . '</div>'
              . '</div>';
       };
+      // Tarjetitas agrupadas por sección (pedido de Isabel) — cada grupo es
+      // una sola tarjeta con título chiquito arriba y los números adentro,
+      // para diferenciarlas de las tarjetas sueltas de siempre.
+      $kpiGroup = function (string $titulo, array $items) use ($CB, $MU): void {
+          echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-radius:9px;padding:7px 12px">'
+             . '<div style="font-size:7px;color:' . $MU . ';font-weight:900;text-transform:uppercase;margin-bottom:5px">' . h($titulo) . '</div>'
+             . '<div style="display:flex;gap:13px">';
+          foreach ($items as [$label, $val, $color]) {
+              echo '<div><div style="font-size:7px;color:' . $MU . ';font-weight:900;text-transform:uppercase;white-space:nowrap">' . h($label) . '</div>'
+                 . '<div style="font-size:16px;font-weight:900;color:' . $color . '">' . h((string)$val) . '</div></div>';
+          }
+          echo '</div></div>';
+      };
       $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuarios), $G);
       $kpi('CITAS HOY', $totCitasHoy, $P1);
-      $kpi('TICKETS ABIERTOS', $totTkAbiertos, $A);
+      $kpiGroup('TICKETS', [
+          ['OVERDUE', $totTkOverdue, $totTkOverdue>0?$R:$MU],
+          ['EN PROCESO', $totTkEnProceso, $P2],
+      ]);
       $kpi('⚠ URGENTES', $totUrgentes, $R);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
       $kpi('APPS PENDIENTES', $totApps, $P2);
-      $kpi('LLAMADAS HOY', $totLlamadas, $P1);
+      $kpiGroup('LLAMADAS', [
+          ['TOTAL HOY', $totLlamadas, $P1],
+          ['PROSP. CONTESTARON', $totLlamadasContestaron, $G],
+      ]);
       // Miembros — general de toda la cartera, no por persona (a propósito
       // no van en la tabla de abajo).
-      $kpi('◉ MIEMBROS ACTIVOS', $miembrosTot['activos'], $G);
-      $kpi('◉ MIEMBROS EN PROCESO', $miembrosTot['proceso'], $P2);
-      $kpi('◉ MIEMBROS POR HACER', $miembrosTot['por_hacer'], $A);
+      $kpiGroup('MIEMBROS', [
+          ['ACTIVOS', $miembrosTot['activos'], $G],
+          ['EN PROCESO', $miembrosTot['proceso'], $P2],
+          ['POR HACER', $miembrosTot['por_hacer'], $A],
+      ]);
       if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
       if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
       ?>
