@@ -269,19 +269,18 @@ function render_live_panel(PDO $pdo): array {
     <table style="width:100%;border-collapse:collapse;font-size:9px;white-space:nowrap">
       <thead>
         <tr style="background:<?=$BG?>">
-          <?php foreach (['EMPLEADO','AHORA','CITAS HOY','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
+          <?php foreach (['EMPLEADO','AHORA','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAMADAS HOY (PROSP · RETEN · PERD.)','FOLLOW UPS PEND.'] as $col):?>
           <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid <?=$CB?>"><?=$col?></th>
           <?php endforeach;?>
         </tr>
       </thead>
       <tbody>
         <?php if (!count($usuarios)):?>
-        <tr><td colspan="9" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
+        <tr><td colspan="8" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
             [$estLabel, $estColor] = $estadoAhora($asis[$aid] ?? null);
-            $c  = $citas[$aid]      ?? ['total'=>0,'completadas'=>0];
             $tk = $tkAbiertos[$aid] ?? ['total'=>0,'apps'=>0,'urgentes'=>0];
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
             $citasProsp = $citasProspectosHoy[$aid] ?? 0;
@@ -298,7 +297,6 @@ function render_live_panel(PDO $pdo): array {
             </div>
           </td>
           <td style="padding:8px 10px;color:<?=$estColor?>;font-weight:800"><?=$estLabel?></td>
-          <td style="padding:8px 10px"><?=(int)$c['total']?> <span style="color:<?=$MU?>">(<?=(int)$c['completadas']?> ✓)</span></td>
           <td style="padding:8px 10px;color:<?=$citasProsp>0?$P1:$MU?>;font-weight:<?=$citasProsp>0?'800':'400'?>"><?=$citasProsp?></td>
           <td style="padding:8px 10px">
             <?=(int)$tk['total']?>
