@@ -63,11 +63,16 @@ function render_live_panel(PDO $pdo): array {
     // quedado con ese 0 en vez de caer al agente_id, dejando esos tickets
     // fuera de la cuenta de TODOS los empleados (por eso no aparecían apps
     // pendientes de Samia aunque sí las tenía).
+    // Pedido de Isabel: que cuente solo los que YA toca atender — con SLA de
+    // hoy o vencido (o sin SLA puesto todavía). Los que tienen SLA para más
+    // adelante no cuentan aquí todavía (mismo criterio que ya usan las
+    // alertas de prioridad en otras partes del CRM).
     $tkAbiertos = [];
     try {
-        $q = $pdo->query("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total,
+        $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total,
                                   SUM(tipo='APLICACION') apps, SUM(prioridad='ALTA') urgentes
-                           FROM tickets WHERE estado != 'CERRADO' GROUP BY owner_id");
+                           FROM tickets WHERE estado != 'CERRADO' AND (sla_fecha IS NULL OR sla_fecha <= ?) GROUP BY owner_id");
+        $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) $tkAbiertos[(int)$r['owner_id']] = $r;
     } catch (Throwable $e) {}
 
