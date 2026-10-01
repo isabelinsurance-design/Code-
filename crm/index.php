@@ -8252,6 +8252,22 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
         </div>
       </div>
 
+      <!-- ¿Es una cita de MIEMBRO (ya tiene póliza activa) o de PROSPECTO
+           (todavía no)? Se pone solo un valor por default según lo que
+           escojas arriba (y según el estado de a quién busques), pero
+           queda a tu criterio — pedido de Isabel para poder filtrar esto
+           después. Esto es independiente de si tiene o no un registro en
+           el CRM: un prospecto que ya está en el Pipeline SÍ tiene
+           miembro_id, pero sigue siendo un prospecto hasta que se active. -->
+      <div class="form-group">
+        <label class="form-label">ES UNA CITA DE...</label>
+        <input type="hidden" name="tipo_persona" id="cita-tipo-persona" value="MIEMBRO">
+        <div style="display:flex;gap:6px">
+          <button type="button" class="cita-tp-btn" data-tp="MIEMBRO" onclick="setCitaTipoPersona('MIEMBRO')" style="flex:1;background:#1E7A5C;color:#fff;border:none;border-radius:8px;padding:7px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">◉ MIEMBRO (TIENE PÓLIZA)</button>
+          <button type="button" class="cita-tp-btn" data-tp="PROSPECTO" onclick="setCitaTipoPersona('PROSPECTO')" style="flex:1;background:<?=$BG?>;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:8px;padding:7px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">👤 PROSPECTO</button>
+        </div>
+      </div>
+
       <div class="form-group" id="cita-miembro-group">
         <label class="form-label">MIEMBRO (buscar por nombre o tel.)</label>
         <div class="mpick-wrap">
@@ -11860,6 +11876,11 @@ function editarCita(id, forzarPendiente){
         setCitaClienteMode('libre');
         document.getElementById('cita-cliente-input').value = c.cliente || '';
       }
+      // MIEMBRO vs PROSPECTO — se respeta lo que ya se había marcado en esta
+      // cita. Las citas de antes de este cambio no tienen nada guardado
+      // (tipo_persona viene vacío): se adivina igual que antes (si tenía
+      // miembro_id asumimos MIEMBRO, si no PROSPECTO) para no dejarlo en blanco.
+      setCitaTipoPersona(c.tipo_persona || (c.miembro_id ? 'MIEMBRO' : 'PROSPECTO'));
       document.getElementById('cita-tipo').value = c.tipo || 'PRESENTACIÓN';
       document.getElementById('cita-modalidad').value = c.modalidad || 'OFICINA';
       document.getElementById('cita-fecha').value = c.fecha || '';
@@ -11890,7 +11911,25 @@ function setCitaClienteMode(mode){
     document.getElementById('cita-miembro-sel').value = '';
     const citaMpickInp2 = document.getElementById('cita-mpick-input');
     if(citaMpickInp2) citaMpickInp2.value = '';
+    // NOMBRE LIBRE = todavía no tiene registro en el CRM → casi siempre es
+    // un prospecto. Se puede cambiar a mano si no.
+    setCitaTipoPersona('PROSPECTO');
   }
+}
+// MIEMBRO vs PROSPECTO es independiente de si la persona YA tiene un
+// registro en el CRM (miembro_id) — un prospecto que ya está en el
+// Pipeline también tiene miembro_id, pero sigue siendo prospecto hasta
+// que se active. Por eso es un switch aparte, no algo que se calcule solo
+// de si hay miembro_id o no.
+function setCitaTipoPersona(tp){
+  const hid = document.getElementById('cita-tipo-persona');
+  if(hid) hid.value = tp;
+  document.querySelectorAll('.cita-tp-btn').forEach(b=>{
+    const on = b.dataset.tp===tp;
+    b.style.background = on ? '#1E7A5C' : '#EBF4F9';
+    b.style.color      = on ? '#fff'    : '#1E7A5C';
+    b.style.border     = on ? 'none'    : '1px solid #8DCFBA';
+  });
 }
 
 function abrirNuevaCita(){
@@ -11904,6 +11943,7 @@ function abrirNuevaCita(){
   const estadoGroup = document.getElementById('cita-estado-group');
   if(estadoGroup) estadoGroup.style.display = 'none'; // una cita nueva siempre nace PENDIENTE
   setCitaClienteMode('miembro');
+  setCitaTipoPersona('MIEMBRO'); // default — se corrige solo al elegir a alguien (ver mpickItemClick)
   __origOpenModal('cita-form-modal'); // <-- SOLUCIÓN
 }
 
@@ -13546,6 +13586,7 @@ const _membersData = <?= json_encode(array_map(function($m) {
 // ── DATOS COMPLETOS PARA PRE-RELLENAR EL CUESTIONARIO ─────────────────────
 const _membersFullData = <?= json_encode(array_map(fn($m) => [
   'id'                  => (int)($m['id'] ?? 0),
+  'estado'              => $m['estado']               ?? '',
   'nombre'              => $m['nombre']              ?? '',
   'apellido'            => $m['apellido']             ?? '',
   'dob'                 => $m['dob']                  ?? '',
@@ -13635,6 +13676,16 @@ function mpickItemClick(e, el) {
         const ti = document.getElementById('sms-nuevo-tel');
         if (ni) ni.value = full ? (full.nombre + ' ' + full.apellido).trim() : nombre;
         if (ti) ti.value = full ? full.telefono : tel;
+    }
+
+    // Al elegir a alguien para una cita, se adivina MIEMBRO/PROSPECTO según
+    // su estado ACTUAL ahora mismo (ACTIVE = ya tiene póliza → MIEMBRO,
+    // cualquier otra cosa → PROSPECTO) — solo para no tener que tocarlo casi
+    // nunca; se puede cambiar a mano si no aplica (ej. alguien EN PROCESO
+    // que para esta cita ya cuenta como "miembro" en la práctica).
+    if (inputId === 'cita-mpick-input' && typeof setCitaTipoPersona === 'function') {
+        const full = (typeof _membersFullData !== 'undefined') ? _membersFullData.find(m => m.id == id) : null;
+        setCitaTipoPersona(full && full.estado === 'ACTIVE' ? 'MIEMBRO' : 'PROSPECTO');
     }
 
     // Auto-fill nombre/apellido/teléfono/email al elegir un miembro existente

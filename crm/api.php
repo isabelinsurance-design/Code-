@@ -1033,6 +1033,13 @@ case 'update_ticket':
 // ── CITAS ─────────────────────────────────────────────────────
 case 'save_cita':
     $pdo = db();
+    // MIEMBRO vs PROSPECTO — para futuros filtros/reportes (pedido de
+    // Isabel). Es independiente de miembro_id: un prospecto ya agregado al
+    // Pipeline también tiene miembro_id, pero sigue siendo prospecto hasta
+    // que se active — por eso es su propio campo, no algo calculado.
+    if (!$pdo->query("SHOW COLUMNS FROM citas LIKE 'tipo_persona'")->fetch()) {
+        $pdo->exec("ALTER TABLE citas ADD COLUMN tipo_persona VARCHAR(10) DEFAULT NULL");
+    }
     $mid = intval($_POST['miembro_id']??0) ?: null;
     $cli = trim($_POST['cliente']??'') ?: null;
     if (!$mid && !$cli) jsonErr('Debes seleccionar un miembro o escribir el nombre del cliente');
@@ -1041,12 +1048,13 @@ case 'save_cita':
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
     $hora  = $_POST['hora'] ?? '09:00:00';
     $notas = trim($_POST['notas']??'') ?: null;
+    $tipo_persona = (($_POST['tipo_persona'] ?? '') === 'PROSPECTO') ? 'PROSPECTO' : 'MIEMBRO';
     // Admin puede asignar a otro agente; agentes solo a sí mismos
     $agente = $admin ? intval($_POST['agente_id']??$uid) : $uid;
     if (!$agente) $agente = $uid;
-    $pdo->prepare("INSERT INTO citas (miembro_id,agente_id,cliente,tipo,modalidad,fecha,hora,estado,notas)
-                   VALUES (?,?,?,?,?,?,?,?,?)")
-        ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, 'PENDIENTE', $notas]);
+    $pdo->prepare("INSERT INTO citas (miembro_id,agente_id,cliente,tipo,modalidad,fecha,hora,estado,notas,tipo_persona)
+                   VALUES (?,?,?,?,?,?,?,?,?,?)")
+        ->execute([$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, 'PENDIENTE', $notas, $tipo_persona]);
     $nuevaCitaId = $pdo->lastInsertId();
     $citaSync = google_calendar_obtener_cita_para_sync($pdo, $nuevaCitaId);
     if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
@@ -1063,6 +1071,9 @@ case 'update_cita':
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
 
+    if (!$pdo->query("SHOW COLUMNS FROM citas LIKE 'tipo_persona'")->fetch()) {
+        $pdo->exec("ALTER TABLE citas ADD COLUMN tipo_persona VARCHAR(10) DEFAULT NULL");
+    }
     $mid = intval($_POST['miembro_id']??0) ?: null;
     $cli = trim($_POST['cliente']??'') ?: null;
     if (!$mid && !$cli) jsonErr('Debes seleccionar un miembro o escribir el nombre del cliente');
@@ -1071,6 +1082,7 @@ case 'update_cita':
     $fecha     = $_POST['fecha']     ?? date('Y-m-d');
     $hora      = $_POST['hora']      ?? '09:00:00';
     $notas     = trim($_POST['notas']??'') ?: null;
+    $tipo_persona = (($_POST['tipo_persona'] ?? '') === 'PROSPECTO') ? 'PROSPECTO' : 'MIEMBRO';
     $agente    = $admin ? (intval($_POST['agente_id']??$row['agente_id']) ?: $row['agente_id']) : $row['agente_id'];
     // El formulario de editar ahora deja elegir el estado directamente
     // (PENDIENTE/COMPLETADA/CANCELADA/REAGENDAR) — si no viene uno válido
@@ -1080,12 +1092,12 @@ case 'update_cita':
     $estado_post = strtoupper(trim($_POST['estado'] ?? ''));
     if (in_array($estado_post, $estados_validos, true)) {
         $estado_sql = '?';
-        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $estado_post, $id];
+        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $tipo_persona, $estado_post, $id];
     } else {
         $estado_sql = "IF(estado IN ('CANCELADA','REAGENDAR'),'PENDIENTE',estado)";
-        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $id];
+        $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $tipo_persona, $id];
     }
-    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, estado=$estado_sql WHERE id=?")
+    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, tipo_persona=?, estado=$estado_sql WHERE id=?")
         ->execute($params);
     $citaSync = google_calendar_obtener_cita_para_sync($pdo, $id);
     if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
