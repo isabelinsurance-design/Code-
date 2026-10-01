@@ -131,10 +131,12 @@ function render_live_panel(PDO $pdo): array {
     // Tickets OVERDUE (SLA ya vencido, antes de hoy — no cuenta el que vence
     // HOY mismo) y EN PROCESO — pedido de Isabel para la tarjeta de TICKETS
     // (total de la empresa, no por agente; reemplaza el conteo general de
-    // "tickets abiertos" que había antes en esta fila de arriba).
+    // "tickets abiertos" que había antes en esta fila de arriba). OVERDUE
+    // es SOLO estado='ABIERTO' — o sea, los que nadie ha tocado todavía;
+    // uno en PENDIENTE o EN PROCESO ya se está trabajando, no cuenta aquí.
     $totTkOverdue = 0;
     try {
-        $q = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE estado != 'CERRADO' AND sla_fecha IS NOT NULL AND sla_fecha < ?");
+        $q = $pdo->prepare("SELECT COUNT(*) FROM tickets WHERE estado='ABIERTO' AND sla_fecha IS NOT NULL AND sla_fecha < ?");
         $q->execute([$hoy]);
         $totTkOverdue = (int)$q->fetchColumn();
     } catch (Throwable $e) {}
