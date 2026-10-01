@@ -196,7 +196,6 @@ function render_live_panel(PDO $pdo): array {
     $totTkCerrHoy  = array_sum($tkCerradosHoy);
     $totApps       = array_sum(array_column($tkAbiertos, 'apps'));
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
-    $totLlamadas   = array_sum($llProspHoy) + array_sum($llRetHoy) + array_sum($llPerdHoy);
     $totFuPend     = array_sum($fuPend);
     $totTrabajando = 0;
     foreach ($asis as $a) { if (!empty($a['check_in']) && empty($a['check_out'])) $totTrabajando++; }
@@ -301,8 +300,9 @@ function render_live_panel(PDO $pdo): array {
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
       $kpi('APPS PENDIENTES', $totApps, $P2);
       $kpiGroup('LLAMADAS', [
-          ['TOTAL HOY', $totLlamadas, $P1],
-          ['PROSP. CONTESTARON', $totLlamadasContestaron, $G],
+          ['PROSPECTO TOTAL', array_sum($llProspHoy), $P1],
+          ['CONTESTARON', $totLlamadasContestaron, $G],
+          ['SERVICIO AL CLIENTE', array_sum($llServHoy), $P2],
       ]);
       // Miembros — general de toda la cartera, no por persona (a propósito
       // no van en la tabla de abajo).
