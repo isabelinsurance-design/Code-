@@ -6697,7 +6697,7 @@ $PLAN_CAMPOS = [
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()" disabled>⚖ COMPARAR SELECCIONADOS</button>
-      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" disabled title="Elige EXACTAMENTE 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 AÑO A AÑO (SOLO CAMBIOS)</button>
+      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" disabled title="Elige 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 ANOC</button>
       <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
     </div>
   </div>
@@ -6811,7 +6811,7 @@ function actualizarBotonComparar(){
   const btn = document.getElementById('plan-compare-btn');
   if(btn) btn.disabled = n < 2;
   const btnAnoc = document.getElementById('plan-anoc-btn');
-  if(btnAnoc) btnAnoc.disabled = n !== 2;
+  if(btnAnoc) btnAnoc.disabled = n < 2;
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
@@ -6845,14 +6845,14 @@ function mostrarComparacionPlanes(){
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
-// "AÑO A AÑO (SOLO CAMBIOS)" — pedido de Isabel: para usar EN VIVO en una
+// Botón "ANOC" — pedido de Isabel: para usar EN VIVO en una
 // llamada AEP, mismo criterio que el ANOC que le llega al miembro por correo
 // — comparar el MISMO plan de un año contra el del otro año y solo mostrar
 // los beneficios que SÍ cambiaron (lo que se quedó igual no se repite, para
 // no tener que leer 55 campos buscando la diferencia a mitad de llamada).
 function mostrarCambiosAnoc(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
-  if(ids.length !== 2){ toast('⚠ Elige exactamente 2 planes (el mismo plan, de cada año)'); return; }
+  if(ids.length !== 2){ toast('⚠ Para ANOC elige exactamente 2 planes (el mismo plan, de cada año) — ahora tienes '+ids.length+' marcado(s)'); return; }
   let planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
   if(planes.length !== 2) return;
   // El año con el número más chico se muestra primero (ACTUAL), el más
