@@ -2456,6 +2456,76 @@ try {
             $_ins->execute(array_values($_davita));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Venture (HMO) 2027 — Los Angeles y Orange. Plan HMO
+    // estándar (no es C-SNP ni D-SNP, no requiere condición crónica ni
+    // Medi-Cal) — por eso no tiene beneficios tipo SSBCI de transporte,
+    // comidas o apoyo en el hogar como los demás planes de SCAN.
+    // Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_venture_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_venture_existe->execute(['SCAN Venture (HMO)', 2027]);
+        if (!$_venture_existe->fetch()) {
+            $_venture = [
+                'nombre_plan'=>'SCAN Venture (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles y Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan HMO estándar (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'$33 al mes (Part B Premium Give Back)',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$370 (Nivel 3 a 5)',
+                'moop'=>'$1,000 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $0\nHospital ambulatorio: $25-$225 copago por visita\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$115 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$155 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $5 pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 (rayos X ambulatorios)',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>'$0 examen diagnóstico cubierto por Medicare; $0 examen de rutina hasta 1 visita al año',
+                'audifonos'=>'$550 copago por audífono NationsHearing Basic, o $950 copago por audífono NationsHearing Prime — cubierto hasta 2 audífonos al año',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $5\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>"Restaurativo: \$8-\$395\nEndodoncia: \$5-\$395\nPeriodoncia: \$0-\$380\nProstodoncia removible: \$13-\$395\nProstodoncia fija: \$25-\$395\nCirugía oral/maxilofacial: \$0-\$140\nEl costo exacto varía según el código dental específico; no se cubren todos los códigos dentro de cada categoría",
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita al año',
+                'anteojos'=>'Asignación anual: $100 (proveedor EyeMed Select) o $150 (proveedor EyeMed PLUS)',
+                'salud_mental_internado'=>'$125 copago por día, días 1-5; $0 días 6-90',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal, y $20 copago por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-20; $221 copago por día, días 21-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$5 copago por visita',
+                'transporte'=>'No incluido en este plan (sin beneficio de transporte de rutina — no es un plan C-SNP/D-SNP con beneficios SSBCI)',
+                'rx_deducible'=>'$370 (Nivel 3 a 5)',
+                'rx_nivel1'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $7 (30 días) / $14 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $14 (100 días)",
+                'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $15 (30 días) / $30 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $30 (100 días)",
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'29% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$50 por trimestre con tarjeta FlexEssentials (solo productos OTC, en tiendas CVS o entrega a domicilio; no se acumula al siguiente trimestre)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
+                'quiropractico_acupuntura'=>"$0 acupuntura y quiropráctico cubiertos por Medicare\nRutina: $5 copago por visita, hasta 24 visitas al año combinadas entre quiropráctico y acupuntura",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>"$0 para artículos de $0 a $99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\nMonitores continuos de glucosa: 20% del costo total en farmacia o con proveedor DME",
+                'apoyo_hogar'=>'No incluido en este plan (sin beneficios de apoyo en el hogar — no es un plan C-SNP/D-SNP con beneficios SSBCI)',
+                'comidas_post_hospital'=>'No incluido en este plan',
+                'extras_json'=>"Best Buy Health Tech: $0 soporte tecnológico (teléfono, remoto o en tiendas Best Buy)\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: hasta 20% de coaseguro para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles y Orange County. Plan HMO estándar — no requiere condición crónica ni Medi-Cal, a diferencia de los demás planes SCAN ya agregados. Doc: Y0057_SCAN_22435_2027_M / 27C-SBH5425084. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_venture);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_venture));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
