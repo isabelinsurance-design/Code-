@@ -2034,6 +2034,77 @@ try {
             $_ins->execute(array_values($_allied));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Essential Savings (HMO) 2027 — Los Angeles County. Es
+    // un plan de bajo costo con reembolso de Parte B alto pero MUCHOS
+    // menos beneficios extra que los otros planes SCAN (sin tarjeta OTC,
+    // sin transporte de rutina, sin PERS, sin telesalud, sin audífonos ni
+    // anteojos de rutina) — ver el campo 'notas'. Datos del Summary of
+    // Benefits que subió Isabel.
+    try {
+        $_essential_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_essential_existe->execute(['SCAN Essential Savings (HMO)', 2027]);
+        if (!$_essential_existe->fetch()) {
+            $_essential = [
+                'nombre_plan'=>'SCAN Essential Savings (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles County, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Tener Medicare Parte A y Parte B\nVivir en el área de servicio (Los Angeles County)\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'$185 al mes (Part B Premium Give Back) — regresa directo al cheque del Seguro Social',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$370 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $370',
+                'moop'=>'$2,400 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>"$50 copago por día, días 1-5\n$0 por día, días 6-90+\n(días ilimitados por admisión)",
+                'hospital_ambulatorio'=>"$15-$225 copago por visita (hospital ambulatorio)\n$0 servicios de observación",
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$15 copago por visita (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"$115 copago por visita\n(se exime si es admitido al hospital; cubierto en todo el mundo a tarifas de Medicare Original)",
+                'servicios_urgentes'=>'$0 (cubierto en todo el mundo a tarifas de Medicare Original)',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$125 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $5 copago en pruebas/procedimientos diagnósticos',
+                'rayos_x'=>'$0 rayos X ambulatorios; $0-$75 copago radiología diagnóstica (ej. MRI/CT); $0 mamografía',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>'$15 copago por visita (examen diagnóstico cubierto por Medicare) — este plan NO incluye examen ni audífonos de rutina',
+                'audifonos'=>'No incluido en este plan (sin beneficio de audífonos de rutina)',
+                'dental_preventivo'=>"$15 para servicios dentales cubiertos por Medicare (autorización previa)\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (2 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>"Restaurativo: $8-$395\nEndodoncia: $5-$395\nPeriodoncia: $0-$380\nProstodoncia removible: $13-$395\nProstodoncia fija: $25-$395\nCirugía oral/maxilofacial: $0-$140\n(este documento no menciona un máximo de beneficio anual)",
+                'examen_vision'=>'$0-$5 copago (examen Medicare); $0 copago evaluación diabética; $0 lentes post-cataratas — este plan NO incluye examen de rutina',
+                'anteojos'=>'No incluido en este plan (sin asignación anual para anteojos de rutina)',
+                'salud_mental_internado'=>'$125 por día, días 1-5; $0 por día, días 6-90 (autorización previa; hasta 90 días por período de beneficio)',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal, y $20 copago por visita con psiquiatra',
+                'enfermeria_especializada'=>"$0 días 1-20\n$221 copago por día, días 21-100\n(hasta 100 días por período de beneficio, no requiere hospitalización previa)",
+                'terapia_fisica_habla'=>'$15 copago por visita (autorización previa)',
+                'transporte'=>'No incluido en este plan (sin beneficio de transporte de rutina)',
+                'rx_deducible'=>'$370 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel2'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días) en todas las modalidades\nOtros medicamentos: $42/$126 (minorista preferido) · $43/$129 (minorista estándar) · $126 (correo preferido) · $129 (correo estándar)",
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'29% (solo minorista; no disponible por correo)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No más de $35 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'No incluido en este plan (sin tarjeta FlexEssentials ni asignación de OTC)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, clases virtuales y comunitarias)',
+                'pers'=>'No incluido en este plan (sin botón de emergencia)',
+                'quiropractico_acupuntura'=>'$15 copago acupuntura cubierta por Medicare; $15 copago quiropráctico cubierto por Medicare (autorización previa; sin visitas de rutina adicionales)',
+                'podologia'=>'',
+                'telesalud'=>'No incluido en este plan (sin telesalud)',
+                'dme'=>"$0 equipo médico duradero y prótesis para artículos de $0-$99; 20% del costo total para artículos de $100 o más\n$0 suministros para diabéticos\nMonitores continuos de glucosa: 20% del costo total en farmacia o proveedor DME",
+                'apoyo_hogar'=>'$0 — hasta 40 horas de cuidado personal en el hogar al año (en incrementos de 4 horas), tras hospitalización, reemplazo de cadera/rodilla o para ayudar con 2+ actividades diarias (este plan NO incluye comidas a domicilio ni cuidado de relevo)',
+                'comidas_post_hospital'=>'No incluido en este plan',
+                'extras_json'=>"Best Buy Health Tech: $0 soporte tecnológico (teléfono, remoto o en tiendas Best Buy)\nMedicamentos Parte B: hasta 20% de coaseguro para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles County. Este es un plan de bajo costo ("Essential Savings"): tiene reembolso de Parte B alto ($185/mes) pero MUCHOS menos beneficios extra que otros planes SCAN — sin tarjeta OTC/FlexEssentials, sin transporte de rutina, sin PERS, sin telesalud, y sin audífonos ni anteojos de rutina. Doc: Y0057_SCAN_22441_2027_M / 27C-SBH5425133. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_essential);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_essential));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
