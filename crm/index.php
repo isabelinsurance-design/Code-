@@ -2526,6 +2526,76 @@ try {
             $_ins->execute(array_values($_venture));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Inspired by women for women (HMO) 2027 — Los Angeles
+    // y Orange. Plan HMO estándar (no C-SNP/D-SNP) diseñado para
+    // mujeres — único entre los planes SCAN agregados con prima mensual
+    // ($15) y con beneficio exclusivo de reembolso de pelucas por
+    // quimioterapia. Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_inspired_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_inspired_existe->execute(['SCAN Inspired by women for women (HMO)', 2027]);
+        if (!$_inspired_existe->fetch()) {
+            $_inspired = [
+                'nombre_plan'=>'SCAN Inspired by women for women (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles y Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan HMO estándar (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$15/mes (debe seguir pagando su prima de Medicare Parte B) — este plan SÍ tiene prima mensual, a diferencia de la mayoría de los planes SCAN',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$370 (Nivel 3 a 5)',
+                'moop'=>'$999 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$75 copago por día, días 1-5; $0 días 6-90+ — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $0\nHospital ambulatorio: $0\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$115 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$200 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $0 pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 (rayos X ambulatorios)',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>'$0 examen diagnóstico cubierto por Medicare; $0 examen de rutina hasta 1 visita al año',
+                'audifonos'=>'$350 copago por audífono NationsHearing Basic, o $750 copago por audífono NationsHearing Prime — cubierto hasta 2 audífonos al año',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $0\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>'25% del costo total (restaurativo, endodoncia, periodoncia, prostodoncia removible/fija, cirugía oral/maxilofacial) — máximo hasta $2,500 al año',
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita al año',
+                'anteojos'=>'Asignación anual: $250 (proveedor EyeMed Select) o $300 (proveedor EyeMed PLUS)',
+                'salud_mental_internado'=>'$0 copago por día, días 1-90',
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-20; $221 copago por día, días 21-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$0',
+                'transporte'=>'$0 hasta 24 viajes de ida al año — solo con proveedor contratado por SCAN; límite de 50 millas por viaje',
+                'rx_deducible'=>'$370 (Nivel 3 a 5)',
+                'rx_nivel1'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $5 (30 días) / $10 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $10 (100 días)",
+                'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $12 (30 días) / $24 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $24 (100 días)",
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+                'rx_nivel4'=>'35% en todas las modalidades',
+                'rx_nivel5'=>'29% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$90 por trimestre con tarjeta FlexEssentials (solo productos OTC, en tiendas CVS o entrega a domicilio; no se acumula al siguiente trimestre); además $100 al año para programas de manejo de peso',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
+                'quiropractico_acupuntura'=>"$0 acupuntura y quiropráctico cubiertos por Medicare\nRutina: $10 copago por visita, hasta 30 visitas al año combinadas entre quiropráctico y acupuntura",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>"$0 para artículos de $0 a $99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\nMonitores continuos de glucosa: 20% del costo total en farmacia o con proveedor DME",
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 40 horas de cuidado personal en el hogar al año (incrementos de 4 horas), tras hospitalización reciente, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados (incrementos de 4 horas)",
+                'comidas_post_hospital'=>"$0 — hasta 63 comidas al año (21 por semana) tras una hospitalización reciente\n$0 — hasta 63 comidas al año (21 por semana) por condición crónica calificada",
+                'extras_json'=>"Reembolso de Pelucas (Wig Reimbursement): $300 al año de reembolso por pelucas debido a pérdida de cabello como resultado de quimioterapia — beneficio exclusivo de este plan\nBest Buy Health Tech: $0 soporte tecnológico (teléfono, remoto o en tiendas Best Buy)\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: hasta 20% de coaseguro para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles y Orange County. Plan HMO diseñado para mujeres — único entre los planes SCAN con prima mensual ($15) y con reembolso de pelucas por quimioterapia ($300/año), sin requerir condición crónica ni Medi-Cal. Doc: Y0057_SCAN_22442_2027_M / 27C-SBH5425100. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_inspired);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_inspired));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
