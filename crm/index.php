@@ -6999,19 +6999,15 @@ $PLAN_CAMPOS = [
 
 <div id="pstab-ANOC" style="display:none">
   <div class="card" style="padding:14px 16px;margin-bottom:14px">
-    <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800;margin-bottom:12px">Elige el MISMO plan en dos años distintos para ver SOLO lo que cambió — igual que el ANOC que le llega al miembro por correo</div>
+    <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800;margin-bottom:12px">Elige la aseguranza y el plan — se compara automáticamente el año más viejo contra el más nuevo que tengas guardados de ese plan, para ver SOLO lo que cambió (igual que el ANOC que le llega al miembro por correo)</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
       <div>
-        <label class="form-label">AÑO ACTUAL</label>
-        <select id="anoc-anio-actual" class="form-input" onchange="onAnocAnioChange('actual')"></select>
-        <label class="form-label" style="margin-top:9px">PLAN</label>
-        <select id="anoc-plan-actual" class="form-input"></select>
+        <label class="form-label">ASEGURANZA</label>
+        <select id="anoc-carrier" class="form-input" onchange="onAnocCarrierChange()"></select>
       </div>
       <div>
-        <label class="form-label">AÑO NUEVO</label>
-        <select id="anoc-anio-nuevo" class="form-input" onchange="onAnocAnioChange('nuevo')"></select>
-        <label class="form-label" style="margin-top:9px">PLAN</label>
-        <select id="anoc-plan-nuevo" class="form-input"></select>
+        <label class="form-label">PLAN</label>
+        <select id="anoc-plan" class="form-input"></select>
       </div>
     </div>
     <button class="btn btn-sky btn-sm" style="margin-top:14px" onclick="mostrarCambiosAnoc()">🔄 VER CAMBIOS ANOC</button>
@@ -7092,34 +7088,30 @@ function showPlanesTab(id){
   if(id==='ANOC') renderAnocSelectores();
 }
 function anioDePlan(p){ const n = parseInt(String(p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; }
+function carrierDePlan(p){ return String(p.carrier||'').trim() || 'SIN ASEGURANZA'; }
 function renderAnocSelectores(){
-  const anios = Array.from(new Set(PLANES_DATA.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
-  const selActual = document.getElementById('anoc-anio-actual');
-  const selNuevo = document.getElementById('anoc-anio-nuevo');
-  if(!selActual || !selNuevo) return;
-  if(anios.length < 2){
-    selActual.innerHTML = '<option value="">—</option>';
-    selNuevo.innerHTML = '<option value="">—</option>';
-    document.getElementById('anoc-plan-actual').innerHTML = '<option value="">—</option>';
-    document.getElementById('anoc-plan-nuevo').innerHTML = '<option value="">—</option>';
-    document.getElementById('anoc-wrap').innerHTML = '<div class="card" style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">AGREGA PLANES CON AL MENOS 2 AÑOS DISTINTOS (CAMPO "AÑO") PARA USAR ANOC</div>';
+  const selCarrier = document.getElementById('anoc-carrier');
+  const selPlan = document.getElementById('anoc-plan');
+  if(!selCarrier || !selPlan) return;
+  const carriers = Array.from(new Set(PLANES_DATA.map(carrierDePlan))).sort();
+  if(!carriers.length){
+    selCarrier.innerHTML = '<option value="">—</option>';
+    selPlan.innerHTML = '<option value="">—</option>';
+    document.getElementById('anoc-wrap').innerHTML = '<div class="card" style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">AGREGA PLANES PARA USAR ANOC</div>';
     return;
   }
   document.getElementById('anoc-wrap').innerHTML = '';
-  const opciones = anios.map(a=>'<option value="'+a+'">'+a+'</option>').join('');
   // Solo se repuebla la primera vez (cuando está vacío) para no perder lo
   // que Isabel ya eligió si vuelve a entrar a esta sub-pestaña.
-  if(!selActual.options.length){ selActual.innerHTML = opciones; selActual.value = anios[0]; }
-  if(!selNuevo.options.length){ selNuevo.innerHTML = opciones; selNuevo.value = anios[anios.length-1]; }
-  onAnocAnioChange('actual');
-  onAnocAnioChange('nuevo');
+  if(!selCarrier.options.length){ selCarrier.innerHTML = carriers.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join(''); }
+  onAnocCarrierChange();
 }
-function onAnocAnioChange(cual){
-  const anio = parseInt(document.getElementById('anoc-anio-'+cual).value, 10);
-  const sel = document.getElementById('anoc-plan-'+cual);
-  const planes = PLANES_DATA.filter(p => anioDePlan(p) === anio);
-  if(!planes.length){ sel.innerHTML = '<option value="">— SIN PLANES ESE AÑO —</option>'; return; }
-  sel.innerHTML = planes.map(p=>'<option value="'+p.id+'">'+esc(p.nombre_plan)+(p.carrier?' — '+esc(p.carrier):'')+'</option>').join('');
+function onAnocCarrierChange(){
+  const carrier = document.getElementById('anoc-carrier').value;
+  const sel = document.getElementById('anoc-plan');
+  const nombres = Array.from(new Set(PLANES_DATA.filter(p=>carrierDePlan(p)===carrier).map(p=>p.nombre_plan))).sort();
+  if(!nombres.length){ sel.innerHTML = '<option value="">— SIN PLANES —</option>'; return; }
+  sel.innerHTML = nombres.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
@@ -7163,13 +7155,14 @@ function mostrarComparacionPlanes(){
 // un año a otro — elegir por año evita depender de que siga ahí.
 function mostrarCambiosAnoc(){
  try {
-  const idActual = document.getElementById('anoc-plan-actual').value;
-  const idNuevo = document.getElementById('anoc-plan-nuevo').value;
-  if(!idActual || !idNuevo){ toast('⚠ Elige un plan en cada año'); return; }
-  if(idActual === idNuevo){ toast('⚠ Elige dos planes distintos — uno por cada año'); return; }
-  const pActual = PLANES_DATA.find(p => String(p.id) === String(idActual));
-  const pNuevo = PLANES_DATA.find(p => String(p.id) === String(idNuevo));
-  if(!pActual || !pNuevo) return;
+  const carrier = document.getElementById('anoc-carrier').value;
+  const nombrePlan = document.getElementById('anoc-plan').value;
+  if(!carrier || !nombrePlan){ toast('⚠ Elige una aseguranza y un plan'); return; }
+  const versiones = PLANES_DATA.filter(p => carrierDePlan(p)===carrier && p.nombre_plan===nombrePlan)
+    .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
+  if(versiones.length < 2){ toast('⚠ Solo tienes guardado un año de este plan — agrega el otro año para poder comparar'); return; }
+  const pActual = versiones[0];
+  const pNuevo = versiones[versiones.length-1];
 
   const wrap = document.getElementById('anoc-wrap');
   let filas = '';
@@ -7199,12 +7192,12 @@ function mostrarCambiosAnoc(){
   }
 
   let html = '<div class="card" style="overflow-x:auto">';
-  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:9px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' → '+esc(pNuevo.nombre_plan)+'</div>';
+  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:9px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' — '+esc(anioDePlan(pActual))+' → '+esc(anioDePlan(pNuevo))+'</div>';
   if(!huboCambios){
     html += '<div style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">NO HAY CAMBIOS CAPTURADOS ENTRE ESTOS DOS PLANES</div>';
   } else {
     html += '<table style="width:100%;border-collapse:collapse">';
-    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th><th>AÑO ACTUAL<br><span style="font-weight:400;text-transform:none">'+esc(pActual.nombre_plan)+'</span></th><th>AÑO NUEVO<br><span style="font-weight:400;text-transform:none">'+esc(pNuevo.nombre_plan)+'</span></th></tr>';
+    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th><th>'+esc(anioDePlan(pActual)||'AÑO ACTUAL')+'<br><span style="font-weight:400;text-transform:none">'+esc(pActual.nombre_plan)+'</span></th><th>'+esc(anioDePlan(pNuevo)||'AÑO NUEVO')+'<br><span style="font-weight:400;text-transform:none">'+esc(pNuevo.nombre_plan)+'</span></th></tr>';
     html += filas;
     html += '</table>';
   }
