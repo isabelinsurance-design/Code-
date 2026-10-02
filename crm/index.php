@@ -6624,6 +6624,7 @@ $PLAN_CAMPOS = [
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()" disabled>⚖ COMPARAR SELECCIONADOS</button>
+      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" disabled title="Elige EXACTAMENTE 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 AÑO A AÑO (SOLO CAMBIOS)</button>
       <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
     </div>
   </div>
@@ -6736,6 +6737,8 @@ function actualizarBotonComparar(){
   const n = document.querySelectorAll('.plan-check:checked').length;
   const btn = document.getElementById('plan-compare-btn');
   if(btn) btn.disabled = n < 2;
+  const btnAnoc = document.getElementById('plan-anoc-btn');
+  if(btnAnoc) btnAnoc.disabled = n !== 2;
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
@@ -6765,6 +6768,66 @@ function mostrarComparacionPlanes(){
       + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
   }
   html += '</table></div>';
+  wrap.innerHTML = html;
+  wrap.style.display = 'block';
+  wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+// "AÑO A AÑO (SOLO CAMBIOS)" — pedido de Isabel: para usar EN VIVO en una
+// llamada AEP, mismo criterio que el ANOC que le llega al miembro por correo
+// — comparar el MISMO plan de un año contra el del otro año y solo mostrar
+// los beneficios que SÍ cambiaron (lo que se quedó igual no se repite, para
+// no tener que leer 55 campos buscando la diferencia a mitad de llamada).
+function mostrarCambiosAnoc(){
+  const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
+  if(ids.length !== 2){ toast('⚠ Elige exactamente 2 planes (el mismo plan, de cada año)'); return; }
+  let planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
+  if(planes.length !== 2) return;
+  // El año con el número más chico se muestra primero (ACTUAL), el más
+  // grande después (NUEVO) — si no se puede leer el año de alguno, se deja
+  // en el orden en que los seleccionaste.
+  const anioNum = p => { const n = parseInt((p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; };
+  const a1 = anioNum(planes[0]), a2 = anioNum(planes[1]);
+  if(a1 !== null && a2 !== null && a1 > a2) planes = [planes[1], planes[0]];
+  const [pActual, pNuevo] = planes;
+
+  const wrap = document.getElementById('plan-comparacion-wrap');
+  let filas = '';
+  let huboCambios = false;
+  Object.keys(PLAN_CAMPOS).forEach(seccion=>{
+    let filasSeccion = '';
+    Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
+      const v1 = (pActual[campo]||'').trim();
+      const v2 = (pNuevo[campo]||'').trim();
+      if(v1 === v2) return; // sin cambio — no se muestra, igual que el ANOC
+      huboCambios = true;
+      filasSeccion += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
+        + '<td style="font-size:9px;white-space:pre-wrap;color:#7A90A4">'+esc(v1||'— No incluido —')+'</td>'
+        + '<td style="font-size:9px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE">'+esc(v2||'— Ya no incluido —')+'</td></tr>';
+    });
+    if(filasSeccion){
+      filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
+    }
+  });
+  const e1 = (pActual.extras_json||'').trim(), e2 = (pNuevo.extras_json||'').trim();
+  if(e1 !== e2){
+    huboCambios = true;
+    filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>'
+      + '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Extras</td>'
+      + '<td style="font-size:9px;white-space:pre-wrap;color:#7A90A4">'+esc(e1||'—')+'</td>'
+      + '<td style="font-size:9px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE">'+esc(e2||'—')+'</td></tr>';
+  }
+
+  let html = '<div class="card" style="overflow-x:auto">';
+  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:9px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' → '+esc(pNuevo.nombre_plan)+'</div>';
+  if(!huboCambios){
+    html += '<div style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">NO HAY CAMBIOS CAPTURADOS ENTRE ESTOS DOS PLANES</div>';
+  } else {
+    html += '<table style="width:100%;border-collapse:collapse">';
+    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th><th>AÑO ACTUAL<br><span style="font-weight:400;text-transform:none">'+esc(pActual.nombre_plan)+'</span></th><th>AÑO NUEVO<br><span style="font-weight:400;text-transform:none">'+esc(pNuevo.nombre_plan)+'</span></th></tr>';
+    html += filas;
+    html += '</table>';
+  }
+  html += '</div>';
   wrap.innerHTML = html;
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
