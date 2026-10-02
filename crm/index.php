@@ -2878,6 +2878,74 @@ try {
             $_ins->execute(array_values($_essential2026));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Venture (HMO) 2026 — Los Angeles y Orange. OJO: ya
+    // existe SCAN Venture 2027 en el sistema — esto habilita comparación
+    // ANOC año a año. Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_venture2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_venture2026_existe->execute(['SCAN Venture (HMO)', 2026]);
+        if (!$_venture2026_existe->fetch()) {
+            $_venture2026 = [
+                'nombre_plan'=>'SCAN Venture (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles y Orange, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan HMO estándar (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'$55 al mes (Part B Premium Give Back)',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$250 (Nivel 3 a 5)',
+                'moop'=>'$1,000 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — monto de 2026',
+                'hospital_internado'=>'$0 — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $0\nHospital ambulatorio: $25-$225 copago por visita\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$90 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$155 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $5 copago pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 rayos X ambulatorios; $0-$75 copago radiología diagnóstica (MRI/CT); $0 para mamografía',
+                'radiologia_terapeutica'=>'$60 copago por visita',
+                'examen_auditivo'=>'$0 examen diagnóstico cubierto por Medicare; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'audifonos'=>'$550 copago por audífono TruHearing Advanced, o $850 copago por audífono TruHearing Premium — cubierto hasta 2 audífonos cada 12 meses. No requiere referencia de su médico; llame al 1-844-255-7148 para agendar',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $5 copago\nExámenes: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X: $0 (2 cada 12 meses)\nDiagnóstico: $0-$5 copago\nPreventivo: $0-$80 copago",
+                'dental_integral'=>"Plan dental CAC73\nRestaurativo: \$8-\$395\nEndodoncia: \$5-\$395\nPeriodoncia: \$0-\$380\nProstodoncia removible: \$13-\$395\nProstodoncia fija: \$25-\$395\nCirugía oral/maxilofacial: \$0-\$140\nServicios adjuntos (anestesia, tratamiento de dolor de emergencia): \$0-\$125\nEl costo exacto varía según el código dental específico",
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'anteojos'=>'Hasta $150 cada 12 meses para armazones, lentes y opciones de lentes o lentes de contacto',
+                'salud_mental_internado'=>'$125 copago por día, días 1-5; $0 días 6-90',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal, y $20 copago por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-20; $100 copago por día, días 21-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$5 copago por visita',
+                'transporte'=>'No incluido en este plan (no se menciona en este documento)',
+                'rx_deducible'=>'$250 (Nivel 3 a 5)',
+                'rx_nivel1'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $7 (30 días) / $14 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $14 (100 días)",
+                'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $15 (30 días) / $30 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $30 (100 días)",
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+                'rx_nivel4'=>'35% en todas las modalidades',
+                'rx_nivel5'=>'30% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$65 por trimestre con tarjeta FlexEssentials (solo productos OTC, en tiendas CVS o entrega a domicilio; el saldo no usado SÍ se acumula al siguiente trimestre, pero no pasa al siguiente año)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con OnePass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo',
+                'quiropractico_acupuntura'=>"$0 acupuntura y quiropráctico cubiertos por Medicare\nRutina: $5 copago por visita, hasta 24 visitas al año combinadas entre quiropráctico y acupuntura",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>'$0 para artículos de $0 a $99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\nMonitores continuos de glucosa: 20% del costo total en farmacia o con proveedor DME',
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 40 horas de cuidado personal en el hogar al año (incrementos de 4 horas), tras hospitalización reciente, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 84 comidas al año tras una hospitalización reciente\n$0 — hasta 84 comidas al año por condición crónica calificada\n(Este año no incluye cuidado de relevo/respite care)",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año tras una hospitalización reciente\n$0 — hasta 84 comidas al año por condición crónica calificada",
+                'extras_json'=>"HEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: $0-20% del monto aprobado por Medicare para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'IMPORTANTE: Resumen de Beneficios del año 2026 (ya existe SCAN Venture 2027 en el sistema — útil para comparar año a año con ANOC). Los Angeles y Orange County. Plan HMO estándar, no requiere condición crónica ni Medi-Cal. El reembolso de Parte B es $55/mes en 2026. El umbral catastrófico de Parte D es $2,100 (en los planes 2027 es $2,400). Doc: Y0057_SCAN_21994_2026_M / 26C-SBH5425084. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_venture2026);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_venture2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
