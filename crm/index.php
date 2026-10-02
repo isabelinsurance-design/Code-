@@ -6693,11 +6693,16 @@ $PLAN_CAMPOS = [
 ];
 ?>
 <div id="tab-PLANES" class="tab-pane">
+<div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
+<button class="ntab active" onclick="showPlanesTab('PLANES')" data-pstab="PLANES">📋 TODOS LOS PLANES</button>
+<button class="ntab" onclick="showPlanesTab('ANOC')" data-pstab="ANOC">🔄 ANOC — CAMBIOS AÑO A AÑO</button>
+</div>
+
+<div id="pstab-PLANES">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()">⚖ COMPARAR SELECCIONADOS</button>
-      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" title="Elige 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 ANOC</button>
       <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
     </div>
   </div>
@@ -6744,6 +6749,30 @@ $PLAN_CAMPOS = [
     </div>
   <?php endforeach; endif; ?>
   </div>
+</div><!-- /pstab-PLANES -->
+
+<div id="pstab-ANOC" style="display:none">
+  <div class="card" style="padding:14px 16px;margin-bottom:14px">
+    <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800;margin-bottom:12px">Elige el MISMO plan en dos años distintos para ver SOLO lo que cambió — igual que el ANOC que le llega al miembro por correo</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div>
+        <label class="form-label">AÑO ACTUAL</label>
+        <select id="anoc-anio-actual" class="form-input" onchange="onAnocAnioChange('actual')"></select>
+        <label class="form-label" style="margin-top:9px">PLAN</label>
+        <select id="anoc-plan-actual" class="form-input"></select>
+      </div>
+      <div>
+        <label class="form-label">AÑO NUEVO</label>
+        <select id="anoc-anio-nuevo" class="form-input" onchange="onAnocAnioChange('nuevo')"></select>
+        <label class="form-label" style="margin-top:9px">PLAN</label>
+        <select id="anoc-plan-nuevo" class="form-input"></select>
+      </div>
+    </div>
+    <button class="btn btn-sky btn-sm" style="margin-top:14px" onclick="mostrarCambiosAnoc()">🔄 VER CAMBIOS ANOC</button>
+  </div>
+  <div id="anoc-wrap"></div>
+</div><!-- /pstab-ANOC -->
+
 </div><!-- /PLANES -->
 <!-- MODAL: AGREGAR/EDITAR PLAN -->
 <div id="modal-plan-comparacion" class="modal-overlay"><div class="modal" style="max-width:720px">
@@ -6807,9 +6836,44 @@ function eliminarPlanComparacion(id){
     });
 }
 function actualizarBotonComparar(){
-  // Los botones ya no se deshabilitan — si Isabel les da click sin marcar
-  // las casillas correctas, es mejor avisarle con un mensaje claro que
-  // dejar el botón "muerto" sin ninguna reacción.
+  // El botón ya no se deshabilita — si Isabel le da click sin marcar
+  // las casillas, es mejor avisarle con un mensaje claro que dejar el
+  // botón "muerto" sin ninguna reacción (ver mostrarComparacionPlanes).
+}
+function showPlanesTab(id){
+  ['PLANES','ANOC'].forEach(t=>{const el=document.getElementById('pstab-'+t);if(el)el.style.display=t===id?'':'none';});
+  document.querySelectorAll('.ntab[data-pstab]').forEach(b=>b.classList.toggle('active', b.dataset.pstab===id));
+  if(id==='ANOC') renderAnocSelectores();
+}
+function anioDePlan(p){ const n = parseInt((p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; }
+function renderAnocSelectores(){
+  const anios = Array.from(new Set(PLANES_DATA.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
+  const selActual = document.getElementById('anoc-anio-actual');
+  const selNuevo = document.getElementById('anoc-anio-nuevo');
+  if(!selActual || !selNuevo) return;
+  if(anios.length < 2){
+    selActual.innerHTML = '<option value="">—</option>';
+    selNuevo.innerHTML = '<option value="">—</option>';
+    document.getElementById('anoc-plan-actual').innerHTML = '<option value="">—</option>';
+    document.getElementById('anoc-plan-nuevo').innerHTML = '<option value="">—</option>';
+    document.getElementById('anoc-wrap').innerHTML = '<div class="card" style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">AGREGA PLANES CON AL MENOS 2 AÑOS DISTINTOS (CAMPO "AÑO") PARA USAR ANOC</div>';
+    return;
+  }
+  document.getElementById('anoc-wrap').innerHTML = '';
+  const opciones = anios.map(a=>'<option value="'+a+'">'+a+'</option>').join('');
+  // Solo se repuebla la primera vez (cuando está vacío) para no perder lo
+  // que Isabel ya eligió si vuelve a entrar a esta sub-pestaña.
+  if(!selActual.options.length){ selActual.innerHTML = opciones; selActual.value = anios[0]; }
+  if(!selNuevo.options.length){ selNuevo.innerHTML = opciones; selNuevo.value = anios[anios.length-1]; }
+  onAnocAnioChange('actual');
+  onAnocAnioChange('nuevo');
+}
+function onAnocAnioChange(cual){
+  const anio = parseInt(document.getElementById('anoc-anio-'+cual).value, 10);
+  const sel = document.getElementById('anoc-plan-'+cual);
+  const planes = PLANES_DATA.filter(p => anioDePlan(p) === anio);
+  if(!planes.length){ sel.innerHTML = '<option value="">— SIN PLANES ESE AÑO —</option>'; return; }
+  sel.innerHTML = planes.map(p=>'<option value="'+p.id+'">'+esc(p.nombre_plan)+(p.carrier?' — '+esc(p.carrier):'')+'</option>').join('');
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
@@ -6843,25 +6907,24 @@ function mostrarComparacionPlanes(){
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
 }
-// Botón "ANOC" — pedido de Isabel: para usar EN VIVO en una
-// llamada AEP, mismo criterio que el ANOC que le llega al miembro por correo
-// — comparar el MISMO plan de un año contra el del otro año y solo mostrar
-// los beneficios que SÍ cambiaron (lo que se quedó igual no se repite, para
-// no tener que leer 55 campos buscando la diferencia a mitad de llamada).
+// Sección ANOC — pedido de Isabel: para usar EN VIVO en una llamada AEP,
+// mismo criterio que el ANOC que le llega al miembro por correo — comparar
+// el MISMO plan de un año contra el del otro año y solo mostrar los
+// beneficios que SÍ cambiaron (lo que se quedó igual no se repite, para no
+// tener que leer 55 campos buscando la diferencia a mitad de llamada).
+// Es su propia sub-pestaña con selectores por año (no checkboxes de la
+// lista general) porque un plan puede desaparecer o cambiar de número de
+// un año a otro — elegir por año evita depender de que siga ahí.
 function mostrarCambiosAnoc(){
-  const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
-  if(ids.length !== 2){ toast('⚠ Primero marca la casilla ☐ de EXACTAMENTE 2 planes (el mismo plan, de cada año) — ahora tienes '+ids.length+' marcado(s)'); return; }
-  let planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
-  if(planes.length !== 2) return;
-  // El año con el número más chico se muestra primero (ACTUAL), el más
-  // grande después (NUEVO) — si no se puede leer el año de alguno, se deja
-  // en el orden en que los seleccionaste.
-  const anioNum = p => { const n = parseInt((p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; };
-  const a1 = anioNum(planes[0]), a2 = anioNum(planes[1]);
-  if(a1 !== null && a2 !== null && a1 > a2) planes = [planes[1], planes[0]];
-  const [pActual, pNuevo] = planes;
+  const idActual = document.getElementById('anoc-plan-actual').value;
+  const idNuevo = document.getElementById('anoc-plan-nuevo').value;
+  if(!idActual || !idNuevo){ toast('⚠ Elige un plan en cada año'); return; }
+  if(idActual === idNuevo){ toast('⚠ Elige dos planes distintos — uno por cada año'); return; }
+  const pActual = PLANES_DATA.find(p => String(p.id) === String(idActual));
+  const pNuevo = PLANES_DATA.find(p => String(p.id) === String(idNuevo));
+  if(!pActual || !pNuevo) return;
 
-  const wrap = document.getElementById('plan-comparacion-wrap');
+  const wrap = document.getElementById('anoc-wrap');
   let filas = '';
   let huboCambios = false;
   Object.keys(PLAN_CAMPOS).forEach(seccion=>{
