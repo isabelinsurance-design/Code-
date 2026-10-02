@@ -3301,6 +3301,78 @@ try {
             $_ins->execute(array_values($_connections2026));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Connections at Home (HMO D-SNP) 2026 — Los Angeles,
+    // Riverside, San Bernardino y San Diego. OJO: ya existe SCAN
+    // Connections at Home 2027 en el sistema — esto habilita comparación
+    // ANOC año a año. En 2026 FlexEssentials es $155/mes (vs $145 en
+    // 2027), el beneficio de anteojos es hasta $500 (vs $350 en 2027), y
+    // el umbral catastrófico de Parte D es $2,000 (vs $2,400 en 2027).
+    // Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_connections_home2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_connections_home2026_existe->execute(['SCAN Connections at Home (HMO D-SNP)', 2026]);
+        if (!$_connections_home2026_existe->fetch()) {
+            $_connections_home2026 = [
+                'nombre_plan'=>'SCAN Connections at Home (HMO D-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles, Riverside, San Bernardino y San Diego, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Y Medi-Cal (Asistencia Médica del Estado) al mismo tiempo\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente\nSi un miembro del plan SCAN Connections es evaluado por una enfermera registrada (RN) y se determina que cumple el Nivel de Cuidado de Centro de Enfermería (NFLOC), se le ofrece la oportunidad de inscribirse en este plan Connections at Home",
+                'prima_mensual'=>'$0/mes',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0',
+                'deducible_parte_d'=>'$0',
+                'moop'=>'$0 (sin costo compartido — no aplica máximo de gastos de bolsillo)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,000 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 por día — sin límite de días de hospital médicamente necesarios',
+                'hospital_ambulatorio'=>'$0 — incluye servicios de observación',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0',
+                'atencion_preventiva'=>'$0 — incluye 1 examen físico de rutina y 1 visita de bienestar al año',
+                'atencion_emergencia'=>'$0 por visita (cubierto en todo el mundo, sin autorización previa ni referencia)',
+                'servicios_urgentes'=>'$0 por visita (cubierto en todo el mundo, sin autorización previa ni referencia)',
+                'emergencia_mundial'=>'$0 — cubierto en todo el mundo',
+                'ambulancia'=>'$0',
+                'diagnostico_laboratorio'=>'$0',
+                'rayos_x'=>'$0',
+                'radiologia_terapeutica'=>'$0',
+                'examen_auditivo'=>'$0 examen cubierto por Medicare; $0 examen de rutina 1 vez al año (sin referencia necesaria con proveedor de rutina contratado)',
+                'audifonos'=>'$0 cuando se determina necesario y se obtiene de un proveedor contratado; incluye periodo de prueba de 60 días, garantía del fabricante de 3 años y 80 baterías; ajustes y evaluaciones cubiertos 12 meses tras la compra',
+                'dental_preventivo'=>'$0 — servicios dentales preventivos cubiertos por Medi-Cal. Ver Evidencia de Cobertura dental de DentaQuest (1-877-227-1625) para la lista completa',
+                'dental_integral'=>'$0 — servicios dentales integrales cubiertos por Medi-Cal (implantes, dentaduras, restaurativo y servicios de emergencia). Ver Evidencia de Cobertura dental de DentaQuest (1-877-227-1625); este documento no especifica un máximo anual en dólares (el plan 2027 sí especifica $5,000/año)',
+                'examen_vision'=>'$0 examen cubierto por Medicare (enfermedades/lesiones del ojo) 1 vez al año; $0 examen de rutina (refracción) cada 12 meses',
+                'anteojos'=>'$0 un par de anteojos cubiertos por Medicare tras cirugía de cataratas; hasta $500 cada 12 meses para armazones/opciones de lentes o lentes de contacto (rutina/no cubierto por Medicare) — el beneficio de lentes de contacto cubre solo el costo de los lentes',
+                'salud_mental_internado'=>'$0 por día — sin límite de días de hospital médicamente necesarios',
+                'salud_mental_ambulatorio'=>'$0 por visita (individual/grupal, pruebas psicológicas, consulta psiquiátrica, telesalud conductual)',
+                'enfermeria_especializada'=>'$0 — sin límite de días médicamente necesarios, no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$0 — incluye rehabilitación cardíaca, terapia ocupacional/física/del habla, servicios pulmonares y terapia de ejercicio supervisada para enfermedad arterial periférica (PAD); hasta 36 sesiones en 12 semanas, más si es médicamente necesario',
+                'transporte'=>'$0 — viajes de ida ilimitados en taxi, silla de ruedas o camilla para servicios médicos no urgentes; requiere 24 horas de aviso (vehículo de pasajeros), 48 horas (silla de ruedas/camilla) o 72 horas (servicio puerta a puerta); viajes de más de 75 millas o a destinos no médicos/no contratados requieren autorización previa',
+                'rx_deducible'=>'$0',
+                'rx_nivel1'=>'$0 por suministro de 30 días (estándar y preferido)',
+                'rx_nivel2'=>'$0 o $1 por suministro de 30 días (estándar); $0 (preferido)',
+                'rx_nivel3'=>'$0, $1.60, $5.10, $4.90 o $12.65 por receta de 30 días (según su nivel de Ayuda Adicional/Extra Help); insulina $0 por suministro de 1 mes',
+                'rx_nivel4'=>'$0, $1.60, $5.10, $4.90 o $12.65 por receta de 30 días; no pagará más de $0, $4.90 o $12.65 por un suministro de 1 mes de insulina cubierta por determinación de cobertura, apelación o transición',
+                'rx_nivel5'=>'$0, $1.60, $5.10, $4.90 o $12.65 por receta de 30 días (según su nivel de Ayuda Adicional/Extra Help)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 por suministro de 1 mes en todos los niveles',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo',
+                'otc_mensual'=>'$0 bajo Medi-Cal; FlexEssentials $155/mes (OTC, víveres SSBCI y servicios públicos SSBCI; no se acumula al siguiente mes — la parte SSBCI requiere condición crónica calificada: enfermedad cardiovascular, insuficiencia cardíaca crónica, diabetes, cáncer, enfermedad pulmonar crónica o demencia)',
+                'gimnasio'=>'$0 — acceso a gimnasios contratados e instalaciones premier (algunos sitios tienen límite de visitas), sin referencia necesaria',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias (unidad en el hogar o localizador portátil), sin referencia necesaria',
+                'quiropractico_acupuntura'=>"$0 quiropráctico cubierto por Medicare (corrección de subluxación); rutina: $0 hasta 30 visitas al año con proveedor contratado\n$0 acupuntura cubierta por Medicare para dolor lumbar crónico (hasta 12 visitas en 90 días, hasta 20 en total si se cumple el criterio); rutina: $0 hasta 36 visitas al año con proveedor contratado (no requiere referencia para la visita inicial; visitas subsecuentes requieren autorización previa)",
+                'podologia'=>'$0 — tratamiento de lesiones/enfermedades de los pies; cuidado rutinario de pies (uñas/callos) disponible con ciertas condiciones médicas',
+                'telesalud'=>'$0 — médico 24/7/365 para atención urgente; salud conductual con psicólogos/terapeutas/psiquiatras por cita, 7 días a la semana incluyendo noches y fines de semana',
+                'dme'=>'$0 — sillas de ruedas, muletas, andadores, nebulizadores, oxígeno y suministros para diabéticos (monitores, tiras y solución solo de marca Abbott; lancetas de cualquier marca)',
+                'apoyo_hogar'=>"Home Modifications: $0 — hasta $2,000 al año para evaluación de seguridad en el hogar, calidad del aire**, control de plagas** y seguridad en el baño\nServicios de limpieza y tareas del hogar: $0; Adult Day Health/CBAS: $0; Day Habilitation: $0\nServicios de ama de llaves: $0 (limpieza ligera, compras, lavandería, preparación de comidas)\nSuministros de incontinencia/higiene: $0\nAlivio de cuidador en el hogar: $0\nCuidado de custodia hospitalario: $0 (hasta 5 días tras alta hospitalaria, visita a ER o para cuidado de relevo)\nCuidado personal: $0 (baño, vestirse, comer, movilidad, aseo)\nServicios de acompañamiento de transporte: $0\nCaregiver Advantage: $0 — coaching, recursos en línea y guía telefónica/virtual para cuidadores familiares\n** Beneficio especial suplementario para miembros crónicamente enfermos (requiere condición crónica calificada)\nCommunity Supports (solo condado de Los Angeles, para personas sin hogar): $0 — navegación de vivienda, apoyo con depósito de seguridad, servicios de mantenimiento de vivienda, vivienda de transición post-hospitalización, cuidado de recuperación\nNOTA: a diferencia de SCAN Connections (sin 'at Home'), este documento NO menciona visitas de cuidado en el hogar (In-Home Care Visits) ni Respite Care como partidas separadas — solo Home Modifications",
+                'comidas_post_hospital'=>'$0 — hasta 4 semanas (máximo 84 comidas al año) por condición crónica calificada, entregadas a domicilio (este documento no menciona la categoría separada de comidas post-agudas/post-hospitalización que sí aparece en SCAN Connections regular)',
+                'extras_json'=>"California Integrated Care Management (CICM): $0 — solo en los 4 condados núcleo (LA, Riverside, San Bernardino, San Diego), para poblaciones de enfoque específicas\nIncluded LGBTQ+ Health: $0 — acceso a cuidado afirmativo, apoyo de estilo de vida y recursos de pares/comunidad, sin referencia necesaria\nHEALTHtech+: $0, sin referencia necesaria\nLínea de Asistencia Personal (PAL): $0, sin referencia necesaria\nLínea de Enfermería 24/7: $0, sin referencia necesaria\nSuplementos nutricionales (Ensure/Boost/Glucerna): $0 con autorización previa y receta del médico primario\nManejo de cuidado: $0, sin referencia necesaria\nDiálisis: $0 (tratamientos, equipo, suministros y capacitación para autodiálisis)\nProtésicos y radioterapia: $0",
+                'notas'=>'IMPORTANTE: Resumen de Beneficios del año 2026 (ya existe SCAN Connections at Home 2027 en el sistema — útil para comparar año a año con ANOC). Los Angeles, Riverside, San Bernardino y San Diego. Plan D-SNP (doble elegible) — requiere Medicare Y Medi-Cal, NO un diagnóstico de condición crónica. Plan hermano de SCAN Connections (HMO D-SNP) regular, para miembros que califican para Nivel de Cuidado de Centro de Enfermería (NFLOC). FlexEssentials es $155/mes en 2026 (vs $145 en 2027); anteojos hasta $500 en 2026 (vs $350 en 2027); umbral catastrófico de Parte D es $2,000 en 2026 (vs $2,400 en 2027). Doc: Y0057_SCAN_21829_2026_M / 26C-SBH0976002. Servicio al Miembro: 1-866-722-6725 (TTY 711).',
+            ];
+            $_cols = array_keys($_connections_home2026);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_connections_home2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
