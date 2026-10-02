@@ -1787,11 +1787,11 @@ $cue_total      = count($cuentas_list);
 $cue_referentes = count(array_filter($cuentas_list, fn($c)=>$c['es_referente']));
 // ─────────────────────────────────────────────────────────────────────────────
 
-$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
-$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
+$tabs_admin=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','PLANES','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','RECURSOS','ENTRENAMIENTO','CONTACTOS','REPORTES','ADMIN'];
+$tabs_agent=['DASHBOARD','TODAYLIVE','BUSCAR','MI DÍA','PLANEACION','MIEMBROS','RETENCION','PIPELINE','CAMPANAS','PLANES','CITAS','FOLLOWUPS','TICKETS','COMUNICACION','PORTALES','BONOS','GASTOS','ASISTENCIA','CONTACTOS','RECURSOS','ENTRENAMIENTO','REPORTES'];
 $tabs=$admin?$tabs_admin:$tabs_agent;
-$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
-$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
+$ticon=['DASHBOARD'=>'▣','ISABEL AI'=>'🤖','TODAYLIVE'=>'🔴','BUSCAR'=>'🔎','MI DÍA'=>'📋','PLANEACION'=>'🧭','MIEMBROS'=>'◉','PORTALES'=>'🖥','PIPELINE'=>'▲','CAMPANAS'=>'📣','PLANES'=>'⚖','CITAS'=>'◷','FOLLOWUPS'=>'☑','TICKETS'=>'◈','ASISTENCIA'=>'◐','POLIZAS'=>'◎','BONOS'=>'◈','COMUNICACION'=>'◌','RECURSOS'=>'◍','RETENCION'=>'📞','CONTACTOS'=>'🤝','REPORTES'=>'▦','GASTOS'=>'💰','ENTRENAMIENTO'=>'🎓','ADMIN'=>'⊞'];
+$tabn=['DASHBOARD'=>'DASHBOARD','ISABEL AI'=>'ISABEL AI','TODAYLIVE'=>'TODAY LIVE','BUSCAR'=>'BUSCAR','MI DÍA'=>'MI DÍA','PLANEACION'=>'PLANEACIÓN','MIEMBROS'=>'MIEMBROS','PIPELINE'=>'PIPELINE','CAMPANAS'=>'CAMPAÑAS','PLANES'=>'PLANES','CITAS'=>'CITAS','FOLLOWUPS'=>'FOLLOW UPS','TICKETS'=>'TICKETS/TASK','ASISTENCIA'=>'ASISTENCIA','POLIZAS'=>'PÓLIZAS','BONOS'=>'MIS BONOS','COMUNICACION'=>'COMUNICACIÓN','RECURSOS'=>'RECURSOS','RETENCION'=>'RETENCIÓN','CONTACTOS'=>'CONTACTOS','REPORTES'=>'REPORTES','GASTOS'=>'GASTOS','ENTRENAMIENTO'=>'ENTRENAMIENTO','ADMIN'=>'ADMIN'];
 $P1='#1B4A6B';$P2='#2876A8';$BG='#EBF4F9';$CB='#C8DFF0';$G='#1E7A5C';$R='#B83232';$A='#C07A1A';$MU='#7A90A4';$TX='#1B3A5C';
 function badge(?string $s, bool $sm = false) : string {
     $s = $s ?? ''; $map=['ACTIVE'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'IN PROCESS'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PLAN CHANGE'=>['#5B3FAF','#F3F0FB','#C2B0E8'],'SIN HACER'=>['#C07A1A','#FEF8EE','#F5D5A0'],'SIN FIRMAR'=>['#C05C1A','#FEF2EB','#F5C4A0'],'CANCELED'=>['#B83232','#FDF0EE','#EFA09A'],'DENIED'=>['#B83232','#FDF0EE','#EFA09A'],'CERRADO'=>['#888780','#F1EFE8','#B4B2A9'],'DISENROLLED'=>['#993C1D','#FAECE7','#F0997B'],'ACTIVO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'CANCELADO'=>['#B83232','#FDF0EE','#EFA09A'],'PENDIENTE'=>['#1B5E8C','#EBF5FB','#A9D0E8'],'PROSPECTO'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ABIERTO'=>['#B83232','#FDF0EE','#EFA09A'],'EN PROCESO'=>['#C07A1A','#FEF8EE','#F5D5A0'],'CERRADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'FIRMADO'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ALTA'=>['#B83232','#FDF0EE','#EFA09A'],'MEDIA'=>['#C07A1A','#FEF8EE','#F5D5A0'],'BAJA'=>['#1E7A8C','#EAF4F6','#8DC8D0'],'ACTIVA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'DEVUELTA'=>['#1E7A5C','#EAF5F0','#8DCFBA'],'ADMIN'=>['#1B4A6B','#EBF4F9','#C8DFF0'],'EMPLEADO'=>['#1E7A8C','#EAF4F6','#8DC8D0']];$c=$map[$s]??['#7A90A4','#F4F8FC','#C8DFF0'];$p=$sm?'2px 8px':'3px 10px';$f=$sm?'9px':'10px';return "<span style=\"padding:$p;border-radius:20px;font-size:$f;font-weight:800;background:{$c[1]};color:{$c[0]};border:1px solid {$c[2]};white-space:nowrap;letter-spacing:.5px;text-transform:uppercase\">$s</span>";}
@@ -2111,6 +2111,7 @@ footer{text-align:center;padding:9px;border-top:1px solid <?=$CB?>;font-size:7px
 <?php elseif($t==='RETENCION'&&$alertas_hoy>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$alertas_hoy?></span>
 <?php elseif($t==='COMUNICACION'&&($chat_unread+$sms_unread)>0):?><span class="nbadge" style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0"><?=$chat_unread+$sms_unread?></span>
 <?php elseif($t==='RECURSOS'&&$rec_due>0):?><span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A"><?=$rec_due?></span>
+<?php elseif($t==='PLANES'&&count($planes_comparacion)>0):?><span class="nbadge" style="background:<?=$BG?>;color:<?=$MU?>;border:1px solid <?=$CB?>"><?=count($planes_comparacion)?></span>
 <?php endif;?>
 </button>
 <?php endforeach;?>
@@ -6336,7 +6337,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
 <!-- RECURSOS -->
 <div id="tab-RECURSOS" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
-<?php foreach(['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PLANES','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':($rt==='LISTAS'?'📊 LISTAS':($rt==='PLANES'?'📋 COMPARAR PLANES':$rt))?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?><?=($rt==='LISTAS'&&count($listas_excel)>0)?' <span class="nbadge">'.count($listas_excel).'</span>':''?><?=($rt==='PLANES'&&count($planes_comparacion)>0)?' <span class="nbadge">'.count($planes_comparacion).'</span>':''?></button><?php endforeach;?>
+<?php foreach(['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'] as $rt):?><button class="ntab<?=$rt==='RECORDATORIOS'?' active':''?>" onclick="showRecTab('<?=$rt?>')" data-rtab="<?=$rt?>"><?=$rt==='RECORDATORIOS'?'📌 RECORDATORIOS':($rt==='LISTAS'?'📊 LISTAS':$rt)?><?=($rt==='RECORDATORIOS'&&$rec_due>0)?' <span class="nbadge" style="background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">'.$rec_due.'</span>':''?><?=($rt==='LISTAS'&&count($listas_excel)>0)?' <span class="nbadge">'.count($listas_excel).'</span>':''?></button><?php endforeach;?>
 </div>
 
 <!-- ══════════ RECORDATORIOS Y NOTAS ══════════ -->
@@ -6574,6 +6575,78 @@ $carriers_info=[
 <?php endforeach;?>
 </div>
 </div>
+<div id="rtab-PORTALES" style="display:none"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
+<div class="card" style="border-top:3px solid <?=$P1?>"><div class="card-header"><div class="card-title"> CARRIERS</div></div><div style="padding:11px"><?php foreach([['SCAN','(800)559-3500','provider.scanhealthplan.com'],['ANTHEM','(888)254-2764','anthem.com/ca/provider'],['HUMANA','(800)448-6262','humana.com/provider'],['ALIGNMENT','(855)265-7217','alignmenthealthcare.com'],['LA CARE','(213)438-5700','lacare.org/provider'],['HEALTH NET','(800)641-7761','healthnet.com/provider'],['MOLINA','(888)858-2150','molinahealthcare.com'],['UNITED HEALTHCARE','(877)842-3210','uhcprovider.com']] as [$c,$tel,$web]):?><div class="portal-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=$c?></span><span style="font-size:9px;font-weight:800;color:<?=$P2?>"><?=$tel?></span></div><div style="font-size:8px;color:<?=$P2?>"> <?=$web?></div></div><?php endforeach;?></div></div>
+<div class="card" style="border-top:3px solid #1E7A8C"><div class="card-header"><div class="card-title"> DENTALES</div></div><div style="padding:11px"><?php foreach([['DENTALQUEST (SCAN)','(800)544-0718'],['LIBERTY DENTAL (ANTHEM/LA CARE)','(888)352-7924'],['HUMANA DENTAL','(800)233-4013'],['MOLINA DENTAL','(888)858-2150'],['HEALTH NET DENTAL','(800)641-7761']] as [$d,$tel]):?><div class="portal-card" style="border-left-color:#1E7A8C"><div style="font-weight:900;font-size:9px;color:<?=$P1?>;margin-bottom:3px"><?=$d?></div><div style="font-size:9px;font-weight:800;color:#1E7A8C"><?=$tel?></div></div><?php endforeach;?></div></div>
+<div class="card" style="border-top:3px solid #C07A1A"><div class="card-header"><div class="card-title"> GOBIERNO</div></div><div style="padding:11px"><?php foreach([['CMS / MEDICARE.GOV','(800)633-4227','medicare.gov'],['MY MEDICARE','','mymedicare.gov'],['SOCIAL SECURITY','(800)772-1213','ssa.gov'],['MEDI-CAL / DHCS','(916)440-7400','dhcs.ca.gov'],['COVERED CA','(800)300-1506','coveredca.com'],['AHIP CERTIFICATION','','ahip.org']] as [$d,$tel,$web]):?><div class="portal-card" style="border-left-color:#C07A1A"><div style="font-weight:900;font-size:9px;color:<?=$P1?>;margin-bottom:3px"><?=$d?></div><div style="display:flex;gap:9px;font-size:8px"><?php if($tel):?><span style="color:#C07A1A;font-weight:800"><?=$tel?></span><?php endif;?><span style="color:<?=$P2?>"> <?=$web?></span></div></div><?php endforeach;?></div></div>
+</div></div>
+<div id="rtab-SOPs" style="display:none"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
+<?php foreach([['CHECK-IN DIARIO',"1. CHECK-IN al llegar (antes 9 AM)\n2. SALIDA ALMUERZO (30-60 min)\n3. REGRESO ALMUERZO\n4. BREAK adicional (10-15 min)\n5. CHECK-OUT al terminar\n6. REPORTE DIARIO antes del CHECK-OUT"],['LLAMADAS SALIENTES',"1. Revisar lista del día\n2. Tener perfil abierto antes de llamar\n3. Usar el script correspondiente\n4. Documentar en CRM inmediatamente\n5. Crear ticket si hay problema"],['TWILIO / NEXTIVA',"ENTRANTE:\n1. Contestar máx 3 timbres\n2. \"Medicare with Isabel, habla [NOMBRE]\"\n3. Buscar en CRM\n4. Documentar como ticket\n\nPERDIDA:\n1. Registrar en LLAMADAS PERDIDAS\n2. Devolver dentro de 2 horas"],['TICKETS',"1. Crear ticket AL MOMENTO del problema\n2. Categorizar correctamente\n3. Prioridad: Alta/Media/Baja\n4. Fecha seguimiento OBLIGATORIA\n5. Actualizar DIARIAMENTE\n6. Cerrar SOLO cuando resuelto 100%"],['SOA - CMS',"CMS REQUIERE:\n- SOA firmado MÍNIMO 48h antes de cita\n- Guardar MÍNIMO 10 años\n- Incluir: nombre, DOB, plan, fecha, firma\n\n1. Enviar SOA electrónico\n2. Esperar 48h\n3. Archivar en Drive del miembro"],['LLAMADAS 30/60/90',"OBLIGATORIO TODOS LOS MIEMBROS NUEVOS:\n- BIENVENIDA: primeros 7 días\n- 30 DÍAS: mes de efectividad\n- 60 DÍAS: 2 meses\n- 90 DÍAS: 3 meses\n\nSi no contesta: 3 intentos en días diferentes."]] as [$titulo,$texto]):?><div class="card"><div class="card-header"><div class="card-title"><?=h($titulo)?></div></div><div style="padding:13px 16px"><div style="font-size:9px;color:<?=$TX?>;line-height:1.9;white-space:pre-wrap"><?=h($texto)?></div><button class="btn btn-sky btn-sm" style="margin-top:10px" onclick="copyText(this)" data-text="<?=htmlspecialchars($texto,ENT_QUOTES)?>"> COPIAR</button></div></div><?php endforeach;?>
+</div></div>
+<div id="rtab-PROMPTS IA" style="display:none">
+<?php
+$PROMPTS_IA=[
+ ['VENTAS','PRIMERA LLAMADA A LEAD NUEVO',"Escribe un guión de primera llamada en español (máx 45 segundos) para un prospecto de Medicare que acaba de dejar sus datos. Preséntate como agente de Medicare with Isabel, califica con 3 preguntas (Parte A y B, médico de preferencia, medicamentos) e invita a una cita GRATUITA con Isabel. Cumple compliance CMS: sin nombrar carriers, sin comparar planes, sin garantizar costos."],
+ ['VENTAS','MANEJAR: YA TENGO MEDICARE',"Dame 3 respuestas cortas y empáticas en español para un prospecto que dice \"ya tengo Medicare\", orientadas a ofrecer una revisión gratuita de beneficios adicionales, sin mencionar carriers ni comparar planes."],
+ ['VENTAS','SEGUIMIENTO A QUIEN NO CONTESTÓ',"Redacta un SMS y un mensaje de voz breve en español para un prospecto que no contestó: amable, sin presión, invitando a devolver la llamada. Incluye opción de horario."],
+ ['RETENCIÓN','LLAMADA DAY 30 + GOOGLE REVIEW',"Escribe un guión de llamada Day 30 en español para un miembro nuevo: confirmar satisfacción, resolver dudas y pedir de forma natural una reseña en Google, sin insistir."],
+ ['RETENCIÓN','MIEMBRO QUIERE CAMBIAR DE PLAN',"Un miembro quiere cambiar de plan. Dame los pasos a seguir en español cumpliendo compliance, qué información recopilar y cómo escalar a Isabel."],
+ ['MARKETING','3 POSTS COMPLIANT PARA REDES',"Escribe 3 publicaciones cortas en español para Facebook/Instagram que eduquen sobre beneficios de Medicare (dental, visión, OTC, transporte) SIN mencionar carriers, sin comparar planes y sin garantizar nada. Incluye llamada a la acción para contactar a la agencia."],
+ ['MARKETING','RESPONDER MENSAJE DE FACEBOOK',"Redacta una respuesta a un mensaje de Facebook de un prospecto interesado en Medicare: califica brevemente e invita a una cita. Cumple compliance CMS."],
+ ['COMPLIANCE','REVISAR COMPLIANCE DE UN TEXTO',"Revisa el siguiente texto y dime si cumple las reglas de CMS (sin carriers, sin comparaciones, sin garantías). Marca exactamente qué cambiar:\n\n[PEGAR TEXTO AQUÍ]"],
+ ['OUTREACH','LLAMAR A UN SENIOR CENTER',"Escribe un guión en español para llamar a un senior center y ofrecer un taller educativo gratuito de Medicare (solo educación, sin venta). Objetivo: agendar la charla."],
+ ['OUTREACH','EMAIL A CENTRO COMUNITARIO',"Redacta un email corto y profesional en español de seguimiento a un centro comunitario tras una primera conversación, proponiendo una fecha para un taller."],
+ ['CRM','RESUMEN DEL DÍA PARA ISABEL',"Con estos datos del día, escribe un resumen ejecutivo de 150 palabras para Isabel: inscripciones, pipeline, tickets, alertas y 1 acción recomendada.\n\nDatos: [PEGAR AQUÍ]"],
+ ['CRM','CHECKLIST DE CIERRE DEL CRM',"Dame un checklist en español de cómo actualizar correctamente el CRM al final del día: leads, citas, tickets y estados de miembros."],
+];
+$PI_COL=['VENTAS'=>'#1B5E8C','RETENCIÓN'=>'#1E7A5C','MARKETING'=>'#5B3FAF','COMPLIANCE'=>'#B83232','OUTREACH'=>'#C07A1A','CRM'=>'#1B4A6B'];
+?>
+<div style="background:#F3F0FB;border:1px solid #C2B0E8;border-radius:11px;padding:10px 15px;margin-bottom:13px;font-size:8px;color:#5B3FAF;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">🤖 Copia un prompt y pégalo en tu asistente de IA. Reemplaza lo que está [ENTRE CORCHETES].</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px">
+<?php foreach($PROMPTS_IA as [$cat,$titulo,$texto]): $col=$PI_COL[$cat]??$P2; ?>
+<div class="card" style="border-left:4px solid <?=$col?>">
+  <div class="card-header" style="padding:10px 14px">
+    <div><div style="font-size:7px;font-weight:900;color:<?=$col?>;text-transform:uppercase;letter-spacing:1px"><?=$cat?></div><div class="card-title" style="font-size:9px;margin-top:2px"><?=h($titulo)?></div></div>
+  </div>
+  <div style="padding:11px 14px">
+    <div style="font-size:9px;color:<?=$TX?>;line-height:1.7;white-space:pre-wrap;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:9px 11px;margin-bottom:8px"><?=h($texto)?></div>
+    <button class="btn btn-sky btn-sm" onclick="copyText(this)" data-text="<?=htmlspecialchars($texto,ENT_QUOTES)?>">COPIAR PROMPT</button>
+  </div>
+</div>
+<?php endforeach;?>
+</div>
+</div>
+<div id="rtab-SECUENCIAS" style="display:none">
+<?php
+$SECUENCIAS=[
+ ['LEAD NUEVO — SLA 60 MIN','#1B5E8C',['Min 0-60: Llamada #1 — script de primera llamada. Si contesta → calificar y agendar con Isabel.','Día 0 (si no contesta): SMS de presentación + dejar buzón breve.','Día 1: Llamada #2 en otra franja horaria (mañana/tarde).','Día 3: WhatsApp con beneficios generales (sin carriers) + invitación.','Día 5: Llamada #3 final + SMS amable de última oportunidad.','Cierre: agendar con Isabel o marcar para T65 / AEP en el CRM.']],
+ ['RETENCIÓN — 90 DÍAS','#1E7A5C',['Day 1: Llamada de bienvenida. Confirmar datos y próximos pasos.','Day 15: ¿Llegó la tarjeta? ¿Escogió PCP? Resolver dudas.','Day 30: Satisfacción + pedir Google Review (sin insistir).','Day 60: Recordar beneficios (dental, OTC, transporte).','Day 90: Satisfacción + pedir referidos.']],
+ ['PRE-AEP (SEP-OCT)','#5B3FAF',['Llamar a cada miembro activo antes de octubre.','Tranquilizar: recordar sus beneficios actuales.','Ofrecer revisión gratuita de opciones en octubre.','Agendar la cita de revisión con Isabel.','Registrar en el CRM el resultado y el seguimiento.']],
+ ['POST-EVENTO (48 HORAS)','#C07A1A',['Día 0: Cargar TODOS los asistentes al CRM con la fuente del evento.','Día 1: SMS de agradecimiento + info de contacto.','Día 2: Llamada de calificación a cada asistente interesado.','Día 5: Segundo intento a quienes no contestaron.','Cierre: agendar citas con Isabel y reportar leads del evento.']],
+ ['REFERIDO','#1B4A6B',['Contacto inicial mencionando quién lo refirió (genera confianza).','Calificar con las 3 preguntas clave.','Agendar cita con Isabel si hay interés.','Agradecer a la persona que refirió y registrar el referido.']],
+ ['NO-SHOW / REAGENDAR','#B83232',['Mismo día: llamada + SMS para reagendar de inmediato.','Día 1: Reintento en otra franja horaria.','Día 3: Último intento + mensaje amable.','Cierre: reagendar con Isabel o marcar para seguimiento largo.']],
+];
+?>
+<div style="background:#EBF5FB;border:1px solid #A9D0E8;border-radius:11px;padding:10px 15px;margin-bottom:13px;font-size:8px;color:#1B5E8C;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">🔁 Secuencias listas para usar. Cada paso indica el canal y el momento. Documenta cada toque en el CRM.</div>
+<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:11px">
+<?php foreach($SECUENCIAS as [$titulo,$col,$pasos]): $copytext=$titulo."\n".implode("\n",array_map(fn($p,$i)=>($i+1).". ".$p,$pasos,array_keys($pasos))); ?>
+<div class="card" style="border-top:3px solid <?=$col?>">
+  <div class="card-header"><div class="card-title" style="font-size:10px;color:<?=$col?>">🔁 <?=h($titulo)?></div></div>
+  <div style="padding:11px 14px">
+    <?php foreach($pasos as $i=>$p):?>
+    <div style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid <?=$CB?>">
+      <div style="width:18px;height:18px;border-radius:50%;background:<?=$col?>;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0"><?=$i+1?></div>
+      <div style="font-size:9px;color:<?=$TX?>;line-height:1.5"><?=h($p)?></div>
+    </div>
+    <?php endforeach;?>
+    <button class="btn btn-sky btn-sm" style="margin-top:9px" onclick="copyText(this)" data-text="<?=htmlspecialchars($copytext,ENT_QUOTES)?>">COPIAR SECUENCIA</button>
+  </div>
+</div>
+<?php endforeach;?>
+</div>
+</div>
+</div><!-- /RECURSOS -->
+
 <!-- ══════════ COMPARAR PLANES ══════════ -->
 <?php
 // Un solo lugar define los campos: de aquí sale tanto el formulario de
@@ -6619,7 +6692,7 @@ $PLAN_CAMPOS = [
   ],
 ];
 ?>
-<div id="rtab-PLANES" style="display:none">
+<div id="tab-PLANES" class="tab-pane">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
@@ -6671,7 +6744,7 @@ $PLAN_CAMPOS = [
     </div>
   <?php endforeach; endif; ?>
   </div>
-</div>
+</div><!-- /PLANES -->
 <!-- MODAL: AGREGAR/EDITAR PLAN -->
 <div id="modal-plan-comparacion" class="modal-overlay"><div class="modal" style="max-width:720px">
   <div class="modal-header"><div class="modal-title" id="plan-form-title">+ AGREGAR PLAN</div><button class="modal-close" onclick="closeModal('modal-plan-comparacion')">✕</button></div>
@@ -6834,77 +6907,6 @@ function mostrarCambiosAnoc(){
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
-<div id="rtab-PORTALES" style="display:none"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
-<div class="card" style="border-top:3px solid <?=$P1?>"><div class="card-header"><div class="card-title"> CARRIERS</div></div><div style="padding:11px"><?php foreach([['SCAN','(800)559-3500','provider.scanhealthplan.com'],['ANTHEM','(888)254-2764','anthem.com/ca/provider'],['HUMANA','(800)448-6262','humana.com/provider'],['ALIGNMENT','(855)265-7217','alignmenthealthcare.com'],['LA CARE','(213)438-5700','lacare.org/provider'],['HEALTH NET','(800)641-7761','healthnet.com/provider'],['MOLINA','(888)858-2150','molinahealthcare.com'],['UNITED HEALTHCARE','(877)842-3210','uhcprovider.com']] as [$c,$tel,$web]):?><div class="portal-card"><div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=$c?></span><span style="font-size:9px;font-weight:800;color:<?=$P2?>"><?=$tel?></span></div><div style="font-size:8px;color:<?=$P2?>"> <?=$web?></div></div><?php endforeach;?></div></div>
-<div class="card" style="border-top:3px solid #1E7A8C"><div class="card-header"><div class="card-title"> DENTALES</div></div><div style="padding:11px"><?php foreach([['DENTALQUEST (SCAN)','(800)544-0718'],['LIBERTY DENTAL (ANTHEM/LA CARE)','(888)352-7924'],['HUMANA DENTAL','(800)233-4013'],['MOLINA DENTAL','(888)858-2150'],['HEALTH NET DENTAL','(800)641-7761']] as [$d,$tel]):?><div class="portal-card" style="border-left-color:#1E7A8C"><div style="font-weight:900;font-size:9px;color:<?=$P1?>;margin-bottom:3px"><?=$d?></div><div style="font-size:9px;font-weight:800;color:#1E7A8C"><?=$tel?></div></div><?php endforeach;?></div></div>
-<div class="card" style="border-top:3px solid #C07A1A"><div class="card-header"><div class="card-title"> GOBIERNO</div></div><div style="padding:11px"><?php foreach([['CMS / MEDICARE.GOV','(800)633-4227','medicare.gov'],['MY MEDICARE','','mymedicare.gov'],['SOCIAL SECURITY','(800)772-1213','ssa.gov'],['MEDI-CAL / DHCS','(916)440-7400','dhcs.ca.gov'],['COVERED CA','(800)300-1506','coveredca.com'],['AHIP CERTIFICATION','','ahip.org']] as [$d,$tel,$web]):?><div class="portal-card" style="border-left-color:#C07A1A"><div style="font-weight:900;font-size:9px;color:<?=$P1?>;margin-bottom:3px"><?=$d?></div><div style="display:flex;gap:9px;font-size:8px"><?php if($tel):?><span style="color:#C07A1A;font-weight:800"><?=$tel?></span><?php endif;?><span style="color:<?=$P2?>"> <?=$web?></span></div></div><?php endforeach;?></div></div>
-</div></div>
-<div id="rtab-SOPs" style="display:none"><div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(290px,1fr));gap:11px">
-<?php foreach([['CHECK-IN DIARIO',"1. CHECK-IN al llegar (antes 9 AM)\n2. SALIDA ALMUERZO (30-60 min)\n3. REGRESO ALMUERZO\n4. BREAK adicional (10-15 min)\n5. CHECK-OUT al terminar\n6. REPORTE DIARIO antes del CHECK-OUT"],['LLAMADAS SALIENTES',"1. Revisar lista del día\n2. Tener perfil abierto antes de llamar\n3. Usar el script correspondiente\n4. Documentar en CRM inmediatamente\n5. Crear ticket si hay problema"],['TWILIO / NEXTIVA',"ENTRANTE:\n1. Contestar máx 3 timbres\n2. \"Medicare with Isabel, habla [NOMBRE]\"\n3. Buscar en CRM\n4. Documentar como ticket\n\nPERDIDA:\n1. Registrar en LLAMADAS PERDIDAS\n2. Devolver dentro de 2 horas"],['TICKETS',"1. Crear ticket AL MOMENTO del problema\n2. Categorizar correctamente\n3. Prioridad: Alta/Media/Baja\n4. Fecha seguimiento OBLIGATORIA\n5. Actualizar DIARIAMENTE\n6. Cerrar SOLO cuando resuelto 100%"],['SOA - CMS',"CMS REQUIERE:\n- SOA firmado MÍNIMO 48h antes de cita\n- Guardar MÍNIMO 10 años\n- Incluir: nombre, DOB, plan, fecha, firma\n\n1. Enviar SOA electrónico\n2. Esperar 48h\n3. Archivar en Drive del miembro"],['LLAMADAS 30/60/90',"OBLIGATORIO TODOS LOS MIEMBROS NUEVOS:\n- BIENVENIDA: primeros 7 días\n- 30 DÍAS: mes de efectividad\n- 60 DÍAS: 2 meses\n- 90 DÍAS: 3 meses\n\nSi no contesta: 3 intentos en días diferentes."]] as [$titulo,$texto]):?><div class="card"><div class="card-header"><div class="card-title"><?=h($titulo)?></div></div><div style="padding:13px 16px"><div style="font-size:9px;color:<?=$TX?>;line-height:1.9;white-space:pre-wrap"><?=h($texto)?></div><button class="btn btn-sky btn-sm" style="margin-top:10px" onclick="copyText(this)" data-text="<?=htmlspecialchars($texto,ENT_QUOTES)?>"> COPIAR</button></div></div><?php endforeach;?>
-</div></div>
-<div id="rtab-PROMPTS IA" style="display:none">
-<?php
-$PROMPTS_IA=[
- ['VENTAS','PRIMERA LLAMADA A LEAD NUEVO',"Escribe un guión de primera llamada en español (máx 45 segundos) para un prospecto de Medicare que acaba de dejar sus datos. Preséntate como agente de Medicare with Isabel, califica con 3 preguntas (Parte A y B, médico de preferencia, medicamentos) e invita a una cita GRATUITA con Isabel. Cumple compliance CMS: sin nombrar carriers, sin comparar planes, sin garantizar costos."],
- ['VENTAS','MANEJAR: YA TENGO MEDICARE',"Dame 3 respuestas cortas y empáticas en español para un prospecto que dice \"ya tengo Medicare\", orientadas a ofrecer una revisión gratuita de beneficios adicionales, sin mencionar carriers ni comparar planes."],
- ['VENTAS','SEGUIMIENTO A QUIEN NO CONTESTÓ',"Redacta un SMS y un mensaje de voz breve en español para un prospecto que no contestó: amable, sin presión, invitando a devolver la llamada. Incluye opción de horario."],
- ['RETENCIÓN','LLAMADA DAY 30 + GOOGLE REVIEW',"Escribe un guión de llamada Day 30 en español para un miembro nuevo: confirmar satisfacción, resolver dudas y pedir de forma natural una reseña en Google, sin insistir."],
- ['RETENCIÓN','MIEMBRO QUIERE CAMBIAR DE PLAN',"Un miembro quiere cambiar de plan. Dame los pasos a seguir en español cumpliendo compliance, qué información recopilar y cómo escalar a Isabel."],
- ['MARKETING','3 POSTS COMPLIANT PARA REDES',"Escribe 3 publicaciones cortas en español para Facebook/Instagram que eduquen sobre beneficios de Medicare (dental, visión, OTC, transporte) SIN mencionar carriers, sin comparar planes y sin garantizar nada. Incluye llamada a la acción para contactar a la agencia."],
- ['MARKETING','RESPONDER MENSAJE DE FACEBOOK',"Redacta una respuesta a un mensaje de Facebook de un prospecto interesado en Medicare: califica brevemente e invita a una cita. Cumple compliance CMS."],
- ['COMPLIANCE','REVISAR COMPLIANCE DE UN TEXTO',"Revisa el siguiente texto y dime si cumple las reglas de CMS (sin carriers, sin comparaciones, sin garantías). Marca exactamente qué cambiar:\n\n[PEGAR TEXTO AQUÍ]"],
- ['OUTREACH','LLAMAR A UN SENIOR CENTER',"Escribe un guión en español para llamar a un senior center y ofrecer un taller educativo gratuito de Medicare (solo educación, sin venta). Objetivo: agendar la charla."],
- ['OUTREACH','EMAIL A CENTRO COMUNITARIO',"Redacta un email corto y profesional en español de seguimiento a un centro comunitario tras una primera conversación, proponiendo una fecha para un taller."],
- ['CRM','RESUMEN DEL DÍA PARA ISABEL',"Con estos datos del día, escribe un resumen ejecutivo de 150 palabras para Isabel: inscripciones, pipeline, tickets, alertas y 1 acción recomendada.\n\nDatos: [PEGAR AQUÍ]"],
- ['CRM','CHECKLIST DE CIERRE DEL CRM',"Dame un checklist en español de cómo actualizar correctamente el CRM al final del día: leads, citas, tickets y estados de miembros."],
-];
-$PI_COL=['VENTAS'=>'#1B5E8C','RETENCIÓN'=>'#1E7A5C','MARKETING'=>'#5B3FAF','COMPLIANCE'=>'#B83232','OUTREACH'=>'#C07A1A','CRM'=>'#1B4A6B'];
-?>
-<div style="background:#F3F0FB;border:1px solid #C2B0E8;border-radius:11px;padding:10px 15px;margin-bottom:13px;font-size:8px;color:#5B3FAF;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">🤖 Copia un prompt y pégalo en tu asistente de IA. Reemplaza lo que está [ENTRE CORCHETES].</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:11px">
-<?php foreach($PROMPTS_IA as [$cat,$titulo,$texto]): $col=$PI_COL[$cat]??$P2; ?>
-<div class="card" style="border-left:4px solid <?=$col?>">
-  <div class="card-header" style="padding:10px 14px">
-    <div><div style="font-size:7px;font-weight:900;color:<?=$col?>;text-transform:uppercase;letter-spacing:1px"><?=$cat?></div><div class="card-title" style="font-size:9px;margin-top:2px"><?=h($titulo)?></div></div>
-  </div>
-  <div style="padding:11px 14px">
-    <div style="font-size:9px;color:<?=$TX?>;line-height:1.7;white-space:pre-wrap;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:9px 11px;margin-bottom:8px"><?=h($texto)?></div>
-    <button class="btn btn-sky btn-sm" onclick="copyText(this)" data-text="<?=htmlspecialchars($texto,ENT_QUOTES)?>">COPIAR PROMPT</button>
-  </div>
-</div>
-<?php endforeach;?>
-</div>
-</div>
-<div id="rtab-SECUENCIAS" style="display:none">
-<?php
-$SECUENCIAS=[
- ['LEAD NUEVO — SLA 60 MIN','#1B5E8C',['Min 0-60: Llamada #1 — script de primera llamada. Si contesta → calificar y agendar con Isabel.','Día 0 (si no contesta): SMS de presentación + dejar buzón breve.','Día 1: Llamada #2 en otra franja horaria (mañana/tarde).','Día 3: WhatsApp con beneficios generales (sin carriers) + invitación.','Día 5: Llamada #3 final + SMS amable de última oportunidad.','Cierre: agendar con Isabel o marcar para T65 / AEP en el CRM.']],
- ['RETENCIÓN — 90 DÍAS','#1E7A5C',['Day 1: Llamada de bienvenida. Confirmar datos y próximos pasos.','Day 15: ¿Llegó la tarjeta? ¿Escogió PCP? Resolver dudas.','Day 30: Satisfacción + pedir Google Review (sin insistir).','Day 60: Recordar beneficios (dental, OTC, transporte).','Day 90: Satisfacción + pedir referidos.']],
- ['PRE-AEP (SEP-OCT)','#5B3FAF',['Llamar a cada miembro activo antes de octubre.','Tranquilizar: recordar sus beneficios actuales.','Ofrecer revisión gratuita de opciones en octubre.','Agendar la cita de revisión con Isabel.','Registrar en el CRM el resultado y el seguimiento.']],
- ['POST-EVENTO (48 HORAS)','#C07A1A',['Día 0: Cargar TODOS los asistentes al CRM con la fuente del evento.','Día 1: SMS de agradecimiento + info de contacto.','Día 2: Llamada de calificación a cada asistente interesado.','Día 5: Segundo intento a quienes no contestaron.','Cierre: agendar citas con Isabel y reportar leads del evento.']],
- ['REFERIDO','#1B4A6B',['Contacto inicial mencionando quién lo refirió (genera confianza).','Calificar con las 3 preguntas clave.','Agendar cita con Isabel si hay interés.','Agradecer a la persona que refirió y registrar el referido.']],
- ['NO-SHOW / REAGENDAR','#B83232',['Mismo día: llamada + SMS para reagendar de inmediato.','Día 1: Reintento en otra franja horaria.','Día 3: Último intento + mensaje amable.','Cierre: reagendar con Isabel o marcar para seguimiento largo.']],
-];
-?>
-<div style="background:#EBF5FB;border:1px solid #A9D0E8;border-radius:11px;padding:10px 15px;margin-bottom:13px;font-size:8px;color:#1B5E8C;letter-spacing:.5px;text-transform:uppercase;line-height:1.6">🔁 Secuencias listas para usar. Cada paso indica el canal y el momento. Documenta cada toque en el CRM.</div>
-<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:11px">
-<?php foreach($SECUENCIAS as [$titulo,$col,$pasos]): $copytext=$titulo."\n".implode("\n",array_map(fn($p,$i)=>($i+1).". ".$p,$pasos,array_keys($pasos))); ?>
-<div class="card" style="border-top:3px solid <?=$col?>">
-  <div class="card-header"><div class="card-title" style="font-size:10px;color:<?=$col?>">🔁 <?=h($titulo)?></div></div>
-  <div style="padding:11px 14px">
-    <?php foreach($pasos as $i=>$p):?>
-    <div style="display:flex;gap:9px;align-items:flex-start;padding:6px 0;border-bottom:1px solid <?=$CB?>">
-      <div style="width:18px;height:18px;border-radius:50%;background:<?=$col?>;color:#fff;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:900;flex-shrink:0"><?=$i+1?></div>
-      <div style="font-size:9px;color:<?=$TX?>;line-height:1.5"><?=h($p)?></div>
-    </div>
-    <?php endforeach;?>
-    <button class="btn btn-sky btn-sm" style="margin-top:9px" onclick="copyText(this)" data-text="<?=htmlspecialchars($copytext,ENT_QUOTES)?>">COPIAR SECUENCIA</button>
-  </div>
-</div>
-<?php endforeach;?>
-</div>
-</div>
-</div><!-- /RECURSOS -->
 
 
 <!-- REPORTES (visible a todos los empleados) -->
@@ -8933,8 +8935,8 @@ document.querySelectorAll('.tab-pane').forEach(p=>p.style.display='none');
 document.querySelectorAll('.ntab[data-tab]').forEach(b=>b.classList.remove('active'));
 const el=document.getElementById('tab-'+id);if(el)el.style.display='block';
 document.querySelectorAll('.ntab[data-tab="'+id+'"]').forEach(b=>b.classList.add('active'));
-const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
-const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
+const names={DASHBOARD:'DASHBOARD',TODAYLIVE:'TODAY LIVE',BUSCAR:'BUSCAR','MI DÍA':'MI DÍA',PLANEACION:'PLANEACIÓN',MIEMBROS:'MIEMBROS',RETENCION:'RETENCIÓN',PORTALES:'PORTALES',PIPELINE:'PIPELINE',CAMPANAS:'CAMPAÑAS',PLANES:'PLANES',CITAS:'CITAS',FOLLOWUPS:'FOLLOW UPS',TICKETS:'TICKETS/TASK',ASISTENCIA:'ASISTENCIA',POLIZAS:'PÓLIZAS',BONOS:'MIS BONOS',COMUNICACION:'COMUNICACIÓN',RECURSOS:'RECURSOS',CONTACTOS:'CONTACTOS',REPORTES:'REPORTES',GASTOS:'GASTOS',ENTRENAMIENTO:'ENTRENAMIENTO',ADMIN:'ADMIN'};
+const icons={DASHBOARD:'▣',TODAYLIVE:'🔴',BUSCAR:'🔎','MI DÍA':'📋',PLANEACION:'🧭',MIEMBROS:'◉',RETENCION:'📞',PORTALES:'🖥',PIPELINE:'▲',CAMPANAS:'📣',PLANES:'⚖',CITAS:'◷',FOLLOWUPS:'☑',TICKETS:'◈',ASISTENCIA:'◐',POLIZAS:'◎',BONOS:'◈',COMUNICACION:'◌',RECURSOS:'◍',CONTACTOS:'🤝',REPORTES:'▦',GASTOS:'💰',ENTRENAMIENTO:'🎓',ADMIN:'⊞'};
 document.getElementById('tab-icon').textContent=icons[id]||'▪';
 document.getElementById('tab-title').textContent=names[id]||id;
 if(id==='BONOS') loadBonos();
@@ -8982,7 +8984,7 @@ function irAMiembros(estado) {
     }
 }
 function showComTab(id){['SMS','LLAMADAS','EMAILS','HISTORIAL'].forEach(t=>{const el=document.getElementById('ctab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-ctab]').forEach(b=>b.classList.toggle('active',b.dataset.ctab===id));}
-function showRecTab(id){['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PLANES','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));try{sessionStorage.setItem('recTab',id);}catch(e){}}
+function showRecTab(id){['RECORDATORIOS','LISTAS','SCRIPTS','PLANTILLAS SMS','PROMPTS IA','SECUENCIAS','CARRIERS','PORTALES','SOPs'].forEach(t=>{const el=document.getElementById('rtab-'+t);if(el)el.style.display=t===id?'':'none';});document.querySelectorAll('.ntab[data-rtab]').forEach(b=>b.classList.toggle('active',b.dataset.rtab===id));try{sessionStorage.setItem('recTab',id);}catch(e){}}
 // ── RECORDATORIOS Y NOTAS ──
 function submitRecordatorio(e){
   e.preventDefault();
