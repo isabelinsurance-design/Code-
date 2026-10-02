@@ -2806,6 +2806,78 @@ try {
             $_ins->execute(array_values($_allied2026));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Essential Savings (HMO) 2026 — Los Angeles County.
+    // OJO: ya existe SCAN Essential Savings 2027 en el sistema — esto
+    // habilita comparación ANOC año a año. Este plan 2026 NO incluye
+    // FlexEssentials, telesalud, audífonos de rutina, anteojos de
+    // rutina, transporte, PERS ni dental integral — a cambio de un
+    // reembolso de Parte B muy alto ($185/mes). Datos del Summary of
+    // Benefits que subió Isabel.
+    try {
+        $_essential2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_essential2026_existe->execute(['SCAN Essential Savings (HMO)', 2026]);
+        if (!$_essential2026_existe->fetch()) {
+            $_essential2026 = [
+                'nombre_plan'=>'SCAN Essential Savings (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan HMO estándar (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'$185 al mes (Part B Premium Give Back)',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$250 (Nivel 3 a 5)',
+                'moop'=>'$2,400 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — monto de 2026',
+                'hospital_internado'=>'$50 copago por día, días 1-5; $0 días 6-90 — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $0\nHospital ambulatorio: $15-$225 copago por visita\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$15 copago por visita (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$90 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$125 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $5 copago pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 rayos X ambulatorios; $0-$75 copago radiología diagnóstica (MRI/CT); $0 para mamografía',
+                'radiologia_terapeutica'=>'$60 copago por visita',
+                'examen_auditivo'=>'$15 copago por visita (examen diagnóstico cubierto por Medicare). Este documento NO incluye examen ni audífonos de rutina',
+                'audifonos'=>'No incluido en este plan (sin beneficio de audífonos de rutina)',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $15 copago por visita\nExámenes: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X: $0 (1 cada 12 meses)\nPeriodoncia (limpieza profunda): $0 (1 cada 12 meses)",
+                'dental_integral'=>'No incluido en este plan (este documento no menciona servicios dentales integrales/comprehensive más allá de lo preventivo)',
+                'examen_vision'=>'$0-$5 copago examen cubierto por Medicare; $0 detección diabética; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'anteojos'=>'No incluido en este plan (no se menciona asignación de anteojos de rutina en este documento)',
+                'salud_mental_internado'=>'$125 por día, días 1-5; $0 días 6-90',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal, y $20 copago por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-20; $100 copago por día, días 21-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$15 copago por visita',
+                'transporte'=>'No incluido en este plan (no se menciona en este documento)',
+                'rx_deducible'=>'$250 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel2'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $43/$129 (minorista estándar) · $126 (correo preferido) · $129 (correo estándar)",
+                'rx_nivel4'=>'35% en todas las modalidades',
+                'rx_nivel5'=>'30% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'No incluido en este plan (este documento no menciona tarjeta FlexEssentials/OTC)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con OnePass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'No incluido en este plan (no se menciona en este documento)',
+                'quiropractico_acupuntura'=>'$15 copago acupuntura cubierta por Medicare; $15 copago quiropráctico cubierto por Medicare (sin beneficio de rutina mencionado en este documento)',
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'No incluido en este plan (este documento no menciona beneficio de telesalud)',
+                'dme'=>'$0 para artículos de $0 a $99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\n20% monitores continuos de glucosa en farmacia o con proveedor DME',
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 100 horas de cuidado personal en el hogar al año, tras hospitalización, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+                'comidas_post_hospital'=>'No incluido en este plan (no se menciona beneficio de comidas a domicilio en este documento)',
+                'extras_json'=>"HEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: $0-20% del monto aprobado por Medicare para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'IMPORTANTE: Resumen de Beneficios del año 2026 (ya existe SCAN Essential Savings 2027 en el sistema — útil para comparar año a año con ANOC). Los Angeles County. Plan "económico" — a cambio del alto reembolso de Parte B ($185/mes), NO incluye FlexEssentials, telesalud, audífonos/anteojos de rutina, transporte ni dental integral. El umbral catastrófico de Parte D es $2,100 (en los planes 2027 es $2,400). Doc: Y0057_SCAN_22028_2026_M / 26C-SBH5425133. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_essential2026);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_essential2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
