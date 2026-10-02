@@ -6696,8 +6696,8 @@ $PLAN_CAMPOS = [
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
-      <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()" disabled>⚖ COMPARAR SELECCIONADOS</button>
-      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" disabled title="Elige 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 ANOC</button>
+      <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()">⚖ COMPARAR SELECCIONADOS</button>
+      <button class="btn btn-sky btn-sm" id="plan-anoc-btn" onclick="mostrarCambiosAnoc()" title="Elige 2 planes — el mismo plan de un año y del otro — para ver solo lo que cambia, como el ANOC">🔄 ANOC</button>
       <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
     </div>
   </div>
@@ -6807,16 +6807,14 @@ function eliminarPlanComparacion(id){
     });
 }
 function actualizarBotonComparar(){
-  const n = document.querySelectorAll('.plan-check:checked').length;
-  const btn = document.getElementById('plan-compare-btn');
-  if(btn) btn.disabled = n < 2;
-  const btnAnoc = document.getElementById('plan-anoc-btn');
-  if(btnAnoc) btnAnoc.disabled = n < 2;
+  // Los botones ya no se deshabilitan — si Isabel les da click sin marcar
+  // las casillas correctas, es mejor avisarle con un mensaje claro que
+  // dejar el botón "muerto" sin ninguna reacción.
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
   const planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
-  if(planes.length < 2) return;
+  if(planes.length < 2){ toast('⚠ Primero marca la casilla ☐ de 2 o más planes para comparar — ahora tienes '+planes.length+' marcado(s)'); return; }
   const wrap = document.getElementById('plan-comparacion-wrap');
   let html = '<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
   html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th>' + planes.map(p=>'<th>'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
@@ -6852,7 +6850,7 @@ function mostrarComparacionPlanes(){
 // no tener que leer 55 campos buscando la diferencia a mitad de llamada).
 function mostrarCambiosAnoc(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
-  if(ids.length !== 2){ toast('⚠ Para ANOC elige exactamente 2 planes (el mismo plan, de cada año) — ahora tienes '+ids.length+' marcado(s)'); return; }
+  if(ids.length !== 2){ toast('⚠ Primero marca la casilla ☐ de EXACTAMENTE 2 planes (el mismo plan, de cada año) — ahora tienes '+ids.length+' marcado(s)'); return; }
   let planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
   if(planes.length !== 2) return;
   // El año con el número más chico se muestra primero (ACTUAL), el más
