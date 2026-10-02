@@ -1696,6 +1696,75 @@ try {
             $_ins->execute(array_values($_align_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: SCAN Costco Medicare Advantage (HMO) 2027 — plan NUEVO, no
+    // tiene versión de un año anterior (por eso no sirve para ANOC hasta
+    // que exista otro año). Datos del folleto "Benefit Highlights" 2027
+    // que subió Isabel (Los Angeles y Orange County).
+    try {
+        $_costco_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_costco_existe->execute(['SCAN Costco Medicare Advantage (HMO)', 2027]);
+        if (!$_costco_existe->fetch()) {
+            $_scan_costco = [
+                'nombre_plan'=>'SCAN Costco Medicare Advantage (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles County y Orange County, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Tener Medicare Parte A y Parte B\nVivir en el área de servicio (Los Angeles u Orange County)\nPlan en sociedad con Costco — revisar si pide membresía de Costco vigente",
+                'prima_mensual'=>'$0/mes',
+                'reembolso_parte_b'=>'No incluido en este documento',
+                'deducible'=>'Sin deducible anual ($0)',
+                'deducible_parte_d'=>'$370 (Niveles 3, 4 y 5) — sin deducible en insulina ni en la mayoría de vacunas de Parte D para adultos',
+                'moop'=>'$299 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica, $0 en esa etapa)',
+                'hospital_internado'=>'$0',
+                'hospital_ambulatorio'=>'$0-$50 (Los Angeles County) · $0-$100 (Orange County)',
+                'centro_quirurgico_ambulatorio'=>'Incluido en cirugía ambulatoria: $0-$50 (Los Angeles County) · $0-$100 (Orange County)',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0',
+                'atencion_preventiva'=>'$0 (exámenes cubiertos por Medicare, examen físico anual)',
+                'atencion_emergencia'=>"$115 (en todo el mundo)\n$0 si es admitido de inmediato (solo dentro de EE.UU.)",
+                'servicios_urgentes'=>'$0 (en todo el mundo)',
+                'emergencia_mundial'=>'Cubierto — atención urgente o de emergencia fuera de EE.UU.',
+                'ambulancia'=>'$200 (Los Angeles County) · $100 (Orange County)',
+                'diagnostico_laboratorio'=>'$0 (laboratorio y pruebas/procedimientos diagnósticos)',
+                'rayos_x'=>'$0 (rayos X y radiología diagnóstica, ej. MRI/CT/ultrasonido)',
+                'radiologia_terapeutica'=>'',
+                'examen_auditivo'=>'Rutina incluido dentro de la asignación anual combinada de $400 (examen + audífonos)',
+                'audifonos'=>'Asignación anual de $400 para examen de rutina y audífonos combinados',
+                'dental_preventivo'=>"Exámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>"Restaurativo: 25%\nEndodoncia: 25%\nPeriodoncia: $0-25%\nProstodoncia removible: 25%\nProstodoncia fija: 25%\nCirugía oral/maxilofacial: 25%\nMáximo anual para servicios integrales: $2,000",
+                'examen_vision'=>'Rutina incluido dentro de la asignación anual combinada de $300 (examen + anteojos)',
+                'anteojos'=>'Asignación anual de $300 para examen de rutina y anteojos combinados',
+                'salud_mental_internado'=>'Incluido en Hospital Internado ($0) — este documento no da un monto separado',
+                'salud_mental_ambulatorio'=>'$0 (individual/grupal)',
+                'enfermeria_especializada'=>'$0 por día, días 1-20; $50 por día, días 21-100',
+                'terapia_fisica_habla'=>'$0 (terapia física, ocupacional y del habla)',
+                'transporte'=>'$0 — 12 viajes de ida al año, no médico (requiere condición crónica calificada); límite de 50 millas por viaje',
+                'rx_deducible'=>'$370 (Niveles 3, 4 y 5)',
+                'rx_nivel1'=>'Preferida: $0 · Estándar: $7',
+                'rx_nivel2'=>'Preferida: $0 · Estándar: $20',
+                'rx_nivel3'=>'Insulina: $35 (ambas redes) · Otros medicamentos — Preferida: $42 · Estándar: $47',
+                'rx_nivel4'=>'Preferida: 35% · Estándar: 40%',
+                'rx_nivel5'=>'29% (ambas redes)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No más de $35 por suministro de 1 mes ni $105 por 3 meses, sin deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D para adultos cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'$115 por trimestre (no se acumula) — tarjeta FlexEssentials, también cubre víveres para miembros con condición crónica calificada',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass',
+                'pers'=>'',
+                'quiropractico_acupuntura'=>'',
+                'podologia'=>'',
+                'telesalud'=>"$0 — atención médica urgente\n$0 — salud conductual",
+                'dme'=>'$0 — equipo médico duradero',
+                'apoyo_hogar'=>'',
+                'comidas_post_hospital'=>'',
+                'extras_json'=>"Línea de enfermería (Nurse Advice Line): $0 por llamada\nBest Buy Health Tech: $0 línea de soporte\nAtención mundial: urgente o de emergencia fuera de EE.UU.",
+                'notas'=>'Folleto "Benefit Highlights" 2027 (no es el Summary of Benefits completo), Los Angeles y Orange County. Plan en sociedad con Costco — es un plan NUEVO, no tiene año anterior para comparar con ANOC. Doc: Y0057_SCAN_22549_2027_M / 27C-BHLH5425141142. Representante: 1-833-608-8777 (TTY 711).',
+            ];
+            $_cols = array_keys($_scan_costco);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_scan_costco));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
