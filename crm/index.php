@@ -7131,19 +7131,19 @@ function mostrarComparacionPlanes(){
   Object.keys(PLAN_CAMPOS).forEach(seccion=>{
     html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>';
     Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
-      const algunTiene = planes.some(p => (p[campo]||'').trim() !== '');
+      const algunTiene = planes.some(p => String(p[campo]||'').trim() !== '');
       if(!algunTiene) return;
       html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
         + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p[campo]||'—')+'</td>').join('') + '</tr>';
     });
   });
-  const algunExtra = planes.some(p => (p.extras_json||'').trim() !== '');
+  const algunExtra = planes.some(p => String(p.extras_json||'').trim() !== '');
   if(algunExtra){
     html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>';
     html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Extras</td>'
       + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.extras_json||'—')+'</td>').join('') + '</tr>';
   }
-  const algunNota = planes.some(p => (p.notas||'').trim() !== '');
+  const algunNota = planes.some(p => String(p.notas||'').trim() !== '');
   if(algunNota){
     html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Notas</td>'
       + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
@@ -7162,6 +7162,7 @@ function mostrarComparacionPlanes(){
 // lista general) porque un plan puede desaparecer o cambiar de número de
 // un año a otro — elegir por año evita depender de que siga ahí.
 function mostrarCambiosAnoc(){
+ try {
   const idActual = document.getElementById('anoc-plan-actual').value;
   const idNuevo = document.getElementById('anoc-plan-nuevo').value;
   if(!idActual || !idNuevo){ toast('⚠ Elige un plan en cada año'); return; }
@@ -7176,8 +7177,8 @@ function mostrarCambiosAnoc(){
   Object.keys(PLAN_CAMPOS).forEach(seccion=>{
     let filasSeccion = '';
     Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
-      const v1 = (pActual[campo]||'').trim();
-      const v2 = (pNuevo[campo]||'').trim();
+      const v1 = String(pActual[campo]||'').trim();
+      const v2 = String(pNuevo[campo]||'').trim();
       if(v1 === v2) return; // sin cambio — no se muestra, igual que el ANOC
       huboCambios = true;
       filasSeccion += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
@@ -7188,7 +7189,7 @@ function mostrarCambiosAnoc(){
       filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
     }
   });
-  const e1 = (pActual.extras_json||'').trim(), e2 = (pNuevo.extras_json||'').trim();
+  const e1 = String(pActual.extras_json||'').trim(), e2 = String(pNuevo.extras_json||'').trim();
   if(e1 !== e2){
     huboCambios = true;
     filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>'
@@ -7211,6 +7212,9 @@ function mostrarCambiosAnoc(){
   wrap.innerHTML = html;
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
+ } catch(err) {
+  toast('⚠ Error al comparar: '+(err && err.message ? err.message : err));
+ }
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 </script>
