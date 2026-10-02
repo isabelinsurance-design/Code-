@@ -1899,6 +1899,74 @@ try {
             $_ins->execute(array_values($_baekse));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Ansim Care (HMO C-SNP) 2027 — Los Angeles y Orange
+    // County. Plan para necesidades especiales (condición cardiovascular o
+    // diabetes). Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_ansim_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_ansim_existe->execute(['SCAN Ansim Care (HMO C-SNP)', 2027]);
+        if (!$_ansim_existe->fetch()) {
+            $_ansim = [
+                'nombre_plan'=>'SCAN Ansim Care (HMO C-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO C-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles County y Orange County, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere diagnóstico de: Diabetes (Tipo I o II), arritmia cardíaca, insuficiencia cardíaca (CHF), enfermedad vascular periférica (PVD), trastorno tromboembólico venoso crónico (ej. DVT), o enfermedad de las arterias coronarias (CAD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio (Los Angeles u Orange County)\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$7.30/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$283 al año combinado para servicios dentro y fuera de la red (monto de 2026, puede cambiar en 2027) — miembros con Medi-Cal completo pagan $0',
+                'deducible_parte_d'=>'$700 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $700',
+                'moop'=>'$9,850 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>"Montos de 2026 (pueden cambiar en 2027), por período de beneficio:\nDeducible de $1,736\nDías 1-60: $0 por día\nDías 61-90: $434 copago por día\nDía de reserva de por vida (1-60): $868 copago por día",
+                'hospital_ambulatorio'=>'20% del costo total (hospital ambulatorio y servicios de observación)',
+                'centro_quirurgico_ambulatorio'=>'20% del costo total',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"20% del costo total, hasta $115 por visita\n(se exime si es admitido al hospital; cubierto en todo el mundo a tarifas de Medicare Original)",
+                'servicios_urgentes'=>'20% del costo total, hasta $40 copago por visita (cubierto en todo el mundo)',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'20% del costo total por viaje (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; 20% del costo total en pruebas/procedimientos diagnósticos',
+                'rayos_x'=>'20% del costo total (rayos X ambulatorios); $0 por visita (radiología diagnóstica, ej. MRI/CT)',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>"20% del costo total (examen diagnóstico cubierto por Medicare)\n$0 hasta 1 examen de rutina al año (proveedor contratado con SCAN)",
+                'audifonos'=>'Asignación de $600 por oído — cubre hasta 2 audífonos al año',
+                'dental_preventivo'=>"20% para servicios dentales cubiertos por Medicare (autorización previa)\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>"Restaurativo: $0\nEndodoncia: $0\nPeriodoncia: $0\nProstodoncia removible: $0\nProstodoncia fija: $0\nImplante: $0\nCirugía oral/maxilofacial: $0\nMáximo: hasta $1,500 cada 6 meses, hasta $3,000 al año",
+                'examen_vision'=>"20% examen y lentes cubiertos por Medicare (diagnóstico/post-cataratas)\n$0 hasta 1 examen de rutina al año",
+                'anteojos'=>'Asignación anual: $350 (proveedor EyeMed Select) o $400 (proveedor EyeMed PLUS)',
+                'salud_mental_internado'=>"Montos de 2026 (pueden cambiar en 2027), por período de beneficio:\nDeducible de $1,736\nDías 1-60: $0 por día\nDías 61-90: $434 copago por día\nDía de reserva de por vida (1-60): $868 copago por día",
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'Montos de 2026 (pueden cambiar en 2027): $0 días 1-20; $217 copago por día, días 21-100',
+                'terapia_fisica_habla'=>'20% del costo total',
+                'transporte'=>'$0 hasta 48 viajes de ida al año — incluye destinos no médicos (supermercado, gimnasio, centro de adultos mayores, lugar de culto); beneficio SSBCI, requiere calificar; límite de 50 millas por viaje',
+                'rx_deducible'=>'$700 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel2'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel3'=>"Insulina: $0 en todas las modalidades\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'25% (solo minorista; no disponible por correo)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 por suministro de 1 mes para insulina en el formulario del plan; $35 si es por determinación de cobertura, apelación o transición',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$750 por trimestre con tarjeta FlexEssentials (incluye OTC, víveres SSBCI, dental, visión, audición, fitness y suplementos herbales; no se acumula al siguiente trimestre)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, clases virtuales y comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
+                'quiropractico_acupuntura'=>"20% quiropráctico cubierto por Medicare (autorización previa)\n$0 acupuntura cubierta por Medicare, más visitas de rutina ilimitadas hasta $3,000 al año",
+                'podologia'=>'',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>"20% del costo total — equipo médico duradero y prótesis\n$0 suministros para diabéticos\nMonitores continuos de glucosa: $0 en farmacia, 20% con proveedor DME",
+                'apoyo_hogar'=>'$0 — hasta 80 horas de cuidado personal en el hogar al año (en incrementos de 4 horas)\nCaregiver Advantage: $0 — coaching personalizado, educación y coordinación de cuidado para cuidadores',
+                'comidas_post_hospital'=>"$0 — hasta 63 comidas al año (21 por semana) tras una hospitalización reciente\n$0 — hasta 63 comidas al año (21 por semana) por condición crónica calificada",
+                'extras_json'=>'Best Buy Health Tech: $0 soporte tecnológico (teléfono, remoto o en tiendas Best Buy)\nMedicamentos Parte B: $0 en farmacia; hasta 20% de coaseguro en otros lugares',
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles y Orange County. Plan C-SNP — requiere condición cardiovascular o diabetes calificada. Doc: Y0057_SCAN_22460_2027_M / 27C-SBH5425156. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_ansim);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_ansim));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
