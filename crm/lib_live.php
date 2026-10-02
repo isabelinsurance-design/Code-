@@ -12,12 +12,27 @@
  *  en su propio try/catch para que, si una tabla no existe todavía o
  *  falla, el resto del panel se siga viendo (nunca "ERROR DE RED" por
  *  una sola pieza).
+ *
+ *  REPORTES DE DÍAS ANTERIORES (pedido de Isabel, "como los reportes de
+ *  los empleados"): $fecha deja ver cualquier día pasado. No se guarda
+ *  nada aparte ni hace falta cron — los números de ACTIVIDAD de ese día
+ *  (citas agendadas, llamadas, tickets cerrados) se pueden volver a
+ *  calcular exactos para cualquier fecha, porque salen de registros con
+ *  fecha/hora ya guardados. Lo que SÍ es "ahora mismo" (tickets abiertos,
+ *  overdue, en proceso, apps pendientes, miembros activos) no se puede
+ *  reconstruir para el pasado sin haberlo guardado ese día — por eso esas
+ *  tarjetas, la fila de "trabajando ahora" y el carrusel NO aparecen al
+ *  ver un día anterior, solo lo que sí se puede saber con certeza.
  * ═══════════════════════════════════════════════════════════════════ */
 
-function render_live_panel(PDO $pdo): array {
+function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     $P1='#1B4A6B'; $P2='#2876A8'; $BG='#EBF4F9'; $CB='#C8DFF0';
     $MU='#7A90A4'; $TX='#1B3A5C'; $G='#1E7A5C'; $R='#B83232'; $A='#C07A1A';
-    $hoy = date('Y-m-d');
+    $hoyReal = date('Y-m-d');
+    // Fecha inválida (basura en el parámetro) → se ignora y cae a hoy.
+    if ($fecha !== null && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) $fecha = null;
+    $esHoy = ($fecha === null || $fecha === $hoyReal);
+    $hoy = $esHoy ? $hoyReal : $fecha;
 
     try {
         $usuarios = $pdo->query("SELECT id,nombre,rol,color,iniciales FROM usuarios WHERE activo=1 ORDER BY rol DESC, nombre")->fetchAll();
@@ -228,13 +243,19 @@ function render_live_panel(PDO $pdo): array {
     ob_start();
     try {
     ?>
+    <?php if (!$esHoy):?>
+    <div style="background:#F3F0FB;border:1px solid #C2B0E8;border-left:4px solid #5B3FAF;border-radius:10px;padding:10px 14px;margin-bottom:14px;font-size:9px;color:#5B3FAF;letter-spacing:.3px;line-height:1.6">
+      📋 REPORTE DEL <?=date('d/m/Y', strtotime($hoy))?> — esto es lo que pasó ESE día (actividad: citas agendadas, llamadas, tickets cerrados). No incluye cosas de "ahora mismo" como tickets pendientes/overdue o miembros activos, porque esos cambian todos los días y no se pueden ver en el pasado sin haberlos guardado ese mismo día.
+    </div>
+    <?php endif;?>
     <!-- ── TARJETAS "CÓMO VA CADA QUIEN HOY" — sección aparte, rotan solas
          (pedido de Isabel: de entrada una tarjeta grande de un empleado con
          citas agendadas/tickets cerrados/llamadas a prospectos/llamadas de
          servicio, y que vayan saliendo los demás uno por uno — pensado para
          dejarlo en una pantalla de la oficina). La tabla de abajo sigue
-         igual, aparte, para ver a todos de un jalón. -->
-    <?php if (count($usuarios)):?>
+         igual, aparte, para ver a todos de un jalón. Solo aplica a HOY —
+         no tiene sentido "rotar" un reporte de un día que ya pasó. -->
+    <?php if ($esHoy && count($usuarios)):?>
     <div style="margin-bottom:18px">
       <div style="font-size:9px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👤 CÓMO VA CADA QUIEN HOY</div>
       <div id="live-carrusel-wrap" style="position:relative">
@@ -298,13 +319,23 @@ function render_live_panel(PDO $pdo): array {
     ?>
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px">
       <?php
-      $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuarios), $G);
+      if ($esHoy) {
+          $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuarios), $G);
+      } else {
+          // "Ahora mismo" no aplica a un día que ya pasó — se cambia por
+          // quién sí marcó asistencia ese día (eso sí se puede saber).
+          $trabajaronEseDia = 0;
+          foreach ($asis as $a) { if (!empty($a['check_in'])) $trabajaronEseDia++; }
+          $kpi('TRABAJARON ESE DÍA', $trabajaronEseDia . '/' . count($usuarios), $G);
+      }
       $kpi('CITAS HOY', $totCitasHoy, $P1);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
-      $kpi('APPS PENDIENTES', $totApps, $P2);
-      $kpi('⚠ URGENTES', $totUrgentes, $R);
-      if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
-      if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
+      if ($esHoy) {
+          $kpi('APPS PENDIENTES', $totApps, $P2);
+          $kpi('⚠ URGENTES', $totUrgentes, $R);
+          if ($totFuPend > 0) $kpi('☑ FOLLOW UPS PEND.', $totFuPend, $A);
+          if ($llPerdPendientes > 0) $kpi('☏ PERDIDAS SIN DEVOLVER', $llPerdPendientes, $R);
+      }
       ?>
     </div>
 
@@ -328,41 +359,63 @@ function render_live_panel(PDO $pdo): array {
     ?>
     <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:9px;margin-bottom:13px">
       <?php
-      $kpiGroup('TICKETS', '◈', $A, [
-          ['OVERDUE', $totTkOverdue, $totTkOverdue>0?$R:$MU],
-          ['EN PROCESO', $totTkEnProceso, $P2],
-      ]);
+      // TICKETS y MIEMBROS son "estado ahora mismo" — no se pueden ver en
+      // el pasado sin haberlos guardado ese día, así que solo aparecen hoy.
+      if ($esHoy) {
+          $kpiGroup('TICKETS', '◈', $A, [
+              ['OVERDUE', $totTkOverdue, $totTkOverdue>0?$R:$MU],
+              ['EN PROCESO', $totTkEnProceso, $P2],
+          ]);
+      }
       $kpiGroup('LLAMADAS', '☏', $P1, [
           ['PROSPECTO TOTAL', array_sum($llProspHoy), $P1],
           ['CONTESTARON', $totLlamadasContestaron, $G],
           ['SERVICIO AL CLIENTE', array_sum($llServHoy), $P2],
       ]);
-      // Miembros — general de toda la cartera, no por persona (a propósito
-      // no van en la tabla de abajo).
-      $kpiGroup('MIEMBROS', '◉', $G, [
-          ['ACTIVOS', $miembrosTot['activos'], $G],
-          ['EN PROCESO', $miembrosTot['proceso'], $P2],
-          ['POR HACER', $miembrosTot['por_hacer'], $A],
-      ]);
+      if ($esHoy) {
+          // Miembros — general de toda la cartera, no por persona (a
+          // propósito no van en la tabla de abajo).
+          $kpiGroup('MIEMBROS', '◉', $G, [
+              ['ACTIVOS', $miembrosTot['activos'], $G],
+              ['EN PROCESO', $miembrosTot['proceso'], $P2],
+              ['POR HACER', $miembrosTot['por_hacer'], $A],
+          ]);
+      }
       ?>
     </div>
 
+    <?php
+    // AHORA/TICKETS ABIERTOS/APPS PEND./FOLLOW UPS PEND. son "estado ahora
+    // mismo" — se quitan al ver un día anterior (ver nota arriba). AHORA se
+    // reemplaza por TRABAJÓ ESE DÍA, que sí se puede saber (asistencia).
+    $cols = ['EMPLEADO'];
+    $cols[] = $esHoy ? 'AHORA' : 'TRABAJÓ';
+    $cols[] = 'CITAS PROSPECTO (AGENDADAS)';
+    if ($esHoy) $cols[] = 'TICKETS ABIERTOS';
+    $cols[] = 'CERRADOS';
+    if ($esHoy) $cols[] = 'APPS PEND.';
+    $cols[] = 'LLAM. PROSPECTOS';
+    $cols[] = 'LLAM. SERVICIO';
+    $cols[] = 'LLAM. RETENCIÓN';
+    if ($esHoy) $cols[] = 'FOLLOW UPS PEND.';
+    ?>
     <div style="overflow-x:auto;background:#fff;border:1px solid <?=$CB?>;border-radius:11px">
     <table style="width:100%;border-collapse:collapse;font-size:9px;white-space:nowrap">
       <thead>
         <tr style="background:<?=$BG?>">
-          <?php foreach (['EMPLEADO','AHORA','CITAS PROSPECTO (AGENDADAS HOY)','TICKETS ABIERTOS','CERRADOS HOY','APPS PEND.','LLAM. PROSPECTOS','LLAM. SERVICIO','LLAM. RETENCIÓN','FOLLOW UPS PEND.'] as $col):?>
+          <?php foreach ($cols as $col):?>
           <th style="padding:8px 10px;text-align:left;font-size:8px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid <?=$CB?>"><?=$col?></th>
           <?php endforeach;?>
         </tr>
       </thead>
       <tbody>
         <?php if (!count($usuarios)):?>
-        <tr><td colspan="10" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
+        <tr><td colspan="<?=count($cols)?>" style="padding:20px;text-align:center;color:<?=$MU?>;text-transform:uppercase">SIN EMPLEADOS ACTIVOS</td></tr>
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
             [$estLabel, $estColor] = $estadoAhora($asis[$aid] ?? null);
+            $trabajoEseDia = !empty($asis[$aid]['check_in']);
             $tk = $tkAbiertos[$aid] ?? ['total'=>0,'urgentes'=>0];
             $apps = $appsAbiertas[$aid] ?? 0;
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
@@ -379,25 +432,39 @@ function render_live_panel(PDO $pdo): array {
               <span style="font-weight:900;color:<?=$P1?>"><?=h($u['nombre'])?></span>
             </div>
           </td>
+          <?php if ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$estColor?>;font-weight:800"><?=$estLabel?></td>
+          <?php else:?>
+          <td style="padding:8px 10px;color:<?=$trabajoEseDia?$G:$MU?>;font-weight:<?=$trabajoEseDia?'800':'400'?>"><?=$trabajoEseDia?'✓ SÍ':'— NO'?></td>
+          <?php endif;?>
           <td style="padding:8px 10px;color:<?=$citasProsp>0?$P1:$MU?>;font-weight:<?=$citasProsp>0?'800':'400'?>"><?=$citasProsp?></td>
+          <?php if ($esHoy):?>
           <td style="padding:8px 10px">
             <?=(int)$tk['total']?>
             <?php if ((int)$tk['urgentes'] > 0):?><span style="color:<?=$R?>;font-weight:900"> · <?=(int)$tk['urgentes']?> ⚠</span><?php endif;?>
           </td>
+          <?php endif;?>
           <td style="padding:8px 10px;color:<?=$tkCerr>0?$G:$MU?>;font-weight:<?=$tkCerr>0?'800':'400'?>"><?=$tkCerr?></td>
+          <?php if ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$apps>0?$P2:$MU?>;font-weight:<?=$apps>0?'800':'400'?>"><?=$apps?></td>
+          <?php endif;?>
           <td style="padding:8px 10px;color:<?=$lp>0?$P2:$MU?>;font-weight:<?=$lp>0?'800':'400'?>"><?=$lp?></td>
           <td style="padding:8px 10px;color:<?=$ls>0?$P2:$MU?>;font-weight:<?=$ls>0?'800':'400'?>"><?=$ls?></td>
           <td style="padding:8px 10px;color:<?=$lr>0?$P2:$MU?>;font-weight:<?=$lr>0?'800':'400'?>"><?=$lr?></td>
+          <?php if ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$fu>0?$A:$MU?>;font-weight:<?=$fu>0?'800':'400'?>"><?=$fu?></td>
+          <?php endif;?>
         </tr>
         <?php endforeach;?>
       </tbody>
     </table>
     </div>
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;margin-top:8px">
+      <?php if ($esHoy):?>
       Última actualización: <?=date('h:i:s A')?> · dale a ACTUALIZAR AHORA para traer los datos más recientes
+      <?php else:?>
+      Reporte del <?=date('d/m/Y', strtotime($hoy))?>
+      <?php endif;?>
     </div>
     <?php
     } catch (Throwable $e) {

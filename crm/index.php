@@ -2487,7 +2487,12 @@ if(empty($prosp_pend)):?><div style="padding:18px;text-align:center;font-size:8p
 <div id="tab-TODAYLIVE" class="tab-pane">
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:10px;color:#7A90A4;text-transform:uppercase;letter-spacing:1px">🔴 EN VIVO — qué está haciendo cada persona hoy</div>
-    <button class="btn btn-gh btn-sm" onclick="loadLivePanel()">↻ ACTUALIZAR AHORA</button>
+    <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+      <label style="font-size:8px;color:#7A90A4;text-transform:uppercase;font-weight:800;letter-spacing:.5px">VER REPORTE DE:</label>
+      <input type="date" id="live-fecha-picker" max="<?=date('Y-m-d')?>" onchange="loadLivePanel(null, this.value)" style="border:1.5px solid #C8DFF0;border-radius:8px;padding:5px 8px;font-size:9px;font-family:'DM Sans',sans-serif;color:#1B4A6B">
+      <button class="btn btn-gh btn-sm" id="live-btn-hoy" style="display:none" onclick="document.getElementById('live-fecha-picker').value='';loadLivePanel();">◷ VOLVER A HOY</button>
+      <button class="btn btn-gh btn-sm" onclick="loadLivePanel(null, document.getElementById('live-fecha-picker').value||null)">↻ ACTUALIZAR</button>
+    </div>
   </div>
   <div id="live-panel-wrap">
     <div style="padding:40px;text-align:center;color:#7A90A4;font-size:9px;text-transform:uppercase">Cargando…</div>
@@ -12187,10 +12192,18 @@ document.addEventListener('DOMContentLoaded', function(){
 // refreshFollowUpsPanel + api.php?action=get_follow_ups_panel /
 // render_followups_panel() en lib_followups.php), y cada acción (crear/
 // completar/reagendar/cancelar) refresca el panel para sentirse instantáneo.
-function loadLivePanel(cb){
+function loadLivePanel(cb, fecha){
   var wrap = document.getElementById('live-panel-wrap');
   if(!wrap){ if(typeof cb==='function') cb(); return; }
-  fetchJson('api.php?action=get_live_panel').then(function(d){
+  // Reporte de días anteriores (pedido de Isabel) — fecha es opcional; sin
+  // ella se queda en HOY/en vivo, igual que siempre.
+  var btnHoy = document.getElementById('live-btn-hoy');
+  if(btnHoy) btnHoy.style.display = fecha ? '' : 'none';
+  var picker = document.getElementById('live-fecha-picker');
+  if(picker && !fecha) picker.value = '';
+  var url = 'api.php?action=get_live_panel';
+  if(fecha) url += '&fecha=' + encodeURIComponent(fecha);
+  fetchJson(url).then(function(d){
     if(d.ok){ wrap.innerHTML = d.data.html; iniciarCarruselLive(); }
     else wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR TODAY LIVE</div>';
     if(typeof cb==='function') cb();

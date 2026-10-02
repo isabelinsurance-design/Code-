@@ -1205,7 +1205,10 @@ case 'get_follow_ups_panel':
 // lib_live.php. Visible para todos los empleados, no solo admin.
 case 'get_live_panel':
     $pdo = db();
-    jsonOk(render_live_panel($pdo));
+    // Reporte de días anteriores (pedido de Isabel) — fecha es opcional, si
+    // no viene se queda en HOY/en vivo (ver render_live_panel en lib_live.php).
+    $fechaLive = trim($_GET['fecha'] ?? $_POST['fecha'] ?? '') ?: null;
+    jsonOk(render_live_panel($pdo, $fechaLive));
     break;
 
 // La pestaña RETENCIÓN se pide aparte (pedido de Isabel: antes armaba la
