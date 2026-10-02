@@ -6937,6 +6937,67 @@ $PLAN_CAMPOS = [
     'dme'=>'Equipo médico duradero','apoyo_hogar'=>'Apoyo en el hogar / cuidadores','comidas_post_hospital'=>'Comidas post-hospitalización',
   ],
 ];
+// Explicación en español sencillo de cada beneficio — para el ícono de
+// ayuda (ⓘ) junto a cada fila, pedido por Isabel porque no todos los
+// agentes/miembros saben qué significan términos como "MOOP" o "SNF".
+$PLAN_AYUDA = [
+  'carrier'=>'La compañía de seguros que ofrece el plan (ej. Humana, SCAN, Alignment).',
+  'tipo'=>'Cómo funciona la red de médicos: HMO, PPO, SNP, etc. Define si necesitas referidos y qué tan flexible es elegir doctor.',
+  'numero_plan'=>'El número con el que Medicare identifica este plan exacto (ej. H3815-039). Sirve para confirmar que es el plan correcto.',
+  'condados'=>'En qué condados puede inscribirse una persona en este plan.',
+  'anio'=>'El año de vigencia de este plan (enero a diciembre).',
+  'requisito_elegibilidad'=>'Quién puede inscribirse — por ejemplo, un plan SNP requiere cierta condición de salud, y un plan Dual requiere tener Medicare y Medi-Cal.',
+  'prima_mensual'=>'Lo que la persona paga cada mes por el plan, aparte de su prima de Medicare Parte B.',
+  'reembolso_parte_b'=>'Algunos planes devuelven parte o toda la prima de la Parte B — ese dinero regresa al cheque del Seguro Social.',
+  'deducible'=>'Lo que hay que pagar de tu bolsillo antes de que el plan empiece a cubrir ciertos servicios médicos.',
+  'deducible_parte_d'=>'Lo mismo que el deducible, pero solo para medicamentos (usualmente a partir del Nivel 3).',
+  'moop'=>'MOOP = Máximo de bolsillo. Es el límite máximo que la persona paga en TOTAL durante el año por servicios médicos cubiertos. Al llegar a ese monto, el plan paga 100% el resto del año. No incluye medicamentos.',
+  'umbral_gastos_bolsillo_parte_d'=>'El monto que hay que gastar en medicamentos para entrar a la Etapa Catastrófica, donde los medicamentos cuestan $0.',
+  'hospital_internado'=>'Lo que paga la persona si la ingresan al hospital (se queda una o más noches).',
+  'hospital_ambulatorio'=>'Servicios en el hospital que NO requieren quedarse a dormir (cirugías del día, observación, etc.).',
+  'centro_quirurgico_ambulatorio'=>'Cirugías que se hacen el mismo día, en un centro separado del hospital.',
+  'medico_primario'=>'Lo que paga la persona por ir a su doctor de cabecera.',
+  'especialistas'=>'Lo que paga por ir a un especialista (cardiólogo, dermatólogo, etc.).',
+  'atencion_preventiva'=>'Chequeos y exámenes para prevenir enfermedades (vacunas, exámenes de diabetes, etc.) — casi siempre son gratis.',
+  'atencion_emergencia'=>'Lo que paga por ir a la sala de emergencias.',
+  'servicios_urgentes'=>'Lo que paga por ir a una clínica de urgencias (menos grave que una emergencia).',
+  'emergencia_mundial'=>'Si la persona viaja fuera de Estados Unidos y tiene una emergencia, esto es lo que cubre el plan.',
+  'ambulancia'=>'Lo que paga por el servicio de ambulancia.',
+  'diagnostico_laboratorio'=>'Análisis de sangre, orina, y otras pruebas de laboratorio.',
+  'rayos_x'=>'Radiografías simples.',
+  'radiologia_terapeutica'=>'Tratamientos de radiación, como los que se usan para el cáncer.',
+  'examen_auditivo'=>'Examen del oído para ver qué tan bien escucha la persona.',
+  'audifonos'=>'El aparato para ayudar a escuchar mejor — cuánto cubre el plan.',
+  'dental_preventivo'=>'Limpiezas, exámenes y rayos X dentales de rutina.',
+  'dental_integral'=>'Trabajos dentales más grandes: rellenos, coronas, extracciones, endodoncias, etc.',
+  'examen_vision'=>'El examen de la vista para ver si necesita lentes.',
+  'anteojos'=>'Cuánto da el plan para comprar lentes o lentes de contacto.',
+  'salud_mental_internado'=>'Si la persona necesita quedarse en el hospital por un problema de salud mental.',
+  'salud_mental_ambulatorio'=>'Visitas a terapia o con un psiquiatra, sin quedarse internado.',
+  'enfermeria_especializada'=>'SNF = cuidado de recuperación en un centro de enfermería, usualmente después de salir del hospital.',
+  'terapia_fisica_habla'=>'Sesiones de terapia física o del habla.',
+  'transporte'=>'Viajes gratis o con descuento a citas médicas que ofrece el plan.',
+  'rx_deducible'=>'Lo que hay que pagar de tu bolsillo en medicamentos antes de que el plan empiece a ayudar.',
+  'rx_nivel1'=>'Los medicamentos genéricos más baratos.',
+  'rx_nivel2'=>'Otros medicamentos genéricos.',
+  'rx_nivel3'=>'Medicamentos de marca que el plan prefiere — cuestan más que los genéricos.',
+  'rx_nivel4'=>'Medicamentos de marca que el plan NO prefiere — cuestan todavía más.',
+  'rx_nivel5'=>'Medicamentos muy caros, usualmente para enfermedades graves (tier especializado).',
+  'rx_nivel6'=>'Un grupo especial de medicamentos que el plan decide cubrir con un costo bajo fijo.',
+  'rx_insulina'=>'Cuánto paga la persona por la insulina — por ley, nunca más de $35 al mes.',
+  'rx_vacunas'=>'Qué vacunas de la Parte D cubre el plan y cuánto cuestan.',
+  'otc_mensual'=>'OTC = Over-the-Counter. Dinero que el plan da cada mes (o trimestre) para comprar productos de farmacia sin receta (vitaminas, curitas, etc.).',
+  'gimnasio'=>'Membresía de gimnasio gratis o con descuento.',
+  'pers'=>'PERS = un botón o dispositivo que la persona usa para pedir ayuda si se cae o tiene una emergencia en casa.',
+  'quiropractico_acupuntura'=>'Visitas al quiropráctico o de acupuntura.',
+  'podologia'=>'Cuidado de los pies (cortar uñas, tratar hongos, etc.) — común en pacientes con diabetes.',
+  'telesalud'=>'Consultas por teléfono o video en vez de ir en persona.',
+  'dme'=>'DME = Equipo Médico Duradero: sillas de ruedas, andadoras, tanques de oxígeno, etc.',
+  'apoyo_hogar'=>'Ayuda en la casa después de salir del hospital, o apoyo para quien cuida a la persona.',
+  'comidas_post_hospital'=>'Comidas que el plan manda a la casa después de salir del hospital.',
+  'extras_json'=>'Otros beneficios que no entran en las categorías de arriba (ej. purificador de aire, control de plagas, servicios para mascotas).',
+  'notas'=>'Notas internas sobre este plan — no se le muestran al miembro.',
+];
 ?>
 <div id="tab-PLANES" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
@@ -7026,7 +7087,7 @@ $PLAN_CAMPOS = [
     <div style="margin-top:14px;margin-bottom:6px;font-size:8px;font-weight:900;color:<?=$P2?>;text-transform:uppercase;letter-spacing:1.5px;border-bottom:1px solid <?=$CB?>;padding-bottom:4px"><?=h($seccion)?></div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:9px">
       <?php foreach ($campos as $campo => $etiqueta): ?>
-      <div class="form-group"><label class="form-label"><?=h($etiqueta)?></label><textarea id="plan-<?=$campo?>" name="<?=$campo?>" class="form-input" rows="1" style="min-height:34px"></textarea></div>
+      <div class="form-group"><label class="form-label"><?=h($etiqueta)?> <span title="<?=h($PLAN_AYUDA[$campo] ?? '')?>" style="cursor:help;color:<?=$P2?>;font-weight:900">ⓘ</span></label><textarea id="plan-<?=$campo?>" name="<?=$campo?>" class="form-input" rows="1" style="min-height:34px"></textarea></div>
       <?php endforeach; ?>
     </div>
     <?php endforeach; ?>
@@ -7039,6 +7100,7 @@ $PLAN_CAMPOS = [
 <script>
 const PLANES_DATA = <?=json_encode(array_values($planes_comparacion), JSON_UNESCAPED_UNICODE)?>;
 const PLAN_CAMPOS = <?=json_encode($PLAN_CAMPOS, JSON_UNESCAPED_UNICODE)?>;
+const PLAN_AYUDA = <?=json_encode($PLAN_AYUDA, JSON_UNESCAPED_UNICODE)?>;
 
 function abrirPlanForm(id){
   const form = document.getElementById('plan-form');
@@ -7118,27 +7180,27 @@ function mostrarComparacionPlanes(){
   const planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
   if(planes.length < 2){ toast('⚠ Primero marca la casilla ☐ de 2 o más planes para comparar — ahora tienes '+planes.length+' marcado(s)'); return; }
   const wrap = document.getElementById('plan-comparacion-wrap');
-  let html = '<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse">';
-  html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th>' + planes.map(p=>'<th>'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
+  let html = '<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">';
+  html += '<tr><th style="position:sticky;left:0;background:#EBF4F9;padding:10px 14px">BENEFICIO</th>' + planes.map(p=>'<th style="padding:10px 14px">'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
   Object.keys(PLAN_CAMPOS).forEach(seccion=>{
-    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>';
+    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">'+esc(seccion)+'</td></tr>';
     Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
       const algunTiene = planes.some(p => String(p[campo]||'').trim() !== '');
       if(!algunTiene) return;
-      html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
-        + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p[campo]||'—')+'</td>').join('') + '</tr>';
+      html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel(PLAN_CAMPOS[seccion][campo],campo)+'</td>'
+        + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p[campo]||'—')+'</td>').join('') + '</tr>';
     });
   });
   const algunExtra = planes.some(p => String(p.extras_json||'').trim() !== '');
   if(algunExtra){
-    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>';
-    html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Extras</td>'
-      + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.extras_json||'—')+'</td>').join('') + '</tr>';
+    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">OTROS BENEFICIOS</td></tr>';
+    html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
+      + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p.extras_json||'—')+'</td>').join('') + '</tr>';
   }
   const algunNota = planes.some(p => String(p.notas||'').trim() !== '');
   if(algunNota){
-    html += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Notas</td>'
-      + planes.map(p=>'<td style="font-size:9px;white-space:pre-wrap">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
+    html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Notas','notas')+'</td>'
+      + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
   }
   html += '</table></div>';
   wrap.innerHTML = html;
@@ -7174,30 +7236,30 @@ function mostrarCambiosAnoc(){
       const v2 = String(pNuevo[campo]||'').trim();
       if(v1 === v2) return; // sin cambio — no se muestra, igual que el ANOC
       huboCambios = true;
-      filasSeccion += '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">'+esc(PLAN_CAMPOS[seccion][campo])+'</td>'
-        + '<td style="font-size:9px;white-space:pre-wrap;color:#7A90A4">'+esc(v1||'— No incluido —')+'</td>'
-        + '<td style="font-size:9px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE">'+esc(v2||'— Ya no incluido —')+'</td></tr>';
+      filasSeccion += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel(PLAN_CAMPOS[seccion][campo],campo)+'</td>'
+        + '<td style="font-size:11px;white-space:pre-wrap;color:#7A90A4;padding:9px 14px">'+esc(v1||'— No incluido —')+'</td>'
+        + '<td style="font-size:11px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE;padding:9px 14px">'+esc(v2||'— Ya no incluido —')+'</td></tr>';
     });
     if(filasSeccion){
-      filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
+      filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
     }
   });
   const e1 = String(pActual.extras_json||'').trim(), e2 = String(pNuevo.extras_json||'').trim();
   if(e1 !== e2){
     huboCambios = true;
-    filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:8px;letter-spacing:1px;padding:8px 14px">OTROS BENEFICIOS</td></tr>'
-      + '<tr><td style="font-weight:800;font-size:9px;color:#1B4A6B;position:sticky;left:0;background:#fff">Extras</td>'
-      + '<td style="font-size:9px;white-space:pre-wrap;color:#7A90A4">'+esc(e1||'—')+'</td>'
-      + '<td style="font-size:9px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE">'+esc(e2||'—')+'</td></tr>';
+    filas += '<tr><td colspan="3" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">OTROS BENEFICIOS</td></tr>'
+      + '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
+      + '<td style="font-size:11px;white-space:pre-wrap;color:#7A90A4;padding:9px 14px">'+esc(e1||'—')+'</td>'
+      + '<td style="font-size:11px;white-space:pre-wrap;font-weight:800;color:#B83232;background:#FDF0EE;padding:9px 14px">'+esc(e2||'—')+'</td></tr>';
   }
 
   let html = '<div class="card" style="overflow-x:auto">';
-  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:9px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' — '+esc(anioDePlan(pActual))+' → '+esc(anioDePlan(pNuevo))+'</div>';
+  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:10px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' — '+esc(anioDePlan(pActual))+' → '+esc(anioDePlan(pNuevo))+'</div>';
   if(!huboCambios){
-    html += '<div style="padding:24px;text-align:center;font-size:9px;color:#7A90A4;text-transform:uppercase">NO HAY CAMBIOS CAPTURADOS ENTRE ESTOS DOS PLANES</div>';
+    html += '<div style="padding:24px;text-align:center;font-size:10px;color:#7A90A4;text-transform:uppercase">NO HAY CAMBIOS CAPTURADOS ENTRE ESTOS DOS PLANES</div>';
   } else {
-    html += '<table style="width:100%;border-collapse:collapse">';
-    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9">BENEFICIO</th><th>'+esc(anioDePlan(pActual)||'AÑO ACTUAL')+'<br><span style="font-weight:400;text-transform:none">'+esc(pActual.nombre_plan)+'</span></th><th>'+esc(anioDePlan(pNuevo)||'AÑO NUEVO')+'<br><span style="font-weight:400;text-transform:none">'+esc(pNuevo.nombre_plan)+'</span></th></tr>';
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">';
+    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9;padding:10px 14px">BENEFICIO</th><th style="padding:10px 14px">'+esc(anioDePlan(pActual)||'AÑO ACTUAL')+'<br><span style="font-weight:400;text-transform:none">'+esc(pActual.nombre_plan)+'</span></th><th style="padding:10px 14px">'+esc(anioDePlan(pNuevo)||'AÑO NUEVO')+'<br><span style="font-weight:400;text-transform:none">'+esc(pNuevo.nombre_plan)+'</span></th></tr>';
     html += filas;
     html += '</table>';
   }
@@ -7210,6 +7272,12 @@ function mostrarCambiosAnoc(){
  }
 }
 function esc(s){ return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+// Etiqueta + ícono de ayuda (ⓘ) con la explicación en texto sencillo —
+// pedido de Isabel porque no todos saben qué significa, por ejemplo, MOOP.
+function ayudaLabel(etiqueta, campo){
+  const ayuda = PLAN_AYUDA[campo] || '';
+  return esc(etiqueta) + (ayuda ? ' <span title="'+esc(ayuda)+'" style="cursor:help;color:#7A90A4;font-weight:900">ⓘ</span>' : '');
+}
 </script>
 
 
