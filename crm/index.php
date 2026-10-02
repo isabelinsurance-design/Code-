@@ -1583,6 +1583,111 @@ try {
         $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
         $_ins->execute(array_values($_scan_classic_2026));
     }
+    // Semilla: Alignment Health Heart & Diabetes Plus 039/044/045 (HMO
+    // C-SNP) 2027 — datos del Summary of Benefits que subió Isabel. Son
+    // planes de necesidades especiales (C-SNP + D-SNP): casi todos los
+    // campos son iguales entre los 3, solo cambian prima, transporte,
+    // hospitalización, dental y los niveles de medicamentos — por eso se
+    // arma con una base común y se sobreescribe lo que cambia por plan.
+    $_align_base_2027 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO C-SNP','anio'=>2027,
+        'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica calificada (insuficiencia cardíaca congestiva, enfermedad pulmonar crónica, demencia, diabetes o derrame cerebral, entre otras)\nTambién requiere elegibilidad dual — tener Medicare y asistencia médica de Medicaid\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$700.00 para Nivel 3, 4 y 5, o $0.00 si recibe "Ayuda Adicional" (Extra Help)',
+        'moop'=>'$9,850.00 al año (no incluye medicamentos recetados)',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+        'hospital_ambulatorio'=>'20% de coaseguro (servicios hospitalarios y de observación)',
+        'centro_quirurgico_ambulatorio'=>'20% de coaseguro',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'atencion_emergencia'=>'20% de coaseguro (se exime si es admitido dentro de 48 horas)',
+        'servicios_urgentes'=>'$0.00',
+        'emergencia_mundial'=>'$75.00 de copago (se exime si es admitido); límite de cobertura de $25,000.00 al año',
+        'ambulancia'=>'20% de coaseguro, terrestre y aérea (no se exime si es admitido)',
+        'diagnostico_laboratorio'=>'20% de coaseguro (procedimientos, pruebas y laboratorio); $0.00 diagnóstico',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'$0.00 por audífono, 2 audífonos al año',
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'anteojos'=>'Límite de cobertura de $500.00 para anteojos/lentes de contacto cada 2 años',
+        'salud_mental_internado'=>"Deducible de $1,736.00 por período de beneficio\nDías 1-60: $0.00 por día\nDías 61-90: $434.00 por día\nDía 91 en adelante: $868.00 por cada \"día de reserva de por vida\" (hasta 60 días en total)\nMás allá de los días de reserva: todos los costos",
+        'salud_mental_ambulatorio'=>'20% de coaseguro (especialidad de salud mental y servicios psiquiátricos, individual y grupal)',
+        'enfermeria_especializada'=>"$0.00 por día, días 1-20\n$217.00 por día, días 21-100\nDía 101 en adelante: todos los costos",
+        'terapia_fisica_habla'=>'20% de coaseguro',
+        'rx_deducible'=>'$700.00 para Nivel 3, 4 y 5 (o $0.00 con Ayuda Adicional)',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (medicamentos de Select Care)',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'$0.00 — Sistema de Respuesta a Emergencias Personales',
+        'quiropractico_acupuntura'=>"$0.00 cubierto por Medicare para ambos\nRutina: $0.00 por hasta 12 visitas al año combinadas entre quiropráctico y acupuntura",
+        'podologia'=>'$0.00 — cubierto por Medicare',
+        'telesalud'=>"$0.00 para consultas de médico primario\n$20.00 para especialidad de salud mental y servicios psiquiátricos",
+        'dme'=>'20% de coaseguro — equipo médico duradero',
+        'comidas_post_hospital'=>'$0.00 — 28 comidas durante 14 días, hasta 3 veces al año (reingreso hospitalario y condiciones crónicas)',
+        'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nAire purificador/humidificador: $0.00, 1 al año (solo con condición crónica calificada — SSBCI)\nServicios para mascotas: $0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: $0.00 — límite de $500.00, 1 servicio al año",
+        'notas'=>'Resumen de Beneficios 2027 (SBC). Plan para Necesidades Especiales (C-SNP + D-SNP) — requiere condición crónica calificada y elegibilidad dual Medicare/Medicaid. Doc: Y0141_27280EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+    ];
+    $_align_variantes_2027 = [
+        '039' => [
+            'nombre_plan'=>'Alignment Health Heart & Diabetes Plus 039 (HMO C-SNP)','numero_plan'=>'039',
+            'condados'=>'Alameda, Fresno, Kern, Los Angeles, Madera, Marin, Merced, Orange, Placer, Riverside, Sacramento, San Bernardino, San Diego, San Francisco, San Joaquin, San Luis Obispo, Santa Clara, Stanislaus, Ventura y Yolo',
+            'prima_mensual'=>'$7.30/mes, o $0.00 si recibe "Ayuda Adicional" (Extra Help)',
+            'reembolso_parte_b'=>'No cubierto',
+            'hospital_internado'=>"$275.00 por día, días 1-6\n$0.00 por día, días 7-90\n(días ilimitados por admisión)",
+            'dental_preventivo'=>"$0.00 para servicios dentales cubiertos por Medicare\nExamen: $0.00 (1 cada 6 meses)\nLimpieza: $0.00 (1 al año)\nFluoruro: $0.00 (1 al año)\nRayos X: $0.00 (1 al año)",
+            'dental_integral'=>"Restaurativo: $0.00\nEndodoncia: $0.00\nPeriodoncia: $0.00\nProstodoncia removible: $0.00\nProstodoncia fija: $0.00\nCirugía oral/maxilofacial: $0.00\nLímite de cobertura: $500.00 cada 3 meses",
+            'transporte'=>'$0.00 — 50 viajes de ida al año a ubicaciones aprobadas por el plan (radio de 50 millas)',
+            'rx_nivel2'=>'25% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'25% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel4'=>'29% de coaseguro (minorista 30 días y correo 100 días)',
+            'otc_mensual'=>'$127.00 al mes, sin acumulación — combinado con Essentials Allowance (víveres, servicios públicos, seguridad del hogar) para un total de $127.00/mes',
+            'apoyo_hogar'=>'$0.00 — 48 horas de apoyo en el hogar al año, O apoyo para cuidadores de hasta $300.00 al año (debe elegir con anticipación)',
+        ],
+        '044' => [
+            'nombre_plan'=>'Alignment Health Heart & Diabetes Plus 044 (HMO C-SNP)','numero_plan'=>'044',
+            'condados'=>'Los Angeles, Orange, Riverside y San Bernardino',
+            'prima_mensual'=>'$0.00/mes',
+            'reembolso_parte_b'=>'$1.00/mes',
+            'hospital_internado'=>"Deducible de $1,736.00 por período de beneficio\nDías 1-60: $0.00 por día\nDías 61-90: $434.00 por día\nDía 91 en adelante: $868.00 por cada \"día de reserva de por vida\" (hasta 60 días en total)\nMás allá de los días de reserva: todos los costos",
+            'dental_preventivo'=>"20% de coaseguro para servicios dentales cubiertos por Medicare\nExamen: $0.00 (1 cada 6 meses)\nLimpieza: $0.00 (1 al año)\nFluoruro: $0.00 (1 al año)\nRayos X: $0.00 (1 al año)",
+            'dental_integral'=>"Restaurativo: $0.00\nEndodoncia: $0.00\nPeriodoncia: $0.00\nProstodoncia removible: $0.00\nProstodoncia fija: $0.00\nCirugía oral/maxilofacial: $0.00\nLímite de cobertura: $750.00 cada 3 meses",
+            'transporte'=>'$0.00 — 100 viajes de ida al año a ubicaciones aprobadas por el plan (radio de 50 millas)',
+            'rx_nivel2'=>'23% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'23% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel4'=>'29% de coaseguro (minorista 30 días y correo 100 días)',
+            'otc_mensual'=>'$171.00 al mes, sin acumulación — combinado con Essentials Allowance (víveres, servicios públicos, seguridad del hogar) para un total de $171.00/mes',
+            'apoyo_hogar'=>'$0.00 — 48 horas de apoyo en el hogar al año, O apoyo para cuidadores de hasta $300.00 al año (debe elegir con anticipación)',
+        ],
+        '045' => [
+            'nombre_plan'=>'Alignment Health Heart & Diabetes Plus 045 (HMO C-SNP)','numero_plan'=>'045',
+            'condados'=>'Santa Clara',
+            'prima_mensual'=>'$7.30/mes, o $0.00 si recibe "Ayuda Adicional" (Extra Help)',
+            'reembolso_parte_b'=>'$2.00/mes',
+            'hospital_internado'=>"Deducible de $1,736.00 por período de beneficio\nDías 1-60: $0.00 por día\nDías 61-90: $434.00 por día\nDía 91 en adelante: $868.00 por cada \"día de reserva de por vida\" (hasta 60 días en total)\nMás allá de los días de reserva: todos los costos",
+            'dental_preventivo'=>"20% de coaseguro para servicios dentales cubiertos por Medicare\nExamen: $0.00 (1 cada 6 meses)\nLimpieza: $0.00 (1 al año)\nFluoruro: $0.00 (1 al año)\nRayos X: $0.00 (1 al año)",
+            'dental_integral'=>"Restaurativo: $0.00\nEndodoncia: $0.00\nPeriodoncia: $0.00\nProstodoncia removible: $0.00\nProstodoncia fija: $0.00\nCirugía oral/maxilofacial: $0.00\nLímite de cobertura: $750.00 cada 3 meses",
+            'transporte'=>'$0.00 — 60 viajes de ida al año a ubicaciones aprobadas por el plan (radio de 50 millas)',
+            'rx_nivel2'=>'25% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'25% de coaseguro (minorista 30 días y correo 100 días)',
+            'rx_nivel4'=>'28% de coaseguro (minorista 30 días y correo 100 días)',
+            'otc_mensual'=>'$153.00 al mes, sin acumulación — combinado con Essentials Allowance (víveres, servicios públicos, seguridad del hogar) para un total de $153.00/mes',
+            'apoyo_hogar'=>'$0.00 — 48 horas de apoyo en el hogar al año, O apoyo para cuidadores de hasta $300.00 al año (debe elegir con anticipación)',
+        ],
+    ];
+    foreach ($_align_variantes_2027 as $_align_pn => $_align_overrides) {
+        $_align_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align_existe->execute([$_align_overrides['nombre_plan'], 2027]);
+        if ($_align_existe->fetch()) continue;
+        $_align_plan = array_merge($_align_base_2027, $_align_overrides);
+        $_cols = array_keys($_align_plan);
+        $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+        $_ins->execute(array_values($_align_plan));
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
