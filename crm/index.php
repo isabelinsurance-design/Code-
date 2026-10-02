@@ -3373,6 +3373,78 @@ try {
             $_ins->execute(array_values($_connections_home2026));
         }
     } catch (Exception $e) {}
+    // Semilla: VillageHealth (HMO-POS C-SNP) 2026 — Los Angeles County.
+    // Plan NUEVO (marca distinta, administrado por SCAN Health Plan) —
+    // C-SNP para enfermedad renal, requiere CKD (cualquier etapa), ESRD/
+    // ESKD o trasplante de órgano renal (mismos requisitos que SCAN
+    // DaVita Dialysis Care Complete). Tiene prima mensual de $12 (poco
+    // común — la mayoría de planes SCAN son $0). Datos del Summary of
+    // Benefits que subió Isabel.
+    try {
+        $_villagehealth_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_villagehealth_existe->execute(['VillageHealth (HMO-POS C-SNP)', 2026]);
+        if (!$_villagehealth_existe->fetch()) {
+            $_villagehealth = [
+                'nombre_plan'=>'VillageHealth (HMO-POS C-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO-POS C-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere diagnóstico de: Enfermedad Renal Crónica (CKD, cualquier etapa 1-5), Enfermedad Renal en Etapa Terminal (ESRD/ESKD), o trasplante de órgano renal (post-trasplante como parte de tratamiento de CKD o ESRD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio (Los Angeles County)\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$12/mes (debe seguir pagando su prima de Medicare Parte B) — miembros con Medi-Cal completo pagan $0',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$257 al año combinado dentro y fuera de la red (monto de 2025, puede cambiar en 2026) — miembros con Medi-Cal completo pagan $0',
+                'deducible_parte_d'=>'$490 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $490',
+                'moop'=>'$9,250 al año combinado dentro y fuera de la red (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>"Montos de 2025 (pueden cambiar en 2026), por período de beneficio, iguales dentro y fuera de la red:\nDeducible de $1,676\nDías 1-60: $0 por día\nDías 61-90: $419 copago por día\nDía de reserva de por vida (1-60): $838 copago por día\nCubre hasta 90 días por período, más 60 días adicionales de por vida\nMiembros con Medi-Cal completo pagan $0",
+                'hospital_ambulatorio'=>'20% del costo total (hospital ambulatorio y servicios de observación), igual dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'centro_quirurgico_ambulatorio'=>'20% del costo total, igual dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'medico_primario'=>'$0 dentro de la red; 20% fuera de la red',
+                'especialistas'=>'$0 dentro y fuera de la red',
+                'atencion_preventiva'=>'$0 dentro y fuera de la red',
+                'atencion_emergencia'=>'20% del costo total (hasta $110 por visita) — se exime el copago si se admite inmediatamente al hospital; miembros con Medi-Cal completo pagan $0',
+                'servicios_urgentes'=>'$0',
+                'emergencia_mundial'=>'No se menciona cobertura de emergencia mundial en este documento',
+                'ambulancia'=>'20% del costo total, igual dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'diagnostico_laboratorio'=>'$0 laboratorio; 20% pruebas y procedimientos diagnósticos, igual dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'rayos_x'=>'20% rayos X ambulatorios; 20% radiología diagnóstica (MRI/CT), igual dentro y fuera de la red',
+                'radiologia_terapeutica'=>'20% del costo total (incluido en diagnóstico/laboratorio/imágenes)',
+                'examen_auditivo'=>'20% del costo total por visita (examen diagnóstico de audición y equilibrio cubierto por Medicare), igual dentro y fuera de la red. Este documento NO incluye examen ni audífonos de rutina',
+                'audifonos'=>'No incluido en este plan (sin beneficio de audífonos de rutina ni examen de audición de rutina mencionado en este documento)',
+                'dental_preventivo'=>"20% para servicios dentales cubiertos por Medicare (dentro y fuera de la red)\nExámenes: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X: $0 (1 visita cada 12 meses dentro de la red; 2 visitas fuera de la red)\nServicios preventivos no cuentan para el máximo de la asignación dental",
+                'dental_integral'=>"Restaurativo, endodoncia, periodoncia, prostodoncia removable/fija, prótesis maxilofacial, implantes, cirugía oral/maxilofacial y servicios adjuntos: $0 dentro de la red; 50% fuera de la red\nAsignación/máximo: $2,000 al año combinado dentro y fuera de la red — al alcanzar el límite, el miembro paga el resto",
+                'examen_vision'=>'20% del costo total (examen cubierto por Medicare); $0 examen de rutina hasta 1 visita cada 12 meses dentro de la red (no cubierto fuera de la red)',
+                'anteojos'=>'20% del costo total (anteojos cubiertos por Medicare tras cirugía de cataratas); hasta $200 cada 12 meses para armazones/lentes/lentes de contacto de rutina, solo dentro de la red (no cubierto fuera de la red)',
+                'salud_mental_internado'=>"Montos de 2025 (pueden cambiar en 2026), por período de beneficio, iguales dentro y fuera de la red:\nDeducible de $1,676\nDías 1-60: $0 por día\nDías 61-90: $419 copago por día\nDía de reserva de por vida (1-60): $838 copago por día\nMiembros con Medi-Cal completo pagan $0",
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'Montos de 2025: $0 días 1-20; $209.50 copago por día, días 21-100 — hasta 100 días por período de beneficio, no requiere hospitalización previa; NO cubierto fuera de la red. Miembros con Medi-Cal completo pagan $0',
+                'terapia_fisica_habla'=>'20% del costo total (este documento solo menciona Terapia Física; no menciona terapia ocupacional ni del habla por separado) — miembros con Medi-Cal completo pagan $0',
+                'transporte'=>'$0 hasta 40 viajes de ida al año — beneficio de rutina no cubierto por Medicare; límite de 75 millas por viaje; debe usar proveedor contratado de VillageHealth; NO cubierto fuera de la red',
+                'rx_deducible'=>'$490 (Nivel 3 a 5)',
+                'rx_nivel1'=>'Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $3 (30 días) / $9 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $9 (100 días)',
+                'rx_nivel2'=>'Minorista preferido: $1 (30 días) / $3 (100 días)\nMinorista estándar: $6 (30 días) / $18 (100 días)\nCorreo preferido: $3 (100 días) · Correo estándar: $18 (100 días)',
+                'rx_nivel3'=>'Insulina: $35 (30 días) / $105 (100 días) en todas las modalidades\nOtros medicamentos: 25% en todas las modalidades',
+                'rx_nivel4'=>'25% en todas las modalidades',
+                'rx_nivel5'=>'25% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel, incluso sin haber pagado el deducible; $0 durante la Etapa de Cobertura Catastrófica',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas, incluso sin haber pagado el deducible',
+                'otc_mensual'=>'$74 al mes con tarjeta FlexEssentials (incluye OTC, víveres SSBCI y servicios públicos SSBCI; no se acumula al siguiente mes; requiere condición crónica calificada para la parte SSBCI — ej. enfermedad renal en etapa terminal o trasplante de órgano renal); NO cubierto fuera de la red',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias), igual dentro y fuera de la red',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo, igual dentro y fuera de la red',
+                'quiropractico_acupuntura'=>"20% quiropráctico cubierto por Medicare (corrección de subluxación) — miembros con Medi-Cal completo pagan $0\n$0 acupuntura cubierta por Medicare\nNOTA: a diferencia de otros planes SCAN, este documento NO menciona acupuntura ni quiropráctico de rutina/no cubierto por Medicare",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video; NO cubierto fuera de la red',
+                'dme'=>"$0 para artículos de $0-$99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores/tiras/solución de marca seleccionada; lancetas de cualquier marca)\nMonitores continuos de glucosa: $0 en farmacia (Freestyle Libre y Dexcom); 20% con proveedor DME (otras marcas); CGM no cubierto fuera de la red\nAutorización previa requerida solo para ciertos artículos (sillas motorizadas, colchones de aire/gel, ventiladores domésticos, estimuladores óseos)",
+                'apoyo_hogar'=>"At-Home Support (solo dentro de la red, no cubierto fuera de la red):\nCuidado personal en el hogar: $0 — hasta 28 horas al año tras hospitalización, reemplazo de cadera/rodilla o para ayudar con 2+ actividades diarias\nRespite Care: $0 — hasta 40 horas al año de cuidado de relevo (respite care) para cuidadores no pagados\nHome Health Care (cubierto por Medicare): $0, no cubierto fuera de la red\nNOTA: este documento NO menciona beneficio de Home Modifications (modificaciones del hogar), a diferencia de los planes D-SNP de SCAN Connections",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año tras una hospitalización reciente\n$0 — hasta 84 comidas al año por condición crónica calificada\nNo cubierto fuera de la red",
+                'extras_json'=>"Home Health Care (cubierto por Medicare): $0 dentro de la red; no cubierto fuera de la red",
+                'notas'=>'Resumen de Beneficios 2026 (SBC), Los Angeles County. VillageHealth es una marca de SCAN Health Plan — plan C-SNP NUEVO para enfermedad renal: requiere CKD (cualquier etapa), ESRD/ESKD o trasplante de órgano renal (mismos requisitos que SCAN DaVita Dialysis Care Complete, pero plan y red distintos). Prima mensual de $12/mes (poco común — la mayoría de planes SCAN son $0/mes). Doc: Y0057_SCAN_22031_2026_M / 26C-SBH5943004. Servicio al Miembro: 1-800-399-7226 (TTY 711).',
+            ];
+            $_cols = array_keys($_villagehealth);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_villagehealth));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
