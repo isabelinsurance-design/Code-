@@ -3015,6 +3015,77 @@ try {
             $_ins->execute(array_values($_inspired2026));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Affirm partnered with Included LGBTQ+ Health (HMO)
+    // 2026 — Los Angeles, Orange, Riverside y San Bernardino. Plan HMO
+    // diseñado para la comunidad LGBTQ+, con el MOOP más bajo entre los
+    // planes SCAN agregados ($199/año) y un reembolso único de
+    // servicios legales relacionados con la salud. Datos del Summary
+    // of Benefits que subió Isabel.
+    try {
+        $_affirm_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_affirm_existe->execute(['SCAN Affirm partnered with Included LGBTQ+ Health (HMO)', 2026]);
+        if (!$_affirm_existe->fetch()) {
+            $_affirm = [
+                'nombre_plan'=>'SCAN Affirm partnered with Included LGBTQ+ Health (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles, Orange, Riverside y San Bernardino, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan HMO estándar diseñado para la comunidad LGBTQ+ (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B). Opcional: +$55/mes para plan dental PPO',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$250 (Nivel 3 a 5)',
+                'moop'=>'$199 al año (no incluye medicamentos recetados) — uno de los más bajos entre los planes SCAN',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — monto de 2026',
+                'hospital_internado'=>'$0 — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $0\nHospital ambulatorio: $0\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$90 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$200 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $0 pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 rayos X ambulatorios; $0 radiología diagnóstica (MRI/CT)',
+                'radiologia_terapeutica'=>'$50 copago por visita',
+                'examen_auditivo'=>'$0 examen diagnóstico cubierto por Medicare; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'audifonos'=>'$550 copago por audífono TruHearing Advanced, o $850 copago por audífono TruHearing Premium — cubierto hasta 2 audífonos cada 12 meses. No requiere referencia de su médico; llame al 1-844-255-7148 para agendar',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $0\nExámenes: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X: $0 (2 cada 12 meses)\nDiagnóstico: $0-$5 copago\nPreventivo: $0-$80 copago",
+                'dental_integral'=>"Plan dental CAC73\nRestaurativo: \$8-\$395\nEndodoncia: \$5-\$395\nPeriodoncia: \$0-\$380\nProstodoncia removible: \$13-\$395\nProstodoncia fija: \$25-\$395\nCirugía oral/maxilofacial: \$0-\$140\nServicios adjuntos (anestesia, tratamiento de dolor de emergencia): \$0-\$125\nOpción PPO Dental (+\$55/mes): red Delta Dental DPPO, más de 300 procedimientos, copagos predecibles dentro de la red, hasta \$2,000 fuera de la red con 50% de coaseguro",
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'anteojos'=>'Hasta $300 cada 12 meses para armazones, lentes y opciones de lentes o lentes de contacto',
+                'salud_mental_internado'=>'$0 por día, días 1-90',
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$0',
+                'transporte'=>'$0 hasta 20 viajes de ida al año — solo con proveedor contratado por SCAN; límite de 50 millas por viaje',
+                'rx_deducible'=>'$250 (Nivel 3 a 5)',
+                'rx_nivel1'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $7 (30 días) / $14 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $14 (100 días)",
+                'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $15 (30 días) / $30 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $30 (100 días)",
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+                'rx_nivel4'=>'35% en todas las modalidades',
+                'rx_nivel5'=>'25% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$150 por trimestre con tarjeta FlexEssentials (solo productos OTC, en tiendas CVS o entrega a domicilio; el saldo no usado SÍ se acumula al siguiente trimestre, pero no pasa al siguiente año)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con OnePass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo',
+                'quiropractico_acupuntura'=>"$0 acupuntura cubierta por Medicare; rutina: $0 (sin copago) hasta 36 visitas al año\n$0 quiropráctico cubierto por Medicare; rutina: $0 (sin copago) hasta 30 visitas al año",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>'$0 equipo médico duradero, prótesis, suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca) y monitores continuos de glucosa',
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 100 horas de cuidado personal en el hogar al año (incrementos de 4 horas), tras hospitalización reciente, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 40 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año tras una hospitalización reciente\n$0 — hasta 84 comidas al año por condición crónica calificada",
+                'extras_json'=>"Reembolso de Cuotas Legales (Legal Fee Reimbursement, SSBCI): $200 al año para servicios legales relacionados con la salud, como poder notarial duradero y directivas anticipadas — requiere condición crónica calificada\nHEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: $0-20% del monto aprobado por Medicare para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'Resumen de Beneficios 2026, Los Angeles, Orange, Riverside y San Bernardino. Plan HMO diseñado para la comunidad LGBTQ+ (en asociación con Included Health) — tiene el MOOP más bajo entre los planes SCAN agregados ($199/año) y un reembolso único de $200/año para servicios legales relacionados con la salud (poder notarial, directivas anticipadas). Opción de plan dental PPO por $55/mes adicionales. Doc: Y0057_SCAN_22003_2026_M / 26C-SBH5425092. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_affirm);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_affirm));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
