@@ -1517,6 +1517,72 @@ try {
         $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
         $_ins->execute(array_values($_scan_classic));
     }
+    // Semilla: SCAN Classic (HMO) 2026 — mismo plan, un año antes, para que
+    // Isabel pueda usar ANOC entre 2026 y 2027. Datos del Summary of
+    // Benefits 2026 (Los Angeles County) que subió.
+    $_scan_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+    $_scan_existe->execute(['SCAN Classic (HMO)', 2026]);
+    if (!$_scan_existe->fetch()) {
+        $_scan_classic_2026 = [
+            'nombre_plan'=>'SCAN Classic (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+            'numero_plan'=>'','condados'=>'Los Angeles County, California',
+            'anio'=>2026,
+            'requisito_elegibilidad'=>"Tener Medicare Parte A y Parte B\nVivir en el área de servicio (Los Angeles County)\nSer ciudadano de EE.UU. o estar presente legalmente",
+            'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+            'reembolso_parte_b'=>'No incluido en este plan',
+            'deducible'=>'Sin deducible para servicios médicos',
+            'deducible_parte_d'=>'$250 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $250',
+            'moop'=>'$199 al año (no incluye medicamentos recetados)',
+            'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica)',
+            'hospital_internado'=>'$0 copago, días ilimitados por admisión',
+            'hospital_ambulatorio'=>"$0 (hospital ambulatorio)\n$0 servicios de observación",
+            'centro_quirurgico_ambulatorio'=>'$0',
+            'medico_primario'=>'$0',
+            'especialistas'=>'$0 (autorización previa requerida)',
+            'atencion_preventiva'=>'$0 (autorización previa requerida)',
+            'atencion_emergencia'=>"$90 copago por visita\n(se exime si es admitido al hospital; cubierto en todo el mundo a tarifas de Medicare Original)",
+            'servicios_urgentes'=>'$0 (cubierto en todo el mundo a tarifas de Medicare Original)',
+            'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+            'ambulancia'=>'$200 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+            'diagnostico_laboratorio'=>'$0 (laboratorio y pruebas/procedimientos diagnósticos)',
+            'rayos_x'=>'$0 (rayos X ambulatorios y radiología diagnóstica, ej. MRI/CT)',
+            'radiologia_terapeutica'=>'$50 copago por visita',
+            'examen_auditivo'=>"$0 examen diagnóstico (cubierto por Medicare)\n$0 hasta 1 examen de rutina cada 12 meses (proveedor contratado con SCAN)",
+            'audifonos'=>"$450 copago por audífono TruHearing Advanced\n$750 copago por audífono TruHearing Premium\nCubre hasta 2 audífonos cada 12 meses",
+            'dental_preventivo'=>"$0 servicios dentales cubiertos por Medicare\nPlan dental de rutina: Dental Plan CAC73\nExámenes dentales: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X dentales: $0 (2 cada 12 meses)",
+            'dental_integral'=>"(Solo con proveedor dentro de la red)\nDiagnóstico: $0-$5\nPreventivo: $0-$80\nRestaurativo: $8-$395\nEndodoncia: $5-$395\nPeriodoncia: $0-$380\nProstodoncia removible: $13-$395\nProstodoncia fija: $25-$395\nCirugía oral/maxilofacial: $0-$140\nServicios auxiliares (anestesia, dolor de emergencia): $0-$125\nPrótesis maxilofacial: No cubierto\nImplantes: No cubiertos\nOpcional PPO Dental Plan California: +$55/mes — red Delta Dental DPPO, más de 300 procedimientos, fuera de red hasta $2,000 (50% coaseguro)",
+            'examen_vision'=>"$0 examen cubierto por Medicare (diagnóstico)\n$0 lentes después de cirugía de cataratas\n$0 hasta 1 examen de rutina cada 12 meses",
+            'anteojos'=>'Hasta $300 al año para armazones, lentes y opciones o lentes de contacto cada 12 meses',
+            'salud_mental_internado'=>'$0 por día, días 1-90 (autorización previa; hasta 90 días por período de beneficio)',
+            'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+            'enfermeria_especializada'=>'$0 para días 1-100 (hasta 100 días por período de beneficio, no requiere hospitalización previa)',
+            'terapia_fisica_habla'=>'$0 (autorización previa para terapia física ambulatoria)',
+            'transporte'=>'$0 hasta 32 viajes de ida al año (límite de 50 millas por viaje, proveedor contratado con SCAN)',
+            'rx_deducible'=>'$250 (Nivel 3 a 5)',
+            'rx_nivel1'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $7 (30 días) / $14 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $14 (100 días)",
+            'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $15 (30 días) / $30 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $30 (100 días)",
+            'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días) en todas las modalidades\nOtros medicamentos: $42/$126 (minorista preferido) · $47/$141 (minorista estándar) · $126 (correo preferido) · $141 (correo estándar)",
+            'rx_nivel4'=>'35% en todas las modalidades',
+            'rx_nivel5'=>'30% (solo minorista; no disponible por correo)',
+            'rx_nivel6'=>'',
+            'rx_insulina'=>"No más de $35 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible\n$0 durante la Etapa de Cobertura Catastrófica",
+            'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+            'otc_mensual'=>'$150 por trimestre con tarjeta FlexEssentials (CVS o entrega a domicilio; el saldo no usado se acumula al siguiente trimestre, pero no al siguiente año)',
+            'gimnasio'=>'$0 — beneficio de acondicionamiento físico con OnePass (membresías de gimnasio, clases virtuales y comunitarias)',
+            'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo',
+            'quiropractico_acupuntura'=>"$0 (quiropráctico y acupuntura cubiertos por Medicare)\nRutina: $5 copago por visita, hasta 30 visitas al año combinadas entre quiropráctico y acupuntura",
+            'podologia'=>'',
+            'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+            'dme'=>'$0 — equipo médico duradero, prótesis, suministros para diabéticos y monitores continuos de glucosa (Freestyle Libre y Dexcom en farmacias contratadas)',
+            'apoyo_hogar'=>'$0 — hasta 80 horas de cuidado personal en el hogar al año, tras hospitalización, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades de la vida diaria',
+            'comidas_post_hospital'=>"$0 — 84 comidas al año tras una hospitalización; 84 comidas al año por una condición crónica\n$0 — 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+            'extras_json'=>"HEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nMedicamentos Parte B: $0-20% del monto aprobado por Medicare para quimioterapia y otros medicamentos de Parte B",
+            'notas'=>'Resumen de Beneficios 2026 (SBC), Los Angeles County. Doc: Y0057_SCAN_21986_2026_M. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+        ];
+        $_cols = array_keys($_scan_classic_2026);
+        $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+        $_ins->execute(array_values($_scan_classic_2026));
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
