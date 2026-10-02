@@ -2666,6 +2666,77 @@ try {
             $_ins->execute(array_values($_inclusive));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN MyChoice (HMO) 2026 — Los Angeles, Orange, Riverside
+    // y San Bernardino. OJO: el documento que subió Isabel es del año
+    // 2026 (no 2027 como los demás planes agregados). Plan HMO estándar
+    // (no C-SNP/D-SNP). Umbral catastrófico de Parte D de $2,100 (los
+    // planes 2027 ya agregados usan $2,400). Datos del Summary of
+    // Benefits que subió Isabel.
+    try {
+        $_mychoice_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_mychoice_existe->execute(['SCAN MyChoice (HMO)', 2026]);
+        if (!$_mychoice_existe->fetch()) {
+            $_mychoice = [
+                'nombre_plan'=>'SCAN MyChoice (HMO)','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'','condados'=>'Los Angeles, Orange, Riverside y San Bernardino, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan HMO estándar (no requiere diagnóstico de condición crónica ni Medi-Cal)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'Sin deducible para servicios médicos',
+                'deducible_parte_d'=>'$250 (Nivel 3 a 5)',
+                'moop'=>'$999 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — monto de 2026',
+                'hospital_internado'=>'$50 copago por día, días 1-3; $0 días 4-90 — días ilimitados por admisión',
+                'hospital_ambulatorio'=>'Centro quirúrgico ambulatorio: $50 copago por visita\nHospital ambulatorio: $50 copago por visita\nServicios de observación: $0',
+                'centro_quirurgico_ambulatorio'=>'$50 copago por visita',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"\$90 copago por visita (se exime el copago si se admite inmediatamente al hospital)\nCubierto en todo el mundo a tarifas de reembolso de Medicare Original",
+                'servicios_urgentes'=>'$0 — cubierto en todo el mundo a tarifas de reembolso de Medicare Original',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'$100 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; $0 pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 (rayos X ambulatorios)',
+                'radiologia_terapeutica'=>'$50 copago por visita',
+                'examen_auditivo'=>'$0 examen diagnóstico cubierto por Medicare; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'audifonos'=>'$550 copago por audífono TruHearing Advanced, o $850 copago por audífono TruHearing Premium — cubierto hasta 2 audífonos cada 12 meses. No requiere referencia de su médico; llame al 1-844-255-7148 para agendar',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: $0\nExámenes: $0 (2 cada 12 meses)\nLimpiezas: $0 (2 cada 12 meses)\nRayos X: $0 (1 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)\nPeriodoncia (limpieza profunda): $0 (1 cada 12 meses)",
+                'dental_integral'=>'Servicios dentales adicionales (empastes, coronas, endodoncias, puentes, dentaduras, implantes) se pagan con la tarjeta FlexEssentials — no son un beneficio dental separado, ver "otc_mensual"/FlexEssentials',
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 anteojos cubiertos por Medicare tras cirugía de cataratas; $0 examen de rutina hasta 1 visita cada 12 meses',
+                'anteojos'=>'Los lentes/armazones de rutina se pagan con la asignación de la tarjeta FlexEssentials (no hay un monto separado solo para lentes) — ver "otc_mensual"/FlexEssentials',
+                'salud_mental_internado'=>'$50 copago por día, días 1-3; $0 días 4-90',
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 días 1-100 — no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$0',
+                'transporte'=>'No incluido en este plan (no se menciona en este documento)',
+                'rx_deducible'=>'$250 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel2'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel3'=>"Insulina: $35 (30 días) / $85 (100 días), igual en minorista preferido/estándar y correo\nOtros medicamentos: $42/$126 (minorista preferido) · $43/$129 (minorista estándar) · $126 (correo preferido) · $129 (correo estándar)",
+                'rx_nivel4'=>'35% en todas las modalidades',
+                'rx_nivel5'=>'30% (solo minorista; no disponible por correo ni en suministro de 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Insulina de Parte B: hasta $35 por suministro de 1 mes cuando se administra con equipo médico duradero (ej. bomba de insulina)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$240 por trimestre con tarjeta FlexEssentials — asignación combinada que cubre productos OTC, servicios dentales integrales (empastes, coronas, endodoncias, puentes, dentaduras, implantes), lentes de rutina, y equipo de ejercicio para el hogar; no se acumula al siguiente trimestre',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con OnePass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'No incluido en este plan (no se menciona en este documento)',
+                'quiropractico_acupuntura'=>"$0 acupuntura cubierta por Medicare; rutina: $10 copago por visita, hasta 12 visitas al año\n$0 quiropráctico cubierto por Medicare; rutina: $5 copago por visita, hasta 12 visitas al año (límites separados, no combinados)",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>'$0 equipo médico duradero y prótesis\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\n$0 monitores continuos de glucosa (Freestyle Libre y Dexcom en farmacias contratadas; otras marcas con proveedores DME)',
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 80 horas de cuidado personal en el hogar al año, tras hospitalización, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año tras una hospitalización reciente\n$0 — hasta 84 comidas al año por condición crónica calificada",
+                'extras_json'=>"HEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: $0-20% del monto aprobado por Medicare para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'IMPORTANTE: Resumen de Beneficios del año 2026 (no 2027 como los demás planes agregados) — Los Angeles, Orange, Riverside y San Bernardino. Plan HMO estándar, no requiere condición crónica ni Medi-Cal. El umbral catastrófico de Parte D es $2,100 (en los planes 2027 es $2,400). FlexEssentials combina OTC + dental integral + lentes + equipo de ejercicio en una sola tarjeta de $240/trimestre. Doc: Y0057_SCAN_21997_2026_M / 26C-SBH5425108. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_mychoice);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_mychoice));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
