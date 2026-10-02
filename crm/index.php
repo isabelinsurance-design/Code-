@@ -7180,29 +7180,46 @@ function mostrarComparacionPlanes(){
   const planes = PLANES_DATA.filter(p => ids.includes(String(p.id)));
   if(planes.length < 2){ toast('⚠ Primero marca la casilla ☐ de 2 o más planes para comparar — ahora tienes '+planes.length+' marcado(s)'); return; }
   const wrap = document.getElementById('plan-comparacion-wrap');
-  let html = '<div class="card" style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">';
-  html += '<tr><th style="position:sticky;left:0;background:#EBF4F9;padding:10px 14px">BENEFICIO</th>' + planes.map(p=>'<th style="padding:10px 14px">'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
+  // Pedido de Isabel: si un beneficio es IGUAL en todos los planes marcados,
+  // no se muestra — solo interesa ver en qué se diferencian.
+  let filas = '';
+  let huboCambios = false;
   Object.keys(PLAN_CAMPOS).forEach(seccion=>{
-    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">'+esc(seccion)+'</td></tr>';
+    let filasSeccion = '';
     Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
-      const algunTiene = planes.some(p => String(p[campo]||'').trim() !== '');
-      if(!algunTiene) return;
-      html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel(PLAN_CAMPOS[seccion][campo],campo)+'</td>'
+      const valores = planes.map(p => String(p[campo]||'').trim());
+      if(new Set(valores).size <= 1) return; // todos iguales (o todos vacíos)
+      huboCambios = true;
+      filasSeccion += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel(PLAN_CAMPOS[seccion][campo],campo)+'</td>'
         + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p[campo]||'—')+'</td>').join('') + '</tr>';
     });
+    if(filasSeccion){
+      filas += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
+    }
   });
-  const algunExtra = planes.some(p => String(p.extras_json||'').trim() !== '');
-  if(algunExtra){
-    html += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">OTROS BENEFICIOS</td></tr>';
-    html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
+  const extrasValores = planes.map(p => String(p.extras_json||'').trim());
+  if(new Set(extrasValores).size > 1){
+    huboCambios = true;
+    filas += '<tr><td colspan="'+(planes.length+1)+'" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">OTROS BENEFICIOS</td></tr>';
+    filas += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
       + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p.extras_json||'—')+'</td>').join('') + '</tr>';
   }
-  const algunNota = planes.some(p => String(p.notas||'').trim() !== '');
-  if(algunNota){
-    html += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Notas','notas')+'</td>'
+  const notasValores = planes.map(p => String(p.notas||'').trim());
+  if(new Set(notasValores).size > 1){
+    huboCambios = true;
+    filas += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Notas','notas')+'</td>'
       + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
   }
-  html += '</table></div>';
+  let html = '<div class="card" style="overflow-x:auto">';
+  if(!huboCambios){
+    html += '<div style="padding:24px;text-align:center;font-size:10px;color:#7A90A4;text-transform:uppercase">ESTOS PLANES SON IDÉNTICOS EN TODOS LOS BENEFICIOS CAPTURADOS</div>';
+  } else {
+    html += '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">';
+    html += '<tr><th style="position:sticky;left:0;background:#EBF4F9;padding:10px 14px">BENEFICIO</th>' + planes.map(p=>'<th style="padding:10px 14px">'+esc(p.nombre_plan)+'<br><span style="font-weight:400;text-transform:none">'+esc(p.carrier||'')+'</span></th>').join('') + '</tr>';
+    html += filas;
+    html += '</table>';
+  }
+  html += '</div>';
   wrap.innerHTML = html;
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
