@@ -8773,6 +8773,15 @@ $PLAN_AYUDA = [
     // un encabezado por cada aseguranza en vez de mezclarlos todos juntos.
     $planes_por_carrier = [];
     foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
+    // Pedido de Isabel: si un plan (mismo nombre + aseguranza) solo tiene
+    // UN año guardado, es un plan NUEVO (no existe el año anterior para
+    // compararlo en ANOC) — se marca con una insignia en su tarjeta para
+    // que se note de un vistazo, aunque no tenga con qué compararse.
+    $anios_por_plan = [];
+    foreach ($planes_comparacion as $pl) {
+        $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
+        $anios_por_plan[$clave_plan][trim($pl['anio'] ?: '')] = true;
+    }
   ?>
   <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
     <div style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
@@ -8781,13 +8790,19 @@ $PLAN_AYUDA = [
       <div style="font-size:8px;color:<?=$MU?>;font-weight:800"><?=count($pc_planes)?> PLAN<?=count($pc_planes)>1?'ES':''?></div>
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
-    <?php foreach ($pc_planes as $pl): ?>
-    <div class="card plan-card" data-id="<?=$pl['id']?>" style="border-top:3px solid <?=$P1?>">
+    <?php foreach ($pc_planes as $pl):
+      $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
+      $es_plan_nuevo = count($anios_por_plan[$clave_plan] ?? []) <= 1;
+    ?>
+    <div class="card plan-card" data-id="<?=$pl['id']?>" style="border-top:3px solid <?=$es_plan_nuevo ? '#C07A1A' : $P1?>">
       <div style="padding:12px 14px 8px">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <input type="checkbox" class="plan-check" value="<?=$pl['id']?>" onchange="actualizarBotonComparar()" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
           <div style="flex:1;min-width:0">
-            <div style="font-size:10px;font-weight:900;color:<?=$P1?>"><?=h($pl['nombre_plan'])?></div>
+            <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
+              <div style="font-size:10px;font-weight:900;color:<?=$P1?>"><?=h($pl['nombre_plan'])?></div>
+              <?php if($es_plan_nuevo):?><span title="Solo hay un año guardado de este plan — no tiene año anterior para comparar en ANOC" style="font-size:7px;font-weight:900;letter-spacing:0.5px;color:#C07A1A;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:5px;padding:2px 6px">🆕 NUEVO</span><?php endif;?>
+            </div>
             <div style="font-size:8px;color:<?=$MU?>;margin-top:1px"><?=h($pl['carrier']??'—')?><?=$pl['tipo']?' · '.h($pl['tipo']):''?></div>
           </div>
         </div>
@@ -8929,7 +8944,7 @@ function onAnocCarrierChange(){
   sel.innerHTML = nombres.map(n=>{
     const anios = Array.from(new Set(delCarrier.filter(p=>p.nombre_plan===n).map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
     const etiqueta = anios.length >= 2 ? (n+' — '+anios.join('/'))
-      : anios.length === 1 ? (n+' — solo '+anios[0]+' (falta el otro año para comparar)')
+      : anios.length === 1 ? ('🆕 NUEVO — '+n+' — solo '+anios[0]+' (no hay año anterior para comparar)')
       : n;
     return '<option value="'+esc(n)+'">'+esc(etiqueta)+'</option>';
   }).join('');
