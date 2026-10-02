@@ -2243,6 +2243,77 @@ try {
             $_ins->execute(array_values($_strive));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Connections (HMO D-SNP) 2027 — Los Angeles, Riverside,
+    // San Bernardino y San Diego. Plan dual-elegible (D-SNP) — requiere
+    // Medicare Y Medi-Cal, NO un diagnóstico de condición crónica como los
+    // planes C-SNP (Ansim Care, Balance, Strive). Casi todo cuesta $0
+    // porque no hay costo compartido bajo cobertura dual completa.
+    // Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_connections_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_connections_existe->execute(['SCAN Connections (HMO D-SNP)', 2027]);
+        if (!$_connections_existe->fetch()) {
+            $_connections = [
+                'nombre_plan'=>'SCAN Connections (HMO D-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles, Riverside, San Bernardino y San Diego, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Y Medi-Cal (Asistencia Médica del Estado) al mismo tiempo\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0',
+                'deducible_parte_d'=>'$0',
+                'moop'=>'$0 (sin costo compartido — no aplica máximo de gastos de bolsillo)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 por día',
+                'hospital_ambulatorio'=>'$0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0',
+                'atencion_preventiva'=>'$0',
+                'atencion_emergencia'=>'$0 por visita (cubierto en todo el mundo)',
+                'servicios_urgentes'=>'$0 por visita (cubierto en todo el mundo)',
+                'emergencia_mundial'=>'$0 — cubierto en todo el mundo',
+                'ambulancia'=>'$0',
+                'diagnostico_laboratorio'=>'$0',
+                'rayos_x'=>'$0',
+                'radiologia_terapeutica'=>'$0',
+                'examen_auditivo'=>'$0 examen cubierto por Medicare; $0 examen y audífonos de rutina cuando se determina necesario',
+                'audifonos'=>'$0 cuando se determina necesario (sin información de marca o nivel en este documento)',
+                'dental_preventivo'=>'$0 — servicios dentales cubiertos por Medicare',
+                'dental_integral'=>'$0 — atención dental integral, hasta $5,000 por año calendario (máximo combinado, no se divide en periodos de 6 meses como otros planes SCAN)',
+                'examen_vision'=>'$0 examen cubierto por Medicare; $0 examen de rutina',
+                'anteojos'=>'$0 hasta $325 cada 12 meses para armazones/lentes/contactos, con proveedor EyeMed Select o EyeMed360 (sin diferencia entre proveedores)',
+                'salud_mental_internado'=>'$0 por día',
+                'salud_mental_ambulatorio'=>'$0 por visita',
+                'enfermeria_especializada'=>'$0 — sin límite de días',
+                'terapia_fisica_habla'=>'$0',
+                'transporte'=>'$0 — viajes de ida y vuelta ilimitados para transporte médico no urgente; viajes de más de 75 millas o a destinos no médicos requieren autorización previa',
+                'rx_deducible'=>'$0',
+                'rx_nivel1'=>'$0 por suministro de 30 días',
+                'rx_nivel2'=>'$0 a $1 por suministro de 30 días',
+                'rx_nivel3'=>'$0, $1.65, $5.80, $5.00 o $14.40 por receta de 30 días (según su nivel de Ayuda Adicional/Extra Help)',
+                'rx_nivel4'=>'$0, $1.65, $5.80, $5.00 o $14.40 por receta de 30 días (según su nivel de Ayuda Adicional/Extra Help)',
+                'rx_nivel5'=>'$0, $1.65, $5.80, $5.00 o $14.40 por receta de 30 días (según su nivel de Ayuda Adicional/Extra Help)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 bajo Medi-Cal',
+                'rx_vacunas'=>'$0 bajo Medi-Cal',
+                'otc_mensual'=>'$0 bajo Medi-Cal; FlexEssentials $110/mes (OTC y víveres SSBCI y servicios públicos SSBCI; no se acumula al siguiente mes — la parte SSBCI requiere condición crónica calificada: enfermedad cardiovascular, insuficiencia cardíaca crónica, diabetes, cáncer, enfermedad pulmonar crónica o demencia)',
+                'gimnasio'=>'$0 — membresía de acondicionamiento físico (algunos centros tienen límite de visitas)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias personales (unidad en el hogar o localizador portátil), sin referencia necesaria',
+                'quiropractico_acupuntura'=>"$0 quiropráctico cubierto por Medicare (corrección de subluxación) y $0 quiropráctico rutinario ilimitado\n$0 acupuntura cubierta por Medicare para dolor lumbar crónico (hasta 12 visitas en 90 días, hasta 20 en total si califica) y $0 acupuntura rutinaria ilimitada (no cubierta por Medicare)",
+                'podologia'=>'$0',
+                'telesalud'=>'$0',
+                'dme'=>'$0 — equipo médico duradero, prótesis y suministros para diabéticos (monitores, tiras y solución solo de marca Abbott; lancetas de cualquier marca)',
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 25 visitas de 4 horas (100 horas) al año para ayuda con actividades diarias tras hospitalización o estancia en centro de enfermería\nRespite Care: $0 — hasta 10 visitas de 4 horas (40 horas) al año de cuidado de relevo\nHome Modifications: $0 — hasta $1,300 al año para evaluación de seguridad, calidad del aire, control de plagas y seguridad en el baño (la parte de calidad del aire/control de plagas requiere condición crónica calificada bajo SSBCI)\nCuidado personal: $0, sin referencia necesaria\nServicios de limpieza y tareas del hogar: $0\nSuministros para incontinencia: $0\nCuidado de respiro para cuidadores no pagados: $0\nCuidado de custodia hospitalario de respiro: $0 (hasta 5 días)\nServicios de acompañamiento de transporte: $0",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año tras hospitalización o estancia en centro de enfermería\n$0 — hasta 84 comidas al año adicionales por condición crónica calificada",
+                'extras_json'=>"California Integrated Care Management (CICM): $0 — solo en los 4 condados núcleo (LA, Riverside, San Bernardino, San Diego), para poblaciones de enfoque específicas (personas sin hogar, alto riesgo de uso de sala de emergencias, necesidades serias de salud mental o uso de sustancias, riesgo de institucionalización a largo plazo, residentes de centros de enfermería en transición a la comunidad, necesidades documentadas de demencia)\nCommunity Supports: $0 — solo condado de Los Angeles, para miembros sin hogar (navegación de vivienda, apoyo con depósito de seguridad, servicios de mantenimiento de vivienda, cuidado de recuperación, renta de transición)\nHEALTHtech: $0, sin referencia necesaria\nLínea de Asistencia Personal (PAL): $0, sin referencia necesaria\nLínea de Enfermería 24/7: $0, sin referencia necesaria\nSuplementos nutricionales (Ensure/Boost/Glucerna): $0 con autorización previa y receta del médico primario\nManejo de cuidado: $0, sin referencia necesaria\nAdult Day Health/CBAS: $0\nTerapia de radiación: $0",
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles, Riverside, San Bernardino y San Diego. Plan D-SNP (doble elegible) — requiere Medicare Y Medi-Cal, NO un diagnóstico de condición crónica (diferente de SCAN Ansim Care, Balance y Strive que son C-SNP). Virtualmente todos los costos son $0 por no haber costo compartido bajo cobertura dual completa. Doc: Y0057_SCAN_22478_2027_M / 27C-SBH0976001. Servicio al Miembro: 1-866-722-6725 (TTY 711).',
+            ];
+            $_cols = array_keys($_connections);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_connections));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
