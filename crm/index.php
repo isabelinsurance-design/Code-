@@ -7171,9 +7171,19 @@ function renderAnocSelectores(){
 function onAnocCarrierChange(){
   const carrier = document.getElementById('anoc-carrier').value;
   const sel = document.getElementById('anoc-plan');
-  const nombres = Array.from(new Set(PLANES_DATA.filter(p=>carrierDePlan(p)===carrier).map(p=>p.nombre_plan))).sort();
+  const delCarrier = PLANES_DATA.filter(p=>carrierDePlan(p)===carrier);
+  const nombres = Array.from(new Set(delCarrier.map(p=>p.nombre_plan))).sort();
   if(!nombres.length){ sel.innerHTML = '<option value="">— SIN PLANES —</option>'; return; }
-  sel.innerHTML = nombres.map(n=>'<option value="'+esc(n)+'">'+esc(n)+'</option>').join('');
+  // Si el plan solo tiene UN año guardado (ej. es nuevo este año y no
+  // existe la versión anterior), se avisa en la misma opción para que
+  // Isabel no tenga que darle click a ANOC para descubrirlo.
+  sel.innerHTML = nombres.map(n=>{
+    const anios = Array.from(new Set(delCarrier.filter(p=>p.nombre_plan===n).map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
+    const etiqueta = anios.length >= 2 ? (n+' — '+anios.join('/'))
+      : anios.length === 1 ? (n+' — solo '+anios[0]+' (falta el otro año para comparar)')
+      : n;
+    return '<option value="'+esc(n)+'">'+esc(etiqueta)+'</option>';
+  }).join('');
 }
 function mostrarComparacionPlanes(){
   const ids = Array.from(document.querySelectorAll('.plan-check:checked')).map(c=>c.value);
