@@ -3156,6 +3156,77 @@ try {
             $_ins->execute(array_values($_balance2026));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN Strive (HMO C-SNP) 2026 — Los Angeles, Orange,
+    // Riverside, San Bernardino, San Diego y Ventura. OJO: ya existe
+    // SCAN Strive 2027 en el sistema — esto habilita comparación ANOC
+    // año a año. En 2026 el deducible de Parte D es notablemente más
+    // alto ($615, contra $250-$370 en otros planes) y el MOOP es
+    // $9,250. Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_strive2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_strive2026_existe->execute(['SCAN Strive (HMO C-SNP)', 2026]);
+        if (!$_strive2026_existe->fetch()) {
+            $_strive2026 = [
+                'nombre_plan'=>'SCAN Strive (HMO C-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO C-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles, Orange, Riverside, San Bernardino, San Diego y Ventura, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere diagnóstico de: Diabetes (Tipo I o II), arritmia cardíaca, insuficiencia cardíaca (CHF), enfermedad vascular periférica (PVD), trastorno tromboembólico venoso crónico (ej. DVT), o enfermedad de las arterias coronarias (CAD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$257 al año combinado dentro y fuera de la red (monto de 2025) — miembros con Medi-Cal completo pagan $0',
+                'deducible_parte_d'=>'$615 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $615 (notablemente más alto que otros planes SCAN)',
+                'moop'=>'$9,250 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>"Montos de 2025, por período de beneficio:\nDeducible de $1,676\nDías 1-60: $0 por día\nDías 61-90: $419 copago por día\nDía de reserva de por vida (1-60): $838 copago por día\nCubre hasta 90 días por período, más 60 días adicionales de por vida\nMiembros con Medi-Cal completo pagan $0",
+                'hospital_ambulatorio'=>'20% del costo total (hospital ambulatorio y servicios de observación) — miembros con Medi-Cal completo pagan $0',
+                'centro_quirurgico_ambulatorio'=>'20% del costo total — miembros con Medi-Cal completo pagan $0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 (autorización previa requerida)',
+                'atencion_preventiva'=>'$0 (autorización previa requerida)',
+                'atencion_emergencia'=>"20% del costo total (hasta $115 dentro de EE.UU.) por visita\n(cubierto en todo el mundo a tarifas de Medicare Original; miembros con Medi-Cal completo pagan $0 dentro de EE.UU.)",
+                'servicios_urgentes'=>'20% del costo total (hasta $40 dentro de EE.UU.) por visita — miembros con Medi-Cal completo pagan $0',
+                'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
+                'ambulancia'=>'20% del costo total — miembros con Medi-Cal completo pagan $0 (autorización previa para no urgencias y ambulancia aérea)',
+                'diagnostico_laboratorio'=>'$0 laboratorio; 20% del costo total en pruebas/procedimientos diagnósticos — miembros con Medi-Cal completo pagan $0',
+                'rayos_x'=>'20% del costo total (rayos X ambulatorios); $0 por visita (radiología diagnóstica, ej. MRI/CT)',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>'20% del costo total por visita (examen diagnóstico cubierto por Medicare) — miembros con Medi-Cal completo pagan $0. Este documento NO incluye examen ni audífonos de rutina',
+                'audifonos'=>'No incluido en este plan (sin beneficio de audífonos de rutina)',
+                'dental_preventivo'=>"20% para servicios dentales cubiertos por Medicare (autorización previa)\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
+                'dental_integral'=>"Plan dental CAC73 — Restaurativo: \$0\nEndodoncia: \$0\nPeriodoncia: \$0\nProstodoncia removible: \$0\nProstodoncia fija: \$0\nCirugía oral/maxilofacial: \$0\nMáximo: hasta \$4,000 al año",
+                'examen_vision'=>"20% del costo total (examen y lentes cubiertos por Medicare; miembros con Medi-Cal completo pagan $0)\n$0 hasta 1 examen de rutina al año",
+                'anteojos'=>'Asignación anual: $350',
+                'salud_mental_internado'=>"Montos de 2025, por período de beneficio:\nDeducible de $1,676\nDías 1-60: $0 por día\nDías 61-90: $419 copago por día\nDía de reserva de por vida (1-60): $838 copago por día\nMiembros con Medi-Cal completo pagan $0",
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'Montos de 2025: $0 días 1-20; $209.50 copago por día, días 21-100 — miembros con Medi-Cal completo pagan $0',
+                'terapia_fisica_habla'=>'20% del costo total — miembros con Medi-Cal completo pagan $0',
+                'transporte'=>'$0 hasta 60 viajes de ida al año (hasta 30 pueden ser a destinos no médicos: supermercado, gimnasio, centro de adultos mayores, lugar de culto); beneficio SSBCI, requiere calificar; límite de 50 millas por viaje',
+                'rx_deducible'=>'$615 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel2'=>'$0 en todas las modalidades (minorista y correo)',
+                'rx_nivel3'=>"Insulina: $0 en todas las modalidades\nOtros medicamentos: 24% (minorista preferido/estándar) · 25% (correo preferido/estándar)",
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'25% (solo minorista; no disponible por correo)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 por suministro de 1 mes para insulina en el formulario del plan; $35 si es por determinación de cobertura, apelación o transición',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$105 al mes con tarjeta FlexEssentials (incluye OTC, víveres SSBCI y servicios públicos SSBCI; no se acumula al siguiente mes)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, clases virtuales y comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
+                'quiropractico_acupuntura'=>"20% quiropráctico cubierto por Medicare (Medi-Cal completo paga $0); rutina: $0 SIN copago hasta 30 visitas al año\n$0 acupuntura cubierta por Medicare; rutina: $0 SIN copago hasta 24 visitas al año (límites separados, no combinados)",
+                'podologia'=>'',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>"20% del costo total — equipo médico duradero y prótesis (Medi-Cal completo paga $0)\n$0 suministros para diabéticos\nMonitores continuos de glucosa: $0 en farmacia, 20% con proveedor DME",
+                'apoyo_hogar'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'comidas_post_hospital'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'extras_json'=>"HEALTHtech+: $0 soporte tecnológico para acceder a su información de salud\nAtención de salud en el hogar (cubierta por Medicare): $0\nMedicamentos Parte B: hasta 20% de coaseguro para quimioterapia y otros medicamentos de Parte B",
+                'notas'=>'IMPORTANTE: Resumen de Beneficios del año 2026 (ya existe SCAN Strive 2027 en el sistema — útil para comparar año a año con ANOC). Los Angeles, Orange, Riverside, San Bernardino, San Diego y Ventura. Plan C-SNP — requiere condición cardiovascular o diabetes calificada (mismos requisitos que SCAN Ansim Care y SCAN Balance). Deducible de Parte D notablemente alto: $615 (contra $250-$370 en otros planes SCAN). Doc: Y0057_SCAN_22015_2026_M / 26C-SBH5425097. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_cols = array_keys($_strive2026);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_strive2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
