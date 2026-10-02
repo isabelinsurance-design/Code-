@@ -1453,7 +1453,10 @@ try {
     // Semilla: SCAN Classic (HMO) 2027 — pedido por Isabel, datos tomados del
     // Summary of Benefits 2027 (Los Angeles County) que subió. Se agrega una
     // sola vez; si ya existe (porque Isabel lo agregó a mano o ya corrió esta
-    // semilla antes) no se vuelve a insertar.
+    // semilla antes) no se vuelve a insertar. Cada semilla va en su propio
+    // try/catch para que, si una falla, no se caiga la consulta final que
+    // carga $planes_comparacion (y con ella toda la pestaña PLANES).
+    try {
     $_scan_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
     $_scan_existe->execute(['SCAN Classic (HMO)', 2027]);
     if (!$_scan_existe->fetch()) {
@@ -1517,9 +1520,11 @@ try {
         $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
         $_ins->execute(array_values($_scan_classic));
     }
+    } catch (Exception $e) {}
     // Semilla: SCAN Classic (HMO) 2026 — mismo plan, un año antes, para que
     // Isabel pueda usar ANOC entre 2026 y 2027. Datos del Summary of
     // Benefits 2026 (Los Angeles County) que subió.
+    try {
     $_scan_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
     $_scan_existe->execute(['SCAN Classic (HMO)', 2026]);
     if (!$_scan_existe->fetch()) {
@@ -1583,6 +1588,7 @@ try {
         $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
         $_ins->execute(array_values($_scan_classic_2026));
     }
+    } catch (Exception $e) {}
     // Semilla: Alignment Health Heart & Diabetes Plus 039/044/045 (HMO
     // C-SNP) 2027 — datos del Summary of Benefits que subió Isabel. Son
     // planes de necesidades especiales (C-SNP + D-SNP): casi todos los
@@ -1680,13 +1686,15 @@ try {
         ],
     ];
     foreach ($_align_variantes_2027 as $_align_pn => $_align_overrides) {
-        $_align_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
-        $_align_existe->execute([$_align_overrides['nombre_plan'], 2027]);
-        if ($_align_existe->fetch()) continue;
-        $_align_plan = array_merge($_align_base_2027, $_align_overrides);
-        $_cols = array_keys($_align_plan);
-        $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
-        $_ins->execute(array_values($_align_plan));
+        try {
+            $_align_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align_existe->execute([$_align_overrides['nombre_plan'], 2027]);
+            if ($_align_existe->fetch()) continue;
+            $_align_plan = array_merge($_align_base_2027, $_align_overrides);
+            $_cols = array_keys($_align_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align_plan));
+        } catch (Exception $e) {}
     }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
@@ -7083,7 +7091,7 @@ function showPlanesTab(id){
   document.querySelectorAll('.ntab[data-pstab]').forEach(b=>b.classList.toggle('active', b.dataset.pstab===id));
   if(id==='ANOC') renderAnocSelectores();
 }
-function anioDePlan(p){ const n = parseInt((p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; }
+function anioDePlan(p){ const n = parseInt(String(p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; }
 function renderAnocSelectores(){
   const anios = Array.from(new Set(PLANES_DATA.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
   const selActual = document.getElementById('anoc-anio-actual');
