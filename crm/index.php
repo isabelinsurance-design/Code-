@@ -2385,6 +2385,77 @@ try {
             $_ins->execute(array_values($_connections_home));
         }
     } catch (Exception $e) {}
+    // Semilla: SCAN DaVita Dialysis Care Complete (HMO-POS C-SNP) 2027 —
+    // Los Angeles, Orange, Riverside y San Bernardino. Plan C-SNP para
+    // personas con enfermedad renal crónica (CKD), enfermedad renal en
+    // etapa terminal (ESRD) o trasplante renal reciente — requisito de
+    // elegibilidad distinto a los demás C-SNP de SCAN (cardiovasculares).
+    // Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_davita_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_davita_existe->execute(['SCAN DaVita Dialysis Care Complete (HMO-POS C-SNP)', 2027]);
+        if (!$_davita_existe->fetch()) {
+            $_davita = [
+                'nombre_plan'=>'SCAN DaVita Dialysis Care Complete (HMO-POS C-SNP)','carrier'=>'SCAN Health Plan','tipo'=>'HMO-POS C-SNP',
+                'numero_plan'=>'','condados'=>'Los Angeles, Orange, Riverside y San Bernardino, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere diagnóstico de: Enfermedad Renal Crónica (CKD) etapas 1-5, Enfermedad Renal en Etapa Terminal (ESRD/ESKD), o Trasplante Renal Reciente (como parte de tratamiento de CKD o ESRD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B) — miembros con Medi-Cal completo pagan $0',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$283 al año combinado dentro y fuera de la red (monto de 2026, puede cambiar en 2027) — miembros con Medi-Cal completo pagan $0',
+                'deducible_parte_d'=>'Paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $175',
+                'moop'=>'$9,850 al año combinado dentro y fuera de la red (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>"Montos de 2026 (pueden cambiar en 2027), por período de beneficio, dentro y fuera de la red:\nDeducible de $1,736\nDías 1-60: $0 por día\nDías 61-90: $434 copago por día\nDía de reserva de por vida (1-60): $868 copago por día\nCubre hasta 90 días por período, más 60 días adicionales de por vida\nMiembros con Medi-Cal completo pagan $0",
+                'hospital_ambulatorio'=>'20% del costo total (hospital ambulatorio y servicios de observación), dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'centro_quirurgico_ambulatorio'=>'20% del costo total (centro quirúrgico ambulatorio), dentro y fuera de la red — miembros con Medi-Cal completo pagan $0',
+                'medico_primario'=>'$0, dentro y fuera de la red',
+                'especialistas'=>'$0, dentro y fuera de la red',
+                'atencion_preventiva'=>'$0',
+                'atencion_emergencia'=>'20% del costo total (hasta $110) por visita — se exime el copago si se admite inmediatamente al hospital; miembros con Medi-Cal completo pagan $0',
+                'servicios_urgentes'=>'20% del costo total (hasta $40 copago) por visita — miembros con Medi-Cal completo pagan $0',
+                'emergencia_mundial'=>'No se especifica en este documento — ver Evidencia de Cobertura',
+                'ambulancia'=>'20% del costo total, solo dentro de la red (no cubierto fuera de la red) — miembros con Medi-Cal completo pagan $0',
+                'diagnostico_laboratorio'=>'$0 laboratorio; 20% del costo total en pruebas/procedimientos diagnósticos — miembros con Medi-Cal completo pagan $0',
+                'rayos_x'=>'20% del costo total (rayos X ambulatorios)',
+                'radiologia_terapeutica'=>'20% del costo total',
+                'examen_auditivo'=>'20% del costo total por visita (examen diagnóstico y de equilibrio cubierto por Medicare) — miembros con Medi-Cal completo pagan $0. Este documento NO incluye examen ni audífonos de rutina',
+                'audifonos'=>'No incluido en este plan (sin beneficio de audífonos de rutina)',
+                'dental_preventivo'=>"Servicios dentales cubiertos por Medicare: 20%\nExámenes: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (1 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)\n(Diagnóstico y preventivo no cuentan para el máximo del beneficio)",
+                'dental_integral'=>"Restaurativo: $0\nEndodoncia: $0\nPeriodoncia: $0\nProstodoncia removible: $0\nProstodoncia fija: $0\nCirugía oral/maxilofacial: $0\nMáximo: hasta $2,000 al año\nNo cubierto fuera de la red",
+                'examen_vision'=>'20% del costo total (examen cubierto por Medicare; miembros con Medi-Cal completo pagan $0)\n$0 hasta 1 examen de rutina al año',
+                'anteojos'=>'20% del costo total (anteojos cubiertos por Medicare tras cirugía de catarata)\nAsignación anual de rutina: $200 (proveedor EyeMed Select) o $250 (proveedor EyeMed PLUS), cada 12 meses',
+                'salud_mental_internado'=>"Montos de 2026 (pueden cambiar en 2027), por período de beneficio, dentro y fuera de la red:\nDeducible de $1,736\nDías 1-60: $0 por día\nDías 61-90: $434 copago por día\nDía de reserva de por vida (1-60): $868 copago por día\nCubre hasta 90 días por período, más 60 días adicionales de por vida\nMiembros con Medi-Cal completo pagan $0",
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
+                'enfermeria_especializada'=>'Montos de 2026 (pueden cambiar en 2027): $0 días 1-20; $217 copago por día, días 21-100 — cubre hasta 100 días por período, no requiere hospitalización previa. No cubierto fuera de la red. Miembros con Medi-Cal completo pagan $0',
+                'terapia_fisica_habla'=>'$0, dentro y fuera de la red',
+                'transporte'=>'$0 hasta 50 viajes de ida al año (SSBCI) — solo con proveedor contratado por SCAN; límite de 50 millas por viaje; requiere calificar; no cubierto fuera de la red',
+                'rx_deducible'=>'$175 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 en todas las modalidades (minorista preferido/estándar y correo preferido/estándar)',
+                'rx_nivel2'=>"Minorista preferido: $0 (30 días) / $0 (100 días)\nMinorista estándar: $1 (30 días) / $2 (100 días)\nCorreo preferido: $0 (100 días) · Correo estándar: $2 (100 días)",
+                'rx_nivel3'=>'Insulina: $0 en todas las modalidades\nOtros medicamentos: 25% en todas las modalidades',
+                'rx_nivel4'=>'25% en todas las modalidades',
+                'rx_nivel5'=>'25% (solo minorista 30 días; no disponible en suministro de 100 días ni por correo)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 por suministro de 1 mes de insulina del formulario del plan en todas las etapas (incluso antes del deducible); $35 si es por determinación de cobertura, apelación o transición; $0 en la Etapa de Cobertura Catastrófica. Insulina de Parte B: $0 en farmacia, hasta $35/mes en otros entornos',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
+                'otc_mensual'=>'$66 al mes con tarjeta FlexEssentials (incluye OTC, víveres SSBCI y servicios públicos SSBCI; no se acumula al siguiente mes)',
+                'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, entrenamientos on-demand y clases comunitarias)',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
+                'quiropractico_acupuntura'=>"$0 acupuntura cubierta por Medicare, dentro y fuera de la red\n20% quiropráctico cubierto por Medicare, dentro y fuera de la red — miembros con Medi-Cal completo pagan $0",
+                'podologia'=>'No se menciona en este documento — ver Evidencia de Cobertura',
+                'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
+                'dme'=>"$0 para artículos de $0 a $99; 20% del costo total para artículos de $100 o más (equipo médico duradero y prótesis)\n$0 suministros para diabéticos (monitores, tiras y solución de marca selecta; lancetas de cualquier marca)\nMonitores continuos de glucosa: $0 en farmacias (marcas selectas como Dexcom y Freestyle Libre con receta); 20% a través de proveedores de DME",
+                'apoyo_hogar'=>"At-Home Support: $0 — hasta 100 horas de cuidado personal en el hogar al año (incrementos de 4 horas), tras hospitalización reciente, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades diarias\n$0 — hasta 40 horas al año de cuidado de relevo (respite care) para cuidadores no pagados (incrementos de 4 horas)\nAtención de salud en el hogar (cubierta por Medicare): $0, no cubierto fuera de la red\nPrograma de Recompensas: hasta $1,200 al año para miembros que reciben diálisis y siguen su tratamiento prescrito",
+                'comidas_post_hospital'=>"$0 — hasta 84 comidas al año (21 por semana) tras una hospitalización reciente\n$0 — hasta 84 comidas al año (21 por semana) por condición crónica calificada (límites separados, SSBCI)",
+                'extras_json'=>"Medicamentos Parte B: $0 en farmacia para quimioterapia y otros medicamentos de Parte B; hasta 20% de coaseguro en otro entorno\nPrograma de Recompensas: hasta $1,200 al año por seguir el tratamiento de diálisis prescrito (según elegibilidad)",
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Los Angeles, Orange, Riverside y San Bernardino. Plan C-SNP para enfermedad renal — requiere CKD, ESRD o trasplante renal reciente (diferente a los demás C-SNP de SCAN que requieren condición cardiovascular/diabetes). Plan HMO-POS (permite algunos servicios fuera de la red con costo mayor). Doc: Y0057_SCAN_22480_2027_M / 27C-SBH5943003. Servicio al Miembro: 1-800-399-7226 (TTY 711).',
+            ];
+            $_cols = array_keys($_davita);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_davita));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
