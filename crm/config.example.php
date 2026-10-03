@@ -46,6 +46,10 @@ define('BONO_MONTO',     250);   // Incentivo por póliza
 define('DIAS_RETENCION', 90);    // Días activo para consolidar bono
 define('CRM_NAME',       'Medicare with Isabel');
 define('CRM_WEB',        'withisabelfuentes.com');
+// Se precarga sola en el campo DIRECCIÓN del formulario de citas cuando la
+// modalidad es OFICINA (se puede editar a mano si algún día cambia) — y se
+// incluye en el SMS de recordatorio para que no tengan que preguntar dónde es.
+define('OFICINA_DIRECCION', getenv('OFICINA_DIRECCION') ?: '14550 Haynes St, Van Nuys, CA 91411');
 
 // ─── GOOGLE CALENDAR (opcional) — sincroniza Citas con tu calendario ─
 // Sin esto configurado, Citas sigue funcionando normal — solo no se

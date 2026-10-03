@@ -10652,7 +10652,7 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
         </div>
         <div class="form-group">
           <label class="form-label">MODALIDAD</label>
-          <select name="modalidad" id="cita-modalidad" class="form-input">
+          <select name="modalidad" id="cita-modalidad" class="form-input" onchange="onCitaModalidadChange()">
             <option value="OFICINA">🏢 OFICINA</option>
             <option value="TELÉFONO">📞 TELÉFONO</option>
             <option value="VIDEO">📹 VIDEO</option>
@@ -10660,6 +10660,12 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
             <option value="EN RESTAURANTE">🍽️ EN RESTAURANTE</option>
           </select>
         </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">DIRECCIÓN</label>
+        <input type="text" name="direccion" id="cita-direccion" class="form-input" placeholder="Ej: 14550 Haynes St, Van Nuys, CA 91411" style="text-transform:none">
+        <div style="font-size:8px;color:<?=$MU?>;margin-top:4px">Se llena sola con la dirección de la oficina si eliges esa modalidad — si es en un restaurante, escribe la dirección aquí. Se incluye en el recordatorio por SMS.</div>
       </div>
 
       <div class="grid-2">
@@ -14312,6 +14318,7 @@ function editarCita(id, forzarPendiente){
       setCitaTipoPersona(c.tipo_persona || (c.miembro_id ? 'MIEMBRO' : 'PROSPECTO'));
       document.getElementById('cita-tipo').value = c.tipo || 'PRESENTACIÓN';
       document.getElementById('cita-modalidad').value = c.modalidad || 'OFICINA';
+      document.getElementById('cita-direccion').value = c.direccion || '';
       document.getElementById('cita-fecha').value = c.fecha || '';
       document.getElementById('cita-hora').value = (c.hora||'').substring(0,5);
       document.getElementById('cita-notas').value = c.notas || '';
@@ -14320,6 +14327,22 @@ function editarCita(id, forzarPendiente){
       openModal('cita-form-modal');
     })
     .catch(()=>toast('⚠ Error de red — intenta de nuevo'));
+}
+
+// Pedido de Isabel: la DIRECCIÓN se llena sola con la de la oficina al
+// elegir esa modalidad — para EN RESTAURANTE/otras se escribe a mano. Solo
+// se "limpia" la dirección de oficina si no la tocaron (sigue siendo
+// exactamente la constante), para no borrar algo que Isabel ya escribió.
+const OFICINA_DIRECCION = <?=json_encode(OFICINA_DIRECCION)?>;
+function onCitaModalidadChange(){
+  const sel = document.getElementById('cita-modalidad');
+  const dirInp = document.getElementById('cita-direccion');
+  if(!sel || !dirInp) return;
+  if(sel.value === 'OFICINA'){
+    dirInp.value = OFICINA_DIRECCION;
+  } else if(dirInp.value === OFICINA_DIRECCION){
+    dirInp.value = '';
+  }
 }
 
 // MIEMBRO vs PROSPECTO es independiente de si la persona YA tiene un
@@ -14352,6 +14375,7 @@ function abrirNuevaCita(){
   document.getElementById('cita-mpick-input').value = '';
   const citaAvisoNueva = document.getElementById('cita-cliente-aviso');
   if(citaAvisoNueva) citaAvisoNueva.style.display = 'none';
+  onCitaModalidadChange(); // la modalidad por default es OFICINA — precarga su dirección
   setCitaTipoPersona('MIEMBRO'); // default — se corrige solo al elegir a alguien (ver mpickItemClick)
   __origOpenModal('cita-form-modal'); // <-- SOLUCIÓN
 }

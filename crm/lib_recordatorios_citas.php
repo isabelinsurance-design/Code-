@@ -82,11 +82,15 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
     $fechaHora   = recordatorio_fecha_legible($cita['fecha'], $cita['hora']);
     $modalidad   = recordatorio_modalidad_legible($cita['modalidad'] ?? '');
     $saludoNombre = $nombre !== '' ? "Hola {$nombre}, " : 'Hola, ';
+    // Pedido de Isabel: aunque diga "en la oficina", conviene mandar
+    // también la dirección para que no tengan que preguntar dónde es.
+    $direccion = trim($cita['direccion'] ?? '');
+    $lineaDireccion = $direccion !== '' ? "\nDirección: {$direccion}" : '';
 
     if ($tipo === '2H') {
-        return "{$saludoNombre}le recordamos que su cita con Medicare with Isabel es HOY, {$fechaHora} ({$modalidad}). ¡Nos vemos pronto!";
+        return "{$saludoNombre}le recordamos que su cita con Medicare with Isabel es HOY, {$fechaHora} ({$modalidad}).{$lineaDireccion}\n¡Nos vemos pronto!";
     }
-    return "{$saludoNombre}le recordamos su cita con Medicare with Isabel el {$fechaHora} ({$modalidad}). Si necesita cambiarla, responda este mensaje o llámenos.";
+    return "{$saludoNombre}le recordamos su cita con Medicare with Isabel el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, responda este mensaje o llámenos.";
 }
 
 // Procesa el lote completo — lo llama cron_recordatorios_citas.php. Devuelve
@@ -101,7 +105,7 @@ function recordatorios_citas_procesar(PDO $pdo): array {
     // minutos_restantes, calculado por la BASE DE DATOS (NOW()), no por PHP
     // — así no importa si el reloj del servidor web está desincronizado del
     // de MySQL (común en hosting compartido).
-    $sql = "SELECT c.id, c.miembro_id, c.agente_id, c.tipo, c.modalidad, c.fecha, c.hora,
+    $sql = "SELECT c.id, c.miembro_id, c.agente_id, c.tipo, c.modalidad, c.fecha, c.hora, c.direccion,
                    c.recordatorio_48h_enviado_at, c.recordatorio_2h_enviado_at,
                    m.nombre, m.apellido, m.telefono, m.telefono2,
                    TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(c.fecha, c.hora)) AS minutos_restantes
