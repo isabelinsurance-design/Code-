@@ -8763,6 +8763,15 @@ foreach ($planes_comparacion as $pl) {
     $anios_por_plan[$clave_plan][trim($pl['anio'] ?: '')] = true;
 }
 function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($c))); }
+// Pedido de Isabel: un selector para filtrar la lista y la comparación de
+// planes por año (ej. ver solo los planes 2026, o solo los 2027) — el ANOC
+// no lo necesita porque ya compara años automáticamente por su cuenta.
+$anios_disponibles_planes = [];
+foreach ($planes_comparacion as $pl) {
+    $a = trim($pl['anio'] ?: '');
+    if ($a !== '') $anios_disponibles_planes[$a] = true;
+}
+krsort($anios_disponibles_planes);
 ?>
 <div id="tab-PLANES" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
@@ -8782,7 +8791,17 @@ function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(tr
   </div>
   <?php endif; ?>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
-    <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
+      <?php if (!empty($anios_disponibles_planes)): ?>
+      <select id="plan-year-filter" class="form-input" style="width:auto;font-size:9px;padding:5px 8px" onchange="filtrarPlanesPorAnio()">
+        <option value="">TODOS LOS AÑOS</option>
+        <?php foreach (array_keys($anios_disponibles_planes) as $a): ?>
+        <option value="<?=h($a)?>">SOLO <?=h($a)?></option>
+        <?php endforeach; ?>
+      </select>
+      <?php endif; ?>
+    </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()">⚖ COMPARAR SELECCIONADOS</button>
       <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
@@ -8796,6 +8815,7 @@ function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(tr
     <div class="card" style="padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
   <?php else: ?>
   <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
+    <div class="carrier-group" data-carrier-group>
     <div id="carrier-group-<?=h(slugCarrier($pc_carrier))?>" style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
       <div style="font-size:10px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px"><?=h($pc_carrier)?></div>
       <div style="flex:1;height:1px;background:<?=$CB?>"></div>
@@ -8806,7 +8826,7 @@ function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(tr
       $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
       $es_plan_nuevo = count($anios_por_plan[$clave_plan] ?? []) <= 1;
     ?>
-    <div class="card plan-card" data-id="<?=$pl['id']?>" style="border-top:3px solid <?=$es_plan_nuevo ? '#C07A1A' : $P1?>">
+    <div class="card plan-card" data-id="<?=$pl['id']?>" data-anio="<?=h(trim($pl['anio'] ?: ''))?>" style="border-top:3px solid <?=$es_plan_nuevo ? '#C07A1A' : $P1?>">
       <div style="padding:12px 14px 8px">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <input type="checkbox" class="plan-check" value="<?=$pl['id']?>" onchange="actualizarBotonComparar()" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
@@ -8830,6 +8850,7 @@ function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(tr
     </div>
     <?php endforeach; ?>
     </div>
+    </div><!-- /carrier-group -->
   <?php endforeach; endif; ?>
   </div>
 </div><!-- /pstab-PLANES -->
@@ -8919,6 +8940,26 @@ function actualizarBotonComparar(){
   // El botón ya no se deshabilita — si Isabel le da click sin marcar
   // las casillas, es mejor avisarle con un mensaje claro que dejar el
   // botón "muerto" sin ninguna reacción (ver mostrarComparacionPlanes).
+}
+function filtrarPlanesPorAnio(){
+  // Pedido de Isabel: filtrar la lista (y por lo tanto qué planes puede
+  // marcar para comparar) por año — ej. ver solo los planes 2026. El ANOC
+  // no usa este filtro porque ya compara años por su cuenta.
+  const sel = document.getElementById('plan-year-filter');
+  const anio = sel ? sel.value : '';
+  document.querySelectorAll('.plan-card').forEach(card=>{
+    const visible = !anio || card.dataset.anio === anio;
+    card.style.display = visible ? '' : 'none';
+    if(!visible){
+      const chk = card.querySelector('.plan-check');
+      if(chk && chk.checked){ chk.checked = false; }
+    }
+  });
+  document.querySelectorAll('[data-carrier-group]').forEach(grupo=>{
+    const hayVisible = Array.from(grupo.querySelectorAll('.plan-card')).some(c=>c.style.display !== 'none');
+    grupo.style.display = hayVisible ? '' : 'none';
+  });
+  actualizarBotonComparar();
 }
 function showPlanesTab(id){
   ['PLANES','ANOC'].forEach(t=>{const el=document.getElementById('pstab-'+t);if(el)el.style.display=t===id?'':'none';});
