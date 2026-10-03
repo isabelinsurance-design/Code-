@@ -8747,6 +8747,22 @@ $PLAN_AYUDA = [
   'extras_json'=>'Otros beneficios que no entran en las categorías de arriba (ej. purificador de aire, control de plagas, servicios para mascotas).',
   'notas'=>'Notas internas sobre este plan — no se le muestran al miembro.',
 ];
+// Ya vienen ordenados por carrier desde la consulta — se agrupan bajo un
+// encabezado por cada aseguranza en vez de mezclarlos todos juntos. Se
+// calcula aquí arriba (no solo dentro del grid) para poder usarlo también
+// en las tarjetitas de resumen por aseguranza que pidió Isabel.
+$planes_por_carrier = [];
+foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
+// Pedido de Isabel: si un plan (mismo nombre + aseguranza) solo tiene UN
+// año guardado, es un plan NUEVO (no existe el año anterior para
+// compararlo en ANOC) — se marca con una insignia en su tarjeta para que
+// se note de un vistazo, aunque no tenga con qué compararse.
+$anios_por_plan = [];
+foreach ($planes_comparacion as $pl) {
+    $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
+    $anios_por_plan[$clave_plan][trim($pl['anio'] ?: '')] = true;
+}
+function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($c))); }
 ?>
 <div id="tab-PLANES" class="tab-pane">
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
@@ -8755,6 +8771,16 @@ $PLAN_AYUDA = [
 </div>
 
 <div id="pstab-PLANES">
+  <?php if (!empty($planes_por_carrier)): ?>
+  <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px">
+    <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
+    <div class="card" style="padding:10px 12px;cursor:pointer" onclick="document.getElementById('carrier-group-<?=h(slugCarrier($pc_carrier))?>').scrollIntoView({behavior:'smooth',block:'start'})">
+      <div style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?=h($pc_carrier)?></div>
+      <div style="font-size:16px;font-weight:900;color:<?=$TX?>;margin-top:3px"><?=count($pc_planes)?> <span style="font-size:8px;font-weight:800;color:<?=$MU?>;text-transform:uppercase">PLAN<?=count($pc_planes)>1?'ES':''?></span></div>
+    </div>
+    <?php endforeach; ?>
+  </div>
+  <?php endif; ?>
   <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:11px;flex-wrap:wrap;gap:8px">
     <div style="font-size:8px;color:<?=$MU?>;text-transform:uppercase;font-weight:800">Selecciona 2 o más planes para comparar lado a lado</div>
     <div style="display:flex;gap:6px">
@@ -8768,23 +8794,9 @@ $PLAN_AYUDA = [
   <div id="plan-cards-grid">
   <?php if (empty($planes_comparacion)): ?>
     <div class="card" style="padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
-  <?php else:
-    // Ya vienen ordenados por carrier desde la consulta — se agrupan bajo
-    // un encabezado por cada aseguranza en vez de mezclarlos todos juntos.
-    $planes_por_carrier = [];
-    foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
-    // Pedido de Isabel: si un plan (mismo nombre + aseguranza) solo tiene
-    // UN año guardado, es un plan NUEVO (no existe el año anterior para
-    // compararlo en ANOC) — se marca con una insignia en su tarjeta para
-    // que se note de un vistazo, aunque no tenga con qué compararse.
-    $anios_por_plan = [];
-    foreach ($planes_comparacion as $pl) {
-        $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
-        $anios_por_plan[$clave_plan][trim($pl['anio'] ?: '')] = true;
-    }
-  ?>
+  <?php else: ?>
   <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
-    <div style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
+    <div id="carrier-group-<?=h(slugCarrier($pc_carrier))?>" style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
       <div style="font-size:10px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px"><?=h($pc_carrier)?></div>
       <div style="flex:1;height:1px;background:<?=$CB?>"></div>
       <div style="font-size:8px;color:<?=$MU?>;font-weight:800"><?=count($pc_planes)?> PLAN<?=count($pc_planes)>1?'ES':''?></div>
