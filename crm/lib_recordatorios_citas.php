@@ -29,6 +29,13 @@ function asegurarColumnasRecordatorioCitas(PDO $pdo): void {
         if (!in_array('recordatorio_2h_enviado_at', $colsCitas, true)) {
             $pdo->exec("ALTER TABLE citas ADD COLUMN recordatorio_2h_enviado_at DATETIME DEFAULT NULL");
         }
+        // 'direccion' también se agrega en save_cita/update_cita (api.php),
+        // pero el cron (cron_recordatorios_citas.php) NUNCA pasa por ahí —
+        // sin esto aquí también, el cron truena con "Unknown column" en un
+        // sitio donde nadie haya guardado o editado una cita todavía.
+        if (!in_array('direccion', $colsCitas, true)) {
+            $pdo->exec("ALTER TABLE citas ADD COLUMN direccion VARCHAR(255) DEFAULT NULL");
+        }
     } catch (Exception $e) {}
     try {
         asegurarTablaSmsMensajes($pdo);
