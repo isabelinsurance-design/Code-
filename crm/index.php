@@ -8754,13 +8754,22 @@ $PLAN_AYUDA = [
 $planes_por_carrier = [];
 foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
 // Pedido de Isabel: si un plan (mismo nombre + aseguranza) solo tiene UN
-// año guardado, es un plan NUEVO (no existe el año anterior para
-// compararlo en ANOC) — se marca con una insignia en su tarjeta para que
-// se note de un vistazo, aunque no tenga con qué compararse.
+// año guardado, puede significar dos cosas MUY distintas:
+//   1) Ese único año es el más reciente que hay en todo el sistema → es un
+//      plan NUEVO que recién se está ofreciendo (nada raro, falta nomás su
+//      comparación ANOC a futuro).
+//   2) Ese único año es viejo y nunca llegó la versión del año siguiente →
+//      si Isabel ya hubiera subido ese Summary of Benefits lo veríamos
+//      aquí, así que lo más probable es que el plan se haya descontinuado
+//      o no se vaya a renovar. Esto se marca distinto para que Isabel lo
+//      note y no piense que es simplemente un plan nuevo.
 $anios_por_plan = [];
+$anio_mas_reciente = null;
 foreach ($planes_comparacion as $pl) {
     $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
-    $anios_por_plan[$clave_plan][trim($pl['anio'] ?: '')] = true;
+    $a = trim($pl['anio'] ?: '');
+    $anios_por_plan[$clave_plan][$a] = true;
+    if ($a !== '' && ($anio_mas_reciente === null || $a > $anio_mas_reciente)) { $anio_mas_reciente = $a; }
 }
 function slugCarrier($c){ return preg_replace('/[^a-z0-9]+/', '-', strtolower(trim($c))); }
 // Pedido de Isabel: un selector para filtrar la lista y la comparación de
@@ -8824,16 +8833,21 @@ krsort($anios_disponibles_planes);
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
     <?php foreach ($pc_planes as $pl):
       $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
-      $es_plan_nuevo = count($anios_por_plan[$clave_plan] ?? []) <= 1;
+      $anio_de_este_pl = trim($pl['anio'] ?: '');
+      $plan_tiene_un_solo_anio = count($anios_por_plan[$clave_plan] ?? []) <= 1;
+      $es_plan_nuevo = $plan_tiene_un_solo_anio && $anio_de_este_pl === $anio_mas_reciente;
+      $es_plan_posible_descontinuado = $plan_tiene_un_solo_anio && $anio_de_este_pl !== $anio_mas_reciente;
+      $color_borde = $es_plan_nuevo ? '#C07A1A' : ($es_plan_posible_descontinuado ? '#B83232' : $P1);
     ?>
-    <div class="card plan-card" data-id="<?=$pl['id']?>" data-anio="<?=h(trim($pl['anio'] ?: ''))?>" style="border-top:3px solid <?=$es_plan_nuevo ? '#C07A1A' : $P1?>">
+    <div class="card plan-card" data-id="<?=$pl['id']?>" data-anio="<?=h($anio_de_este_pl)?>" style="border-top:3px solid <?=$color_borde?>">
       <div style="padding:12px 14px 8px">
         <div style="display:flex;gap:8px;align-items:flex-start">
           <input type="checkbox" class="plan-check" value="<?=$pl['id']?>" onchange="actualizarBotonComparar()" style="margin-top:2px;width:16px;height:16px;flex-shrink:0">
           <div style="flex:1;min-width:0">
             <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap">
               <div style="font-size:10px;font-weight:900;color:<?=$P1?>"><?=h($pl['nombre_plan'])?></div>
-              <?php if($es_plan_nuevo):?><span title="Solo hay un año guardado de este plan — no tiene año anterior para comparar en ANOC" style="font-size:7px;font-weight:900;letter-spacing:0.5px;color:#C07A1A;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:5px;padding:2px 6px">🆕 NUEVO</span><?php endif;?>
+              <?php if($es_plan_nuevo):?><span title="Solo hay un año guardado de este plan (el más reciente del sistema) — no tiene año anterior para comparar en ANOC" style="font-size:7px;font-weight:900;letter-spacing:0.5px;color:#C07A1A;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:5px;padding:2px 6px">🆕 NUEVO</span><?php endif;?>
+              <?php if($es_plan_posible_descontinuado):?><span title="Solo hay guardado el año <?=h($anio_de_este_pl)?> — nunca llegó la versión más reciente (<?=h($anio_mas_reciente)?>). Puede que este plan ya no se esté ofreciendo." style="font-size:7px;font-weight:900;letter-spacing:0.5px;color:#B83232;background:#FDF0EE;border:1px solid #E8A8A0;border-radius:5px;padding:2px 6px">⚠ ¿DESCONTINUADO?</span><?php endif;?>
             </div>
             <div style="font-size:8px;color:<?=$MU?>;margin-top:1px"><?=h($pl['carrier']??'—')?><?=$pl['tipo']?' · '.h($pl['tipo']):''?></div>
           </div>
@@ -8897,6 +8911,7 @@ krsort($anios_disponibles_planes);
 <script>
 const PLANES_DATA = <?=json_encode(array_values($planes_comparacion), JSON_UNESCAPED_UNICODE)?>;
 const PLAN_CAMPOS = <?=json_encode($PLAN_CAMPOS, JSON_UNESCAPED_UNICODE)?>;
+const ANIO_MAS_RECIENTE = <?=json_encode($anio_mas_reciente)?>;
 const PLAN_AYUDA = <?=json_encode($PLAN_AYUDA, JSON_UNESCAPED_UNICODE)?>;
 
 function abrirPlanForm(id){
@@ -9005,8 +9020,14 @@ function onAnocCarrierChange(){
   // Isabel no tenga que darle click a ANOC para descubrirlo.
   sel.innerHTML = nombres.map(n=>{
     const anios = Array.from(new Set(delCarrier.filter(p=>p.nombre_plan===n).map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
+    // Pedido de Isabel: si el único año guardado NO es el más reciente que
+    // hay en todo el sistema, es señal de que el plan pudo haberse
+    // descontinuado (no es lo mismo que un plan nuevo recién agregado).
+    const esElMasReciente = anios.length === 1 && String(anios[0]) === String(ANIO_MAS_RECIENTE);
+    const esPosibleDescontinuado = anios.length === 1 && !esElMasReciente;
     const etiqueta = anios.length >= 2 ? (n+' — '+anios.join('/'))
-      : anios.length === 1 ? ('🆕 NUEVO — '+n+' — solo '+anios[0]+' (no hay año anterior para comparar)')
+      : esElMasReciente ? ('🆕 NUEVO — '+n+' — solo '+anios[0]+' (no hay año anterior para comparar)')
+      : esPosibleDescontinuado ? ('⚠ ¿DESCONTINUADO? — '+n+' — solo '+anios[0]+' (nunca llegó el '+ANIO_MAS_RECIENTE+')')
       : n;
     return '<option value="'+esc(n)+'">'+esc(etiqueta)+'</option>';
   }).join('');
@@ -9101,8 +9122,16 @@ function mostrarCambiosAnoc(){
         + '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
         + '<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(extraUnico)+'</td></tr>';
     }
+    // Pedido de Isabel: distinguir un plan NUEVO (su único año es el más
+    // reciente del sistema) de uno que pudo haberse DESCONTINUADO (su
+    // único año es viejo y nunca llegó la versión más reciente).
+    const esElMasRecienteUnico = String(anioDePlan(pUnico)) === String(ANIO_MAS_RECIENTE);
     let htmlUnico = '<div class="card" style="overflow-x:auto">';
-    htmlUnico += '<div style="padding:11px 14px;background:#FEF8EE;border-bottom:1px solid #F5D5A0;font-size:10px;color:#C07A1A;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🆕 PLAN NUEVO — '+esc(pUnico.nombre_plan)+' ('+esc(anioDePlan(pUnico))+') — NO HAY AÑO ANTERIOR GUARDADO PARA COMPARAR, AQUÍ ESTÁN SUS BENEFICIOS</div>';
+    if (esElMasRecienteUnico) {
+      htmlUnico += '<div style="padding:11px 14px;background:#FEF8EE;border-bottom:1px solid #F5D5A0;font-size:10px;color:#C07A1A;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🆕 PLAN NUEVO — '+esc(pUnico.nombre_plan)+' ('+esc(anioDePlan(pUnico))+') — NO HAY AÑO ANTERIOR GUARDADO PARA COMPARAR, AQUÍ ESTÁN SUS BENEFICIOS</div>';
+    } else {
+      htmlUnico += '<div style="padding:11px 14px;background:#FDF0EE;border-bottom:1px solid #E8A8A0;font-size:10px;color:#B83232;font-weight:800;text-transform:uppercase;letter-spacing:.5px">⚠ ¿PLAN DESCONTINUADO? — '+esc(pUnico.nombre_plan)+' — SOLO HAY '+esc(anioDePlan(pUnico))+' GUARDADO, NUNCA LLEGÓ EL '+esc(ANIO_MAS_RECIENTE)+' — ES POSIBLE QUE YA NO SE OFREZCA. AQUÍ ESTÁN SUS BENEFICIOS DEL ÚLTIMO AÑO GUARDADO</div>';
+    }
     htmlUnico += '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">' + filasUnico + '</table>';
     htmlUnico += '</div>';
     wrapUnico.innerHTML = htmlUnico;
