@@ -9013,7 +9013,40 @@ function mostrarCambiosAnoc(){
   if(!carrier || !nombrePlan){ toast('⚠ Elige una aseguranza y un plan'); return; }
   const versiones = PLANES_DATA.filter(p => carrierDePlan(p)===carrier && p.nombre_plan===nombrePlan)
     .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
-  if(versiones.length < 2){ toast('⚠ Solo tienes guardado un año de este plan — agrega el otro año para poder comparar'); return; }
+  if(versiones.length < 2){
+    // Pedido de Isabel: un plan NUEVO (solo un año guardado) igual se debe
+    // poder ver en esta sub-pestaña — en vez de solo un aviso que no deja
+    // ver nada, se listan todos sus beneficios capturados, dejando claro
+    // que no hay año anterior con qué compararlo.
+    const pUnico = versiones[0];
+    const wrapUnico = document.getElementById('anoc-wrap');
+    let filasUnico = '';
+    Object.keys(PLAN_CAMPOS).forEach(seccion=>{
+      let filasSeccion = '';
+      Object.keys(PLAN_CAMPOS[seccion]).forEach(campo=>{
+        const v = String(pUnico[campo]||'').trim();
+        if(!v) return;
+        filasSeccion += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;width:220px;padding:9px 14px">'+ayudaLabel(PLAN_CAMPOS[seccion][campo],campo)+'</td>'
+          + '<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(v)+'</td></tr>';
+      });
+      if(filasSeccion){
+        filasUnico += '<tr><td colspan="2" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">'+esc(seccion)+'</td></tr>' + filasSeccion;
+      }
+    });
+    const extraUnico = String(pUnico.extras_json||'').trim();
+    if(extraUnico){
+      filasUnico += '<tr><td colspan="2" style="background:#EBF4F9;font-weight:900;font-size:10px;letter-spacing:1px;padding:9px 14px">OTROS BENEFICIOS</td></tr>'
+        + '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;padding:9px 14px">'+ayudaLabel('Extras','extras_json')+'</td>'
+        + '<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(extraUnico)+'</td></tr>';
+    }
+    let htmlUnico = '<div class="card" style="overflow-x:auto">';
+    htmlUnico += '<div style="padding:11px 14px;background:#FEF8EE;border-bottom:1px solid #F5D5A0;font-size:10px;color:#C07A1A;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🆕 PLAN NUEVO — '+esc(pUnico.nombre_plan)+' ('+esc(anioDePlan(pUnico))+') — NO HAY AÑO ANTERIOR GUARDADO PARA COMPARAR, AQUÍ ESTÁN SUS BENEFICIOS</div>';
+    htmlUnico += '<table style="width:100%;border-collapse:collapse;font-size:11px;line-height:1.5">' + filasUnico + '</table>';
+    htmlUnico += '</div>';
+    wrapUnico.innerHTML = htmlUnico;
+    wrapUnico.scrollIntoView({behavior:'smooth', block:'start'});
+    return;
+  }
   const pActual = versiones[0];
   const pNuevo = versiones[versiones.length-1];
 
