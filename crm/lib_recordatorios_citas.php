@@ -100,6 +100,29 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
     return "{$saludoNombre}le recordamos su cita con Isabel Fuentes el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, responda este mensaje o llámenos.";
 }
 
+// Diagnóstico temporal — para detectar si el servidor de MySQL tiene una
+// hora/zona horaria distinta a la del servidor web (muy común en hosting
+// compartido), que haría que "revisadas" siempre salga en 0 aunque sí haya
+// citas próximas: todas las comparaciones de tiempo del cron se hacen con
+// NOW() de MySQL, así que si ese reloj está desfasado varias horas respecto
+// a la hora real, las ventanas de 48h/2h nunca calzan.
+function recordatorios_citas_diagnostico(PDO $pdo): array {
+    asegurarColumnasRecordatorioCitas($pdo);
+    $db = $pdo->query("SELECT NOW() AS db_now, @@session.time_zone AS db_tz, @@global.time_zone AS db_tz_global")->fetch(PDO::FETCH_ASSOC);
+    $citas = $pdo->query("SELECT id, fecha, hora, estado, miembro_id, direccion, recordatorio_48h_enviado_at, recordatorio_2h_enviado_at,
+                                  TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(fecha, hora)) AS minutos_restantes
+                           FROM citas
+                           WHERE fecha BETWEEN CURDATE() - INTERVAL 1 DAY AND CURDATE() + INTERVAL 3 DAY
+                           ORDER BY fecha, hora")->fetchAll(PDO::FETCH_ASSOC);
+    return [
+        'hora_del_servidor_web_php' => date('Y-m-d H:i:s'),
+        'hora_de_la_base_de_datos_mysql' => $db['db_now'] ?? null,
+        'zona_horaria_mysql_sesion' => $db['db_tz'] ?? null,
+        'zona_horaria_mysql_global' => $db['db_tz_global'] ?? null,
+        'citas_proximos_dias' => $citas,
+    ];
+}
+
 // Procesa el lote completo — lo llama cron_recordatorios_citas.php. Devuelve
 // un resumen para dejar registro de lo que pasó en esa corrida.
 function recordatorios_citas_procesar(PDO $pdo): array {

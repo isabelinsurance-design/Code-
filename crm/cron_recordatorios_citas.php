@@ -63,6 +63,18 @@ try {
     _cron_responder(500, ['ok' => false, 'error' => 'No se pudo conectar a la base de datos']);
 }
 
+// Modo diagnóstico temporal (?debug=1 además del secreto) — para revisar si
+// la hora de MySQL coincide con la hora real, sin mandar ningún SMS. Quitar
+// este bloque (y la función recordatorios_citas_diagnostico) una vez que se
+// confirme que los recordatorios ya están llegando bien.
+if (!empty($_GET['debug'])) {
+    try {
+        _cron_responder(200, ['ok' => true, 'diagnostico' => recordatorios_citas_diagnostico($pdo)]);
+    } catch (Exception $e) {
+        _cron_responder(500, ['ok' => false, 'error' => 'Error al diagnosticar: ' . $e->getMessage()]);
+    }
+}
+
 try {
     $resumen = recordatorios_citas_procesar($pdo);
     _cron_responder(200, ['ok' => true, 'resumen' => $resumen]);
