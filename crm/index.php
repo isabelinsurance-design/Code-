@@ -9015,19 +9015,17 @@ function onAnocCarrierChange(){
   const delCarrier = PLANES_DATA.filter(p=>carrierDePlan(p)===carrier);
   const nombres = Array.from(new Set(delCarrier.map(p=>p.nombre_plan))).sort();
   if(!nombres.length){ sel.innerHTML = '<option value="">— SIN PLANES —</option>'; return; }
-  // Si el plan solo tiene UN año guardado (ej. es nuevo este año y no
-  // existe la versión anterior), se avisa en la misma opción para que
-  // Isabel no tenga que darle click a ANOC para descubrirlo.
+  // Si el plan solo tiene UN año guardado, se avisa en la misma opción con
+  // un ícono corto (Isabel pidió solo el nombre del plan, nada de texto
+  // largo): ⭐ si es nuevo (su único año es el más reciente del sistema),
+  // ❌ si pudo haberse descontinuado (su único año es viejo).
   sel.innerHTML = nombres.map(n=>{
     const anios = Array.from(new Set(delCarrier.filter(p=>p.nombre_plan===n).map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
-    // Pedido de Isabel: si el único año guardado NO es el más reciente que
-    // hay en todo el sistema, es señal de que el plan pudo haberse
-    // descontinuado (no es lo mismo que un plan nuevo recién agregado).
     const esElMasReciente = anios.length === 1 && String(anios[0]) === String(ANIO_MAS_RECIENTE);
     const esPosibleDescontinuado = anios.length === 1 && !esElMasReciente;
     const etiqueta = anios.length >= 2 ? (n+' — '+anios.join('/'))
-      : esElMasReciente ? ('🆕 NUEVO — '+n+' — solo '+anios[0]+' (no hay año anterior para comparar)')
-      : esPosibleDescontinuado ? ('⚠ ¿DESCONTINUADO? — '+n+' — solo '+anios[0]+' (nunca llegó el '+ANIO_MAS_RECIENTE+')')
+      : esElMasReciente ? ('⭐ '+n)
+      : esPosibleDescontinuado ? ('❌ '+n)
       : n;
     return '<option value="'+esc(n)+'">'+esc(etiqueta)+'</option>';
   }).join('');
