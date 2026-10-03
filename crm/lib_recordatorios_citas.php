@@ -88,9 +88,9 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
     $lineaDireccion = $direccion !== '' ? "\nDirección: {$direccion}" : '';
 
     if ($tipo === '2H') {
-        return "{$saludoNombre}le recordamos que su cita con Medicare with Isabel es HOY, {$fechaHora} ({$modalidad}).{$lineaDireccion}\n¡Nos vemos pronto!";
+        return "{$saludoNombre}le recordamos que su cita con Isabel Fuentes es HOY, {$fechaHora} ({$modalidad}).{$lineaDireccion}\n¡Nos vemos pronto!";
     }
-    return "{$saludoNombre}le recordamos su cita con Medicare with Isabel el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, responda este mensaje o llámenos.";
+    return "{$saludoNombre}le recordamos su cita con Isabel Fuentes el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, responda este mensaje o llámenos.";
 }
 
 // Procesa el lote completo — lo llama cron_recordatorios_citas.php. Devuelve
