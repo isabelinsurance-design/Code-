@@ -9570,6 +9570,22 @@ $ck_global_done  = array_sum(array_column($checklist_stats, 'completadas'));
     <div id="rep-hist-tabla"></div>
 </div>
 
+<!-- Recordatorios de citas enviados por SMS — pedido de Isabel -->
+<div style="background:#fff;border:1px solid <?=$CB?>;border-radius:13px;padding:14px 16px;margin-top:14px">
+    <div style="font-size:8px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:12px">📲 RECORDATORIOS DE CITAS ENVIADOS</div>
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:flex-end">
+        <div><label class="form-label" style="display:block">DESDE</label>
+            <input type="date" id="rec-citas-from" class="form-input" value="<?=date('Y-m-01')?>" style="width:148px"></div>
+        <div><label class="form-label" style="display:block">HASTA</label>
+            <input type="date" id="rec-citas-to" class="form-input" value="<?=$today?>" style="width:148px"></div>
+        <button class="btn btn-p btn-sm" onclick="buscarRecordatoriosCitas()" style="height:36px;padding:0 18px">🔍 BUSCAR</button>
+    </div>
+    <div id="rec-citas-wrap" style="display:none;margin-top:12px">
+        <div id="rec-citas-loading" style="display:none;text-align:center;padding:30px;font-size:9px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px">⏳ CARGANDO...</div>
+        <div id="rec-citas-tabla"></div>
+    </div>
+</div>
+
 <!-- JS DATA + LÓGICA -->
 <script>
 const REP_DATA = <?=json_encode(array_values($rep_json), JSON_UNESCAPED_UNICODE)?>;
@@ -10599,14 +10615,6 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
     <form onsubmit="submitCita(event)" id="cita-form">
       <input type="hidden" name="id" id="cita-id" value="">
 
-      <!-- Switch miembro / cliente libre -->
-      <div class="form-group">
-        <div style="display:flex;gap:6px;margin-bottom:6px">
-          <button type="button" class="cli-mode-btn active" data-mode="miembro" onclick="setCitaClienteMode('miembro')" style="flex:1;background:<?=$P1?>;color:#fff;border:none;border-radius:8px;padding:7px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">◉ MIEMBRO REGISTRADO</button>
-          <button type="button" class="cli-mode-btn" data-mode="libre" onclick="setCitaClienteMode('libre')" style="flex:1;background:<?=$BG?>;color:<?=$P1?>;border:1px solid <?=$CB?>;border-radius:8px;padding:7px;font-size:8px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase">✎ NOMBRE LIBRE</button>
-        </div>
-      </div>
-
       <!-- ¿Es una cita de MIEMBRO (ya tiene póliza activa) o de PROSPECTO
            (todavía no)? Se pone solo un valor por default según lo que
            escojas arriba (y según el estado de a quién busques), pero
@@ -10631,10 +10639,8 @@ IMPORTAR PROSPECTOS DESDE CSV · FORMATO: Nombre, Apellido, Teléfono
           <button type="button" class="mpick-clear" onclick="mpickClear('cita-mpick-input','cita-miembro-sel','cita-mpick-drop')" title="Limpiar">×</button>
           <div id="cita-mpick-drop" class="mpick-drop"></div>
         </div>
-      </div>
-      <div class="form-group" id="cita-cliente-group" style="display:none">
-        <label class="form-label">NOMBRE DEL CLIENTE / PROSPECTO</label>
-        <input type="text" name="cliente" id="cita-cliente-input" class="form-input" placeholder="Ej: Juan Pérez (818) 555-0000">
+        <div style="font-size:8px;color:<?=$MU?>;margin-top:4px">Toda cita debe estar ligada a un miembro CON TELÉFONO guardado — así se le puede mandar el recordatorio automático por SMS. Si no existe todavía, agrégalo primero en MIEMBROS.</div>
+        <div id="cita-cliente-aviso" style="display:none;margin-top:6px;font-size:8px;color:#C07A1A;background:#FEF8EE;border:1px solid #F5D5A0;border-radius:6px;padding:6px 8px;font-weight:700">⚠ Esta cita se guardó antes con el nombre libre "<span id="cita-cliente-aviso-nombre"></span>" (sin miembro ligado) — busca y selecciona arriba al miembro correspondiente para poder guardar los cambios.</div>
       </div>
 
       <div class="grid-2">
@@ -12865,6 +12871,66 @@ function buscarHistorial() {
 }
 
 function exportRep(fmt){const from=document.getElementById('rep-from')?.value;const to=document.getElementById('rep-to')?.value;const ag=document.getElementById('rep-ag')?.value||'';window.open('reporte_export.php?fmt='+fmt+'&from='+from+'&to='+to+(ag?'&agente='+ag:''),'_blank');}
+
+// Registro de recordatorios automáticos de citas (ver
+// lib_recordatorios_citas.php / cron_recordatorios_citas.php) — pedido de
+// Isabel para poder auditar qué se mandó y cuándo.
+function _recCitasEstadoInfo(estado){
+    const e = String(estado||'').toLowerCase();
+    if (e === 'delivered') return ['✓ ENTREGADO', '#1E7A5C'];
+    if (e === 'failed' || e === 'undelivered' || e === 'error') return ['✕ FALLÓ', '#B83232'];
+    if (e === 'omitido_optout') return ['⊘ OMITIDO (RESPONDIÓ STOP)', '#7A90A4'];
+    if (e === '' ) return ['— SIN ESTADO —', '#7A90A4'];
+    return ['→ ENVIADO', '#2876A8'];
+}
+function buscarRecordatoriosCitas(){
+    const from  = document.getElementById('rec-citas-from').value;
+    const to    = document.getElementById('rec-citas-to').value;
+    const wrap  = document.getElementById('rec-citas-wrap');
+    const load  = document.getElementById('rec-citas-loading');
+    const tabla = document.getElementById('rec-citas-tabla');
+    if (!from || !to) { toast('⚠ Selecciona fechas'); return; }
+
+    wrap.style.display = 'block';
+    load.style.display = 'block';
+    tabla.innerHTML = '';
+
+    fetch('api.php', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: 'action=get_recordatorios_citas_historicos&from=' + from + '&to=' + to
+    })
+    .then(r => r.json())
+    .then(d => {
+        load.style.display = 'none';
+        if (!d.ok) { tabla.innerHTML = '<div style="color:#B83232;font-size:9px;padding:20px;text-align:center">⚠ ' + (d.error||'Error') + '</div>'; return; }
+        const rows = d.data;
+        if (!rows.length) {
+            tabla.innerHTML = '<div style="text-align:center;padding:30px;font-size:9px;color:#7A90A4;font-weight:900;text-transform:uppercase">Sin recordatorios enviados en ese período</div>';
+            return;
+        }
+        let html = '<table style="width:100%;border-collapse:collapse;font-size:10px">';
+        html += '<tr style="background:#EBF4F9;text-align:left"><th style="padding:8px 10px">ENVIADO</th><th style="padding:8px 10px">MIEMBRO</th><th style="padding:8px 10px">TIPO</th><th style="padding:8px 10px">CITA</th><th style="padding:8px 10px">ESTADO</th></tr>';
+        rows.forEach(r => {
+            const [estLabel, estColor] = _recCitasEstadoInfo(r.estado);
+            const esDe2h = (r.tipo||'').endsWith('2H');
+            const citaInfo = r.cita_fecha ? (r.cita_fecha + ' ' + String(r.cita_hora||'').substring(0,5) + (r.cita_modalidad ? ' · ' + r.cita_modalidad : '')) : '—';
+            html += `<tr style="border-bottom:1px solid #EBF4F9">
+                <td style="padding:8px 10px;white-space:nowrap">${esc(String(r.created_at||'').replace('T',' ').substring(0,16))}</td>
+                <td style="padding:8px 10px">${esc(r.miembro_nombre||'—')}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${esDe2h ? '⏰ 2 HORAS ANTES' : '📅 2 DÍAS ANTES'}</td>
+                <td style="padding:8px 10px;white-space:nowrap">${esc(citaInfo)}</td>
+                <td style="padding:8px 10px;font-weight:800;color:${estColor};white-space:nowrap">${estLabel}</td>
+            </tr>`;
+        });
+        html += '</table>';
+        tabla.innerHTML = html;
+    })
+    .catch(() => {
+        load.style.display = 'none';
+        tabla.innerHTML = '<div style="color:#B83232;font-size:9px;padding:20px;text-align:center">⚠ Error de conexión</div>';
+    });
+}
 // ── SMS: barra lateral de conversaciones + panel principal (estilo WhatsApp
 // Web) — reemplaza el diseño anterior de tarjetas apiladas + modal.
 let _smsHiloAbierto = '';   // teléfono de la conversación seleccionada (o '' si ninguna)
@@ -14218,18 +14284,26 @@ function editarCita(id, forzarPendiente){
       if(estadoGroup) estadoGroup.style.display = '';
       const estadoSel = document.getElementById('cita-estado');
       if(estadoSel) estadoSel.value = forzarPendiente ? 'PENDIENTE' : (c.estado || 'PENDIENTE');
-      // Modo cliente
+      // Pedido de Isabel: toda cita debe quedar ligada a un miembro con
+      // teléfono — si es una cita vieja (de antes de este cambio) que
+      // solo tenía el nombre libre, se avisa y se deja el buscador vacío
+      // para que elija al miembro correspondiente antes de poder guardar.
+      const citaAviso = document.getElementById('cita-cliente-aviso');
       if(c.miembro_id){
-        setCitaClienteMode('miembro');
         document.getElementById('cita-miembro-sel').value = c.miembro_id;
         const citaMpickInp = document.getElementById('cita-mpick-input');
         if(citaMpickInp && c.miembro_id) {
           const cm = _membersData.find(x => x.id == c.miembro_id);
           citaMpickInp.value = cm ? cm.label : (c.miembro_nombre || '');
         }
+        if(citaAviso) citaAviso.style.display = 'none';
       } else {
-        setCitaClienteMode('libre');
-        document.getElementById('cita-cliente-input').value = c.cliente || '';
+        document.getElementById('cita-miembro-sel').value = '';
+        document.getElementById('cita-mpick-input').value = '';
+        if(citaAviso){
+          document.getElementById('cita-cliente-aviso-nombre').textContent = c.cliente || '(sin nombre)';
+          citaAviso.style.display = c.cliente ? '' : 'none';
+        }
       }
       // MIEMBRO vs PROSPECTO — se respeta lo que ya se había marcado en esta
       // cita. Las citas de antes de este cambio no tienen nada guardado
@@ -14248,29 +14322,6 @@ function editarCita(id, forzarPendiente){
     .catch(()=>toast('⚠ Error de red — intenta de nuevo'));
 }
 
-function setCitaClienteMode(mode){
-  document.querySelectorAll('.cli-mode-btn').forEach(b=>{
-    if(b.dataset.mode===mode){
-      b.style.background = '#1B4A6B'; b.style.color = '#fff'; b.style.border = 'none';
-      b.classList.add('active');
-    } else {
-      b.style.background = '#EBF4F9'; b.style.color = '#1B4A6B'; b.style.border = '1px solid #C8DFF0';
-      b.classList.remove('active');
-    }
-  });
-  document.getElementById('cita-miembro-group').style.display = mode==='miembro' ? '' : 'none';
-  document.getElementById('cita-cliente-group').style.display = mode==='libre' ? '' : 'none';
-  // Limpiar el campo no usado para que no se envíe basura
-  if(mode==='miembro') document.getElementById('cita-cliente-input').value = '';
-  else {
-    document.getElementById('cita-miembro-sel').value = '';
-    const citaMpickInp2 = document.getElementById('cita-mpick-input');
-    if(citaMpickInp2) citaMpickInp2.value = '';
-    // NOMBRE LIBRE = todavía no tiene registro en el CRM → casi siempre es
-    // un prospecto. Se puede cambiar a mano si no.
-    setCitaTipoPersona('PROSPECTO');
-  }
-}
 // MIEMBRO vs PROSPECTO es independiente de si la persona YA tiene un
 // registro en el CRM (miembro_id) — un prospecto que ya está en el
 // Pipeline también tiene miembro_id, pero sigue siendo prospecto hasta
@@ -14297,7 +14348,10 @@ function abrirNuevaCita(){
   document.getElementById('cita-notas').value = '';
   const estadoGroup = document.getElementById('cita-estado-group');
   if(estadoGroup) estadoGroup.style.display = 'none'; // una cita nueva siempre nace PENDIENTE
-  setCitaClienteMode('miembro');
+  document.getElementById('cita-miembro-sel').value = '';
+  document.getElementById('cita-mpick-input').value = '';
+  const citaAvisoNueva = document.getElementById('cita-cliente-aviso');
+  if(citaAvisoNueva) citaAvisoNueva.style.display = 'none';
   setCitaTipoPersona('MIEMBRO'); // default — se corrige solo al elegir a alguien (ver mpickItemClick)
   __origOpenModal('cita-form-modal'); // <-- SOLUCIÓN
 }
@@ -15010,17 +15064,16 @@ function submitCita(e){
   const fd = new FormData(e.target);
   const id = document.getElementById('cita-id').value;
   fd.append('action', id ? 'update_cita' : 'save_cita');
-  // Si escribió un nombre en el buscador de "MIEMBRO REGISTRADO" pero nunca
-  // hizo clic en ninguna sugerencia (ej. un prospecto que todavía no está en
-  // la base de datos), no bloquear el guardado — usar ese texto como nombre
-  // del cliente, igual que en modo "NOMBRE LIBRE".
-  if(!fd.get('miembro_id') && !fd.get('cliente').trim()){
+  // Pedido de Isabel: toda cita debe quedar ligada a un miembro con
+  // teléfono — ya no se acepta un nombre suelto sin seleccionar del
+  // buscador (eso impedía mandarle el recordatorio automático por SMS).
+  // Si escribió texto pero nunca hizo clic en ninguna sugerencia, se le
+  // avisa en vez de guardarlo como texto libre.
+  if(!fd.get('miembro_id')){
     const mpickVal = (document.getElementById('cita-mpick-input')?.value||'').trim();
-    if(mpickVal) fd.set('cliente', mpickVal);
-  }
-  // Validar: o miembro_id o cliente, no puede ir vacío
-  if(!fd.get('miembro_id') && !fd.get('cliente').trim()){
-    toast('⚠ Debes seleccionar un miembro o escribir el nombre del cliente');
+    toast(mpickVal
+      ? '⚠ Selecciona a "'+mpickVal+'" de la lista de sugerencias — si no aparece, agrégalo primero en MIEMBROS'
+      : '⚠ Debes seleccionar un miembro para esta cita');
     return;
   }
   fetch('api.php',{method:'POST',body:new URLSearchParams(fd)})
@@ -16049,6 +16102,10 @@ function mpickItemClick(e, el) {
     if (inputId === 'cita-mpick-input' && typeof setCitaTipoPersona === 'function') {
         const full = (typeof _membersFullData !== 'undefined') ? _membersFullData.find(m => m.id == id) : null;
         setCitaTipoPersona(full && full.estado === 'ACTIVE' ? 'MIEMBRO' : 'PROSPECTO');
+        // Aviso temprano — la validación real (incluye telefono2) ocurre al
+        // guardar en el servidor, esto es solo para no hacerla escribir todo
+        // el formulario antes de enterarse de que falta el teléfono.
+        if (full && !full.telefono) toast('⚠ Este miembro no tiene teléfono guardado — no podrá recibir el recordatorio de la cita. Agrégaselo en INFO COMPLETA.');
     }
 
     // Auto-fill nombre/apellido/teléfono/email al elegir un miembro existente

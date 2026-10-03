@@ -24,6 +24,7 @@ define('DB_NAME', getenv('DB_NAME') ?: 'TU_BASE_DE_DATOS');
 define('FINANCE_PASS',      getenv('FINANCE_PASS')      ?: 'CAMBIA_ESTA_CLAVE');   // portal financiero
 define('ANTHROPIC_API_KEY', getenv('ANTHROPIC_API_KEY') ?: 'sk-ant-PON_TU_KEY');   // Isabel AI
 define('WEBHOOK_SECRET_FB', getenv('WEBHOOK_SECRET_FB') ?: 'CAMBIA_ESTE_SECRETO'); // leads de Facebook
+define('CRON_SECRET_RECORDATORIOS', getenv('CRON_SECRET_RECORDATORIOS') ?: 'CAMBIA_ESTE_SECRETO'); // cron de recordatorios de citas (ver cron_recordatorios_citas.php)
 
 // ─── TWILIO (SMS) — opcional ────────────────────────────────────────
 // Sin esto configurado, el CRM sigue funcionando normal — solo no se

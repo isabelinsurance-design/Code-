@@ -9,6 +9,7 @@ require_once 'lib_google_calendar.php';
 require_once 'lib_live.php';
 require_once 'lib_retencion.php';
 require_once 'lib_campanas.php';
+require_once 'lib_recordatorios_citas.php';
 // Un API JSON nunca debe imprimir warnings/notices: corromperían la respuesta
 // y el navegador mostraría "Error de conexión". Se loguean, no se muestran.
 ini_set('display_errors', '0');
@@ -1041,8 +1042,19 @@ case 'save_cita':
         $pdo->exec("ALTER TABLE citas ADD COLUMN tipo_persona VARCHAR(10) DEFAULT NULL");
     }
     $mid = intval($_POST['miembro_id']??0) ?: null;
-    $cli = trim($_POST['cliente']??'') ?: null;
-    if (!$mid && !$cli) jsonErr('Debes seleccionar un miembro o escribir el nombre del cliente');
+    // Pedido de Isabel: de ahora en adelante toda cita debe estar ligada a
+    // un contacto con teléfono guardado (ya no se acepta el "cliente" de
+    // texto libre) — es lo único que permite mandarle el recordatorio
+    // automático por SMS (ver lib_recordatorios_citas.php).
+    if (!$mid) jsonErr('Debes seleccionar un miembro — ya no se aceptan citas con solo un nombre, para poder mandarle el recordatorio por SMS');
+    $miembroTel = $pdo->prepare("SELECT telefono, telefono2 FROM miembros WHERE id=?");
+    $miembroTel->execute([$mid]);
+    $mTelRow = $miembroTel->fetch(PDO::FETCH_ASSOC);
+    if (!$mTelRow) jsonErr('Miembro no encontrado');
+    if (empty(trim($mTelRow['telefono'] ?? '')) && empty(trim($mTelRow['telefono2'] ?? ''))) {
+        jsonErr('Este miembro no tiene teléfono guardado — agrégaselo en INFO COMPLETA antes de agendarle una cita');
+    }
+    $cli = null;
     $tipo = $_POST['tipo'] ?? 'PRESENTACIÓN';
     $modalidad = $_POST['modalidad'] ?? 'OFICINA';
     $fecha = $_POST['fecha'] ?? date('Y-m-d');
@@ -1075,8 +1087,16 @@ case 'update_cita':
         $pdo->exec("ALTER TABLE citas ADD COLUMN tipo_persona VARCHAR(10) DEFAULT NULL");
     }
     $mid = intval($_POST['miembro_id']??0) ?: null;
-    $cli = trim($_POST['cliente']??'') ?: null;
-    if (!$mid && !$cli) jsonErr('Debes seleccionar un miembro o escribir el nombre del cliente');
+    // Mismo requisito que save_cita — ver comentario ahí.
+    if (!$mid) jsonErr('Debes seleccionar un miembro — ya no se aceptan citas con solo un nombre, para poder mandarle el recordatorio por SMS');
+    $miembroTel = $pdo->prepare("SELECT telefono, telefono2 FROM miembros WHERE id=?");
+    $miembroTel->execute([$mid]);
+    $mTelRow = $miembroTel->fetch(PDO::FETCH_ASSOC);
+    if (!$mTelRow) jsonErr('Miembro no encontrado');
+    if (empty(trim($mTelRow['telefono'] ?? '')) && empty(trim($mTelRow['telefono2'] ?? ''))) {
+        jsonErr('Este miembro no tiene teléfono guardado — agrégaselo en INFO COMPLETA antes de agendarle una cita');
+    }
+    $cli = null;
     $tipo      = $_POST['tipo']      ?? 'PRESENTACIÓN';
     $modalidad = $_POST['modalidad'] ?? 'OFICINA';
     $fecha     = $_POST['fecha']     ?? date('Y-m-d');
@@ -2364,7 +2384,29 @@ case 'get_reportes_historicos':
     unset($r);
 
     jsonOk($reportes);
-    break;    
+    break;
+
+// Registro de recordatorios automáticos de citas enviados por SMS — pedido
+// de Isabel para poder auditar qué se mandó y cuándo (ver
+// lib_recordatorios_citas.php y cron_recordatorios_citas.php).
+case 'get_recordatorios_citas_historicos':
+    $pdo  = db();
+    asegurarColumnasRecordatorioCitas($pdo);
+    $from = $_POST['from'] ?? date('Y-m-01');
+    $to   = $_POST['to']   ?? date('Y-m-d');
+    $stmt = $pdo->prepare("SELECT s.id, s.created_at, s.telefono, s.cuerpo, s.estado, s.tipo,
+                                   CONCAT(m.apellido, ', ', m.nombre) AS miembro_nombre,
+                                   c.id AS cita_id, c.fecha AS cita_fecha, c.hora AS cita_hora,
+                                   c.tipo AS cita_tipo, c.modalidad AS cita_modalidad, c.estado AS cita_estado
+                            FROM sms_mensajes s
+                            LEFT JOIN miembros m ON s.miembro_id = m.id
+                            LEFT JOIN citas c    ON s.cita_id = c.id
+                            WHERE s.tipo LIKE 'RECORDATORIO_CITA_%'
+                              AND DATE(s.created_at) BETWEEN ? AND ?
+                            ORDER BY s.created_at DESC");
+    $stmt->execute([$from, $to]);
+    jsonOk($stmt->fetchAll(PDO::FETCH_ASSOC));
+    break;
 
 // ══════════════════════════════════════════════════════════════
 // ── RETENCIÓN — LLAMADAS 30/60/90 DÍAS ────────────────────────

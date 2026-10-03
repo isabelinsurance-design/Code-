@@ -861,9 +861,14 @@ display: block;
       <?php else: foreach ($sms_hilo as $sm):
         $esMe = $sm['direccion'] === 'SALIENTE';
         $quien = $esMe ? ($sm['agente_nombre'] ? explode(' ', $sm['agente_nombre'])[0] : 'TÚ') : 'ELLOS';
+        // Pedido de Isabel: distinguir un recordatorio automático de cita
+        // (ver lib_recordatorios_citas.php) de un SMS que se mandó a mano.
+        $smTipo = $sm['tipo'] ?? '';
+        $esRecordatorioCita = strpos($smTipo, 'RECORDATORIO_CITA_') === 0;
+        $recordatorioEtiqueta = $smTipo === 'RECORDATORIO_CITA_2H' ? '⏰ Recordatorio automático (2h antes)' : '📅 Recordatorio automático (2 días antes)';
       ?>
       <div class="chat-msg <?= $esMe ? 'me' : 'them' ?>">
-        <div class="chat-msg-meta"><?= h($quien) ?> · <?= date('m/d g:i a', strtotime($sm['created_at'])) ?></div>
+        <div class="chat-msg-meta"><?= h($quien) ?> · <?= date('m/d g:i a', strtotime($sm['created_at'])) ?><?php if ($esRecordatorioCita): ?> · <span style="color:#C07A1A;font-weight:800"><?= h($recordatorioEtiqueta) ?></span><?php endif; ?></div>
         <?= nl2br(h($sm['cuerpo'])) ?>
       </div>
       <?php endforeach; endif; ?>
