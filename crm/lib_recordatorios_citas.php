@@ -109,11 +109,19 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
 function recordatorios_citas_diagnostico(PDO $pdo): array {
     asegurarColumnasRecordatorioCitas($pdo);
     $db = $pdo->query("SELECT NOW() AS db_now, @@session.time_zone AS db_tz, @@global.time_zone AS db_tz_global")->fetch(PDO::FETCH_ASSOC);
-    $citas = $pdo->query("SELECT id, fecha, hora, estado, miembro_id, direccion, recordatorio_48h_enviado_at, recordatorio_2h_enviado_at,
-                                  TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(fecha, hora)) AS minutos_restantes
-                           FROM citas
-                           WHERE fecha BETWEEN CURDATE() - INTERVAL 1 DAY AND CURDATE() + INTERVAL 3 DAY
-                           ORDER BY fecha, hora")->fetchAll(PDO::FETCH_ASSOC);
+    // LEFT JOIN (no INNER) a propósito — así se ve de una vez si el
+    // miembro_id de la cita en realidad NO tiene fila en miembros (lo que
+    // haría que la consulta real de recordatorios_citas_procesar(), que sí
+    // usa INNER JOIN, descarte la cita en silencio sin ningún error).
+    $citas = $pdo->query("SELECT c.id, c.fecha, c.hora, c.estado, c.miembro_id, c.direccion,
+                                  c.recordatorio_48h_enviado_at, c.recordatorio_2h_enviado_at,
+                                  TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(c.fecha, c.hora)) AS minutos_restantes,
+                                  m.id AS miembro_encontrado_id, m.nombre AS miembro_nombre,
+                                  m.telefono AS miembro_telefono, m.telefono2 AS miembro_telefono2
+                           FROM citas c
+                           LEFT JOIN miembros m ON c.miembro_id = m.id
+                           WHERE c.fecha BETWEEN CURDATE() - INTERVAL 1 DAY AND CURDATE() + INTERVAL 3 DAY
+                           ORDER BY c.fecha, c.hora")->fetchAll(PDO::FETCH_ASSOC);
     return [
         'hora_del_servidor_web_php' => date('Y-m-d H:i:s'),
         'hora_de_la_base_de_datos_mysql' => $db['db_now'] ?? null,
