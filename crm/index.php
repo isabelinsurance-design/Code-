@@ -14333,7 +14333,7 @@ function editarCita(id, forzarPendiente){
 // elegir esa modalidad — para EN RESTAURANTE/otras se escribe a mano. Solo
 // se "limpia" la dirección de oficina si no la tocaron (sigue siendo
 // exactamente la constante), para no borrar algo que Isabel ya escribió.
-const OFICINA_DIRECCION = <?=json_encode(OFICINA_DIRECCION)?>;
+const OFICINA_DIRECCION = <?=json_encode(defined('OFICINA_DIRECCION') ? OFICINA_DIRECCION : '14550 Haynes St, Van Nuys, CA 91411')?>;
 function onCitaModalidadChange(){
   const sel = document.getElementById('cita-modalidad');
   const dirInp = document.getElementById('cita-direccion');
