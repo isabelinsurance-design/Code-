@@ -109,21 +109,27 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
 function recordatorios_citas_diagnostico(PDO $pdo): array {
     asegurarColumnasRecordatorioCitas($pdo);
     $db = $pdo->query("SELECT NOW() AS db_now, @@session.time_zone AS db_tz, @@global.time_zone AS db_tz_global")->fetch(PDO::FETCH_ASSOC);
+    $ahora = date('Y-m-d H:i:s');
     // LEFT JOIN (no INNER) a propósito — así se ve de una vez si el
     // miembro_id de la cita en realidad NO tiene fila en miembros (lo que
     // haría que la consulta real de recordatorios_citas_procesar(), que sí
     // usa INNER JOIN, descarte la cita en silencio sin ningún error).
-    $citas = $pdo->query("SELECT c.id, c.fecha, c.hora, c.estado, c.miembro_id, c.direccion,
+    // minutos_restantes ahora se calcula con la hora de PHP ($ahora), NO con
+    // NOW() de MySQL — mismo cambio que recordatorios_citas_procesar(), para
+    // que lo que se ve aquí sea justo lo que de verdad va a usar el cron.
+    $stmt = $pdo->prepare("SELECT c.id, c.fecha, c.hora, c.estado, c.miembro_id, c.direccion,
                                   c.recordatorio_48h_enviado_at, c.recordatorio_2h_enviado_at,
-                                  TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(c.fecha, c.hora)) AS minutos_restantes,
+                                  TIMESTAMPDIFF(MINUTE, ?, TIMESTAMP(c.fecha, c.hora)) AS minutos_restantes,
                                   m.id AS miembro_encontrado_id, m.nombre AS miembro_nombre,
                                   m.telefono AS miembro_telefono, m.telefono2 AS miembro_telefono2
                            FROM citas c
                            LEFT JOIN miembros m ON c.miembro_id = m.id
                            WHERE c.fecha BETWEEN CURDATE() - INTERVAL 1 DAY AND CURDATE() + INTERVAL 3 DAY
-                           ORDER BY c.fecha, c.hora")->fetchAll(PDO::FETCH_ASSOC);
+                           ORDER BY c.fecha, c.hora");
+    $stmt->execute([$ahora]);
+    $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
     return [
-        'hora_del_servidor_web_php' => date('Y-m-d H:i:s'),
+        'hora_del_servidor_web_php' => $ahora,
         'hora_de_la_base_de_datos_mysql' => $db['db_now'] ?? null,
         'zona_horaria_mysql_sesion' => $db['db_tz'] ?? null,
         'zona_horaria_mysql_global' => $db['db_tz_global'] ?? null,
@@ -138,30 +144,41 @@ function recordatorios_citas_procesar(PDO $pdo): array {
 
     $resumen = ['revisadas' => 0, 'enviados' => 0, 'omitidos_optout' => 0, 'omitidos_sin_telefono' => 0, 'fallidos' => 0];
 
+    // Se usa la hora de PHP (date()), NO la de MySQL (NOW()) — en hosting
+    // compartido es común que el servidor de base de datos sea una máquina
+    // aparte con su reloj/zona horaria mal configurada (le pasó a Isabel:
+    // su MySQL marcaba una hora completa adelantada respecto a la hora real
+    // de Los Ángeles, mientras que el servidor web sí estaba bien). Se pasa
+    // la hora de PHP como parámetro a la consulta en vez de confiar en
+    // NOW()/INTERVAL de SQL.
+    $ahora     = date('Y-m-d H:i:s');
+    $limite48h = date('Y-m-d H:i:s', strtotime('+48 hours'));
+    $limite2h  = date('Y-m-d H:i:s', strtotime('+2 hours'));
+
     // Pre-filtro en SQL (barato, usa el índice de fecha/estado) — la
-    // decisión FINA de qué tipo de recordatorio toca se recalcula abajo con
-    // minutos_restantes, calculado por la BASE DE DATOS (NOW()), no por PHP
-    // — así no importa si el reloj del servidor web está desincronizado del
-    // de MySQL (común en hosting compartido).
+    // decisión FINA de qué tipo de recordatorio toca se recalcula abajo en
+    // PHP, con ese mismo $ahora, para no volver a depender del reloj de
+    // MySQL en ningún momento.
     $sql = "SELECT c.id, c.miembro_id, c.agente_id, c.tipo, c.modalidad, c.fecha, c.hora, c.direccion,
                    c.recordatorio_48h_enviado_at, c.recordatorio_2h_enviado_at,
-                   m.nombre, m.apellido, m.telefono, m.telefono2,
-                   TIMESTAMPDIFF(MINUTE, NOW(), TIMESTAMP(c.fecha, c.hora)) AS minutos_restantes
+                   m.nombre, m.apellido, m.telefono, m.telefono2
             FROM citas c
             INNER JOIN miembros m ON c.miembro_id = m.id
             WHERE c.estado = 'PENDIENTE'
               AND c.miembro_id IS NOT NULL
-              AND TIMESTAMP(c.fecha, c.hora) > NOW()
+              AND TIMESTAMP(c.fecha, c.hora) > ?
               AND (
-                   (c.recordatorio_48h_enviado_at IS NULL AND TIMESTAMP(c.fecha, c.hora) <= NOW() + INTERVAL 48 HOUR)
-                OR (c.recordatorio_2h_enviado_at  IS NULL AND TIMESTAMP(c.fecha, c.hora) <= NOW() + INTERVAL 2 HOUR)
+                   (c.recordatorio_48h_enviado_at IS NULL AND TIMESTAMP(c.fecha, c.hora) <= ?)
+                OR (c.recordatorio_2h_enviado_at  IS NULL AND TIMESTAMP(c.fecha, c.hora) <= ?)
               )";
-    $citas = $pdo->query($sql)->fetchAll(PDO::FETCH_ASSOC);
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$ahora, $limite48h, $limite2h]);
+    $citas = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
     foreach ($citas as $cita) {
         $resumen['revisadas']++;
         try {
-            $horasRestantes = ((int) $cita['minutos_restantes']) / 60;
+            $horasRestantes = (strtotime($cita['fecha'] . ' ' . $cita['hora']) - strtotime($ahora)) / 3600;
 
             // Ventanas EXCLUYENTES (ver lib_recordatorios_citas.php arriba):
             // si ya estamos a 2h o menos, el recordatorio de "48h antes" ya
@@ -192,7 +209,7 @@ function recordatorios_citas_procesar(PDO $pdo): array {
                 $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, agente_id, cita_id, tipo)
                                VALUES (?, ?, 'SALIENTE', ?, 'omitido_optout', ?, ?, ?)")
                     ->execute([$telefono, $cita['miembro_id'], $mensaje, $cita['agente_id'], $cita['id'], $tipoSms]);
-                $pdo->prepare("UPDATE citas SET {$colEnviado} = NOW() WHERE id = ?")->execute([$cita['id']]);
+                $pdo->prepare("UPDATE citas SET {$colEnviado} = ? WHERE id = ?")->execute([$ahora, $cita['id']]);
                 $resumen['omitidos_optout']++;
                 continue;
             }
@@ -208,7 +225,7 @@ function recordatorios_citas_procesar(PDO $pdo): array {
                 ]);
 
             if ($res['ok']) {
-                $pdo->prepare("UPDATE citas SET {$colEnviado} = NOW() WHERE id = ?")->execute([$cita['id']]);
+                $pdo->prepare("UPDATE citas SET {$colEnviado} = ? WHERE id = ?")->execute([$ahora, $cita['id']]);
                 $resumen['enviados']++;
             } else {
                 // NO se marca como enviado — si fue un fallo pasajero, la
