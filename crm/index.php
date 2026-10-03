@@ -8783,9 +8783,9 @@ krsort($anios_disponibles_planes);
   <?php if (!empty($planes_por_carrier)): ?>
   <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-bottom:14px">
     <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
-    <div class="card" style="padding:10px 12px;cursor:pointer" onclick="document.getElementById('carrier-group-<?=h(slugCarrier($pc_carrier))?>').scrollIntoView({behavior:'smooth',block:'start'})">
+    <div class="card" data-carrier-summary="<?=h(slugCarrier($pc_carrier))?>" style="padding:10px 12px;cursor:pointer" onclick="document.getElementById('carrier-group-<?=h(slugCarrier($pc_carrier))?>').scrollIntoView({behavior:'smooth',block:'start'})">
       <div style="font-size:9px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"><?=h($pc_carrier)?></div>
-      <div style="font-size:16px;font-weight:900;color:<?=$TX?>;margin-top:3px"><?=count($pc_planes)?> <span style="font-size:8px;font-weight:800;color:<?=$MU?>;text-transform:uppercase">PLAN<?=count($pc_planes)>1?'ES':''?></span></div>
+      <div style="font-size:16px;font-weight:900;color:<?=$TX?>;margin-top:3px"><span class="carrier-summary-count"><?=count($pc_planes)?></span> <span class="carrier-summary-label" style="font-size:8px;font-weight:800;color:<?=$MU?>;text-transform:uppercase">PLAN<?=count($pc_planes)>1?'ES':''?></span></div>
     </div>
     <?php endforeach; ?>
   </div>
@@ -8815,7 +8815,7 @@ krsort($anios_disponibles_planes);
     <div class="card" style="padding:24px;text-align:center;font-size:9px;color:<?=$MU?>;text-transform:uppercase">SIN PLANES TODAVÍA — AGREGA EL PRIMERO CON EL BOTÓN DE ARRIBA</div>
   <?php else: ?>
   <?php foreach ($planes_por_carrier as $pc_carrier => $pc_planes): ?>
-    <div class="carrier-group" data-carrier-group>
+    <div class="carrier-group" data-carrier-group data-carrier="<?=h(slugCarrier($pc_carrier))?>">
     <div id="carrier-group-<?=h(slugCarrier($pc_carrier))?>" style="display:flex;align-items:center;gap:8px;margin:14px 0 9px">
       <div style="font-size:10px;font-weight:900;color:<?=$P1?>;text-transform:uppercase;letter-spacing:1.5px"><?=h($pc_carrier)?></div>
       <div style="flex:1;height:1px;background:<?=$CB?>"></div>
@@ -8956,8 +8956,17 @@ function filtrarPlanesPorAnio(){
     }
   });
   document.querySelectorAll('[data-carrier-group]').forEach(grupo=>{
-    const hayVisible = Array.from(grupo.querySelectorAll('.plan-card')).some(c=>c.style.display !== 'none');
-    grupo.style.display = hayVisible ? '' : 'none';
+    const visibles = Array.from(grupo.querySelectorAll('.plan-card')).filter(c=>c.style.display !== 'none').length;
+    grupo.style.display = visibles ? '' : 'none';
+    // Pedido de Isabel: las tarjetitas de resumen por aseguranza (arriba)
+    // tienen que reflejar el filtro de año, no quedarse con el total fijo.
+    const resumen = document.querySelector('[data-carrier-summary="'+grupo.dataset.carrier+'"]');
+    if(resumen){
+      const cuenta = resumen.querySelector('.carrier-summary-count');
+      const etiqueta = resumen.querySelector('.carrier-summary-label');
+      if(cuenta) cuenta.textContent = visibles;
+      if(etiqueta) etiqueta.textContent = 'PLAN'+(visibles===1?'':'ES');
+    }
   });
   actualizarBotonComparar();
 }
