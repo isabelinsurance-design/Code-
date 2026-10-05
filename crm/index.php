@@ -5351,6 +5351,76 @@ try {
             $_insHum->execute(array_values($_humanaGiveback));
         }
     } catch (Exception $e) {}
+    // Semilla: Humana Gold Plus H3767-002 (HMO) 2027 — Los Angeles y Orange
+    // County. SEGUNDO plan de Humana en el sistema, contrato distinto al
+    // Giveback (H5619-146) — este NO reduce la prima de Parte B, pero a
+    // cambio tiene beneficios suplementarios más generosos. Datos del
+    // Summary of Benefits que subió Isabel.
+    try {
+        $_humanaGoldPlus_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_humanaGoldPlus_existe->execute(['Humana Gold Plus H3767-002 (HMO)', 2027]);
+        if (!$_humanaGoldPlus_existe->fetch()) {
+            $_humanaGoldPlus = [
+                'nombre_plan'=>'Humana Gold Plus H3767-002 (HMO)','carrier'=>'Humana','tipo'=>'HMO',
+                'numero_plan'=>'H3767-002-000','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"SEGUNDO plan de Humana en el sistema — contrato distinto al Giveback (H5619-146)\nPlan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nEs un HMO: debe elegir un médico primario (PCP) dentro de la red, y el PCP coordina referencias a especialistas",
+                'prima_mensual'=>'$0/mes. A diferencia de Humana Gold Plus Giveback (mismo carrier), este plan NO reduce la prima de Medicare Parte B',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$0 para Nivel 1, Nivel 2 y Nivel 3; $590 para Nivel 4 y Nivel 5 — más bajo que el Giveback ($700 en Nivel 4-5)',
+                'moop'=>'$4,500 al año, de médicos y centros dentro de la red — más alto que el Giveback ($2,700), pero a cambio tiene beneficios suplementarios más generosos',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'Días 1-5: $295 por día, por admisión; Días 6-90: $0 por día — días ilimitados cubiertos',
+                'hospital_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, mamografía diagnóstica, servicios de cirugía)',
+                'centro_quirurgico_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, servicios de cirugía)',
+                'medico_primario'=>'$0 copago (consultorio y telesalud)',
+                'especialistas'=>'$30 copago (consultorio y telesalud) — requiere referencia del PCP',
+                'atencion_preventiva'=>'$0 copago — cubre todos los servicios preventivos de Medicare: detección de cáncer (mama, cérvix/vagina, colorrectal, pulmón, próstata), cuidado cardiovascular, cuidado de diabetes, terapia de nutrición médica, visita de bienestar anual, inmunizaciones, examen físico de rutina, visita "Bienvenido a Medicare", densidad ósea, depresión, glaucoma, VIH, alcohol, ITS, dejar de fumar',
+                'atencion_emergencia'=>'$120 copago (se exime si se admite al mismo hospital dentro de 24 horas por la misma condición)',
+                'servicios_urgentes'=>'$55 copago (telesalud y centro de atención urgente)',
+                'emergencia_mundial'=>'Cobertura mundial: debe pagar por adelantado y solicitar reembolso. Ambulancia de emergencia $300 copago; sala de emergencia $120 copago; centro de atención urgente $55 copago',
+                'ambulancia'=>'Terrestre: $300 copago por fecha de servicio; Aérea: 20% del costo',
+                'diagnostico_laboratorio'=>'Laboratorio: $0 copago en todas las ubicaciones. Pruebas y procedimientos diagnósticos: $0 consultorio PCP, $25 especialista, $50 hospital ambulatorio, $55 centro de atención urgente',
+                'rayos_x'=>'$0 copago consultorio PCP; $25 especialista; $35 centro radiológico independiente; $125 hospital ambulatorio; $55 centro de atención urgente',
+                'radiologia_terapeutica'=>'20% del costo (centro radiológico independiente u hospital ambulatorio); $25 copago en consultorio de especialista',
+                'examen_auditivo'=>'$0 copago examen auditivo cubierto por Medicare — mejor que el Giveback ($25)',
+                'audifonos'=>'Beneficio suplementario obligatorio: $0 copago evaluación de ajuste y examen de rutina (1 al año); $0 copago visitas de seguimiento; hasta $990 por cada audífono recetado (1 por oído al año) a $0 copago — mucho más generoso que el Giveback ($575-$750 copago por audífono)',
+                'dental_preventivo'=>"\$0 copago servicios dentales cubiertos por Medicare\nBeneficio suplementario: asignación combinada de \$2,000 al año para servicios dentales preventivos y integrales NO cubiertos por Medicare (exámenes, limpiezas, empastes, extracciones, etc.) — el doble que el Giveback (\$1,000). Lo no usado al final del año expira",
+                'dental_integral'=>'Incluido en la asignación combinada de $2,000 al año; 50% del costo aplica a servicios mayores e integrales (periodoncia, coronas, dentaduras, conductos radiculares, puentes)',
+                'examen_vision'=>'$0 copago examen de visión cubierto por Medicare; $0 copago examen diabético de ojos',
+                'anteojos'=>'$0 copago anteojos/lentes tras cirugía de cataratas. Beneficio suplementario de rutina: $0 copago examen de rutina (1 al año); hasta $200 al año para lentes de contacto o anteojos — más alto que el Giveback ($50-$100)',
+                'salud_mental_internado'=>'$0 copago por estadía — cubre hasta 190 días DE POR VIDA en un hospital psiquiátrico (límite de por vida, igual que el Giveback)',
+                'salud_mental_ambulatorio'=>'$30 copago por visita (hospital ambulatorio, consultorio de especialista o telesalud)',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $204 por día — hasta 100 días',
+                'terapia_fisica_habla'=>'$0 copago terapia física, ocupacional y del habla (centro de rehabilitación ambulatoria integral, hospital ambulatorio o consultorio de especialista)',
+                'transporte'=>'$0 copago — 24 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan — a diferencia del Giveback, que NO cubre transporte',
+                'rx_deducible'=>'$0 (Nivel 1-3); $590 (Nivel 4 y 5) — paga el costo completo de estos medicamentos hasta llegar a $590, luego solo paga su copago/coaseguro',
+                'rx_nivel1'=>'$0 minorista (30 y 100 días); $5/$15 por correo estándar (30/100 días); $0/$0 por correo preferido (CenterWell Pharmacy)',
+                'rx_nivel2'=>'$0 minorista (30 y 100 días); $18/$54 por correo estándar (30/100 días); $0/$0 por correo preferido',
+                'rx_nivel3'=>'15% minorista (30 y 100 días); 15% por correo estándar; 15% (30 días) / 13% (100 días) por correo preferido',
+                'rx_nivel4'=>'45% en todas las modalidades',
+                'rx_nivel5'=>'25% minorista y por correo (30 días); no disponible suministro de 100 días',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel, incluso antes de cumplir el deducible',
+                'rx_vacunas'=>'$0 copago vacunas de Parte D para adultos recomendadas por el ACIP',
+                'otc_mensual'=>'$75 cada trimestre en tarjeta prepagada, para productos de venta libre — a diferencia del Giveback, que NO ofrece este beneficio',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$20 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico), hasta 20 visitas al año; $15 copago quiropráctico cubierto por Medicare',
+                'podologia'=>'$20 copago (tratamiento cubierto por Medicare)',
+                'telesalud'=>'$0 copago telesalud con el PCP; $30 copago telesalud con especialista; $30 copago telesalud de salud mental/abuso de sustancias',
+                'dme'=>'Equipo médico duradero: 20% del costo. Monitor continuo de glucosa (CGM): 20% proveedor DME/farmacia, $0 copago en farmacia preferida. Suministros de monitoreo diabético: 10% proveedor/farmacia minorista, $0 copago en proveedor diabético preferido. Suministros médicos y prótesis: 20% del costo',
+                'apoyo_hogar'=>'No se menciona en este documento (sin beneficio de cuidado de salud en el hogar listado en este Resumen de Beneficios)',
+                'comidas_post_hospital'=>'No se menciona en este documento (sin beneficio de comidas Healthy Meals)',
+                'extras_json'=>"Programa de recompensas Go365 by Humana: complete actividades saludables elegibles y reciba recompensas Go365 Plus\nRehabilitación cardíaca y pulmonar: \$0 copago\nTerapia de ejercicio supervisado (SET) para enfermedad arterial periférica: \$0 copago\nTratamiento ambulatorio de abuso de sustancias: \$30 copago\nMedicamentos de Parte B: inyecciones de alergia \$0 copago; quimioterapia y otros medicamentos de Parte B 20% coaseguro; insulina Parte B no más de \$35/mes\nCobertura de medicamentos excluidos: disfunción eréctil y vitaminas recetadas — algunos cubiertos al copago de Nivel 1\nAyuda Extra (Extra Help): deducible \$0; copagos reducidos según el nivel de ayuda hasta llegar al límite anual de \$2,400\nSin prima adicional por paquetes dentales/visión opcionales",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. SEGUNDO plan de Humana en el sistema — contrato H3767 (distinto al Giveback H5619-146 ya cargado). OJO: no confundir estos dos planes de Humana — tienen nombres parecidos ("Humana Gold Plus H3767-002" vs "Humana Gold Plus Giveback H5619-146") pero son contratos diferentes con beneficios distintos. Diferencia clave frente al Giveback: este plan NO reduce la prima de Parte B, pero a cambio ofrece beneficios suplementarios mucho más generosos — asignación dental de $2,000/año (vs $1,000), audífonos a $0 copago hasta $990 c/u (vs $575-$750 de copago), visión de rutina $200/año (vs $50-$100), SÍ cubre transporte (24 viajes/año, el Giveback no cubre nada), y SÍ tiene tarjeta de OTC de $75/trimestre (el Giveback no la tiene). El MOOP es más alto ($4,500 vs $2,700) y los copagos de hospital/especialista son un poco más altos. Es para un cliente que prefiere beneficios extra generosos en vez de la reducción de prima de Parte B. Doc: H3767_SB_MAPD_HMO_002000_2027_M. Servicio al Miembro (miembros actuales): 800-457-4708 (TTY 711). No miembros: 888-873-0686 (TTY 711).',
+            ];
+            $_colsHum2 = array_keys($_humanaGoldPlus);
+            $_insHum2 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsHum2).") VALUES (".implode(',', array_fill(0, count($_colsHum2), '?')).")");
+            $_insHum2->execute(array_values($_humanaGoldPlus));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
