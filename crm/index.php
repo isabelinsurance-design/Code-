@@ -5281,6 +5281,76 @@ try {
             $_ins->execute(array_values($_caremoreChronic1_2026));
         }
     } catch (Exception $e) {}
+    // Semilla: Humana Gold Plus Giveback H5619-146 (HMO) 2027 — Los Angeles
+    // y Orange County. PRIMER plan de Humana en el sistema (nuevo carrier,
+    // hasta ahora solo había planes de Anthem Blue Cross). Es un plan
+    // "Giveback": reduce la prima de Medicare Parte B hasta $84/mes.
+    // Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_humanaGiveback_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_humanaGiveback_existe->execute(['Humana Gold Plus Giveback H5619-146 (HMO)', 2027]);
+        if (!$_humanaGiveback_existe->fetch()) {
+            $_humanaGiveback = [
+                'nombre_plan'=>'Humana Gold Plus Giveback H5619-146 (HMO)','carrier'=>'Humana','tipo'=>'HMO',
+                'numero_plan'=>'H5619-146-000','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"PRIMER plan de Humana en el sistema — nuevo carrier (hasta ahora solo había planes de Anthem Blue Cross)\nPlan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nEs un HMO: debe elegir un médico primario (PCP) dentro de la red, y el PCP coordina referencias a especialistas",
+                'prima_mensual'=>'$0/mes. Además, es un plan \"GIVEBACK\": reduce su prima de Medicare Parte B hasta $84/mes (sin exceder el monto real de la prima de Parte B). Puede tardar hasta 120 días en reflejarse en el cheque de Seguro Social; los montos atrasados se agregan después',
+                'reembolso_parte_b'=>'Hasta $84/mes de reducción en la prima de Parte B (no garantizado el monto completo — depende de cuánto pague el cliente de Parte B)',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$0 para Nivel 1, Nivel 2 y Nivel 3; $700 para Nivel 4 y Nivel 5 — estructura distinta a los planes de Anthem (que aplican un deducible fijo a Niveles 3-5 juntos)',
+                'moop'=>'$2,700 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'Días 1-5: $175 por día, por admisión; Días 6-90: $0 por día — días ilimitados cubiertos',
+                'hospital_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, mamografía diagnóstica, servicios de cirugía)',
+                'centro_quirurgico_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, servicios de cirugía)',
+                'medico_primario'=>'$0 copago (consultorio y telesalud)',
+                'especialistas'=>'$25 copago (consultorio y telesalud) — requiere referencia del PCP',
+                'atencion_preventiva'=>'$0 copago — cubre todos los servicios preventivos de Medicare: detección de cáncer (mama, cérvix/vagina, colorrectal, pulmón, próstata), cuidado cardiovascular, cuidado de diabetes, terapia de nutrición médica, visita de bienestar anual, inmunizaciones, examen físico de rutina, visita "Bienvenido a Medicare", densidad ósea, depresión, glaucoma, VIH, alcohol, ITS, dejar de fumar',
+                'atencion_emergencia'=>'$150 copago (se exime si se admite al mismo hospital dentro de 24 horas por la misma condición; si lo ponen en observación, paga el copago de observación en vez del de emergencia)',
+                'servicios_urgentes'=>'$65 copago (telesalud y centro de atención urgente)',
+                'emergencia_mundial'=>'Cobertura mundial: debe pagar por adelantado y solicitar reembolso. Ambulancia de emergencia $325 copago por fecha de servicio; sala de emergencia $150 copago; centro de atención urgente $65 copago. Se exime si se admite al mismo hospital dentro de 24 horas',
+                'ambulancia'=>'Terrestre: $325 copago por fecha de servicio (más cara que los planes de Anthem); Aérea: 20% del costo',
+                'diagnostico_laboratorio'=>'Laboratorio: $0 copago en todas las ubicaciones. Pruebas y procedimientos diagnósticos: $0 consultorio PCP, $25 especialista, $50 hospital ambulatorio, $65 centro de atención urgente',
+                'rayos_x'=>'$0 copago consultorio PCP; $25 especialista; $40 centro radiológico independiente; $145 hospital ambulatorio; $65 centro de atención urgente',
+                'radiologia_terapeutica'=>'20% del costo (centro radiológico independiente u hospital ambulatorio); $25 copago en consultorio de especialista',
+                'examen_auditivo'=>'$25 copago examen auditivo cubierto por Medicare',
+                'audifonos'=>'Beneficio suplementario obligatorio: $0 copago evaluación de ajuste y examen de rutina (1 al año); $0 copago visitas de seguimiento (hasta 3 al año); $575 copago por cada audífono recetado Nivel 1 (1 por oído al año); $750 copago por cada audífono recetado Nivel 2 (1 por oído al año). Incluye 3 años de baterías y garantía de 3 años — A DIFERENCIA de los planes de Anthem, aquí los audífonos SÍ tienen copago (no son $0 hasta un monto máximo)',
+                'dental_preventivo'=>"\$25 copago servicios dentales cubiertos por Medicare\nBeneficio suplementario: asignación combinada de \$1,000 al año para servicios dentales preventivos y integrales NO cubiertos por Medicare (exámenes, limpiezas de rutina, empastes, extracciones, etc.) — lo no usado al final del año expira. La asignación NO se puede usar para flúor, servicios cosméticos ni implantes",
+                'dental_integral'=>'Incluido en la asignación combinada de $1,000 al año; 50% del costo aplica a la mayoría de servicios mayores e integrales (periodoncia, coronas, dentaduras, conductos radiculares, puentes)',
+                'examen_vision'=>'$25 copago examen de visión cubierto por Medicare; $0 copago examen diabético de ojos',
+                'anteojos'=>'$0 copago anteojos/lentes tras cirugía de cataratas. Beneficio suplementario de rutina: $0 copago examen de rutina (1 al año); hasta $50 al año para lentes de contacto o anteojos (marcos y lentes), O hasta $100 al año en un proveedor "PLUS" de la red Humana Medicare Insight — montos más bajos que los de Anthem',
+                'salud_mental_internado'=>'$900 copago por admisión — cubre hasta 190 días DE POR VIDA en un hospital psiquiátrico (límite de por vida, a diferencia de los planes de Anthem que no tienen este tope)',
+                'salud_mental_ambulatorio'=>'$35 copago por visita (hospital ambulatorio, consultorio de especialista o telesalud)',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $221 por día — hasta 100 días',
+                'terapia_fisica_habla'=>'$0 copago terapia física, ocupacional y del habla (centro de rehabilitación ambulatoria integral, hospital ambulatorio o consultorio de especialista)',
+                'transporte'=>'NO CUBIERTO — a diferencia de todos los planes de Anthem en el sistema, que sí ofrecen algún número de viajes al año',
+                'rx_deducible'=>'$0 (Nivel 1-3); $700 (Nivel 4 y 5) — paga el costo completo de estos medicamentos hasta llegar a $700, luego solo paga su copago/coaseguro',
+                'rx_nivel1'=>'$0 minorista (30 y 100 días); $10/$30 por correo estándar (30/100 días); $0/$0 por correo preferido (CenterWell Pharmacy)',
+                'rx_nivel2'=>'$0 minorista (30 y 100 días); $20/$60 por correo estándar (30/100 días); $0/$0 por correo preferido',
+                'rx_nivel3'=>'17% minorista (30 y 100 días); 17% por correo estándar; 17% (30 días) / 15% (100 días) por correo preferido',
+                'rx_nivel4'=>'50% en todas las modalidades — el más alto de todos los planes en el sistema',
+                'rx_nivel5'=>'25% minorista y por correo (30 días); no disponible suministro de 100 días',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel, incluso antes de cumplir el deducible',
+                'rx_vacunas'=>'$0 copago vacunas de Parte D para adultos recomendadas por el ACIP',
+                'otc_mensual'=>'No se menciona en este documento (sin tarjeta de gastos para productos de venta libre) — a diferencia de los planes CareMore de Anthem',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$25 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico), hasta 20 visitas al año; $15 copago quiropráctico cubierto por Medicare',
+                'podologia'=>'$25 copago (tratamiento cubierto por Medicare)',
+                'telesalud'=>'$0 copago telesalud con el PCP; $25 copago telesalud con especialista; $35 copago telesalud de salud mental/abuso de sustancias — cobertura de telesalud adicional a la de Medicare Original',
+                'dme'=>'Equipo médico duradero: 20% del costo (alto costo y todo lo demás). Monitor continuo de glucosa (CGM): 20% proveedor DME/farmacia, $0 copago en farmacia preferida. Suministros de monitoreo diabético: 10% proveedor/farmacia minorista, $0 copago en proveedor diabético preferido. Suministros médicos y prótesis: 20% del costo',
+                'apoyo_hogar'=>'No se menciona en este documento (sin beneficio de cuidado de salud en el hogar listado en este Resumen de Beneficios)',
+                'comidas_post_hospital'=>'No se menciona en este documento (sin beneficio de comidas Healthy Meals)',
+                'extras_json'=>"Programa de recompensas Go365 by Humana: complete actividades saludables elegibles (exámenes preventivos, etc.) y reciba recompensas Go365 Plus\nRehabilitación cardíaca y pulmonar: \$0 copago\nTerapia de ejercicio supervisado (SET) para enfermedad arterial periférica: \$0 copago\nTratamiento ambulatorio de abuso de sustancias: \$35 copago\nMedicamentos de Parte B: inyecciones de alergia \$0 copago; quimioterapia y otros medicamentos de Parte B 20% coaseguro; insulina Parte B no más de \$35/mes\nCobertura de medicamentos excluidos: disfunción eréctil y vitaminas recetadas — algunos cubiertos al copago de Nivel 1\nAyuda Extra (Extra Help): deducible \$0; copagos reducidos según el nivel de ayuda (\$5.80/\$14.40, \$1.65/\$5.00, o \$0 para todos los medicamentos) hasta llegar al límite anual de \$2,400\nRed \"PLUS Provider\" de Humana Medicare Insight para beneficio de visión suplementario — red distinta a la de visión cubierta por Medicare\nSin prima adicional por paquetes dentales/visión opcionales (a diferencia de Anthem, que ofrece 3 paquetes con prima extra)",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. PRIMER plan de Humana en el sistema — hasta ahora todos los planes cargados eran de Anthem Blue Cross, así que este es un carrier completamente nuevo. Es un plan "Giveback": su atractivo principal es la reducción de la prima de Parte B de hasta $84/mes (puede tardar hasta 120 días en reflejarse en el Seguro Social). Es un HMO que requiere referencia del PCP para ver especialistas. Puntos a destacar frente a los planes de Anthem: NO cubre transporte (todos los planes de Anthem sí dan algún número de viajes); los audífonos SÍ tienen copago alto ($575-$750 cada uno, en vez de $0 hasta un máximo); el beneficio de visión de rutina es más bajo ($50-$100/año vs $75-$200 en Anthem); salud mental internada tiene un LÍMITE DE POR VIDA de 190 días (no solo anual); el deducible de Parte D tiene estructura distinta ($0 en Niveles 1-3, $700 en Niveles 4-5, en vez de un monto fijo aplicado a Niveles 3-5); y el Rx Nivel 4 es el más caro del sistema (50%). A favor: ambulancia terrestre con copago fijo transparente, SilverSneakers incluido, programa de recompensas Go365, y cobertura de medicamentos excluidos (disfunción eréctil y vitaminas). Doc: H5619_SB_MAPD_HMO_146000_2027_M. Servicio al Miembro (miembros actuales): 800-457-4708 (TTY 711). No miembros: 888-873-0686 (TTY 711).',
+            ];
+            $_colsHum = array_keys($_humanaGiveback);
+            $_insHum = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsHum).") VALUES (".implode(',', array_fill(0, count($_colsHum), '?')).")");
+            $_insHum->execute(array_values($_humanaGiveback));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
