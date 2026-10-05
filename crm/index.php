@@ -4018,6 +4018,74 @@ try {
             $_ins->execute(array_values($_caremorePremium));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem I CareMore Premium Savings (HMO-POS) 2026 — versión
+    // del año anterior del mismo plan (contrato H4161_012-000), para que
+    // aparezca comparado año-contra-año (ANOC) en vez de como "NUEVO".
+    try {
+        $_caremorePremium2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_caremorePremium2026_existe->execute(['Anthem I CareMore Premium Savings (HMO-POS)', 2026]);
+        if (!$_caremorePremium2026_existe->fetch()) {
+            $_caremorePremium2026 = [
+                'nombre_plan'=>'Anthem I CareMore Premium Savings (HMO-POS)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO-POS',
+                'numero_plan'=>'H4161_012-000_CA_HMO-POS','condados'=>'Los Angeles, Orange, San Bernardino, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles, Orange o San Bernardino County)\nUsa una red ENFOCADA (más reducida) de médicos y hospitales, en sociedad con CareMore Health",
+                'prima_mensual'=>'$0/mes. Además, reduce su prima de Medicare Parte B en $62.10/mes',
+                'reembolso_parte_b'=>'$62.10/mes de reducción real en la prima de Parte B',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$115 — aplica a medicamentos de Nivel 3 (Marca Preferida), Nivel 4 (No Preferido) y Nivel 5 (Especialidad); no aplica a insulina',
+                'moop'=>'$1,000 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'Días 1-5: $125 por día, por admisión; Días 6-90: $0 por día',
+                'hospital_ambulatorio'=>'$100 copago',
+                'centro_quirurgico_ambulatorio'=>'$50 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 a $20 copago (puede requerir referencia); $0 en ubicaciones seleccionadas',
+                'atencion_preventiva'=>'$0 copago — 100% cubierto en exámenes preventivos y examen físico anual. Incluye lista extensa: aneurisma aórtico, visita de bienestar anual, densidad ósea, mamografía, cáncer colorrectal, depresión, diabetes, VIH, vacunas, nutrición médica, PrEP, próstata, Hepatitis C, cáncer de pulmón (LDCT), ITS, dejar de fumar, visión, visita "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$100 copago (se exime si se admite al hospital dentro de 24 horas)',
+                'servicios_urgentes'=>'$20 copago',
+                'emergencia_mundial'=>'$100 copago — cobertura de emergencia y urgencia en todo el mundo en viajes de menos de 6 meses; límite de $50,000 al año',
+                'ambulancia'=>'$100 copago por viaje, terrestre/acuática o aérea (se exime en traslados entre centros similares, de hospital a enfermería especializada, o de un centro a casa)',
+                'diagnostico_laboratorio'=>'$0 copago laboratorio, pruebas y procedimientos diagnósticos',
+                'rayos_x'=>'$0 copago (incluye tomografía, resonancia magnética, PET y ultrasonido)',
+                'radiologia_terapeutica'=>'$50 copago (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0 copago examen diagnóstico (cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — $0 copago hasta el máximo',
+                'dental_preventivo'=>"$0 copago dentro de la red; 20% coaseguro fuera de la red\nAsignación combinada (preventivo + integral): $1,200 al año — lo no usado al final del año expira",
+                'dental_integral'=>'25% coaseguro dentro de la red; 50% coaseguro fuera de la red. Incluido en la asignación combinada de $1,200 al año',
+                'examen_vision'=>'$0 a $20 copago (examen cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'anteojos'=>'$0 copago (anteojos/lentes de contacto cubiertos por Medicare tras cirugía de cataratas); hasta $200 al año para anteojos o lentes de contacto de rutina',
+                'salud_mental_internado'=>'Días 1-5: $125 por día, por admisión; Días 6-90: $0 por día',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal; $20 copago visita con psiquiatra; $0 en ubicaciones seleccionadas',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $100 por día',
+                'terapia_fisica_habla'=>'$0 en ubicaciones seleccionadas; $20 copago con otros proveedores',
+                'transporte'=>'$0 copago — 10 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan (límite de 60 millas por viaje)',
+                'rx_deducible'=>'$115 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 minorista preferido / $0 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel2'=>'$0 minorista preferido / $10 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel3'=>'25% en todas las modalidades',
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'31% minorista (preferido y estándar); no disponible por correo',
+                'rx_nivel6'=>'$0 en todas las modalidades (Select Care Drugs)',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel; insulina por bomba (Parte B) $35 copago',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'$100 cada trimestre (no mensual) en tarjeta prepagada, para productos de venta libre',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>"\$20 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico bajo ciertas circunstancias)\n\$20 copago quiropráctico cubierto por Medicare (corrección de subluxación)\n\$20 copago quiropráctico de RUTINA, hasta 12 visitas al año",
+                'podologia'=>'$0 en ubicaciones seleccionadas; $20 copago con otros médicos (tratamiento cubierto por Medicare)',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago si el equipo vale $499.99 o menos; 20% coaseguro si vale $500 o más; mismo esquema para suministros médicos y prótesis',
+                'apoyo_hogar'=>"Home Health Care: $0 copago\nAcceso especial a CareMore Health: visitas a Care Center local, equipo móvil de cuidado a domicilio (requiere referencia), cita de telesalud 24/7, cuidado en casa tras hospitalización o enfermería especializada",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: \$0 — hasta 3 comidas al día por 14 días\nHealthy Meals post-alta: \$0 — hasta 2 comidas al día por 7 días (máximo 14 comidas), tras alta de hospital o enfermería especializada",
+                'extras_json'=>"Cobertura de medicamentos mejorada (Enhanced Drug Coverage): incluye Sildenafil, límite 6 tabletas al mes, al copago de Nivel 1\nSuministros para diabéticos (monitores continuos de glucosa, glucómetros, tiras y lancetas): 20% coaseguro\nDiálisis renal: 20% coaseguro\nRehabilitación cardíaca y pulmonar: $20 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones)\nTratamiento ambulatorio de abuso de sustancias: $30 copago individual/grupal\nLínea de Enfermería 24/7: $0 copago\nMedicamentos de Parte B: insulina por bomba $35 copago; otros medicamentos de Parte B y quimioterapia: $0 copago - 20% coaseguro\nPaquetes dentales/visión OPCIONALES con prima extra: Paquete 1 Dental Preventivo ($12/mes, máximo $500/año); Paquete 2 Dental y Visión ($31/mes, máximo $1,000 dental + $150 visión); Paquete 3 Dental y Visión Mejorado ($39/mes, máximo $2,000 dental + $200 visión, incluye coronas y dentaduras)",
+                'notas'=>'Resumen de Beneficios 2026, Los Angeles, Orange y San Bernardino County. Esta es la versión del AÑO ANTERIOR (2026) del mismo plan "Anthem I CareMore Premium Savings (HMO-POS)" que ya está en el sistema para 2027 — mismo contrato H4161_012-000. Se agrega para que el sistema compare año-contra-año (ANOC) en vez de marcar el plan 2027 como "🆕 NUEVO". Diferencias reales 2026 vs 2027: en 2026 el deducible de Parte D es más bajo ($115 vs $145), el umbral catastrófico también es más bajo ($2,100 vs $2,400) y el beneficio de OTC es más alto ($100/trimestre vs $90/trimestre) — todo a favor del cliente en 2026. En cambio, en 2027 mejora el Rx Nivel 4 (27% vs 30% en 2026), el tratamiento ambulatorio de abuso de sustancias baja a $0 copago (vs $30 en 2026), y el Paquete 3 opcional dental/visión baja a $38/mes (vs $39 en 2026). Doc: Y0114_26_3016433_0139_U_M / H4161_012-000_CA_HMO-POS. Servicio al Miembro: 1-844-591-2082 (TTY 711).',
+            ];
+            $_cols2 = array_keys($_caremorePremium2026);
+            $_ins2 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols2).") VALUES (".implode(',', array_fill(0, count($_cols2), '?')).")");
+            $_ins2->execute(array_values($_caremorePremium2026));
+        }
+    } catch (Exception $e) {}
     // Semilla: Anthem I CareMore Medicare Advantage (HMO-POS) 2027 — Los
     // Angeles y Orange County. Mismo contrato H4161 que Premium Savings
     // — también es un plan Medicare Advantage GENERAL sin requisito de
