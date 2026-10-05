@@ -3873,6 +3873,78 @@ try {
             $_ins->execute(array_values($_caremoreHomeCare));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem I CareMore Chronic Care (HMO-POS C-SNP) 2027 — Los
+    // Angeles y Orange County. C-SNP para diabetes mellitus, trastornos
+    // cardiovasculares y/o insuficiencia cardíaca crónica — misma
+    // elegibilidad que "Anthem I CareMore Chronic Care 2" (ya en el
+    // sistema, contrato H4161), pero este usa el contrato H0544 (igual
+    // que Kidney Care, Lung Care y Home Care). Séptimo plan de Anthem en
+    // el sistema. Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_caremoreChronic1_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_caremoreChronic1_existe->execute(['Anthem I CareMore Chronic Care (HMO-POS C-SNP)', 2027]);
+        if (!$_caremoreChronic1_existe->fetch()) {
+            $_caremoreChronic1 = [
+                'nombre_plan'=>'Anthem I CareMore Chronic Care (HMO-POS C-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO-POS C-SNP',
+                'numero_plan'=>'H0544_004-000_CA_HMO-POS C-SNP','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere diagnóstico de diabetes mellitus, un trastorno cardiovascular y/o insuficiencia cardíaca crónica\nDebe tener Medicare Parte A y estar inscrito en Parte B\nVivir en el área de servicio (Los Angeles u Orange County)\nUsa una red ENFOCADA (más reducida) de médicos y hospitales, en sociedad con CareMore Health",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$100 — aplica a medicamentos de Nivel 3 (Marca Preferida), Nivel 4 (No Preferido) y Nivel 5 (Especialidad); no aplica a insulina',
+                'moop'=>'$800 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 copago por estadía; días ilimitados',
+                'hospital_ambulatorio'=>'$0 copago',
+                'centro_quirurgico_ambulatorio'=>'$0 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 copago (puede requerir referencia de su médico primario)',
+                'atencion_preventiva'=>'$0 copago — 100% cubierto en exámenes preventivos y examen físico anual. Incluye lista extensa: aneurisma aórtico, visita de bienestar anual, densidad ósea, mamografía, cáncer colorrectal, depresión, diabetes, VIH, vacunas, nutrición médica, PrEP, próstata, Hepatitis C, cáncer de pulmón (LDCT), ITS, dejar de fumar, visión, visita "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$100 copago (se exime si se admite al hospital dentro de 24 horas)',
+                'servicios_urgentes'=>'$0 copago',
+                'emergencia_mundial'=>'$100 copago — cobertura de emergencia y urgencia en todo el mundo (incluye transporte de emergencia) en viajes de menos de 6 meses; límite de $100,000 al año',
+                'ambulancia'=>'$120 copago por viaje, terrestre/acuática o aérea (se exime en traslados entre centros similares, de hospital a enfermería especializada, o de un centro a casa)',
+                'diagnostico_laboratorio'=>'$0 copago laboratorio, pruebas y procedimientos diagnósticos (consultorio médico u hospital ambulatorio)',
+                'rayos_x'=>'$0 copago (consultorio médico, hospital ambulatorio, centro independiente o rayos X portátil a domicilio)',
+                'radiologia_terapeutica'=>'$60 copago (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0 copago examen diagnóstico (cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — $0 copago hasta el máximo',
+                'dental_preventivo'=>"$0 copago dentro de la red; 20% coaseguro fuera de la red\nCubre 2 exámenes, 2 limpiezas, 2 tratamientos de flúor y 2 radiografías dentales al año\nAsignación combinada (preventivo + integral): $3,000 al año — lo no usado al final del año expira",
+                'dental_integral'=>'$0 copago dentro de la red; 50% coaseguro fuera de la red (restaurativo, endodoncia, periodoncia, prostodoncia, cirugía oral y servicios relacionados — ver Evidencia de Cobertura). Incluido en la asignación combinada de $3,000 al año',
+                'examen_vision'=>'$0 copago (examen cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'anteojos'=>'$0 copago (anteojos/lentes de contacto cubiertos por Medicare tras cirugía de cataratas); hasta $300 al año para anteojos o lentes de contacto de rutina',
+                'salud_mental_internado'=>'$0 copago por estadía; días ilimitados',
+                'salud_mental_ambulatorio'=>'$0 copago por visita individual/grupal; $0 copago visita con psiquiatra',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $25 por día — hasta 100 días por período de beneficio',
+                'terapia_fisica_habla'=>'$0 copago terapia física (ubicaciones seleccionadas u otros proveedores); $0 copago terapia ocupacional. Este documento no menciona terapia del habla por separado',
+                'transporte'=>'$0 copago — 44 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan (límite de 60 millas por viaje), MÁS viajes de ida ILIMITADOS a ubicaciones seleccionadas. Además puede ELEGIR 60 viajes de ida adicionales al año como su beneficio "Essential Extras" (ver extras)',
+                'rx_deducible'=>'$100 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 minorista preferido / $0 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel2'=>'$0 minorista preferido / $10 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel3'=>'$45 minorista preferido / $47 minorista estándar / $90 por correo (copago fijo, no porcentaje — a diferencia de Anthem I CareMore Chronic Care 2, que cobra 20%-25%)',
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'32% minorista (preferido y estándar); no disponible por correo',
+                'rx_nivel6'=>'$0 en todas las modalidades (Select Care Drugs)',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel. La insulina administrada por bomba (Parte B) tiene $0 copago en este plan (a diferencia de otros planes CareMore de Anthem, que cobran $35)',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'Spending allowance de $95 CADA TRIMESTRE (no mensual) en tarjeta prepagada, para productos de venta libre (vitaminas, primeros auxilios, analgésicos, etc.) — se puede usar en tienda, en línea, por app, por teléfono o por correo',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$20 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico bajo ciertas circunstancias)\n$0 copago quiropráctico cubierto por Medicare (corrección de subluxación). Este documento NO menciona quiropráctico ni acupuntura de rutina',
+                'podologia'=>'$0 copago tratamiento cubierto por Medicare (daño de nervios por diabetes u otras condiciones); $0 copago cuidado rutinario de pies, VISITAS ILIMITADAS al año',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago si el equipo vale $499.99 o menos; 20% coaseguro si vale $500 o más (sillas de ruedas, oxígeno, etc.); $0 copago suministros médicos y prótesis. Monitores continuos de glucosa, glucómetros, tiras y lancetas: $0 copago',
+                'apoyo_hogar'=>"Home Health Care: $0 copago\nAcceso especial a CareMore Health: visitas a Care Center local, equipo móvil de cuidado a domicilio (requiere referencia), cita de telesalud 24/7, cuidado en casa tras hospitalización o enfermería especializada — para manejo de insuficiencia cardíaca, enfermedad renal crónica, ESRD, EPOC y diabetes (manejo de medicamentos, dieta/ejercicio, cuidado de heridas, salud conductual)",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: $0 — hasta 3 comidas al día por 14 días\nHealthy Meals post-alta: $0 — hasta 2 comidas al día por 7 días (máximo 14 comidas), tras alta de hospital o enfermería especializada",
+                'extras_json'=>"ESSENTIAL EXTRAS — debe elegir SOLO UNO de los siguientes 3 beneficios:\n1) Dispositivos de Asistencia: $500 al año en tarjeta prepagada (barandales, taburetes de ducha, asientos ADA para inodoro, rampas temporales para silla de ruedas, etc.)\n2) Asignación de Dental, Visión y Audición: $500 al año en tarjeta prepagada, de uso flexible\n3) Transporte: hasta 60 viajes de ida adicionales al año a ubicaciones de salud aprobadas por el plan\nSi califica para SSBCI, el beneficio elegido también puede usarse para Servicios Públicos: $150 cada trimestre (gas, electricidad, agua, cable, internet o celular)\nDiálisis renal: 20% coaseguro\nRehabilitación cardíaca: $0 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones en 36 semanas)\nRehabilitación pulmonar: $0 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones)\nTratamiento ambulatorio de abuso de sustancias: $0 copago individual/grupal\nLínea de Enfermería 24/7: $0 copago\nMedicamentos de Parte B: insulina por bomba $0 copago; otros medicamentos de Parte B y quimioterapia: $0 copago - 20% coaseguro\nPaquetes dentales/visión OPCIONALES con prima extra: Paquete 1 Dental Preventivo ($12/mes, máximo $500/año); Paquete 2 Dental y Visión ($30/mes, máximo $1,000 dental + $150 visión); Paquete 3 Dental y Visión Mejorado ($38/mes, máximo $2,000 dental + $200 visión, incluye coronas y dentaduras)\n2026 Star Rating (contrato H0544): General 3 de 5 estrellas; Servicios de Salud 3 de 5; Servicios de Medicamentos 3.5 de 5",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. SÉPTIMO plan de Anthem Blue Cross en el sistema. Misma elegibilidad (diabetes, trastornos cardiovasculares, insuficiencia cardíaca crónica) que "Anthem I CareMore Chronic Care 2" (ya en el sistema, contrato H4161), pero este usa el contrato H0544 (igual que Kidney Care, Lung Care y Home Care) y tiene números y estructura de beneficios distintos: MOOP de $800 (vs $499 en Chronic Care 2), deducible de Parte D de $100 (vs $250), copago de emergencia $100 (vs $90), medicamentos Nivel 3 con copago fijo en vez de porcentaje, insulina por bomba a $0 copago, dental de $3,000 (vs $4,000), transporte de 44 viajes base + beneficio "Essential Extras" para elegir uno entre dispositivos de asistencia, asignación dental/visión/audición, o 60 viajes adicionales. OJO: no confundir este plan con "Anthem I CareMore Chronic Care 2" al explicarle a un cliente — tienen el mismo nombre de condición pero son planes distintos con números de plan y contrato diferentes. Sin año anterior para comparar con ANOC (se muestra como NUEVO). Doc: Y0114_27_3021098_0048_U_M / H0544_004-000_CA_HMO-POS C-SNP. Servicio al Miembro: 1-844-591-2078 (TTY 711).',
+            ];
+            $_cols = array_keys($_caremoreChronic1);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_caremoreChronic1));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
