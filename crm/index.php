@@ -5421,6 +5421,76 @@ try {
             $_insHum2->execute(array_values($_humanaGoldPlus));
         }
     } catch (Exception $e) {}
+    // Semilla: Humana Gold Plus H5619-021 (HMO) 2027 — Los Angeles y Orange
+    // County. TERCER plan de Humana en el sistema. Mismo CONTRATO (H5619)
+    // que el Giveback (H5619-146) pero con otro número de plan (PBP 021) y
+    // SIN reducción de prima de Parte B. Datos del Summary of Benefits que
+    // subió Isabel.
+    try {
+        $_humanaGoldPlus021_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_humanaGoldPlus021_existe->execute(['Humana Gold Plus H5619-021 (HMO)', 2027]);
+        if (!$_humanaGoldPlus021_existe->fetch()) {
+            $_humanaGoldPlus021 = [
+                'nombre_plan'=>'Humana Gold Plus H5619-021 (HMO)','carrier'=>'Humana','tipo'=>'HMO',
+                'numero_plan'=>'H5619-021-000','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"TERCER plan de Humana en el sistema. OJO: mismo CONTRATO (H5619) que \"Humana Gold Plus Giveback H5619-146\" ya cargado — pero es otro número de plan (PBP 021), con beneficios distintos y SIN la reducción de prima de Parte B del Giveback. No confundir los dos.\nPlan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nEs un HMO: debe elegir un médico primario (PCP) dentro de la red, y el PCP coordina referencias a especialistas",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B). A diferencia de Humana Gold Plus Giveback (mismo contrato H5619), este plan NO reduce la prima de Parte B',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$0 para Nivel 1 y Nivel 2; $250 para Nivel 3, Nivel 4 y Nivel 5',
+                'moop'=>'$799 al año, de médicos y centros dentro de la red — EL MÁS BAJO de los 3 planes de Humana en el sistema',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 copago por admisión — días ilimitados cubiertos',
+                'hospital_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, mamografía diagnóstica, servicios de cirugía)',
+                'centro_quirurgico_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, servicios de cirugía)',
+                'medico_primario'=>'$0 copago (consultorio y telesalud)',
+                'especialistas'=>'$0 copago (consultorio y telesalud) — requiere referencia del PCP',
+                'atencion_preventiva'=>'$0 copago — cubre todos los servicios preventivos de Medicare: detección de cáncer (mama, cérvix/vagina, colorrectal, pulmón, próstata), cuidado cardiovascular, cuidado de diabetes, terapia de nutrición médica, visita de bienestar anual, inmunizaciones, examen físico de rutina, visita "Bienvenido a Medicare", densidad ósea, depresión, glaucoma, VIH, alcohol, ITS, dejar de fumar',
+                'atencion_emergencia'=>'$150 copago (se exime si se admite al mismo hospital dentro de 24 horas por la misma condición)',
+                'servicios_urgentes'=>'$65 copago (telesalud y centro de atención urgente)',
+                'emergencia_mundial'=>'Cobertura mundial: debe pagar por adelantado y solicitar reembolso. Ambulancia de emergencia $325 copago por fecha de servicio; sala de emergencia $150 copago; centro de atención urgente $65 copago',
+                'ambulancia'=>'Terrestre: $325 copago por fecha de servicio; Aérea: $1,800 copago por fecha de servicio',
+                'diagnostico_laboratorio'=>'Laboratorio: $0 copago en todas las ubicaciones. Pruebas y procedimientos diagnósticos: $0 consultorio PCP, $0 especialista, $50 hospital ambulatorio, $65 centro de atención urgente',
+                'rayos_x'=>'$0 copago consultorio PCP; $0 especialista; $40 centro radiológico independiente; $145 hospital ambulatorio; $65 centro de atención urgente',
+                'radiologia_terapeutica'=>'20% del costo (centro radiológico independiente u hospital ambulatorio); $0 copago en consultorio de especialista',
+                'examen_auditivo'=>'$0 copago examen auditivo cubierto por Medicare',
+                'audifonos'=>'Beneficio suplementario obligatorio: $0 copago evaluación de ajuste y examen de rutina (1 al año); $0 copago visitas de seguimiento (hasta 3 al año); $199 copago por cada audífono recetado Nivel 1 (1 por oído al año); $475 copago por cada audífono recetado Nivel 2 (1 por oído al año). Incluye 3 años de baterías y garantía de 3 años',
+                'dental_preventivo'=>"\$0 copago servicios dentales cubiertos por Medicare\nBeneficio suplementario: asignación combinada de \$3,000 al año para servicios dentales preventivos y integrales NO cubiertos por Medicare (exámenes, limpiezas, empastes, extracciones, etc.) — la más alta de los 3 planes de Humana. Lo no usado al final del año expira. No se puede usar para flúor, servicios cosméticos ni implantes",
+                'dental_integral'=>'Incluido en la asignación combinada de $3,000 al año; 30% del costo aplica a la mayoría de servicios mayores e integrales (periodoncia, coronas, dentaduras, conductos radiculares, puentes)',
+                'examen_vision'=>'$0 copago examen de visión cubierto por Medicare; $0 copago examen diabético de ojos',
+                'anteojos'=>'$0 copago anteojos/lentes tras cirugía de cataratas. Beneficio suplementario de rutina: $0 copago examen de rutina (1 al año); hasta $100 al año para lentes de contacto o anteojos, O hasta $200 al año en un proveedor "PLUS" de la red Humana Medicare Insight',
+                'salud_mental_internado'=>'$410 copago por admisión — cubre hasta 190 días DE POR VIDA en un hospital psiquiátrico (límite de por vida)',
+                'salud_mental_ambulatorio'=>'$35 copago por visita (hospital ambulatorio, consultorio de especialista o telesalud)',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $221 por día — hasta 100 días',
+                'terapia_fisica_habla'=>'$0 copago terapia física, ocupacional y del habla (centro de rehabilitación ambulatoria integral, hospital ambulatorio o consultorio de especialista)',
+                'transporte'=>'$0 copago — 24 viajes de ida al año a ubicaciones aprobadas por el plan (límite de 50 millas por viaje). PLUS viajes de ida ILIMITADOS para miembros con enfermedad renal crónica (CKD), enfermedad renal en etapa terminal (ESRD) o diagnóstico de cáncer. Debe contactar al proveedor de transporte con al menos 3 días hábiles de anticipación',
+                'rx_deducible'=>'$0 (Nivel 1-2); $250 (Nivel 3 a 5) — paga el costo completo de estos medicamentos hasta llegar a $250, luego solo paga su copago/coaseguro',
+                'rx_nivel1'=>'$0 minorista (30 y 100 días); $10/$30 por correo estándar (30/100 días); $0/$0 por correo preferido (CenterWell Pharmacy)',
+                'rx_nivel2'=>'$0 minorista (30 y 100 días); $20/$60 por correo estándar (30/100 días); $0/$0 por correo preferido',
+                'rx_nivel3'=>'17% minorista (30 y 100 días); 17% por correo estándar; 17% (30 días) / 15% (100 días) por correo preferido',
+                'rx_nivel4'=>'46% en todas las modalidades',
+                'rx_nivel5'=>'30% minorista y por correo (30 días); no disponible suministro de 100 días',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel, incluso antes de cumplir el deducible',
+                'rx_vacunas'=>'$0 copago vacunas de Parte D para adultos recomendadas por el ACIP',
+                'otc_mensual'=>'$55 cada trimestre en tarjeta/pedido por correo (OTC Mail Order); lo no usado pasa al siguiente trimestre pero expira al final del año del plan',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$0 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico), hasta 20 visitas al año; $15 copago quiropráctico cubierto por Medicare; beneficio adicional de quiropráctico de RUTINA: $15 copago, hasta 12 visitas al año',
+                'podologia'=>'$0 copago (tratamiento cubierto por Medicare)',
+                'telesalud'=>'$0 copago telesalud con el PCP; $0 copago telesalud con especialista; $35 copago telesalud de salud mental/abuso de sustancias',
+                'dme'=>'Equipo médico duradero: 20% del costo (alto costo y todo lo demás). Monitor continuo de glucosa (CGM): $0 copago proveedor DME/farmacia/farmacia preferida. Suministros de monitoreo diabético: 10% proveedor/farmacia minorista, $0 copago en proveedor diabético preferido. Suministros médicos y prótesis: 20% del costo',
+                'apoyo_hogar'=>'No se menciona en este documento (sin beneficio de cuidado de salud en el hogar listado en este Resumen de Beneficios)',
+                'comidas_post_hospital'=>'Programa Humana Well Dine®: $0 copago — hasta 2 comidas al día por 7 días (máximo 14 comidas), tras alta de hospital o centro de enfermería. Debe solicitarse dentro de 30 días tras el alta; limitado a 4 veces al año',
+                'extras_json'=>"Programa de recompensas Go365 by Humana: complete actividades saludables elegibles y reciba recompensas Go365 Plus\nRehabilitación cardíaca y pulmonar: \$0 copago\nTerapia de ejercicio supervisado (SET) para enfermedad arterial periférica: \$0 copago\nTratamiento ambulatorio de abuso de sustancias: \$35 copago\nMedicamentos de Parte B: inyecciones de alergia \$0 copago; quimioterapia y otros medicamentos de Parte B 20% coaseguro; insulina Parte B no más de \$35/mes\nCobertura de medicamentos excluidos: disfunción eréctil y vitaminas recetadas — algunos cubiertos al copago de Nivel 1\nAyuda Extra (Extra Help): deducible \$0; copagos reducidos según el nivel de ayuda (\$5.80/\$14.40, \$1.65/\$5.00, o \$0 para todos los medicamentos) hasta llegar al límite anual de \$2,400\nRed \"PLUS Provider\" de Humana Medicare Insight para beneficio de visión suplementario\nSin prima adicional por paquetes dentales/visión opcionales",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. TERCER plan de Humana en el sistema. OJO MUY IMPORTANTE: este plan comparte el mismo CONTRATO (H5619) que "Humana Gold Plus Giveback H5619-146" ya cargado, pero es un número de plan (PBP) distinto — 021 en vez de 146 — con beneficios muy diferentes. Diferencia clave: este plan NO reduce la prima de Parte B (el Giveback sí, hasta $84/mes), pero a cambio tiene el MOOP más bajo de los 3 planes de Humana ($799) y SÍ cubre transporte (24 viajes/año + ilimitados para CKD/ESRD/cáncer, mientras que el Giveback no cubre transporte). También tiene especialista a $0 copago (vs $25-$30 en los otros dos Humana), audífonos más accesibles ($199-$475 de copago, el más bajo de los 3), y la asignación dental más alta ($3,000/año, con 30% de coaseguro en servicios mayores — el coaseguro más bajo de los 3). Incluye el programa de comidas Humana Well Dine (2 comidas/día x7 días tras alta hospitalaria) y OTC de $55/trimestre. Punto débil: Rx Nivel 4 al 46%, casi tan alto como el Giveback (50%). Doc: H5619_SB_MAPD_HMO_021000_2027_M. Servicio al Miembro (miembros actuales): 800-457-4708 (TTY 711). No miembros: 888-873-0686 (TTY 711).',
+            ];
+            $_colsHum3 = array_keys($_humanaGoldPlus021);
+            $_insHum3 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsHum3).") VALUES (".implode(',', array_fill(0, count($_colsHum3), '?')).")");
+            $_insHum3->execute(array_values($_humanaGoldPlus021));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
