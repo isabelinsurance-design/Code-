@@ -3800,6 +3800,79 @@ try {
             $_ins->execute(array_values($_caremoreLung1));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem I CareMore Home Care (HMO I-SNP) 2027 — Los Angeles
+    // y Orange County. ¡OJO! Este NO es un C-SNP como los otros 5 planes
+    // de Anthem en el sistema — es un I-SNP (Institutional Special Needs
+    // Plan), solo para personas que viven en un asilo, hogar de cuidado,
+    // vida asistida u otra ubicación institucional aprobada, o que por
+    // 90+ días han necesitado ese nivel de cuidado. Mismo contrato H0544
+    // que Kidney Care y Lung Care (sin el "2"). Sexto plan de Anthem en
+    // el sistema. Datos del Summary of Benefits que subió Isabel.
+    try {
+        $_caremoreHomeCare_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_caremoreHomeCare_existe->execute(['Anthem I CareMore Home Care (HMO I-SNP)', 2027]);
+        if (!$_caremoreHomeCare_existe->fetch()) {
+            $_caremoreHomeCare = [
+                'nombre_plan'=>'Anthem I CareMore Home Care (HMO I-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO I-SNP',
+                'numero_plan'=>'H0544_005-000_CA_HMO I-SNP','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales INSTITUCIONAL (I-SNP, no C-SNP) — requiere vivir en una de las siguientes ubicaciones:\n• Comunidad de vida asistida\n• Hogar de vida asistida\n• Hogar grupal de cuidado y alojamiento (board and care)\n• Sección de vida independiente de una comunidad de retiro con cuidado continuo\n• Centro de enfermería especializada para cuidado a largo plazo\n• Comunidad de vida independiente con servicio de comedor y ayuda con actividades diarias y/o medicamentos\nAlternativamente, haber necesitado (o esperarse que necesite) por 90 días o más el nivel de cuidado de un centro de enfermería especializada, hospital psiquiátrico, hospital de rehabilitación, hospital de cuidados a largo plazo u otro centro similar aprobado por CMS\nDebe tener Medicare Parte A y estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nIMPORTANTE: a diferencia de los demás planes de Anthem en el sistema (que son HMO-POS), este plan es HMO puro — debe usar médicos y centros DENTRO de la red; fuera de la red el servicio puede no estar cubierto, salvo emergencias, atención urgente o diálisis fuera del área de servicio",
+                'prima_mensual'=>'$0/mes. Además, este plan REDUCE su prima de Medicare Parte B en $22/mes (a diferencia de los demás planes de Anthem en el sistema, que no ofrecen esta reducción)',
+                'reembolso_parte_b'=>'$22/mes de reducción real en la prima de Parte B (este es el único plan de Anthem en el sistema con esta reducción)',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$100 — aplica a medicamentos de Nivel 3 (Marca Preferida), Nivel 4 (No Preferido) y Nivel 5 (Especialidad); no aplica a insulina',
+                'moop'=>'$700 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 copago por estadía; días ilimitados',
+                'hospital_ambulatorio'=>'$0 copago',
+                'centro_quirurgico_ambulatorio'=>'$0 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 copago (puede requerir referencia de su médico primario)',
+                'atencion_preventiva'=>'$0 copago — 100% cubierto en exámenes preventivos y examen físico anual. Incluye lista extensa: aneurisma aórtico, visita de bienestar anual, densidad ósea, mamografía, cáncer colorrectal, depresión, diabetes, VIH, vacunas, nutrición médica, PrEP, próstata, Hepatitis C, cáncer de pulmón (LDCT), ITS, dejar de fumar, visión, visita "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$90 copago (se exime si se admite al hospital dentro de 24 horas)',
+                'servicios_urgentes'=>'$0 copago',
+                'emergencia_mundial'=>'$90 copago — cobertura de emergencia y urgencia en todo el mundo (incluye transporte de emergencia) en viajes de menos de 6 meses; límite de $100,000 al año',
+                'ambulancia'=>'$100 copago por viaje, terrestre/acuática o aérea (se exime en traslados entre centros similares, de hospital a enfermería especializada, o de un centro a casa)',
+                'diagnostico_laboratorio'=>'$0 copago laboratorio, pruebas y procedimientos diagnósticos (consultorio médico u hospital ambulatorio)',
+                'rayos_x'=>'$0 copago (consultorio médico y hospital ambulatorio; el documento aclara que el costo puede variar según dónde se trate)',
+                'radiologia_terapeutica'=>'$60 copago (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0 copago examen diagnóstico (cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — $0 copago hasta el máximo',
+                'dental_preventivo'=>"$0 copago — asignación SIN LÍMITE de dólares para servicios dentales preventivos y de comprensivos combinados (a diferencia de los demás planes de Anthem, que sí tienen un tope en dólares)\nCubre 2 exámenes, 2 limpiezas, 2 tratamientos de flúor y 2 radiografías dentales al año\nEste documento no menciona opción fuera de la red (consistente con ser un plan HMO puro, sin la opción POS de los otros planes)",
+                'dental_integral'=>'$0 copago — incluido en la asignación SIN LÍMITE de dólares (restaurativo, endodoncia, periodoncia, prostodoncia, cirugía oral y servicios relacionados — ver Evidencia de Cobertura)',
+                'examen_vision'=>'$0 copago (examen cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'anteojos'=>'$0 copago (anteojos/lentes de contacto cubiertos por Medicare tras cirugía de cataratas); hasta $225 al año para anteojos o lentes de contacto de rutina',
+                'salud_mental_internado'=>'$0 copago por estadía; días ilimitados',
+                'salud_mental_ambulatorio'=>'$0 copago por visita individual/grupal; $0 copago visita con psiquiatra',
+                'enfermeria_especializada'=>'$0 copago por estadía (sin tramos de copago por día, a diferencia de los otros planes de Anthem) — hasta 100 días',
+                'terapia_fisica_habla'=>'$0 copago terapia física (ubicaciones seleccionadas u otros proveedores); $0 copago terapia ocupacional; terapia del habla incluida en el programa especial de CareMore Health',
+                'transporte'=>'$0 copago — 22 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan (límite de 60 millas por viaje). Este documento no menciona viajes ilimitados a "ubicaciones seleccionadas" como sí tienen otros planes CareMore',
+                'rx_deducible'=>'$100 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 minorista estándar / $0 por correo (suministro de 100 días) — este documento no distingue minorista "preferido" de "estándar" como otros planes',
+                'rx_nivel2'=>'$0 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel3'=>'25% minorista estándar / 25% por correo',
+                'rx_nivel4'=>'30% en todas las modalidades',
+                'rx_nivel5'=>'32% minorista; no disponible por correo',
+                'rx_nivel6'=>'$0 en todas las modalidades (Select Care Drugs)',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'$115 CADA TRIMESTRE (no es mensual) en tarjeta prepagada, para productos de venta libre (vitaminas, primeros auxilios, analgésicos, etc.) — se puede usar en tienda, en línea, por app, por teléfono o por correo',
+                'gimnasio'=>'No se menciona en este documento (sin SilverSneakers, a diferencia de los demás planes CareMore de Anthem)',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$20 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico bajo ciertas circunstancias)\n$0 copago quiropráctico cubierto por Medicare (corrección de subluxación). Este documento NO menciona quiropráctico ni acupuntura de rutina',
+                'podologia'=>'$0 copago tratamiento cubierto por Medicare (daño de nervios por diabetes u otras condiciones); $0 copago cuidado rutinario de pies, hasta 6 visitas al año (NO ilimitado, a diferencia de los demás planes CareMore de Anthem)',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago si el equipo vale $499.99 o menos; 20% coaseguro si vale $500 o más (sillas de ruedas, oxígeno, etc.); $0 copago suministros médicos y prótesis. Monitores continuos de glucosa, glucómetros, tiras y lancetas: $0 copago',
+                'apoyo_hogar'=>"Home Health Care: $0 copago\nAcceso especial a CareMore Health (lista distinta a los otros planes, orientada a residentes de instituciones): visitas de médico y enfermero practicante, visitas de podiatra, evaluación de salud integral, laboratorios y rayos X de rutina, terapia física y del habla, vacunas contra la gripe y otras inmunizaciones, cuidado de heridas y suministros, educación de salud y bienestar — algunos servicios pueden requerir autorización previa",
+                'comidas_post_hospital'=>'No se menciona en este documento (no incluye el beneficio Healthy Meals que sí tienen los demás planes CareMore de Anthem)',
+                'extras_json'=>"Diálisis renal: 20% coaseguro\nLínea de Enfermería 24/7: $0 copago\nMedicamentos de Parte B: insulina por bomba $35 copago; otros medicamentos de Parte B y quimioterapia: $0 copago - 20% coaseguro\nRehabilitación cardíaca: $0 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones en 36 semanas)\nRehabilitación pulmonar: $0 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones)\nTratamiento ambulatorio de abuso de sustancias: $0 copago individual/grupal\nPaquetes dentales/visión OPCIONALES con prima extra: Paquete 1 Dental Preventivo ($12/mes, máximo $500/año); Paquete 2 Dental y Visión ($30/mes, máximo $1,000 dental + $150 visión); Paquete 3 Dental y Visión Mejorado ($38/mes, máximo $2,000 dental + $200 visión, incluye coronas y dentaduras) — curiosamente estos paquetes SÍ mencionan excluir dentaduras/coronas y no mencionan coaseguro fuera de la red\n2026 Star Rating (contrato H0544): General 3 de 5 estrellas; Servicios de Salud 3 de 5; Servicios de Medicamentos 3.5 de 5",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. SEXTO plan de Anthem Blue Cross en el sistema, y el PRIMERO que es un I-SNP (Institutional Special Needs Plan) en vez de C-SNP — es decir, NO es para una condición crónica, sino para personas que VIVEN en un asilo, hogar de cuidado, vida asistida, o que por 90+ días han necesitado ese nivel de cuidado institucional. Muy importante explicarle esto al cliente: este plan NO aplica a alguien que vive en su propia casa, aunque tenga una condición crónica grave. También a diferencia de los otros 5 planes de Anthem (que son HMO-POS), este es HMO puro — solo cubre fuera de la red en emergencias, urgencias o diálisis fuera del área. Beneficio destacado único: reduce la prima de Parte B en $22/mes (ningún otro plan de Anthem en el sistema hace esto). También tiene asignación dental SIN LÍMITE de dólares. No tiene SilverSneakers ni Healthy Meals mencionados en este documento. Mismo contrato H0544 que Kidney Care y Lung Care (sin el "2"). Sin año anterior para comparar con ANOC (se muestra como NUEVO). Doc: Y0114_27_3021098_0019_U_M / H0544_005-000_CA_HMO I-SNP. Servicio al Miembro: 1-844-591-2078 (TTY 711).',
+            ];
+            $_cols = array_keys($_caremoreHomeCare);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_caremoreHomeCare));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
