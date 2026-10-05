@@ -3945,6 +3945,79 @@ try {
             $_ins->execute(array_values($_caremoreChronic1));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem I CareMore Premium Savings (HMO-POS) 2027 — Los
+    // Angeles, Orange y San Bernardino County. ¡OJO! Es el PRIMER plan de
+    // Anthem en el sistema que NO es un plan de necesidades especiales —
+    // es un Medicare Advantage general, abierto a cualquier beneficiario
+    // con Parte A y B (sin requisito de condición crónica ni
+    // institucional). Mismo contrato H4161 que Chronic Care 2 y Lung
+    // Care 2. Octavo plan de Anthem en el sistema. Datos del Summary of
+    // Benefits que subió Isabel.
+    try {
+        $_caremorePremium_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_caremorePremium_existe->execute(['Anthem I CareMore Premium Savings (HMO-POS)', 2027]);
+        if (!$_caremorePremium_existe->fetch()) {
+            $_caremorePremium = [
+                'nombre_plan'=>'Anthem I CareMore Premium Savings (HMO-POS)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO-POS',
+                'numero_plan'=>'H4161_012-000_CA_HMO-POS','condados'=>'Los Angeles, Orange, San Bernardino, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — a diferencia de los otros 7 planes de Anthem en el sistema, este NO requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles, Orange o San Bernardino County)\nUsa una red ENFOCADA (más reducida) de médicos y hospitales, en sociedad con CareMore Health (el documento usa el nombre legal \"Anthem Blue Cross Partnership Plan\")",
+                'prima_mensual'=>'$0/mes. Además, reduce su prima de Medicare Parte B en $62/mes — la reducción más alta de todos los planes de Anthem en el sistema',
+                'reembolso_parte_b'=>'$62/mes de reducción real en la prima de Parte B',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$145 — aplica a medicamentos de Nivel 3 (Marca Preferida), Nivel 4 (No Preferido) y Nivel 5 (Especialidad); no aplica a insulina',
+                'moop'=>'$1,000 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'Días 1-5: $125 por día, por admisión; Días 6-90: $0 por día — a diferencia de los otros planes de Anthem, aquí SÍ hay copago los primeros 5 días de cada nueva admisión (un traslado a un hospital de rehabilitación cuenta como admisión nueva)',
+                'hospital_ambulatorio'=>'$100 copago',
+                'centro_quirurgico_ambulatorio'=>'$50 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 a $20 copago (puede requerir referencia); $0 en ubicaciones seleccionadas',
+                'atencion_preventiva'=>'$0 copago — 100% cubierto en exámenes preventivos y examen físico anual. Incluye lista extensa: aneurisma aórtico, visita de bienestar anual, densidad ósea, mamografía, cáncer colorrectal, depresión, diabetes, VIH, vacunas, nutrición médica, PrEP, próstata, Hepatitis C, cáncer de pulmón (LDCT), ITS, dejar de fumar, visión, visita "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$100 copago (se exime si se admite al hospital dentro de 24 horas)',
+                'servicios_urgentes'=>'$20 copago (a diferencia de los demás planes de Anthem, que cobran $0)',
+                'emergencia_mundial'=>'$100 copago — cobertura de emergencia y urgencia en todo el mundo (incluye transporte de emergencia) en viajes de menos de 6 meses; límite de $50,000 al año (más bajo que los $100,000 de los otros planes de Anthem)',
+                'ambulancia'=>'$100 copago por viaje, terrestre/acuática o aérea (se exime en traslados entre centros similares, de hospital a enfermería especializada, o de un centro a casa)',
+                'diagnostico_laboratorio'=>'$0 copago laboratorio, pruebas y procedimientos diagnósticos (consultorio médico u hospital ambulatorio)',
+                'rayos_x'=>'$0 copago (consultorio médico, hospital ambulatorio, centro independiente o rayos X portátil a domicilio)',
+                'radiologia_terapeutica'=>'$50 copago (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0 copago examen diagnóstico (cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — $0 copago hasta el máximo',
+                'dental_preventivo'=>"$0 copago dentro de la red; 20% coaseguro fuera de la red\nCubre 2 exámenes, 2 limpiezas, 2 tratamientos de flúor y 2 radiografías dentales al año\nAsignación combinada (preventivo + integral): $1,200 al año — lo no usado al final del año expira",
+                'dental_integral'=>'25% coaseguro dentro de la red; 50% coaseguro fuera de la red — a diferencia de los demás planes de Anthem, aquí lo integral NO es $0. Incluido en la asignación combinada de $1,200 al año',
+                'examen_vision'=>'$0 a $20 copago (examen cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'anteojos'=>'$0 copago (anteojos/lentes de contacto cubiertos por Medicare tras cirugía de cataratas); hasta $200 al año para anteojos o lentes de contacto de rutina',
+                'salud_mental_internado'=>'Días 1-5: $125 por día, por admisión; Días 6-90: $0 por día',
+                'salud_mental_ambulatorio'=>'$20 copago por visita individual/grupal; $20 copago visita con psiquiatra; $0 en ubicaciones seleccionadas',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $100 por día — hasta 100 días por período de beneficio',
+                'terapia_fisica_habla'=>'$20 copago terapia física (otros proveedores); $0 en ubicaciones seleccionadas. Este documento no menciona terapia ocupacional ni del habla por separado aquí',
+                'transporte'=>'$0 copago — 10 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan (límite de 60 millas por viaje). El número más bajo de todos los planes de Anthem en el sistema; este plan no tiene beneficio "Essential Extras" para viajes adicionales',
+                'rx_deducible'=>'$145 (Nivel 3 a 5)',
+                'rx_nivel1'=>'$0 minorista preferido / $0 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel2'=>'$0 minorista preferido / $10 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel3'=>'25% en todas las modalidades',
+                'rx_nivel4'=>'27% en todas las modalidades',
+                'rx_nivel5'=>'31% minorista (preferido y estándar); no disponible por correo',
+                'rx_nivel6'=>'$0 en todas las modalidades (Select Care Drugs)',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel; insulina por bomba (Parte B) $35 copago',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'$90 cada trimestre (no mensual) en tarjeta prepagada, para productos de venta libre (vitaminas, primeros auxilios, analgésicos, etc.) — se puede usar en tienda, en línea, por app, por teléfono o por correo',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$20 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico bajo ciertas circunstancias)\n$20 copago quiropráctico cubierto por Medicare (corrección de subluxación) — a diferencia de los demás planes de Anthem, que cobran $0\n$20 copago quiropráctico de RUTINA, hasta 12 visitas al año',
+                'podologia'=>'$0 en ubicaciones seleccionadas; $20 copago con otros médicos (tratamiento cubierto por Medicare — daño de nervios por diabetes u otras condiciones). Este documento no menciona cuidado podológico de rutina',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago si el equipo vale $499.99 o menos; 20% coaseguro si vale $500 o más (sillas de ruedas, oxígeno, etc.); mismo esquema para suministros médicos y prótesis',
+                'apoyo_hogar'=>"Home Health Care: $0 copago\nAcceso especial a CareMore Health: visitas a Care Center local, equipo móvil de cuidado a domicilio (requiere referencia), cita de telesalud 24/7, cuidado en casa tras hospitalización o enfermería especializada — para manejo de insuficiencia cardíaca, enfermedad renal crónica, ESRD, EPOC y diabetes (manejo de medicamentos, dieta/ejercicio, cuidado de heridas, salud conductual)",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: $0 — hasta 3 comidas al día por 14 días\nHealthy Meals post-alta: $0 — hasta 2 comidas al día por 7 días (máximo 14 comidas), tras alta de hospital o enfermería especializada",
+                'extras_json'=>"Cobertura de medicamentos mejorada (Enhanced Drug Coverage): incluye Sildenafil, límite 6 tabletas al mes, al copago de Nivel 1 — beneficio que no viene en un plan de Parte D estándar\nMonitores continuos de glucosa, glucómetros, tiras y lancetas: 20% COASEGURO (a diferencia de los demás planes de Anthem, que cobran $0)\nDiálisis renal: 20% coaseguro\nRehabilitación cardíaca y pulmonar: $20 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones) — a diferencia de los demás planes de Anthem, que cobran $0\nTratamiento ambulatorio de abuso de sustancias: $0 copago individual/grupal\nLínea de Enfermería 24/7: $0 copago\nMedicamentos de Parte B: insulina por bomba $35 copago; otros medicamentos de Parte B y quimioterapia: $0 copago - 20% coaseguro\nPaquetes dentales/visión OPCIONALES con prima extra: Paquete 1 Dental Preventivo ($12/mes, máximo $500/año); Paquete 2 Dental y Visión ($31/mes, máximo $1,000 dental + $150 visión); Paquete 3 Dental y Visión Mejorado ($38/mes, máximo $2,000 dental + $200 visión, incluye coronas y dentaduras)\n2026 Star Rating (contrato H4161): General 3 de 5 estrellas; Servicios de Salud 3 de 5; Servicios de Medicamentos 2.5 de 5",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles, Orange y San Bernardino County (el único plan de Anthem en el sistema que también cubre San Bernardino). OCTAVO plan de Anthem Blue Cross en el sistema, y el PRIMERO que es un plan Medicare Advantage GENERAL — no requiere diagnóstico de ninguna condición crónica ni vivir en una institución, cualquier beneficiario con Parte A y B en el área de servicio puede inscribirse. Mismo contrato H4161 que Chronic Care 2 y Lung Care 2. Diferencia clave frente a los planes CareMore para condiciones especiales: AQUÍ SÍ HAY COPAGOS en varios servicios que en los otros planes son $0 — hospital los primeros 5 días ($125/día), urgencias ($20), terapia física ($20), salud mental ambulatoria ($20), rehabilitación cardíaca/pulmonar ($20), quiropráctico rutinario ($20, 12 visitas/año), dental integral (25% coaseguro), y monitores de diabetes (20% coaseguro). El transporte también es más limitado (10 viajes/año vs 22-48 en otros planes) y no tiene el beneficio "Essential Extras". A cambio, ofrece la reducción de prima de Parte B más alta del sistema ($62/mes) y cobertura adicional de Sildenafil. Doc: Y0114_27_3021098_0147_U_M / H4161_012-000_CA_HMO-POS. Servicio al Miembro: 1-844-591-2082 (TTY 711).',
+            ];
+            $_cols = array_keys($_caremorePremium);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_caremorePremium));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
