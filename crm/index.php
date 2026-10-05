@@ -5561,10 +5561,13 @@ try {
     } catch (Exception $e) {}
     // Semilla: SCAN Classic (HMO) - Orange County 2027 — mismo plan "SCAN
     // Classic" ya cargado para Los Angeles County, pero esta vez para
-    // Orange County (otra área de servicio, Isabel aclaró que es el mismo
-    // plan de otro condado). Se guarda como registro separado porque el
-    // campo "condados" de un plan solo admite un área de servicio. Datos
-    // del Summary of Benefits 2027 (Orange County) que subió Isabel.
+    // Orange County (otra área de servicio). Se guarda como registro
+    // separado porque el campo "condados" de un plan solo admite una zona
+    // de servicio. Datos del verdadero Summary of Benefits 2027 de Orange
+    // County (Doc Y0057_SCAN_22431_2027_M) que subió Isabel — el primer
+    // archivo que ella etiquetó como "Orange County" resultó ser en
+    // realidad el de Los Angeles County 2026 (ya estaba en el sistema), así
+    // que esta semilla usa los datos reales y correctos de Orange County.
     try {
         $_scanClassicOrange_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
         $_scanClassicOrange_existe->execute(['SCAN Classic (HMO) - Orange County', 2027]);
@@ -5573,12 +5576,12 @@ try {
                 'nombre_plan'=>'SCAN Classic (HMO) - Orange County','carrier'=>'SCAN Health Plan','tipo'=>'HMO',
                 'numero_plan'=>'','condados'=>'Orange County, California',
                 'anio'=>2027,
-                'requisito_elegibilidad'=>"Tener Medicare Parte A y Parte B\nVivir en el área de servicio (Orange County) — es el mismo plan \"SCAN Classic\" que ya está en el sistema para Los Angeles County, pero esta es la versión de Orange County\nSer ciudadano de EE.UU. o estar presente legalmente",
+                'requisito_elegibilidad'=>"Tener Medicare Parte A y Parte B\nVivir en el área de servicio (Orange County) — es el mismo plan \"SCAN Classic\" que ya está en el sistema para Los Angeles County, pero esta es la versión de Orange County, con su propio documento y algunos beneficios distintos\nSer ciudadano de EE.UU. o estar presente legalmente",
                 'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
                 'reembolso_parte_b'=>'No incluido en este plan',
                 'deducible'=>'Sin deducible para servicios médicos',
                 'deducible_parte_d'=>'$370 — paga el costo completo de medicamentos Nivel 3 a 5 hasta pagar $370',
-                'moop'=>'$299 al año (no incluye medicamentos recetados)',
+                'moop'=>'$399 al año (no incluye medicamentos recetados) — más alto que el de Los Angeles County ($299)',
                 'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
                 'hospital_internado'=>"$0 copago, días ilimitados por admisión\n(autorización previa puede aplicar)",
                 'hospital_ambulatorio'=>"$0-$50 copago por visita (hospital ambulatorio)\n$0 servicios de observación",
@@ -5589,7 +5592,7 @@ try {
                 'atencion_emergencia'=>"$115 copago por visita\n(se exime si es admitido al hospital; cubierto en todo el mundo a tarifas de Medicare Original)",
                 'servicios_urgentes'=>'$0 (cubierto en todo el mundo a tarifas de Medicare Original)',
                 'emergencia_mundial'=>'Cubierto a tarifas de reembolso de Medicare Original',
-                'ambulancia'=>'$200 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea)',
+                'ambulancia'=>'$100 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea) — la mitad de lo que cuesta en Los Angeles County ($200)',
                 'diagnostico_laboratorio'=>'$0 (laboratorio y pruebas/procedimientos diagnósticos)',
                 'rayos_x'=>'$0 (rayos X ambulatorios y radiología diagnóstica, ej. MRI/CT)',
                 'radiologia_terapeutica'=>'20% del costo total',
@@ -5598,7 +5601,7 @@ try {
                 'dental_preventivo'=>"$0 servicios dentales cubiertos por Medicare (autorización previa)\nRutina — Exámenes orales: $0 (2 cada 12 meses)\nRayos X (bitewing): $0 (2 cada 12 meses)\nLimpieza: $0 (2 cada 12 meses)\nFluoruro: $0 (2 cada 12 meses)",
                 'dental_integral'=>"Restaurativo: $8-$395\nEndodoncia: $5-$395\nPeriodoncia: $0-$380\nProstodoncia removible: $13-$395\nProstodoncia fija: $25-$395\nCirugía oral/maxilofacial: $0-$140\n(Sin beneficio máximo anual)\nOpcional Dental Buy Up: +$55/mes — red Delta Dental Medicare Advantage EPO",
                 'examen_vision'=>"$0 examen cubierto por Medicare (diagnóstico)\n$0 lentes después de cirugía de cataratas\n$0 hasta 1 examen de rutina al año",
-                'anteojos'=>"Asignación anual: $100 (proveedor EyeMed Select) o $150 (proveedor EyeMed PLUS)\nCubre armazones, lentes/opciones o lentes de contacto cada 12 meses",
+                'anteojos'=>"Asignación anual: $150 (proveedor EyeMed Select) o $200 (proveedor EyeMed PLUS) — más alta que la de Los Angeles County ($100/$150)\nCubre armazones, lentes/opciones o lentes de contacto cada 12 meses",
                 'salud_mental_internado'=>'$0 por día, días 1-90 (autorización previa; hasta 90 días por período de beneficio)',
                 'salud_mental_ambulatorio'=>'$0 por visita individual/grupal, y $0 por visita con psiquiatra',
                 'enfermeria_especializada'=>"$0 días 1-20\n$50 copago por día, días 21-100\n(hasta 100 días por período de beneficio, no requiere hospitalización previa)",
@@ -5613,21 +5616,41 @@ try {
                 'rx_nivel6'=>'',
                 'rx_insulina'=>"No más de $35 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible\n$0 durante la Etapa de Cobertura Catastrófica",
                 'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo en todas las etapas',
-                'otc_mensual'=>'$90 por trimestre con tarjeta FlexEssentials (CVS o entrega a domicilio; no se acumula al siguiente trimestre)',
+                'otc_mensual'=>'$65 por trimestre con tarjeta FlexEssentials (CVS o entrega a domicilio; NO se acumula al siguiente trimestre) — más bajo que el de Los Angeles County ($90/trimestre, que sí se acumula)',
                 'gimnasio'=>'$0 — beneficio de acondicionamiento físico con One Pass (membresías de gimnasio, clases virtuales y comunitarias)',
                 'pers'=>'$0 — dispositivo de respuesta a emergencias y monitoreo (NationsResponse)',
-                'quiropractico_acupuntura'=>'$0 ambos — quiropráctico y acupuntura cubiertos por Medicare (autorización previa)',
+                'quiropractico_acupuntura'=>"Cubierto por Medicare: $0 ambos (quiropráctico y acupuntura)\nRutina: SOLO acupuntura — $15 copago por visita, hasta 30 visitas al año. Este plan de Orange County NO ofrece quiropráctico de RUTINA (a diferencia de Los Angeles County, donde acupuntura y quiropráctico de rutina comparten un beneficio combinado de $5/visita, 30 visitas/año)",
                 'podologia'=>'',
                 'telesalud'=>'$0 — atención urgente y salud conductual por teléfono o video',
                 'dme'=>'$0 — equipo médico duradero, prótesis, suministros para diabéticos y monitores continuos de glucosa',
-                'apoyo_hogar'=>'No cubierto en SCAN Classic (sí disponible en SCAN Prime: hasta 40 horas/año)',
-                'comidas_post_hospital'=>'',
+                'apoyo_hogar'=>"$0 — hasta 40 horas de cuidado personal en el hogar al año (la MITAD que en Los Angeles County, que da 80 horas), tras hospitalización, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades de la vida diaria\n$0 — hasta 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+                'comidas_post_hospital'=>'No cubierto en este plan — a diferencia de Los Angeles County, que sí da 84 comidas al año tras hospitalización y 84 comidas al año por condición crónica',
                 'extras_json'=>"Best Buy Health Tech: $0 soporte tecnológico (teléfono, remoto o en tiendas Best Buy)\nMedicamentos Parte B: no más de 20% de coaseguro para quimioterapia y otros medicamentos de Parte B",
-                'notas'=>'Resumen de Beneficios 2027 (SBC), Orange County. Es el MISMO plan "SCAN Classic (HMO)" que ya está en el sistema para Los Angeles County — Isabel confirmó que es el mismo plan, solo que esta versión del documento es para el área de servicio de Orange County. Se guardó como un registro separado (con "- Orange County" en el nombre) porque el sistema solo permite una zona de servicio por registro; los beneficios de este Summary of Benefits son iguales a los de la versión de Los Angeles County. Doc: Y0057_SCAN_22430_2027_M. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Orange County. Es el MISMO plan "SCAN Classic (HMO)" que ya está en el sistema para Los Angeles County, pero con su propio documento (contrato H5425-007 vs H5425-006 de LA) y varios beneficios distintos. Se guardó como un registro separado (con "- Orange County" en el nombre) porque el sistema solo permite una zona de servicio por registro. Diferencias reales frente a Los Angeles County: MOOP más alto ($399 vs $299), ambulancia más barata ($100 vs $200), asignación de anteojos de rutina más alta ($150/$200 vs $100/$150), beneficio de OTC más bajo y sin acumulación ($65/trimestre vs $90/trimestre), cuidado personal en el hogar reducido a la mitad (40 horas/año vs 80), y Orange County NO incluye el beneficio de comidas a domicilio (Meals) ni el beneficio de quiropráctico de rutina que sí tiene Los Angeles County — solo ofrece acupuntura de rutina por separado ($15/visita, 30 visitas/año). Doc: Y0057_SCAN_22431_2027_M. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
             ];
             $_colsScanOC = array_keys($_scanClassicOrange);
             $_insScanOC = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsScanOC).") VALUES (".implode(',', array_fill(0, count($_colsScanOC), '?')).")");
             $_insScanOC->execute(array_values($_scanClassicOrange));
+        } else {
+            // Corrección única: la primera vez se insertó este plan con los
+            // datos de Los Angeles County por error (el primer archivo que
+            // Isabel etiquetó como "Orange County" resultó ser en realidad
+            // el de Los Angeles County 2026). Si la fila ya existe con los
+            // datos viejos, la actualizamos con los datos reales de Orange
+            // County del documento correcto (Y0057_SCAN_22431_2027_M).
+            $_scanOC_fix = [
+                'moop'=>'$399 al año (no incluye medicamentos recetados) — más alto que el de Los Angeles County ($299)',
+                'ambulancia'=>'$100 copago por viaje de ida (autorización previa para no urgencias y ambulancia aérea) — la mitad de lo que cuesta en Los Angeles County ($200)',
+                'anteojos'=>"Asignación anual: $150 (proveedor EyeMed Select) o $200 (proveedor EyeMed PLUS) — más alta que la de Los Angeles County ($100/$150)\nCubre armazones, lentes/opciones o lentes de contacto cada 12 meses",
+                'otc_mensual'=>'$65 por trimestre con tarjeta FlexEssentials (CVS o entrega a domicilio; NO se acumula al siguiente trimestre) — más bajo que el de Los Angeles County ($90/trimestre, que sí se acumula)',
+                'quiropractico_acupuntura'=>"Cubierto por Medicare: $0 ambos (quiropráctico y acupuntura)\nRutina: SOLO acupuntura — $15 copago por visita, hasta 30 visitas al año. Este plan de Orange County NO ofrece quiropráctico de RUTINA (a diferencia de Los Angeles County, donde acupuntura y quiropráctico de rutina comparten un beneficio combinado de $5/visita, 30 visitas/año)",
+                'apoyo_hogar'=>"$0 — hasta 40 horas de cuidado personal en el hogar al año (la MITAD que en Los Angeles County, que da 80 horas), tras hospitalización, reemplazo de cadera/rodilla, o para ayudar con 2+ actividades de la vida diaria\n$0 — hasta 20 horas al año de cuidado de relevo (respite care) para cuidadores no pagados",
+                'comidas_post_hospital'=>'No cubierto en este plan — a diferencia de Los Angeles County, que sí da 84 comidas al año tras hospitalización y 84 comidas al año por condición crónica',
+                'notas'=>'Resumen de Beneficios 2027 (SBC), Orange County. Es el MISMO plan "SCAN Classic (HMO)" que ya está en el sistema para Los Angeles County, pero con su propio documento (contrato H5425-007 vs H5425-006 de LA) y varios beneficios distintos. Se guardó como un registro separado (con "- Orange County" en el nombre) porque el sistema solo permite una zona de servicio por registro. Diferencias reales frente a Los Angeles County: MOOP más alto ($399 vs $299), ambulancia más barata ($100 vs $200), asignación de anteojos de rutina más alta ($150/$200 vs $100/$150), beneficio de OTC más bajo y sin acumulación ($65/trimestre vs $90/trimestre), cuidado personal en el hogar reducido a la mitad (40 horas/año vs 80), y Orange County NO incluye el beneficio de comidas a domicilio (Meals) ni el beneficio de quiropráctico de rutina que sí tiene Los Angeles County — solo ofrece acupuntura de rutina por separado ($15/visita, 30 visitas/año). Doc: Y0057_SCAN_22431_2027_M. Servicio al Miembro: 1-800-559-3500 (TTY 711).',
+            ];
+            $_setSql = implode(',', array_map(function($k){ return "$k=?"; }, array_keys($_scanOC_fix)));
+            $_updScanOC = $pdo->prepare("UPDATE planes_comparacion SET $_setSql WHERE nombre_plan=? AND anio=?");
+            $_updScanOC->execute(array_merge(array_values($_scanOC_fix), ['SCAN Classic (HMO) - Orange County', 2027]));
         }
     } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
