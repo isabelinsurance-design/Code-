@@ -4091,6 +4091,77 @@ try {
             $_ins->execute(array_values($_caremoreMA));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem Prime (HMO-POS) 2027 — Los Angeles y Orange County.
+    // Mismo contrato H4161 que Premium Savings y Medicare Advantage, pero
+    // bajo la marca "Anthem Prime" (no CareMore) — no incluye el programa
+    // Special Access to CareMore Health. Plan general sin requisito de
+    // condición especial. Décimo plan de Anthem en el sistema. Datos del
+    // Summary of Benefits que subió Isabel.
+    try {
+        $_anthemPrime_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_anthemPrime_existe->execute(['Anthem Prime (HMO-POS)', 2027]);
+        if (!$_anthemPrime_existe->fetch()) {
+            $_anthemPrime = [
+                'nombre_plan'=>'Anthem Prime (HMO-POS)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO-POS',
+                'numero_plan'=>'H4161_009-000_CA_HMO-POS','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nIMPORTANTE: si elige un médico primario que pertenece a un grupo médico o asociación de práctica independiente (IPA), los especialistas, proveedores y hospitales disponibles pueden estar LIMITADOS solo a los contratados con ese grupo/IPA específico — verificar esto con el cliente al elegir médico primario",
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$490 — el deducible de Parte D más alto de todos los planes de Anthem en el sistema. Aplica a medicamentos de Nivel 3 (Marca Preferida), Nivel 4 (No Preferido) y Nivel 5 (Especialidad); no aplica a insulina',
+                'moop'=>'$800 al año, de médicos y centros dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 copago por estadía; días ilimitados',
+                'hospital_ambulatorio'=>'$0 copago',
+                'centro_quirurgico_ambulatorio'=>'$0 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 copago',
+                'atencion_preventiva'=>'$0 copago — 100% cubierto en exámenes preventivos y examen físico anual. Incluye lista extensa: aneurisma aórtico, visita de bienestar anual, densidad ósea, mamografía, cáncer colorrectal, depresión, diabetes, VIH, vacunas, nutrición médica, PrEP, próstata, Hepatitis C, cáncer de pulmón (LDCT), ITS, dejar de fumar, visión, visita "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$150 copago (se exime si se admite al hospital dentro de 24 horas)',
+                'servicios_urgentes'=>'$25 copago',
+                'emergencia_mundial'=>'$150 copago — cobertura de emergencia y urgencia en todo el mundo (incluye transporte de emergencia) en viajes de menos de 6 meses; límite de $100,000 al año',
+                'ambulancia'=>'$175 copago por viaje, terrestre/acuática o aérea — el más caro de todos los planes de Anthem en el sistema',
+                'diagnostico_laboratorio'=>'$0 copago laboratorio, pruebas y procedimientos diagnósticos; $50 copago para CT/MRI/MRA/PET en consultorio u hospital ambulatorio; ultrasonidos $0 copago',
+                'rayos_x'=>'$0 copago (consultorio médico, hospital ambulatorio, centro independiente o rayos X portátil a domicilio)',
+                'radiologia_terapeutica'=>'20% coaseguro (ej. radioterapia para cáncer) — a diferencia de otros planes de Anthem, que cobran un copago fijo',
+                'examen_auditivo'=>'$0 copago examen diagnóstico (cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — $0 copago hasta el máximo',
+                'dental_preventivo'=>"$0 copago dentro de la red; 20% coaseguro fuera de la red\nCubre 2 exámenes, 2 limpiezas, 2 tratamientos de flúor y 2 radiografías dentales al año\nAsignación combinada (preventivo + integral): SOLO $200 al año — la más baja de todos los planes de Anthem en el sistema",
+                'dental_integral'=>'25% coaseguro dentro de la red; 50% coaseguro fuera de la red. Incluido en la asignación combinada de $200 al año',
+                'examen_vision'=>'$0 copago (examen cubierto por Medicare); $0 hasta 1 examen de rutina al año',
+                'anteojos'=>'$0 copago (anteojos/lentes de contacto cubiertos por Medicare tras cirugía de cataratas); hasta $75 al año para anteojos o lentes de contacto de rutina — el monto más bajo de todos los planes de Anthem en el sistema',
+                'salud_mental_internado'=>'$0 copago por estadía; días ilimitados',
+                'salud_mental_ambulatorio'=>'$25 copago por visita individual/grupal',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $221 por día — el copago más alto de todos los planes de Anthem en el sistema — hasta 100 días por período de beneficio',
+                'terapia_fisica_habla'=>'$0 copago terapia física. Este documento no menciona terapia ocupacional ni del habla por separado aquí',
+                'transporte'=>'$0 copago — SOLO 2 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan (límite de 60 millas por viaje) — el número más bajo de todos los planes de Anthem en el sistema, y sin viajes ilimitados a ubicaciones seleccionadas',
+                'rx_deducible'=>'$490 (Nivel 3 a 5) — el más alto del sistema',
+                'rx_nivel1'=>'$0 minorista preferido / $0 minorista estándar / $0 por correo (suministro de 100 días)',
+                'rx_nivel2'=>'$0 minorista preferido / $0 minorista estándar / $0 por correo (suministro de 100 días) — a diferencia de otros planes de Anthem, que cobran $10 en minorista estándar',
+                'rx_nivel3'=>'20% minorista preferido / 25% minorista estándar / 20% por correo',
+                'rx_nivel4'=>'27% en todas las modalidades',
+                'rx_nivel5'=>'28% minorista (preferido y estándar); no disponible por correo',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel; insulina por bomba (Parte B) $35 copago',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'$30 cada trimestre (no mensual) en tarjeta prepagada — el monto más bajo de todos los planes de Anthem en el sistema',
+                'gimnasio'=>'No se menciona en este documento (sin SilverSneakers, a diferencia de los planes CareMore de Anthem)',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$0 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico bajo ciertas circunstancias); $0 copago acupuntura de RUTINA, hasta 24 visitas al año (muy generoso)\n$0 copago quiropráctico cubierto por Medicare (corrección de subluxación); $0 copago quiropráctico de rutina, hasta 12 visitas al año',
+                'podologia'=>'$0 copago tratamiento cubierto por Medicare (daño de nervios por diabetes u otras condiciones); $0 copago cuidado rutinario de pies, hasta 12 visitas al año',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago si el equipo vale $99.99 o menos; 20% coaseguro si vale $100 o más (sillas de ruedas, oxígeno, etc.) — el umbral de "artículo barato" es mucho más bajo que en otros planes de Anthem ($499.99), por lo que menos artículos califican para el copago de $0. Mismo esquema para suministros médicos y prótesis',
+                'apoyo_hogar'=>'Home Health Care: $0 copago. Este documento NO incluye el programa "Special Access to CareMore Health" que sí tienen los planes CareMore de Anthem (manejo de insuficiencia cardíaca, enfermedad renal, EPOC, diabetes, etc.) — Anthem Prime no está asociado con CareMore',
+                'comidas_post_hospital'=>'No se menciona en este documento (no incluye el beneficio Healthy Meals que sí tienen los planes CareMore de Anthem)',
+                'extras_json'=>"Cobertura de medicamentos mejorada (Enhanced Drug Coverage): incluye Sildenafil, límite 6 tabletas al mes, al copago de Nivel 1\nMonitores continuos de glucosa, glucómetros, tiras y lancetas: $0 COPAGO (mejor que otros planes de Anthem, que cobran 20%)\nDiálisis renal: 20% coaseguro\nRehabilitación cardíaca, pulmonar y terapia ocupacional: $0 copago (máximo 2 sesiones de 1 hora al día, hasta 36 sesiones)\nTratamiento ambulatorio de abuso de sustancias: $25 copago (a diferencia de otros planes de Anthem, que cobran $0)\nLínea de Enfermería 24/7: $0 copago\nMedicamentos de Parte B: insulina por bomba $35 copago; otros medicamentos de Parte B y quimioterapia: $0 copago - 20% coaseguro\nPaquetes dentales/visión OPCIONALES con prima extra: Paquete 1 Dental Preventivo ($12/mes, máximo $500/año); Paquete 2 Dental y Visión ($31/mes, máximo $1,000 dental + $150 visión); Paquete 3 Dental y Visión Mejorado ($38/mes, máximo $2,000 dental + $200 visión, incluye coronas y dentaduras)\n2026 Star Rating (contrato H4161): General 3 de 5 estrellas; Servicios de Salud 3 de 5; Servicios de Medicamentos 2.5 de 5",
+                'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange County. DÉCIMO plan de Anthem Blue Cross en el sistema, mismo contrato H4161 que Premium Savings y Medicare Advantage, pero bajo la marca "Anthem Prime" (NO es un plan CareMore) — sin el programa Special Access to CareMore Health ni el beneficio Healthy Meals. Plan Medicare Advantage general (sin requisito de condición especial). Puntos débiles a destacar: deducible de Parte D más alto del sistema ($490), transporte muy limitado (solo 2 viajes al año), enfermería especializada con copago alto ($221/día después del día 20), ambulancia cara ($175/viaje), asignación dental muy baja ($200/año), anteojos de rutina de solo $75/año, y sin SilverSneakers. Puntos fuertes: MOOP bajo ($800), acupuntura de rutina generosa (24 visitas/año a $0), monitores de diabetes a $0 copago, y Nivel 2 de medicamentos a $0 en todas las modalidades. IMPORTANTE: advertir al cliente sobre la red limitada por IPA/grupo médico si su PCP pertenece a uno — los especialistas y hospitales disponibles pueden estar restringidos a esa red específica. Sin año anterior para comparar con ANOC (se muestra como NUEVO). Doc: Y0114_27_3021098_0103_U_M / H4161_009-000_CA_HMO-POS. Servicio al Miembro: 1-844-591-2082 (TTY 711).',
+            ];
+            $_cols = array_keys($_anthemPrime);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_anthemPrime));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
