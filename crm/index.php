@@ -4380,6 +4380,76 @@ try {
             $_ins->execute(array_values($_caremoreMA2));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem Full Dual Advantage Aligned (HMO D-SNP) 2026 — Los
+    // Angeles County. Año anterior del mismo plan que ya está en el
+    // sistema para 2027 — con esto el plan deja de mostrarse como NUEVO
+    // y queda emparejado para comparación ANOC. Datos del Summary of
+    // Benefits 2026 que subió Isabel.
+    try {
+        $_anthemFullDual2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_anthemFullDual2026_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP)', 2026]);
+        if (!$_anthemFullDual2026_existe->fetch()) {
+            $_anthemFullDual2026 = [
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'H4471_010-001_CA_HMO D-SNP','condados'=>'Los Angeles, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>'Plan "Medi-Medi" para doble elegibilidad — requiere tener Medicare Y Medi-Cal completo, ser mayor de 21 años, y vivir en el área de servicio (Los Angeles County)',
+                'prima_mensual'=>'$0/mes — al tener Medi-Cal, no paga ninguna prima mensual, incluyendo la de Medicare Parte B (Medi-Cal la cubre directamente)',
+                'reembolso_parte_b'=>'No aplica como reembolso del plan — Medi-Cal paga la prima de Parte B directamente, el miembro no paga nada',
+                'deducible'=>'$0 (no tiene deducible médico — sin costos compartidos de ningún tipo para servicios médicos)',
+                'deducible_parte_d'=>'$0 si recibe Ayuda Adicional/Extra Help (la mayoría de los miembros con doble elegibilidad la reciben automáticamente). Si NO califica para Ayuda Adicional: $615 (Nivel 3, 4 y 5) — no aplica a insulina ni a la mayoría de las vacunas de adultos',
+                'moop'=>'$0 al año — no hay costos compartidos para servicios médicos, así que el gasto máximo de bolsillo es $0',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — más bajo que el umbral de 2027 ($2,400)',
+                'hospital_internado'=>'$0 copago por estadía. Cubre 90 días por hospitalización, más 60 "días de reserva de por vida" adicionales',
+                'hospital_ambulatorio'=>'$0 copago, incluyendo observación',
+                'centro_quirurgico_ambulatorio'=>'$0 copago',
+                'medico_primario'=>'$0 copago',
+                'especialistas'=>'$0 copago',
+                'atencion_preventiva'=>'$0 copago — visitas de bienestar, exámenes físicos, vacunas contra la gripe, exámenes para detectar cáncer, visita única "Bienvenido a Medicare"',
+                'atencion_emergencia'=>'$0 copago — cubre emergencias dentro y fuera de la red, sin necesidad de referencia ni autorización previa',
+                'servicios_urgentes'=>'$0 copago — no requiere autorización previa ni estar dentro de la red',
+                'emergencia_mundial'=>'$0 copago — cobertura de emergencia y urgencia en todo el mundo en viajes de menos de 6 meses; límite combinado de $100,000 al año para emergencia y urgencia mundial',
+                'ambulancia'=>'$0 copago (terrestre, acuática o aérea); el proveedor debe obtener aprobación del plan antes de un traslado que no sea de emergencia',
+                'diagnostico_laboratorio'=>'$0 copago — pruebas de laboratorio y procedimientos diagnósticos como análisis de sangre',
+                'rayos_x'=>'$0 copago — servicios de radiología diagnóstica (rayos X, CT, MRI)',
+                'radiologia_terapeutica'=>'$0 copago (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0 copago — 1 examen auditivo de rutina suplementario al año',
+                'audifonos'=>'$300 monto máximo del plan para audífonos de venta libre (OTC), O 1 evaluación de ajuste y $3,000 monto máximo del plan para audífonos recetados — límite de 1 par de audífonos al año, de cualquier tipo',
+                'dental_preventivo'=>'$0 copago — asignación combinada de $3,000 al año para servicios dentales preventivos y comprensivos suplementarios. Cubre 2 exámenes, 2 limpiezas, 2 tratamientos de flúor y 2 radiografías al año. Lo no usado al final del año expira',
+                'dental_integral'=>'$0 copago — incluido en la asignación combinada de $3,000 al año (restaurativo, endodoncia, periodoncia, cirugía oral). Puentes dentales, imágenes dentales avanzadas, tratamiento de conducto (root canal) y extracciones complejas requieren autorización previa',
+                'examen_vision'=>'$0 copago — 1 examen de rutina al año',
+                'anteojos'=>'$0 copago — hasta $450 al año para anteojos o lentes de contacto',
+                'salud_mental_internado'=>'$0 copago por estadía (mismos términos que hospitalización general: 90 días + 60 días de reserva de por vida)',
+                'salud_mental_ambulatorio'=>'$0 copago — servicios individuales, grupales y comunitarios de salud mental',
+                'enfermeria_especializada'=>'$0 copago — hasta 100 días en un Centro de Enfermería Especializada (SNF), más 80 días adicionales a través de Medi-Cal',
+                'terapia_fisica_habla'=>'$0 copago — terapia ocupacional, física y del habla',
+                'transporte'=>'$0 copago — hasta 96 viajes de ida al año a ubicaciones relacionadas con la salud aprobadas por el plan',
+                'rx_deducible'=>'$615 (Nivel 3 a 5) solo si NO recibe Ayuda Adicional; $0 si sí la recibe',
+                'rx_nivel1'=>'$0 minorista estándar / $0 por correo (este documento no distingue minorista "preferido" de "estándar")',
+                'rx_nivel2'=>'$0 minorista estándar / $0 por correo',
+                'rx_nivel3'=>'$0 a $12.65, o 25% — el monto exacto depende del nivel de Ayuda Adicional que reciba; no disponible por correo para Nivel 5',
+                'rx_nivel4'=>'$0 a $12.65, o 25% — el monto exacto depende del nivel de Ayuda Adicional que reciba',
+                'rx_nivel5'=>'$0 a $12.65, o 25% minorista; no disponible por correo',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Con Ayuda Adicional: $0 a $12.65 por suministro de 1 mes de cada producto de insulina cubierto. Sin Ayuda Adicional: no pagará más de $35 por suministro de 1 mes',
+                'rx_vacunas'=>'La mayoría de vacunas de Parte D para adultos cubiertas sin costo',
+                'otc_mensual'=>'Everyday Options Allowance: $110/mes combinado en tarjeta prepagada (dispositivos de asistencia, víveres saludables*, productos OTC, y servicios públicos*) — no se acumula al siguiente mes. *Víveres y servicios públicos requieren calificar para SSBCI (condición crónica calificada)',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido, MÁS Active Fitness Benefit de $25/mes (golf, natación, tenis)',
+                'pers'=>'$0 copago — incluye el dispositivo de monitoreo y el servicio de monitoreo',
+                'quiropractico_acupuntura'=>'$0 copago quiropráctico cubierto por Medicare (puede requerir autorización previa/referencia); $0 copago acupuntura de rutina, VISITAS ILIMITADAS al año',
+                'podologia'=>'$0 copago — además del cuidado podológico de rutina, este plan cubre visitas de podología NO rutinaria ILIMITADAS al año. Servicios ortóticos: $0 copago',
+                'telesalud'=>'$0 copago — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 copago — sillas de ruedas, muletas, andadores, nebulizadores, equipo y suministros de oxígeno (sin límite de valor para el copago $0)',
+                'apoyo_hogar'=>"Servicios de limpieza y tareas del hogar: $0; modificaciones del hogar (ej. barandales) a través de Everyday Options Allowance\nCuidado diurno para adultos, CBAS (Community Based Adult Services) y habilitación diurna: $0\nServicios para vivir de forma independiente (cuidado de salud en el hogar o asistente de cuidado personal): $0\nCommunity Supports: remediación de asma, transición de centro de enfermería a casa, adaptaciones de accesibilidad del hogar, depósitos de vivienda, servicios de estabilidad de vivienda, navegación de transición de vivienda, comidas médicamente adaptadas, transición a vida asistida, cuidado personal y de ama de llaves, cuidado de recuperación, cuidado de relevo, vivienda temporal post-hospitalización, centros de recuperación (sobering centers) — todo $0\nCalifornia Integrated Care Management (CICM): $0, para personas sin hogar, en riesgo de hospitalización evitable, con necesidades serias de salud mental, en transición de encarcelamiento, en riesgo de institucionalización, en transición de centro de enfermería a la comunidad, embarazadas/posparto, o con necesidades de demencia documentadas",
+                'comidas_post_hospital'=>'Healthy Meals Post-Alta: $0 — hasta 2 comidas al día por 7 días tras alta de hospital o enfermería especializada',
+                'extras_json'=>"Healthy Meals por condición crónica (SSBCI): $0 — hasta 2 comidas al día por HASTA 90 DÍAS (requiere alto riesgo de hospitalización y manejo intensivo de condición crónica: enfermedad renal crónica, trastorno pulmonar crónico, trastorno cardiovascular, insuficiencia cardíaca crónica o diabetes)\nMedicare Community Resource Support: $0 — conexión telefónica a servicios y programas de apoyo comunitario\nSuministros y servicios para diabetes: $0\nServicios protésicos: $0\nServicios para ayudar a manejar su enfermedad: $0\nLínea de Enfermería 24/7: $0 — 1-855-658-9249\n2026 Star Rating (contrato H4471): General 3 de 5 estrellas; Servicios de Salud 3 de 5; Servicios de Medicamentos 3 de 5",
+                'notas'=>'Resumen de Beneficios 2026, Los Angeles County — este es el AÑO ANTERIOR del plan "Anthem Full Dual Advantage Aligned (HMO D-SNP)" que ya está en el sistema para 2027; con este registro el plan deja de mostrarse como NUEVO y queda emparejado correctamente para comparación año a año (ANOC). Es un plan D-SNP de doble elegibilidad total: $0 en absolutamente todos los servicios médicos (MOOP de $0). Principales diferencias frente a 2027: umbral catastrófico de Parte D más bajo ($2,100 en 2026 vs $2,400 en 2027), asignación dental de $3,000 (vs $4,000 en 2027), anteojos hasta $450 (vs $350 en 2027), y este documento SÍ detalla el deducible de Parte D para quien no recibe Ayuda Adicional ($615). Destaca la acupuntura y podología no rutinaria SIN LÍMITE de visitas, Everyday Options Allowance de $110/mes, Active Fitness Benefit de $25/mes, y una lista extensa de Community Supports (vivienda, comidas médicamente adaptadas, cuidado de relevo). Doc: H4471_26_3015669_0228_R_M / H4471_010-001_CA_HMO D-SNP. Servicio al Miembro: 1-833-897-1342 (TTY 711).',
+            ];
+            $_cols = array_keys($_anthemFullDual2026);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_anthemFullDual2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
