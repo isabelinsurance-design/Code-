@@ -5782,6 +5782,138 @@ try {
             $_ins->execute(array_values($_align2_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: Alignment Health Smart 047/055/056 (HMO) 2027 — mismo
+    // contrato/PBP que los planes "L.A. Premium Giveback" (055), "S.D.
+    // Premium Giveback" (056) y "smartSavings" (047) ya cargados para 2026,
+    // pero Alignment Health RENOMBRÓ los 3 planes a "Alignment Health Smart
+    // 047/055/056 (HMO)" para 2027 — mismo PBP y condados, nombre distinto.
+    // Por eso el sistema los mostrará como "NUEVO" (el emparejamiento ANOC
+    // es por nombre_plan+año) aunque en realidad son la continuación de los
+    // mismos planes. Datos del Summary of Benefits que subió Isabel.
+    $_align3_base_2027 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO','anio'=>2027,
+        'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$700.00 para Nivel 4 y Nivel 5 — este deducible es NUEVO en 2027 (en 2026 el plan 047 y el 055 no tenían deducible de Parte D)',
+        'rx_deducible'=>'$700.00 (Nivel 4 y 5)',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — más alto que en 2026 ($2,100.00)',
+        'hospital_ambulatorio'=>"\$200.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+        'medico_primario'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'servicios_urgentes'=>'$0.00',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas, laboratorio y diagnóstico)',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional, ver extras_json)',
+        'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'enfermeria_especializada'=>"\$20.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'otc_mensual'=>'No incluido en el plan base — la tarjeta ACCESS On-Demand Concierge (incluida) da acceso a beneficios de venta libre y Healthy Rewards, pero el documento no especifica un monto fijo mensual/trimestral',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: $0.00)',
+        'podologia'=>'$5.00 — cubierto por Medicare',
+        'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos (en 2026 la telesalud de salud mental/psiquiatría era $0.00 — ahora tiene copago)',
+        'apoyo_hogar'=>'No se menciona en este documento',
+        'comidas_post_hospital'=>'No se menciona en este documento',
+        'notas'=>'Resumen de Beneficios 2027. Alignment Health RENOMBRÓ este plan — en 2026 se llamaba distinto (ver notas de cada plan) pero es el mismo PBP y la misma área de servicio. Doc: Y0141_27276EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+    ];
+    $_align3_variantes_2027 = [
+        '047' => [
+            'nombre_plan'=>'Alignment Health Smart 047 (HMO)','numero_plan'=>'047',
+            'condados'=>'Los Angeles, Orange, Riverside, San Bernardino y San Diego, California',
+            'prima_mensual'=>'$0.00/mes. Es un plan "Giveback": reduce su prima de Medicare Parte B en $146.00/mes',
+            'reembolso_parte_b'=>'$146.00/mes de reducción en la prima de Parte B — un poco más bajo que en 2026 ($150.00/mes, cuando el plan se llamaba "smartSavings")',
+            'moop'=>'$2,899.00 al año (no incluye medicamentos recetados) — igual que en 2026',
+            'hospital_internado'=>"\$120.00 por día, días 1-5\n\$0.00 por día, días 6-90\n(días ilimitados por admisión) — igual que en 2026",
+            'centro_quirurgico_ambulatorio'=>'$50.00 — igual que en 2026',
+            'especialistas'=>'$5.00',
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — SUBIÓ frente a 2026, cuando era $110.00',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $25,000.00 al año — igual que en 2026; el Complete Package opcional agrega $75,000.00 adicionales de límite',
+            'ambulancia'=>'$100.00 terrestre / $200.00 aérea (se exime si es admitido) — igual que en 2026',
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00\nIncluido en el plan base (igual que en 2026)",
+            'anteojos'=>'Límite de $200.00/año para anteojos Y además $100.00/año para lentes de contacto (por separado) — igual que en 2026',
+            'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\" — igual que en 2026",
+            'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental) — SUBIÓ frente a 2026, cuando era $10.00. Servicios psiquiátricos: $20.00 (igual)',
+            'terapia_fisica_habla'=>'$0.00 — igual que en 2026',
+            'transporte'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: 24 viajes de ida al año, radio de 30 millas)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días) — igual que en 2026',
+            'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días) — copago fijo, igual que en 2026',
+            'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo — BAJÓ frente a 2026, cuando era 33%',
+            'quiropractico_acupuntura'=>'$10.00 cubierto por Medicare (quiropráctico); $0.00 cubierto por Medicare (acupuntura). Sin beneficio de RUTINA — igual que en 2026',
+            'dme'=>'20% de coaseguro en todos los artículos — igual que en 2026',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nCOMPLETE PACKAGE (opcional, +\$64.90/mes): dental integral (0% diagnóstico, 50% en TODOS los demás servicios incluyendo prostodoncia removible y fija; límite \$1,500/año), audífonos \$195-\$1,750 copago c/u (2 al año), PERS \$0.00, transporte 24 viajes/año (radio 30 millas), cobertura mundial de emergencia adicional de \$75,000/año",
+            'notas'=>'Resumen de Beneficios 2027, Los Angeles, Orange, Riverside, San Bernardino y San Diego. Este plan se llamaba "Alignment Health smartSavings (HMO)" en 2026 (mismo PBP 047, mismos condados) — Alignment lo renombró a "Alignment Health Smart 047 (HMO)" para 2027. Como el nombre cambió, el sistema lo muestra como "🆕 NUEVO" en vez de emparejarlo con la versión 2026 para comparación ANOC — pero es la continuación del mismo plan. Diferencias reales 2026 vs 2027: sube la reducción de Parte B un poco menos ($146 vs $150), sube bastante la atención de emergencia ($150 vs $110), sube la especialidad de salud mental ($20 vs $10), aparece un deducible de Parte D nuevo ($700 en Nivel 4-5, antes no había), y sube el umbral catastrófico ($2,400 vs $2,100) — todo a favor de 2026. A favor de 2027: el Rx Nivel 5 baja a 25% (vs 33% en 2026). Doc: Y0141_27276EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '055' => [
+            'nombre_plan'=>'Alignment Health Smart 055 (HMO)','numero_plan'=>'055',
+            'condados'=>'Los Angeles County, California',
+            'prima_mensual'=>'$0.00/mes. Es un plan "Giveback": reduce su prima de Medicare Parte B en $197.00/mes',
+            'reembolso_parte_b'=>'$197.00/mes de reducción en la prima de Parte B — SUBIÓ frente a 2026 ($185.00/mes, cuando el plan se llamaba "L.A. Premium Giveback")',
+            'moop'=>'$2,400.00 al año (no incluye medicamentos recetados) — igual que en 2026',
+            'hospital_internado'=>"\$0.00 por día, días 1-5\n\$200.00 por día, días 6-10\n\$0.00 por día, días 11-90\n(días ilimitados por admisión) — igual que en 2026",
+            'centro_quirurgico_ambulatorio'=>'$100.00 — igual que en 2026',
+            'especialistas'=>'$5.00',
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — igual que en 2026',
+            'emergencia_mundial'=>'$90.00 copago de emergencia / $0.00 copago de urgencia, límite de $25,000.00 al año (se exime si es admitido) — igual que en 2026; el Complete Package opcional agrega $75,000.00 adicionales de límite',
+            'ambulancia'=>'$155.00 (terrestre y aérea) — AHORA se exime si es admitido (en 2026 NO se eximía)',
+            'dental_integral'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional, con prima adicional de $64.90/mes) — igual que en 2026',
+            'anteojos'=>'Límite de cobertura de $150.00 para anteojos/lentes de contacto combinados, cada 2 años — igual que en 2026',
+            'salud_mental_internado'=>"\$120.00 por día, días 1-5\n\$0.00 por día, días 6-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\" — igual que en 2026",
+            'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental y servicios psiquiátricos, individual y grupal) — igual que en 2026',
+            'terapia_fisica_habla'=>'$5.00 — igual que en 2026',
+            'transporte'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: 24 viajes de ida al año, radio de 30 millas)',
+            'rx_nivel3'=>'$42.00 minorista (30 días) / $126.00 correo (100 días) — igual que en 2026',
+            'rx_nivel4'=>'45% de coaseguro (minorista 30 días y correo 100 días) — igual que en 2026',
+            'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo — BAJÓ frente a 2026, cuando era 33%',
+            'quiropractico_acupuntura'=>"\$0.00 cubierto por Medicare para ambos\nRutina: \$0.00 por hasta 24 visitas al año combinadas entre quiropráctico y acupuntura — igual que en 2026",
+            'dme'=>'0% de coaseguro para artículos de $350.00 o menos; 20% para artículos de $350.01 o más — igual que en 2026',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nCOMPLETE PACKAGE (opcional, +\$64.90/mes): dental integral (0% diagnóstico, 50% restaurativo/endodoncia/cirugía oral, 0%-50% periodoncia, 0% prostodoncia removible y fija; límite \$1,500/año), audífonos \$195-\$1,750 copago c/u (2 al año), PERS \$0.00, transporte 24 viajes/año (radio 30 millas), cobertura mundial de emergencia adicional de \$75,000/año",
+            'notas'=>'Resumen de Beneficios 2027, Los Angeles County. Este plan se llamaba "Alignment Health L.A. Premium Giveback (HMO)" en 2026 (mismo PBP 055, mismo condado) — Alignment lo renombró a "Alignment Health Smart 055 (HMO)" para 2027. Como el nombre cambió, el sistema lo muestra como "🆕 NUEVO" en vez de emparejarlo con la versión 2026 para comparación ANOC — pero es la continuación del mismo plan. Diferencias reales 2026 vs 2027: SUBE la reducción de Parte B ($197 vs $185 — mejora para el cliente), la ambulancia ahora SÍ se exime si es admitido (antes no), pero aparece un deducible de Parte D nuevo ($700 en Nivel 4-5, antes no había) y sube el umbral catastrófico ($2,400 vs $2,100). A favor de 2027 también: el Rx Nivel 5 baja a 25% (vs 33% en 2026). Doc: Y0141_27276EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '056' => [
+            'nombre_plan'=>'Alignment Health Smart 056 (HMO)','numero_plan'=>'056',
+            'condados'=>'San Diego County, California',
+            'prima_mensual'=>'$0.00/mes. Es un plan "Giveback": reduce su prima de Medicare Parte B en $179.00/mes',
+            'reembolso_parte_b'=>'$179.00/mes de reducción en la prima de Parte B — un poco más bajo que en 2026 ($185.00/mes, cuando el plan se llamaba "S.D. Premium Giveback")',
+            'moop'=>'$2,400.00 al año (no incluye medicamentos recetados) — igual que en 2026',
+            'hospital_internado'=>"\$0.00 por día, días 1-5\n\$200.00 por día, días 6-10\n\$0.00 por día, días 11-90\n(días ilimitados por admisión) — igual que en 2026",
+            'centro_quirurgico_ambulatorio'=>'$100.00 — igual que en 2026',
+            'especialistas'=>'$5.00',
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — igual que en 2026',
+            'emergencia_mundial'=>'$90.00 copago de emergencia / $0.00 copago de urgencia, límite de $25,000.00 al año (se exime si es admitido) — igual que en 2026; el Complete Package opcional agrega $75,000.00 adicionales de límite',
+            'ambulancia'=>'$155.00 (terrestre y aérea) — NO se exime si es admitido, igual que en 2026',
+            'dental_integral'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional, con prima adicional de $64.90/mes) — igual que en 2026',
+            'anteojos'=>'Límite de cobertura de $150.00 para anteojos/lentes de contacto combinados, cada 2 años — igual que en 2026',
+            'salud_mental_internado'=>"\$120.00 por día, días 1-5\n\$0.00 por día, días 6-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\" — igual que en 2026",
+            'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental y servicios psiquiátricos, individual y grupal) — igual que en 2026',
+            'terapia_fisica_habla'=>'$5.00 — igual que en 2026',
+            'transporte'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: 24 viajes de ida al año, radio de 30 millas)',
+            'rx_nivel3'=>'$47.00 minorista (30 días) / $141.00 correo (100 días) — igual que en 2026',
+            'rx_nivel4'=>'45% de coaseguro (minorista 30 días y correo 100 días) — igual que en 2026',
+            'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo — igual que en 2026 (este plan ya tenía 25% desde 2026)',
+            'quiropractico_acupuntura'=>"\$0.00 cubierto por Medicare para ambos\nRutina: \$0.00 por hasta 24 visitas al año combinadas entre quiropráctico y acupuntura — igual que en 2026",
+            'dme'=>'0% de coaseguro para artículos de $350.00 o menos; 20% para artículos de $350.01 o más — igual que en 2026',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nCOMPLETE PACKAGE (opcional, +\$64.90/mes): dental integral (0% diagnóstico, 50% restaurativo/endodoncia/cirugía oral, 0%-50% periodoncia, 0% prostodoncia removible y fija; límite \$1,500/año), audífonos \$195-\$1,750 copago c/u (2 al año), PERS \$0.00, transporte 24 viajes/año (radio 30 millas), cobertura mundial de emergencia adicional de \$75,000/año",
+            'notas'=>'Resumen de Beneficios 2027, San Diego County. Este plan se llamaba "Alignment Health S.D. Premium Giveback (HMO)" en 2026 (mismo PBP 056, mismo condado) — Alignment lo renombró a "Alignment Health Smart 056 (HMO)" para 2027. Como el nombre cambió, el sistema lo muestra como "🆕 NUEVO" en vez de emparejarlo con la versión 2026 para comparación ANOC — pero es la continuación del mismo plan. Diferencias reales 2026 vs 2027: baja un poco la reducción de Parte B ($179 vs $185), sube el deducible de Parte D ($700 vs $615 en Nivel 4-5), y sube el umbral catastrófico ($2,400 vs $2,100) — todo a favor de 2026. El Rx Nivel 5 se mantiene igual (25% en ambos años, a diferencia de los otros 2 planes Alignment que sí bajaron). Doc: Y0141_27276EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align3_variantes_2027 as $_align3_pn => $_align3_overrides) {
+        try {
+            $_align3_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align3_existe->execute([$_align3_overrides['nombre_plan'], 2027]);
+            if ($_align3_existe->fetch()) continue;
+            $_align3_plan = array_merge($_align3_base_2027, $_align3_overrides);
+            $_cols = array_keys($_align3_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align3_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
