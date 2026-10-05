@@ -11222,8 +11222,19 @@ $PLAN_AYUDA = [
 // en las tarjetitas de resumen por aseguranza que pidió Isabel.
 $planes_por_carrier = [];
 foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?: 'SIN ASEGURANZA')][] = $pl; }
-// Pedido de Isabel: si un plan (mismo nombre + aseguranza) solo tiene UN
-// año guardado, puede significar dos cosas MUY distintas:
+// Pedido de Isabel: una aseguranza puede RENOMBRAR un plan de un año a otro
+// (mismo número/código de plan, nombre comercial distinto) — el código no
+// cambia aunque el nombre sí, así que dos registros del mismo plan se
+// identifican por aseguranza+número de plan cuando ese número existe; solo
+// si viene vacío (algunas aseguranzas no lo dan, ej. SCAN) se usa el nombre
+// como respaldo.
+function claveAnocPlan($pl) {
+    $carrier = trim($pl['carrier'] ?: 'SIN ASEGURANZA');
+    $numero = trim($pl['numero_plan'] ?? '');
+    return $carrier.'||'.($numero !== '' ? $numero : trim($pl['nombre_plan']));
+}
+// Si un plan (mismo código + aseguranza) solo tiene UN año guardado, puede
+// significar dos cosas MUY distintas:
 //   1) Ese único año es el más reciente que hay en todo el sistema → es un
 //      plan NUEVO que recién se está ofreciendo (nada raro, falta nomás su
 //      comparación ANOC a futuro).
@@ -11235,7 +11246,7 @@ foreach ($planes_comparacion as $pl) { $planes_por_carrier[trim($pl['carrier'] ?
 $anios_por_plan = [];
 $anio_mas_reciente = null;
 foreach ($planes_comparacion as $pl) {
-    $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
+    $clave_plan = claveAnocPlan($pl);
     $a = trim($pl['anio'] ?: '');
     $anios_por_plan[$clave_plan][$a] = true;
     if ($a !== '' && ($anio_mas_reciente === null || $a > $anio_mas_reciente)) { $anio_mas_reciente = $a; }
@@ -11301,7 +11312,7 @@ krsort($anios_disponibles_planes);
     </div>
     <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:11px">
     <?php foreach ($pc_planes as $pl):
-      $clave_plan = trim($pl['carrier'] ?: 'SIN ASEGURANZA').'||'.trim($pl['nombre_plan']);
+      $clave_plan = claveAnocPlan($pl);
       $anio_de_este_pl = trim($pl['anio'] ?: '');
       $plan_tiene_un_solo_anio = count($anios_por_plan[$clave_plan] ?? []) <= 1;
       $es_plan_nuevo = $plan_tiene_un_solo_anio && $anio_de_este_pl === $anio_mas_reciente;
@@ -11461,6 +11472,11 @@ function showPlanesTab(id){
 }
 function anioDePlan(p){ const n = parseInt(String(p.anio||'').replace(/[^0-9]/g,''), 10); return isNaN(n) ? null : n; }
 function carrierDePlan(p){ return String(p.carrier||'').trim() || 'SIN ASEGURANZA'; }
+// Una aseguranza puede renombrar un plan de un año a otro (mismo número de
+// plan, nombre comercial distinto) — se identifica por número de plan
+// cuando existe; si viene vacío (algunas aseguranzas no lo dan) se usa el
+// nombre como respaldo.
+function claveAnocDePlan(p){ const np = String(p.numero_plan||'').trim(); return np || String(p.nombre_plan||'').trim(); }
 function renderAnocSelectores(){
   const selCarrier = document.getElementById('anoc-carrier');
   const selPlan = document.getElementById('anoc-plan');
@@ -11482,21 +11498,28 @@ function onAnocCarrierChange(){
   const carrier = document.getElementById('anoc-carrier').value;
   const sel = document.getElementById('anoc-plan');
   const delCarrier = PLANES_DATA.filter(p=>carrierDePlan(p)===carrier);
-  const nombres = Array.from(new Set(delCarrier.map(p=>p.nombre_plan))).sort();
-  if(!nombres.length){ sel.innerHTML = '<option value="">— SIN PLANES —</option>'; return; }
+  const claves = Array.from(new Set(delCarrier.map(claveAnocDePlan))).sort();
+  if(!claves.length){ sel.innerHTML = '<option value="">— SIN PLANES —</option>'; return; }
   // Si el plan solo tiene UN año guardado, se avisa en la misma opción con
   // un ícono corto (Isabel pidió solo el nombre del plan, nada de texto
   // largo): ⭐ si es nuevo (su único año es el más reciente del sistema),
-  // ❌ si pudo haberse descontinuado (su único año es viejo).
-  sel.innerHTML = nombres.map(n=>{
-    const anios = Array.from(new Set(delCarrier.filter(p=>p.nombre_plan===n).map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
+  // ❌ si pudo haberse descontinuado (su único año es viejo). Si la
+  // aseguranza renombró el plan de un año a otro (mismo número, nombre
+  // distinto), se muestra el nombre más reciente y se avisa del anterior.
+  sel.innerHTML = claves.map(clave=>{
+    const versiones = delCarrier.filter(p=>claveAnocDePlan(p)===clave)
+      .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
+    const anios = Array.from(new Set(versiones.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
+    const nombreActual = versiones[versiones.length-1].nombre_plan;
+    const nombresDistintos = Array.from(new Set(versiones.map(p=>p.nombre_plan)));
     const esElMasReciente = anios.length === 1 && String(anios[0]) === String(ANIO_MAS_RECIENTE);
     const esPosibleDescontinuado = anios.length === 1 && !esElMasReciente;
-    const etiqueta = anios.length >= 2 ? (n+' — '+anios.join('/'))
-      : esElMasReciente ? ('⭐ '+n)
-      : esPosibleDescontinuado ? ('❌ '+n)
-      : n;
-    return '<option value="'+esc(n)+'">'+esc(etiqueta)+'</option>';
+    let etiqueta = anios.length >= 2 ? (nombreActual+' — '+anios.join('/'))
+      : esElMasReciente ? ('⭐ '+nombreActual)
+      : esPosibleDescontinuado ? ('❌ '+nombreActual)
+      : nombreActual;
+    if(nombresDistintos.length > 1) etiqueta += ' (antes: '+nombresDistintos.slice(0,-1).join(', ')+')';
+    return '<option value="'+esc(clave)+'">'+esc(etiqueta)+'</option>';
   }).join('');
 }
 function mostrarComparacionPlanes(){
@@ -11559,9 +11582,9 @@ function mostrarComparacionPlanes(){
 function mostrarCambiosAnoc(){
  try {
   const carrier = document.getElementById('anoc-carrier').value;
-  const nombrePlan = document.getElementById('anoc-plan').value;
-  if(!carrier || !nombrePlan){ toast('⚠ Elige una aseguranza y un plan'); return; }
-  const versiones = PLANES_DATA.filter(p => carrierDePlan(p)===carrier && p.nombre_plan===nombrePlan)
+  const clavePlan = document.getElementById('anoc-plan').value;
+  if(!carrier || !clavePlan){ toast('⚠ Elige una aseguranza y un plan'); return; }
+  const versiones = PLANES_DATA.filter(p => carrierDePlan(p)===carrier && claveAnocDePlan(p)===clavePlan)
     .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
   if(versiones.length < 2){
     // Pedido de Isabel: un plan NUEVO (solo un año guardado) igual se debe
@@ -11636,7 +11659,10 @@ function mostrarCambiosAnoc(){
   }
 
   let html = '<div class="card" style="overflow-x:auto">';
-  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:10px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+esc(pActual.nombre_plan)+' — '+esc(anioDePlan(pActual))+' → '+esc(anioDePlan(pNuevo))+'</div>';
+  const nombreCambio = pActual.nombre_plan !== pNuevo.nombre_plan
+    ? esc(pActual.nombre_plan)+' → '+esc(pNuevo.nombre_plan)+' (mismo plan, la aseguranza le cambió el nombre)'
+    : esc(pActual.nombre_plan);
+  html += '<div style="padding:11px 14px;background:#F3F0FB;border-bottom:1px solid #C2B0E8;font-size:10px;color:#5B3FAF;font-weight:800;text-transform:uppercase;letter-spacing:.5px">🔄 SOLO LO QUE CAMBIA — '+nombreCambio+' — '+esc(anioDePlan(pActual))+' → '+esc(anioDePlan(pNuevo))+'</div>';
   if(!huboCambios){
     html += '<div style="padding:24px;text-align:center;font-size:10px;color:#7A90A4;text-transform:uppercase">NO HAY CAMBIOS CAPTURADOS ENTRE ESTOS DOS PLANES</div>';
   } else {
