@@ -3445,6 +3445,77 @@ try {
             $_ins->execute(array_values($_villagehealth));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem Full Dual Advantage Aligned (HMO D-SNP) 2027 — Los
+    // Angeles County. Primer plan de Anthem Blue Cross en el sistema
+    // (carrier NUEVO) — plan D-SNP (doble elegible), $0 en casi todo.
+    // Datos del Summary of Benefits que subió Isabel. Al ser carrier
+    // nuevo no tiene año anterior para comparar con ANOC (se muestra
+    // como NUEVO).
+    try {
+        $_anthemFullDual_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_anthemFullDual_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP)', 2027]);
+        if (!$_anthemFullDual_existe->fetch()) {
+            $_anthemFullDual = [
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'H4471_27_3021007_0223_R_M','condados'=>'Los Angeles, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), y vivir en el área de servicio (Los Angeles County)',
+                'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B, salvo que Medi-Cal la pague)',
+                'reembolso_parte_b'=>'No incluido en este plan',
+                'deducible'=>'$0',
+                'deducible_parte_d'=>'$0',
+                'moop'=>'$0 al año (dentro de la red)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0 copago por día, por período de beneficio',
+                'hospital_ambulatorio'=>'$0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0',
+                'atencion_preventiva'=>'$0',
+                'atencion_emergencia'=>'$0 por visita (se exime si se admite inmediatamente al hospital) — cubierta en todo el mundo',
+                'servicios_urgentes'=>'$0',
+                'emergencia_mundial'=>'$0 — cobertura de emergencia y atención urgente en todo el mundo',
+                'ambulancia'=>'$0',
+                'diagnostico_laboratorio'=>'$0',
+                'rayos_x'=>'$0',
+                'radiologia_terapeutica'=>'$0',
+                'examen_auditivo'=>'$0 examen diagnóstico (cubierto por Medicare); $0 examen de rutina',
+                'audifonos'=>'$0 hasta $300 al año para audífonos OTC (de venta libre), o $0 hasta $3,000 al año para audífonos recetados por audiólogo',
+                'dental_preventivo'=>'$0 — exámenes, limpiezas y rayos X de rutina',
+                'dental_integral'=>'$0 — restaurativo, endodoncia, periodoncia, prostodoncia y otros servicios dentales integrales. Asignación combinada (preventivo + integral): $4,000 al año',
+                'examen_vision'=>'$0 — 1 examen de rutina al año',
+                'anteojos'=>'$0 hasta $400 al año para anteojos/lentes de contacto de rutina (incluye los cubiertos por Medicare tras cirugía de cataratas)',
+                'salud_mental_internado'=>'$0 copago por día, por período de beneficio',
+                'salud_mental_ambulatorio'=>'$0 por visita individual/grupal',
+                'enfermeria_especializada'=>'$0 — hasta 100 días por período de beneficio, no requiere hospitalización previa',
+                'terapia_fisica_habla'=>'$0 — terapia física, ocupacional y del habla',
+                'transporte'=>'$0 hasta 96 viajes de ida al año (límite de 60 millas por viaje)',
+                'rx_deducible'=>'$0',
+                'rx_nivel1'=>'$0 (suministro de 30, 90 o 100 días)',
+                'rx_nivel2'=>'$0 (suministro de 30, 90 o 100 días)',
+                'rx_nivel3'=>'$0 (suministro de 30, 90 o 100 días)',
+                'rx_nivel4'=>'$0 (suministro de 30, 90 o 100 días)',
+                'rx_nivel5'=>'$0 (suministro de 30, 90 o 100 días)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'$0 por suministro de 1 mes en todos los niveles',
+                'rx_vacunas'=>'$0 — la mayoría de vacunas de Parte D para adultos (culebrilla, tétanos, viaje) cubiertas sin costo',
+                'otc_mensual'=>'Everyday Options Allowance: $110/mes (dispositivos de asistencia y productos OTC; también cubre víveres saludables y servicios públicos si califica para SSBCI) — no se acumula al siguiente mes',
+                'gimnasio'=>'$0 — SilverSneakers incluido, más Active Fitness Benefit de $25/mes (golf, natación, tenis, entre otros), sin referencia necesaria',
+                'pers'=>'$0 — dispositivo de respuesta a emergencias, sin referencia necesaria',
+                'quiropractico_acupuntura'=>'$0 quiropráctico cubierto por Medicare; $0 acupuntura cubierta por Medicare para dolor lumbar crónico; $0 acupuntura de rutina SIN LÍMITE de visitas al año (beneficio notablemente generoso frente a otros planes del sistema)',
+                'podologia'=>'$0 — tratamiento de lesiones/enfermedades de los pies; cuidado rutinario de pies con ciertas condiciones médicas',
+                'telesalud'=>'$0 — LiveHealth Online (vía Amwell), atención médica y de salud conductual por video/teléfono',
+                'dme'=>'$0 — sillas de ruedas, muletas, andadores, oxígeno y suministros para diabéticos',
+                'apoyo_hogar'=>"Lista extensa de Community Supports: navegación de vivienda, apoyo con depósito de seguridad, mantenimiento de vivienda, vivienda de transición post-hospitalización, cuidado de recuperación — $0\nPrograma California Integrated Care Management (CICM): $0\nLínea de Enfermería 24/7: $0, sin referencia necesaria",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: $0 — 3 comidas al día por 14 días\nHealthy Meals post-alta hospitalaria: $0 — 2 comidas al día por 7 días",
+                'extras_json'=>'PERS incluido; 2026 Star Rating: 3 de 5 estrellas (promedio)',
+                'notas'=>'Resumen de Beneficios (Summary of Benefits) 2027, Los Angeles County. Primer plan de Anthem Blue Cross en el sistema — carrier NUEVO (sin año anterior para comparar con ANOC). Plan D-SNP para doble elegibles (Medicare + Medi-Cal completo), $0 en casi todos los beneficios. Destaca la acupuntura de rutina SIN LÍMITE de visitas, asignación dental de $4,000/año, Everyday Options Allowance de $110/mes y Active Fitness Benefit de $25/mes con SilverSneakers incluido. Doc: H4471_27_3021007_0223_R_M. Servicio al Miembro: 1-833-897-1342 (TTY 711).',
+            ];
+            $_cols = array_keys($_anthemFullDual);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_anthemFullDual));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
