@@ -94,10 +94,13 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
     $direccion = trim($cita['direccion'] ?? '');
     $lineaDireccion = $direccion !== '' ? "\nDirección: {$direccion}" : '';
 
+    // Pedido de Isabel: NO invitar a "responder este mensaje" — eso llegaría
+    // al número de Twilio, que ella no está revisando para esto. En vez de
+    // eso, se les pide llamar directo a su número real.
     if ($tipo === '2H') {
         return "{$saludoNombre}le recordamos que su cita con Isabel Fuentes es HOY, {$fechaHora} ({$modalidad}).{$lineaDireccion}\n¡Nos vemos pronto!";
     }
-    return "{$saludoNombre}le recordamos su cita con Isabel Fuentes el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, responda este mensaje o llámenos.";
+    return "{$saludoNombre}le recordamos su cita con Isabel Fuentes el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, llámenos al 323-402-4145.";
 }
 
 // Diagnóstico temporal — para detectar si el servidor de MySQL tiene una
