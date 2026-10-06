@@ -7383,17 +7383,16 @@ try {
         }
     } catch (Exception $e) {}
     // Semilla: Central Health Harmony Plus 002 (HMO C-SNP) 2027 — plan
-    // NUEVO, datos del Summary of Benefits que subió Isabel. OJO: es una
-    // aseguranza DISTINTA de Alignment Health Plan — "Central Health Plan"
-    // (número de contrato Medicare H6697, no H3815 como todos los demás
-    // planes cargados), aunque el documento comparte branding/portal con
-    // Alignment Health Plan (son organizaciones relacionadas).
+    // NUEVO, datos del Summary of Benefits que subió Isabel. El documento
+    // tiene número de contrato Medicare H6697 (no H3815 como la mayoría de
+    // los planes cargados), pero por indicación de Isabel se registra bajo
+    // el carrier "Alignment Health Plan" junto con el resto.
     try {
         $_align22_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
         $_align22_existe->execute(['Central Health Harmony Plus 002 (HMO C-SNP)', 2027]);
         if (!$_align22_existe->fetch()) {
             $_align22 = [
-                'nombre_plan'=>'Central Health Harmony Plus 002 (HMO C-SNP)','carrier'=>'Central Health Plan','tipo'=>'HMO C-SNP',
+                'nombre_plan'=>'Central Health Harmony Plus 002 (HMO C-SNP)','carrier'=>'Alignment Health Plan','tipo'=>'HMO C-SNP',
                 'numero_plan'=>'002','condados'=>'Los Angeles y Orange, California',
                 'anio'=>2027,
                 'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica específica grave o incapacitante (el documento no detalla cuál condición en particular)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nNota: el documento no menciona que requiera elegibilidad dual con Medicaid de forma explícita",
@@ -7446,7 +7445,7 @@ try {
                 'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
                 'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, TRES veces al año',
                 'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMasaje terapéutico: \$0.00, 60 visitas al año (combinado con quiropráctico/acupuntura/terapia alternativa)\nTerapia alternativa: \$0.00, 60 visitas al año (combinado con quiropráctico/acupuntura/masaje terapéutico)\nPurificador de aire/humidificador (para elegibles SSBCI con condición crónica calificada): \$0.00, 1 al año\nEssentials Allowance (para elegibles SSBCI): \$240.00 al mes — combinado con el beneficio de OTC en un solo fondo compartido de \$240.00/mes (no son montos separados/adicionales)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\n*Nota de la aseguranza: para miembros con Medi-Cal completo, el copago de los servicios marcados con asterisco (*) puede ser pagado en parte o en su totalidad por Medi-Cal u otro tercero",
-                'notas'=>'OJO IMPORTANTE: este plan es de "Central Health Plan", una aseguranza DISTINTA de Alignment Health Plan (aunque el documento comparte branding/portal con Alignment Health Plan — son organizaciones relacionadas, pero con número de contrato Medicare DISTINTO: H6697, no H3815 como todos los demás planes cargados). Resumen de Beneficios 2027, Los Angeles y Orange. Es un plan C-SNP con estructura de costos tipo Medicare Original (deducible por período de beneficios, 20% de coaseguro en varios servicios, asterisco * indica posible cobertura de Medi-Cal). Prima $7.30/mes (o $0.00 con Ayuda Adicional), reduce $25.00/mes la prima de Parte B. Tiene el OTC/Essentials Allowance más alto visto hasta ahora ($240/mes) y el límite de visitas de rutina de quiropráctico/acupuntura/terapia alternativa/masaje más alto (60 visitas/año, combinadas). Doc: Y0141_27284EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+                'notas'=>'OJO: el documento de este plan dice "Central Health Harmony Plus" y tiene número de contrato Medicare H6697 (distinto a H3815, el de la mayoría de los planes Alignment), pero por indicación de Isabel se registra bajo el carrier "Alignment Health Plan" junto con el resto. Resumen de Beneficios 2027, Los Angeles y Orange. Es un plan C-SNP con estructura de costos tipo Medicare Original (deducible por período de beneficios, 20% de coaseguro en varios servicios, asterisco * indica posible cobertura de Medi-Cal). Prima $7.30/mes (o $0.00 con Ayuda Adicional), reduce $25.00/mes la prima de Parte B. Tiene el OTC/Essentials Allowance más alto visto hasta ahora ($240/mes) y el límite de visitas de rutina de quiropráctico/acupuntura/terapia alternativa/masaje más alto (60 visitas/año, combinadas). Doc: Y0141_27284EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
             ];
             $_colsAlign22 = array_keys($_align22);
             $_insAlign22 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign22).") VALUES (".implode(',', array_fill(0, count($_colsAlign22), '?')).")");
@@ -7454,19 +7453,19 @@ try {
         }
     } catch (Exception $e) {}
     // Semilla: Central Health Harmony 001 (HMO) 2027 — plan NUEVO, datos del
-    // Summary of Benefits que subió Isabel. OJO: es una aseguranza DISTINTA
-    // de Alignment Health Plan — "Central Health Plan" (número de contrato
-    // Medicare H6697, no H3815), aunque el documento comparte branding/portal
-    // con Alignment Health Plan. A diferencia de su plan hermano Harmony Plus
-    // 002 (HMO C-SNP), este plan NO es C-SNP y no tiene estructura de
-    // coaseguro tipo Medicare Original ni asteriscos de Medi-Cal — son
+    // Summary of Benefits que subió Isabel. El documento tiene número de
+    // contrato Medicare H6697 (no H3815), pero por indicación de Isabel se
+    // registra bajo el carrier "Alignment Health Plan" junto con el resto.
+    // A diferencia de su plan hermano Harmony Plus 002 (HMO C-SNP), este
+    // plan NO es C-SNP y no tiene estructura de coaseguro tipo Medicare
+    // Original ni asteriscos de Medi-Cal — son
     // copagos planos en casi todos los servicios.
     try {
         $_align23_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
         $_align23_existe->execute(['Central Health Harmony 001 (HMO)', 2027]);
         if (!$_align23_existe->fetch()) {
             $_align23 = [
-                'nombre_plan'=>'Central Health Harmony 001 (HMO)','carrier'=>'Central Health Plan','tipo'=>'HMO',
+                'nombre_plan'=>'Central Health Harmony 001 (HMO)','carrier'=>'Alignment Health Plan','tipo'=>'HMO',
                 'numero_plan'=>'001','condados'=>'Los Angeles y Orange, California',
                 'anio'=>2027,
                 'requisito_elegibilidad'=>"Plan HMO general (NO es C-SNP ni D-SNP)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
@@ -7519,7 +7518,7 @@ try {
                 'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año',
                 'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
                 'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMasaje terapéutico: \$0.00, 40 visitas al año (combinado con quiropráctico/acupuntura/terapia alternativa)\nTerapia alternativa: \$0.00, 40 visitas al año (combinado con quiropráctico/acupuntura/masaje terapéutico)\nEssentials Allowance (para elegibles SSBCI): \$95.00 al mes — combinado con el beneficio de OTC en un solo fondo compartido de \$95.00/mes (no son montos separados/adicionales)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nMedicamentos de Parte B: 0%-20% de coaseguro",
-                'notas'=>'OJO IMPORTANTE: este plan es de "Central Health Plan", una aseguranza DISTINTA de Alignment Health Plan (aunque el documento comparte branding/portal con Alignment Health Plan — son organizaciones relacionadas, pero con número de contrato Medicare DISTINTO: H6697, no H3815). Resumen de Beneficios 2027, Los Angeles y Orange. A diferencia de su plan hermano Harmony Plus 002 (HMO C-SNP), este es un plan HMO general (no C-SNP, no D-SNP) con copagos planos y SIN asteriscos de Medi-Cal. Destaca por tener un MOOP muy bajo ($498/año) y prima $0.00. Doc: Y0141_27434EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+                'notas'=>'OJO: el documento de este plan dice "Central Health Harmony" y tiene número de contrato Medicare H6697 (distinto a H3815, el de la mayoría de los planes Alignment), pero por indicación de Isabel se registra bajo el carrier "Alignment Health Plan" junto con el resto. Resumen de Beneficios 2027, Los Angeles y Orange. A diferencia de su plan hermano Harmony Plus 002 (HMO C-SNP), este es un plan HMO general (no C-SNP, no D-SNP) con copagos planos y SIN asteriscos de Medi-Cal. Destaca por tener un MOOP muy bajo ($498/año) y prima $0.00. Doc: Y0141_27434EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
             ];
             $_colsAlign23 = array_keys($_align23);
             $_insAlign23 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign23).") VALUES (".implode(',', array_fill(0, count($_colsAlign23), '?')).")");
@@ -7527,22 +7526,18 @@ try {
         }
     } catch (Exception $e) {}
     // Semilla: Alignment Health BRIDGE 003 (HMO) 2027 — plan NUEVO, datos del
-    // Summary of Benefits que subió Isabel. OJO MUY IMPORTANTE: el documento
-    // tiene número de contrato Medicare H6697 — el MISMO contrato que los
-    // planes "Central Health Harmony 001/002" — pero el PROPIO documento se
-    // llama a sí mismo "Alignment Health BRIDGE 003", NO "Central Health
-    // Harmony ...". Es decir, el mismo contrato H6697 tiene planes con DOS
-    // nombres de marca distintos (Central Health Harmony y Alignment Health
-    // BRIDGE). Para mantener consistencia con cómo ya clasificamos el
-    // contrato H6697 (carrier='Central Health Plan' en los otros dos
-    // planes), se deja igual aquí, pero esto es una decisión que Isabel
-    // debe confirmar o corregir si tiene mejor información sobre esta marca.
+    // Summary of Benefits que subió Isabel. El documento tiene número de
+    // contrato Medicare H6697 — el MISMO contrato que los planes "Central
+    // Health Harmony 001/002" — pero el PROPIO documento se llama a sí mismo
+    // "Alignment Health BRIDGE 003", NO "Central Health Harmony ...". Por
+    // indicación de Isabel, los tres (001, 002 y 003) se registran bajo el
+    // carrier "Alignment Health Plan" junto con el resto.
     try {
         $_align24_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
         $_align24_existe->execute(['Alignment Health BRIDGE 003 (HMO)', 2027]);
         if (!$_align24_existe->fetch()) {
             $_align24 = [
-                'nombre_plan'=>'Alignment Health BRIDGE 003 (HMO)','carrier'=>'Central Health Plan','tipo'=>'HMO',
+                'nombre_plan'=>'Alignment Health BRIDGE 003 (HMO)','carrier'=>'Alignment Health Plan','tipo'=>'HMO',
                 'numero_plan'=>'003','condados'=>'Los Angeles, California',
                 'anio'=>2027,
                 'requisito_elegibilidad'=>"Plan HMO general (NO es C-SNP ni D-SNP)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
@@ -7595,7 +7590,7 @@ try {
                 'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
                 'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
                 'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nEnhanced Dental Option (rider opcional de pago adicional): prima mensual de \$40.00, con 0% de coaseguro en diagnóstico, 50% en restaurativo/endodoncia/prostodoncia fija y removible/cirugía oral, 0%-50% en periodoncia; límite de \$1,500.00 al año\nEvaluación de Riesgo de Salud Personalizada: \$75.00, 1 cada dos años\nWeight Management Programs (para elegibles SSBCI): \$100.00 al mes — combinado con OTC y Groceries en un solo fondo compartido de \$100.00/mes\nGroceries (para elegibles SSBCI): \$100.00 al mes — combinado con OTC y Weight Management Programs en el mismo fondo de \$100.00/mes\nBáscula inteligente (Smart Scale): \$0.00 — báscula conectada y herramientas digitales para monitoreo de peso en casa\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nMedicamentos de Parte B: 0%-20% de coaseguro\nOJO: la condición crónica calificante para SSBCI en este plan es distinta a otros planes — aquí es sobrepeso, obesidad y síndrome metabólico (enfocado en manejo de peso), no condiciones cardíacas/diabetes/pulmonares como en otros planes",
-                'notas'=>'OJO MUY IMPORTANTE: el documento tiene número de contrato Medicare H6697 — el MISMO contrato de los planes "Central Health Harmony 001" y "Harmony Plus 002" ya cargados — pero este plan se llama a sí mismo "Alignment Health BRIDGE 003", no "Central Health Harmony". Un mismo contrato con dos nombres de marca distintos. Lo dejé bajo carrier "Central Health Plan" para mantener consistencia con el número de contrato, pero por favor confírmame si tienes mejor información sobre cómo debería clasificarse esta marca. Resumen de Beneficios 2027, solo condado de Los Angeles (no incluye Orange, a diferencia de sus "hermanos" Harmony). Plan HMO general (no C-SNP, no D-SNP) enfocado en manejo de peso (SSBCI de obesidad/síndrome metabólico). MOOP $499/año, prima $0.00. Tiene costo real en dental comprensivo (a diferencia de otros planes) y una opción de dental mejorado de pago adicional. Doc: Y0141_27289EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+                'notas'=>'OJO: el documento tiene número de contrato Medicare H6697 — el MISMO contrato de los planes "Central Health Harmony 001" y "Harmony Plus 002" ya cargados — pero este plan se llama a sí mismo "Alignment Health BRIDGE 003", no "Central Health Harmony". Por indicación de Isabel, los tres (001, 002 y 003) se registran bajo el carrier "Alignment Health Plan" junto con el resto, aunque compartan el contrato H6697 distinto al H3815 habitual. Resumen de Beneficios 2027, solo condado de Los Angeles (no incluye Orange, a diferencia de sus "hermanos" Harmony). Plan HMO general (no C-SNP, no D-SNP) enfocado en manejo de peso (SSBCI de obesidad/síndrome metabólico). MOOP $499/año, prima $0.00. Tiene costo real en dental comprensivo (a diferencia de otros planes) y una opción de dental mejorado de pago adicional. Doc: Y0141_27289EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
             ];
             $_colsAlign24 = array_keys($_align24);
             $_insAlign24 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign24).") VALUES (".implode(',', array_fill(0, count($_colsAlign24), '?')).")");
@@ -7838,6 +7833,15 @@ try {
             $_ins->execute(array_values($_align26_plan));
         } catch (Exception $e) {}
     }
+    // Corrección pedida por Isabel: los planes Harmony 001/002 y BRIDGE 003
+    // (contrato H6697) se habían guardado con carrier "Central Health Plan"
+    // separado — ella prefiere verlos junto con el resto de Alignment Health
+    // Plan. Esto arregla las filas que ya se insertaron en el servidor con
+    // el carrier viejo antes de este cambio (es inofensivo volver a
+    // ejecutarlo: una vez corregidas, ya no hay filas que coincidan).
+    try {
+        $pdo->exec("UPDATE planes_comparacion SET carrier='Alignment Health Plan' WHERE carrier='Central Health Plan'");
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
