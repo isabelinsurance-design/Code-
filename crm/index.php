@@ -7242,6 +7242,76 @@ try {
             $_insAlign19->execute(array_values($_align19));
         }
     } catch (Exception $e) {}
+    // Semilla: Alignment Health Heart & Diabetes 051 (HMO C-SNP) 2027 —
+    // renovación del plan 051 (ya cargado para 2026 como "Alignment Health
+    // Heart & Diabetes Choice (C-SNP HMO)" — la aseguranza le quitó la
+    // palabra "Choice"). Mismo numero_plan bare ('051') para que el
+    // emparejador de ANOC lo siga correctamente pese al cambio de nombre.
+    try {
+        $_align20_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align20_existe->execute(['Alignment Health Heart & Diabetes 051 (HMO C-SNP)', 2027]);
+        if (!$_align20_existe->fetch()) {
+            $_align20 = [
+                'nombre_plan'=>'Alignment Health Heart & Diabetes 051 (HMO C-SNP)','carrier'=>'Alignment Health Plan','tipo'=>'HMO C-SNP',
+                'numero_plan'=>'051','condados'=>'Alameda, Fresno, Los Angeles, Madera, Marin, Merced, Orange, Placer, Riverside, Sacramento, San Bernardino, San Diego, San Francisco, San Joaquin, San Luis Obispo, Santa Clara, Stanislaus, Ventura y Yolo, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica calificada relacionada con el corazón o la diabetes (insuficiencia cardíaca congestiva, enfermedad cardiovascular, diabetes, entre otras)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\n(NO requiere elegibilidad dual con Medicaid)",
+                'prima_mensual'=>'$0.10/mes — bajó de $0.70/mes en 2026',
+                'reembolso_parte_b'=>'No aplica — este plan no reduce la prima de Parte B',
+                'deducible'=>'$0.00',
+                'deducible_parte_d'=>'$700.00 para Tier 3, Tier 4 y Tier 5 — subió de $615.00 en 2026',
+                'moop'=>'$9,850.00 al año (no incluye medicamentos recetados) — subió de $9,250.00 en 2026',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — subió de $2,100.00 en 2026',
+                'hospital_internado'=>"\$225.00 por día, días 1-6\n\$0.00 por día, días 7-90\n(días ilimitados por admisión)",
+                'hospital_ambulatorio'=>"20% de coaseguro (servicios hospitalarios) — cambió de \$200.00 fijo en 2026\n20% de coaseguro (servicios de observación) — cambió de \$0.00 en 2026",
+                'centro_quirurgico_ambulatorio'=>'$100.00',
+                'medico_primario'=>'$0.00',
+                'especialistas'=>'$0.00',
+                'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+                'atencion_emergencia'=>'$85.00 (se exime si es admitido dentro de 48 horas)',
+                'servicios_urgentes'=>'$0.00',
+                'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $12,000.00 al año',
+                'ambulancia'=>'$175.00 (se exime si es admitido)',
+                'diagnostico_laboratorio'=>'20% de coaseguro (procedimientos, pruebas y laboratorio) — cambió de $0.00 en 2026; $0.00 diagnóstico y rayos X',
+                'rayos_x'=>'$0.00',
+                'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+                'audifonos'=>'$0.00 copago, 2 audífonos al año',
+                'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+                'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite de \$300.00 cada tres meses",
+                'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+                'anteojos'=>'Límite de $400.00 cada dos años para anteojos y lentes de contacto',
+                'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+                'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental) — subió de $0.00 en 2026; $40.00 (servicios psiquiátricos, igual que en 2026)',
+                'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$217.00 por día, días 21-100\nDía 101 en adelante: el miembro paga el costo total\n(subió de \$50.00/día en 2026; el documento aclara que estos son montos de 2026 y pueden cambiar para 2027)",
+                'terapia_fisica_habla'=>'$0.00',
+                'transporte'=>'$0.00 — 50 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 20 millas',
+                'rx_deducible'=>'$700.00 para Tier 3, Tier 4 y Tier 5',
+                'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel2'=>'25% de coaseguro (minorista y correo)',
+                'rx_nivel3'=>'25% de coaseguro (minorista y correo)',
+                'rx_nivel4'=>'28% de coaseguro (minorista y correo) — bajó de 30% en 2026',
+                'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+                'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+                'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'$91.00 al mes, sin acumulación (solo por correo/mail order) — bajó de $100.00/mes en 2026',
+                'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+                'pers'=>'$0.00',
+                'quiropractico_acupuntura'=>'$0.00 para 12 visitas de rutina al año (combinadas entre quiropráctico y acupuntura)',
+                'podologia'=>'$0.00 — cubierto por Medicare',
+                'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos — YA NO es $0.00 para salud mental como en 2026',
+                'dme'=>'20% de coaseguro',
+                'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+                'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+                'extras_json'=>"Tarjeta ACCESS On-Demand Black Card: incluida (acceso a beneficios OTC y Healthy Rewards)\nEssentials Allowance (para elegibles SSBCI con condición crónica calificada): \$40.00 al mes para despensa, servicios públicos y seguridad del hogar\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año",
+                'notas'=>'Resumen de Beneficios 2027 (renovación del plan 051, ya cargado para 2026 como "Alignment Health Heart & Diabetes Choice (C-SNP HMO)" — la aseguranza le quitó la palabra "Choice" y ahora se llama "Alignment Health Heart & Diabetes 051 (HMO C-SNP)"). Sigue sin requerir elegibilidad dual con Medicaid. CAMBIOS vs. 2026: el MOOP subió de $9,250 a $9,850; el hospital ambulatorio pasó de copago fijo ($200/$0) a 20% de coaseguro; el diagnóstico/laboratorio pasó de $0.00 a 20% de coaseguro; la enfermería especializada subió de $50.00/día a $217.00/día (días 21-100); la especialidad de salud mental y su telesalud pasaron de $0.00 a $20.00 (recortes reales de beneficio). A favor: la prima bajó de $0.70 a $0.10/mes. Doc: Y0141_27388EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+            ];
+            $_colsAlign20 = array_keys($_align20);
+            $_insAlign20 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign20).") VALUES (".implode(',', array_fill(0, count($_colsAlign20), '?')).")");
+            $_insAlign20->execute(array_values($_align20));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
