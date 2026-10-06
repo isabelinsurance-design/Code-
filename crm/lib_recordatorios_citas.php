@@ -149,6 +149,69 @@ function recordatorio_texto_mensaje(string $tipo, array $cita): string {
     return "{$saludoNombre}le recordamos su cita con Isabel Fuentes el {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSi necesita cambiarla, llámenos al 323-402-4145.\n(Mensaje automático, no responda a este número.)";
 }
 
+// Pedido de Isabel: además de los recordatorios de 48h/2h (que esperan a
+// que se acerque la fecha), al agendar o cambiar una cita se manda un SMS
+// de confirmación AL INSTANTE. Mismo idioma automático que los
+// recordatorios (miembros.idioma).
+function recordatorio_texto_confirmacion(array $cita, bool $esReagendada = false): string {
+    $nombre    = trim($cita['nombre'] ?? '');
+    $esIngles  = strtoupper(trim($cita['idioma'] ?? 'ESP')) === 'ENG';
+    $direccion = trim($cita['direccion'] ?? '');
+
+    if ($esIngles) {
+        $fechaHora      = recordatorio_fecha_legible_en($cita['fecha'], $cita['hora']);
+        $modalidad      = recordatorio_modalidad_legible_en($cita['modalidad'] ?? '');
+        $saludoNombre   = $nombre !== '' ? "Hi {$nombre}, " : 'Hi, ';
+        $lineaDireccion = $direccion !== '' ? "\nAddress: {$direccion}" : '';
+        $accion         = $esReagendada ? 'rescheduled' : 'scheduled';
+        return "{$saludoNombre}your appointment with Isabel Fuentes has been {$accion} for {$fechaHora} ({$modalidad}).{$lineaDireccion}\n(Automated message, do not reply to this number. For changes call 323-402-4145.)";
+    }
+
+    $fechaHora      = recordatorio_fecha_legible($cita['fecha'], $cita['hora']);
+    $modalidad      = recordatorio_modalidad_legible($cita['modalidad'] ?? '');
+    $saludoNombre   = $nombre !== '' ? "Hola {$nombre}, " : 'Hola, ';
+    $lineaDireccion = $direccion !== '' ? "\nDirección: {$direccion}" : '';
+    $accion         = $esReagendada ? 'reagendada' : 'agendada';
+    return "{$saludoNombre}su cita con Isabel Fuentes quedó {$accion} para el {$fechaHora} ({$modalidad}).{$lineaDireccion}\n(Mensaje automático, no responda a este número. Para cambios llame al 323-402-4145.)";
+}
+
+// La llaman save_cita y update_cita (api.php) justo después de
+// guardar/actualizar la cita — manda la confirmación de inmediato, sin
+// esperar a los recordatorios programados. No toca recordatorio_48h/2h_at
+// (esas columnas son solo para los recordatorios de 48h/2h); esta
+// confirmación es un mensaje aparte y no se vuelve a repetir sola.
+function enviar_confirmacion_cita(PDO $pdo, int $citaId, bool $esReagendada = false): void {
+    try {
+        asegurarColumnasRecordatorioCitas($pdo);
+        $stmt = $pdo->prepare("SELECT c.id, c.miembro_id, c.agente_id, c.modalidad, c.fecha, c.hora, c.direccion,
+                                      m.nombre, m.telefono, m.telefono2, m.idioma
+                               FROM citas c
+                               INNER JOIN miembros m ON c.miembro_id = m.id
+                               WHERE c.id = ?");
+        $stmt->execute([$citaId]);
+        $cita = $stmt->fetch(PDO::FETCH_ASSOC);
+        if (!$cita) return;
+
+        $telefono = normalizar_tel($cita['telefono'] ?: ($cita['telefono2'] ?? ''));
+        if ($telefono === '' || sms_esta_optout($pdo, $telefono)) return;
+
+        $mensaje = recordatorio_texto_confirmacion($cita, $esReagendada);
+        $tipoSms = $esReagendada ? 'CONFIRMACION_CITA_REAGENDADA' : 'CONFIRMACION_CITA';
+        $res = twilio_enviar_sms($telefono, $mensaje);
+        $costo = $res['ok'] ? sms_calcular_costo($mensaje, false, true) : 0;
+        $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, cita_id, tipo, costo_estimado)
+                       VALUES (?, ?, 'SALIENTE', ?, ?, ?, ?, ?, ?, ?)")
+            ->execute([
+                $telefono, $cita['miembro_id'], $mensaje,
+                $res['ok'] ? ($res['estado'] ?? 'enviado') : 'error',
+                $res['sid'] ?? null, $cita['agente_id'], $cita['id'], $tipoSms, $costo,
+            ]);
+        if (!$res['ok']) {
+            sms_registrar_fallo_envio($pdo, $telefono, $res['codigo'] ?? null, $res['error'] ?? null);
+        }
+    } catch (Exception $e) {}
+}
+
 // Diagnóstico temporal — para detectar si el servidor de MySQL tiene una
 // hora/zona horaria distinta a la del servidor web (muy común en hosting
 // compartido), que haría que "revisadas" siempre salga en 0 aunque sí haya

@@ -1077,6 +1077,9 @@ case 'save_cita':
     $nuevaCitaId = $pdo->lastInsertId();
     $citaSync = google_calendar_obtener_cita_para_sync($pdo, $nuevaCitaId);
     if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
+    // Pedido de Isabel: SMS de confirmación al instante al agendar — aparte
+    // de los recordatorios de 48h/2h, que esperan a que se acerque la fecha.
+    enviar_confirmacion_cita($pdo, $nuevaCitaId, false);
     jsonOkNotify(['id'=>$nuevaCitaId], 'CITAS');
     break;
 
@@ -1084,8 +1087,11 @@ case 'update_cita':
     $pdo = db();
     $id  = intval($_POST['id'] ?? 0);
     if (!$id) jsonErr('ID inválido');
-    // Verificar permisos
-    $prev = $pdo->prepare("SELECT agente_id FROM citas WHERE id=?");
+    // Verificar permisos — también se trae fecha/hora/modalidad ANTERIORES
+    // para saber si de verdad cambió el horario de la cita (y no solo, por
+    // ejemplo, una nota interna) — eso decide si se manda el SMS de
+    // confirmación "reagendada" y si hay que reiniciar los recordatorios.
+    $prev = $pdo->prepare("SELECT agente_id, fecha, hora, modalidad FROM citas WHERE id=?");
     $prev->execute([$id]);
     $row = $prev->fetch();
     if (!$row) jsonErr('Cita no encontrada');
@@ -1128,10 +1134,23 @@ case 'update_cita':
         $estado_sql = "IF(estado IN ('CANCELADA','REAGENDAR'),'PENDIENTE',estado)";
         $params = [$mid, $agente, $cli, $tipo, $modalidad, $fecha, $hora, $notas, $tipo_persona, $direccion, $id];
     }
-    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, tipo_persona=?, direccion=?, estado=$estado_sql WHERE id=?")
+    // Si cambió la fecha o la hora, los recordatorios de 48h/2h ya
+    // mandados (si los había) quedaron calculados para el horario VIEJO —
+    // se reinician para que vuelvan a dispararse en el momento correcto
+    // del horario nuevo (ver lib_recordatorios_citas.php).
+    $cambioHorario = ($fecha !== $row['fecha']) || (substr($hora,0,5) !== substr($row['hora'],0,5));
+    $cambioModalidad = ($modalidad !== $row['modalidad']);
+    $resetRecordatorios = $cambioHorario ? ", recordatorio_48h_enviado_at=NULL, recordatorio_2h_enviado_at=NULL" : "";
+    $pdo->prepare("UPDATE citas SET miembro_id=?, agente_id=?, cliente=?, tipo=?, modalidad=?, fecha=?, hora=?, notas=?, tipo_persona=?, direccion=?, estado=$estado_sql$resetRecordatorios WHERE id=?")
         ->execute($params);
     $citaSync = google_calendar_obtener_cita_para_sync($pdo, $id);
     if ($citaSync) google_calendar_sync_cita($pdo, $citaSync);
+    // Pedido de Isabel: SMS de confirmación al instante cuando se cambia la
+    // cita — solo si de verdad cambió el horario o la modalidad (editar
+    // solo una nota interna no cuenta como "cambiar la cita").
+    if ($cambioHorario || $cambioModalidad) {
+        enviar_confirmacion_cita($pdo, $id, true);
+    }
     jsonOkNotify([], 'CITAS');
     break;
 
