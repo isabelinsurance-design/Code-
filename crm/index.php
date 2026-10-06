@@ -5914,6 +5914,103 @@ try {
             $_ins->execute(array_values($_align3_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: Alignment Health Harmony 031 / the ONE 034 (HMO) 2026 — datos
+    // del Summary of Benefits que subió Isabel (archivo con los 2 planes
+    // juntos). Son planes Medicare Advantage GENERALES, igual que Giveback
+    // y smartSavings — no requieren condición crónica. Se arma con una base
+    // común y se sobreescribe lo que cambia por plan.
+    $_align4_base_2026 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO','anio'=>2026,
+        'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'prima_mensual'=>'$0.00/mes (debe seguir pagando su prima de Medicare Parte B)',
+        'reembolso_parte_b'=>'No incluido en este plan',
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$0.00',
+        'moop'=>'$3,400.00 al año (no incluye medicamentos recetados)',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,100.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+        'hospital_ambulatorio'=>"\$200.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+        'centro_quirurgico_ambulatorio'=>'$100.00',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'servicios_urgentes'=>'$0.00',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas, laboratorio y diagnóstico)',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'$195.00 a $1,750.00 copago por audífono, 2 audífonos al año',
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'terapia_fisica_habla'=>'$0.00',
+        'rx_deducible'=>'$0.00',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel3'=>'$40.00 minorista (30 días) / $120.00 correo (100 días)',
+        'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+        'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'No se menciona en este documento',
+        'telesalud'=>'$0.00 para médico primario, especialidad de salud mental y servicios psiquiátricos',
+        'apoyo_hogar'=>'No se menciona en este documento',
+        'comidas_post_hospital'=>'No cubierto',
+        'notas'=>'Resumen de Beneficios 2026. Datos de la tabla comparativa de 2 planes Alignment Health Plan en un solo documento. Doc: Y0141_26236EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+    ];
+    $_align4_variantes_2026 = [
+        '031' => [
+            'nombre_plan'=>'Alignment Health Harmony (HMO)','numero_plan'=>'031',
+            'condados'=>'Alameda, San Mateo, Santa Clara y San Francisco, California',
+            'hospital_internado'=>"\$100.00 por día, días 1-5\n\$0.00 por día, días 6-90\n(días ilimitados por admisión)",
+            'atencion_emergencia'=>'$100.00 (NO se exime si es admitido) — a diferencia de the ONE, que cobra $0.00',
+            'emergencia_mundial'=>'$20.00 copago, límite de $100,000.00 al año (NO se exime si es admitido) — límite de cobertura mucho más alto que the ONE ($25,000.00)',
+            'ambulancia'=>'$175.00 (se exime si es admitido)',
+            'dental_preventivo'=>"\$0.00 copago servicios dentales cubiertos por Medicare\nExamen y limpieza: \$0.00 (1 cada 6 meses)\nTratamiento de flúor: \$0.00 (1 cada 6 meses)\nRayos X: \$0.00 (1 cada 3 años)",
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00",
+            'anteojos'=>'Límite de cobertura de $150.00 para anteojos/lentes de contacto, cada año',
+            'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\"",
+            'salud_mental_ambulatorio'=>'$0.00 (especialidad de salud mental); $40.00 (servicios psiquiátricos) — a diferencia de the ONE, que cobra $0.00 en ambos',
+            'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'transporte'=>'$0.00 — 28 viajes de ida al año a ubicaciones aprobadas por el plan (radio de 20 millas)',
+            'rx_nivel2'=>'$3.00 minorista (30 días) / $9.00 correo (100 días)',
+            'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico) — sin beneficio de rutina\n$0.00 cubierto por Medicare (acupuntura); $0.00 por visitas de rutina ILIMITADAS al año — a diferencia de the ONE, que limita a 12 visitas combinadas con quiropráctico',
+            'podologia'=>'$5.00 — cubierto por Medicare',
+            'dme'=>'20% de coaseguro en todos los artículos (incluye monitores continuos de glucosa) — sin tramo de $0% para artículos de bajo costo, a diferencia de the ONE',
+            'otc_mensual'=>'$30.00 al mes, sin acumulación',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nSubsidio para elementos esenciales (SSBCI): \$30.00 al mes, sin acumulación (solo para miembros con condición crónica calificada) — the ONE no ofrece este beneficio\nComidas por reingreso/condición crónica: NO cubierto — a diferencia de the ONE, que sí las da\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año\nOpción dental mejorada (opcional, +\$36.00/mes): dental integral (0% diagnóstico, 50% en los demás servicios incluyendo prostodoncia removible y fija; límite \$1,500/año)",
+        ],
+        '034' => [
+            'nombre_plan'=>'Alignment Health the ONE (HMO)','numero_plan'=>'034',
+            'condados'=>'Los Angeles, Orange, Riverside, San Bernardino, Santa Clara y San Diego, California',
+            'hospital_internado'=>"\$0.00 por día, días 1-4\n\$100.00 por día, días 5-10\n\$0.00 por día, días 11-90\n(días ilimitados por admisión)",
+            'atencion_emergencia'=>'$0.00 — a diferencia de Harmony, que cobra $100.00',
+            'emergencia_mundial'=>'$75.00 copago, límite de $25,000.00 al año (se exime si es admitido)',
+            'ambulancia'=>'$75.00 (NO se exime si es admitido) — más barata que Harmony ($175.00)',
+            'dental_preventivo'=>'20% de coaseguro para servicios dentales cubiertos por Medicare — este documento no desglosa examen/limpieza/flúor/rayos X por separado para este plan',
+            'dental_integral'=>'20% de coaseguro para servicios dentales cubiertos por Medicare (sin desglose por tipo de servicio, a diferencia de Harmony)',
+            'anteojos'=>'Límite de cobertura de $350.00 para anteojos/lentes de contacto, cada 2 años',
+            'salud_mental_internado'=>"\$1,676.00 deducible por período de beneficio\nDías 1-60: \$0.00 por día\nDías 61-90: \$419.00 por día\n\$0.00 para 40 días adicionales\nDía 91 en adelante: \$838.00 por cada \"día de reserva de por vida\" cubierto por Medicare (hasta 60 días en total)\nMás allá de los días de reserva: todos los costos",
+            'salud_mental_ambulatorio'=>'$0.00 (especialidad de salud mental y servicios psiquiátricos, ambos) — más barato que Harmony, que cobra $40.00 en psiquiátricos',
+            'enfermeria_especializada'=>'$0.00 copago (el documento no especifica límite de días por separado para este plan)',
+            'transporte'=>'$0.00 — 20 viajes de ida al año a ubicaciones aprobadas por el plan (radio de 50 millas)',
+            'rx_nivel2'=>'$1.00 minorista (30 días) / $3.00 correo (100 días)',
+            'quiropractico_acupuntura'=>"\$0.00 cubierto por Medicare para ambos\nRutina: \$0.00 por hasta 12 visitas al año combinadas entre quiropráctico y acupuntura",
+            'podologia'=>'$0.00 — cubierto por Medicare',
+            'dme'=>'0% de coaseguro para artículos de $350.00 o menos; 20% para artículos de $350.01 o más; 20% de coaseguro para monitores continuos de glucosa',
+            'otc_mensual'=>'$60.00 al mes, sin acumulación',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nComidas por reingreso/condición crónica: \$0.00 copago, 28 comidas en 14 días, DOS veces al año (Harmony no ofrece este beneficio)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año\nOpción dental mejorada (opcional, +\$36.00/mes): dental integral (0% diagnóstico, 50% en los demás servicios incluyendo prostodoncia removible y fija; límite \$1,500/año)",
+        ],
+    ];
+    foreach ($_align4_variantes_2026 as $_align4_pn => $_align4_overrides) {
+        try {
+            $_align4_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align4_existe->execute([$_align4_overrides['nombre_plan'], 2026]);
+            if ($_align4_existe->fetch()) continue;
+            $_align4_plan = array_merge($_align4_base_2026, $_align4_overrides);
+            $_cols = array_keys($_align4_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align4_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
@@ -11331,6 +11428,7 @@ krsort($anios_disponibles_planes);
             </div>
             <div style="font-size:8px;color:<?=$MU?>;margin-top:1px"><?=h($pl['carrier']??'—')?><?=$pl['tipo']?' · '.h($pl['tipo']):''?></div>
           </div>
+          <?php if(trim($pl['numero_plan'] ?? '') !== ''):?><span title="Número de plan (PBP) — este código es lo que usa el sistema para emparejar este plan entre años, aunque la aseguranza le cambie el nombre" style="font-size:9px;font-weight:900;letter-spacing:0.3px;color:#1B4A6B;background:#EBF4F9;border:1px solid <?=$CB?>;border-radius:5px;padding:3px 7px;white-space:nowrap;flex-shrink:0">CÓD. <?=h($pl['numero_plan'])?></span><?php endif;?>
         </div>
         <div style="margin-top:8px;font-size:8px;color:<?=$TX?>;line-height:1.6">
           <?php if($pl['prima_mensual']):?><div><b>Prima:</b> <?=h($pl['prima_mensual'])?></div><?php endif;?>
@@ -11511,13 +11609,15 @@ function onAnocCarrierChange(){
       .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
     const anios = Array.from(new Set(versiones.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
     const nombreActual = versiones[versiones.length-1].nombre_plan;
+    const codigoPlan = String(versiones[versiones.length-1].numero_plan||'').trim();
+    const prefijo = codigoPlan ? ('['+codigoPlan+'] ') : '';
     const nombresDistintos = Array.from(new Set(versiones.map(p=>p.nombre_plan)));
     const esElMasReciente = anios.length === 1 && String(anios[0]) === String(ANIO_MAS_RECIENTE);
     const esPosibleDescontinuado = anios.length === 1 && !esElMasReciente;
-    let etiqueta = anios.length >= 2 ? (nombreActual+' — '+anios.join('/'))
-      : esElMasReciente ? ('⭐ '+nombreActual)
-      : esPosibleDescontinuado ? ('❌ '+nombreActual)
-      : nombreActual;
+    let etiqueta = anios.length >= 2 ? (prefijo+nombreActual+' — '+anios.join('/'))
+      : esElMasReciente ? (prefijo+'⭐ '+nombreActual)
+      : esPosibleDescontinuado ? (prefijo+'❌ '+nombreActual)
+      : (prefijo+nombreActual);
     if(nombresDistintos.length > 1) etiqueta += ' (antes: '+nombresDistintos.slice(0,-1).join(', ')+')';
     return '<option value="'+esc(clave)+'">'+esc(etiqueta)+'</option>';
   }).join('');
