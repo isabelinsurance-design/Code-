@@ -193,10 +193,22 @@ function enviar_confirmacion_cita(PDO $pdo, int $citaId, bool $esReagendada = fa
         if (!$cita) return;
 
         $telefono = normalizar_tel($cita['telefono'] ?: ($cita['telefono2'] ?? ''));
-        if ($telefono === '' || sms_esta_optout($pdo, $telefono)) return;
+        if ($telefono === '') return;
 
         $mensaje = recordatorio_texto_confirmacion($cita, $esReagendada);
         $tipoSms = $esReagendada ? 'CONFIRMACION_CITA_REAGENDADA' : 'CONFIRMACION_CITA';
+
+        // Antes esto se salía en silencio sin dejar ningún rastro — si el
+        // número estaba en la lista de opt-out, ni Isabel ni este código
+        // tenían forma de saber que el SMS de confirmación nunca se intentó
+        // mandar. Ahora, igual que hace el cron de recordatorios, se deja
+        // un registro en sms_mensajes aunque no se mande nada de verdad.
+        if (sms_esta_optout($pdo, $telefono)) {
+            $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, agente_id, cita_id, tipo)
+                           VALUES (?, ?, 'SALIENTE', ?, 'omitido_optout', ?, ?, ?)")
+                ->execute([$telefono, $cita['miembro_id'], $mensaje, $cita['agente_id'], $cita['id'], $tipoSms]);
+            return;
+        }
         $res = twilio_enviar_sms($telefono, $mensaje);
         $costo = $res['ok'] ? sms_calcular_costo($mensaje, false, true) : 0;
         $pdo->prepare("INSERT INTO sms_mensajes (telefono, miembro_id, direccion, cuerpo, estado, twilio_sid, agente_id, cita_id, tipo, costo_estimado)
