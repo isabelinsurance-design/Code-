@@ -27,6 +27,8 @@
  */
 
 require_once __DIR__ . '/config.php';
+require_once __DIR__ . '/lib_telefono.php';
+require_once __DIR__ . '/lib_twilio.php';
 require_once __DIR__ . '/lib_recordatorios_citas.php';
 
 header('Content-Type: application/json; charset=utf-8');
