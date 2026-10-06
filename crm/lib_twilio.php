@@ -248,8 +248,27 @@ function sms_backfill_costos_historicos(PDO $pdo, int $limite = 1500): int {
 // para un MMS, Twilio necesita poder DESCARGAR la imagen desde internet,
 // no le sirve una ruta de archivo del servidor.
 function twilio_url_publica(string $rutaRelativa): string {
+    // El cron de recordatorios de citas ahora se ejecuta por línea de
+    // comandos (php directo, no por URL) — ahí no existe $_SERVER['HTTP_HOST']
+    // ni un SCRIPT_NAME de tipo web, así que la detección de abajo arma una
+    // URL rota (ej. "http:///home1/.../archivo.php"), que Twilio RECHAZA de
+    // golpe con el error 21609 ("StatusCallback must be a valid HTTP(s)
+    // URL") — el SMS completo falla, no solo el StatusCallback. Si
+    // config.php define APP_BASE_URL, se usa siempre esa (funciona igual
+    // desde la web que desde el cron).
+    if (defined('APP_BASE_URL') && APP_BASE_URL !== '') {
+        return rtrim(APP_BASE_URL, '/') . '/' . ltrim($rutaRelativa, '/');
+    }
     $proto = $_SERVER['HTTP_X_FORWARDED_PROTO'] ?? ((isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http');
     $host  = $_SERVER['HTTP_X_FORWARDED_HOST'] ?? ($_SERVER['HTTP_HOST'] ?? '');
+    if ($host === '') {
+        // Sin APP_BASE_URL y sin contexto web (ej. corriendo por cron) no
+        // hay forma confiable de armar la URL — se avisa con una excepción
+        // (que ya se captura donde se llama) para que el SMS se mande SIN
+        // StatusCallback en vez de mandarse con una URL rota que Twilio
+        // rechazaría por completo.
+        throw new Exception('No se pudo determinar la URL pública del sitio (define APP_BASE_URL en config.php)');
+    }
     $dir   = rtrim(str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '')), '/');
     return $proto . '://' . $host . $dir . '/' . ltrim($rutaRelativa, '/');
 }

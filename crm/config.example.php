@@ -33,6 +33,14 @@ define('CRON_SECRET_RECORDATORIOS', getenv('CRON_SECRET_RECORDATORIOS') ?: 'CAMB
 define('TWILIO_SID',         getenv('TWILIO_SID')         ?: '');  // Account SID de Twilio
 define('TWILIO_AUTH_TOKEN',  getenv('TWILIO_AUTH_TOKEN')  ?: '');  // Auth Token de Twilio (también valida el webhook entrante)
 define('TWILIO_FROM_NUMBER', getenv('TWILIO_FROM_NUMBER') ?: '');  // Tu número de Twilio, formato +1XXXXXXXXXX
+// Dirección pública completa de la carpeta /crm en tu dominio real (sin "/"
+// al final) — ej. "https://withisabelfuentes.com/crm". Hace falta porque el
+// cron de recordatorios corre por línea de comandos (php directo), donde el
+// sistema NO puede adivinar solo cuál es tu dominio, y Twilio RECHAZA el SMS
+// completo si se le manda una URL de StatusCallback mal armada. Sin esto, el
+// envío por la web normal sigue funcionando, pero el cron fallará al mandar
+// SMS con un error de Twilio sobre "StatusCallback".
+define('APP_BASE_URL', getenv('APP_BASE_URL') ?: '');
 
 // ─── AVISOS EN VIVO (opcional) ─────────────────────────────────────
 // Servidor ws-relay (Railway) que avisa al instante a los navegadores
