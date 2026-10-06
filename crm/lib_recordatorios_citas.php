@@ -72,6 +72,25 @@ function recordatorio_fecha_legible(string $fecha, string $hora): string {
     return "{$diaSemana} {$diaMes} de {$mes} a {$laOLos} {$horaTxt}";
 }
 
+// Misma idea que recordatorio_fecha_legible() pero en inglés — "Monday
+// November 10 at 1:30 pm" — para miembros con idioma='ENG' (ver columna
+// miembros.idioma, ya existente en el sistema).
+function recordatorio_fecha_legible_en(string $fecha, string $hora): string {
+    $dias  = [0=>'Sunday',1=>'Monday',2=>'Tuesday',3=>'Wednesday',4=>'Thursday',5=>'Friday',6=>'Saturday'];
+    $meses = [1=>'January',2=>'February',3=>'March',4=>'April',5=>'May',6=>'June',7=>'July',8=>'August',9=>'September',10=>'October',11=>'November',12=>'December'];
+    $ts = strtotime($fecha . ' ' . $hora);
+    if ($ts === false) return $fecha . ' ' . substr($hora, 0, 5);
+    $diaSemana = $dias[(int) date('w', $ts)] ?? '';
+    $diaMes    = (int) date('j', $ts);
+    $mes       = $meses[(int) date('n', $ts)] ?? '';
+    $h24       = (int) date('G', $ts);
+    $min       = (int) date('i', $ts);
+    $ampm      = $h24 < 12 ? 'am' : 'pm';
+    $h12       = $h24 % 12; if ($h12 === 0) $h12 = 12;
+    $horaTxt   = $min === 0 ? ($h12 . ' ' . $ampm) : ($h12 . ':' . str_pad((string)$min, 2, '0', STR_PAD_LEFT) . ' ' . $ampm);
+    return "{$diaSemana} {$mes} {$diaMes} at {$horaTxt}";
+}
+
 function recordatorio_modalidad_legible(string $modalidad): string {
     $map = [
         'OFICINA'        => 'en la oficina',
@@ -83,15 +102,42 @@ function recordatorio_modalidad_legible(string $modalidad): string {
     return $map[$modalidad] ?? strtolower($modalidad);
 }
 
-// Arma el texto del SMS para un tipo de recordatorio ('48H' o '2H').
+function recordatorio_modalidad_legible_en(string $modalidad): string {
+    $map = [
+        'OFICINA'        => 'at the office',
+        'TELÉFONO'       => 'by phone',
+        'VIDEO'          => 'by video',
+        'EN CASA'        => 'at your home',
+        'EN RESTAURANTE' => 'at the restaurant',
+    ];
+    return $map[$modalidad] ?? strtolower($modalidad);
+}
+
+// Arma el texto del SMS para un tipo de recordatorio ('48H' o '2H'). El
+// idioma viene de miembros.idioma ('ESP' por default, 'ENG' si el miembro
+// habla inglés — mismo campo que ya usa el resto del CRM) para que un
+// miembro que habla inglés reciba el recordatorio en su idioma.
 function recordatorio_texto_mensaje(string $tipo, array $cita): string {
-    $nombre      = trim($cita['nombre'] ?? '');
+    $nombre    = trim($cita['nombre'] ?? '');
+    $esIngles  = strtoupper(trim($cita['idioma'] ?? 'ESP')) === 'ENG';
+    $direccion = trim($cita['direccion'] ?? '');
+
+    if ($esIngles) {
+        $fechaHora    = recordatorio_fecha_legible_en($cita['fecha'], $cita['hora']);
+        $modalidad    = recordatorio_modalidad_legible_en($cita['modalidad'] ?? '');
+        $saludoNombre = $nombre !== '' ? "Hi {$nombre}, " : 'Hi, ';
+        $lineaDireccion = $direccion !== '' ? "\nAddress: {$direccion}" : '';
+        if ($tipo === '2H') {
+            return "{$saludoNombre}this is a reminder that your appointment with Isabel Fuentes is TODAY, {$fechaHora} ({$modalidad}).{$lineaDireccion}\nSee you soon!\n(Automated message, do not reply to this number. For changes call 323-402-4145.)";
+        }
+        return "{$saludoNombre}this is a reminder of your appointment with Isabel Fuentes on {$fechaHora} ({$modalidad}).{$lineaDireccion}\nIf you need to reschedule, please call us at 323-402-4145.\n(Automated message, do not reply to this number.)";
+    }
+
     $fechaHora   = recordatorio_fecha_legible($cita['fecha'], $cita['hora']);
     $modalidad   = recordatorio_modalidad_legible($cita['modalidad'] ?? '');
     $saludoNombre = $nombre !== '' ? "Hola {$nombre}, " : 'Hola, ';
     // Pedido de Isabel: aunque diga "en la oficina", conviene mandar
     // también la dirección para que no tengan que preguntar dónde es.
-    $direccion = trim($cita['direccion'] ?? '');
     $lineaDireccion = $direccion !== '' ? "\nDirección: {$direccion}" : '';
 
     // Pedido de Isabel: NO invitar a "responder este mensaje" — eso llegaría
@@ -164,7 +210,7 @@ function recordatorios_citas_procesar(PDO $pdo): array {
     // MySQL en ningún momento.
     $sql = "SELECT c.id, c.miembro_id, c.agente_id, c.tipo, c.modalidad, c.fecha, c.hora, c.direccion,
                    c.recordatorio_48h_enviado_at, c.recordatorio_2h_enviado_at,
-                   m.nombre, m.apellido, m.telefono, m.telefono2
+                   m.nombre, m.apellido, m.telefono, m.telefono2, m.idioma
             FROM citas c
             INNER JOIN miembros m ON c.miembro_id = m.id
             WHERE c.estado = 'PENDIENTE'
