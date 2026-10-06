@@ -3457,7 +3457,7 @@ try {
         if (!$_anthemFullDual_existe->fetch()) {
             $_anthemFullDual = [
                 'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
-                'numero_plan'=>'H4471_27_3021007_0223_R_M','condados'=>'Los Angeles, California',
+                'numero_plan'=>'001','condados'=>'Los Angeles, California',
                 'anio'=>2027,
                 'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), y vivir en el área de servicio (Los Angeles County)',
                 'prima_mensual'=>'$0/mes (debe seguir pagando su prima de Medicare Parte B, salvo que Medi-Cal la pague)',
@@ -4800,7 +4800,7 @@ try {
         if (!$_anthemFullDual2026_existe->fetch()) {
             $_anthemFullDual2026 = [
                 'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP)','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
-                'numero_plan'=>'H4471_010-001_CA_HMO D-SNP','condados'=>'Los Angeles, California',
+                'numero_plan'=>'001','condados'=>'Los Angeles, California',
                 'anio'=>2026,
                 'requisito_elegibilidad'=>'Plan "Medi-Medi" para doble elegibilidad — requiere tener Medicare Y Medi-Cal completo, ser mayor de 21 años, y vivir en el área de servicio (Los Angeles County)',
                 'prima_mensual'=>'$0/mes — al tener Medi-Cal, no paga ninguna prima mensual, incluyendo la de Medicare Parte B (Medi-Cal la cubre directamente)',
@@ -7841,6 +7841,15 @@ try {
     // ejecutarlo: una vez corregidas, ya no hay filas que coincidan).
     try {
         $pdo->exec("UPDATE planes_comparacion SET carrier='Alignment Health Plan' WHERE carrier='Central Health Plan'");
+    } catch (Exception $e) {}
+    // Corrección: Anthem Full Dual Advantage Aligned se había guardado con
+    // el CÓDIGO DEL DOCUMENTO como numero_plan (distinto cada año, ej.
+    // "H4471_010-001_CA_HMO D-SNP" en 2026 vs "H4471_27_3021007_0223_R_M"
+    // en 2027) en vez del número de plan real — eso rompía el
+    // emparejamiento de ANOC entre 2026 y 2027 (claveAnocPlan los veía
+    // como planes distintos). Se corrige a '001' en ambos años.
+    try {
+        $pdo->exec("UPDATE planes_comparacion SET numero_plan='001' WHERE nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP)' AND carrier='Anthem Blue Cross'");
     } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
