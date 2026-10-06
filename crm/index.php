@@ -7851,6 +7851,82 @@ try {
     try {
         $pdo->exec("UPDATE planes_comparacion SET numero_plan='001' WHERE nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP)' AND carrier='Anthem Blue Cross'");
     } catch (Exception $e) {}
+    // Semilla: Humana Gold Plus Giveback H5619-146 (HMO) 2026 — Los Angeles
+    // y Orange County. Año anterior del mismo plan que ya está en el
+    // sistema para 2027 (mismo numero_plan 'H5619-146-000' para que el
+    // emparejador de ANOC lo reconozca). Datos del Summary of Benefits 2026
+    // que subió Isabel. Cambios notables vs 2027: el Part B Giveback bajó
+    // de hasta $105/mes a hasta $84/mes; el Rx Nivel 3 cambió de copago fijo
+    // ($30/$90) a 17% de coaseguro; el Rx Nivel 4 subió de 35% a 50%; el Rx
+    // Nivel 5 bajó de 33% a 25%; el monitor continuo de glucosa (CGM) pasó
+    // de $0 a 20% de coaseguro (salvo farmacia preferida); el equipo médico
+    // duradero y suministros médicos subieron de 15% a 20%. El MOOP
+    // ($2,700) no cambió.
+    try {
+        $_humanaGiveback2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_humanaGiveback2026_existe->execute(['Humana Gold Plus Giveback H5619-146 (HMO)', 2026]);
+        if (!$_humanaGiveback2026_existe->fetch()) {
+            $_humanaGiveback2026 = [
+                'nombre_plan'=>'Humana Gold Plus Giveback H5619-146 (HMO)','carrier'=>'Humana','tipo'=>'HMO',
+                'numero_plan'=>'H5619-146-000','condados'=>'Los Angeles, Orange, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni institucional\nSolo necesita tener Medicare Parte A, estar inscrito en Parte B, y vivir en el área de servicio (Los Angeles u Orange County)\nEs un HMO: debe elegir un médico primario (PCP) dentro de la red, y el PCP coordina referencias a especialistas",
+                'prima_mensual'=>'$0/mes. Además, es un plan "GIVEBACK": reduce su prima de Medicare Parte B hasta $105/mes (sin exceder el monto real de la prima de Parte B) — bajó a hasta $84/mes en 2027',
+                'reembolso_parte_b'=>'Hasta $105/mes de reducción en la prima de Parte B — bajó a hasta $84/mes en 2027',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$0 deducible de Parte D',
+                'moop'=>'$2,700 al año, de médicos y centros dentro de la red — sin cambio en 2027',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica) — subió a $2,400 en 2027; ajuste estándar de Medicare a nivel nacional, no específico de Humana',
+                'hospital_internado'=>'Días 1-5: $175 por día, por admisión; Días 6-90: $0 por día — días ilimitados cubiertos',
+                'hospital_ambulatorio'=>'$0 copago (colonoscopía diagnóstica, mamografía diagnóstica); $250 copago servicios de cirugía',
+                'centro_quirurgico_ambulatorio'=>'$0 copago (colonoscopía diagnóstica); $150 copago servicios de cirugía',
+                'medico_primario'=>'$0 copago (consultorio y telesalud)',
+                'especialistas'=>'$25 copago (consultorio y telesalud) — requiere referencia del PCP',
+                'atencion_preventiva'=>'$0 copago — cubre todos los servicios preventivos de Medicare: detección de cáncer (mama, cérvix/vagina, colorrectal, pulmón, próstata), cuidado cardiovascular, cuidado de diabetes, terapia de nutrición médica, visita de bienestar anual, inmunizaciones, examen físico de rutina, visita "Bienvenido a Medicare", densidad ósea, depresión, glaucoma, VIH, alcohol, ITS, dejar de fumar',
+                'atencion_emergencia'=>'$150 copago (se exime si se admite al mismo hospital dentro de 24 horas por la misma condición; si lo ponen en observación, paga el copago de observación en vez del de emergencia)',
+                'servicios_urgentes'=>'$65 copago (telesalud y centro de atención urgente)',
+                'emergencia_mundial'=>'Cobertura mundial: debe pagar por adelantado y solicitar reembolso. Sala de emergencia $150 copago; centro de atención urgente $65 copago. Se exime si se admite al mismo hospital dentro de 24 horas',
+                'ambulancia'=>'Terrestre: $335 copago por fecha de servicio — bajó a $325 en 2027; Aérea: 20% del costo',
+                'diagnostico_laboratorio'=>'Laboratorio: $0 copago en todas las ubicaciones. Pruebas y procedimientos diagnósticos: $0 consultorio PCP, $25 especialista, $0 hospital ambulatorio, $65 centro de atención urgente',
+                'rayos_x'=>'$0 copago consultorio PCP; $25 especialista; $10 centro radiológico independiente; $10 hospital ambulatorio; $65 centro de atención urgente',
+                'radiologia_terapeutica'=>'20% del costo (centro radiológico independiente u hospital ambulatorio); 20% en consultorio de especialista',
+                'examen_auditivo'=>'$25 copago examen auditivo cubierto por Medicare',
+                'audifonos'=>'Beneficio suplementario obligatorio (HER959): $0 copago evaluación de ajuste y examen de rutina (1 al año); $0 copago visitas de seguimiento (ilimitadas durante el primer año); $99 copago por cada audífono Nivel Estándar (1 por oído al año); $399 copago Nivel Avanzado; $699 copago Nivel Premium. Incluye período de prueba de 60 días, garantía extendida de 3 años, 80 baterías por audífono (modelos no recargables), opción recargable disponible por $50 adicional (Avanzado y Premium). Debe usar un proveedor TruHearing (1-844-255-7144)',
+                'dental_preventivo'=>"\$25 copago servicios dentales cubiertos por Medicare\nBeneficio suplementario (DENF71): asignación combinada de \$1,750 al año para servicios dentales preventivos y comprensivos NO cubiertos por Medicare — bajó a \$1,000 en 2027. Lo no usado al final del año expira. NO se puede usar para flúor, servicios cosméticos ni implantes",
+                'dental_integral'=>'Incluido en la asignación combinada de $1,750 al año (bajó a $1,000 en 2027); 30% del costo aplica a dentaduras; 30%-40% aplica a puentes y coronas; límites de frecuencia pueden aplicar',
+                'examen_vision'=>'$25 copago examen de visión cubierto por Medicare; $0 copago examen diabético de ojos',
+                'anteojos'=>'$0 copago anteojos/lentes tras cirugía de cataratas. Beneficio suplementario de rutina (VIS693): $0 copago examen de rutina (1 al año); hasta $100 al año para lentes de contacto o anteojos (marcos y lentes), O hasta $200 al año en un proveedor "PLUS" de la red Humana Medicare Insight — bajó a $50/$100 en 2027',
+                'salud_mental_internado'=>'$900 copago por admisión — cubre hasta 190 días DE POR VIDA en un hospital psiquiátrico (límite de por vida)',
+                'salud_mental_ambulatorio'=>'$25 copago especialista; $35 copago hospital ambulatorio; $25 copago telesalud',
+                'enfermeria_especializada'=>'Días 1-20: $0 por día; Días 21-100: $218 por día — subió a $221 en 2027',
+                'terapia_fisica_habla'=>'$0 copago terapia física, ocupacional y del habla, rehabilitación cardíaca, rehabilitación pulmonar, y terapia de ejercicio supervisado (SET) para enfermedad arterial periférica (centro de rehabilitación ambulatoria integral, hospital ambulatorio o consultorio de especialista)',
+                'transporte'=>'NO CUBIERTO',
+                'rx_deducible'=>'$0 (sin deducible de Parte D)',
+                'rx_nivel1'=>'$0 minorista (30 y 100 días); $10/$30 por correo estándar (30/100 días); $0/$0 por correo preferido (CenterWell Pharmacy)',
+                'rx_nivel2'=>'$0 minorista (30 y 100 días); $20/$60 por correo estándar (30/100 días); $0/$0 por correo preferido',
+                'rx_nivel3'=>'$30 minorista (30 días) / $90 (100 días); $47/$141 por correo estándar; $30/$60 por correo preferido — OJO: en 2027 esto cambió de copago fijo a 17% de coaseguro',
+                'rx_nivel4'=>'35% en todas las modalidades — subió a 50% en 2027',
+                'rx_nivel5'=>'33% minorista y por correo (30 días); no disponible suministro de 100 días — bajó a 25% en 2027',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'No pagará más de $35 por suministro de 1 mes de insulina en cualquier nivel, incluso antes de cumplir el deducible',
+                'rx_vacunas'=>'$0 copago vacunas de Parte D para adultos recomendadas por el ACIP',
+                'otc_mensual'=>'No se menciona en este documento (sin tarjeta de gastos para productos de venta libre)',
+                'gimnasio'=>'$0 — SilverSneakers Fitness Program incluido',
+                'pers'=>'No se menciona en este documento (sin dispositivo de respuesta a emergencias de rutina)',
+                'quiropractico_acupuntura'=>'$25 copago acupuntura cubierta por Medicare (solo para dolor lumbar crónico), hasta 20 visitas al año; $15 copago quiropráctico cubierto por Medicare',
+                'podologia'=>'$25 copago (tratamiento cubierto por Medicare)',
+                'telesalud'=>'$0 copago telesalud con el PCP; $25 copago telesalud con especialista; $25 copago telesalud de salud mental/abuso de sustancias; $65 copago telesalud de servicios urgentes',
+                'dme'=>'Equipo médico duradero: 15% del costo (alto costo y todo lo demás) — subió a 20% en 2027. Monitor continuo de glucosa (CGM): $0 copago proveedor DME y farmacia — subió a 20% de coaseguro en 2027 (salvo farmacia preferida, que sigue en $0). Suministros de monitoreo diabético: 10% proveedor/farmacia minorista, $0 copago en proveedor diabético preferido (sin cambio). Suministros médicos: 15% del costo — subió a 20% en 2027. Prótesis: 20% del costo (sin cambio)',
+                'apoyo_hogar'=>'No se menciona en este documento (sin beneficio de cuidado de salud en el hogar listado en este Resumen de Beneficios)',
+                'comidas_post_hospital'=>'No se menciona en este documento (sin beneficio de comidas Healthy Meals)',
+                'extras_json'=>"Programa de recompensas Go365 by Humana: complete actividades saludables elegibles (exámenes preventivos, etc.) y reciba recompensas Go365 Plus\nRehabilitación cardíaca: \$0 copago\nMedicamentos de Parte B: inyecciones de alergia \$0 copago; quimioterapia y otros medicamentos de Parte B 20% coaseguro; insulina Parte B no más de \$35/mes\nCobertura de medicamentos excluidos: disfunción eréctil y vitaminas recetadas cubiertas al copago de Nivel 1\nAyuda Extra (Extra Help): deducible \$0; copagos reducidos según el nivel de ayuda (\$5.10/\$12.65, \$1.60/\$4.90, o \$0 para todos los medicamentos) hasta llegar al límite anual de \$2,100\nRed \"PLUS Provider\" de Humana Medicare Insight para beneficio de visión suplementario",
+                'notas'=>'Resumen de Beneficios 2026, Los Angeles y Orange County. Año anterior del mismo plan Humana Gold Plus Giveback H5619-146 que ya estaba en el sistema para 2027 — con esto queda emparejado para comparación ANOC. CAMBIOS MÁS IMPORTANTES vs 2027: el Giveback de Parte B bajó de hasta $105/mes a hasta $84/mes; el Rx Nivel 3 cambió de copago fijo ($30/$90) a 17% de coaseguro; el Rx Nivel 4 subió de 35% a 50% (el más caro del sistema en 2027); el Rx Nivel 5 bajó de 33% a 25%; el monitor continuo de glucosa (CGM) pasó de $0 a 20% de coaseguro (salvo farmacia preferida); el equipo médico duradero y los suministros médicos subieron de 15% a 20%; la asignación dental bajó de $1,750 a $1,000/año; el beneficio de anteojos de rutina bajó de $100-$200 a $50-$100/año. El MOOP ($2,700) y la ambulancia terrestre (bajó ligeramente de $335 a $325) no cambiaron mucho. El umbral de gastos de bolsillo de Parte D subió de $2,100 a $2,400 — ajuste estándar de Medicare a nivel nacional, no específico de Humana. Doc: H5619_SB_MAPD_HMO_146000_2026_M. Servicio al Miembro (miembros actuales): 800-457-4708 (TTY 711). No miembros: 800-833-2364 (TTY 711).',
+            ];
+            $_colsHum2026 = array_keys($_humanaGiveback2026);
+            $_insHum2026 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsHum2026).") VALUES (".implode(',', array_fill(0, count($_colsHum2026), '?')).")");
+            $_insHum2026->execute(array_values($_humanaGiveback2026));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
