@@ -7002,6 +7002,108 @@ try {
             $_insAlign16->execute(array_values($_align16));
         }
     } catch (Exception $e) {}
+    // Semilla: Alignment Health Platinum + Instacart 008 (HMO) y 016
+    // (HMO-POS), 2027 — renovación de los planes 008/016 (ya cargados para
+    // 2026). Mismo numero_plan bare ('008'/'016') para que el emparejador
+    // de ANOC los siga correctamente aunque la aseguranza les agregó el
+    // código al nombre comercial este año.
+    $_align17_base_2027 = [
+        'carrier'=>'Alignment Health Plan','anio'=>2027,
+        'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'prima_mensual'=>'$0.00/mes (Parte C y Parte D)',
+        'reembolso_parte_b'=>'No aplica — este plan no reduce la prima de Parte B (no es un plan Giveback)',
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$0.00',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — subió de $2,100.00 en 2026',
+        'centro_quirurgico_ambulatorio'=>'$0.00',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'servicios_urgentes'=>'$0.00',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio)',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'$195.00-$1,750.00 copago por audífono, 2 al año',
+        'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+        'terapia_fisica_habla'=>'$0.00',
+        'rx_deducible'=>'$0.00',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'$0.00',
+        'dme'=>'0% de coaseguro en artículos de $350.00 o menos; 20% de coaseguro en artículos de $350.01 o más',
+        'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+        'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+    ];
+    $_align17_variantes_2027 = [
+        '008' => [
+            'nombre_plan'=>'Alignment Health Platinum + Instacart 008 (HMO)','tipo'=>'HMO',
+            'numero_plan'=>'008','condados'=>'Los Angeles y Orange, California',
+            'moop'=>'$499.00 al año (no incluye medicamentos recetados) — igual que en 2026',
+            'hospital_internado'=>'$0.00 por estadía (días ilimitados por admisión)',
+            'hospital_ambulatorio'=>"\$50.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+            'atencion_emergencia'=>'$50.00 (se exime si es admitido dentro de 48 horas)',
+            'emergencia_mundial'=>'$20.00 para emergencia / $0.00 para urgencia, límite de $100,000.00 al año (se exime si es admitido)',
+            'ambulancia'=>'$50.00 (se exime si es admitido)',
+            'dental_preventivo'=>"\$0.00 para servicios cubiertos por Medicare\n\$10.00 Examen\n\$20.00 Limpieza\n\$10.00 Tratamiento de flúor\n\$30.00 Rayos X\nCobertura adicional con el FLEX Allowance (ver abajo)",
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00\nCobertura adicional con el FLEX Allowance (ver abajo)",
+            'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año. Cobertura adicional con el FLEX Allowance',
+            'anteojos'=>'Límite de $300.00/año para anteojos y lentes de contacto. Cobertura adicional con el FLEX Allowance',
+            'salud_mental_ambulatorio'=>'$10.00 (especialidad de salud mental); $10.00 (servicios psiquiátricos) — subieron de $0.00/$5.00 en 2026',
+            'enfermeria_especializada'=>'$0.00 (no requiere hospitalización previa)',
+            'transporte'=>'$0.00 — 42 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+            'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+            'rx_nivel4'=>'$75.00 minorista (30 días) / $187.50 correo (100 días)',
+            'otc_mensual'=>'$30.00 al mes, sin acumulación — igual que en 2026',
+            'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura). Visitas de RUTINA cubiertas con el FLEX Allowance',
+            'podologia'=>'$0.00 — cubierto por Medicare. Visitas de RUTINA cubiertas con el FLEX Allowance',
+            'telesalud'=>'$0.00 para médico primario; $10.00 para especialidad de salud mental y servicios psiquiátricos — YA NO es $0.00 para salud mental como en 2026',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nOpción dental mejorada (opcional, +\$40.00/mes — subió de \$36.00/mes en 2026): 0% diagnóstico, 50% en los demás servicios (restaurativo, endodoncia, periodoncia, prostodoncia removible y fija, cirugía oral/maxilofacial); límite \$1,500.00/año\nFLEX Allowance: \$500.00 cada seis meses (hasta \$1,000.00 al año) para servicios de visión, dental, audición, acupuntura de rutina, quiropráctico de rutina y podología de rutina\nEvaluación de riesgo de salud personalizada: \$75.00, 1 evaluación cada 2 años (beneficio NUEVO para 2027, no estaba en el documento de 2026)\nComidas por reingreso/condición crónica: \$0.00 copago, 28 comidas en 14 días, DOS veces al año\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nBeneficio para elegibles SSBCI (condición crónica calificada): despensa/mandado (groceries) \$100.00 cada 3 meses a través de Instacart",
+            'notas'=>'Resumen de Beneficios 2027 (renovación del plan 008, ya cargado para 2026). CAMBIOS vs. 2026: el umbral de Parte D subió de $2,100.00 a $2,400.00 (ajuste estándar de Medicare); la Opción Dental Mejorada subió de $36.00 a $40.00/mes; las consultas ambulatorias y la telesalud de salud mental/psiquiátrica pasaron de $0.00/$5.00 a $10.00/$10.00 (recorte real de beneficio); se agregó una Evaluación de riesgo de salud personalizada ($75.00 cada 2 años) que no existía en 2026. El resto (MOOP $499, FLEX Allowance, dental, Rx) se mantiene igual. Doc: Y0141_27259EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '016' => [
+            'nombre_plan'=>'Alignment Health Platinum + Instacart 016 (HMO-POS)','tipo'=>'HMO-POS',
+            'numero_plan'=>'016','condados'=>'Marin, San Diego y San Francisco, California',
+            'moop'=>'$1,100.00 al año (no incluye medicamentos recetados) — subió de $998.00 en 2026',
+            'hospital_internado'=>"Dentro y fuera de la red:\n\$0.00 por día, días 1-3\n\$50.00 por día, días 4-7\n\$0.00 por día, días 8-90\n(días ilimitados por admisión)",
+            'hospital_ambulatorio'=>"\$85.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — subió de $90.00 en 2026',
+            'emergencia_mundial'=>'$50.00 para emergencia / $50.00 para urgencia, límite de $100,000.00 al año (se exime si es admitido)',
+            'ambulancia'=>'$75.00 (se exime si es admitido)',
+            'dental_preventivo'=>"\$0.00 Examen\n\$0.00 Limpieza\n\$0.00 Tratamiento de flúor\n\$0.00 Rayos X\n(no incluye FLEX Allowance — este plan no lo ofrece)",
+            'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite combinado de \$2,000.00/año entre preventivo y comprensivo\n(no incluye FLEX Allowance — este plan no lo ofrece)",
+            'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año (no incluye FLEX Allowance)',
+            'anteojos'=>'Límite de $300.00/año para anteojos y lentes de contacto (no incluye FLEX Allowance)',
+            'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental) — subió de $0.00 en 2026; $20.00 (servicios psiquiátricos, igual que en 2026)',
+            'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$50.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'transporte'=>'$0.00 — 24 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 25 millas',
+            'rx_nivel2'=>'$3.00 minorista (30 días) / $9.00 correo (100 días)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $90.00 correo (100 días)',
+            'rx_nivel4'=>'$75.00 minorista (30 días) / $225.00 correo (100 días)',
+            'otc_mensual'=>'$25.00 al mes, sin acumulación — OJO: bajó de $30.00/mes en 2026 (en 2026 ambos planes 008/016 tenían el mismo monto de $30, para 2027 se separaron)',
+            'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura). Sin beneficio de RUTINA (este plan no ofrece FLEX Allowance)',
+            'podologia'=>'$0.00 — cubierto por Medicare. Sin beneficio de RUTINA (este plan no ofrece FLEX Allowance)',
+            'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos — YA NO es $0.00 para salud mental como en 2026',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nOpción dental mejorada: NO disponible para este plan\nFLEX Allowance: NO disponible para este plan\nEvaluación de riesgo de salud personalizada: \$75.00, 1 evaluación cada 2 años (beneficio NUEVO para 2027, no estaba en el documento de 2026)\nComidas por reingreso/condición crónica: \$0.00 copago, 28 comidas en 14 días, DOS veces al año\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nBeneficio para elegibles SSBCI (condición crónica calificada): despensa/mandado (groceries) \$100.00 cada 3 meses a través de Instacart",
+            'notas'=>'Resumen de Beneficios 2027 (renovación del plan 016, ya cargado para 2026). CAMBIOS vs. 2026: el MOOP subió de $998.00 a $1,100.00; el copago de emergencia subió de $90.00 a $150.00; el OTC BAJÓ de $30.00 a $25.00/mes (en 2026 ambos planes tenían el mismo monto); la especialidad de salud mental pasó de $0.00 a $20.00; la telesalud de salud mental pasó de $0.00 a $20.00; se agregó una Evaluación de riesgo de salud personalizada ($75.00 cada 2 años) que no existía en 2026. Sigue sin FLEX Allowance ni Opción Dental Mejorada, igual que en 2026. Doc: Y0141_27259EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align17_variantes_2027 as $_align17_pn => $_align17_overrides) {
+        try {
+            $_align17_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align17_existe->execute([$_align17_overrides['nombre_plan'], 2027]);
+            if ($_align17_existe->fetch()) continue;
+            $_align17_plan = array_merge($_align17_base_2027, $_align17_overrides);
+            $_cols = array_keys($_align17_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align17_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
