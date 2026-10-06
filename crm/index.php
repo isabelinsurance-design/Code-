@@ -7453,6 +7453,79 @@ try {
             $_insAlign22->execute(array_values($_align22));
         }
     } catch (Exception $e) {}
+    // Semilla: Central Health Harmony 001 (HMO) 2027 — plan NUEVO, datos del
+    // Summary of Benefits que subió Isabel. OJO: es una aseguranza DISTINTA
+    // de Alignment Health Plan — "Central Health Plan" (número de contrato
+    // Medicare H6697, no H3815), aunque el documento comparte branding/portal
+    // con Alignment Health Plan. A diferencia de su plan hermano Harmony Plus
+    // 002 (HMO C-SNP), este plan NO es C-SNP y no tiene estructura de
+    // coaseguro tipo Medicare Original ni asteriscos de Medi-Cal — son
+    // copagos planos en casi todos los servicios.
+    try {
+        $_align23_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align23_existe->execute(['Central Health Harmony 001 (HMO)', 2027]);
+        if (!$_align23_existe->fetch()) {
+            $_align23 = [
+                'nombre_plan'=>'Central Health Harmony 001 (HMO)','carrier'=>'Central Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'001','condados'=>'Los Angeles y Orange, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan HMO general (NO es C-SNP ni D-SNP)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+                'prima_mensual'=>'$0.00 (Parte C y Parte D)',
+                'reembolso_parte_b'=>'No ofrece este beneficio (el documento no menciona reducción de la prima de Parte B)',
+                'deducible'=>'$0.00',
+                'deducible_parte_d'=>'$700.00 para Tier 4 y Tier 5',
+                'moop'=>'$498.00 al año (no incluye medicamentos recetados) — uno de los MOOP más bajos vistos hasta ahora',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0.00 (días ilimitados por admisión)',
+                'hospital_ambulatorio'=>"\$50.00 servicios hospitalarios\n\$0.00 servicios de observación",
+                'centro_quirurgico_ambulatorio'=>'$0.00',
+                'medico_primario'=>'$0.00',
+                'especialistas'=>'$0.00',
+                'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+                'atencion_emergencia'=>'$90.00 (se exime si es admitido dentro de 24 horas)',
+                'servicios_urgentes'=>'$0.00',
+                'emergencia_mundial'=>'$0.00, límite de $100,000.00 al año',
+                'ambulancia'=>'$100.00 (se exime si es admitido)',
+                'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio); $0.00 diagnóstico',
+                'rayos_x'=>'$0.00',
+                'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+                'audifonos'=>'$195.00 - $1,750.00 copago por audífono, 2 audífonos al año',
+                'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+                'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite de \$300.00 cada tres meses (preventivo y comprensivo combinados)",
+                'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+                'anteojos'=>'Límite de $300.00 al año para anteojos y lentes de contacto',
+                'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\"",
+                'salud_mental_ambulatorio'=>'$20.00 especialidad de salud mental (individual y grupal); $20.00 servicios psiquiátricos (individual y grupal)',
+                'enfermeria_especializada'=>'$0.00',
+                'terapia_fisica_habla'=>'$0.00',
+                'transporte'=>'$0.00 — 42 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+                'rx_deducible'=>'$700.00 para Tier 4 y Tier 5',
+                'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel2'=>'$0.00 (minorista y correo)',
+                'rx_nivel3'=>'$30.00 minorista; $75.00 por correo',
+                'rx_nivel4'=>'30% de coaseguro (minorista y correo)',
+                'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+                'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+                'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'$95.00 al mes, sin acumulación — combinado con el beneficio de Essentials Allowance, un solo fondo compartido de $95.00/mes (no son montos separados)',
+                'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+                'pers'=>'$0.00',
+                'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura), más $0.00 para 40 visitas de rutina al año (combinadas entre quiropráctico, acupuntura, terapia alternativa y masaje terapéutico)',
+                'podologia'=>'$0.00 — cubierto por Medicare',
+                'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos',
+                'dme'=>'0% de coaseguro para artículos de $350.00 o menos; 20% de coaseguro para artículos de $350.01 o más',
+                'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año',
+                'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+                'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMasaje terapéutico: \$0.00, 40 visitas al año (combinado con quiropráctico/acupuntura/terapia alternativa)\nTerapia alternativa: \$0.00, 40 visitas al año (combinado con quiropráctico/acupuntura/masaje terapéutico)\nEssentials Allowance (para elegibles SSBCI): \$95.00 al mes — combinado con el beneficio de OTC en un solo fondo compartido de \$95.00/mes (no son montos separados/adicionales)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nMedicamentos de Parte B: 0%-20% de coaseguro",
+                'notas'=>'OJO IMPORTANTE: este plan es de "Central Health Plan", una aseguranza DISTINTA de Alignment Health Plan (aunque el documento comparte branding/portal con Alignment Health Plan — son organizaciones relacionadas, pero con número de contrato Medicare DISTINTO: H6697, no H3815). Resumen de Beneficios 2027, Los Angeles y Orange. A diferencia de su plan hermano Harmony Plus 002 (HMO C-SNP), este es un plan HMO general (no C-SNP, no D-SNP) con copagos planos y SIN asteriscos de Medi-Cal. Destaca por tener un MOOP muy bajo ($498/año) y prima $0.00. Doc: Y0141_27434EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+            ];
+            $_colsAlign23 = array_keys($_align23);
+            $_insAlign23 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign23).") VALUES (".implode(',', array_fill(0, count($_colsAlign23), '?')).")");
+            $_insAlign23->execute(array_values($_align23));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
