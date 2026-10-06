@@ -7526,6 +7526,82 @@ try {
             $_insAlign23->execute(array_values($_align23));
         }
     } catch (Exception $e) {}
+    // Semilla: Alignment Health BRIDGE 003 (HMO) 2027 — plan NUEVO, datos del
+    // Summary of Benefits que subió Isabel. OJO MUY IMPORTANTE: el documento
+    // tiene número de contrato Medicare H6697 — el MISMO contrato que los
+    // planes "Central Health Harmony 001/002" — pero el PROPIO documento se
+    // llama a sí mismo "Alignment Health BRIDGE 003", NO "Central Health
+    // Harmony ...". Es decir, el mismo contrato H6697 tiene planes con DOS
+    // nombres de marca distintos (Central Health Harmony y Alignment Health
+    // BRIDGE). Para mantener consistencia con cómo ya clasificamos el
+    // contrato H6697 (carrier='Central Health Plan' en los otros dos
+    // planes), se deja igual aquí, pero esto es una decisión que Isabel
+    // debe confirmar o corregir si tiene mejor información sobre esta marca.
+    try {
+        $_align24_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align24_existe->execute(['Alignment Health BRIDGE 003 (HMO)', 2027]);
+        if (!$_align24_existe->fetch()) {
+            $_align24 = [
+                'nombre_plan'=>'Alignment Health BRIDGE 003 (HMO)','carrier'=>'Central Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'003','condados'=>'Los Angeles, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan HMO general (NO es C-SNP ni D-SNP)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+                'prima_mensual'=>'$0.00 (Parte C y Parte D)',
+                'reembolso_parte_b'=>'No ofrece este beneficio (el documento no menciona reducción de la prima de Parte B)',
+                'deducible'=>'$0.00',
+                'deducible_parte_d'=>'$700.00 para Tier 4 y Tier 5',
+                'moop'=>'$499.00 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0.00 (días ilimitados por admisión)',
+                'hospital_ambulatorio'=>"\$50.00 servicios hospitalarios\n\$0.00 servicios de observación",
+                'centro_quirurgico_ambulatorio'=>'$0.00',
+                'medico_primario'=>'$0.00',
+                'especialistas'=>'$0.00',
+                'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+                'atencion_emergencia'=>'$50.00 (se exime si es admitido dentro de 48 horas)',
+                'servicios_urgentes'=>'$0.00',
+                'emergencia_mundial'=>'$20.00 emergencia; $0.00 urgencia, límite de $100,000.00 al año',
+                'ambulancia'=>'$50.00 (se exime si es admitido)',
+                'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio); $0.00 diagnóstico',
+                'rayos_x'=>'$0.00',
+                'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+                'audifonos'=>'$195.00 - $1,750.00 copago por audífono, 2 audífonos al año',
+                'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+                'dental_integral'=>"\$20.00-\$400.00 Restaurativo\n\$25.00-\$350.00 Endodoncia\n\$15.00-\$550.00 Periodoncia\n\$20.00-\$570.00 Prostodoncia removible\n\$40.00-\$400.00 Prostodoncia fija\n\$25.00-\$250.00 Cirugía oral/maxilofacial\nOJO: este plan SÍ tiene costo para dental comprensivo (rangos de copago), a diferencia de otros planes Alignment/Central Health que lo cubren en $0.00. También existe una opción \"Enhanced Dental Option\" de pago adicional (ver notas/extras)",
+                'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+                'anteojos'=>'Límite de $300.00 al año para anteojos y lentes de contacto',
+                'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales\n\$0.00 para 60 \"días de reserva de por vida\"",
+                'salud_mental_ambulatorio'=>'$10.00 especialidad de salud mental (individual y grupal); $10.00 servicios psiquiátricos (individual y grupal)',
+                'enfermeria_especializada'=>'$0.00',
+                'terapia_fisica_habla'=>'$0.00',
+                'transporte'=>'$0.00 — 32 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+                'rx_deducible'=>'$700.00 para Tier 4 y Tier 5',
+                'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel2'=>'$0.00 (minorista y correo)',
+                'rx_nivel3'=>'$30.00 minorista; $75.00 por correo',
+                'rx_nivel4'=>'30% de coaseguro (minorista y correo)',
+                'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+                'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+                'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'$100.00 al mes, sin acumulación — OJO: combinado con Weight Management Programs Y Groceries, un solo fondo compartido de $100.00/mes entre LOS TRES beneficios (no son montos separados)',
+                'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+                'pers'=>'$0.00',
+                'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura) — este plan NO ofrece visitas de rutina adicionales más allá de lo cubierto por Medicare (a diferencia de otros planes Alignment/Central Health)',
+                'podologia'=>'$0.00 — cubierto por Medicare',
+                'telesalud'=>'$0.00 para médico primario; $10.00 para especialidad de salud mental y servicios psiquiátricos',
+                'dme'=>'0% de coaseguro para artículos de $350.00 o menos; 20% de coaseguro para artículos de $350.01 o más',
+                'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+                'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+                'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nEnhanced Dental Option (rider opcional de pago adicional): prima mensual de \$40.00, con 0% de coaseguro en diagnóstico, 50% en restaurativo/endodoncia/prostodoncia fija y removible/cirugía oral, 0%-50% en periodoncia; límite de \$1,500.00 al año\nEvaluación de Riesgo de Salud Personalizada: \$75.00, 1 cada dos años\nWeight Management Programs (para elegibles SSBCI): \$100.00 al mes — combinado con OTC y Groceries en un solo fondo compartido de \$100.00/mes\nGroceries (para elegibles SSBCI): \$100.00 al mes — combinado con OTC y Weight Management Programs en el mismo fondo de \$100.00/mes\nBáscula inteligente (Smart Scale): \$0.00 — báscula conectada y herramientas digitales para monitoreo de peso en casa\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nMedicamentos de Parte B: 0%-20% de coaseguro\nOJO: la condición crónica calificante para SSBCI en este plan es distinta a otros planes — aquí es sobrepeso, obesidad y síndrome metabólico (enfocado en manejo de peso), no condiciones cardíacas/diabetes/pulmonares como en otros planes",
+                'notas'=>'OJO MUY IMPORTANTE: el documento tiene número de contrato Medicare H6697 — el MISMO contrato de los planes "Central Health Harmony 001" y "Harmony Plus 002" ya cargados — pero este plan se llama a sí mismo "Alignment Health BRIDGE 003", no "Central Health Harmony". Un mismo contrato con dos nombres de marca distintos. Lo dejé bajo carrier "Central Health Plan" para mantener consistencia con el número de contrato, pero por favor confírmame si tienes mejor información sobre cómo debería clasificarse esta marca. Resumen de Beneficios 2027, solo condado de Los Angeles (no incluye Orange, a diferencia de sus "hermanos" Harmony). Plan HMO general (no C-SNP, no D-SNP) enfocado en manejo de peso (SSBCI de obesidad/síndrome metabólico). MOOP $499/año, prima $0.00. Tiene costo real en dental comprensivo (a diferencia de otros planes) y una opción de dental mejorado de pago adicional. Doc: Y0141_27289EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+            ];
+            $_colsAlign24 = array_keys($_align24);
+            $_insAlign24 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign24).") VALUES (".implode(',', array_fill(0, count($_colsAlign24), '?')).")");
+            $_insAlign24->execute(array_values($_align24));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
