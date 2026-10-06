@@ -7693,6 +7693,151 @@ try {
             $_ins->execute(array_values($_align25_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: renovación 2027 de Alignment Health Balance 033, Heart &
+    // Diabetes 048 y 054 (HMO C-SNP). OJO MUY IMPORTANTE SOBRE ELEGIBILIDAD:
+    // en 2026 estos TRES planes estaban marcados como C-SNP + D-SNP
+    // (requerían TANTO la condición crónica COMO elegibilidad dual con
+    // Medi-Cal). Este documento de 2027 NO menciona en ningún lado la
+    // elegibilidad dual con Medi-Cal (no hay asteriscos, no hay cláusula de
+    // Medi-Cal en "Who Can Join", no se menciona D-SNP en el texto legal del
+    // final) — solo habla de "chronic condition special needs plans". Esto
+    // puede significar que el plan dejó de requerir Medi-Cal en 2027, O que
+    // el documento simplemente no lo detalla (a veces el Resumen de
+    // Beneficios no incluye ese detalle, solo la Evidencia de Cobertura).
+    // Dejé el campo de requisito_elegibilidad reflejando SOLO lo que dice
+    // este documento, pero Isabel debe verificar con Alignment antes de
+    // asumir que ya no requiere Medi-Cal — hay riesgo real de asesorar mal
+    // a un cliente si se equivoca en esto.
+    // Otros cambios notables: 048 cambió de nombre comercial — ya no se
+    // llama "Heart & Diabetes Care", ahora es solo "Heart & Diabetes 048" —
+    // y ahora cubre el condado de Kern (antes no); 048 PERDIÓ la cobertura
+    // dental comprensiva por completo (antes la tenía); los viajes de
+    // transporte de 048 bajaron drásticamente de 50 a 24 al año.
+    $_align26_base_2027 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO C-SNP','anio'=>2027,
+        'prima_mensual'=>'$0.00/mes',
+        'reembolso_parte_b'=>'No aplica — este plan no reduce la prima de Parte B',
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$0.00',
+        'rx_deducible'=>'$0.00',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — subió de $2,100.00 en 2026; ajuste estándar de Medicare a nivel nacional',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'servicios_urgentes'=>'$0.00',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas, laboratorio y diagnóstico)',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'No cubierto',
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'anteojos'=>'Límite de $200.00/año para anteojos y lentes de contacto',
+        'terapia_fisica_habla'=>'$0.00',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'$0.00',
+        'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura)',
+        'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos',
+        'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+    ];
+    $_align26_variantes_2027 = [
+        '033' => [
+            'nombre_plan'=>'Alignment Health Balance 033 (HMO C-SNP)','numero_plan'=>'033',
+            'condados'=>'Los Angeles y Orange, California',
+            'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar Enfermedad Renal Crónica (CKD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nOJO: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 sí la requería, era C-SNP+D-SNP) — verificar con Alignment antes de asumir que ya no se requiere",
+            'moop'=>'$1,499.00 al año (no incluye medicamentos recetados) — sin cambio vs 2026',
+            'hospital_internado'=>'$0.00 por estadía (días ilimitados por admisión)',
+            'hospital_ambulatorio'=>"\$50.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+            'centro_quirurgico_ambulatorio'=>'$0.00',
+            'atencion_emergencia'=>'$150.00 (NO se exime si es admitido) — subió de $75.00 en 2026',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $7,500.00 al año',
+            'ambulancia'=>'$100.00 (se exime si es admitido)',
+            'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+            'salud_mental_ambulatorio'=>'$20.00 (especialidad de salud mental, subió de $0.00 en 2026); $40.00 (servicios psiquiátricos, sin cambio)',
+            'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$50.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'transporte'=>'$0.00 — 34 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas (viajes ILIMITADOS a centros de diálisis) — bajó de 42 viajes en 2026',
+            'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'$40.00 minorista (30 días) / $120.00 correo (100 días)',
+            'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+            'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00",
+            'otc_mensual'=>'$100.00 al mes, sin acumulación — OJO: combinado con el beneficio de Essentials Allowance, un solo fondo compartido de $100.00/mes (no son montos separados)',
+            'podologia'=>'$5.00 — cubierto por Medicare',
+            'dme'=>'0% de coaseguro en artículos de $350.00 o menos; 20% de coaseguro en artículos de $350.01 o más',
+            'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, UNA vez al año',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nEnhanced Dental Option (rider opcional de pago adicional): prima mensual de \$40.00, con 0% de coaseguro en diagnóstico, 50% en restaurativo/endodoncia/prostodoncia fija y removible/cirugía oral, 0%-50% en periodoncia; límite de \$1,500.00 al año\nEvaluación de riesgo de salud personalizada: \$75.00, 1 evaluación cada 2 años\nPurificador de aire/humidificador: NO cubierto para este plan\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2027, Los Angeles y Orange. OJO: el nombre del plan ahora incluye el número ("Alignment Health Balance 033"), antes era solo "Alignment Health Balance (HMO C-SNP)" — mismo numero_plan 033 para el emparejamiento con 2026. Requiere Enfermedad Renal Crónica (CKD). OJO MUY IMPORTANTE: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 era C-SNP+D-SNP) — verificar con Alignment antes de asesorar a un cliente asumiendo que ya no se requiere. Cambios vs 2026: atención de emergencia subió de $75 a $150; especialidad de salud mental subió de $0 a $20; viajes de transporte bajaron de 42 a 34 al año. MOOP sin cambio ($1,499). Doc: Y0141_27279EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '048' => [
+            'nombre_plan'=>'Alignment Health Heart & Diabetes 048 (HMO C-SNP)','numero_plan'=>'048',
+            'condados'=>'Alameda, Fresno, Kern, Madera, Marin, Merced, Placer, Sacramento, San Francisco, San Joaquin, San Luis Obispo, Santa Clara, Stanislaus, Ventura y Yolo, California',
+            'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica calificada (insuficiencia cardíaca congestiva, EPOC, demencia, diabetes o derrame cerebral, entre otras)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nOJO: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 sí la requería, era C-SNP+D-SNP) — verificar con Alignment antes de asumir que ya no se requiere",
+            'moop'=>'$1,990.00 al año (no incluye medicamentos recetados) — sin cambio vs 2026',
+            'hospital_internado'=>"\$100.00 por día, días 1-5\n\$0.00 por día, días 6-90\n(días ilimitados por admisión)",
+            'hospital_ambulatorio'=>"\$200.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+            'centro_quirurgico_ambulatorio'=>'$100.00',
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — subió de $120.00 en 2026',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $25,000.00 al año',
+            'ambulancia'=>'$100.00 terrestre / $125.00 aérea (se exime si es admitido)',
+            'salud_mental_internado'=>'$250.00 copago por cada estadía cubierta por Medicare (monto único por hospitalización, no por día), más $0.00 para 40 días adicionales',
+            'salud_mental_ambulatorio'=>'$10.00 (especialidad de salud mental, subió de $0.00 en 2026); $10.00 (servicios psiquiátricos, subió de $0.00 en 2026)',
+            'enfermeria_especializada'=>"\$20.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'transporte'=>'$0.00 — 24 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 35 millas — OJO: bajó drásticamente de 50 viajes en 2026',
+            'rx_nivel2'=>'$5.00 minorista (30 días) / $12.50 correo (100 días)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+            'rx_nivel4'=>'50% de coaseguro (minorista y correo)',
+            'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 al año)",
+            'dental_integral'=>'NO CUBIERTO — este plan perdió la cobertura dental comprensiva (restaurativo, endodoncia, periodoncia, prostodoncia, cirugía oral) que sí tenía en 2026',
+            'otc_mensual'=>'$10.00 al mes, sin acumulación — bajó de $25.00 en 2026 (ahora es un monto separado del Essentials Allowance, que subió a $35.00/mes)',
+            'podologia'=>'$0.00 cubierto por Medicare, más $0.00 para 12 visitas de rutina al año',
+            'dme'=>'0% de coaseguro en artículos de $500.00 o menos; 20% de coaseguro en artículos de $500.01 o más',
+            'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nEnhanced Dental Option (rider opcional de pago adicional): prima mensual de \$40.00, con 0% de coaseguro en diagnóstico, 50% en restaurativo/endodoncia/prostodoncia fija y removible/cirugía oral, 0%-50% en periodoncia; límite de \$1,500.00 al año — OJO: esta opción de pago adicional ahora es la ÚNICA forma de tener dental comprensivo en este plan, ya que el beneficio base lo perdió\nEvaluación de riesgo de salud personalizada: NO cubierta para este plan\nPurificador de aire/humidificador (para elegibles SSBCI con condición crónica calificada): \$0.00, 1 al año\nEssentials Allowance (para elegibles SSBCI): \$35.00 al mes para despensa, servicios públicos y seguridad del hogar — subió de \$25.00 en 2026\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2027. OJO: el nombre comercial cambió de "Alignment Health Heart & Diabetes Care (HMO C-SNP)" a "Alignment Health Heart & Diabetes 048 (HMO C-SNP)" — se quitó la palabra "Care" y se agregó el número; mismo numero_plan 048 para el emparejamiento con 2026. OJO: ahora cubre el condado de Kern (antes no, eran 14 condados, ahora 15). CAMBIOS IMPORTANTES: este plan PERDIÓ la cobertura dental comprensiva por completo (antes tenía copagos de $20-$570 según servicio; ahora NO CUBIERTO, solo disponible vía el rider opcional "Enhanced Dental Option" de $40/mes); los viajes de transporte bajaron drásticamente de 50 a 24 al año; atención de emergencia subió de $120 a $150; especialidad de salud mental y psiquiatría subieron de $0 a $10 cada una; el OTC bajó de $25 a $10/mes pero el Essentials Allowance subió de $25 a $35/mes (ya no están alineados). MOOP sin cambio ($1,990). OJO MUY IMPORTANTE: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 era C-SNP+D-SNP) — verificar con Alignment antes de asesorar a un cliente asumiendo que ya no se requiere. Comparte nombre comercial genérico "Heart & Diabetes" con el plan 054 (otros condados) — se agregó el código al nombre para diferenciarlos. Doc: Y0141_27279EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '054' => [
+            'nombre_plan'=>'Alignment Health Heart & Diabetes 054 (HMO C-SNP)','numero_plan'=>'054',
+            'condados'=>'Los Angeles, Orange, Riverside, San Bernardino y San Diego, California',
+            'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica calificada (insuficiencia cardíaca congestiva, EPOC, demencia, diabetes o derrame cerebral, entre otras)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nOJO: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 sí la requería, era C-SNP+D-SNP) — verificar con Alignment antes de asumir que ya no se requiere",
+            'moop'=>'$990.00 al año (no incluye medicamentos recetados) — sin cambio vs 2026, sigue siendo de los MOOP más bajos vistos',
+            'hospital_internado'=>'$0.00 por estadía (días ilimitados por admisión)',
+            'hospital_ambulatorio'=>"\$200.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+            'centro_quirurgico_ambulatorio'=>'$100.00',
+            'atencion_emergencia'=>'$150.00 (se exime si es admitido dentro de 48 horas) — subió de $120.00 en 2026',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $25,000.00 al año',
+            'ambulancia'=>'$100.00 terrestre / $125.00 aérea (se exime si es admitido)',
+            'salud_mental_internado'=>"\$100.00 por día, días 1-5\n\$0.00 por día, días 6-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+            'salud_mental_ambulatorio'=>'$10.00 (especialidad de salud mental, subió de $0.00 en 2026); $10.00 (servicios psiquiátricos, subió de $0.00 en 2026)',
+            'enfermeria_especializada'=>"\$20.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'transporte'=>'$0.00 — 50 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 35 millas — sin cambio vs 2026',
+            'rx_nivel2'=>'$5.00 minorista (30 días) / $15.00 correo (100 días) — subió de $12.50 en correo en 2026',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+            'rx_nivel4'=>'40% de coaseguro (minorista y correo)',
+            'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00",
+            'otc_mensual'=>'$40.00 al mes, sin acumulación — subió de $25.00 en 2026',
+            'podologia'=>'$0.00 cubierto por Medicare, más $0.00 para 12 visitas de rutina al año',
+            'dme'=>'0% de coaseguro en artículos de $500.00 o menos; 20% de coaseguro en artículos de $500.01 o más',
+            'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nEnhanced Dental Option (rider opcional de pago adicional): prima mensual de \$40.00, con 0% de coaseguro en diagnóstico, 50% en restaurativo/endodoncia/prostodoncia fija y removible/cirugía oral, 0%-50% en periodoncia; límite de \$1,500.00 al año\nEvaluación de riesgo de salud personalizada: NO cubierta para este plan\nPurificador de aire/humidificador (para elegibles SSBCI con condición crónica calificada): \$0.00, 1 al año\nEssentials Allowance (para elegibles SSBCI): \$50.00 al mes para despensa, servicios públicos y seguridad del hogar — subió de \$25.00 en 2026\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2027, Los Angeles, Orange, Riverside, San Bernardino y San Diego. OJO: el nombre comercial cambió de "Alignment Health Heart & Diabetes Care (HMO C-SNP)" a "Alignment Health Heart & Diabetes 054 (HMO C-SNP)" — se quitó la palabra "Care" y se agregó el número; mismo numero_plan 054 para el emparejamiento con 2026. Cambios vs 2026: atención de emergencia subió de $120 a $150; especialidad de salud mental y psiquiatría subieron de $0 a $10 cada una; el OTC subió de $25 a $40/mes; el Essentials Allowance subió de $25 a $50/mes; Tier 2 por correo subió de $12.50 a $15.00. El dental comprensivo y el transporte (50 viajes) NO cambiaron. MOOP sin cambio ($990, sigue siendo de los más bajos vistos). OJO MUY IMPORTANTE: este documento NO menciona elegibilidad dual con Medi-Cal (en 2026 era C-SNP+D-SNP) — verificar con Alignment antes de asesorar a un cliente asumiendo que ya no se requiere. Comparte nombre comercial genérico "Heart & Diabetes" con el plan 048 (otros condados) — se agregó el código al nombre para diferenciarlos. Doc: Y0141_27279EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align26_variantes_2027 as $_align26_pn => $_align26_overrides) {
+        try {
+            $_align26_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align26_existe->execute([$_align26_overrides['nombre_plan'], 2027]);
+            if ($_align26_existe->fetch()) continue;
+            $_align26_plan = array_merge($_align26_base_2027, $_align26_overrides);
+            $_cols = array_keys($_align26_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align26_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
