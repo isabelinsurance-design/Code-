@@ -6405,6 +6405,115 @@ try {
             $_insAlign9->execute(array_values($_align9));
         }
     } catch (Exception $e) {}
+    // Semilla: Alignment Health Honor+ Plan (HMO) 052 y ValorCare (HMO) 053,
+    // 2026 — planes NUEVOS, datos del Summary of Benefits que subió Isabel.
+    $_align10_base_2026 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO','anio'=>2026,
+        'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'prima_mensual'=>'$0.00/mes (Parte C y Parte D)',
+        'deducible'=>'$0.00',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,100.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+        'hospital_ambulatorio'=>"\$0.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+        'centro_quirurgico_ambulatorio'=>'$0.00',
+        'medico_primario'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio)',
+        'rayos_x'=>'$0.00',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'telesalud'=>'$0.00 para médico primario, especialidad de salud mental y servicios psiquiátricos',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura), más $0.00 para 12 visitas de rutina al año (combinadas entre quiropráctico y acupuntura)',
+        'podologia'=>'$0.00 — cubierto por Medicare',
+    ];
+    $_align10_variantes_2026 = [
+        '052' => [
+            'nombre_plan'=>'Alignment Health Honor+ Plan (HMO)',
+            'numero_plan'=>'052','condados'=>'Alameda, Fresno, Los Angeles, Madera, Marin, Merced, Orange, Placer, Riverside, Sacramento, San Bernardino, San Diego, San Francisco, San Joaquin, San Luis Obispo, San Mateo, Santa Clara, Stanislaus, Ventura y Yolo, California',
+            'reembolso_parte_b'=>'No cubierto — este plan no reduce la prima de Parte B (no es un plan Giveback)',
+            'deducible_parte_d'=>'$615.00 para Tier 3, Tier 4 y Tier 5 (único entre los planes Alignment cargados — los demás son $0.00)',
+            'moop'=>'$9,250.00 al año (no incluye medicamentos recetados) — el MOOP más alto entre los planes Alignment cargados hasta ahora',
+            'hospital_internado'=>"Deducible de \$1,676.00 por cada período de beneficios\nDías 1-60: \$0.00 por día\nDías 61-90: \$419.00 por día\nDía 91 en adelante: \$838.00 por cada \"día de reserva de por vida\" (hasta 60 días de por vida)\nMás allá de los días de reserva de por vida: el miembro paga el costo total\n(Esta estructura copia el coaseguro de Medicare Original Parte A; estos montos son de 2025 y pueden cambiar para 2026 según el documento)",
+            'especialistas'=>'$0.00',
+            'atencion_emergencia'=>'20% de coaseguro* (se exime si es admitido dentro de 3 días)',
+            'servicios_urgentes'=>'20% de coaseguro* (NO se exime si es admitido)',
+            'emergencia_mundial'=>'$75.00, límite de $10,000.00 al año (se exime si es admitido)',
+            'ambulancia'=>'20% de coaseguro* (NO se exime si es admitido)',
+            'radiologia_terapeutica'=>'20% de coaseguro* (ej. radioterapia para cáncer)',
+            'audifonos'=>'No cubierto',
+            'dental_preventivo'=>"\$0.00 Examen (1 cada 6 meses)\n\$0.00 Limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)\nNota: servicios dentales médicamente necesarios cubiertos por Medicare (fuera de lo preventivo de rutina) tienen 20% de coaseguro*",
+            'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite de \$500.00 cada tres meses",
+            'anteojos'=>'Límite de $500.00 cada dos años para anteojos y lentes de contacto',
+            'salud_mental_internado'=>"Deducible de \$1,676.00 por cada período de beneficios\nDías 1-60: \$0.00 por día\nDías 61-90: \$419.00 por día\nDía 91 en adelante: \$838.00 por cada \"día de reserva de por vida\" (hasta 60 días de por vida)\nMás allá de los días de reserva de por vida: el miembro paga el costo total\n(Montos de 2025, pueden cambiar para 2026)",
+            'salud_mental_ambulatorio'=>'20% de coaseguro* (tanto para especialidad de salud mental como para servicios psiquiátricos)',
+            'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$209.50 por día, días 21-100\n(no requiere hospitalización previa)",
+            'terapia_fisica_habla'=>'20% de coaseguro*',
+            'transporte'=>'$0.00 — 50 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+            'rx_deducible'=>'$615.00 para Tier 3, Tier 4 y Tier 5',
+            'rx_nivel2'=>'25% de coaseguro (minorista y correo)',
+            'rx_nivel3'=>'25% de coaseguro (minorista y correo)',
+            'rx_nivel4'=>'30% de coaseguro (minorista y correo)',
+            'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+            'rx_nivel6'=>'$0.00 minorista; $0.00 por correo (Select Care Drugs)',
+            'otc_mensual'=>'$100.00 al mes, sin acumulación — OJO: este monto está COMBINADO con el beneficio de Essentials Allowance (ver extras_json), es decir, NO son $100 + $100 por separado, sino un solo fondo compartido de $100/mes',
+            'pers'=>'$0.00',
+            'dme'=>'20% de coaseguro* (incluye monitores continuos de glucosa/CGM)',
+            'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 12 horas cada 3 meses (48 horas al año) — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+            'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMedicamentos de bonificación (Bonus Drugs): NO disponibles en este plan (a diferencia del ValorCare 053, que sí los tiene)\nEssentials Allowance (para elegibles SSBCI con condición crónica calificada): \$100.00 al mes — combinado con el beneficio de OTC en un solo fondo compartido de \$100.00/mes (no son montos separados/adicionales)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año\n*Nota de la aseguranza: para miembros con Medi-Cal completo, el copago de los servicios marcados con asterisco (*) puede ser pagado en parte o en su totalidad por Medi-Cal u otro tercero",
+            'notas'=>'Resumen de Beneficios 2026, cobertura en 19 condados de California (comparte casi la misma área que el plan CalCare 050). PRIMER año de este plan en el sistema. Es un plan con estructura de costos distinta a los demás planes Alignment: copia el coaseguro de Medicare Original (deducible por período de beneficios, coaseguro de 20% en vez de copagos fijos en muchos servicios) y tiene el MOOP más alto ($9,250) y el único deducible de Parte D ($615 en Tiers 3-5) entre los planes Alignment cargados. Varios copagos llevan un asterisco (*) que indica que Medi-Cal puede cubrirlos en todo o en parte si el miembro tiene Medi-Cal completo — revisar con cuidado antes de recomendar a un cliente sin Medi-Cal. Doc: Y0141_26266EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '053' => [
+            'nombre_plan'=>'Alignment Health ValorCare (HMO)',
+            'numero_plan'=>'053','condados'=>'Los Angeles, Orange, Riverside, San Bernardino y San Diego, California',
+            'reembolso_parte_b'=>'$125.00/mes de reducción en la prima de Parte B (plan tipo Giveback)',
+            'deducible_parte_d'=>'$0.00',
+            'moop'=>'$6,000.00 al año (no incluye medicamentos recetados)',
+            'hospital_internado'=>"\$400.00 por día, días 1-5\n\$0.00 por día, días 6-90\n(días ilimitados por admisión)",
+            'especialistas'=>'$40.00',
+            'atencion_emergencia'=>'$120.00 (se exime si es admitido dentro de 24 horas)',
+            'servicios_urgentes'=>'$0.00',
+            'emergencia_mundial'=>'$50.00, límite de $100,000.00 al año (se exime si es admitido)',
+            'ambulancia'=>'$300.00 terrestre / $1,250.00 aérea (NO se exime si es admitido)',
+            'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+            'audifonos'=>'$195.00-$1,750.00 copago por audífono, 2 al año',
+            'dental_preventivo'=>"\$0.00 Examen (1 cada 6 meses)\n\$0.00 Limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+            'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite combinado de \$2,000.00/año entre preventivo y comprensivo",
+            'anteojos'=>'Límite de $300.00/año para anteojos y lentes de contacto',
+            'salud_mental_internado'=>"\$400.00 por día, días 1-5\n\$0.00 por día, días 6-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+            'salud_mental_ambulatorio'=>'$40.00 (tanto para especialidad de salud mental como para servicios psiquiátricos)',
+            'enfermeria_especializada'=>"\$10.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+            'terapia_fisica_habla'=>'$0.00',
+            'transporte'=>'No cubierto',
+            'rx_deducible'=>'$0.00',
+            'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+            'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+            'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+            'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+            'otc_mensual'=>'$20.00 al mes, sin acumulación',
+            'pers'=>'No cubierto',
+            'dme'=>'20% de coaseguro (incluye monitores continuos de glucosa/CGM)',
+            'apoyo_hogar'=>'No cubierto en este documento (servicios de apoyo en el hogar y apoyo para cuidadores NO están disponibles para este plan)',
+            'comidas_post_hospital'=>'No cubierto',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMedicamentos de bonificación (Bonus Drugs): SÍ disponibles — Viagra genérico, medicamentos para tos/resfriado, vitaminas recetadas y medicamentos para la caída del cabello\nEssentials Allowance: NO disponible para este plan\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2026, Los Angeles, Orange, Riverside, San Bernardino y San Diego. PRIMER año de este plan en el sistema. Es un plan tipo Giveback: reduce la prima de Parte B en $125.00/mes — a diferencia de su "plan hermano" en este mismo documento, Honor+ (052), que NO reduce la prima de Parte B. Tiene copagos fijos más tradicionales (no coaseguros tipo Medicare Original) y NO tiene Essentials Allowance, apoyo en el hogar/cuidadores, ni comidas post-hospitalización — beneficios que sí tiene el 052. Doc: Y0141_26266EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align10_variantes_2026 as $_align10_pn => $_align10_overrides) {
+        try {
+            $_align10_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align10_existe->execute([$_align10_overrides['nombre_plan'], 2026]);
+            if ($_align10_existe->fetch()) continue;
+            $_align10_plan = array_merge($_align10_base_2026, $_align10_overrides);
+            $_cols = array_keys($_align10_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align10_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
