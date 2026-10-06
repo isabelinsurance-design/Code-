@@ -7938,10 +7938,10 @@ try {
     // $0 en casi todo, igual que su plan hermano de Los Angeles.
     try {
         $_anthemFresno2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
-        $_anthemFresno2026_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) 002', 2026]);
+        $_anthemFresno2026_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno', 2026]);
         if (!$_anthemFresno2026_existe->fetch()) {
             $_anthemFresno2026 = [
-                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) 002','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
                 'numero_plan'=>'002','condados'=>'Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare, California',
                 'anio'=>2026,
                 'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), ser mayor de 21 años, y vivir en el área de servicio (Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara o Tulare)',
@@ -8003,10 +8003,10 @@ try {
     } catch (Exception $e) {}
     try {
         $_anthemFresno2027_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
-        $_anthemFresno2027_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) 002', 2027]);
+        $_anthemFresno2027_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno', 2027]);
         if (!$_anthemFresno2027_existe->fetch()) {
             $_anthemFresno2027 = [
-                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) 002','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
                 'numero_plan'=>'002','condados'=>'Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare, California',
                 'anio'=>2027,
                 'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), ser mayor de 21 años, y vivir en el área de servicio (Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara o Tulare)',
@@ -8065,6 +8065,13 @@ try {
             $_insAF27 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAF27).") VALUES (".implode(',', array_fill(0, count($_colsAF27), '?')).")");
             $_insAF27->execute(array_values($_anthemFresno2027));
         }
+    } catch (Exception $e) {}
+    // Corrección: Isabel pidió que el nombre diga "Fresno" para distinguirlo
+    // a simple vista del plan de Los Angeles County (antes solo decía "002",
+    // que no le decía nada). Esto arregla las filas que ya se hubieran
+    // insertado en el servidor con el nombre viejo antes de este cambio.
+    try {
+        $pdo->exec("UPDATE planes_comparacion SET nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno' WHERE nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP) 002'");
     } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
