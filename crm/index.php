@@ -6011,6 +6011,73 @@ try {
             $_ins->execute(array_values($_align4_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: Alignment Health smartHMO (HMO) 013 2026 — plan NUEVO, datos
+    // del Summary of Benefits que subió Isabel.
+    try {
+        $_align5_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align5_existe->execute(['Alignment Health smartHMO (HMO)', 2026]);
+        if (!$_align5_existe->fetch()) {
+            $_align5 = [
+                'nombre_plan'=>'Alignment Health smartHMO (HMO)','carrier'=>'Alignment Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'013','condados'=>'Los Angeles, Orange, Riverside, San Bernardino y San Diego, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+                'prima_mensual'=>'$0.00/mes. Es un plan "Giveback": reduce su prima de Medicare Parte B en $164.90/mes',
+                'reembolso_parte_b'=>'$164.90/mes de reducción en la prima de Parte B',
+                'deducible'=>'$0.00',
+                'deducible_parte_d'=>'$0.00',
+                'moop'=>'$2,499.00 al año (no incluye medicamentos recetados)',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+                'hospital_internado'=>'$0.00 por estadía (días ilimitados por admisión)',
+                'hospital_ambulatorio'=>"\$100.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+                'centro_quirurgico_ambulatorio'=>'$50.00',
+                'medico_primario'=>'$0.00',
+                'especialistas'=>'$5.00',
+                'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+                'atencion_emergencia'=>'$70.00 (se exime si es admitido dentro de 48 horas)',
+                'servicios_urgentes'=>'$0.00',
+                'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $25,000.00 al año; el Complete Package opcional agrega $75,000.00 adicionales de límite',
+                'ambulancia'=>'$100.00 terrestre / $200.00 aérea (se exime si es admitido)',
+                'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas, laboratorio y diagnóstico)',
+                'rayos_x'=>'$0.00',
+                'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+                'audifonos'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: $195.00-$1,750.00 copago por audífono, 2 al año)',
+                'dental_preventivo'=>"\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+                'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00\nSÍ incluido en el plan base (a diferencia de otros planes Alignment, que lo dejan solo para el Complete Package opcional)",
+                'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+                'anteojos'=>'Límite de $200.00/año para anteojos y lentes, Y además $100.00/año para lentes de contacto (por separado)',
+                'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+                'salud_mental_ambulatorio'=>'$10.00 (especialidad de salud mental); $20.00 (servicios psiquiátricos)',
+                'enfermeria_especializada'=>"\$20.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+                'terapia_fisica_habla'=>'$0.00',
+                'transporte'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: 24 viajes de ida al año, radio de 30 millas)',
+                'rx_deducible'=>'$0.00',
+                'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+                'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+                'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+                'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+                'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'No cubierto en este documento — a diferencia de otros planes Alignment, la tarjeta "ACCESS On-Demand Black Card" de este plan solo da acceso a Healthy Rewards, sin beneficio de productos de venta libre',
+                'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+                'pers'=>'No cubierto en el plan base (sí disponible en el Complete Package opcional: $0.00)',
+                'quiropractico_acupuntura'=>'$10.00 cubierto por Medicare (quiropráctico); $0.00 cubierto por Medicare (acupuntura). Sin beneficio de RUTINA para ninguno de los dos',
+                'podologia'=>'$5.00 — cubierto por Medicare',
+                'telesalud'=>'$0.00 para médico primario, especialidad de salud mental y servicios psiquiátricos',
+                'dme'=>'20% de coaseguro',
+                'apoyo_hogar'=>'No se menciona en este documento',
+                'comidas_post_hospital'=>'No se menciona en este documento',
+                'extras_json'=>"Tarjeta ACCESS On-Demand Black Card: incluida (acceso a Healthy Rewards — NO incluye beneficio de OTC, a diferencia de la tarjeta Concierge de otros planes Alignment)\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año\nCOMPLETE PACKAGE (opcional, +\$64.90/mes): dental integral mejorado (0% diagnóstico, 50% en los demás servicios incluyendo prostodoncia removible y fija; límite \$1,500/año — además del dental ya incluido en el plan base), Care Anywhere \$0.00, audífonos \$195.00-\$1,750.00 copago c/u (2 al año), PERS \$0.00, transporte 24 viajes/año (radio 30 millas), cobertura mundial de emergencia adicional de \$75,000.00/año",
+                'notas'=>'Resumen de Beneficios 2026, Los Angeles, Orange, Riverside, San Bernardino y San Diego. PRIMER año de este plan en el sistema — plan Medicare Advantage general, reduce la prima de Parte B $164.90/mes (uno de los Giveback más altos de Alignment). A diferencia de los demás planes Alignment ya cargados, este SÍ incluye dental integral en el plan base (no solo con el Complete Package opcional), pero NO tiene beneficio de OTC en la tarjeta de beneficios. Doc: Y0141_26351EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+            ];
+            $_colsAlign5 = array_keys($_align5);
+            $_insAlign5 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign5).") VALUES (".implode(',', array_fill(0, count($_colsAlign5), '?')).")");
+            $_insAlign5->execute(array_values($_align5));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
