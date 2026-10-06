@@ -13449,15 +13449,20 @@ function onAnocCarrierChange(){
       .slice().sort((a,b)=>(anioDePlan(a)||0)-(anioDePlan(b)||0));
     const anios = Array.from(new Set(versiones.map(anioDePlan).filter(a=>a!==null))).sort((a,b)=>a-b);
     const nombreActual = versiones[versiones.length-1].nombre_plan;
+    // Pedido de Isabel: el nombre del plan va PRIMERO — el código (cuando lo
+    // hay) se pone al final, entre paréntesis, en vez de como prefijo. Para
+    // Alignment el código es corto (ej. "013") y ayuda a distinguir planes
+    // renombrados; para otras aseguranzas suele ser un código largo/críptico
+    // (ej. "H4161_016-000_CA_HMO-POS C-SNP") que estorba si va al principio.
     const codigoPlan = String(versiones[versiones.length-1].numero_plan||'').trim();
-    const prefijo = codigoPlan ? ('['+codigoPlan+'] ') : '';
+    const sufijo = codigoPlan ? (' ('+codigoPlan+')') : '';
     const nombresDistintos = Array.from(new Set(versiones.map(p=>p.nombre_plan)));
     const esElMasReciente = anios.length === 1 && String(anios[0]) === String(ANIO_MAS_RECIENTE);
     const esPosibleDescontinuado = anios.length === 1 && !esElMasReciente;
-    let etiqueta = anios.length >= 2 ? (prefijo+nombreActual+' — '+anios.join('/'))
-      : esElMasReciente ? (prefijo+'⭐ '+nombreActual)
-      : esPosibleDescontinuado ? (prefijo+'❌ '+nombreActual)
-      : (prefijo+nombreActual);
+    let etiqueta = anios.length >= 2 ? (nombreActual+' — '+anios.join('/')+sufijo)
+      : esElMasReciente ? ('⭐ '+nombreActual+sufijo)
+      : esPosibleDescontinuado ? ('❌ '+nombreActual+sufijo)
+      : (nombreActual+sufijo);
     if(nombresDistintos.length > 1) etiqueta += ' (antes: '+nombresDistintos.slice(0,-1).join(', ')+')';
     return '<option value="'+esc(clave)+'">'+esc(etiqueta)+'</option>';
   }).join('');
