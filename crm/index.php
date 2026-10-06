@@ -7927,6 +7927,145 @@ try {
             $_insHum2026->execute(array_values($_humanaGiveback2026));
         }
     } catch (Exception $e) {}
+    // Semilla: Anthem Full Dual Advantage Aligned (HMO D-SNP) 2026 y 2027 —
+    // Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y
+    // Tulare. OJO: mismo nombre comercial que el plan de Los Angeles County
+    // ya cargado, pero es un plan DISTINTO — número de plan (PBP) '002' en
+    // vez de '001', con montos de beneficios distintos para esta zona (ej.
+    // asignación dental $3,000 en vez de $4,000; Everyday Options Allowance
+    // $95/mes en vez de $110/mes). Se le agregó "002" al nombre para
+    // diferenciarlo en el sistema. Es D-SNP de doble elegible completo —
+    // $0 en casi todo, igual que su plan hermano de Los Angeles.
+    try {
+        $_anthemFresno2026_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_anthemFresno2026_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) 002', 2026]);
+        if (!$_anthemFresno2026_existe->fetch()) {
+            $_anthemFresno2026 = [
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) 002','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'002','condados'=>'Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare, California',
+                'anio'=>2026,
+                'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), ser mayor de 21 años, y vivir en el área de servicio (Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara o Tulare)',
+                'prima_mensual'=>'$0/mes — al tener Medi-Cal, no paga ninguna prima mensual, incluyendo la de Medicare Parte B',
+                'reembolso_parte_b'=>'No incluido en este plan (Medi-Cal cubre la prima de Parte B directamente, no es un "giveback" del plan)',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'$615 para Tier 3, Tier 4 y Tier 5 (no aplica si recibe Ayuda Extra)',
+                'moop'=>'$0 al año — no hay costo compartido en servicios médicos dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,100 al año (inicia la Etapa de Cobertura Catastrófica, donde paga $0)',
+                'hospital_internado'=>'$0 — cubre 90 días por hospitalización, más 60 "días de reserva de por vida" adicionales si se agotan los 90',
+                'hospital_ambulatorio'=>'$0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0',
+                'atencion_preventiva'=>'$0 — incluye visita de bienestar anual, vacunas, exámenes de cáncer, y 1 visita "Bienvenido a Medicare" (única vez)',
+                'atencion_emergencia'=>'$0 — cubierta dentro y fuera de la red, sin necesidad de referencia o autorización previa',
+                'servicios_urgentes'=>'$0 — no requiere estar dentro de la red ni autorización previa',
+                'emergencia_mundial'=>'$0 — límite combinado de $100,000 al año para sala de emergencia y atención urgente mundial (viajes de menos de 6 meses fuera de EE.UU.)',
+                'ambulancia'=>'$0 (terrestre, aérea o acuática) — el proveedor necesita autorización del plan si NO es transporte de emergencia',
+                'diagnostico_laboratorio'=>'$0',
+                'rayos_x'=>'$0 — incluye radiografías, tomografías (CAT) y resonancias magnéticas (MRI)',
+                'radiologia_terapeutica'=>'$0 (radioterapia)',
+                'examen_auditivo'=>'$0 — 1 examen de rutina al año',
+                'audifonos'=>'$0 hasta $300 al año para audífonos de venta libre (OTC), O $0 hasta $3,000 al año para audífonos recetados (1 par al año, de cualquier tipo)',
+                'dental_preventivo'=>"\$0 — incluye 2 exámenes orales, 2 limpiezas, 2 tratamientos de flúor y 2 rayos X al año\nAsignación combinada (preventivo + integral): \$3,000 al año — lo no usado al final del año expira",
+                'dental_integral'=>'$0 — incluido en la asignación combinada de $3,000 al año. Puentes dentales, imágenes dentales avanzadas, conducto radicular y extracciones complejas requieren autorización previa. Medi-Cal cubre beneficios dentales adicionales',
+                'examen_vision'=>'$0 — 1 examen de rutina al año',
+                'anteojos'=>'$0 hasta $425 al año para anteojos o lentes de contacto',
+                'salud_mental_internado'=>'$0',
+                'salud_mental_ambulatorio'=>'$0 — servicios de salud mental individuales/grupales y por abuso de sustancias',
+                'enfermeria_especializada'=>'$0 — hasta 100 días, más 80 días adicionales a través de Medi-Cal (180 días combinados)',
+                'terapia_fisica_habla'=>'$0 — terapia física, ocupacional y del habla',
+                'transporte'=>'$0 — hasta 96 viajes de ida al año a ubicaciones relacionadas con la salud (el documento no detalla un límite de millas por viaje)',
+                'rx_deducible'=>'$615 para Tier 3, Tier 4 y Tier 5 (no aplica si recibe Ayuda Extra)',
+                'rx_nivel1'=>'$0 (minorista y por correo)',
+                'rx_nivel2'=>'$0 (minorista y por correo)',
+                'rx_nivel3'=>'Con Ayuda Extra: $0-$12.65; sin Ayuda Extra: 25% de coaseguro',
+                'rx_nivel4'=>'Con Ayuda Extra: $0-$12.65; sin Ayuda Extra: 25% de coaseguro',
+                'rx_nivel5'=>'Con Ayuda Extra: $0-$12.65 (minorista); sin Ayuda Extra: 25% de coaseguro. No disponible por correo',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'Con Ayuda Extra: $0-$12.65 por mes; sin Ayuda Extra: no más de $35.00 por suministro de 1 mes, en cualquier nivel',
+                'rx_vacunas'=>'$0 — la mayoría de las vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'Everyday Options Allowance: $95.00 al mes — fondo combinado para dispositivos de asistencia y productos de venta libre (OTC); si califica para SSBCI, también cubre alimentos saludables y servicios públicos. No se acumula al mes siguiente',
+                'gimnasio'=>'$0 — SilverSneakers incluido, más Active Fitness Benefit de $25.00/mes (golf, natación, tenis, entre otros) en la Tarjeta Prepagada de Beneficios',
+                'pers'=>'$0 — sistema de respuesta a emergencias personales, incluye dispositivo y monitoreo mensual',
+                'quiropractico_acupuntura'=>'$0 quiropráctico; $0 acupuntura de rutina SIN LÍMITE de visitas al año',
+                'podologia'=>'$0 — incluye podología no rutinaria SIN LÍMITE de visitas',
+                'telesalud'=>'$0 — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 — sillas de ruedas, muletas, andadores, nebulizadores, oxígeno y suministros para diabéticos',
+                'apoyo_hogar'=>"Servicios en el Hogar y la Comunidad (IHSS): \$0 — limpieza, comidas, lavandería, compras, cuidado personal, acompañamiento a citas médicas\nServicios de Apoyo para Adultos (CBAS) y día habilitación: \$0\nCommunity Supports: vivienda, cuidado de recuperación, respiro, comidas médicamente adaptadas, entre otros: \$0\nCalifornia Integrated Care Management (CICM): \$0\nLínea de Enfermería 24/7: \$0, sin referencia necesaria",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: \$0 — 2 comidas al día por 90 días (requiere calificar por riesgo de hospitalización y condición crónica)\nHealthy Meals post-alta hospitalaria/SNF: \$0 — 2 comidas al día por 7 días",
+                'extras_json'=>"Tarjeta Prepagada de Beneficios Mastercard: incluida\n2026 Star Rating: 3 de 5 estrellas (general, servicios de salud, y servicios de medicamentos)\nNo se mencionan servicios para mascotas ni control de plagas en este documento",
+                'notas'=>'Resumen de Beneficios 2026, Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare. OJO: comparte el mismo nombre comercial que "Anthem Full Dual Advantage Aligned (HMO D-SNP)" de Los Angeles County ya cargado, pero es un plan DISTINTO (PBP 002 en vez de 001) con montos distintos — asignación dental de $3,000/año (vs $4,000 en LA), anteojos $425/año, Everyday Options Allowance de $95/mes (vs $110/mes en LA). Plan D-SNP de doble elegible completo, $0 en casi todos los beneficios médicos. Doc: H4471_26_3015669_0000_R_M. Servicio al Miembro: 1-833-897-1342 (TTY 711).',
+            ];
+            $_colsAF26 = array_keys($_anthemFresno2026);
+            $_insAF26 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAF26).") VALUES (".implode(',', array_fill(0, count($_colsAF26), '?')).")");
+            $_insAF26->execute(array_values($_anthemFresno2026));
+        }
+    } catch (Exception $e) {}
+    try {
+        $_anthemFresno2027_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_anthemFresno2027_existe->execute(['Anthem Full Dual Advantage Aligned (HMO D-SNP) 002', 2027]);
+        if (!$_anthemFresno2027_existe->fetch()) {
+            $_anthemFresno2027 = [
+                'nombre_plan'=>'Anthem Full Dual Advantage Aligned (HMO D-SNP) 002','carrier'=>'Anthem Blue Cross','tipo'=>'HMO D-SNP',
+                'numero_plan'=>'002','condados'=>'Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>'Plan para necesidades especiales de doble elegibilidad (D-SNP) — requiere tener Medicare Parte A y Parte B, Medi-Cal completo (doble elegible), ser mayor de 21 años, y vivir en el área de servicio (Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara o Tulare)',
+                'prima_mensual'=>'$0/mes — al tener Medi-Cal, no paga ninguna prima mensual, incluyendo la de Medicare Parte B',
+                'reembolso_parte_b'=>'No incluido en este plan (Medi-Cal cubre la prima de Parte B directamente, no es un "giveback" del plan)',
+                'deducible'=>'$0 (no tiene deducible médico)',
+                'deducible_parte_d'=>'El documento no especifica un monto — todos los niveles de medicamentos se muestran en $0* (ver niveles de Rx)',
+                'moop'=>'$0 al año — no hay costo compartido en servicios médicos dentro de la red',
+                'umbral_gastos_bolsillo_parte_d'=>'El documento no especifica un monto para 2027 (todos los niveles de Rx se muestran en $0*)',
+                'hospital_internado'=>'$0 — cubre 90 días por hospitalización, más 60 "días de reserva de por vida" adicionales si se agotan los 90',
+                'hospital_ambulatorio'=>'$0',
+                'centro_quirurgico_ambulatorio'=>'$0',
+                'medico_primario'=>'$0',
+                'especialistas'=>'$0 — no requiere autorización previa ni referencia para una evaluación inicial de salud mental',
+                'atencion_preventiva'=>'$0 — incluye visita de bienestar anual, vacunas, exámenes de cáncer, y 1 visita "Bienvenido a Medicare" (única vez)',
+                'atencion_emergencia'=>'$0 — cubierta dentro y fuera de la red, sin necesidad de referencia o autorización previa',
+                'servicios_urgentes'=>'$0 — no requiere estar dentro de la red ni autorización previa',
+                'emergencia_mundial'=>'$0 — límite combinado de $100,000 al año para sala de emergencia, transporte de emergencia y atención urgente mundial (viajes de menos de 6 meses fuera de EE.UU.)',
+                'ambulancia'=>'$0 (terrestre, aérea o acuática) — el proveedor necesita autorización del plan si NO es transporte de emergencia',
+                'diagnostico_laboratorio'=>'$0',
+                'rayos_x'=>'$0 — incluye radiografías, tomografías (CAT) y resonancias magnéticas (MRI)',
+                'radiologia_terapeutica'=>'$0 (radioterapia)',
+                'examen_auditivo'=>'$0 — 1 examen de rutina al año',
+                'audifonos'=>'$0 hasta $300 al año para audífonos de venta libre (OTC), O $0 hasta $3,000 al año para audífonos recetados (1 par al año, de cualquier tipo)',
+                'dental_preventivo'=>"\$0 — incluye 2 exámenes orales, 2 limpiezas, 2 tratamientos de flúor y 2 rayos X al año\nAsignación combinada (preventivo + integral): \$3,000 al año — lo no usado al final del año expira",
+                'dental_integral'=>'$0 — incluido en la asignación combinada de $3,000 al año. Puentes dentales, imágenes dentales avanzadas, conducto radicular, algunos servicios de hueso/encía y extracciones complejas requieren autorización previa. Medi-Cal cubre atención dental de emergencia y beneficios adicionales',
+                'examen_vision'=>'$0 — 1 examen de rutina al año',
+                'anteojos'=>'$0 hasta $275 al año para anteojos o lentes de contacto — bajó de $425 en 2026',
+                'salud_mental_internado'=>'$0',
+                'salud_mental_ambulatorio'=>'$0 — servicios de salud mental individuales/grupales y por abuso de sustancias. No requiere autorización previa ni referencia para una evaluación inicial de salud mental',
+                'enfermeria_especializada'=>'$0 — estadía mínima de 180 días cuando es médicamente necesario (antes se describía como 100 días + 80 adicionales vía Medi-Cal; mismo total de 180 días)',
+                'terapia_fisica_habla'=>'$0 — terapia física, ocupacional y del habla',
+                'transporte'=>'$0 — hasta 96 viajes de ida al año a ubicaciones relacionadas con la salud, límite de 60 millas por viaje',
+                'rx_deducible'=>'El documento no especifica un monto para 2027 — ver niveles de Rx ($0*)',
+                'rx_nivel1'=>'$0* (minorista y por correo) — *si pierde la elegibilidad de Medi-Cal o Ayuda Extra, su costo puede subir',
+                'rx_nivel2'=>'$0* (minorista y por correo)',
+                'rx_nivel3'=>'$0* (minorista y por correo) — simplificado de la estructura de 2026 (que variaba entre $0-$12.65 o 25% según Ayuda Extra)',
+                'rx_nivel4'=>'$0* (minorista y por correo)',
+                'rx_nivel5'=>'$0* (minorista y por correo)',
+                'rx_nivel6'=>'',
+                'rx_insulina'=>'El documento no especifica un monto puntual para 2027 (todos los niveles de Rx, incluida insulina, se muestran en $0*)',
+                'rx_vacunas'=>'$0 — la mayoría de las vacunas de Parte D cubiertas sin costo',
+                'otc_mensual'=>'Everyday Options Allowance: $95.00 al mes — fondo combinado para dispositivos de asistencia y productos de venta libre (OTC); si califica para SSBCI, también cubre alimentos saludables y servicios públicos. No se acumula al mes siguiente',
+                'gimnasio'=>'$0 — SilverSneakers incluido, más Active Fitness Benefit de $25.00/mes (golf, natación, tenis, entre otros) en la Tarjeta Prepagada de Beneficios',
+                'pers'=>'$0 — sistema de respuesta a emergencias personales, incluye dispositivo y monitoreo mensual',
+                'quiropractico_acupuntura'=>'$0 quiropráctico; $0 acupuntura de rutina SIN LÍMITE de visitas al año',
+                'podologia'=>'$0 — incluye podología no rutinaria SIN LÍMITE de visitas',
+                'telesalud'=>'$0 — LiveHealth Online (vía Amwell): médico, psiquiatra, psicólogo o terapeuta por video',
+                'dme'=>'$0 — sillas de ruedas, muletas, andadores, nebulizadores, oxígeno. Incluye monitores continuos de glucosa (CGM) y sensores, monitores de glucosa, tiras reactivas y lancetas (detallado explícitamente este año)',
+                'apoyo_hogar'=>"Servicios en el Hogar y la Comunidad (IHSS): \$0 — limpieza, comidas, lavandería, compras, cuidado personal, acompañamiento a citas médicas, supervisión protectora\nServicios de Apoyo para Adultos (CBAS) y día habilitación: \$0\nCommunity Supports: vivienda, cuidado de recuperación, respiro, comidas médicamente adaptadas, entre otros: \$0\nCalifornia Integrated Care Management (CICM): \$0\nLínea de Enfermería 24/7: \$0, sin referencia necesaria",
+                'comidas_post_hospital'=>"Healthy Meals por condición crónica: \$0 — 3 comidas al día por 14 días — OJO: cambió de 2 comidas/día por 90 días en 2026 (bajó el total de 180 a 42 comidas)\nHealthy Meals post-alta hospitalaria/SNF: \$0 — 2 comidas al día por 7 días (sin cambio)",
+                'extras_json'=>"Tarjeta Prepagada de Beneficios Mastercard: incluida\n2026 Star Rating (en el documento 2027): 3 de 5 estrellas (general, servicios de salud, y servicios de medicamentos)\nNo se mencionan servicios para mascotas ni control de plagas en este documento",
+                'notas'=>'Resumen de Beneficios 2027, Fresno, Kern, Kings, Madera, Sacramento, San Francisco, Santa Clara y Tulare. Año siguiente del mismo plan 002 ya cargado para 2026 — mismo numero_plan para el emparejamiento de ANOC. CAMBIOS IMPORTANTES vs 2026: todos los niveles de medicamentos (Rx) se simplificaron a $0* (antes variaban entre $0-$12.65 o 25% de coaseguro según si tenía Ayuda Extra) — el documento ya no detalla un monto de deducible ni umbral de Parte D por separado; el beneficio de anteojos bajó de $425 a $275 al año; el beneficio de comidas por condición crónica cambió de 2 comidas/día por 90 días a 3 comidas/día por 14 días (bajó el total de comidas de 180 a 42). La asignación dental ($3,000/año) y el Everyday Options Allowance ($95/mes) no cambiaron. Sigue siendo DISTINTO del plan de Los Angeles County (mismo nombre comercial, PBP 001, con montos de $4,000 dental y $110/mes de allowance). Doc: H4471_27_3021007_0224_R_M. Servicio al Miembro: 1-833-897-1342 (TTY 711).',
+            ];
+            $_colsAF27 = array_keys($_anthemFresno2027);
+            $_insAF27 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAF27).") VALUES (".implode(',', array_fill(0, count($_colsAF27), '?')).")");
+            $_insAF27->execute(array_values($_anthemFresno2027));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
