@@ -6175,6 +6175,97 @@ try {
             $_ins->execute(array_values($_align6_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: Alignment Health My Choice Select (HMO) 049 y My Choice (HMO)
+    // 028, 2026 — planes NUEVOS, datos del Summary of Benefits que subió Isabel.
+    $_align7_base_2026 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO','anio'=>2026,
+        'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+        'prima_mensual'=>'$0.00/mes (Parte C y Parte D)',
+        'reembolso_parte_b'=>'No aplica — este plan no reduce la prima de Parte B (no es un plan Giveback)',
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$0.00',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,100.00 al año (inicia la Etapa de Cobertura Catastrófica)',
+        'hospital_internado'=>'$0.00 por estadía (días ilimitados por admisión)',
+        'hospital_ambulatorio'=>"\$0.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+        'centro_quirurgico_ambulatorio'=>'$0.00',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'servicios_urgentes'=>'$0.00',
+        'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio)',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'$195.00-$1,750.00 copago por audífono, 2 al año',
+        'dental_preventivo'=>"\$0.00 Examen (1 cada 6 meses)\n\$0.00 Limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'salud_mental_internado'=>"\$120.00 por día, días 1-10\n\$0.00 por día, días 11-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+        'salud_mental_ambulatorio'=>'$0.00 (especialidad de salud mental); $20.00 (servicios psiquiátricos)',
+        'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$30.00 por día, días 21-100\n(no requiere hospitalización previa)",
+        'terapia_fisica_habla'=>'$0.00',
+        'transporte'=>'$0.00 — 22 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+        'rx_deducible'=>'$0.00',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'otc_mensual'=>'$20.00 al mes, sin acumulación',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'$0.00',
+        'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura). Sin beneficio de RUTINA (este plan no ofrece FLEX Allowance)',
+        'podologia'=>'$0.00 — cubierto por Medicare. Sin beneficio de RUTINA (este plan no ofrece FLEX Allowance)',
+        'telesalud'=>'$0.00 para médico primario, especialidad de salud mental y servicios psiquiátricos',
+        'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, DOS veces al año',
+    ];
+    $_align7_variantes_2026 = [
+        '049' => [
+            'nombre_plan'=>'Alignment Health My Choice Select (HMO)',
+            'numero_plan'=>'049','condados'=>'Los Angeles, Orange, Riverside y San Bernardino, California',
+            'moop'=>'$798.00 al año (no incluye medicamentos recetados)',
+            'atencion_emergencia'=>'$70.00 (se exime si es admitido dentro de 48 horas)',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $25,000.00 al año',
+            'ambulancia'=>'$75.00 (se exime si es admitido)',
+            'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite combinado de \$2,000.00/año entre preventivo y comprensivo",
+            'anteojos'=>'Límite de $200.00/año para anteojos y lentes de contacto',
+            'rx_nivel2'=>'$5.00 minorista (30 días) / $12.50 correo (100 días)',
+            'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+            'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+            'rx_nivel6'=>'$3.00 minorista; $0.00 por correo (Select Care Drugs)',
+            'dme'=>'0% de coaseguro en artículos de $350.00 o menos; 20% de coaseguro en artículos de $350.01 o más; el 20% también aplica a monitores continuos de glucosa (CGM)',
+            'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 12 horas cada 3 meses (48 horas al año) — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nOpción dental mejorada: NO disponible para este plan\nPurificador de aire/humidificador (para elegibles SSBCI con condición crónica calificada): \$0.00, 1 al año\nComidas por reingreso/condición crónica: \$0.00 copago, 28 comidas en 14 días, DOS veces al año\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2026, Los Angeles, Orange, Riverside y San Bernardino. PRIMER año de este plan en el sistema. A diferencia de su plan hermano 028 (My Choice), este SÍ incluye apoyo en el hogar/cuidadores y purificador de aire para SSBCI, y su dental comprensivo es $0.00 fijo (límite $2,000/año) — pero NO tiene la Opción Dental Mejorada que sí tiene el 028. Doc: Y0141_26239EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '028' => [
+            'nombre_plan'=>'Alignment Health My Choice (HMO)',
+            'numero_plan'=>'028','condados'=>'San Luis Obispo y Ventura, California',
+            'moop'=>'$698.00 al año (no incluye medicamentos recetados)',
+            'atencion_emergencia'=>'$100.00 (se exime si es admitido dentro de 48 horas)',
+            'emergencia_mundial'=>'$0.00 (emergencia y urgencia), límite de $50,000.00 al año',
+            'ambulancia'=>'$100.00 terrestre / $200.00 aérea (se exime si es admitido)',
+            'dental_integral'=>"Restaurativo: \$20.00-\$400.00\nEndodoncia: \$25.00-\$350.00\nPeriodoncia: \$15.00-\$550.00\nProstodoncia removible: \$20.00-\$570.00\nProstodoncia fija: \$40.00-\$400.00\nCirugía oral/maxilofacial: \$25.00-\$250.00",
+            'anteojos'=>'Límite de $100.00/año para anteojos y lentes de contacto',
+            'rx_nivel2'=>'$3.00 minorista (30 días) / $9.00 correo (100 días)',
+            'rx_nivel3'=>'$40.00 minorista (30 días) / $120.00 correo (100 días)',
+            'rx_nivel4'=>'32% de coaseguro (minorista y correo)',
+            'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+            'dme'=>'0% de coaseguro en artículos de $450.00 o menos; 20% de coaseguro en artículos de $450.01 o más; el 20% también aplica a monitores continuos de glucosa (CGM)',
+            'apoyo_hogar'=>'No cubierto en este documento (servicios de apoyo en el hogar y apoyo para cuidadores NO están disponibles para este plan)',
+            'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nOpción dental mejorada (opcional, +\$36.00/mes): 0% diagnóstico, 50% en los demás servicios (restaurativo, endodoncia, periodoncia, prostodoncia removible y fija, cirugía oral/maxilofacial); límite \$1,500.00/año\nPurificador de aire/humidificador: NO disponible para este plan\nComidas por reingreso/condición crónica: \$0.00 copago, 28 comidas en 14 días, DOS veces al año\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — 1 servicio al año",
+            'notas'=>'Resumen de Beneficios 2026, San Luis Obispo y Ventura. PRIMER año de este plan en el sistema. A diferencia de su plan hermano 049 (My Choice Select), este SÍ tiene la Opción Dental Mejorada opcional (+$36/mes), pero NO tiene apoyo en el hogar/cuidadores ni purificador de aire para SSBCI, y su dental comprensivo usa rangos de copago (no $0.00 fijo). Doc: Y0141_26239EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align7_variantes_2026 as $_align7_pn => $_align7_overrides) {
+        try {
+            $_align7_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align7_existe->execute([$_align7_overrides['nombre_plan'], 2026]);
+            if ($_align7_existe->fetch()) continue;
+            $_align7_plan = array_merge($_align7_base_2026, $_align7_overrides);
+            $_cols = array_keys($_align7_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align7_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
