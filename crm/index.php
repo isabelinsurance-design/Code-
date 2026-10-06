@@ -7602,6 +7602,97 @@ try {
             $_insAlign24->execute(array_values($_align24));
         }
     } catch (Exception $e) {}
+    // Semilla: renovación 2027 de Alignment Health BreathEasy 041 y Clarity
+    // 042 (HMO C-SNP) — ambos cambiaron de nombre: "BreathEasy"→"BreathEasy
+    // Plus 041" y "Clarity"→"Clarity Plus 042" (numero_plan se mantiene
+    // igual para el emparejamiento 2026↔2027). Cambios notables vs 2026:
+    // prima de 041 bajó de $12.00 a $0.00; prima de 042 bajó de $12.00 a
+    // $7.30 (antes compartían la misma prima); reembolso de Parte B bajó de
+    // $5.00 a $1.00; telesalud de salud mental/psiquiatría ahora cuesta
+    // $20.00* (antes $0.00); el fondo de OTC/Essentials Allowance ahora es
+    // DISTINTO por plan ($99 para 041, $103 para 042 — antes compartían
+    // $124); MOOP subió de $9,250 a $9,850. El umbral de gastos de bolsillo
+    // de Parte D subió de $2,100 a $2,400 — este es un ajuste estándar de
+    // Medicare a nivel nacional, no específico de Alignment.
+    $_align25_base_2027 = [
+        'carrier'=>'Alignment Health Plan','tipo'=>'HMO C-SNP','anio'=>2027,
+        'condados'=>'Alameda, Fresno, Los Angeles, Madera, Marin, Merced, Orange, Placer, Riverside, Sacramento, San Bernardino, San Diego, San Francisco, San Joaquin, Santa Clara, Stanislaus, Ventura y Yolo, California',
+        'reembolso_parte_b'=>'$1.00/mes de reducción en la prima de Parte B (bajó de $5.00 en 2026)',
+        'deducible'=>'$0.00',
+        'deducible_parte_d'=>'$700.00 para Tier 3, Tier 4 y Tier 5, o $0.00 si recibe "Ayuda Adicional" (subió de $615.00 en 2026)',
+        'rx_deducible'=>'$700.00 para Tier 3, Tier 4 y Tier 5, o $0.00 si recibe "Ayuda Adicional"',
+        'moop'=>'$9,850.00 al año (no incluye medicamentos recetados) — subió de $9,250.00 en 2026',
+        'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — subió de $2,100.00 en 2026; este es un ajuste estándar de Medicare a nivel nacional, no específico de Alignment',
+        'hospital_internado'=>"Deducible de \$1,736.00 por cada período de beneficios\nDías 1-60: \$0.00 por día\nDías 61-90: \$434.00 por día\nDía 91 en adelante: \$868.00 por cada \"día de reserva de por vida\" (hasta 60 días de por vida)\nMás allá de los días de reserva de por vida: el miembro paga el costo total\n(Esta estructura copia el coaseguro de Medicare Original Parte A; el documento indica que estos montos son de 2026 y pueden cambiar para 2027)",
+        'hospital_ambulatorio'=>"20% de coaseguro* (servicios hospitalarios)\n20% de coaseguro* servicios de observación",
+        'centro_quirurgico_ambulatorio'=>'20% de coaseguro*',
+        'medico_primario'=>'$0.00',
+        'especialistas'=>'$0.00',
+        'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+        'atencion_emergencia'=>'20% de coaseguro* (se exime si es admitido dentro de 48 horas)',
+        'servicios_urgentes'=>'$0.00',
+        'emergencia_mundial'=>'$75.00*, límite de $25,000.00 al año (se exime si es admitido)',
+        'ambulancia'=>'20% de coaseguro* (NO se exime si es admitido)',
+        'diagnostico_laboratorio'=>'20% de coaseguro* (procedimientos, pruebas y laboratorio); $0.00 diagnóstico',
+        'rayos_x'=>'$0.00',
+        'radiologia_terapeutica'=>'20% de coaseguro* (ej. radioterapia para cáncer)',
+        'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+        'audifonos'=>'$0.00 copago por audífono, 2 audífonos al año',
+        'dental_preventivo'=>"20% de coaseguro* para servicios dentales cubiertos por Medicare\n\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 al año)\n\$0.00 Rayos X (1 al año)",
+        'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite de \$500.00 cada tres meses",
+        'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+        'anteojos'=>'Límite de $500.00 cada dos años para anteojos y lentes de contacto',
+        'salud_mental_internado'=>"Deducible de \$1,736.00 por cada período de beneficios\nDías 1-60: \$0.00 por día\nDías 61-90: \$434.00 por día\nDía 91 en adelante: \$868.00 por cada \"día de reserva de por vida\" (hasta 60 días de por vida)\nMás allá de los días de reserva de por vida: el miembro paga el costo total\n(Montos de 2026, pueden cambiar para 2027)",
+        'salud_mental_ambulatorio'=>'20% de coaseguro* (tanto para especialidad de salud mental como para servicios psiquiátricos)',
+        'enfermeria_especializada'=>"\$0.00 por día, días 1-20\n\$217.00 por día, días 21-100\nDía 101 en adelante: el miembro paga el costo total\n(Montos de 2026, pueden cambiar para 2027; subió de \$209.50 en 2026)",
+        'terapia_fisica_habla'=>'20% de coaseguro*',
+        'transporte'=>'$0.00 — 50 viajes de ida al año a ubicaciones aprobadas por el plan, radio de 50 millas',
+        'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+        'rx_nivel2'=>'25% de coaseguro (minorista y correo)',
+        'rx_nivel3'=>'25% de coaseguro (minorista y correo)',
+        'rx_nivel5'=>'25% de coaseguro (minorista); no disponible por correo',
+        'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs) — subió de $0.00 minorista en 2026',
+        'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+        'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+        'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+        'pers'=>'$0.00',
+        'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura), más $0.00 para 24 visitas de rutina al año (combinadas entre quiropráctico y acupuntura)',
+        'podologia'=>'$0.00 — cubierto por Medicare',
+        'telesalud'=>'$0.00 para médico primario; $20.00* para especialidad de salud mental y servicios psiquiátricos (subió de $0.00 en 2026)',
+        'dme'=>'20% de coaseguro*',
+        'apoyo_hogar'=>'Servicios de apoyo en el hogar: $0.00, 48 horas al año — O, en su lugar, Apoyo para Cuidadores: $0.00, hasta $300.00 de reembolso al año (el miembro debe elegir una opción por adelantado)',
+        'comidas_post_hospital'=>'$0.00 copago, 28 comidas en 14 días, TRES veces al año',
+        'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nPurificador de aire/humidificador (para elegibles SSBCI con condición crónica calificada): \$0.00, 1 al año\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año\nMedicamentos de Parte B: 0%-20% de coaseguro*\n*Nota de la aseguranza: para miembros con Medi-Cal completo, el copago de los servicios marcados con asterisco (*) puede ser pagado en parte o en su totalidad por Medi-Cal u otro tercero",
+    ];
+    $_align25_variantes_2027 = [
+        '041' => [
+            'nombre_plan'=>'Alignment Health BreathEasy Plus 041 (HMO C-SNP)','numero_plan'=>'041',
+            'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición pulmonar crónica calificada (ej. enfermedad pulmonar obstructiva crónica/EPOC u otro trastorno pulmonar crónico grave)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nNO requiere elegibilidad dual con Medicaid — solo la condición crónica calificada",
+            'prima_mensual'=>'$0.00/mes (bajó de $12.00/mes en 2026)',
+            'rx_nivel4'=>'28% de coaseguro (minorista y correo) — bajó de 30% en 2026',
+            'otc_mensual'=>'$99.00 al mes, sin acumulación — combinado con el beneficio de Essentials Allowance, un solo fondo compartido de $99.00/mes (antes compartía $124.00 con el plan hermano Clarity en 2026; ahora cada plan tiene su propio monto)',
+            'notas'=>'Resumen de Beneficios 2027, cobertura en 18 condados de California. OJO: el plan se renombró de "Alignment Health BreathEasy (HMO C-SNP)" a "Alignment Health BreathEasy Plus 041 (HMO C-SNP)" (mismo numero_plan 041, para que el sistema siga emparejando correctamente con 2026). Cambios importantes vs 2026: la prima bajó de $12.00/mes a $0.00/mes; el reembolso de Parte B bajó de $5.00 a $1.00; la telesalud de salud mental/psiquiatría ahora cuesta $20.00* (antes $0.00); el fondo de OTC/Essentials Allowance bajó de $124.00 (compartido con Clarity) a $99.00 (ahora propio de este plan); el MOOP subió de $9,250.00 a $9,850.00. Requiere condición pulmonar crónica calificada (ej. EPOC) — distinto de su "plan hermano" Clarity Plus (042), que requiere condición de salud mental o trastorno por uso de sustancias. Doc: Y0141_27281EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+        '042' => [
+            'nombre_plan'=>'Alignment Health Clarity Plus 042 (HMO C-SNP)','numero_plan'=>'042',
+            'requisito_elegibilidad'=>"Plan para necesidades especiales (C-SNP) — requiere verificar una condición crónica de salud mental grave o incapacitante, o un trastorno por uso de sustancias (SUD)\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio\nNO requiere elegibilidad dual con Medicaid — solo la condición crónica calificada",
+            'prima_mensual'=>'$7.30/mes, o $0.00 si recibe "Ayuda Adicional" (Extra Help) — antes compartía $12.00/mes con BreathEasy en 2026',
+            'rx_nivel4'=>'29% de coaseguro (minorista y correo) — bajó de 31% en 2026',
+            'otc_mensual'=>'$103.00 al mes, sin acumulación — combinado con el beneficio de Essentials Allowance, un solo fondo compartido de $103.00/mes (antes compartía $124.00 con el plan hermano BreathEasy en 2026; ahora cada plan tiene su propio monto)',
+            'notas'=>'Resumen de Beneficios 2027, cobertura en 18 condados de California. OJO: el plan se renombró de "Alignment Health Clarity (HMO C-SNP)" a "Alignment Health Clarity Plus 042 (HMO C-SNP)" (mismo numero_plan 042, para que el sistema siga emparejando correctamente con 2026). Cambios importantes vs 2026: la prima bajó de $12.00/mes a $7.30/mes (o $0.00 con Ayuda Adicional); el reembolso de Parte B bajó de $5.00 a $1.00; la telesalud de salud mental/psiquiatría ahora cuesta $20.00* (antes $0.00); el fondo de OTC/Essentials Allowance bajó de $124.00 (compartido con BreathEasy) a $103.00 (ahora propio de este plan); el MOOP subió de $9,250.00 a $9,850.00. Requiere condición crónica de salud mental o trastorno por uso de sustancias (SUD) — distinto de su "plan hermano" BreathEasy Plus (041), que requiere condición pulmonar crónica. Doc: Y0141_27281EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+        ],
+    ];
+    foreach ($_align25_variantes_2027 as $_align25_pn => $_align25_overrides) {
+        try {
+            $_align25_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+            $_align25_existe->execute([$_align25_overrides['nombre_plan'], 2027]);
+            if ($_align25_existe->fetch()) continue;
+            $_align25_plan = array_merge($_align25_base_2027, $_align25_overrides);
+            $_cols = array_keys($_align25_plan);
+            $_ins = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_cols).") VALUES (".implode(',', array_fill(0, count($_cols), '?')).")");
+            $_ins->execute(array_values($_align25_plan));
+        } catch (Exception $e) {}
+    }
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
