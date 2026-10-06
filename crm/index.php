@@ -53,14 +53,29 @@ try {
     if ((int)$pdo->query("SELECT COUNT(*) FROM sms_plantillas")->fetchColumn() === 0) {
         $ins_pl = $pdo->prepare("INSERT INTO sms_plantillas (nombre,texto,orden) VALUES (?,?,?)");
         foreach ([
-            ['BIENVENIDA', 'HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.'],
-            ['AEP', 'HOLA [NOMBRE]! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. (818) 000-0000 REPLY STOP.'],
-            ['CUMPLEAÑOS', 'FELIZ CUMPLEAÑOS [NOMBRE]! DE PARTE DE MEDICARE WITH ISABEL.'],
-            ['T65', 'HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.'],
-            ['DENTAL', 'HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.'],
-            ['REFERIDO', 'HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000'],
+            ['BIENVENIDA', 'HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. No responda a este número — para dudas llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.'],
+            ['AEP', 'HOLA [NOMBRE]! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. No responda a este número — llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.'],
+            ['CUMPLEAÑOS', 'FELIZ CUMPLEAÑOS [NOMBRE]! DE PARTE DE MEDICARE WITH ISABEL. (Mensaje automático, no responda a este número. Para cualquier cosa llámenos al 323-402-4145.)'],
+            ['T65', 'HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. No responda a este número — llámenos al 323-402-4145 para revisar sus opciones. Responda STOP para dejar de recibir mensajes.'],
+            ['DENTAL', 'HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. No responda a este número — llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.'],
+            ['REFERIDO', 'HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? No responda a este número — llámenos al 323-402-4145.'],
         ] as $i => $pl) { $ins_pl->execute([$pl[0], $pl[1], $i]); }
     }
+    // Pedido de Isabel: todo SMS debe dejar claro que no se responde a ese
+    // número — las 6 plantillas originales traían un número de relleno
+    // falso ("818-000-0000") que nunca se reemplazó. Esto SOLO actualiza
+    // las filas que todavía tengan el texto viejo exacto (si Isabel ya
+    // editó alguna, no se toca).
+    $_pl_viejas_a_nuevas = [
+        'HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. (818) 000-0000 REPLY STOP.' => 'HOLA [NOMBRE]! BIENVENIDO/A A MEDICARE WITH ISABEL. COBERTURA ACTIVA. No responda a este número — para dudas llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.',
+        'HOLA [NOMBRE]! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. (818) 000-0000 REPLY STOP.' => 'HOLA [NOMBRE]! AEP OCT 15-DIC 7. REVISEMOS SU PLAN GRATIS. No responda a este número — llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.',
+        'FELIZ CUMPLEAÑOS [NOMBRE]! DE PARTE DE MEDICARE WITH ISABEL.' => 'FELIZ CUMPLEAÑOS [NOMBRE]! DE PARTE DE MEDICARE WITH ISABEL. (Mensaje automático, no responda a este número. Para cualquier cosa llámenos al 323-402-4145.)',
+        'HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. (818) 000-0000 REPLY STOP.' => 'HOLA [NOMBRE]! SE ACERCA SU CUMPLEAÑOS 65. No responda a este número — llámenos al 323-402-4145 para revisar sus opciones. Responda STOP para dejar de recibir mensajes.',
+        'HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. (818) 000-0000 REPLY STOP.' => 'HOLA [NOMBRE]! RECUERDE SU BENEFICIO DENTAL. No responda a este número — llámenos al 323-402-4145. Responda STOP para dejar de recibir mensajes.',
+        'HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? (818) 000-0000' => 'HOLA [NOMBRE]! ¿CONOCE ALGUIEN QUE NECESITE MEDICARE? No responda a este número — llámenos al 323-402-4145.',
+    ];
+    $_upd_pl = $pdo->prepare("UPDATE sms_plantillas SET texto=? WHERE texto=?");
+    foreach ($_pl_viejas_a_nuevas as $_vieja => $_nueva) { $_upd_pl->execute([$_nueva, $_vieja]); }
 } catch (Exception $e) {}
 
 // ─── CUENTAS + REFERIDOS — AJAX HANDLER ──────────────────────────────────────
