@@ -6863,6 +6863,76 @@ try {
             $_ins->execute(array_values($_align14_plan));
         } catch (Exception $e) {}
     }
+    // Semilla: Alignment Health ValorCare 053 (HMO) 2027 — renovación del
+    // plan 053 (ya cargado para 2026 como "Alignment Health ValorCare
+    // (HMO)"). Mismo numero_plan ('053') para que el emparejador de ANOC
+    // lo siga correctamente aunque la aseguranza le haya cambiado el
+    // formato del nombre (le agregó el código "053" al nombre este año).
+    try {
+        $_align15_existe = $pdo->prepare("SELECT id FROM planes_comparacion WHERE nombre_plan=? AND anio=?");
+        $_align15_existe->execute(['Alignment Health ValorCare 053 (HMO)', 2027]);
+        if (!$_align15_existe->fetch()) {
+            $_align15 = [
+                'nombre_plan'=>'Alignment Health ValorCare 053 (HMO)','carrier'=>'Alignment Health Plan','tipo'=>'HMO',
+                'numero_plan'=>'053','condados'=>'Los Angeles, Orange, Riverside, San Bernardino y San Diego, California',
+                'anio'=>2027,
+                'requisito_elegibilidad'=>"Plan Medicare Advantage GENERAL — no requiere ninguna condición crónica ni elegibilidad dual\nDebe tener Medicare Parte A y Parte B y vivir en el área de servicio",
+                'prima_mensual'=>'$0.00/mes (Parte C y Parte D)',
+                'reembolso_parte_b'=>'$119.00/mes de reducción en la prima de Parte B (plan tipo Giveback) — bajó de $125.00/mes en 2026',
+                'deducible'=>'$0.00',
+                'deducible_parte_d'=>'$0.00',
+                'moop'=>'$6,000.00 al año (no incluye medicamentos recetados) — igual que en 2026',
+                'umbral_gastos_bolsillo_parte_d'=>'$2,400.00 al año (inicia la Etapa de Cobertura Catastrófica) — subió de $2,100.00 en 2026 (ajuste estándar de Medicare para 2027)',
+                'hospital_internado'=>"\$400.00 por día, días 1-5\n\$0.00 por día, días 6-90\n(días ilimitados por admisión)",
+                'hospital_ambulatorio'=>"\$0.00 (servicios hospitalarios)\n\$0.00 servicios de observación",
+                'centro_quirurgico_ambulatorio'=>'$0.00',
+                'medico_primario'=>'$0.00',
+                'especialistas'=>'$40.00',
+                'atencion_preventiva'=>'$0.00 (ej. vacuna de influenza, exámenes de diabetes)',
+                'atencion_emergencia'=>'$130.00 (se exime si es admitido dentro de 24 horas) — subió de $120.00 en 2026',
+                'servicios_urgentes'=>'$0.00',
+                'emergencia_mundial'=>'$50.00, límite de $100,000.00 al año (se exime si es admitido)',
+                'ambulancia'=>'$300.00 terrestre / $1,250.00 aérea (NO se exime si es admitido)',
+                'diagnostico_laboratorio'=>'$0.00 (procedimientos, pruebas y laboratorio)',
+                'rayos_x'=>'$0.00',
+                'radiologia_terapeutica'=>'20% de coaseguro (ej. radioterapia para cáncer)',
+                'examen_auditivo'=>'$0.00 — cubierto por Medicare, más 1 examen/ajuste/evaluación de rutina al año',
+                'audifonos'=>'$195.00-$1,750.00 copago por audífono, 2 al año',
+                'dental_preventivo'=>"\$0.00 para servicios cubiertos por Medicare\n\$0.00 Examen y limpieza (1 cada 6 meses)\n\$0.00 Tratamiento de flúor (1 cada 6 meses)\n\$0.00 Rayos X (1 cada 3 años)",
+                'dental_integral'=>"\$0.00 Restaurativo, Endodoncia, Periodoncia, Prostodoncia removible y fija, Cirugía oral/maxilofacial\nLímite combinado de \$2,000.00/año entre preventivo y comprensivo",
+                'examen_vision'=>'$0.00 — exámenes cubiertos por Medicare, más 1 examen de rutina al año',
+                'anteojos'=>'Límite de $300.00/año para anteojos y lentes de contacto',
+                'salud_mental_internado'=>"\$400.00 por día, días 1-5\n\$0.00 por día, días 6-90\n\$0.00 para 40 días adicionales (días 91-130)\n\$0.00 para 60 \"días de reserva de por vida\"",
+                'salud_mental_ambulatorio'=>'$40.00 (tanto para especialidad de salud mental como para servicios psiquiátricos)',
+                'enfermeria_especializada'=>"\$10.00 por día, días 1-20\n\$100.00 por día, días 21-100\n(no requiere hospitalización previa)",
+                'terapia_fisica_habla'=>'$0.00',
+                'transporte'=>'No cubierto',
+                'rx_deducible'=>'$0.00',
+                'rx_nivel1'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel2'=>'$0.00 (minorista 30 días y correo 100 días)',
+                'rx_nivel3'=>'$30.00 minorista (30 días) / $75.00 correo (100 días)',
+                'rx_nivel4'=>'$100.00 minorista (30 días) / $300.00 correo (100 días)',
+                'rx_nivel5'=>'33% de coaseguro (minorista); no disponible por correo',
+                'rx_nivel6'=>'$5.00 minorista; $0.00 por correo (Select Care Drugs)',
+                'rx_insulina'=>'No más de $35.00 por suministro de 1 mes, en cualquier nivel, incluso antes de pagar el deducible',
+                'rx_vacunas'=>'La mayoría de las vacunas de Parte D cubiertas sin costo, incluso antes de pagar el deducible',
+                'otc_mensual'=>'$20.00 al mes, sin acumulación',
+                'gimnasio'=>'$0.00 — membresías en gimnasios participantes',
+                'pers'=>'No cubierto',
+                'quiropractico_acupuntura'=>'$0.00 cubierto por Medicare (quiropráctico y acupuntura), más $0.00 para 12 visitas de rutina al año (combinadas entre quiropráctico y acupuntura)',
+                'podologia'=>'$0.00 — cubierto por Medicare',
+                'telesalud'=>'$0.00 para médico primario; $20.00 para especialidad de salud mental y servicios psiquiátricos — YA NO es $0.00 para salud mental como en 2026',
+                'dme'=>'20% de coaseguro',
+                'apoyo_hogar'=>'No cubierto en este documento (servicios de apoyo en el hogar y apoyo para cuidadores NO están disponibles para este plan)',
+                'comidas_post_hospital'=>'No cubierto',
+                'extras_json'=>"Tarjeta ACCESS On-Demand Concierge: incluida (acceso a beneficios OTC y Healthy Rewards)\nMedicamentos de bonificación (Bonus Drugs): SÍ disponibles — Viagra genérico, vitaminas recetadas, caída del cabello, tos/resfriado\nServicios para mascotas: \$0.00 — 7 días de hospedaje o 14 paseos al año\nControl de plagas: \$0.00 — límite de \$500.00, 1 servicio al año",
+                'notas'=>'Resumen de Beneficios 2027 (renovación del plan 053, ya cargado para 2026 con el nombre "Alignment Health ValorCare (HMO)"). CAMBIOS vs. 2026: el reembolso de Parte B BAJÓ de $125.00 a $119.00/mes; el copago de emergencia SUBIÓ de $120.00 a $130.00; el umbral de Parte D subió de $2,100.00 a $2,400.00 (ajuste estándar de Medicare); la telesalud de salud mental/psiquiátrica YA NO es $0.00 — ahora tiene copago de $20.00 (antes era gratis). El resto de los beneficios se mantiene igual. Doc: Y0141_27261EN_M. Servicio al Miembro: 1-866-634-2247 (TTY 711).',
+            ];
+            $_colsAlign15 = array_keys($_align15);
+            $_insAlign15 = $pdo->prepare("INSERT INTO planes_comparacion (".implode(',', $_colsAlign15).") VALUES (".implode(',', array_fill(0, count($_colsAlign15), '?')).")");
+            $_insAlign15->execute(array_values($_align15));
+        }
+    } catch (Exception $e) {}
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
