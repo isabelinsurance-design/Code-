@@ -17,7 +17,7 @@ $pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 
 header('Content-Type: text/plain; charset=utf-8');
 
-$ids = [65, 71];
+$ids = [65, 71, 1, 2, 3];
 foreach ($ids as $id) {
     $stmt = $pdo->prepare("SELECT * FROM planes_comparacion WHERE id=?");
     $stmt->execute([$id]);
