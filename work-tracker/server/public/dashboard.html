@@ -11,22 +11,22 @@
   color-scheme: light;
   --page:#F7F3EC; --card:#FFFFFF; --border:#E8E0D0; --ink:#2C2416; --ink-2:#5C4A30; --muted:#8C7A60;
   --accent:#A07840; --accent-bg:#F0E6D0; --track:#F0EBE1; --bad:#C0392B; --bad-bg:#FDEDEB;
-  /* timeline + bar kinds (validated: work/not-work/idle pass all-pairs CVD on light) */
-  --k-work:#2a78d6; --k-nonWork:#e34948; --k-idle:#eda100; --k-unreviewed:#86b6ef; --k-lunch:#898781; --k-away:#c3c2b7;
+  /* timeline + bar kinds, validated for color-blind separation in light and dark */
+  --k-call:#1baf7a; --k-work:#2a78d6; --k-nonWork:#e34948; --k-idle:#eda100; --k-unreviewed:#86b6ef; --k-lunch:#898781; --k-away:#c3c2b7;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     color-scheme: dark;
     --page:#0d0d0d; --card:#1a1a19; --border:#2c2c2a; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#9a988f;
     --accent:#C9A96E; --accent-bg:#2a2418; --track:#262624; --bad:#e66767; --bad-bg:#2e1716;
-    --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
+    --k-call:#199e70; --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
   }
 }
 :root[data-theme="dark"] {
   color-scheme: dark;
   --page:#0d0d0d; --card:#1a1a19; --border:#2c2c2a; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#9a988f;
   --accent:#C9A96E; --accent-bg:#2a2418; --track:#262624; --bad:#e66767; --bad-bg:#2e1716;
-  --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
+  --k-call:#199e70; --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--page); color: var(--ink); font: 14px/1.45 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
@@ -60,6 +60,7 @@ button, input, select { font: inherit; color: inherit; }
 .state { font-size: 15px; font-weight: 700; white-space: nowrap; }
 .sub { margin-top: -8px; display: grid; gap: 1px; }
 .detail { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
+.detail.muted { color: var(--ink-2); }
 .clock { color: var(--muted); font-size: 13px; }
 .tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
 .tile { padding: 8px 10px; border-radius: 10px; background: var(--page); }
@@ -129,10 +130,17 @@ body.tv .admin, body.tv details, body.tv .datenav, body.tv .edit-only { display:
 <div id="tip"></div>
 <script>
 const KINDS = [
-  ['work', 'Work'], ['nonWork', 'Not work'], ['unreviewed', 'Not categorized'],
+  ['call', 'On call / after-call'], ['work', 'Work'], ['nonWork', 'Not work'], ['unreviewed', 'Not categorized'],
   ['idle', 'Idle'], ['lunch', 'Lunch / break'], ['away', 'Away (locked)'],
 ];
-const KIND_LABEL = Object.fromEntries(KINDS);
+const PART_LABELS = [
+  ['call', 'On call'], ['wrap', 'After-call work'], ['work', 'Work'], ['nonWork', 'Not work'], ['unreviewed', 'Not categorized'],
+  ['idle', 'Idle'], ['lunch', 'Lunch / break'], ['away', 'Away (locked)'],
+];
+const LIVE_STATES = [
+  ['call', '🟢 On call'], ['acw', '🟢 After-call work'], ['working', '🟢 Working'], ['meeting', '👥 Meeting'], ['idle', '🟡 Idle'],
+  ['away', '🔒 Away'], ['lunch', '🍴 Lunch'], ['break', '☕ Break'], ['off', '⏹ Clocked out'], ['offline', '🔴 Offline'],
+];
 
 const params = new URLSearchParams(location.search);
 const store = {
@@ -160,6 +168,7 @@ function dur(seconds) {
   return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`;
 }
 const durTip = seconds => (seconds < 60 ? `${Math.round(seconds)}s` : dur(seconds));
+const minSec = seconds => `${Math.floor(seconds / 60)}m ${String(Math.round(seconds % 60)).padStart(2, '0')}s`;
 const clock = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 const since = t => (t ? dur((now() - t) / 1000) : '');
 const ago = t => {
@@ -202,17 +211,29 @@ async function refresh() {
 
 // ---------- live status ----------
 
+// Returns the status line and the detail lines under it.
 function liveLine(l) {
+  const crm = [];
+  if (l.crm && now() - l.crm.at < 12 * 3600e3) {
+    // Member names stay off the shared TV screen.
+    const record = l.state === 'call' ? l.contact || l.crm.record : l.crm.record;
+    if (record && !tv) crm.push(`CRM record open: ${record}`);
+    crm.push(`Last CRM action ${ago(l.crm.at)} (${l.crm.action.replace(/_/g, ' ')})`);
+  }
   switch (l.state) {
+    case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : 'Phone call', ...crm]];
+    case 'acw': return [`🟢 After-call work ${since(l.since)}`, ['wrapping up the last call', ...crm]];
     case 'working':
-      if (l.work === false) return ['🟠 Not work', `${site(l.domain)} · ${since(l.since)}`];
-      return ['🟢 Working', [site(l.domain), l.category || 'not categorized', since(l.since)].filter(Boolean).join(' · ')];
-    case 'idle': return [`🟡 Idle ${since(l.since)}`, 'no keyboard or mouse for 5+ min'];
-    case 'away': return [`🔒 Away ${since(l.since)}`, 'computer locked'];
-    case 'lunch': return [`🍴 Lunch ${since(l.since)}`, l.since ? `since ${clock(l.since)}` : ''];
-    case 'break': return [`☕ Break ${since(l.since)}`, l.since ? `since ${clock(l.since)}` : ''];
-    case 'off': return ['⏹ Clocked out', l.since ? `at ${clock(l.since)}` : ''];
-    default: return ['🔴 Offline', l.lastSeen ? `last seen ${ago(l.lastSeen)}` : 'never connected'];
+      if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [site(l.domain)]];
+      if (!l.category) return [`🟢 Working ${since(l.since)}`, [`${site(l.domain)} (not categorized)`, ...crm]];
+      return [`🟢 ${l.category === 'CRM' ? 'CRM work' : l.category} ${since(l.since)}`, [site(l.domain), ...crm]];
+    case 'meeting': return [`👥 Meeting / training ${since(l.since)}`, [l.since ? `since ${clock(l.since)}` : '']];
+    case 'idle': return [`🟡 Idle ${since(l.since)}`, ['no keyboard or mouse for 5+ min', ...crm]];
+    case 'away': return [`🔒 Away ${since(l.since)}`, ['computer locked']];
+    case 'lunch': return [`🍴 Lunch ${since(l.since)}`, [l.since ? `since ${clock(l.since)}` : '']];
+    case 'break': return [`☕ Break ${since(l.since)}`, [l.since ? `since ${clock(l.since)}` : '']];
+    case 'off': return ['⏹ Clocked out', [l.since ? `at ${clock(l.since)}` : '']];
+    default: return ['🔴 Offline', [l.lastSeen ? `last seen ${ago(l.lastSeen)}` : 'extension not connected', ...crm]];
   }
 }
 
@@ -242,7 +263,7 @@ function timeline(e) {
   }
   const pct = m => ((m - start) / span) * 100;
   const runHtml = runs.map(r => {
-    const detail = KINDS.filter(([k]) => r.parts[k] >= 5).map(([k, label]) => `${label} ${durTip(r.parts[k])}`).join('\n');
+    const detail = PART_LABELS.filter(([k]) => r.parts[k] >= 5).map(([k, label]) => `${label} ${durTip(r.parts[k])}`).join('\n');
     const tip = `${hhmm(r.start)} – ${hhmm(r.end)}\n${detail}`;
     return `<div class="run" data-tip="${esc(tip)}" style="left:${pct(r.start)}%;width:calc(${pct(r.end) - pct(r.start)}% - 2px);background:var(--k-${r.kind})"></div>`;
   }).join('');
@@ -254,19 +275,16 @@ function timeline(e) {
 }
 
 function bars(e) {
-  if (!e.categories.length) return '';
-  const max = Math.max(...e.categories.map(c => c.seconds));
-  return `<div class="bars">${e.categories.map(c => {
-    const kind = c.work === null ? 'unreviewed' : c.work ? 'work' : 'nonWork';
-    return `<span class="label" title="${esc(c.name)}">${esc(c.name)}</span>
-      <div class="track"><div class="bar" style="width:${(c.seconds / max) * 100}%;background:var(--k-${kind})" data-tip="${esc(`${c.name}\n${dur(c.seconds)} active`)}"></div></div>
-      <span class="val">${dur(c.seconds)}</span>`;
-  }).join('')}</div>`;
+  if (!e.activities.length) return '';
+  const max = Math.max(...e.activities.map(a => a.seconds));
+  return `<div class="bars">${e.activities.map(a => `<span class="label" title="${esc(a.name)}">${esc(a.name)}</span>
+      <div class="track"><div class="bar" style="width:${(a.seconds / max) * 100}%;background:var(--k-${a.kind})" data-tip="${esc(`${a.name}\n${dur(a.seconds)}`)}"></div></div>
+      <span class="val">${dur(a.seconds)}</span>`).join('')}</div>`;
 }
 
 function sitesTable(e) {
   if (!e.domains.length) return '';
-  return `<details><summary>Sites (${e.domains.length})</summary><table>
+  return `<details><summary>Sites on screen (${e.domains.length})</summary><table>
     <tr><th>Site</th><th>Category</th><th class="n">Active</th><th class="n">Idle</th></tr>
     ${e.domains.map(d => `<tr><td>${esc(site(d.domain))}</td><td>${esc(d.category || 'Not categorized')}</td><td class="n">${dur(d.active)}</td><td class="n">${dur(d.idle)}</td></tr>`).join('')}
   </table></details>`;
@@ -276,7 +294,7 @@ function card(e) {
   const today = isToday();
   const l = e.live;
   const t = e.totals;
-  const tracked = t.active + t.idle + t.away + t.lunch + t.break;
+  const tracked = e.working + t.nonWork + t.unreviewed + t.idle + t.away + t.lunch + t.break;
   const lastSlot = e.timeline.length ? e.timeline[e.timeline.length - 1].slot : null;
   const lastSlotEnd = lastSlot ? new Date(`${date}T${lastSlot}:00`).getTime() + 5 * 60000 : null;
   const end = e.clockOut || (today && l.state !== 'offline' ? now() : lastSlotEnd);
@@ -287,29 +305,38 @@ function card(e) {
   if (e.clockIn) {
     clockLine = `Clock in ${clock(e.clockIn)}`;
     if (e.clockOut) clockLine += ` · out ${clock(e.clockOut)}`;
-    if (onClock) clockLine += ` · ${dur(onClock)} on the clock`;
+    if (onClock) clockLine += ` · logged in ${dur(onClock)}`;
   }
-  const [state, detail] = today ? liveLine(l) : ['', ''];
-  const counters = Object.entries(e.counters || {}).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ');
+  const [state, details] = today ? liveLine(l) : ['', []];
+  const c = e.calls;
+  const stats = [
+    c.count ? `Calls ${c.count}` : '',
+    c.count && c.connected ? `Connected ${c.connected}` : '',
+    c.avgHandle ? `Avg handle ${minSec(c.avgHandle)}` : '',
+    ...Object.entries(e.counters || {}).map(([k, v]) => `${esc(k)} ${esc(v)}`),
+  ].filter(Boolean).join(' · ');
+  const crmLine = e.crm.open >= 60 || e.crm.actions
+    ? `CRM open ${dur(e.crm.open)} · CRM work ${dur(e.crm.active)}${e.crm.actions ? ` · ${e.crm.actions} CRM actions` : ''}`
+    : '';
   const hasData = tracked > 0;
 
   return `<article class="card${!hasData && (!today || l.state === 'offline') ? ' dim' : ''}">
     <div class="head"><span class="name">${esc(e.name)}</span>${today ? `<span class="state">${esc(state)}</span>` : ''}</div>
-    <div class="sub">${detail ? `<span class="detail">${esc(detail)}</span>` : ''}<span class="clock">${clockLine}</span></div>
+    <div class="sub">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}<span class="clock">${clockLine}</span></div>
     ${hasData ? `
     <div class="tiles">
-      <div class="tile"><b>${dur(e.work)}</b><span>Active work</span></div>
+      <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
       <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
       <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch / break</span></div>
     </div>
-    ${e.nonWork >= 60 || e.unreviewed >= 60 ? `<div class="note">${[e.nonWork >= 60 ? `Not work: ${dur(e.nonWork)}` : '', e.unreviewed >= 60 ? `Not categorized yet: ${dur(e.unreviewed)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}
     ${timeline(e)}
     ${bars(e)}
-    ${untracked > 600 ? `<div class="note">${dur(untracked)} with no data (Chrome closed or computer asleep)</div>` : ''}
+    ${crmLine ? `<div class="note">${crmLine}</div>` : ''}
+    ${untracked > 600 ? `<div class="note">${dur(untracked)} unaccounted (no calls, Chrome closed or computer asleep)</div>` : ''}
     ${sitesTable(e)}` : `<div class="note">${today ? 'No activity recorded yet today.' : 'No activity recorded this day.'}</div>`}
     <div class="foot">
-      <span>${today && l.lastActiveAt ? `Last activity ${ago(l.lastActiveAt)}` : ''}</span>
-      ${counters ? `<span class="counters">${counters}</span>` : ''}
+      <span>${today && l.lastActiveAt && l.state !== 'call' ? `Last keyboard/mouse ${ago(l.lastActiveAt)}` : ''}</span>
+      ${stats ? `<span class="counters">${stats}</span>` : ''}
     </div>
   </article>`;
 }
@@ -383,9 +410,8 @@ function render() {
   const employees = data ? data.employees : [];
   const counts = {};
   for (const e of employees) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
-  const summary = [
-    ['working', '🟢 Working'], ['idle', '🟡 Idle'], ['away', '🔒 Away'], ['lunch', '🍴 Lunch'], ['break', '☕ Break'], ['off', '⏹ Clocked out'], ['offline', '🔴 Offline'],
-  ].filter(([k]) => counts[k]).map(([k, label]) => `<span>${label} ${counts[k]}</span>`).join('');
+  const summary = LIVE_STATES
+    .filter(([k]) => counts[k]).map(([k, label]) => `<span>${label} ${counts[k]}</span>`).join('');
   const heading = today ? 'Today' : new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
 
   app.innerHTML = `

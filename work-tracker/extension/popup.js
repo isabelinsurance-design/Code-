@@ -14,6 +14,7 @@ function describe(s) {
   if (s.mode === 'off') return ['⏹ Clocked out', s.clockOut ? `at ${clock(s.clockOut)}` : ''];
   if (s.mode === 'lunch') return ['🍴 At lunch', `since ${clock(s.modeSince)}`];
   if (s.mode === 'break') return ['☕ On break', `since ${clock(s.modeSince)}`];
+  if (s.mode === 'meeting') return ['👥 Meeting / training', `since ${clock(s.modeSince)}`];
   if (!s.clockIn) return ['Waiting for first activity', ''];
   const started = `Clocked in ${clock(s.clockIn)}`;
   if (s.idle === 'locked') return ['🔒 Computer locked', started];
@@ -31,7 +32,7 @@ async function render(s) {
   $('site').textContent = site;
 
   const t = s.totals || {};
-  $('active').textContent = duration(t.active);
+  $('active').textContent = duration((t.active || 0) + (t.meeting || 0));
   $('idle').textContent = duration((t.idle || 0) + (t.away || 0));
   $('lunch').textContent = duration((t.lunch || 0) + (t.break || 0));
 
@@ -39,6 +40,7 @@ async function render(s) {
   $('work').textContent = s.mode === 'off' ? '▶ Clock back in' : '▶ Back to work';
   $('lunchBtn').hidden = s.mode === 'lunch';
   $('breakBtn').hidden = s.mode === 'break';
+  $('meetingBtn').hidden = s.mode === 'meeting';
   $('off').hidden = s.mode === 'off';
 
   const sync = $('sync');
@@ -55,6 +57,7 @@ function setMode(mode) {
 $('work').onclick = () => setMode('work');
 $('lunchBtn').onclick = () => setMode('lunch');
 $('breakBtn').onclick = () => setMode('break');
+$('meetingBtn').onclick = () => setMode('meeting');
 $('off').onclick = () => setMode('off');
 $('settings').onclick = e => {
   e.preventDefault();

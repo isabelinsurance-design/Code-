@@ -16,11 +16,11 @@ const SLOT_MS = 5 * 60 * 1000;
 const MAX_OUTBOX = 3000;             // batches kept while the server is unreachable
 const BATCHES_PER_REQUEST = 500;
 const OUTSIDE_CHROME = '(outside chrome)';
-const MODES = ['work', 'lunch', 'break', 'off'];
+const MODES = ['work', 'lunch', 'break', 'meeting', 'off'];
 
 const FRESH_STATE = {
   day: null,          // local YYYY-MM-DD this workday belongs to
-  mode: 'work',       // work | lunch | break | off   (chosen in the popup)
+  mode: 'work',       // work | lunch | break | meeting | off   (chosen in the popup)
   modeSince: null,
   idle: 'active',     // active | idle | locked       (from chrome.idle)
   domain: null,       // hostname in front of the employee right now
@@ -76,7 +76,7 @@ async function frontDomain() {
 }
 
 function segmentState(s) {
-  if (s.mode !== 'work') return s.mode; // lunch | break
+  if (s.mode !== 'work') return s.mode; // lunch | break | meeting
   if (s.idle === 'locked') return 'away';
   return s.idle;                        // active | idle
 }
@@ -144,12 +144,12 @@ async function setMode(mode) {
 
 function showBadge(s, config) {
   const configured = config && config.serverUrl && config.employee;
-  const text = !configured ? '!' : { lunch: 'LUN', break: 'BRK', off: 'OFF' }[s.mode] || '';
+  const text = !configured ? '!' : { lunch: 'LUN', break: 'BRK', meeting: 'MTG', off: 'OFF' }[s.mode] || '';
   chrome.action.setBadgeText({ text });
   chrome.action.setBadgeBackgroundColor({ color: !configured ? '#C0392B' : s.mode === 'off' ? '#8C7A60' : '#4A7B9D' });
 }
 
-// What the dashboard shows live. Off the clock or at lunch, the current site is not shared.
+// What the dashboard shows live. Off the clock, at lunch or in a meeting, the current site is not shared.
 function liveStatus(s) {
   if (!s) return null;
   const working = s.mode === 'work';
