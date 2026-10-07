@@ -446,27 +446,34 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
               ['POR HACER', $miembrosTot['por_hacer'], $A],
           ]);
       }
-      // Minilista de citas completadas + de qué tipo — pedido de Isabel.
-      echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-top:3px solid ' . $G . ';border-radius:11px;padding:11px 10px 12px">'
-         . '<div style="font-size:8px;color:' . $G . ';font-weight:900;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:9px">✓ CITAS COMPLETADAS (' . count($citasCompletadas) . ')</div>';
-      if (count($citasCompletadas)) {
-          echo '<div style="max-height:150px;overflow-y:auto">';
-          foreach ($citasCompletadas as $c) {
-              $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
-              echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
-                 . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
-                 . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
-                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $G) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
-                 . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
-                 . '</div>';
-          }
-          echo '</div>';
-      } else {
-          echo '<div style="text-align:center;color:' . $MU . ';font-size:9px;padding:6px 0">Ninguna todavía</div>';
-      }
-      echo '</div>';
       ?>
     </div>
+
+    <?php
+    // Minilista de citas completadas + de qué tipo — pedido de Isabel. Va en
+    // su PROPIA fila (no adentro del grid de arriba): como las tarjetas de
+    // TICKETS/LLAMADAS/MIEMBROS son cortas y esta trae una lista, metida en
+    // el mismo grid el grid estiraba esas tarjetas y dejaba un hueco vacío
+    // feo debajo de sus números.
+    echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-top:3px solid ' . $G . ';border-radius:11px;padding:11px 10px 12px;margin-bottom:13px">'
+       . '<div style="font-size:8px;color:' . $G . ';font-weight:900;text-transform:uppercase;letter-spacing:1px;margin-bottom:9px">✓ CITAS COMPLETADAS (' . count($citasCompletadas) . ')</div>';
+    if (count($citasCompletadas)) {
+        echo '<div style="max-height:180px;overflow-y:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:2px 14px">';
+        foreach ($citasCompletadas as $c) {
+            $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
+            echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
+               . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
+               . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
+               . '<span style="color:#fff;background:' . ($esProsp ? $A : $G) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
+               . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
+               . '</div>';
+        }
+        echo '</div>';
+    } else {
+        echo '<div style="text-align:center;color:' . $MU . ';font-size:9px;padding:6px 0">Ninguna todavía</div>';
+    }
+    echo '</div>';
+    ?>
 
     <?php
     // AHORA/TICKETS ABIERTOS/APPS PEND./FOLLOW UPS PEND. son "estado ahora
