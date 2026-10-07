@@ -41,9 +41,25 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     // Asistencia de hoy — quién está trabajando/en break/salió ahora mismo
     $asis = [];
     try {
-        $q = $pdo->prepare("SELECT agente_id, check_in, break_out, break_in, check_out FROM asistencia WHERE fecha=?");
+        $q = $pdo->prepare("SELECT id, agente_id, check_in, break_out, break_in, check_out FROM asistencia WHERE fecha=?");
         $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) $asis[(int)$r['agente_id']] = $r;
+    } catch (Throwable $e) {}
+
+    // Breaks SEGUNDO EN ADELANTE que están abiertos ahora mismo (viven en
+    // asistencia_breaks, aparte de asistencia.break_out/break_in que solo
+    // guarda el PRIMER break del día) — sin esto, alguien en su 2do/3er
+    // break del día salía como "TRABAJANDO" en vez de "EN BREAK" porque las
+    // columnas del primer break ya estaban cerradas (break_in lleno).
+    $breaksAbiertosAhora = [];
+    try {
+        if ($asis) {
+            $ids = array_column($asis, 'id');
+            $ph = implode(',', array_fill(0, count($ids), '?'));
+            $q = $pdo->prepare("SELECT DISTINCT asistencia_id FROM asistencia_breaks WHERE asistencia_id IN ($ph) AND break_in IS NULL");
+            $q->execute($ids);
+            foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $aid) $breaksAbiertosAhora[(int)$aid] = true;
+        }
     } catch (Throwable $e) {}
 
     // CITAS HOY = las que se AGENDARON (crearon) hoy — no las que son PARA
@@ -211,10 +227,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     } catch (Throwable $e) {}
 
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
-    $estadoAhora = function (?array $a) use ($G, $A, $MU) {
+    $estadoAhora = function (?array $a) use ($G, $A, $MU, $breaksAbiertosAhora) {
         if (!$a || empty($a['check_in'])) return ['⚪ SIN CHECK-IN', $MU];
         if (!empty($a['check_out']))      return ['◗ SALIÓ · ' . substr($a['check_out'], 0, 5), $MU];
         if (!empty($a['break_out']) && empty($a['break_in'])) return ['◐ EN BREAK', $A];
+        if (!empty($a['id']) && !empty($breaksAbiertosAhora[(int)$a['id']])) return ['◐ EN BREAK', $A];
         return ['● TRABAJANDO · desde ' . substr($a['check_in'], 0, 5), $G];
     };
 
