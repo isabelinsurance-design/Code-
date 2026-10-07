@@ -241,13 +241,28 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     // guardado), así que esto sí se puede ver también en un día pasado.
     $citasCompletadas = [];
     try {
-        $q = $pdo->prepare("SELECT c.hora, c.tipo, CONCAT(m.nombre,' ',m.apellido) AS miembro_nombre,
+        $q = $pdo->prepare("SELECT c.hora, c.tipo, c.miembro_id, CONCAT(m.nombre,' ',m.apellido) AS miembro_nombre,
                                    COALESCE(NULLIF(c.tipo_persona,''),'MIEMBRO') AS tipo_persona
                             FROM citas c LEFT JOIN miembros m ON m.id = c.miembro_id
                             WHERE c.fecha=? AND c.estado='COMPLETADA'
                             ORDER BY c.hora ASC");
         $q->execute([$hoy]);
         $citasCompletadas = $q->fetchAll();
+    } catch (Throwable $e) {}
+
+    // De esas citas completadas, cuáles SÍ fueron venta — pedido de Isabel.
+    // "Venta" = el miembro de esa cita ya tiene un bono de venta registrado
+    // en pago_bonos (botón "ES VENTA → MANDAR A BONOS" del perfil), no
+    // importa qué día se registró el bono.
+    $miembrosConVenta = [];
+    try {
+        $midsCita = array_filter(array_unique(array_column($citasCompletadas, 'miembro_id')));
+        if ($midsCita) {
+            $ph = implode(',', array_fill(0, count($midsCita), '?'));
+            $q = $pdo->prepare("SELECT DISTINCT miembro_id FROM pago_bonos WHERE miembro_id IN ($ph)");
+            $q->execute(array_values($midsCita));
+            foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $mvid) $miembrosConVenta[(int)$mvid] = true;
+        }
     } catch (Throwable $e) {}
 
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
@@ -429,10 +444,12 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           echo '<div style="max-height:150px;overflow-y:auto">';
           foreach ($citasCompletadas as $c) {
               $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
+              $fueVenta = !empty($c['miembro_id']) && !empty($miembrosConVenta[(int)$c['miembro_id']]);
               echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
                  . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
                  . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
-                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $G) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
+                 . ($fueVenta ? ('<span style="color:#fff;background:' . $G . ';font-weight:900;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">💰 VENTA</span>') : '')
+                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $MU) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
                  . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
                  . '</div>';
           }
