@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Work Tracker Settings</title>
+<style>
+  :root { --bg:#F7F3EC; --border:#E8E0D0; --text:#2C2416; --muted:#8C7A60; --gold:#C9A96E; --gold-dk:#A07840;
+          --green:#2E7D55; --red:#C0392B; }
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 40px 16px; font: 15px/1.5 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  main { max-width: 480px; margin: 0 auto; background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 28px; }
+  h1 { margin: 0 0 4px; font-size: 22px; }
+  p.lead { margin: 0 0 22px; color: var(--muted); }
+  label { display: block; font-weight: 600; margin: 16px 0 4px; }
+  label small { font-weight: 400; color: var(--muted); }
+  input { width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px; font: inherit; }
+  input:focus { outline: 2px solid var(--gold); border-color: var(--gold); }
+  button { margin-top: 22px; padding: 10px 18px; border: 0; border-radius: 8px; background: var(--gold); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }
+  button:hover { background: var(--gold-dk); }
+  #result { margin-top: 14px; min-height: 1.5em; }
+  #result.ok { color: var(--green); }
+  #result.bad { color: var(--red); }
+  .privacy { margin-top: 26px; padding-top: 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Work Tracker Settings</h1>
+  <p class="lead">Set this up once on each employee's computer.</p>
+  <form id="form">
+    <label for="employee">Employee name <small>(as it should appear on the dashboard)</small></label>
+    <input id="employee" required maxlength="60" placeholder="Arlet">
+    <label for="serverUrl">Server address</label>
+    <input id="serverUrl" required type="url" placeholder="https://tracker.yourcompany.com">
+    <label for="key">Tracker key <small>(printed when the server starts)</small></label>
+    <input id="key" required autocomplete="off">
+    <button type="submit">Save and test connection</button>
+    <div id="result"></div>
+  </form>
+  <div class="privacy">
+    What is recorded: the site name (for example <b>humana.com</b>), how many seconds it was in front of you,
+    and whether the computer was active, idle or locked. Never full web addresses, page contents, passwords,
+    member data or what you type.
+  </div>
+</main>
+<script src="options.js"></script>
+</body>
+</html>

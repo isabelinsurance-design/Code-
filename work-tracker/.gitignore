@@ -1,0 +1,2 @@
+# Activity data and generated keys stay on the server, never in git.
+server/data/

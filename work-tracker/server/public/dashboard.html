@@ -1,0 +1,484 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Team Activity</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: light;
+  --page:#F7F3EC; --card:#FFFFFF; --border:#E8E0D0; --ink:#2C2416; --ink-2:#5C4A30; --muted:#8C7A60;
+  --accent:#A07840; --accent-bg:#F0E6D0; --track:#F0EBE1; --bad:#C0392B; --bad-bg:#FDEDEB;
+  /* timeline + bar kinds (validated: work/not-work/idle pass all-pairs CVD on light) */
+  --k-work:#2a78d6; --k-nonWork:#e34948; --k-idle:#eda100; --k-unreviewed:#86b6ef; --k-lunch:#898781; --k-away:#c3c2b7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --page:#0d0d0d; --card:#1a1a19; --border:#2c2c2a; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#9a988f;
+    --accent:#C9A96E; --accent-bg:#2a2418; --track:#262624; --bad:#e66767; --bad-bg:#2e1716;
+    --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --page:#0d0d0d; --card:#1a1a19; --border:#2c2c2a; --ink:#ffffff; --ink-2:#c3c2b7; --muted:#9a988f;
+  --accent:#C9A96E; --accent-bg:#2a2418; --track:#262624; --bad:#e66767; --bad-bg:#2e1716;
+  --k-work:#3987e5; --k-nonWork:#d03b3b; --k-idle:#c98500; --k-unreviewed:#184f95; --k-lunch:#898781; --k-away:#4a4946;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--page); color: var(--ink); font: 14px/1.45 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
+button, input, select { font: inherit; color: inherit; }
+.wrap { max-width: 1440px; margin: 0 auto; padding: 20px 16px 48px; }
+
+/* top bar */
+.top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
+.top h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
+.top h1 small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
+.datenav { display: flex; align-items: center; gap: 6px; }
+.datenav input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.btn { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; white-space: nowrap; }
+.btn:hover { border-color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.spacer { flex: 1; }
+.updated { color: var(--muted); font-size: 12px; }
+
+.banner { padding: 10px 14px; border-radius: 10px; background: var(--bad-bg); color: var(--bad); margin-bottom: 14px; }
+.summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.summary span { padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-weight: 600; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--ink-2); font-size: 12px; margin-bottom: 14px; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+
+/* cards */
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
+.card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.card.dim { opacity: .62; }
+.head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
+.name { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.state { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.sub { margin-top: -8px; display: grid; gap: 1px; }
+.detail { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
+.clock { color: var(--muted); font-size: 13px; }
+.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.tile { padding: 8px 10px; border-radius: 10px; background: var(--page); }
+.tile b { display: block; font-size: 20px; font-weight: 600; line-height: 1.2; }
+.tile span { font-size: 12px; color: var(--muted); }
+.note { font-size: 12px; color: var(--muted); }
+
+.strip { position: relative; height: 18px; border-radius: 4px; background: var(--track); }
+.run { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
+.now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); border-radius: 1px; }
+.ticks { position: relative; height: 14px; font-size: 10px; color: var(--muted); }
+.ticks span { position: absolute; transform: translateX(-50%); white-space: nowrap; }
+.ticks span:first-child { transform: none; }
+
+.bars { display: grid; grid-template-columns: minmax(90px, auto) 1fr auto; gap: 6px 10px; align-items: center; font-size: 13px; }
+.bars .label { color: var(--ink-2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bars .track { height: 10px; }
+.bars .bar { height: 10px; border-radius: 0 4px 4px 0; min-width: 2px; }
+.bars .val { font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 12px; color: var(--muted); }
+.foot .counters { color: var(--ink-2); font-weight: 600; }
+details summary { cursor: pointer; color: var(--accent); font-size: 13px; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
+th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
+th { color: var(--muted); font-weight: 500; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+.empty { padding: 40px; text-align: center; color: var(--muted); background: var(--card); border: 1px dashed var(--border); border-radius: 14px; }
+
+/* admin panels */
+.admin { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-top: 24px; align-items: start; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.panel h2 { font-size: 16px; margin-bottom: 4px; }
+.panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+.row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
+.row { flex-wrap: wrap; }
+.row .dom { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
+.row .t { color: var(--muted); font-variant-numeric: tabular-nums; }
+select, .panel input[type=text] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); min-width: 0; }
+.cat { margin-top: 14px; }
+.cat h3 { font-size: 13px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+.cat h3 label { font-weight: 400; color: var(--muted); font-size: 12px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 3px 4px 3px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; }
+.chip button { border: 0; background: none; cursor: pointer; color: var(--muted); padding: 0 6px; font-size: 14px; line-height: 1; }
+.chip button:hover { color: var(--bad); }
+.inline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+.inline input[type=text] { flex: 1 1 160px; }
+
+#tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--card); padding: 6px 9px; border-radius: 8px; font-size: 12px; line-height: 1.4; max-width: 260px; display: none; white-space: pre-line; }
+.login { max-width: 380px; margin: 12vh auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; display: grid; gap: 10px; }
+.login input { padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--page); }
+
+/* TV mode: dark, bigger, read-only */
+body.tv { font-size: 16px; }
+body.tv .wrap { max-width: none; padding: 24px 28px; }
+body.tv .grid { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); }
+body.tv .name { font-size: 24px; }
+body.tv .state { font-size: 20px; }
+body.tv .detail { font-size: 15px; }
+body.tv .tile b { font-size: 26px; }
+body.tv .admin, body.tv details, body.tv .datenav, body.tv .edit-only { display: none; }
+@media (max-width: 480px) { .grid { grid-template-columns: 1fr; } .tile b { font-size: 17px; } }
+</style>
+</head>
+<body>
+<div class="wrap" id="app"></div>
+<div id="tip"></div>
+<script>
+const KINDS = [
+  ['work', 'Work'], ['nonWork', 'Not work'], ['unreviewed', 'Not categorized'],
+  ['idle', 'Idle'], ['lunch', 'Lunch / break'], ['away', 'Away (locked)'],
+];
+const KIND_LABEL = Object.fromEntries(KINDS);
+
+const params = new URLSearchParams(location.search);
+const store = {
+  get: k => { try { return localStorage.getItem(k); } catch { return null; } },
+  set: (k, v) => { try { localStorage.setItem(k, v); } catch {} },
+};
+let key = params.get('key') || store.get('wt-key') || '';
+if (params.get('key')) store.set('wt-key', key);
+let date = params.get('date') || localDate(new Date());
+let tv = params.get('tv') === '1';
+let data = null;
+let cats = null;
+let error = '';
+let needKey = !key;
+let clockOffset = 0; // server time minus this screen's time, so a TV with a wrong clock still shows correct "min ago"
+const now = () => Date.now() + clockOffset;
+
+function localDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+const isToday = () => date === localDate(new Date());
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+function dur(seconds) {
+  const m = Math.floor((seconds || 0) / 60);
+  return m >= 60 ? `${Math.floor(m / 60)}h ${String(m % 60).padStart(2, '0')}m` : `${m}m`;
+}
+const durTip = seconds => (seconds < 60 ? `${Math.round(seconds)}s` : dur(seconds));
+const clock = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const since = t => (t ? dur((now() - t) / 1000) : '');
+const ago = t => {
+  const m = Math.round((now() - t) / 60000);
+  if (m < 1) return 'just now';
+  return m < 60 ? `${m} min ago` : `${dur(m * 60)} ago`;
+};
+function site(domain) {
+  return { '(outside chrome)': 'another app (outside Chrome)', '(browser)': 'a browser page', '(local file)': 'a local file' }[domain] || domain || '';
+}
+const slotMinutes = slot => Number(slot.slice(0, 2)) * 60 + Number(slot.slice(3));
+const hhmm = m => new Date(2000, 0, 1, Math.floor(m / 60), m % 60).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+
+async function api(path, options = {}) {
+  const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', 'X-Admin-Key': key } });
+  if (res.status === 401) {
+    needKey = true;
+    render();
+    throw new Error('unauthorized');
+  }
+  const body = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  return body;
+}
+
+async function refresh() {
+  if (needKey) return render();
+  try {
+    const [day, categories] = await Promise.all([api(`api/day?date=${date}`), tv ? cats : api('api/categories')]);
+    data = day;
+    cats = categories;
+    clockOffset = day.serverTime - Date.now();
+    error = '';
+  } catch (err) {
+    if (err.message === 'unauthorized') return;
+    error = `Can't reach the tracker server (${err.message}). Retrying every 30 seconds…`;
+  }
+  render();
+}
+
+// ---------- live status ----------
+
+function liveLine(l) {
+  switch (l.state) {
+    case 'working':
+      if (l.work === false) return ['🟠 Not work', `${site(l.domain)} · ${since(l.since)}`];
+      return ['🟢 Working', [site(l.domain), l.category || 'not categorized', since(l.since)].filter(Boolean).join(' · ')];
+    case 'idle': return [`🟡 Idle ${since(l.since)}`, 'no keyboard or mouse for 5+ min'];
+    case 'away': return [`🔒 Away ${since(l.since)}`, 'computer locked'];
+    case 'lunch': return [`🍴 Lunch ${since(l.since)}`, l.since ? `since ${clock(l.since)}` : ''];
+    case 'break': return [`☕ Break ${since(l.since)}`, l.since ? `since ${clock(l.since)}` : ''];
+    case 'off': return ['⏹ Clocked out', l.since ? `at ${clock(l.since)}` : ''];
+    default: return ['🔴 Offline', l.lastSeen ? `last seen ${ago(l.lastSeen)}` : 'never connected'];
+  }
+}
+
+// ---------- card pieces ----------
+
+function timeline(e) {
+  const slots = e.timeline;
+  const current = new Date(now());
+  const nowMin = isToday() ? current.getHours() * 60 + current.getMinutes() : null;
+  const first = slots.length ? slotMinutes(slots[0].slot) : 8 * 60;
+  const last = slots.length ? slotMinutes(slots[slots.length - 1].slot) + 5 : 17 * 60;
+  const start = Math.min(7 * 60, Math.floor(first / 60) * 60);
+  const end = Math.min(24 * 60, Math.max(18 * 60, Math.ceil(last / 60) * 60, nowMin != null ? Math.ceil((nowMin + 1) / 60) * 60 : 0));
+  const span = end - start;
+
+  // Merge back-to-back slots of the same kind into one run.
+  const runs = [];
+  for (const s of slots) {
+    const m = slotMinutes(s.slot);
+    const prev = runs[runs.length - 1];
+    if (prev && prev.kind === s.kind && prev.end === m) {
+      prev.end = m + 5;
+      for (const k in s.parts) prev.parts[k] += s.parts[k];
+    } else {
+      runs.push({ kind: s.kind, start: m, end: m + 5, parts: { ...s.parts } });
+    }
+  }
+  const pct = m => ((m - start) / span) * 100;
+  const runHtml = runs.map(r => {
+    const detail = KINDS.filter(([k]) => r.parts[k] >= 5).map(([k, label]) => `${label} ${durTip(r.parts[k])}`).join('\n');
+    const tip = `${hhmm(r.start)} – ${hhmm(r.end)}\n${detail}`;
+    return `<div class="run" data-tip="${esc(tip)}" style="left:${pct(r.start)}%;width:calc(${pct(r.end) - pct(r.start)}% - 2px);background:var(--k-${r.kind})"></div>`;
+  }).join('');
+  const nowMark = nowMin != null && nowMin > start && nowMin < end ? `<div class="now" style="left:${pct(nowMin)}%" data-tip="Now"></div>` : '';
+  const step = span > 10 * 60 ? 180 : 120;
+  let ticks = '';
+  for (let m = start; m < end; m += step) ticks += `<span style="left:${pct(m)}%">${hhmm(m).replace(':00', '').replace(/\s?([AP])M/i, (_, x) => x.toLowerCase())}</span>`;
+  return `<div><div class="strip" role="img" aria-label="Activity timeline for ${esc(e.name)}">${runHtml}${nowMark}</div><div class="ticks">${ticks}</div></div>`;
+}
+
+function bars(e) {
+  if (!e.categories.length) return '';
+  const max = Math.max(...e.categories.map(c => c.seconds));
+  return `<div class="bars">${e.categories.map(c => {
+    const kind = c.work === null ? 'unreviewed' : c.work ? 'work' : 'nonWork';
+    return `<span class="label" title="${esc(c.name)}">${esc(c.name)}</span>
+      <div class="track"><div class="bar" style="width:${(c.seconds / max) * 100}%;background:var(--k-${kind})" data-tip="${esc(`${c.name}\n${dur(c.seconds)} active`)}"></div></div>
+      <span class="val">${dur(c.seconds)}</span>`;
+  }).join('')}</div>`;
+}
+
+function sitesTable(e) {
+  if (!e.domains.length) return '';
+  return `<details><summary>Sites (${e.domains.length})</summary><table>
+    <tr><th>Site</th><th>Category</th><th class="n">Active</th><th class="n">Idle</th></tr>
+    ${e.domains.map(d => `<tr><td>${esc(site(d.domain))}</td><td>${esc(d.category || 'Not categorized')}</td><td class="n">${dur(d.active)}</td><td class="n">${dur(d.idle)}</td></tr>`).join('')}
+  </table></details>`;
+}
+
+function card(e) {
+  const today = isToday();
+  const l = e.live;
+  const t = e.totals;
+  const tracked = t.active + t.idle + t.away + t.lunch + t.break;
+  const lastSlot = e.timeline.length ? e.timeline[e.timeline.length - 1].slot : null;
+  const lastSlotEnd = lastSlot ? new Date(`${date}T${lastSlot}:00`).getTime() + 5 * 60000 : null;
+  const end = e.clockOut || (today && l.state !== 'offline' ? now() : lastSlotEnd);
+  const onClock = e.clockIn && end ? Math.max(0, (end - e.clockIn) / 1000) : 0;
+  const untracked = onClock - tracked;
+
+  let clockLine = 'Not clocked in';
+  if (e.clockIn) {
+    clockLine = `Clock in ${clock(e.clockIn)}`;
+    if (e.clockOut) clockLine += ` · out ${clock(e.clockOut)}`;
+    if (onClock) clockLine += ` · ${dur(onClock)} on the clock`;
+  }
+  const [state, detail] = today ? liveLine(l) : ['', ''];
+  const counters = Object.entries(e.counters || {}).map(([k, v]) => `${esc(k)} ${esc(v)}`).join(' · ');
+  const hasData = tracked > 0;
+
+  return `<article class="card${!hasData && (!today || l.state === 'offline') ? ' dim' : ''}">
+    <div class="head"><span class="name">${esc(e.name)}</span>${today ? `<span class="state">${esc(state)}</span>` : ''}</div>
+    <div class="sub">${detail ? `<span class="detail">${esc(detail)}</span>` : ''}<span class="clock">${clockLine}</span></div>
+    ${hasData ? `
+    <div class="tiles">
+      <div class="tile"><b>${dur(e.work)}</b><span>Active work</span></div>
+      <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
+      <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch / break</span></div>
+    </div>
+    ${e.nonWork >= 60 || e.unreviewed >= 60 ? `<div class="note">${[e.nonWork >= 60 ? `Not work: ${dur(e.nonWork)}` : '', e.unreviewed >= 60 ? `Not categorized yet: ${dur(e.unreviewed)}` : ''].filter(Boolean).join(' · ')}</div>` : ''}
+    ${timeline(e)}
+    ${bars(e)}
+    ${untracked > 600 ? `<div class="note">${dur(untracked)} with no data (Chrome closed or computer asleep)</div>` : ''}
+    ${sitesTable(e)}` : `<div class="note">${today ? 'No activity recorded yet today.' : 'No activity recorded this day.'}</div>`}
+    <div class="foot">
+      <span>${today && l.lastActiveAt ? `Last activity ${ago(l.lastActiveAt)}` : ''}</span>
+      ${counters ? `<span class="counters">${counters}</span>` : ''}
+    </div>
+  </article>`;
+}
+
+// ---------- categories admin ----------
+
+function adminPanels() {
+  if (!cats || !data) return '';
+  const options = cats.categories.map(c => `<option>${esc(c.name)}</option>`).join('');
+  const unassigned = data.unassigned.length
+    ? data.unassigned.map(u => `<div class="row"><span class="dom">${esc(site(u.domain))}</span><span class="t">${dur(u.seconds)}</span>
+        <select data-assign="${esc(u.domain)}"><option value="">Pick category…</option>${options}</select></div>`).join('')
+    : '<p class="hint">Every site used this day has a category.</p>';
+  const groups = cats.categories.map((c, i) => {
+    const domains = Object.keys(cats.domains).filter(d => cats.domains[d] === c.name).sort();
+    return `<div class="cat"><h3>${esc(c.name)}
+        <label><input type="checkbox" data-work="${i}" ${c.work ? 'checked' : ''}> counts as work</label>
+        ${domains.length ? '' : `<button class="btn" data-delcat="${i}" style="padding:2px 8px;font-size:12px">Remove</button>`}</h3>
+      <div class="chips">${domains.map(d => `<span class="chip">${esc(site(d))}<button title="Remove" data-unassign="${esc(d)}">×</button></span>`).join('') || '<span class="hint">No sites yet</span>'}</div></div>`;
+  }).join('');
+  return `<section class="admin">
+    <div class="panel"><h2>Sites not categorized yet</h2>
+      <p class="hint">Active time on these sites counts as neither work nor not-work until you pick a category. Subdomains are included automatically.</p>
+      ${unassigned}</div>
+    <div class="panel"><h2>Sites & categories</h2>
+      <p class="hint">Changes apply right away, to today and to past days. No extension update needed.</p>
+      <form class="inline" id="addSite"><input type="text" name="domain" placeholder="humana.com" required><select name="category">${options}</select><button class="btn primary">Add site</button></form>
+      ${groups}
+      <form class="inline" id="addCat"><input type="text" name="name" placeholder="New category name" required maxlength="40">
+        <label class="hint" style="margin:0;align-self:center"><input type="checkbox" name="work" checked> counts as work</label><button class="btn">Add category</button></form>
+    </div></section>`;
+}
+
+async function saveCats(next) {
+  try {
+    cats = await api('api/categories', { method: 'PUT', body: JSON.stringify(next) });
+  } catch (err) {
+    if (err.message !== 'unauthorized') alert(`Couldn't save: ${err.message}`);
+  }
+  refresh();
+}
+function cleanDomain(v) {
+  v = v.trim().toLowerCase();
+  if (v.startsWith('(')) return v;
+  try { return new URL(v.includes('://') ? v : `https://${v}`).hostname.replace(/^www\./, ''); } catch { return ''; }
+}
+
+// ---------- render ----------
+
+function render() {
+  const app = document.getElementById('app');
+  document.body.classList.toggle('tv', tv);
+  document.documentElement.toggleAttribute('data-theme', tv);
+  if (tv) document.documentElement.setAttribute('data-theme', 'dark');
+
+  if (needKey) {
+    app.innerHTML = `<form class="login" id="login"><h1 style="font-size:20px">Team Activity</h1>
+      <p class="note">Enter the dashboard key. It is printed in the server's console when it starts (the <b>?key=</b> part of the dashboard link).</p>
+      <input id="keyInput" type="password" placeholder="Dashboard key" required autofocus><button class="btn primary">Open dashboard</button></form>`;
+    document.getElementById('login').onsubmit = ev => {
+      ev.preventDefault();
+      key = document.getElementById('keyInput').value.trim();
+      store.set('wt-key', key);
+      needKey = false;
+      refresh();
+    };
+    return;
+  }
+
+  const today = isToday();
+  const employees = data ? data.employees : [];
+  const counts = {};
+  for (const e of employees) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
+  const summary = [
+    ['working', '🟢 Working'], ['idle', '🟡 Idle'], ['away', '🔒 Away'], ['lunch', '🍴 Lunch'], ['break', '☕ Break'], ['off', '⏹ Clocked out'], ['offline', '🔴 Offline'],
+  ].filter(([k]) => counts[k]).map(([k, label]) => `<span>${label} ${counts[k]}</span>`).join('');
+  const heading = today ? 'Today' : new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+
+  app.innerHTML = `
+    <div class="top">
+      <h1>Team Activity<small>${esc(heading)}</small></h1>
+      <div class="datenav"><button class="btn" data-day="-1" aria-label="Previous day">←</button>
+        <input type="date" id="date" value="${date}" max="${localDate(new Date())}">
+        <button class="btn" data-day="1" aria-label="Next day" ${today ? 'disabled' : ''}>→</button>
+        ${today ? '' : '<button class="btn" data-day="0">Today</button>'}</div>
+      <span class="spacer"></span>
+      <span class="updated">${data ? `Updated ${new Date(data.serverTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Loading…'}</span>
+      <button class="btn" id="tvBtn">${tv ? 'Exit TV mode' : '📺 TV mode'}</button>
+    </div>
+    ${error ? `<div class="banner">${esc(error)}</div>` : ''}
+    ${today && summary ? `<div class="summary">${summary}</div>` : ''}
+    <div class="legend">${KINDS.map(([k, label]) => `<span><i style="background:var(--k-${k})"></i>${label}</span>`).join('')}<span><i style="background:var(--track);outline:1px solid var(--border)"></i>No data</span></div>
+    ${data && !employees.length ? `<div class="empty">No one has connected yet. Install the Chrome extension on each computer and enter this server's address and the tracker key in its Settings.</div>` : ''}
+    <div class="grid">${employees.map(card).join('')}</div>
+    ${tv ? '' : adminPanels()}`;
+}
+
+// ---------- events ----------
+
+document.addEventListener('click', ev => {
+  const el = ev.target.closest('button');
+  if (!el) return;
+  if (el.id === 'tvBtn') {
+    tv = !tv;
+    const url = new URL(location.href);
+    tv ? url.searchParams.set('tv', '1') : url.searchParams.delete('tv');
+    history.replaceState(null, '', url);
+    if (tv && document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    if (!tv && document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    refresh();
+  } else if (el.dataset.day !== undefined) {
+    const step = Number(el.dataset.day);
+    const d = step === 0 ? new Date() : new Date(`${date}T12:00:00`);
+    d.setDate(d.getDate() + step);
+    date = localDate(d);
+    data = null;
+    refresh();
+  } else if (el.dataset.unassign) {
+    const domains = { ...cats.domains };
+    delete domains[el.dataset.unassign];
+    saveCats({ ...cats, domains });
+  } else if (el.dataset.delcat !== undefined) {
+    saveCats({ ...cats, categories: cats.categories.filter((_, i) => i !== Number(el.dataset.delcat)) });
+  }
+});
+
+document.addEventListener('change', ev => {
+  const el = ev.target;
+  if (el.id === 'date' && el.value) {
+    date = el.value;
+    data = null;
+    refresh();
+  } else if (el.dataset.assign && el.value) {
+    saveCats({ ...cats, domains: { ...cats.domains, [el.dataset.assign]: el.value } });
+  } else if (el.dataset.work !== undefined) {
+    saveCats({ ...cats, categories: cats.categories.map((c, i) => (i === Number(el.dataset.work) ? { ...c, work: el.checked } : c)) });
+  }
+});
+
+document.addEventListener('submit', ev => {
+  const form = ev.target;
+  if (form.id === 'addSite') {
+    ev.preventDefault();
+    const domain = cleanDomain(form.domain.value);
+    if (domain) saveCats({ ...cats, domains: { ...cats.domains, [domain]: form.category.value } });
+  } else if (form.id === 'addCat') {
+    ev.preventDefault();
+    const name = form.name.value.trim();
+    if (name) saveCats({ ...cats, categories: [...cats.categories, { name, work: form.work.checked }] });
+  }
+});
+
+// Shared hover tooltip for timeline runs and bars.
+const tip = document.getElementById('tip');
+document.addEventListener('mousemove', ev => {
+  const el = ev.target.closest('[data-tip]');
+  if (!el) return (tip.style.display = 'none');
+  tip.textContent = el.dataset.tip;
+  tip.style.display = 'block';
+  const x = Math.min(ev.clientX + 12, window.innerWidth - tip.offsetWidth - 8);
+  tip.style.left = `${x}px`;
+  tip.style.top = `${ev.clientY + 16}px`;
+});
+
+refresh();
+setInterval(() => {
+  // Don't redraw under someone who is picking a category.
+  if (!document.activeElement || !document.activeElement.closest('.admin')) refresh();
+}, 30000);
+</script>
+</body>
+</html>

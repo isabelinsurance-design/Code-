@@ -1,0 +1,13 @@
+{
+  "name": "netconnect-work-tracker-server",
+  "version": "1.0.0",
+  "private": true,
+  "description": "API and live dashboard for the NetConnect Work Tracker Chrome extension. No dependencies.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  }
+}

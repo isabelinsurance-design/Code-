@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Work Tracker</title>
+<style>
+  :root { --bg:#FAF8F4; --border:#E8E0D0; --text:#2C2416; --muted:#8C7A60; --gold:#C9A96E; --gold-dk:#A07840;
+          --green:#2E7D55; --amber:#B45309; --teal:#2E5F7A; --red:#C0392B; }
+  * { box-sizing: border-box; margin: 0; }
+  body { width: 300px; padding: 14px; font: 13px/1.4 system-ui, sans-serif; background: var(--bg); color: var(--text); }
+  .head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 10px; }
+  .who { font-weight: 600; font-size: 15px; }
+  .head a { color: var(--muted); font-size: 12px; }
+  .status { padding: 10px 12px; border: 1px solid var(--border); border-radius: 10px; background: #fff; margin-bottom: 10px; }
+  .status .state { font-weight: 600; }
+  .status .site { color: var(--muted); font-size: 12px; margin-top: 2px; word-break: break-all; }
+  .totals { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; margin-bottom: 12px; }
+  .totals div { text-align: center; padding: 6px 4px; border: 1px solid var(--border); border-radius: 8px; background: #fff; }
+  .totals b { display: block; font-size: 14px; font-variant-numeric: tabular-nums; }
+  .totals span { font-size: 11px; color: var(--muted); }
+  .buttons { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  button { padding: 8px; border-radius: 8px; border: 1px solid var(--border); background: #fff; font: inherit; cursor: pointer; }
+  button:hover { border-color: var(--gold); }
+  button.primary { grid-column: span 2; background: var(--gold); border-color: var(--gold-dk); color: #fff; font-weight: 600; }
+  button[hidden] { display: none; }
+  .foot { margin-top: 12px; font-size: 11px; color: var(--muted); }
+  .sync.bad { color: var(--red); }
+  .setup { padding: 10px 12px; border-radius: 10px; background: #FDEDEB; color: var(--red); margin-bottom: 10px; }
+</style>
+</head>
+<body>
+  <div class="head">
+    <span class="who" id="who">Work Tracker</span>
+    <a href="#" id="settings">Settings</a>
+  </div>
+  <div class="setup" id="setup" hidden>Not set up yet. Open Settings and enter your name, the server address and the team key.</div>
+  <div class="status">
+    <div class="state" id="state">…</div>
+    <div class="site" id="site"></div>
+  </div>
+  <div class="totals">
+    <div><b id="active">0m</b><span>Active</span></div>
+    <div><b id="idle">0m</b><span>Idle/Away</span></div>
+    <div><b id="lunch">0m</b><span>Lunch/Break</span></div>
+  </div>
+  <div class="buttons">
+    <button class="primary" id="work" hidden>▶ Back to work</button>
+    <button id="lunchBtn">🍴 Lunch</button>
+    <button id="breakBtn">☕ Break</button>
+    <button id="off" style="grid-column: span 2">⏹ Clock out for the day</button>
+  </div>
+  <div class="foot">
+    <div>Only the site name and time are recorded, never page contents or what you type.</div>
+    <div class="sync" id="sync"></div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
