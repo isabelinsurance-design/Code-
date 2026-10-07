@@ -38,6 +38,15 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         $usuarios = $pdo->query("SELECT id,nombre,rol,color,iniciales FROM usuarios WHERE activo=1 ORDER BY rol DESC, nombre")->fetchAll();
     } catch (Throwable $e) { $usuarios = []; }
 
+    // Empleados INACTIVOS — pedido de Isabel: que se sigan viendo en la
+    // tabla (abajo de los activos) pero apagados/discretos, no llamativos.
+    $usuariosInactivos = [];
+    try {
+        $usuariosInactivos = $pdo->query("SELECT id,nombre,rol,color,iniciales FROM usuarios WHERE activo=0 ORDER BY nombre")->fetchAll();
+    } catch (Throwable $e) {}
+    $idsInactivos = array_fill_keys(array_column($usuariosInactivos, 'id'), true);
+    $usuarios = array_merge($usuarios, $usuariosInactivos);
+
     // Asistencia de hoy — quién está trabajando/en break/salió ahora mismo
     $asis = [];
     try {
@@ -431,6 +440,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         <?php endif;?>
         <?php foreach ($usuarios as $u):
             $aid = (int)$u['id'];
+            $esInactivo = !empty($idsInactivos[$aid]);
             [$estLabel, $estColor] = $estadoAhora($asis[$aid] ?? null);
             $trabajoEseDia = !empty($asis[$aid]['check_in']);
             $tk = $tkAbiertos[$aid] ?? ['total'=>0,'urgentes'=>0];
@@ -442,14 +452,16 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
             $lr = $llRetHoy[$aid]   ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
         ?>
-        <tr style="border-bottom:1px solid <?=$BG?>">
+        <tr style="border-bottom:1px solid <?=$BG?><?=$esInactivo?';opacity:.45':''?>">
           <td style="padding:8px 10px">
             <div style="display:flex;align-items:center;gap:7px">
-              <span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:<?=h($u['color']??$P2)?>;color:#fff;font-size:8px;font-weight:900;align-items:center;justify-content:center;flex-shrink:0"><?=h($u['iniciales']??'?')?></span>
-              <span style="font-weight:900;color:<?=$P1?>"><?=h($u['nombre'])?></span>
+              <span style="display:inline-flex;width:22px;height:22px;border-radius:50%;background:<?=h($esInactivo?$MU:($u['color']??$P2))?>;color:#fff;font-size:8px;font-weight:900;align-items:center;justify-content:center;flex-shrink:0"><?=h($u['iniciales']??'?')?></span>
+              <span style="font-weight:<?=$esInactivo?'400':'900'?>;color:<?=$esInactivo?$MU:$P1?>"><?=h($u['nombre'])?></span>
             </div>
           </td>
-          <?php if ($esHoy):?>
+          <?php if ($esInactivo):?>
+          <td style="padding:8px 10px;color:<?=$MU?>;font-weight:400;font-size:8px;letter-spacing:.3px">INACTIVO</td>
+          <?php elseif ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$estColor?>;font-weight:800"><?=$estLabel?></td>
           <?php else:?>
           <td style="padding:8px 10px;color:<?=$trabajoEseDia?$G:$MU?>;font-weight:<?=$trabajoEseDia?'800':'400'?>"><?=$trabajoEseDia?'✓ SÍ':'— NO'?></td>
