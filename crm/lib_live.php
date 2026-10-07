@@ -74,10 +74,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     // CITAS HOY = las que se AGENDARON (crearon) hoy — no las que son PARA
     // hoy. Aclaración de Isabel: son cosas distintas (alguien puede agendar
     // hoy una cita para la próxima semana, o agendar hace rato una para
-    // hoy mismo — este cuadrito es de lo primero).
+    // hoy mismo — este cuadrito es de lo primero). Y SOLO de PROSPECTO, no
+    // de miembro — aclaración de Isabel.
     $totCitasHoy = 0;
     try {
-        $q = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY)");
+        $q = $pdo->prepare("SELECT COUNT(*) FROM citas WHERE tipo_persona='PROSPECTO' AND created_at>=? AND created_at<DATE_ADD(?, INTERVAL 1 DAY)");
         $q->execute([$hoy, $hoy]);
         $totCitasHoy = (int)$q->fetchColumn();
     } catch (Throwable $e) {}
