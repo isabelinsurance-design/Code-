@@ -158,7 +158,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .plan-phase-goal{font-size:12.5px;color:var(--text-muted);font-style:italic;margin-bottom:10px}
 .plan-badge{margin-left:auto;font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.08em;background:var(--amber);color:#fff;padding:3px 9px;border-radius:20px;font-weight:600}
 .plan-tip{background:var(--teal-lt);border:1px solid var(--teal);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--teal-dk);margin-bottom:12px;line-height:1.45}
-.plan-task{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.45;cursor:pointer}
+.plan-task{display:flex;gap:10px;align-items:flex-start;padding:9px 0;border-top:1px solid var(--border);font-size:13.5px;color:var(--text);line-height:1.45;cursor:pointer;font-weight:400;margin-bottom:0}
 .plan-task:first-of-type{border-top:0}
 .plan-task input{margin-top:2px;width:17px;height:17px;flex-shrink:0;accent-color:var(--gold-dk);cursor:pointer}
 .plan-task input:checked + span{color:var(--text-muted);text-decoration:line-through}
@@ -251,6 +251,64 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .backup-title{font-weight:600;font-size:13.5px;color:var(--text)}
 .backup-sub{font-size:11.5px;color:var(--text-muted);margin-top:2px;line-height:1.4;max-width:520px}
 .backup-actions{display:flex;gap:8px;flex-wrap:wrap}
+
+/* ─── CALENDARIO AEP ─── */
+.aepc-hero{background:linear-gradient(135deg,#333A4D,#3D8FD6);color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:14px;box-shadow:var(--sh2);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
+.aepc-hero.late{background:linear-gradient(135deg,#7A2A20,#C0392B)}
+.aepc-hero.live{background:linear-gradient(135deg,#C0392B,#F2A977)}
+.aepc-hero.done{background:linear-gradient(135deg,#2E7D55,#74B596)}
+.aepc-hero-label{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.18em;opacity:.9}
+.aepc-hero-title{font-family:'Fraunces',serif;font-size:22px;font-style:italic;line-height:1.25;margin:4px 0}
+.aepc-hero-sub{font-size:13px;opacity:.93;line-height:1.5}
+.aepc-hero-num{text-align:right;font-family:'Fraunces',serif;font-size:44px;font-weight:300;line-height:1}
+.aepc-hero-num small{display:block;font-size:12px;font-style:italic;opacity:.85}
+@media(max-width:600px){.aepc-hero{grid-template-columns:1fr}.aepc-hero-num{text-align:left}}
+.aepc-actions{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+.aepc-urgent{background:var(--red-lt);border:1.5px solid var(--red);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.aepc-urgent-title{font-weight:700;color:var(--red);font-size:14px;margin-bottom:6px}
+.aepc-tabs{display:flex;gap:6px;margin-bottom:12px}
+.aepc-tab{border:1px solid var(--border-d);background:var(--white);color:var(--text-mid);border-radius:20px;padding:6px 14px;font-size:12.5px;cursor:pointer;font-weight:600}
+.aepc-tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+.aepc-week{background:var(--white);border:1.5px solid var(--border);border-left:5px solid var(--border-d);border-radius:12px;padding:14px 16px;margin-bottom:10px}
+.aepc-week.now{border-color:var(--gold);border-left-color:var(--gold-dk);box-shadow:0 0 0 3px var(--gold-lt)}
+.aepc-week.past{opacity:.6}
+.aepc-week-head{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin-bottom:6px}
+.aepc-week-name{font-weight:700;font-size:15px;color:var(--text)}
+.aepc-week-dates{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted)}
+.aepc-now-badge{background:var(--gold-dk);color:#fff;font-size:10px;font-weight:700;letter-spacing:.06em;padding:2px 8px;border-radius:10px}
+.aepc-week-meta{margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text-mid)}
+.aepc-week-meta input{width:62px;padding:4px 6px;border:1px solid var(--border-d);border-radius:6px;font-family:inherit;font-size:12px}
+.aepc-sem{font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px}
+.aepc-sem.ok{background:var(--green-lt);color:var(--green)}
+.aepc-sem.warn{background:var(--amber-lt);color:var(--amber)}
+.aepc-sem.bad{background:var(--red-lt);color:var(--red)}
+.aepc-week-theme{font-family:'Fraunces',serif;font-style:italic;font-size:15px;color:var(--gold-dk);margin-bottom:8px}
+.aepc-week-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.aepc-col-title{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px}
+.aepc-col ul{margin:0;padding-left:16px;font-size:12.5px;line-height:1.55;color:var(--text)}
+.aepc-month{margin-bottom:18px}
+.aepc-month-name{font-family:'Fraunces',serif;font-size:18px;margin-bottom:8px;color:var(--text)}
+.aepc-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px}
+.aepc-dow{font-family:'DM Mono',monospace;font-size:9.5px;text-align:center;color:var(--text-muted);padding:2px 0}
+.aepc-day{min-height:78px;background:var(--white);border:1px solid var(--border);border-top:4px solid var(--border);border-radius:8px;padding:4px 5px;cursor:pointer;font-size:10.5px;line-height:1.3;overflow:hidden}
+.aepc-day:hover{border-color:var(--gold)}
+.aepc-day.empty{background:transparent;border:0;cursor:default}
+.aepc-day.past{opacity:.5}
+.aepc-day.today{box-shadow:0 0 0 2px var(--gold-dk);background:var(--gold-lt)}
+.aepc-day.sel{box-shadow:0 0 0 2px var(--teal-dk)}
+.aepc-day.pre{border-top-color:var(--red)}
+.aepc-day.aep{border-top-color:var(--teal)}
+.aepc-day.post{border-top-color:var(--green)}
+.aepc-day-num{font-weight:700;color:var(--text);font-size:11.5px}
+.aepc-day-ms{display:block;font-weight:700;color:var(--red);margin:1px 0}
+.aepc-day-item{display:block;color:var(--text-mid);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+@media(max-width:700px){.aepc-day{min-height:52px;font-size:9px}.aepc-day-item{display:none}}
+.aepc-detail{background:var(--white);border:1.5px solid var(--teal);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.aepc-detail-title{font-weight:700;font-size:14.5px;margin-bottom:8px}
+.aepc-detail-item{padding:7px 0;border-top:1px solid var(--border);font-size:13px;line-height:1.5}
+.aepc-detail-item:first-of-type{border-top:0}
+.aepc-legend{display:flex;gap:14px;flex-wrap:wrap;font-size:11.5px;color:var(--text-muted);margin-bottom:10px}
+.aepc-legend span::before{content:'';display:inline-block;width:10px;height:10px;border-radius:2px;margin-right:5px;vertical-align:-1px;background:var(--c)}
 
 /* ─── AEP COUNTDOWN ─── */
 .aep-banner{position:relative;background:linear-gradient(135deg,#333A4D,#3D8FD6);color:#fff;border-radius:14px;padding:16px 22px 22px;margin-bottom:14px;box-shadow:var(--sh2);display:grid;grid-template-columns:1fr auto;align-items:center;gap:16px;overflow:hidden}
@@ -611,6 +669,10 @@ tr:hover td{background:var(--surface)}
     <div class="sidebar-label">EMPEZAR AQUÍ</div>
     <div class="sidebar-label-desc">Lo que define tu estrategia y marca</div>
     <div class="sidebar-section">
+      <button class="nav-item" id="navAep" onclick="showModule('aep',this)">
+        <span class="nav-icon">📅</span><span class="nav-label">Calendario AEP</span>
+        <span class="nav-badge">AEP</span>
+      </button>
       <button class="nav-item active" onclick="showModule('plan',this)">
         <span class="nav-icon">🎯</span><span class="nav-label">Plan de Acción</span>
       </button>
@@ -689,12 +751,15 @@ tr:hover td{background:var(--surface)}
     <button class="sidebar-toggle" id="toolsToggle" onclick="toggleToolsSection()">
       <span>🔧 Herramientas Avanzadas</span>
       <span style="display:flex;align-items:center;gap:8px">
-        <span class="sidebar-toggle-count">19</span>
+        <span class="sidebar-toggle-count">20</span>
         <span class="sidebar-toggle-caret">▶</span>
       </span>
     </button>
     <div class="sidebar-label-desc" id="toolsToggleDesc" style="display:none">Dashboards completos por si quieres profundidad</div>
     <div class="sidebar-collapsible sidebar-section" id="toolsCollapsible">
+      <button class="nav-item" onclick="openTool('estrategia-aep-2026.html',this,'Estrategia Integral AEP 2026 — Meta 300')">
+        <span class="nav-icon">📘</span><span class="nav-label">Estrategia AEP · Meta 300</span>
+      </button>
       <button class="nav-item" onclick="openTool('t65-lead-machine.html',this,'Máquina de Leads T65')">
         <span class="nav-icon">🎂</span><span class="nav-label">Leads T65 DIY</span>
         <span class="nav-badge">NEW</span>
@@ -767,6 +832,54 @@ tr:hover td{background:var(--surface)}
   <!-- ─── MAIN ─── -->
   <main class="main">
 
+    <!-- ══════ CALENDARIO AEP ══════ -->
+    <div class="module" id="mod-aep">
+      <div class="page-header">
+        <div class="page-title">📅 Calendario <em>AEP 2026</em></div>
+        <div class="page-sub">Tu plan Meta 300, día por día · del 7 de octubre al 7 de diciembre. Se actualiza solo según la fecha de hoy.</div>
+      </div>
+
+      <div class="aepc-hero" id="aepcHero">
+        <div>
+          <div class="aepc-hero-label" id="aepcHeroLabel">AEP 2026 · META 300</div>
+          <div class="aepc-hero-title" id="aepcHeroTitle">Calculando…</div>
+          <div class="aepc-hero-sub" id="aepcHeroSub"></div>
+        </div>
+        <div class="aepc-hero-num"><span id="aepcHeroNum">--</span><small id="aepcHeroNumLbl">días</small></div>
+      </div>
+
+      <div class="aepc-urgent" id="aepcUrgent" style="display:none">
+        <div class="aepc-urgent-title">🚨 Vas atrasada — haz esto antes del 15 de octubre</div>
+        <div style="font-size:12.5px;color:var(--text-mid);margin-bottom:8px">Tu propio plan dice: el 15 de octubre empieza <b>modo conversión</b>, no "ahora vamos a preparar". Cada día que el anuncio no corre es un día sin leads. Marca lo que vayas cumpliendo:</div>
+        <div id="aepcChecks"></div>
+      </div>
+
+      <div class="aepc-actions">
+        <button class="btn btn-teal btn-sm" onclick="downloadAepIcs()">⬇️ Descargar a mi calendario (.ics)</button>
+        <button class="btn btn-sm" style="border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)" onclick="openTool('estrategia-aep-2026.html',null,'Estrategia Integral AEP 2026 — Meta 300')">📘 Ver estrategia completa (Meta 300)</button>
+        <button class="btn btn-sm" style="border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)" onclick="showModule('ads',document.querySelector('[onclick*=&quot;ads&quot;]'))">📢 Crear anuncio en Meta Ads Studio</button>
+      </div>
+
+      <div class="aepc-tabs">
+        <button class="aepc-tab active" id="aepcTabWeeks" onclick="setAepView('weeks')">Semana por semana</button>
+        <button class="aepc-tab" id="aepcTabMonth" onclick="setAepView('month')">Calendario del mes</button>
+      </div>
+
+      <div id="aepcWeeks"></div>
+
+      <div id="aepcMonthView" style="display:none">
+        <div class="aepc-legend">
+          <span style="--c:var(--red)">Pre-AEP (llenar pipeline)</span>
+          <span style="--c:var(--teal)">AEP abierto (15 oct – 7 dic)</span>
+          <span style="--c:var(--green)">Post-AEP</span>
+        </div>
+        <div class="aepc-detail" id="aepcDetail"></div>
+        <div id="aepcMonths"></div>
+      </div>
+
+      <div class="tpl-note" style="margin-top:6px">⚖️ <b>Recordatorios CMS todo AEP:</b> Scope of Appointment (SOA) firmado 48 h antes de cada cita agendada · disclaimer TPMO en anuncios, formularios y materiales · nada de llamadas en frío ni puerta a puerta · en eventos educativos no se habla de planes específicos ni se recogen SOA · aplicaciones solo a partir del 15 de octubre. Confirma los detalles con tu FMO.</div>
+    </div>
+
     <!-- ══════ PLAN DE ACCIÓN ══════ -->
     <div class="module active" id="mod-plan">
       <div class="page-header">
@@ -782,6 +895,7 @@ tr:hover td{background:var(--surface)}
         <div class="aep-banner-num"><span id="aepDays">--</span><span class="aep-banner-num-unit">días</span></div>
         <div class="aep-banner-bar"><div class="aep-banner-bar-fill" id="aepBarFill"></div></div>
       </div>
+      <div style="margin:-6px 0 14px;text-align:right"><button class="btn btn-teal btn-sm" onclick="showModule('aep',document.getElementById('navAep'))">📅 Ver mi Calendario AEP →</button></div>
 
       <div class="health-row">
         <div class="health-card" id="healthCard">
@@ -2397,6 +2511,7 @@ const SYSTEM_TABS = {
   dashboard:'Dashboard', cerebro:'Cerebro IA', ads:'Meta Ads Studio',
   viral:'Viral Generator', live:'FB Live Scripts', calendar:'Calendario',
   intel:'Competencia Intel', compliance:'CMS Compliance', crm:'CRM Leads', metricas:'Métricas',
+  aep:'Calendario AEP',
 };
 
 // ─── NAVIGATION ───
@@ -2407,6 +2522,7 @@ function showModule(id, btn){
   if(mod) mod.classList.add('active');
   if(btn) btn.classList.add('active');
   if(id==='calendar') renderCalendar();
+  if(id==='aep') renderAepCalendar();
   closeSidebar();
   try { logEvent('view', id); } catch(_){}
 }
@@ -3515,6 +3631,359 @@ function renderHealth(){
   else list.innerHTML = gaps.map(g => `<li class="gap-item gap-pri-${g.pri}">${escapeHtml(g.msg)}</li>`).join('');
 }
 
+// ─── CALENDARIO AEP (plan Meta 300, día por día) ───
+const AEP_OPEN = '2026-10-15', AEP_CLOSE = '2026-12-07';
+const AEP_CHECKS_STORE = 'isabel_aep_checks';
+const AEP_ACTUALS_STORE = 'isabel_aep_actuals';
+let aepView = 'weeks', aepSelected = null;
+
+function _ymd(d){ return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+function _parseYmd(s){ const [y,m,d] = s.split('-').map(Number); return new Date(y, m-1, d); }
+function _daysBetween(a, b){ return Math.round((_parseYmd(b) - _parseYmd(a)) / 86400000); }
+function _fmtShort(s){ const d=_parseYmd(s); return d.getDate()+' '+['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][d.getMonth()]; }
+function aepToday(){ return _ymd(new Date()); }
+
+// One entry per period of the Meta 300 plan (39 aplicaciones por semana).
+const AEP_PERIODS = [
+  { id:'pre', name:'Llenar el pipeline', start:'2026-10-01', end:'2026-10-14', meta:null, phase:'pre',
+    theme:'Tu carta de cambios (ANOC) ya llegó — agenda tu revisión para el 15 de octubre',
+    camp:['Hot Leads (32): llamar y agendar citas desde el 15 de oct','No-Show (52): reagendar — ya aceptaron una cita una vez','Follow-Up: todos los que dijeron "en octubre" se llaman esta semana','No contestaron: arrancar cadencia (día 1 SMS)','Clasificar las 330 citas realizadas sin venta'],
+    fb:['📢 Lanzar anuncio "Revisión de tu plan 2027" con formulario instantáneo (español · LA/OC/IE · 64+)','📹 Reel: "¿Ya te llegó la carta de cambios de tu plan? Esto tienes que revisar"','🎙️ Live jue 8 oct: qué revisar en tu carta de cambios','📅 Anunciar Live de apertura del jue 15 oct'],
+    team:['Asignar dueño a cada una de las 6 campañas','Cargar meta semanal (39) y quién llama qué lista','Probar SMS de Twilio de confirmación de citas','Pipeline objetivo: 100–150 Hot Leads · 125–175 citas'],
+    cms:'Marketing de planes 2027 permitido desde el 1 de oct; aplicaciones solo desde el 15 de oct. SOA 48 h antes de cada cita.' },
+  { id:'s1', name:'Semana 1 · Arranque', start:'2026-10-15', end:'2026-10-21', meta:39, phase:'aep',
+    theme:'AEP abrió: tienes del 15 de octubre al 7 de diciembre',
+    camp:['Hot Leads → cerrar aplicaciones','Atender todas las citas agendadas pre-AEP','Confirmación de citas (SMS + recordatorio)','Follow-Up con fecha esta semana'],
+    fb:['🎙️ Live jue 15 oct: "AEP abrió — qué cambia en tu plan para 2027"','📹 Reel: "Tienes hasta el 7 de diciembre para revisar tu plan"','📢 Anuncio activo + crear una 2ª variante'],
+    team:['Reporte diario: aplicaciones hoy vs 6–7','Post-cita obligatorio: registrar resultado'],
+    cms:'Disclaimer TPMO en cada anuncio y formulario. Nada de llamadas en frío.' },
+  { id:'s2', name:'Semana 2 · Medicinas', start:'2026-10-22', end:'2026-10-28', meta:78, phase:'aep',
+    theme:'¿Tus medicinas siguen cubiertas en 2027?',
+    camp:['No-Show Recovery (día 1 SMS · día 2 llamada · día 5 seguimiento)','Citas realizadas sin venta → recuperación','Application Recovery: incompletas y no efectivas'],
+    fb:['📹 Reel: "Revisa tus medicinas antes del 7 de diciembre"','🎙️ Live jue 22 oct: preguntas sobre medicinas y Parte D','📢 Variante de anuncio con ángulo medicinas'],
+    team:['Domingo: semáforo — ¿vamos en 78?','Si vamos en rojo: subir volumen de llamadas y Facebook'],
+    cms:'No prometer que una medicina estará cubierta: "depende del plan y su lista de medicamentos".' },
+  { id:'s3', name:'Semana 3 · Beneficios extra', start:'2026-10-29', end:'2026-11-04', meta:117, phase:'aep',
+    theme:'Beneficios extra: dental, visión, transporte — según el plan',
+    camp:['Application Recovery (seguimiento)','No contestaron: llamada personalizada (día 21)','Member Retention → pedir referidos'],
+    fb:['📹 Reel: "Beneficios que mucha gente no revisa"','🎙️ Live jue 29 oct: beneficios extra, qué preguntar','💬 Post: "Etiqueta a quien necesita revisar su plan"'],
+    team:['Medir qué fuente trae más citas (Facebook vs referidos vs dentistas)'],
+    cms:'Beneficios siempre con "según el plan y elegibilidad". Nada de "gratis" sin contexto.' },
+  { id:'s4', name:'Semana 4 · Doctores y red', start:'2026-11-05', end:'2026-11-11', meta:156, phase:'aep',
+    theme:'¿Tu doctor sigue en la red de tu plan?',
+    camp:['Referidos + retención','Follow-Up "llámame después"','Adquisición: dentistas, clínicas, Prime'],
+    fb:['📹 Reel: "Antes de cambiar de plan, revisa esto de tu doctor"','🎙️ Live jue 5 nov: doctores y redes','📢 Revisar costo por lead y apagar el anuncio más caro'],
+    team:['Mitad de AEP: meta acumulada 156 — revisar forecast'],
+    cms:'En eventos educativos no se habla de planes específicos ni se recogen SOA.' },
+  { id:'s5', name:'Semana 5 · Historias y referidos', start:'2026-11-12', end:'2026-11-18', meta:195, phase:'aep',
+    theme:'Historias reales + "¿conoces a alguien que cumple 65?"',
+    camp:['Eventos comunitarios / Senior Centers','Turning 65 (no se detiene en AEP)','Compensar la fuente más débil del semáforo'],
+    fb:['❤️ Historia real de cliente (con su permiso)','🎙️ Live jue 12 nov: preguntas de la comunidad','📢 Anuncio de referidos'],
+    team:['Si una fuente baja, otra compensa (portafolio de fuentes)'],
+    cms:'Testimonios solo reales y con permiso por escrito.' },
+  { id:'s6', name:'Semana 6 · Antes de Thanksgiving', start:'2026-11-19', end:'2026-11-25', meta:234, phase:'aep',
+    theme:'Thanksgiving se acerca: habla con tus papás sobre su Medicare',
+    camp:['Agendar citas ANTES del feriado','Follow-Up de interesados de octubre','No contestaron: invitación a revisión (día 30)'],
+    fb:['📹 Reel para hijos/cuidadores: "En Thanksgiving pregúntale a tu mamá esto"','🎙️ Live jue 19 nov: cómo ayudar a tus papás con su plan','📢 Anuncio dirigido a familiares/cuidadores'],
+    team:['Confirmar citas de la semana de Thanksgiving'],
+    cms:'Hablar con familiares está bien; la cita y el SOA son con el beneficiario.' },
+  { id:'s7', name:'Semana 7 · Familia · quedan 2 semanas', start:'2026-11-26', end:'2026-12-02', meta:273, phase:'aep',
+    theme:'Conversaciones en familia · quedan 2 semanas de AEP',
+    camp:['Jue 26: Thanksgiving (día libre)','Citas vie–mié','No contestaron: último intento (día 45)','Todos los Follow-Up abiertos'],
+    fb:['🦃 Jue 26: mensaje de gratitud (sin venta)','🎙️ Live mar 1 dic: quedan 7 días','📹 Reel: "El 7 de diciembre es el último día para cambiar de plan en AEP"'],
+    team:['Meta acumulada 273 — empujar aplicaciones pendientes'],
+    cms:'La urgencia debe ser real (la fecha de cierre), sin presión ni "oferta por tiempo limitado".' },
+  { id:'cierre', name:'Cierre AEP', start:'2026-12-03', end:'2026-12-07', meta:300, phase:'aep',
+    theme:'Últimos días: el 7 de diciembre cierra AEP',
+    camp:['Última llamada a todos los interesados','Aplicaciones pendientes: completarlas hoy','Confirmación de todas las citas restantes'],
+    fb:['🎙️ Live jue 3 dic: últimos días de AEP','🎙️ Live sáb 5 dic: preguntas de última hora','📢 Post lun 7 dic: "Hoy es el último día"'],
+    team:['Meta 300 — reporte diario dos veces al día'],
+    cms:'Aplicaciones recibidas el 7 de dic cuentan; documentar todo.' },
+  { id:'post', name:'Post-AEP', start:'2026-12-08', end:'2026-12-31', meta:null, phase:'post',
+    theme:'Gracias · Open Enrollment de Medicare Advantage (1 ene – 31 mar, para quien ya tiene Advantage) · Turning 65',
+    camp:['Confirmar aplicaciones efectivas','Retención: llamada de bienvenida a cada nuevo miembro','Turning 65 sigue todo el año'],
+    fb:['📢 Apagar los anuncios de AEP el 8 de dic','❤️ Post de agradecimiento a la comunidad','📹 Reel: "Si tienes Medicare Advantage, del 1 de enero al 31 de marzo puedes hacer un cambio"'],
+    team:['Cerrar números: aplicaciones vs efectivas por fuente','¿Qué fuente escalamos en 2027?'],
+    cms:'Revisar que cada aplicación tenga SOA y grabación cuando aplique.' },
+];
+
+const AEP_MILESTONES = {
+  '2026-10-07':'🚨 Lanzar anuncio AEP en Meta HOY',
+  '2026-10-14':'✅ Último día pre-AEP: citas listas para mañana',
+  '2026-10-15':'🔔 ABRE AEP — modo conversión',
+  '2026-11-26':'🦃 Thanksgiving',
+  '2026-12-07':'🏁 ÚLTIMO DÍA DE AEP',
+  '2026-12-08':'📊 Cuenta aplicaciones efectivas',
+};
+
+// After Dec 7 the AEP ads must stop: nobody can change plans through AEP anymore.
+const AEP_POST_ITEMS = {
+  '2026-12-08':'📢 Apagar los anuncios de AEP (ya no se puede cambiar de plan en AEP)',
+  '2026-12-09':'❤️ Post de agradecimiento a la comunidad',
+  '2026-12-10':'📞 Llamadas de bienvenida a los nuevos miembros',
+  '2026-12-14':'📊 Reunión de cierre: aplicaciones vs efectivas, por fuente',
+  '2026-12-15':'📹 Reel: "Si tienes Medicare Advantage, del 1 de enero al 31 de marzo puedes hacer un cambio"',
+  '2026-12-24':'🎄 Mensaje de Navidad a tu comunidad (sin venta)',
+};
+
+const AEP_URGENT = [
+  { id:'ad',     text:'📢 <b>Lanzar el anuncio en Meta hoy</b> — "Revisión de tu plan 2027" con formulario instantáneo. Meta tarda hasta ~1 día en aprobarlo y varios días en optimizar.' },
+  { id:'reel',   text:'📹 Publicar el Reel de la carta de cambios (ANOC) — tu gente ya la recibió y tiene preguntas.' },
+  { id:'live',   text:'🎙️ Programar 2 Lives: jue 8 oct (carta de cambios) y jue 15 oct (apertura de AEP).' },
+  { id:'hot',    text:'📞 Llamar a los 32 Hot Leads y agendar citas a partir del 15 de oct.' },
+  { id:'noshow', text:'📞 Reagendar los 52 No-Show — ya aceptaron una cita una vez.' },
+  { id:'fu',     text:'📅 Llamar esta semana a todos los "llámame en octubre".' },
+  { id:'cms',    text:'⚖️ Disclaimer TPMO en el anuncio y el formulario + proceso de SOA 48 h listo.' },
+  { id:'owners', text:'👥 Dueño asignado a cada campaña + meta de 39 por semana cargada.' },
+];
+
+function aepPeriodFor(ymd){ return AEP_PERIODS.find(p => ymd >= p.start && ymd <= p.end) || null; }
+
+function aepItemsFor(ymd){
+  const p = aepPeriodFor(ymd);
+  if(!p) return [];
+  const dow = _parseYmd(ymd).getDay();
+  const items = [];
+  if(AEP_MILESTONES[ymd]) items.push({ kind:'ms', text: AEP_MILESTONES[ymd] });
+  if(ymd === '2026-11-26'){ items.push({ kind:'post', text:'💛 Mensaje de gratitud a tu comunidad (sin venta)' }); return items; }
+  if(p.phase === 'post'){
+    if(AEP_POST_ITEMS[ymd]) items.push({ kind: ymd === '2026-12-08' ? 'ad' : 'post', text: AEP_POST_ITEMS[ymd] });
+    return items;
+  }
+  if(p.phase === 'pre'){
+    const pre = {
+      1:'📹 Reel: carta de cambios (ANOC)', 2:'📞 Bloque de llamadas: Hot Leads → citas desde el 15',
+      3:'📞 Reagendar No-Shows', 4:'🎙️ Facebook Live 12pm: qué revisar en tu carta de cambios',
+      5:'📢 Revisar anuncio: costo por lead y formularios recibidos', 6:'📅 Follow-Up: "llámame en octubre"',
+      0:'🧭 Preparar la semana: citas confirmadas para el 15'
+    };
+    items.push({ kind: dow===4?'live':'task', text: pre[dow] });
+    return items;
+  }
+  const t = p.theme;
+  const live = /Live (lun|mar|mié|jue|vie|sáb) (\d+)/;
+  const tmpl = {
+    1:{ kind:'reel', text:'📹 Reel: '+t },
+    2:{ kind:'ad',   text:'📢 Revisar anuncio Meta + 📞 bloque Hot Leads' },
+    3:{ kind:'post', text:'💡 Post educativo: '+t },
+    4:{ kind:'live', text:'🎙️ Facebook Live 12pm: '+t },
+    5:{ kind:'post', text: p.phase==='post' ? '❤️ Post de agradecimiento' : '❤️ Historia real o post de referidos' },
+    6:{ kind:'task', text:'🤝 Citas / evento comunitario' },
+    0:{ kind:'task', text:'🧭 Revisión semanal: semáforo + Radar' },
+  };
+  items.push(tmpl[dow]);
+  // Extra Lives called out by date in the period's FB list (e.g. "Live mar 1 dic", "Live sáb 5 dic")
+  p.fb.forEach(f => {
+    const m = f.match(live);
+    if(m && Number(m[2]) === _parseYmd(ymd).getDate() && dow !== 4) items.push({ kind:'live', text: f.replace(/^🎙️ /,'🎙️ ') });
+  });
+  if(p.phase === 'aep' && dow >= 1 && dow <= 6) items.push({ kind:'goal', text:'🎯 Meta del día: 6–7 aplicaciones (equipo)' });
+  return items;
+}
+
+function _aepLoad(key){ try { return JSON.parse(localStorage.getItem(key) || '{}') || {}; } catch(_) { return {}; } }
+function _aepSave(key, v){ try { localStorage.setItem(key, JSON.stringify(v)); } catch(_){} }
+
+function setAepView(v){
+  aepView = v;
+  document.getElementById('aepcWeeks').style.display = v === 'weeks' ? '' : 'none';
+  document.getElementById('aepcMonthView').style.display = v === 'month' ? '' : 'none';
+  document.getElementById('aepcTabWeeks').classList.toggle('active', v === 'weeks');
+  document.getElementById('aepcTabMonth').classList.toggle('active', v === 'month');
+  try { logEvent('aep_view', v); } catch(_){}
+}
+
+function toggleAepCheck(id){
+  const c = _aepLoad(AEP_CHECKS_STORE);
+  c[id] = !c[id];
+  _aepSave(AEP_CHECKS_STORE, c);
+  renderAepCalendar();
+}
+
+function setAepActual(pid, val){
+  const a = _aepLoad(AEP_ACTUALS_STORE);
+  const n = parseInt(val, 10);
+  if(isFinite(n) && n >= 0) a[pid] = n; else delete a[pid];
+  _aepSave(AEP_ACTUALS_STORE, a);
+  renderAepCalendar();
+}
+
+function _aepSemaforo(real, meta){
+  if(real == null || !meta) return '';
+  const pct = Math.round(real / meta * 100);
+  const cls = pct >= 100 ? 'ok' : pct >= 90 ? 'warn' : 'bad';
+  const lbl = pct >= 100 ? '🟢 En meta' : pct >= 90 ? '🟡 Corregir' : '🔴 Actuar';
+  return `<span class="aepc-sem ${cls}">${lbl} · ${pct}%</span>`;
+}
+
+function renderAepHero(today){
+  const hero = document.getElementById('aepcHero');
+  const title = document.getElementById('aepcHeroTitle');
+  const sub = document.getElementById('aepcHeroSub');
+  const num = document.getElementById('aepcHeroNum');
+  const lbl = document.getElementById('aepcHeroNumLbl');
+  const urgent = document.getElementById('aepcUrgent');
+  const p = aepPeriodFor(today);
+  const actuals = _aepLoad(AEP_ACTUALS_STORE);
+  urgent.style.display = 'none';
+  if(today < AEP_OPEN){
+    const d = _daysBetween(today, AEP_OPEN);
+    hero.className = 'aepc-hero late';
+    title.textContent = `Faltan ${d} día${d===1?'':'s'} para que abra AEP — y ya deberías estar anunciando`;
+    sub.textContent = 'Fase actual: llenar el pipeline. Llega al 15 de octubre con citas agendadas, anuncio corriendo y listas trabajadas.';
+    num.textContent = d; lbl.textContent = 'días para abrir';
+    urgent.style.display = '';
+  } else if(today <= AEP_CLOSE){
+    const day = _daysBetween(AEP_OPEN, today) + 1;
+    const left = _daysBetween(today, AEP_CLOSE);
+    hero.className = 'aepc-hero live';
+    const real = p && actuals[p.id] != null ? actuals[p.id] : null;
+    title.textContent = `AEP abierto · día ${day} de 54 · ${p ? p.name : ''}`;
+    sub.innerHTML = `Meta acumulada esta semana: <b>${p && p.meta ? p.meta : '—'}</b> aplicaciones${real != null ? ' · llevas <b>'+real+'</b> '+_aepSemaforo(real, p.meta) : ' · escribe tu número real abajo para ver el semáforo'}.`;
+    num.textContent = left; lbl.textContent = left === 0 ? '¡hoy cierra!' : 'días para cerrar';
+  } else {
+    hero.className = 'aepc-hero done';
+    title.textContent = 'AEP 2026 cerrado — cuenta tus aplicaciones efectivas';
+    sub.textContent = 'Apaga los anuncios de AEP. Del 1 de enero al 31 de marzo, quien ya tiene Medicare Advantage puede hacer un cambio (Open Enrollment de MA). Turning 65 sigue todo el año.';
+    num.textContent = '✓'; lbl.textContent = 'cerrado';
+  }
+}
+
+function renderAepChecks(){
+  const c = _aepLoad(AEP_CHECKS_STORE);
+  const done = AEP_URGENT.filter(u => c[u.id]).length;
+  document.getElementById('aepcChecks').innerHTML =
+    `<div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);margin-bottom:4px">${done}/${AEP_URGENT.length} hechas</div>` +
+    AEP_URGENT.map(u => `<label class="plan-task"><input type="checkbox" ${c[u.id]?'checked':''} onchange="toggleAepCheck('${u.id}')"><span>${u.text}</span></label>`).join('');
+}
+
+function renderAepWeeks(today){
+  const actuals = _aepLoad(AEP_ACTUALS_STORE);
+  document.getElementById('aepcWeeks').innerHTML = AEP_PERIODS.map(p => {
+    const now = today >= p.start && today <= p.end;
+    const past = today > p.end;
+    const started = today >= p.start;
+    const list = arr => '<ul>' + arr.map(x => '<li>'+escapeHtml(x)+'</li>').join('') + '</ul>';
+    const meta = p.meta ? `
+      <div class="aepc-week-meta">
+        Meta acumulada <b>${p.meta}</b>
+        ${started ? `<input type="number" min="0" placeholder="real" value="${actuals[p.id] != null ? actuals[p.id] : ''}" onchange="setAepActual('${p.id}', this.value)" aria-label="Aplicaciones reales acumuladas ${escapeHtml(p.name)}"/>${_aepSemaforo(actuals[p.id], p.meta)}` : ''}
+      </div>` : '';
+    return `
+    <div class="aepc-week ${now?'now':''} ${past?'past':''}" id="aepw-${p.id}">
+      <div class="aepc-week-head">
+        <span class="aepc-week-name">${escapeHtml(p.name)}</span>
+        <span class="aepc-week-dates">${_fmtShort(p.start)} – ${_fmtShort(p.end)}</span>
+        ${now ? '<span class="aepc-now-badge">ESTÁS AQUÍ</span>' : ''}
+        ${meta}
+      </div>
+      <div class="aepc-week-theme">"${escapeHtml(p.theme)}"</div>
+      <div class="aepc-week-grid">
+        <div class="aepc-col"><div class="aepc-col-title">Campañas (tu plan)</div>${list(p.camp)}</div>
+        <div class="aepc-col"><div class="aepc-col-title">Facebook / anuncios</div>${list(p.fb)}</div>
+        <div class="aepc-col"><div class="aepc-col-title">Equipo</div>${list(p.team)}<div style="font-size:11.5px;color:var(--text-muted);margin-top:6px">⚖️ ${escapeHtml(p.cms)}</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function renderAepMonths(today){
+  const months = [[2026,9,'Octubre'],[2026,10,'Noviembre'],[2026,11,'Diciembre']];
+  const dows = ['Lun','Mar','Mié','Jue','Vie','Sáb','Dom'];
+  document.getElementById('aepcMonths').innerHTML = months.map(([y,m,name]) => {
+    const first = new Date(y, m, 1);
+    const offset = (first.getDay() + 6) % 7;
+    const days = new Date(y, m+1, 0).getDate();
+    let cells = dows.map(d => `<div class="aepc-dow">${d}</div>`).join('');
+    for(let i=0;i<offset;i++) cells += '<div class="aepc-day empty"></div>';
+    for(let d=1; d<=days; d++){
+      const ymd = _ymd(new Date(y, m, d));
+      const p = aepPeriodFor(ymd);
+      const items = aepItemsFor(ymd);
+      const ms = items.find(i => i.kind === 'ms');
+      const rest = items.filter(i => i.kind !== 'ms' && i.kind !== 'goal').slice(0, 2);
+      const cls = ['aepc-day', p ? p.phase : '', ymd < today ? 'past' : '', ymd === today ? 'today' : '', ymd === aepSelected ? 'sel' : ''].join(' ');
+      cells += `<div class="${cls}" data-ymd="${ymd}" onclick="selectAepDay('${ymd}')">
+        <span class="aepc-day-num">${d}</span>
+        ${ms ? `<span class="aepc-day-ms">${escapeHtml(ms.text)}</span>` : ''}
+        ${rest.map(i => `<span class="aepc-day-item">${escapeHtml(i.text)}</span>`).join('')}
+      </div>`;
+    }
+    return `<div class="aepc-month"><div class="aepc-month-name">${name} 2026</div><div class="aepc-grid">${cells}</div></div>`;
+  }).join('');
+}
+
+function selectAepDay(ymd){
+  aepSelected = ymd;
+  renderAepDetail();
+  document.querySelectorAll('.aepc-day.sel').forEach(el => el.classList.remove('sel'));
+  const cell = document.querySelector(`.aepc-day[data-ymd="${ymd}"]`);
+  if(cell) cell.classList.add('sel');
+}
+
+function renderAepDetail(){
+  const el = document.getElementById('aepcDetail');
+  const ymd = aepSelected;
+  const p = aepPeriodFor(ymd);
+  const d = _parseYmd(ymd);
+  const dayName = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
+  const items = aepItemsFor(ymd);
+  el.innerHTML = `<div class="aepc-detail-title">${dayName} ${_fmtShort(ymd)}${p ? ' · '+escapeHtml(p.name) : ''}${ymd === aepToday() ? ' · <span class="aepc-now-badge">HOY</span>' : ''}</div>` +
+    (items.length ? items.map(i => `<div class="aepc-detail-item">${escapeHtml(i.text)}</div>`).join('') : '<div class="aepc-detail-item">Sin actividades planeadas.</div>') +
+    (p ? `<div class="aepc-detail-item" style="color:var(--text-muted);font-size:12px">⚖️ ${escapeHtml(p.cms)}</div>` : '');
+}
+
+function renderAepCalendar(){
+  if(!document.getElementById('mod-aep')) return;
+  const today = aepToday();
+  if(!aepSelected) aepSelected = (today >= '2026-10-01' && today <= '2026-12-31') ? today : AEP_OPEN;
+  renderAepHero(today);
+  renderAepChecks();
+  renderAepWeeks(today);
+  renderAepMonths(today);
+  renderAepDetail();
+}
+
+// iCalendar export: one event per planned item (Lives at 12pm, the rest all-day)
+function _icsEsc(s){ return String(s).replace(/\\/g,'\\\\').replace(/;/g,'\\;').replace(/,/g,'\\,').replace(/\n/g,'\\n'); }
+function _icsFold(line){ const out=[]; let s=line; while(s.length>70){ out.push(s.slice(0,70)); s=' '+s.slice(70); } out.push(s); return out.join('\r\n'); }
+function downloadAepIcs(){
+  const start = aepToday() > '2026-10-07' ? aepToday() : '2026-10-07';
+  const lines = ['BEGIN:VCALENDAR','VERSION:2.0','PRODID:-//Medicare with Isabel//Calendario AEP 2026//ES','CALSCALE:GREGORIAN','X-WR-CALNAME:AEP 2026 · Isabel'];
+  const stamp = new Date().toISOString().replace(/[-:]/g,'').replace(/\.\d+/,'');
+  let n = 0;
+  for(let d = _parseYmd(start); _ymd(d) <= '2026-12-08'; d.setDate(d.getDate()+1)){
+    const ymd = _ymd(d), compact = ymd.replace(/-/g,'');
+    const p = aepPeriodFor(ymd);
+    aepItemsFor(ymd).forEach((it, i) => {
+      if(it.kind === 'goal') return;
+      const next = new Date(d); next.setDate(next.getDate()+1);
+      lines.push('BEGIN:VEVENT', `UID:aep2026-${compact}-${i}@medicarewithisabel`, `DTSTAMP:${stamp}`);
+      if(it.kind === 'live'){ lines.push(`DTSTART:${compact}T120000`, `DTEND:${compact}T130000`); }
+      else { lines.push(`DTSTART;VALUE=DATE:${compact}`, `DTEND;VALUE=DATE:${_ymd(next).replace(/-/g,'')}`); }
+      lines.push(_icsFold('SUMMARY:'+_icsEsc(it.text)));
+      if(p) lines.push(_icsFold('DESCRIPTION:'+_icsEsc(p.name+' — '+p.theme+'\n⚖️ '+p.cms)));
+      lines.push('END:VEVENT');
+      n++;
+    });
+  }
+  lines.push('END:VCALENDAR');
+  const blob = new Blob([lines.join('\r\n')], { type:'text/calendar;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'calendario-aep-2026-isabel.ics';
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  try { logEvent('aep_ics', String(n)); } catch(_){}
+  let t = document.getElementById('copyToast');
+  if(!t){ t = document.createElement('div'); t.id='copyToast'; t.className='copy-toast'; document.body.appendChild(t); }
+  t.style.background = 'var(--green)';
+  t.textContent = `📅 ${n} eventos listos para tu calendario`;
+  t.classList.add('show');
+  clearTimeout(window.__toastTimer);
+  window.__toastTimer = setTimeout(()=>{ t.classList.remove('show'); t.style.background=''; }, 3000);
+}
+
 // ─── AEP COUNTDOWN (Oct 15 - Dec 7, 2026) ───
 function renderAEP(){
   const banner = document.getElementById('aepBanner');
@@ -3632,6 +4101,9 @@ const BACKUP_SCHEMA = {
   isabel_tools_section_open:  { type: 'string-bool' },
   isabel_t65_leads:           { type: 'array',  itemFields: ['name','source','month','status','date'] },
   isabel_t65_spend:           { type: 'string-num' },
+  isabel_aep_checks:          { type: 'object' },
+  isabel_aep_actuals:         { type: 'object' },
+  isabel_aep_maestro:         { type: 'object' },
 };
 
 function _validateBackupValue(key, value){
@@ -3862,6 +4334,9 @@ renderIntelHistory();
 renderAEP();
 renderDashUpcoming();
 restoreToolsToggle();
+renderAepCalendar();
+// During AEP season the calendar is the most important screen — open it first.
+(function(){ const t = aepToday(); if(t >= '2026-10-01' && t <= AEP_CLOSE) showModule('aep', document.getElementById('navAep')); })();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){

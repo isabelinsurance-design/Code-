@@ -20,8 +20,8 @@ her finished files over technical steps.
 | File | Purpose |
 |------|---------|
 | `index.html` | **The shell / source of truth.** Single-page app. Edit THIS. Loads tools from `tools/` via iframe `src`. |
-| `tools/` (19 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
-| `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 19 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
+| `tools/` (20 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
+| `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 20 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
 | `bot/` | Telegram bot (Python). Same `ISABEL_SYSTEM` prompt as the web app. Deployable to Railway/Replit/Render. See `bot/README.md`. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -66,6 +66,8 @@ send the rebuilt UNICO file to Isabel after changes.
 - `isabel_intel_runs` — Radar run history; each entry includes the structured `snapshot` data used at run time so the next run can self-grade against it
 - `isabel_audit_log` — last 500 user-action events `{ts,event,details}` (debounced 30s per event key) used by `getUsageStats(daysBack)` to feed the Radar's "uso del sistema" snapshot
 - `isabel_calendar` — weekly calendar items (sanitized on load)
+- `isabel_aep_checks` / `isabel_aep_actuals` — Calendario AEP pre-AEP checklist and weekly real-application counts (semáforo)
+- `isabel_aep_maestro` — state of `tools/estrategia-aep-2026.html` (the team's Meta 300 strategy doc)
 - `isabel_t65_leads` / `isabel_t65_spend` — T65 DIY lead tracker (written by `tools/t65-lead-machine.html`, which runs same-origin so it shares the shell's localStorage; included in backup via `BACKUP_SCHEMA`)
 
 ### Athena patterns adopted
@@ -118,6 +120,16 @@ mandatory "✅ Tu próxima acción" closing. Individual coach voices are kept
 visible under a `<details>` block. Still not built (need server-side, see
 `PARA-LUNA-TEAM.md` for PHP blueprint): briefings cron, drafts queue, signals
 nightly job, WhatsApp.
+
+**Calendario AEP** (`📅 Calendario AEP`, first in EMPEZAR AQUÍ): built from the
+team's "Estrategia Integral AEP 2026 — Meta 300" (`tools/estrategia-aep-2026.html`,
+ported from branch `claude/aep-2026-estrategia-produccion-e8ulza`). `AEP_PERIODS`
+holds the plan (pre-AEP Oct 1-14, Semanas 1-7, Cierre Dec 3-7, Post), each with
+cumulative meta (39/week → 300), campaigns, Facebook items, team actions, and a
+CMS note. `aepItemsFor(ymd)` derives each day's items; post-AEP uses fixed dated
+items only (ads must stop after Dec 7). `downloadAepIcs()` exports an .ics.
+Between Oct 1 and Dec 7 the app opens on this tab. Dates are hardcoded to 2026 —
+update `AEP_PERIODS`/`AEP_MILESTONES` for AEP 2027.
 
 ## Hard rules / conventions
 
