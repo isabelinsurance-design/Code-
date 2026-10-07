@@ -235,6 +235,19 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         foreach ($q->fetchAll() as $r) $llServHoy[(int)$r['agente_id']] = (int)$r['n'];
     } catch (Throwable $e) {}
 
+    // Citas COMPLETADAS de esta fecha, con su tipo — pedido de Isabel para
+    // una minilista aparte. No es "ahora mismo" (el estado COMPLETADA queda
+    // guardado), así que esto sí se puede ver también en un día pasado.
+    $citasCompletadas = [];
+    try {
+        $q = $pdo->prepare("SELECT c.hora, c.tipo, CONCAT(m.nombre,' ',m.apellido) AS miembro_nombre
+                            FROM citas c LEFT JOIN miembros m ON m.id = c.miembro_id
+                            WHERE c.fecha=? AND c.estado='COMPLETADA'
+                            ORDER BY c.hora ASC");
+        $q->execute([$hoy]);
+        $citasCompletadas = $q->fetchAll();
+    } catch (Throwable $e) {}
+
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
     $estadoAhora = function (?array $a) use ($G, $A, $MU, $breaksAbiertosAhora) {
         if (!$a || empty($a['check_in'])) return ['⚪ SIN CHECK-IN', $MU];
@@ -407,6 +420,23 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
               ['POR HACER', $miembrosTot['por_hacer'], $A],
           ]);
       }
+      // Minilista de citas completadas + de qué tipo — pedido de Isabel.
+      echo '<div style="background:#fff;border:1px solid ' . $CB . ';border-top:3px solid ' . $G . ';border-radius:11px;padding:11px 10px 12px">'
+         . '<div style="font-size:8px;color:' . $G . ';font-weight:900;text-transform:uppercase;letter-spacing:1px;text-align:center;margin-bottom:9px">✓ CITAS COMPLETADAS (' . count($citasCompletadas) . ')</div>';
+      if (count($citasCompletadas)) {
+          echo '<div style="max-height:150px;overflow-y:auto">';
+          foreach ($citasCompletadas as $c) {
+              echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
+                 . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
+                 . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
+                 . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
+                 . '</div>';
+          }
+          echo '</div>';
+      } else {
+          echo '<div style="text-align:center;color:' . $MU . ';font-size:9px;padding:6px 0">Ninguna todavía</div>';
+      }
+      echo '</div>';
       ?>
     </div>
 
