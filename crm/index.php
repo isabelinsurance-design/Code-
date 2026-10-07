@@ -13741,7 +13741,11 @@ function mostrarComparacionPlanes(){
     filas += '<tr><td style="font-weight:800;font-size:11px;color:#1B4A6B;position:sticky;left:0;background:#fff;padding:9px 14px">'+ayudaLabel('Notas','notas')+'</td>'
       + planes.map(p=>'<td style="font-size:11px;white-space:pre-wrap;padding:9px 14px">'+esc(p.notas||'—')+'</td>').join('') + '</tr>';
   }
+  // Pedido de Isabel: después de comparar no había forma de volver a ver
+  // todos los planes — se necesitaba recargar la página. Se agrega un
+  // botón de cerrar arriba de la tabla.
   let html = '<div class="card" style="overflow-x:auto">';
+  html += '<div style="display:flex;justify-content:flex-end;padding:8px 10px 0"><button type="button" class="btn btn-gh btn-sm" onclick="cerrarComparacionPlanes()">✕ CERRAR Y VER TODOS LOS PLANES</button></div>';
   if(!huboCambios){
     html += '<div style="padding:24px;text-align:center;font-size:10px;color:#7A90A4;text-transform:uppercase">ESTOS PLANES SON IDÉNTICOS EN TODOS LOS BENEFICIOS CAPTURADOS</div>';
   } else {
@@ -13754,6 +13758,15 @@ function mostrarComparacionPlanes(){
   wrap.innerHTML = html;
   wrap.style.display = 'block';
   wrap.scrollIntoView({behavior:'smooth', block:'start'});
+}
+// Cierra la tabla de comparación y desmarca las casillas, para que Isabel
+// pueda elegir otro par de planes sin que queden marcados los anteriores.
+function cerrarComparacionPlanes(){
+  const wrap = document.getElementById('plan-comparacion-wrap');
+  wrap.style.display = 'none';
+  wrap.innerHTML = '';
+  document.querySelectorAll('.plan-check:checked').forEach(c => c.checked = false);
+  document.getElementById('plan-cards-grid').scrollIntoView({behavior:'smooth', block:'start'});
 }
 // Sección ANOC — pedido de Isabel: para usar EN VIVO en una llamada AEP,
 // mismo criterio que el ANOC que le llega al miembro por correo — comparar
