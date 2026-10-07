@@ -295,6 +295,15 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     // ── Totales de la empresa (tarjetas de arriba) ──────────────────
     $totTkCerrHoy  = array_sum($tkCerradosHoy);
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
+    // % DE TICKETS DEL DÍA CERRADOS — pedido de Isabel, para saber de un
+    // vistazo si alguien (o la empresa entera) se puso al día con los
+    // tickets que le tocaban hoy. "Tickets del día" = los que ya le tocaba
+    // atender (SLA de hoy o vencido, sin cerrar — igual que la columna
+    // TICKETS ABIERTOS) MÁS los que sí cerró hoy; de ese total, cuántos SÍ
+    // cerró. Solo tiene sentido para HOY (TICKETS ABIERTOS es "ahora mismo",
+    // no se puede reconstruir para un día pasado).
+    $totTktsDelDiaHoy = $totTkCerrHoy + array_sum(array_column($tkAbiertos, 'total'));
+    $pctCerrHoy = $totTktsDelDiaHoy > 0 ? (int)round($totTkCerrHoy / $totTktsDelDiaHoy * 100) : null;
     // APPS PENDIENTES = TODOS los tickets tipo APLICACION sin cerrar —
     // aclaración de Isabel. Aparte de $tkAbiertos a propósito: ese ya trae
     // solo SLA de hoy/vencido (para "tickets abiertos"/urgentes), pero una
@@ -405,6 +414,9 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
       $kpi('CITAS HOY', $totCitasHoy, $P1);
       $kpi('💰 VENTAS', $totVentasHoy, $G);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
+      if ($esHoy && $pctCerrHoy !== null) {
+          $kpi('% TICKETS DEL DÍA CERRADOS', $pctCerrHoy . '%', $pctCerrHoy>=100?$G:($pctCerrHoy>=50?$A:$R));
+      }
       if ($esHoy) {
           $kpi('APPS PENDIENTES', $totApps, $P2);
           $kpi('⚠ URGENTES', $totUrgentes, $R);
@@ -503,6 +515,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     $cols[] = 'CITAS PROSPECTO (AGENDADAS)';
     if ($esHoy) $cols[] = 'TICKETS ABIERTOS';
     $cols[] = 'CERRADOS';
+    if ($esHoy) $cols[] = '% CERRADOS HOY';
     if ($esHoy) $cols[] = 'APPS PEND.';
     $cols[] = 'LLAM. PROSPECTOS';
     $cols[] = 'CONTESTARON';
@@ -537,6 +550,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
             $ls = $llServHoy[$aid]  ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
+            // % de tickets del día cerrados POR ESTE empleado — mismo
+            // criterio que el total de la empresa: de lo que le tocaba hoy
+            // (SLA hoy/vencido sin cerrar + lo que sí cerró), qué % cerró.
+            $tktsDelDia = $tkCerr + (int)($tk['total'] ?? 0);
+            $pctAgente = $tktsDelDia > 0 ? (int)round($tkCerr / $tktsDelDia * 100) : null;
         ?>
         <tr style="border-bottom:1px solid <?=$BG?><?=$esInactivo?';opacity:.45':''?>">
           <td style="padding:8px 10px">
@@ -560,6 +578,9 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           </td>
           <?php endif;?>
           <td style="padding:8px 10px;color:<?=$tkCerr>0?$G:$MU?>;font-weight:<?=$tkCerr>0?'800':'400'?>"><?=$tkCerr?></td>
+          <?php if ($esHoy):?>
+          <td style="padding:8px 10px;color:<?=$pctAgente===null?$MU:($pctAgente>=100?$G:($pctAgente>=50?$A:$R))?>;font-weight:800"><?=$pctAgente===null?'—':$pctAgente.'%'?></td>
+          <?php endif;?>
           <?php if ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$apps>0?$P2:$MU?>;font-weight:<?=$apps>0?'800':'400'?>"><?=$apps?></td>
           <?php endif;?>
