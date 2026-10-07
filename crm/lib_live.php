@@ -181,6 +181,16 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         $totLlamadasContestaron = (int)$q->fetchColumn();
     } catch (Throwable $e) {}
 
+    // Lo mismo pero por agente — pedido de Isabel: en la tabla de abajo (y
+    // sobre todo al ver un día pasado) solo se veía el total de llamadas a
+    // prospecto por persona, no cuántas de esas SÍ contestaron.
+    $llProspContestaronHoy = [];
+    try {
+        $q = $pdo->prepare("SELECT agente_id, COUNT(*) n FROM llamadas_prospectos WHERE DATE(created_at)=? AND contesto=1 GROUP BY agente_id");
+        $q->execute([$hoy]);
+        foreach ($q->fetchAll() as $r) $llProspContestaronHoy[(int)$r['agente_id']] = (int)$r['n'];
+    } catch (Throwable $e) {}
+
     // Tickets OVERDUE (SLA ya vencido, antes de hoy — no cuenta el que vence
     // HOY mismo) y EN PROCESO — pedido de Isabel para la tarjeta de TICKETS
     // (total de la empresa, no por agente; reemplaza el conteo general de
@@ -495,6 +505,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     $cols[] = 'CERRADOS';
     if ($esHoy) $cols[] = 'APPS PEND.';
     $cols[] = 'LLAM. PROSPECTOS';
+    $cols[] = 'CONTESTARON';
     $cols[] = 'LLAM. SERVICIO';
     $cols[] = 'LLAM. RETENCIÓN';
     if ($esHoy) $cols[] = 'FOLLOW UPS PEND.';
@@ -522,6 +533,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
             $tkCerr = $tkCerradosHoy[$aid] ?? 0;
             $citasProsp = $citasProspectosHoy[$aid] ?? 0;
             $lp = $llProspHoy[$aid] ?? 0;
+            $lpc = $llProspContestaronHoy[$aid] ?? 0;
             $ls = $llServHoy[$aid]  ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
@@ -552,6 +564,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           <td style="padding:8px 10px;color:<?=$apps>0?$P2:$MU?>;font-weight:<?=$apps>0?'800':'400'?>"><?=$apps?></td>
           <?php endif;?>
           <td style="padding:8px 10px;color:<?=$lp>0?$P2:$MU?>;font-weight:<?=$lp>0?'800':'400'?>"><?=$lp?></td>
+          <td style="padding:8px 10px;color:<?=$lpc>0?$G:$MU?>;font-weight:<?=$lpc>0?'800':'400'?>"><?=$lpc?></td>
           <td style="padding:8px 10px;color:<?=$ls>0?$P2:$MU?>;font-weight:<?=$ls>0?'800':'400'?>"><?=$ls?></td>
           <td style="padding:8px 10px;color:<?=$lr>0?$P2:$MU?>;font-weight:<?=$lr>0?'800':'400'?>"><?=$lr?></td>
           <?php if ($esHoy):?>
