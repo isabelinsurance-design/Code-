@@ -19331,7 +19331,7 @@ function loadLivePanel(cb, fecha){
   var url = 'api.php?action=get_live_panel';
   if(fecha) url += '&fecha=' + encodeURIComponent(fecha);
   fetchJson(url).then(function(d){
-    if(d.ok){ wrap.innerHTML = d.data.html; iniciarCarruselLive(); }
+    if(d.ok){ wrap.innerHTML = d.data.html; iniciarCarruselLive(); iniciarCarruselCitas(); }
     else wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL CARGAR TODAY LIVE</div>';
     if(typeof cb==='function') cb();
   }).catch(function(err){
@@ -19360,6 +19360,46 @@ function iniciarCarruselLive(){
     cards[i].style.display = '';
     if(dots[i]) dots[i].style.background = '#1B4A6B';
   }, 6000);
+}
+// Carrusel de la tarjetita "CITAS COMPLETADAS" de Today Live — rota sola
+// cada 5 seg, y además la persona que lo vea puede cambiar de cita a mano
+// con las flechitas o los puntos (pedido de Isabel); al tocar una flecha o
+// un punto se reinicia el temporizador desde ahí, para no "pelearse" con el
+// avance automático justo después de que alguien la cambió a mano.
+function iniciarCarruselCitas(){
+  if(window._liveCitasTimer){ clearInterval(window._liveCitasTimer); window._liveCitasTimer = null; }
+  var cards = document.querySelectorAll('#live-citas-wrap .live-citas-card');
+  if(!cards.length) return;
+  window._liveCitasIdx = 0;
+  if(cards.length < 2) return; // nada que rotar con una sola cita
+  window._liveCitasTimer = setInterval(function(){
+    liveCitasIr(((window._liveCitasIdx||0) + 1) % cards.length);
+  }, 5000);
+}
+function liveCitasIr(i){
+  var cards = document.querySelectorAll('#live-citas-wrap .live-citas-card');
+  var dots = document.querySelectorAll('#live-citas-dots .live-citas-dot');
+  if(!cards.length) return;
+  i = ((i % cards.length) + cards.length) % cards.length;
+  cards.forEach(function(c, idx){ c.style.display = (idx === i) ? '' : 'none'; });
+  dots.forEach(function(d, idx){ d.style.background = (idx === i) ? '#1B4A6B' : '#C8DFF0'; });
+  window._liveCitasIdx = i;
+}
+function liveCitasIrManual(i){
+  liveCitasIr(i);
+  if(window._liveCitasTimer){ clearInterval(window._liveCitasTimer); window._liveCitasTimer = null; }
+  var cards = document.querySelectorAll('#live-citas-wrap .live-citas-card');
+  if(cards.length > 1){
+    window._liveCitasTimer = setInterval(function(){
+      liveCitasIr(((window._liveCitasIdx||0) + 1) % cards.length);
+    }, 5000);
+  }
+}
+function liveCitasNav(delta){
+  var cards = document.querySelectorAll('#live-citas-wrap .live-citas-card');
+  if(!cards.length) return;
+  var i = ((window._liveCitasIdx||0) + delta + cards.length) % cards.length;
+  liveCitasIrManual(i);
 }
 function loadFollowUpsPanel(cb){
   var wrap = document.getElementById('followups-panes-wrap');
