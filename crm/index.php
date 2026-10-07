@@ -13460,7 +13460,7 @@ krsort($anios_disponibles_planes);
       <select id="plan-year-filter" class="form-input" style="width:auto;font-size:9px;padding:5px 8px" onchange="filtrarPlanesPorAnio()">
         <option value="">TODOS LOS AÑOS</option>
         <?php foreach (array_keys($anios_disponibles_planes) as $a): ?>
-        <option value="<?=h($a)?>">SOLO <?=h($a)?></option>
+        <option value="<?=h($a)?>" <?=((string)$a === (string)$anio_mas_reciente) ? 'selected' : ''?>>SOLO <?=h($a)?></option>
         <?php endforeach; ?>
       </select>
       <?php endif; ?>
@@ -13641,6 +13641,11 @@ function filtrarPlanesPorAnio(){
   });
   actualizarBotonComparar();
 }
+// Pedido de Isabel: por defecto solo se ven los planes del año más
+// reciente (el selector de arriba ya viene en "SOLO <año>" en vez de
+// "TODOS LOS AÑOS") — se aplica el filtro una vez al cargar la página,
+// igual que si Isabel hubiera elegido esa opción a mano.
+if (document.getElementById('plan-year-filter')) filtrarPlanesPorAnio();
 function showPlanesTab(id){
   ['PLANES','ANOC'].forEach(t=>{const el=document.getElementById('pstab-'+t);if(el)el.style.display=t===id?'':'none';});
   document.querySelectorAll('.ntab[data-pstab]').forEach(b=>b.classList.toggle('active', b.dataset.pstab===id));
