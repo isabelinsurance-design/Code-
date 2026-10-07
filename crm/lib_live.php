@@ -426,7 +426,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
       $kpi('💰 VENTAS', $totVentasHoy, $G);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
       if ($esHoy && $pctCerrHoy !== null) {
-          $kpi('% TICKETS DEL DÍA CERRADOS', $pctCerrHoy . '%', $pctCerrHoy>=100?$G:($pctCerrHoy>=50?$A:$R));
+          $kpi('% TICKETS DEL DÍA CERRADOS', $pctCerrHoy . '% (' . $totTktsDelDiaCerr . '/' . $totTktsDelDiaHoy . ')', $pctCerrHoy>=100?$G:($pctCerrHoy>=50?$A:$R));
       }
       if ($esHoy) {
           $kpi('APPS PENDIENTES', $totApps, $P2);
@@ -590,7 +590,10 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           <?php endif;?>
           <td style="padding:8px 10px;color:<?=$tkCerr>0?$G:$MU?>;font-weight:<?=$tkCerr>0?'800':'400'?>"><?=$tkCerr?></td>
           <?php if ($esHoy):?>
-          <td style="padding:8px 10px;color:<?=$pctAgente===null?$MU:($pctAgente>=100?$G:($pctAgente>=50?$A:$R))?>;font-weight:800"><?=$pctAgente===null?'—':$pctAgente.'%'?></td>
+          <td style="padding:8px 10px;color:<?=$pctAgente===null?$MU:($pctAgente>=100?$G:($pctAgente>=50?$A:$R))?>;font-weight:800">
+            <?=$pctAgente===null?'—':$pctAgente.'%'?>
+            <?php if ($delDia['total'] > 0):?><span style="color:<?=$MU?>;font-weight:400;font-size:8px"> (<?=$delDia['cerrados']?>/<?=$delDia['total']?>)</span><?php endif;?>
+          </td>
           <?php endif;?>
           <?php if ($esHoy):?>
           <td style="padding:8px 10px;color:<?=$apps>0?$P2:$MU?>;font-weight:<?=$apps>0?'800':'400'?>"><?=$apps?></td>
