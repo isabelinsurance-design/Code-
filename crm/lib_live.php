@@ -240,7 +240,8 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     // guardado), así que esto sí se puede ver también en un día pasado.
     $citasCompletadas = [];
     try {
-        $q = $pdo->prepare("SELECT c.hora, c.tipo, CONCAT(m.nombre,' ',m.apellido) AS miembro_nombre
+        $q = $pdo->prepare("SELECT c.hora, c.tipo, CONCAT(m.nombre,' ',m.apellido) AS miembro_nombre,
+                                   COALESCE(NULLIF(c.tipo_persona,''),'MIEMBRO') AS tipo_persona
                             FROM citas c LEFT JOIN miembros m ON m.id = c.miembro_id
                             WHERE c.fecha=? AND c.estado='COMPLETADA'
                             ORDER BY c.hora ASC");
@@ -426,9 +427,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
       if (count($citasCompletadas)) {
           echo '<div style="max-height:150px;overflow-y:auto">';
           foreach ($citasCompletadas as $c) {
+              $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
               echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
                  . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
                  . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
+                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $G) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
                  . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
                  . '</div>';
           }
