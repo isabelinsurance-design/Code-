@@ -265,6 +265,14 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         }
     } catch (Throwable $e) {}
 
+    // Total de VENTAS para la tarjetita — aclaración de Isabel: solo cuentan
+    // las citas de PROSPECTO, las de miembro ya existente NO cuentan como venta.
+    $totVentasHoy = 0;
+    foreach ($citasCompletadas as $c) {
+        $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
+        if ($esProsp && !empty($c['miembro_id']) && !empty($miembrosConVenta[(int)$c['miembro_id']])) $totVentasHoy++;
+    }
+
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
     $estadoAhora = function (?array $a) use ($G, $A, $MU, $breaksAbiertosAhora) {
         if (!$a || empty($a['check_in'])) return ['⚪ SIN CHECK-IN', $MU];
@@ -385,6 +393,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           $kpi('TRABAJARON ESE DÍA', $trabajaronEseDia . '/' . count($usuarios), $G);
       }
       $kpi('CITAS HOY', $totCitasHoy, $P1);
+      $kpi('💰 VENTAS', $totVentasHoy, $G);
       $kpi('CERRADOS HOY', $totTkCerrHoy, $G);
       if ($esHoy) {
           $kpi('APPS PENDIENTES', $totApps, $P2);
@@ -444,12 +453,10 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
           echo '<div style="max-height:150px;overflow-y:auto">';
           foreach ($citasCompletadas as $c) {
               $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
-              $fueVenta = !empty($c['miembro_id']) && !empty($miembrosConVenta[(int)$c['miembro_id']]);
               echo '<div style="display:flex;align-items:center;gap:6px;font-size:8px;padding:4px 2px;border-bottom:1px solid ' . $BG . '">'
                  . '<span style="color:' . $MU . ';font-weight:700;white-space:nowrap">' . h(substr($c['hora'] ?? '', 0, 5)) . '</span>'
                  . '<span style="color:' . $TX . ';font-weight:800;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' . h(trim($c['miembro_nombre'] ?? '')) . '</span>'
-                 . ($fueVenta ? ('<span style="color:#fff;background:' . $G . ';font-weight:900;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">💰 VENTA</span>') : '')
-                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $MU) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
+                 . '<span style="color:#fff;background:' . ($esProsp ? $A : $G) . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:6px;padding:2px 4px;border-radius:4px">' . ($esProsp ? 'PROSPECTO' : 'MIEMBRO') . '</span>'
                  . '<span style="color:' . $P2 . ';font-weight:900;text-transform:uppercase;white-space:nowrap;font-size:7px">' . h($c['tipo'] ?? '') . '</span>'
                  . '</div>';
           }
