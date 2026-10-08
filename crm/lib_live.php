@@ -145,18 +145,6 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
     } catch (Throwable $e) {}
 
-    // Tickets CON SLA DE HOY (los que de verdad "son del día"), por dueño
-    // real — aclaración de Isabel: el % de tickets del día cerrados NO debe
-    // contar el backlog vencido de días anteriores, solo lo que vencía hoy
-    // mismo. Se excluyen LLAMADA/LLAMADA PERDIDA, igual que CERRADOS HOY.
-    $tkDelDiaHoy = [];
-    try {
-        $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id, COUNT(*) total,
-                                  SUM(estado='CERRADO') cerrados
-                           FROM tickets WHERE sla_fecha=? AND tipo NOT IN ('LLAMADA','LLAMADA PERDIDA') GROUP BY owner_id");
-        $q->execute([$hoy]);
-        foreach ($q->fetchAll() as $r) $tkDelDiaHoy[(int)$r['owner_id']] = ['total'=>(int)$r['total'],'cerrados'=>(int)$r['cerrados']];
-    } catch (Throwable $e) {}
 
     // Miembros por estado — pedido de Isabel: esto es GENERAL de toda la
     // cartera, no por persona (a diferencia de citas/tickets/llamadas, que
@@ -310,10 +298,13 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
     // % DE TICKETS DEL DÍA CERRADOS — pedido de Isabel, para saber de un
     // vistazo si alguien (o la empresa entera) se puso al día con los
-    // tickets que le tocaban hoy. Aclaración de Isabel: NO cuenta todo el
-    // backlog vencido, SOLO los tickets con SLA de hoy mismo ($tkDelDiaHoy).
-    $totTktsDelDiaHoy    = array_sum(array_column($tkDelDiaHoy, 'total'));
-    $totTktsDelDiaCerr   = array_sum(array_column($tkDelDiaHoy, 'cerrados'));
+    // tickets que le tocaban hoy: "del día" = atrasados O de hoy (sla de
+    // hoy o antes) — exactamente la misma definición que ya usa la columna
+    // TICKETS ABIERTOS — más los que ya cerró hoy. A propósito se arma con
+    // los MISMOS números que ya se ven en TICKETS ABIERTOS y CERRADOS (no
+    // una cuenta aparte), para que el % siempre cuadre con esas columnas.
+    $totTktsDelDiaCerr = $totTkCerrHoy;
+    $totTktsDelDiaHoy  = $totTkCerrHoy + array_sum(array_column($tkAbiertos, 'total'));
     $pctCerrHoy = $totTktsDelDiaHoy > 0 ? (int)round($totTktsDelDiaCerr / $totTktsDelDiaHoy * 100) : null;
     // APPS PENDIENTES = TODOS los tickets tipo APLICACION sin cerrar —
     // aclaración de Isabel. Aparte de $tkAbiertos a propósito: ese ya trae
@@ -562,9 +553,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
             $lr = $llRetHoy[$aid]   ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
             // % de tickets del día cerrados POR ESTE empleado — aclaración
-            // de Isabel: solo cuenta lo que tenía SLA de hoy mismo, no el
-            // backlog vencido de días anteriores.
-            $delDia = $tkDelDiaHoy[$aid] ?? ['total'=>0,'cerrados'=>0];
+            // de Isabel: "del día" es atrasados O de hoy (igual que la
+            // columna TICKETS ABIERTOS) más lo que ya cerró hoy. Se arma con
+            // los mismos $tk/$tkCerr de las columnas de al lado para que el
+            // % siempre cuadre con los números que se ven en la tabla.
+            $delDia = ['total' => $tkCerr + (int)($tk['total'] ?? 0), 'cerrados' => $tkCerr];
             $pctAgente = $delDia['total'] > 0 ? (int)round($delDia['cerrados'] / $delDia['total'] * 100) : null;
         ?>
         <tr style="border-bottom:1px solid <?=$BG?><?=$esInactivo?';opacity:.45':''?>">
