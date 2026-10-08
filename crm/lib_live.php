@@ -146,22 +146,24 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     } catch (Throwable $e) {}
 
     // Para el % DE TICKETS DEL DÍA CERRADOS — pedido de Isabel: solo cuentan
-    // los tickets ATRASADOS o con SLA hasta hoy (sla_fecha <= hoy, CON fecha
-    // puesta — sin fecha límite no cuenta, aparte de $tkAbiertos a propósito
-    // porque esa columna sí incluye los que no tienen fecha todavía). De
-    // ESE universo completo (sin importar cuándo se cerraron), cuántos ya
-    // están CERRADO.
+    // los tickets ATRASADOS o con SLA hasta hoy (CON fecha puesta — sin
+    // fecha límite no cuenta). Aclaración: NO es todo el historial de años
+    // con esa fecha (eso daba miles, incluyendo cosas cerradas hace tiempo)
+    // — es de los que estaban ABIERTOS hasta hoy, o sea los que siguen
+    // abiertos ahora MÁS los que se cerraron hoy mismo (si ya estaba
+    // cerrado de un día anterior, ya no es parte de "lo de hoy").
     $tkDelDiaHoy = [];
     try {
         $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id,
-                                  COUNT(*) total,
-                                  SUM(estado = 'CERRADO') cerrados
+                                  SUM(estado != 'CERRADO') abiertos,
+                                  SUM(estado = 'CERRADO' AND DATE(fecha_cierre) = ?) cerrados_hoy
                            FROM tickets
                            WHERE sla_fecha IS NOT NULL AND sla_fecha <= ?
+                             AND (estado != 'CERRADO' OR DATE(fecha_cierre) = ?)
                            GROUP BY owner_id");
-        $q->execute([$hoy]);
+        $q->execute([$hoy, $hoy, $hoy]);
         foreach ($q->fetchAll() as $r) {
-            $tkDelDiaHoy[(int)$r['owner_id']] = ['total' => (int)$r['total'], 'cerrados' => (int)$r['cerrados']];
+            $tkDelDiaHoy[(int)$r['owner_id']] = ['total' => (int)$r['abiertos'] + (int)$r['cerrados_hoy'], 'cerrados' => (int)$r['cerrados_hoy']];
         }
     } catch (Throwable $e) {}
 
