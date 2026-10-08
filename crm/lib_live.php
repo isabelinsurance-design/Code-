@@ -145,6 +145,28 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
     } catch (Throwable $e) {}
 
+    // Para el % DE TICKETS DEL DÍA CERRADOS — aparte de $tkAbiertos a
+    // propósito: $tkAbiertos cuenta también los tickets SIN fecha límite
+    // puesta todavía (a propósito, para que no se pierdan de vista), pero
+    // esos no son "atrasados ni de hoy" — no tienen fecha, así que no deben
+    // contar en esta evaluación. Aquí solo entran los que SÍ tienen fecha
+    // límite de hoy o antes, y de esos, los que cerró HOY MISMO (si ya
+    // estaba cerrado de antes, ya no es parte de la evaluación de hoy).
+    $tkDelDiaHoy = [];
+    try {
+        $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id,
+                                  SUM(estado != 'CERRADO') abiertos,
+                                  SUM(estado = 'CERRADO' AND DATE(fecha_cierre) = ?) cerrados_hoy
+                           FROM tickets
+                           WHERE sla_fecha IS NOT NULL AND sla_fecha <= ?
+                             AND (estado != 'CERRADO' OR DATE(fecha_cierre) = ?)
+                           GROUP BY owner_id");
+        $q->execute([$hoy, $hoy, $hoy]);
+        foreach ($q->fetchAll() as $r) {
+            $tkDelDiaHoy[(int)$r['owner_id']] = ['total' => (int)$r['abiertos'] + (int)$r['cerrados_hoy'], 'cerrados' => (int)$r['cerrados_hoy']];
+        }
+    } catch (Throwable $e) {}
+
 
     // Miembros por estado — pedido de Isabel: esto es GENERAL de toda la
     // cartera, no por persona (a diferencia de citas/tickets/llamadas, que
@@ -298,13 +320,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     $totUrgentes   = array_sum(array_column($tkAbiertos, 'urgentes'));
     // % DE TICKETS DEL DÍA CERRADOS — pedido de Isabel, para saber de un
     // vistazo si alguien (o la empresa entera) se puso al día con los
-    // tickets que le tocaban hoy: "del día" = atrasados O de hoy (sla de
-    // hoy o antes) — exactamente la misma definición que ya usa la columna
-    // TICKETS ABIERTOS — más los que ya cerró hoy. A propósito se arma con
-    // los MISMOS números que ya se ven en TICKETS ABIERTOS y CERRADOS (no
-    // una cuenta aparte), para que el % siempre cuadre con esas columnas.
-    $totTktsDelDiaCerr = $totTkCerrHoy;
-    $totTktsDelDiaHoy  = $totTkCerrHoy + array_sum(array_column($tkAbiertos, 'total'));
+    // tickets que le tocaban hoy: "del día" = atrasados O de hoy (con fecha
+    // límite puesta de hoy o antes — los que NO tienen fecha límite todavía
+    // no cuentan aquí, aclaración de Isabel) más los que ya cerró hoy.
+    $totTktsDelDiaHoy  = array_sum(array_column($tkDelDiaHoy, 'total'));
+    $totTktsDelDiaCerr = array_sum(array_column($tkDelDiaHoy, 'cerrados'));
     $pctCerrHoy = $totTktsDelDiaHoy > 0 ? (int)round($totTktsDelDiaCerr / $totTktsDelDiaHoy * 100) : null;
     // APPS PENDIENTES = TODOS los tickets tipo APLICACION sin cerrar —
     // aclaración de Isabel. Aparte de $tkAbiertos a propósito: ese ya trae
@@ -552,12 +572,10 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
             $ls = $llServHoy[$aid]  ?? 0;
             $lr = $llRetHoy[$aid]   ?? 0;
             $fu = $fuPend[$aid]     ?? 0;
-            // % de tickets del día cerrados POR ESTE empleado — aclaración
-            // de Isabel: "del día" es atrasados O de hoy (igual que la
-            // columna TICKETS ABIERTOS) más lo que ya cerró hoy. Se arma con
-            // los mismos $tk/$tkCerr de las columnas de al lado para que el
-            // % siempre cuadre con los números que se ven en la tabla.
-            $delDia = ['total' => $tkCerr + (int)($tk['total'] ?? 0), 'cerrados' => $tkCerr];
+            // % de tickets del día cerrados POR ESTE empleado — "del día" es
+            // atrasados o de hoy CON fecha límite puesta (sin fecha límite
+            // no cuenta, aclaración de Isabel) más lo que ya cerró hoy.
+            $delDia = $tkDelDiaHoy[$aid] ?? ['total'=>0,'cerrados'=>0];
             $pctAgente = $delDia['total'] > 0 ? (int)round($delDia['cerrados'] / $delDia['total'] * 100) : null;
         ?>
         <tr style="border-bottom:1px solid <?=$BG?><?=$esInactivo?';opacity:.45':''?>">
