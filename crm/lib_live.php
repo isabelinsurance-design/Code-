@@ -145,25 +145,23 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         foreach ($q->fetchAll() as $r) $tkCerradosHoy[(int)$r['owner_id']] = (int)$r['total'];
     } catch (Throwable $e) {}
 
-    // Para el % DE TICKETS DEL DÍA CERRADOS — aparte de $tkAbiertos a
-    // propósito: $tkAbiertos cuenta también los tickets SIN fecha límite
-    // puesta todavía (a propósito, para que no se pierdan de vista), pero
-    // esos no son "atrasados ni de hoy" — no tienen fecha, así que no deben
-    // contar en esta evaluación. Aquí solo entran los que SÍ tienen fecha
-    // límite de hoy o antes, y de esos, los que cerró HOY MISMO (si ya
-    // estaba cerrado de antes, ya no es parte de la evaluación de hoy).
+    // Para el % DE TICKETS DEL DÍA CERRADOS — pedido de Isabel: solo cuentan
+    // los tickets ATRASADOS o con SLA hasta hoy (sla_fecha <= hoy, CON fecha
+    // puesta — sin fecha límite no cuenta, aparte de $tkAbiertos a propósito
+    // porque esa columna sí incluye los que no tienen fecha todavía). De
+    // ESE universo completo (sin importar cuándo se cerraron), cuántos ya
+    // están CERRADO.
     $tkDelDiaHoy = [];
     try {
         $q = $pdo->prepare("SELECT COALESCE(NULLIF(asignado_a,0), agente_id) owner_id,
-                                  SUM(estado != 'CERRADO') abiertos,
-                                  SUM(estado = 'CERRADO' AND DATE(fecha_cierre) = ?) cerrados_hoy
+                                  COUNT(*) total,
+                                  SUM(estado = 'CERRADO') cerrados
                            FROM tickets
                            WHERE sla_fecha IS NOT NULL AND sla_fecha <= ?
-                             AND (estado != 'CERRADO' OR DATE(fecha_cierre) = ?)
                            GROUP BY owner_id");
-        $q->execute([$hoy, $hoy, $hoy]);
+        $q->execute([$hoy]);
         foreach ($q->fetchAll() as $r) {
-            $tkDelDiaHoy[(int)$r['owner_id']] = ['total' => (int)$r['abiertos'] + (int)$r['cerrados_hoy'], 'cerrados' => (int)$r['cerrados_hoy']];
+            $tkDelDiaHoy[(int)$r['owner_id']] = ['total' => (int)$r['total'], 'cerrados' => (int)$r['cerrados']];
         }
     } catch (Throwable $e) {}
 
