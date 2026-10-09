@@ -1,0 +1,3 @@
+# Plan workbooks hold agent-only carrier data — keep them out of this public repo.
+*.xlsx
+*.xls
