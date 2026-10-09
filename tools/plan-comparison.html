@@ -1942,8 +1942,8 @@ function renderTray() {
     <button class="btn small" id="cmpClear" style="background:transparent;color:#fff">Clear</button>`;
 }
 $('tray').addEventListener('click', e => {
-  if (e.target.id === 'cmpGo') showCompare(S.compare.map(i => S.data.plans[i]));
-  if (e.target.id === 'cmpClear') { S.compare = []; renderTray(); renderPlans(); }
+  if (e.target.closest('#cmpGo')) showCompare(S.compare.map(i => S.data.plans[i]));
+  if (e.target.closest('#cmpClear')) { S.compare = []; renderTray(); renderPlans(); }
 });
 
 function bestCells(row, plans) {
