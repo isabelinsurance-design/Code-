@@ -188,7 +188,7 @@ export function computeSignals() {
     out.push({
       tipo: 'calendar',
       severidad: 'alto',
-      mensaje: 'AEP ACTIVO (15 oct – 7 dic). Toda comunicación de planes requiere SOA firmada 48h antes.',
+      mensaje: 'AEP ACTIVO (15 oct – 7 dic). SOA firmada ANTES de hablar de planes (ya sin espera de 48h, CY27) + disclaimer TPMO antes de cualquier beneficio.',
     });
   }
 

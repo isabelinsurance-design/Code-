@@ -263,7 +263,7 @@ export function clientsWithMbiPending() {
 }
 
 // Clientes con SOA expirada o sin SOA — para AEP/SEP necesitas SOA
-// firmada antes de hablar de planes (CMS regla 48h + retención 10 años).
+// firmada antes de hablar de planes (CY27: sin espera de 48h; enrollment 10 años).
 export function clientsWithSoaIssue() {
   return load()
     .filter((c) => c.status === 'active' || c.status === 'prospect' || c.status === 'lead')

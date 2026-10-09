@@ -65,13 +65,13 @@ export function computeGaps({ limit = 40 } = {}) {
       }
       const soaStatus = c.soa?.status || 'none';
       if (soaStatus !== 'signed') {
-        gaps.push(mkGap('cliente', c, 'soa', 'alto', `SOA en estado "${soaStatus}". Sin SOA firmada (48h antes) no puedes hablar de planes — regla CMS.`));
+        gaps.push(mkGap('cliente', c, 'soa', 'alto', `SOA en estado "${soaStatus}". Sin SOA firmada no puedes hablar de planes — regla CMS (ya sin espera mínima de 48h).`));
       }
       if (!c.tcpa_consent?.granted) {
         gaps.push(mkGap('cliente', c, 'tcpa', 'alto', 'Sin consentimiento TCPA registrado. Llamarle o textearle viola ley federal.'));
       }
       if (touchpointsLast12m(c) === 0) {
-        gaps.push(mkGap('cliente', c, 'touchpoint_12m', 'alto', 'Sin touchpoint en los últimos 12 meses — la Final Rule 2027 endurece esta regla.'));
+        gaps.push(mkGap('cliente', c, 'touchpoint_12m', 'alto', 'Sin touchpoint en los últimos 12 meses — riesgo de retención y de servicio continuo.'));
       }
     }
 
