@@ -2,7 +2,15 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0,viewport-fit=cover"/>
+<meta name="theme-color" content="#FFFFFF"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Plans 2027"/>
+<meta name="apple-mobile-web-app-status-bar-style" content="default"/>
+<link rel="manifest" href="plan-comparison.webmanifest"/>
+<link rel="icon" href="icons/plan-icon.svg" type="image/svg+xml"/>
+<link rel="apple-touch-icon" href="icons/plan-apple-180.png"/>
 <title>Plan Comparison 2027 — Isabel Fuentes</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet"/>
@@ -56,8 +64,26 @@ button{cursor:pointer}
 .err{color:var(--red);font-weight:600;margin-top:12px}
 
 /* layout */
-.workspace{display:grid;grid-template-columns:minmax(320px,400px) 1fr;gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
-.side{position:sticky;top:76px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 92px);overflow:auto;padding-bottom:8px}
+.workspace{display:grid;grid-template-columns:minmax(320px,400px) 1fr;grid-template-areas:"side plans" "side ai";gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
+.side{grid-area:side;grid-row:1 / span 2;position:sticky;top:76px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 92px);overflow:auto;padding-bottom:8px}
+.ai-pane{grid-area:ai;display:flex;flex-direction:column;gap:16px;min-width:0}
+.top{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top))}
+
+/* app bits: install, iPhone hint, dictation, recent clients, phone tab bar */
+.ios-hint{display:flex;gap:10px;align-items:center;background:var(--teal-lt);border-bottom:1px solid #c9dbe7;color:var(--teal-dk);font-size:13px;padding:9px 16px}
+.ios-hint span{flex:1}
+.ios-hint button{border:0;background:transparent;font-size:20px;color:var(--teal-dk);line-height:1}
+.mic{width:40px;height:38px;padding:0;font-size:17px;display:inline-flex;align-items:center;justify-content:center}
+.mic.rec{background:var(--red);border-color:var(--red);color:#fff;animation:pulse 1.2s infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(192,57,43,.18)}}
+.mic-lang{border:1.5px solid var(--border);border-radius:8px;background:var(--surface);padding:6px 4px;font-size:12px}
+.recent{display:flex;flex-direction:column;gap:6px;margin-top:12px}
+.recent .rc{border:1px solid var(--border);background:var(--surface);border-radius:8px;padding:6px 9px;text-align:left;font-size:12px;color:var(--text-mid);display:flex;gap:8px;justify-content:space-between}
+.recent .rc:hover{border-color:var(--gold)}
+.recent .rc time{flex:none;color:var(--text-muted);font-size:11px}
+.recent-head{display:flex;justify-content:space-between;align-items:center}
+.linkbtn{border:0;background:transparent;color:var(--text-muted);font-size:11.5px;text-decoration:underline}
+.tabbar{display:none}
 .card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
 .h{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:8px;font-weight:500}
 textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;resize:vertical;background:var(--surface);min-height:92px;outline:none}
@@ -184,14 +210,31 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
 .qt b{color:var(--gold-dk)}
 
 @media (max-width:900px){
-  .workspace{grid-template-columns:1fr;padding:12px 16px}
+  .top{position:static;gap:8px 12px;padding:max(8px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 8px max(16px,env(safe-area-inset-left))}
+  .brand .sub{display:none}
+  .brand h1{font-size:17px}
+  .logo{width:32px;height:32px;font-size:15px}
+  .data-status{order:3;flex-basis:100%;font-size:11px}
+  .workspace{display:block;padding:12px max(16px,env(safe-area-inset-right)) calc(86px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
+  .workspace>.pane{display:none}
+  .workspace[data-tab=client]>.side,.workspace[data-tab=plans]>.results,.workspace[data-tab=ai]>.ai-pane{display:flex}
   .side{position:static;max-height:none;overflow:visible}
-  .top{padding:10px 16px;position:static}
-  .score{width:64px}
+  .tabbar{display:flex;position:fixed;left:0;right:0;bottom:0;z-index:55;background:var(--white);border-top:1.5px solid var(--border);box-shadow:0 -4px 18px rgba(44,36,22,.08);padding:6px 8px calc(6px + env(safe-area-inset-bottom))}
+  .tabbar button{flex:1;border:0;background:transparent;display:flex;flex-direction:column;align-items:center;gap:1px;font-size:20px;padding:4px 0;border-radius:10px;color:var(--text-muted);position:relative}
+  .tabbar button span{font-size:11px;font-weight:600}
+  .tabbar button.on{color:var(--gold-dk);background:var(--gold-lt)}
+  .tabbar b{position:absolute;top:2px;left:calc(50% + 8px);background:var(--text);color:#fff;font-size:10px;border-radius:999px;padding:0 6px;line-height:16px}
+  .tray{bottom:calc(76px + env(safe-area-inset-bottom))}
+  .score{width:60px}
+  .p-head{padding:12px;gap:10px}
+  .p-body{padding:0 12px 12px}
+  .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .modal{padding:12px 8px}
+  .modal-box{padding:16px 12px}
 }
 @media print{
   body{background:#fff}
-  .top,.workspace,.tray,.modal-x,.no-print{display:none!important}
+  .top,.workspace,.tray,.tabbar,.ios-hint,.modal-x,.no-print{display:none!important}
   .modal{position:static;background:none;padding:0}
   .modal-box{box-shadow:none;width:100%;padding:0}
   .cmp-wrap{overflow:visible;border:0}
@@ -208,45 +251,59 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   </div>
   <div class="data-status" id="dataStatus">No workbook loaded</div>
   <div class="top-actions">
+    <button class="btn small gold" id="installBtn" hidden>Install app</button>
     <button class="btn small" id="browseBtn" hidden>All plans</button>
     <button class="btn small" id="loadBtn">Load workbook</button>
-    <input type="file" id="fileInput" accept=".xlsx" hidden/>
+    <input type="file" id="fileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/>
   </div>
 </header>
+<div class="ios-hint" id="iosHint" hidden><span>Install on your iPhone: tap <b>Share</b> <span aria-hidden="true">⬆︎</span> in Safari, then <b>Add to Home Screen</b>.</span><button id="iosHintX" aria-label="Dismiss">×</button></div>
 
 <section class="empty" id="emptyState">
   <div class="drop" id="drop">
     <h2>Load the 2027 Plan Comparison workbook</h2>
-    <p>Drop the Excel file here (for example <span class="mono">Revised_2027_Plan_Comparison_All_Carriers.xlsx</span>). It is read in your browser and stays on this computer — nothing is uploaded.</p>
+    <p>Drop the Excel file here (for example <span class="mono">Revised_2027_Plan_Comparison_All_Carriers.xlsx</span>). It is read on this device and stays here — nothing is uploaded.</p>
     <button class="btn gold" id="pickBtn">Choose the .xlsx file</button>
     <div class="fine">Loaded once, it's remembered here. When a revised workbook arrives, load the new one to update every plan.</div>
     <div class="err" id="loadErr" hidden></div>
   </div>
 </section>
 
-<div class="workspace" id="workspace" hidden>
-  <aside class="side">
+<div class="workspace" id="workspace" data-tab="client" hidden>
+  <aside class="side pane">
     <div class="card">
       <label class="h" for="clientText">Describe the client</label>
       <textarea id="clientText" placeholder="Lives in Los Angeles, doesn't want to pay Part B, diabetic, goes to Facey…"></textarea>
       <div class="row">
         <button class="btn primary" id="findBtn">Find best plans</button>
+        <button class="btn mic" id="micBtn" title="Dictate the client description" aria-label="Dictate" hidden>🎤</button>
+        <select class="mic-lang" id="micLang" aria-label="Dictation language" hidden><option value="en-US">EN</option><option value="es-US">ES</option></select>
         <span class="ai-badge" id="aiBadge"></span>
       </div>
+      <div class="recent" id="recent"></div>
       <div class="examples" id="examples"></div>
     </div>
     <div class="card"><span class="h">Client profile <small style="text-transform:none;letter-spacing:0;color:var(--text-muted);font-family:'DM Sans'">— adjust anything, results update live</small></span><div class="pf" id="profile"></div></div>
   </aside>
 
-  <section class="results" id="results">
+  <section class="results pane" id="results">
     <div class="summary" id="summary"></div>
     <div id="callouts"></div>
     <div class="picks" id="picks"></div>
     <div id="planList"></div>
     <div id="excluded"></div>
+  </section>
+
+  <section class="ai-pane pane" id="aiPane">
     <div class="card ai-card" id="aiCard"></div>
   </section>
 </div>
+
+<nav class="tabbar" id="tabbar" hidden>
+  <button data-tab="client" class="on">👤<span>Client</span></button>
+  <button data-tab="plans">⭐<span>Plans</span><b id="tabCount" hidden></b></button>
+  <button data-tab="ai">✨<span>Ask AI</span></button>
+</nav>
 
 <div class="tray" id="tray" hidden></div>
 <div class="modal" id="modal" hidden><div class="modal-box"><button class="modal-x no-print" id="modalX" aria-label="Close">×</button><div id="modalBody"></div></div></div>
@@ -1018,8 +1075,8 @@ async function loadFile(file) {
 
 function useData(data) {
   S.data = data;
-  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false;
-  renderStatus(); renderExamples();
+  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('tabbar').hidden = false;
+  renderStatus(); renderExamples(); renderRecent();
   let last = null; try { last = JSON.parse(store.get(STORE.last) || 'null'); } catch (_) {}
   if (last && last.profile) { $('clientText').value = last.text || ''; S.profile = Object.assign(blankProfile(), last.profile); S.aiRead = !!last.aiRead; }
   rerank();
@@ -1122,9 +1179,12 @@ $('clientText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.m
 async function findPlans() {
   const text = $('clientText').value.trim();
   if (!text) { $('clientText').focus(); return; }
+  if (rec) rec.stop();
   S.profile = parseClientText(text, S.data.groups);
   S.aiRead = false; S.showAll = false; S.expanded.clear();
+  addRecent(text);
   rerank();
+  if (isPhone()) setTab('plans');
   if (!apiKey) return;
   const btn = $('findBtn'); btn.disabled = true;
   $('aiBadge').className = 'ai-badge'; $('aiBadge').innerHTML = '<span class="spinner"></span>Claude is reading the description…';
@@ -1165,6 +1225,7 @@ function rerank(full = true) {
   store.set(STORE.last, JSON.stringify({text: $('clientText').value, profile: S.profile, aiRead: S.aiRead}));
   if (full) renderProfile(); else renderNetSum();
   renderAiBadge(); renderSummary(); renderPicks(); renderPlans(); renderExcluded(); renderAiCard(); renderTray();
+  const tc = $('tabCount'); tc.hidden = !S.result.results.length; tc.textContent = S.result.results.length;
   renderNetSum();
   const out = $('aiOut');
   if (out && !out.hidden && !out.querySelector('.stale')) out.insertAdjacentHTML('afterbegin', '<p class="stale hint">⟳ The shortlist changed since this was written — run it again for an updated answer.</p>');
@@ -1231,6 +1292,7 @@ function renderPicks() {
 $('picks').addEventListener('click', e => { const b = e.target.closest('[data-goto]'); if (b) gotoPlan(+b.dataset.goto); });
 
 function gotoPlan(idx) {
+  if (isPhone()) setTab('plans');
   const pos = S.result.results.findIndex(r => r.plan.idx === idx);
   if (pos >= 10 && !S.showAll) { S.showAll = true; renderPlans(); }
   S.expanded.add(idx); renderPlans();
@@ -1580,6 +1642,81 @@ function md(s) {
     else if (l.trim()) html += `<p>${inline(l)}</p>`;
   }
   return html + (inList ? '</ul>' : '');
+}
+
+/* ═══════════════ APP: tabs, recent clients, dictation, install ═══════════════ */
+const isPhone = () => matchMedia('(max-width: 900px)').matches;
+function setTab(tab) {
+  $('workspace').dataset.tab = tab;
+  $('tabbar').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
+  window.scrollTo(0, 0);
+}
+$('tabbar').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
+
+/* Recent clients — kept on this device only. */
+const RECENT = 'pc_recent_v1';
+const readRecent = () => { try { return JSON.parse(store.get(RECENT) || '[]') || []; } catch (_) { return []; } };
+function addRecent(text) {
+  const list = [{text, at: Date.now()}].concat(readRecent().filter(r => r.text !== text)).slice(0, 8);
+  store.set(RECENT, JSON.stringify(list)); renderRecent();
+}
+function ago(t) {
+  const m = Math.round((Date.now() - t) / 60000);
+  if (m < 1) return 'now'; if (m < 60) return m + 'm ago';
+  const h = Math.round(m / 60); if (h < 24) return h + 'h ago';
+  return new Date(t).toLocaleDateString('en-US', {month: 'short', day: 'numeric'});
+}
+function renderRecent() {
+  const list = readRecent();
+  $('recent').innerHTML = !list.length ? '' : `<div class="recent-head"><span class="hint" style="margin:0">Recent clients (this device only)</span><button class="linkbtn" id="recentClear">Clear</button></div>` +
+    list.slice(0, 5).map((r, i) => `<button class="rc" data-recent="${i}"><span>${esc(cut(r.text, 90))}</span><time>${ago(r.at)}</time></button>`).join('');
+}
+$('recent').addEventListener('click', e => {
+  if (e.target.id === 'recentClear') { store.del(RECENT); renderRecent(); return; }
+  const b = e.target.closest('[data-recent]'); if (!b) return;
+  const r = readRecent()[+b.dataset.recent]; if (r) { $('clientText').value = r.text; findPlans(); }
+});
+
+/* Dictation (Chrome, Safari, Edge). */
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let rec = null;
+if (SpeechRec) {
+  $('micBtn').hidden = false; $('micLang').hidden = false;
+  $('micLang').value = store.get('pc_mic_lang') || 'en-US';
+}
+$('micLang').addEventListener('change', e => store.set('pc_mic_lang', e.target.value));
+$('micBtn').addEventListener('click', () => {
+  if (rec) { rec.stop(); return; }
+  const base = $('clientText').value.trim();
+  try {
+    rec = new SpeechRec();
+    rec.lang = $('micLang').value; rec.interimResults = true; rec.continuous = true;
+    rec.onresult = e => { let t = ''; for (let i = 0; i < e.results.length; i++) t += e.results[i][0].transcript; $('clientText').value = (base ? base + ' ' : '') + t.trim(); };
+    rec.onerror = e => { $('aiBadge').className = 'ai-badge'; $('aiBadge').textContent = e.error === 'not-allowed' ? 'Microphone blocked — allow it in the browser settings (or open the app on its own, not inside the hub).' : 'Dictation stopped (' + e.error + ').'; };
+    rec.onend = () => { rec = null; $('micBtn').classList.remove('rec'); };
+    rec.start(); $('micBtn').classList.add('rec');
+  } catch (err) { rec = null; $('micBtn').classList.remove('rec'); }
+});
+
+/* Install as an app. */
+const inFrame = (() => { try { return window.self !== window.top; } catch (_) { return true; } })();
+const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+let installEvt = null;
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (!inFrame) $('installBtn').hidden = false; });
+$('installBtn').addEventListener('click', async () => {
+  if (!installEvt) return;
+  installEvt.prompt();
+  try { await installEvt.userChoice; } catch (_) {}
+  installEvt = null; $('installBtn').hidden = true;
+});
+window.addEventListener('appinstalled', () => { $('installBtn').hidden = true; });
+const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+if (isIOS && !standalone && !inFrame && !store.get('pc_ios_hint_off')) $('iosHint').hidden = false;
+$('iosHintX').addEventListener('click', () => { $('iosHint').hidden = true; store.set('pc_ios_hint_off', '1'); });
+
+/* Offline support (needs https or localhost). */
+if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('plan-comparison-sw.js', {scope: './plan-comparison'}).catch(e => console.warn('Offline support unavailable:', e)));
 }
 
 /* ═══════════════ BOOT ═══════════════ */

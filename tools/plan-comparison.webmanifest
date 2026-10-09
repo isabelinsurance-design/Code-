@@ -1,0 +1,17 @@
+{
+  "id": "plan-comparison-2027",
+  "name": "Plan Comparison 2027",
+  "short_name": "Plans 2027",
+  "description": "Isabel Fuentes — match a client to the best 2027 Medicare Advantage plan in Southern California.",
+  "start_url": "plan-comparison.html?source=app",
+  "scope": "plan-comparison",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#F7F3EC",
+  "theme_color": "#FFFFFF",
+  "icons": [
+    {"src": "icons/plan-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any"},
+    {"src": "icons/plan-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any"},
+    {"src": "icons/plan-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable"}
+  ]
+}
