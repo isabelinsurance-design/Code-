@@ -4,6 +4,27 @@
 > del 10 jun 2026. Una sesión nueva lee: CLAUDE.md → este archivo → los docs de plan.
 > Rama: claude/sleepy-darwin-P4k2z. Último commit base: 3790e84.
 
+## 🔄 Retomada 9 oct 2026 (después de ~4 meses sin commits; AEP abre oct 15)
+
+Auditoría con lente AEP. Hecho y pusheado:
+- 5a026d8 security: npm audit fix no-breaking (13→3 vulns, critical proxy-addr eliminada).
+  Quedan node-cron@4 / nodemailer@10 (major) — DESPUÉS de AEP.
+- 0b550f5 equipo: Skarleth (id 7) ya no recibe trabajo (prompts, memory.js, skill de intake).
+  Respaldo: si luna_crear_ticket falla → mensaje_a_sami / equipo_compromete + texto para Isabel.
+  Ojo: skills YA sembrados en producción (data/skills/) siguen con id 7 — re-sembrar o editar.
+- 0afd5bb medicare: hechos CY27 al día. Comisiones estaban MAL ($114/$57 eran Part D 2026);
+  ahora MA 2027 $725/$363 nacional, CA probable ~$902/$451 (VERIFICAR con FMO), PDP $130/$65.
+  Quitada la regla vieja "SOA 48h" (signals/gaps/crm). Disclaimer TPMO antes de cualquier
+  beneficio. Retención de grabaciones 6 años (desde oct 1 2026).
+- 92/92 tests pasan.
+
+Abierto / decisión de Isabel:
+- ¿LUNA tiene tickets o no? El 6 jun una SQL sobre tabla `tickets` devolvió 89 filas; el
+  handoff de jun 13 dice "nunca". Hay ~164 refs a tickets en código. Las crons que leen tickets
+  fallan en silencio (no rompen). Si NO hay tickets, Athena no tiene cómo mandarle trabajo a
+  Arlette/Suri (solo a Sami vía mensaje_a_sami) — decidir canal.
+- Estado de producción desconocido (Anthropic saldo, bridge 403, llave LUNA sin rotar).
+
 ## ⚠️ CORRECCIÓN CRÍTICA (lo que handoffs viejos tienen MAL)
 
 - **LUNA NO TIENE TICKETS. Nunca los va a tener.** El CRM (LUNA) tiene: clientes/miembros,
