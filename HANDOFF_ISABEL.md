@@ -25,6 +25,25 @@ Abierto / decisión de Isabel:
   Arlette/Suri (solo a Sami vía mensaje_a_sami) — decidir canal.
 - Estado de producción desconocido (Anthropic saldo, bridge 403, llave LUNA sin rotar).
 
+## 📅 Calendario real de Isabel (leído 9 oct 2026 vía Google Calendar, 9–16 oct)
+
+- Rutina fija en "ISABEL APPOINTMENTS MEDICARE": 7:30 llamada con Suri · 8:00 llamada con Sami ·
+  3:00pm llamada con el equipo · 3:30 almuerzo · 4:30pm PILATES (todos los días, incluso fin de
+  semana). 1:1 semanales: Arlette (mar), Samia (mié), Suri (jue), Alexandra (vie, desde 25 sep).
+- Equipo real hoy = Sami, Arlette, Suri y probablemente **Alexandra (NO está en el roster de
+  Athena)**. Sami trabaja normal → si SAMI_ON_LEAVE_UNTIL sigue puesto en Railway, quitarlo.
+- ⚠️ DISCREPANCIA: existe "1 on 1 con SKARLETH" (mié 3:00pm, editado 25 sep; choca con la llamada
+  del equipo). El commit 0b550f5 la quitó de prompts/delegación asumiendo (handoff de jun) que
+  salió del equipo. Si Skarleth sigue/volvió → revertir esa parte. Pendiente confirmar con Isabel.
+- Recordatorio mensual (día 9, mediodía): "HOY SE PAGA BLUEHOST, ASEGURARSE QUE PASÓ" — LUNA vive
+  en Bluehost; un pago fallido tumba LUNA.
+- NO hay en ningún calendario (9–16 oct; principal hasta 20 oct): CPA/taxes, Tonal, hormonas
+  (Samuel Dixon), sesión de la sociedad, cumpleaños de Alan. Calendario "Family" vacío hasta 15 nov.
+- 15 oct = deadline de taxes en extensión + día 1 de AEP: ese día tiene 6 citas de cliente de
+  9am a 2pm + llamada de equipo 3pm. La ventana real para taxes es lun 12 – mié 14.
+- Eventos AEP: Optum kit pick-up (9 oct Mission Hills, 12 oct Montebello, 10–12), Alignment
+  Kickoff Luncheon Pasadena 14 oct 11:30.
+
 ## ⚠️ CORRECCIÓN CRÍTICA (lo que handoffs viejos tienen MAL)
 
 - **LUNA NO TIENE TICKETS. Nunca los va a tener.** El CRM (LUNA) tiene: clientes/miembros,
