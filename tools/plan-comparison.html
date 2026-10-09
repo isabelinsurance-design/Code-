@@ -189,6 +189,23 @@ details.excl summary{cursor:pointer;font-weight:600;color:var(--text-mid)}
 .ai-out p{margin:4px 0 8px}
 .ai-key{display:flex;gap:8px;margin-top:10px}
 .qa{display:flex;gap:8px;margin-top:12px}
+.qa .inp{flex:1;min-width:0}
+.free-tag{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.08em;background:var(--green-lt);color:var(--green);border:1px solid var(--green);border-radius:999px;padding:1px 8px;margin-left:6px;vertical-align:1px}
+.qchips{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0 2px}
+.qchip{border:1px dashed var(--border-d);background:transparent;border-radius:999px;padding:4px 11px;font-size:12px;color:var(--text-mid);text-align:left}
+.qchip:hover{border-color:var(--gold);background:var(--gold-lt)}
+.ans-head{font-size:14px;margin:0 0 8px}
+.ans{list-style:none;display:flex;flex-direction:column;gap:8px;margin:6px 0 !important}
+.ans li{font-size:13px;line-height:1.45}
+.ans .raw{display:block;color:var(--text-muted);font-size:12px;margin-top:2px}
+.alink{border:0;background:transparent;padding:0;font:inherit;font-weight:700;text-align:left;color:var(--teal-dk);text-decoration:underline;text-underline-offset:2px;cursor:pointer}
+table.facts{width:100%;border-collapse:collapse;font-size:12.8px;margin:6px 0}
+.facts th{text-align:left;vertical-align:top;color:var(--text-mid);width:32%;padding:5px 10px 5px 0;font-weight:600}
+.facts td{padding:5px 0;border-bottom:1px solid var(--border);overflow-wrap:anywhere}
+.ans-actions{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+.claude-box{margin-top:14px;border-top:1px dashed var(--border-d);padding-top:10px}
+.claude-box summary{cursor:pointer;font-weight:600;color:var(--text-mid);font-size:13px}
+.claude-box[open] summary{margin-bottom:8px}
 .spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--border-d);border-top-color:var(--gold-dk);border-radius:50%;animation:spin .8s linear infinite;vertical-align:-2px;margin-right:6px}
 @keyframes spin{to{transform:rotate(360deg)}}
 
@@ -818,6 +835,31 @@ function mustHaveMissing(k, plan, profile) {
 }
 
 /* Each scorer returns 0..1 (1 = best in the county's eligible set). */
+/* What a plan means for THIS client in plain numbers (shared by ranking and the free answers). */
+function planValues(plan, profile) {
+  const dual = profile.mediCal === 'full';
+  const lowIncome = dual || profile.extraHelp;
+  const chronic = profile.conditions.length > 0;
+  const n = plan.n;
+  return {
+    premium: lowIncome ? n.premiumWithMediCal : n.premium,
+    moop: dual ? (n.moopWithMediCal ?? n.moop) : n.moop,
+    giveback: dual ? 0 : n.giveback,
+    copays: (n.pcp ?? 20) + (n.spec ?? 40) * 1.5 + (n.inpatient5 ?? 500) / 20 + (n.er ?? 120) / 10,
+    rx: n.noPartD ? null : (lowIncome && n.extraHelpCopays ? 5 : (n.rxDeductible ?? 0) / 6 + (n.tier3 ?? 47) + (n.tier1 ?? 0) * 2 + (n.tier2 ?? 0) * 2),
+    insulin: n.insulin,
+    dental: n.dentalValue + (profile.dentalImplants && n.dentalImplants ? 1500 : 0) + (dual && n.dentalMediCal ? 500 : 0),
+    vision: n.eyewear || 0,
+    hearing: n.hearingValue,
+    card: chronic ? n.cardYearChronic : n.cardYear,
+    rides: Math.min(n.rides, 100),
+    acu: Math.min(n.acuVisits, 30), chiro: Math.min(n.chiroVisits, 30),
+    fitness: n.fitness ? 1 : 0,
+    ppo: n.ppo ? 1 : (n.pos ? 0.45 : (n.referrals === false ? 0.6 : 0)),
+    travel: n.worldwide ? (n.worldwideLimit ? Math.min(1, n.worldwideLimit / 100000) : 0.8) : 0,
+  };
+}
+
 function rankPlans(data, profile, notes = {}) {
   const dual = profile.mediCal === 'full';
   const lowIncome = dual || profile.extraHelp;
@@ -830,26 +872,7 @@ function rankPlans(data, profile, notes = {}) {
   const scope = pool.length ? pool : [];
 
   // Per-plan raw values (what the client actually pays / gets).
-  const val = plan => {
-    const n = plan.n;
-    return {
-      premium: lowIncome ? n.premiumWithMediCal : n.premium,
-      moop: dual ? (n.moopWithMediCal ?? n.moop) : n.moop,
-      giveback: dual ? 0 : n.giveback,
-      copays: (n.pcp ?? 20) + (n.spec ?? 40) * 1.5 + (n.inpatient5 ?? 500) / 20 + (n.er ?? 120) / 10,
-      rx: n.noPartD ? null : (lowIncome && n.extraHelpCopays ? 5 : (n.rxDeductible ?? 0) / 6 + (n.tier3 ?? 47) + (n.tier1 ?? 0) * 2 + (n.tier2 ?? 0) * 2),
-      insulin: n.insulin,
-      dental: n.dentalValue + (profile.dentalImplants && n.dentalImplants ? 1500 : 0) + (dual && n.dentalMediCal ? 500 : 0),
-      vision: n.eyewear || 0,
-      hearing: n.hearingValue,
-      card: chronic ? n.cardYearChronic : n.cardYear,
-      rides: Math.min(n.rides, 100),
-      acu: Math.min(n.acuVisits, 30), chiro: Math.min(n.chiroVisits, 30),
-      fitness: n.fitness ? 1 : 0,
-      ppo: n.ppo ? 1 : (n.pos ? 0.45 : (n.referrals === false ? 0.6 : 0)),
-      travel: n.worldwide ? (n.worldwideLimit ? Math.min(1, n.worldwideLimit / 100000) : 0.8) : 0,
-    };
-  };
+  const val = plan => planValues(plan, profile);
   const vals = new Map(scope.map(p => [p.key, val(p)]));
   const range = k => { const xs = scope.map(p => vals.get(p.key)[k]).filter(v => v != null); return xs.length ? [Math.min(...xs), Math.max(...xs)] : [0, 0]; };
   const ranges = {}; for (const k of ['premium','moop','giveback','copays','rx','insulin','dental','vision','hearing','card','rides','acu','chiro','fitness','ppo','travel']) ranges[k] = range(k);
@@ -973,7 +996,487 @@ function planForAI(plan) {
   return o;
 }
 
-if (typeof module !== 'undefined') module.exports = {COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$};
+/* ═══════════════ FREE ANSWERS — no AI, no credits ═══════════════
+   Answers questions about the plans straight from the workbook, in the browser.
+   Pure functions: they return plain text/data (the page escapes it before showing it). */
+
+const CARRIER_ALIASES = [
+  ['Aetna', /\baetna\b/i], ['Alignment Health', /\balignment\b/i], ['Anthem', /\banthem\b/i], ['Astiva Health', /\bastiva\b/i],
+  ['CalOptima Health', /\bcal ?optima\b/i], ['Clever Care', /\bclever\b/i], ['Humana', /\bhumana\b|\busaa\b/i],
+  ['Imperial Health Plan', /\bimperial\b/i], ['L.A. Care', /\bl\.? ?a\.? care\b/i], ['SCAN', /\bscan\b/i],
+  ['UCLA Health', /\bucla\b/i], ['UHC', /\buhc\b|\baarp\b|united ?healthcare|\bsharp\b/i],
+];
+const CARRIER_WORDS = new Set(['aetna', 'alignment', 'anthem', 'astiva', 'caloptima', 'clever', 'humana', 'imperial', 'scan', 'ucla', 'uhc', 'aarp', 'sharp', 'usaa']);
+const GENERIC_WORDS = new Set(['health', 'medicare', 'advantage', 'plan', 'plans', 'from', 'by', 'the', 'of', 'and', 'hmo', 'ppo', 'pos', 'snp', 'new', 'care', 'plus', 'with', 'for', 'complete']);
+const STOP_WORDS = new Set('a an the and or of to in on at for with without by from is are was were be been do does did can could would should will what which who whom where when how why that this these those it its i me my we our you your any all some there their his her him she he they them has have had get gets got want wants need needs please tell show list find also plan plans one ones kind sort about cover covers covered include includes offer offers best most lowest highest least cheapest biggest tell give gives much many'.split(' '));
+
+const shortTxt = (s, n) => { const t = T(s); return t.length > n ? t.slice(0, n - 1).replace(/[\s;,(]+\S*$/, '') + '…' : t; };
+const FIELD = (plan, ...keys) => { for (const k of keys) if (plan.fields[k] && !isMissing(plan.fields[k])) return T(plan.fields[k]); return ''; };
+const cardText = plan => FIELD(plan, 'Flex Benefits (OTC + Grocery)') && !/^(n\/a|not|no flex|optional)/i.test(plan.fields['Flex Benefits (OTC + Grocery)'] || '')
+  ? T(plan.fields['Flex Benefits (OTC + Grocery)']) : FIELD(plan, 'OTC Allowance', 'OTC Allowance (+ Healthy Food for C-SNPs)');
+
+/* What a question can be about. dir: which way is "better" for superlatives. */
+const FEATURES = [
+  {id: 'giveback', re: /give ?back|part b|reembolso|money back|devoluci/i, label: 'Part B giveback', dir: 'max', fields: ['Part B Giveback'],
+    metric: r => r.v.giveback, has: r => r.v.giveback > 0, name: 'a Part B giveback',
+    say: r => r.v.giveback > 0 ? `${fmt$(r.v.giveback)}/mo back (${fmt$(r.v.giveback * 12)}/yr)` : 'no giveback'},
+  {id: 'premium', re: /premium|prima\b|monthly (cost|payment)|\$0 plan|free plan|zero premium|no premium|\$0 monthly/i, label: 'monthly premium', dir: 'min', fields: ['Monthly Premium'],
+    metric: r => r.v.premium, has: r => r.v.premium === 0, name: 'a $0 premium', say: r => `${fmt$(r.v.premium)}/mo premium`},
+  {id: 'moop', re: /moop|out[- ]of[- ]pocket|max(imum)? out|gastos? de bolsillo|worst case|l[ií]mite/i, label: 'max out-of-pocket (MOOP)', dir: 'min', fields: ['Max Out-of-Pocket (MOOP)'],
+    metric: r => r.v.moop, has: r => r.v.moop != null, name: 'an out-of-pocket maximum', say: r => `MOOP ${fmt$(r.v.moop)}`},
+  {id: 'copays', re: /co-?pays?|copago|specialist|especialista|pcp|primary care|doctor visit/i, label: 'specialist copay', dir: 'min', fields: ['PCP Copay', 'Specialist Copay'],
+    metric: r => r.plan.n.spec, has: r => r.plan.n.spec === 0, name: '$0 specialist visits',
+    say: r => `PCP ${r.plan.n.pcp == null ? '?' : fmt$(r.plan.n.pcp)} · specialist ${r.plan.n.spec == null ? '?' : fmt$(r.plan.n.spec)}`},
+  {id: 'hospital', re: /hospital|inpatient|surgery|admission|hospitaliz|cirug/i, label: 'hospital stay cost', dir: 'min', fields: ['Inpatient Hospital'],
+    metric: r => r.plan.n.inpatient5, has: r => r.plan.n.inpatient5 === 0, name: '$0 hospital stays', say: r => `hospital: ${shortTxt(r.plan.fields['Inpatient Hospital'], 70)}`},
+  {id: 'insulin', re: /insulin/i, label: 'insulin cost', dir: 'min', fields: ['Insulin (Part D)'],
+    metric: r => r.plan.n.noPartD ? null : r.plan.n.insulin, has: r => !r.plan.n.noPartD && r.plan.n.insulin === 0, name: '$0 insulin',
+    say: r => r.plan.n.noPartD ? 'no Part D' : `insulin ${r.plan.n.insulin === 0 ? '$0' : fmt$(r.plan.n.insulin) + '/mo'}`},
+  {id: 'drugs', re: /drugs?|\brx\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?|deductible/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
+    metric: r => r.v.rx, has: r => !r.plan.n.noPartD, name: 'Part D drug coverage',
+    say: r => r.plan.n.noPartD ? 'no Part D' : `Rx deductible ${fmt$(r.plan.n.rxDeductible)} · Tier 3: ${shortTxt(r.plan.n.tier3Text, 30)}`},
+  {id: 'implants', re: /implants?|implantes?/i, label: 'dental implants', dir: 'max', fields: ['Dental'],
+    metric: r => r.plan.n.dentalImplants ? (r.plan.n.dentalMax || 1) : 0, has: r => r.plan.n.dentalImplants, name: 'dental implants',
+    say: r => r.plan.n.dentalImplants ? shortTxt(r.plan.fields['Dental'], 110) : 'implants not mentioned'},
+  {id: 'dental', re: /dental|dentist|teeth|tooth|dientes|dentista|dentures?|crowns?|root canal|muelas/i, label: 'dental', dir: 'max', fields: ['Dental'],
+    metric: r => r.v.dental, has: r => r.plan.n.dentalComprehensive, name: 'comprehensive dental',
+    say: r => r.plan.n.dentalNotCovered ? 'dental not covered' : shortTxt(r.plan.fields['Dental'], 110)},
+  {id: 'vision', re: /vision|glasses|eyewear|contacts|lentes|anteojos|eye exam|eyeglass/i, label: 'eyewear allowance', dir: 'max', fields: ['Vision'],
+    metric: r => r.plan.n.eyewear || 0, has: r => (r.plan.n.eyewear || 0) > 0, name: 'an eyewear allowance', say: r => shortTxt(r.plan.fields['Vision'], 90)},
+  {id: 'hearing', re: /hearing|audifonos|aud[ií]fonos|hearing aids?/i, label: 'hearing aid benefit', dir: 'max', fields: ['Hearing'],
+    metric: r => r.plan.n.hearingValue, has: r => r.plan.n.hearingValue > 0, name: 'hearing aid coverage', say: r => shortTxt(r.plan.fields['Hearing'], 90)},
+  {id: 'otc', re: /\botc\b|over[- ]the[- ]counter|grocer|food|flex|\bcards?\b|tarjeta|despensa|utilities|allowance/i, label: 'OTC / flex card', dir: 'max', fields: ['OTC Allowance', 'OTC Allowance (+ Healthy Food for C-SNPs)', 'Flex Benefits (OTC + Grocery)'],
+    metric: r => r.v.card, has: r => r.v.card > 0, name: 'an OTC / flex card', say: r => r.v.card ? `≈${fmt$(r.v.card)}/yr · ${shortTxt(cardText(r.plan), 70)}` : 'no OTC/flex card'},
+  {id: 'rides', re: /rides?|transport|trips|raite|transporte|doesn'?t drive|does not drive|no car/i, label: 'transportation', dir: 'max', fields: ['Transportation'],
+    metric: r => r.plan.n.rides, has: r => r.plan.n.rides > 0, name: 'transportation', say: r => r.plan.n.rides ? shortTxt(r.plan.fields['Transportation'], 80) : 'no transportation'},
+  {id: 'acupuncture', re: /acupunct|acupuntura/i, label: 'acupuncture', dir: 'max', fields: ['Acupuncture'],
+    metric: r => r.plan.n.acuVisits, has: r => r.plan.n.acuVisits > 0, name: 'routine acupuncture', say: r => shortTxt(r.plan.fields['Acupuncture'], 90)},
+  {id: 'chiro', re: /chiro|quiropr/i, label: 'chiropractic', dir: 'max', fields: ['Chiropractic'],
+    metric: r => r.plan.n.chiroVisits, has: r => r.plan.n.chiroVisits > 0, name: 'routine chiropractic', say: r => shortTxt(r.plan.fields['Chiropractic'], 90)},
+  {id: 'fitness', re: /\bgym\b|fitness|silver ?sneakers|gimnasio|ejercicio/i, label: 'fitness benefit', dir: 'max', fields: ['Fitness Benefit'],
+    metric: r => r.plan.n.fitness ? 1 : 0, has: r => r.plan.n.fitness, name: 'a fitness benefit', say: r => shortTxt(r.plan.fields['Fitness Benefit'], 60) || 'no fitness benefit'},
+  {id: 'ppo', re: /\bppo\b|no referrals?|without referrals?|out[- ]of[- ]network|referrals?\b|referido|\bpos\b/i, label: 'network freedom', dir: 'max', fields: ['Plan Type', 'Referrals Required'],
+    metric: r => r.v.ppo, has: r => r.plan.n.ppo || r.plan.n.referrals === false, name: 'a PPO / no referrals',
+    say: r => `${r.plan.n.ppo ? 'PPO' : r.plan.n.pos ? 'HMO-POS' : 'HMO'}${r.plan.n.referrals === false ? ' — no referral needed' : r.plan.n.referrals ? ' — ' + shortTxt(r.plan.fields['Referrals Required'], 60) : ''}`},
+  {id: 'worldwide', re: /worldwide|abroad|mexico|m[eé]xico|overseas|travel|viaj|outside the (us|country)/i, label: 'worldwide emergency coverage', dir: 'max', fields: ['Worldwide Emergency Coverage'],
+    metric: r => r.plan.n.worldwide ? (r.plan.n.worldwideLimit || 1) : 0, has: r => r.plan.n.worldwide, name: 'worldwide emergency coverage',
+    say: r => shortTxt(r.plan.fields['Worldwide Emergency Coverage'] || r.plan.fields['ER / Urgent Care'], 100)},
+  {id: 'csnp', re: /c-?snp|chronic condition|special needs/i, label: 'C-SNP', dir: 'max', fields: ['Plan Type', 'Special Eligibility (SNPs)'],
+    metric: r => r.plan.n.csnp ? 1 : 0, has: r => r.plan.n.csnp, name: 'a chronic-condition (C-SNP) design', say: r => shortTxt(r.plan.fields['Plan Type'], 100)},
+  {id: 'dsnp', re: /d-?snp|dual[- ]eligible|\bdual\b|medi-?medi/i, label: 'D-SNP', dir: 'max', fields: ['Plan Type'],
+    metric: r => r.plan.n.dsnp ? 1 : 0, has: r => r.plan.n.dsnp, name: 'a dual-eligible (D-SNP) design', say: r => shortTxt(r.plan.fields['Plan Type'], 100)},
+];
+const FIT_RANKED = new Set(['worldwide', 'ppo', 'csnp', 'dsnp', 'fitness']);   // yes/no benefits: best = best overall fit
+const FEATURE_BY_ID = Object.fromEntries(FEATURES.map(f => [f.id, f]));
+
+const SUP_HI = /\b(most|highest|biggest|largest|greatest|best|richest|top|max(imum)?|more|m[aá]s (alto|grande)|mayor|mejor)\b/i;
+const SUP_LO = /\b(lowest|least|cheapest|smallest|fewest|min(imum)?|less|worst|m[aá]s (bajo|barato)|menor|menos)\b/i;
+
+function planTokens(plan) {
+  return normName(plan.name).split(' ').filter(w => w.length >= 2 && !GENERIC_WORDS.has(w) && !CARRIER_WORDS.has(w) && !/^ca$/.test(w));
+}
+const featureish = w => FEATURES.some(f => f.re.test(w));
+
+/* Which plans does the question name? Returns plans (may be several when names repeat across counties). */
+function matchPlansInQuestion(q, plans, prefCounty, ctx) {
+  const qn = normName(q), qTok = new Set(qn.split(' ').filter(Boolean));
+  const hits = [];
+  const ids = [...T(q).matchAll(/h\d{4}[- ]?\d{3}/ig)].map(m => m[0].replace(/[^a-z0-9]/ig, '').toLowerCase());
+  for (const plan of plans) {
+    const pid = plan.id.replace(/[^a-z0-9]/ig, '').toLowerCase().slice(0, 8);
+    if (ids.length && ids.includes(pid)) { hits.push({plan, cov: 1000}); continue; }
+    const core = normName(plan.name);
+    if (core.length > 12 && qn.includes(core)) { hits.push({plan, cov: 900}); continue; }
+    const tok = planTokens(plan);
+    if (!tok.length) continue;
+    const matched = tok.filter(w => qTok.has(w));
+    const words = tok.filter(w => !/\d/.test(w)), codes = tok.filter(w => /\d/.test(w));
+    // every name word must be in the question; the plan number (055, 18p…) is a bonus — or, alone, specific enough
+    const wordsOk = words.length ? words.every(w => qTok.has(w)) : matched.length > 0;
+    const codeOnly = !words.length || (!wordsOk && codes.some(c => qTok.has(c) && c.length >= 3 && !featureish(c)) && words.some(w => qTok.has(w)));
+    if (!wordsOk && !codeOnly) continue;
+    const carrierSaid = CARRIER_ALIASES.some(([cn, re]) => cn === plan.carrier && re.test(q));
+    if (matched.every(featureish) && !carrierSaid) continue; // "flex card" is not the Imperial Flex plan
+    hits.push({plan, cov: matched.length * 10 + matched.length / tok.length + (carrierSaid ? 5 : 0)});
+  }
+  if (!hits.length) return [];
+  const said = CARRIER_ALIASES.filter(([, re]) => re.test(q)).map(([cn]) => cn);
+  if (said.length && hits.some(h => said.includes(h.plan.carrier))) { const keep = hits.filter(h => said.includes(h.plan.carrier)); hits.length = 0; hits.push(...keep); }
+  const best = Math.max(...hits.map(h => h.cov));
+  let found = hits.filter(h => h.cov === best).map(h => h.plan);
+  const inCounty = found.filter(p => !prefCounty || p.counties.includes(prefCounty));
+  if (inCounty.length) found = inCounty;
+  const inList = found.filter(p => ctx.inResults(p));
+  if (inList.length && found.length > 1) found = inList;
+  return found.slice(0, 4);
+}
+
+const rowLabel = (r, rows) => r.plan.name + (rows.filter(x => x.plan.name === r.plan.name).length > 1 ? ` [${r.plan.counties.join(', ')}]` : '');
+
+/* ctx: {data, profile, notes, result}   → answer {headline, rows, facts, notes, compare, followUps} */
+function answerQuestion(question, ctx) {
+  const q = T(question), ql = q.toLowerCase();
+  const {data, notes, result} = ctx;
+  let profile = ctx.profile;
+  const A = (o) => Object.assign({headline: '', rows: [], facts: [], notes: [], compare: null, followUps: [], plan: null}, o);
+  if (!q) return A({headline: 'Type a question — for example “Which plan has the lowest max out-of-pocket?”', followUps: defaultFollowUps(ctx)});
+
+  // scope: county override, carrier filter, "all plans" switch
+  const qCounty = (COUNTIES.find(c => c.re.test(' ' + q + ' ')) || {}).id;
+  const carrier = (CARRIER_ALIASES.find(([, re]) => re.test(q)) || [])[0] || null;
+  const wantAll = /\b(all|every|any) (the )?plans?\b|whole workbook|entire workbook|every plan|all carriers/i.test(q);
+  if (qCounty && qCounty !== profile.county) profile = Object.assign({}, profile, {county: qCounty});
+  const hasClient = !!(profile.county || profile.conditions.length || Object.keys(profile.priorities).length || profile.medicalGroup || profile.mediCal !== 'unknown' || profile.extraHelp || profile.maxPremium != null || profile.veteran);
+  const usingClient = hasClient && !wantAll && !qCounty && result.results.length > 0;
+  const mk = plan => ({plan, v: planValues(plan, profile), score: null, fit: [], warn: [], verify: [], net: networkStatus(plan, profile, data, notes), parts: []});
+  let rows = usingClient ? result.results.slice() : data.plans.filter(p => !profile.county || p.counties.includes(profile.county)).map(mk);
+  if (carrier) rows = rows.filter(r => r.plan.carrier === carrier);
+  const scopeNote = (usingClient ? `Among the ${result.results.length} plans that fit this client` : `Among ${profile.county ? 'the' : 'all'} ${rows.length} plans${profile.county ? ' sold in ' + COUNTY_BY_ID[profile.county].name : ''}`) + (carrier ? ` from ${carrier}` : '');
+  const inResults = p => result.results.some(r => r.plan.idx === p.idx);
+  const widen = () => { const rr = data.plans.filter(p => !profile.county || p.counties.includes(profile.county)).map(mk); return carrier ? rr.filter(r => r.plan.carrier === carrier) : rr; };
+  const ruledOut = r => { const ex = result.excluded.find(e => e.plan.idx === r.plan.idx); return ex ? ` — ruled out for this client: ${ex.reasons[0]}` : ''; };
+  const rowOf = plan => result.results.find(r => r.plan.idx === plan.idx) || mk(plan);
+  const ranked = result.results;
+  const follow = defaultFollowUps(ctx);
+
+  // features mentioned (leftmost first)
+  const feats = FEATURES.map(f => ({f, at: ql.search(f.re)})).filter(x => x.at >= 0).sort((a, b) => a.at - b.at).map(x => x.f);
+  const hasFeat = id => feats.some(f => f.id === id);
+  if (hasFeat('implants')) { const i = feats.findIndex(f => f.id === 'dental'); if (i >= 0) feats.splice(i, 1); }
+  const wantsHi = SUP_HI.test(q), wantsLo = SUP_LO.test(q);
+
+  // plan names in the question
+  let planRefs = [];
+  const topN = ql.match(/\b(?:top|first)\s*(\d|two|three|four)\b/);
+  if (topN && ranked.length) { const n = ({two: 2, three: 3, four: 4})[topN[1]] || +topN[1]; planRefs = ranked.slice(0, Math.min(4, Math.max(1, n))).map(r => r.plan); }
+  else planRefs = matchPlansInQuestion(q, data.plans, profile.county, {inResults});
+
+  // ── how many
+  if (/how many|cu[aá]ntos|number of plans/i.test(q) && !planRefs.length) {
+    const byCarrier = {}; for (const r of rows) byCarrier[r.plan.carrier] = (byCarrier[r.plan.carrier] || 0) + 1;
+    let n = rows.length, text = '';
+    if (feats.length) { n = rows.filter(r => feats.every(f => f.has(r))).length; text = ` with ${feats.map(f => f.name).join(' and ')}`; }
+    return A({headline: `${scopeNote}: ${n} plan${n === 1 ? '' : 's'}${text}.`,
+      notes: [Object.entries(byCarrier).sort((a, b) => b[1] - a[1]).map(([c, k]) => `${c} ${k}`).join(' · ') + (usingClient ? ` — ${result.excluded.length} more ruled out for this client.` : '')], followUps: follow});
+  }
+
+  // ── what to verify
+  if (/verify|check before|confirm|before (i )?enrol|checklist|what should i (check|ask)/i.test(q) && !planRefs.length) return verifyAnswer(ctx, A, follow);
+
+  // ── network / medical group
+  const groupMention = findGroupIn(q, data) || null;
+  if (/network|in-network|\baccepts?\b|contracted|medical group|\bipa\b/i.test(q) || (groupMention && !feats.length && !planRefs.length && !wantsHi && !wantsLo)) {
+    return networkAnswer(q, ctx, profile, groupMention, planRefs, rows, A, follow);
+  }
+
+  // ── why
+  if (/\bwhy\b|por qu[eé]|how come|explain (the )?(rank|ranking|score)/i.test(q)) {
+    if (/\b(not|isn'?t|wasn'?t|doesn'?t)\b/i.test(q) && planRefs.length) return whyNotAnswer(planRefs[0], ctx, profile, A, follow);
+    if (!planRefs.length || /\b(first|#?1|top|number one|lead|best|winner|ranked)\b/i.test(q)) {
+      if (planRefs.length && !/\b(first|#?1|top|number one|lead|winner)\b/i.test(q)) return whyNotAnswer(planRefs[0], ctx, profile, A, follow);
+      return whyTopAnswer(ctx, profile, A, follow);
+    }
+    return whyNotAnswer(planRefs[0], ctx, profile, A, follow);
+  }
+
+  // ── compare
+  const cmpWords = /compare|\bvs\.?\b|versus|difference|differ|better than|which is better|contra/i.test(q);
+  if (planRefs.length >= 2 && (cmpWords || !feats.length)) return compareAnswer(planRefs, ctx, profile, A, follow);
+  if (cmpWords && planRefs.length === 1 && ranked.length) return compareAnswer([ranked[0].plan, ...(planRefs[0].idx === ranked[0].plan.idx ? ranked.slice(1, 2).map(r => r.plan) : planRefs)], ctx, profile, A, follow);
+
+  // ── a specific plan
+  if (planRefs.length) {
+    if (feats.length) {
+      const out = A({headline: planRefs.length > 1 ? `${feats.map(f => f.label).join(' / ')} for the plans matching “${shortTxt(q, 40)}”:` : '', followUps: follow});
+      for (const plan of planRefs) {
+        const r = rowOf(plan);
+        for (const f of feats) {
+          const raw = f.fields.map(k => plan.fields[k] ? `${k}: ${plan.fields[k]}` : '').filter(Boolean).join('  |  ');
+          out.rows.push({idx: plan.idx, text: `${f.say(r)}${raw ? '\n' + raw : ''}`, plain: f.say(r), raw});
+        }
+      }
+      if (planRefs.length === 1) { out.headline = `${planRefs[0].name} — ${feats.map(f => f.label).join(', ')}`; out.notes.push('Exact wording from the workbook is shown under each line. “Not listed / not stated” means the carrier document didn\'t show it — not that it is $0.'); }
+      return out;
+    }
+    return planSummary(planRefs, ctx, profile, A, follow, inResults, rowOf);
+  }
+
+  // ── superlative on a feature (a yes/no benefit like "D-SNP" or "worldwide" only filters; the number decides)
+  const numeric = feats.filter(f => !FIT_RANKED.has(f.id));
+  if (numeric.length && (wantsHi || wantsLo)) {
+    const f = numeric[0], others = feats.filter(x => x !== f);
+    let desc = f.dir === 'max' ? !wantsLo : (wantsHi && !wantsLo && /\b(highest|largest|biggest|most expensive)\b/i.test(q));
+    let pool = rows.filter(r => others.every(o => o.has(r)));
+    pool = pool.map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && desc && x.m <= 0));
+    let wideNote = '';
+    if (!pool.length && usingClient) {
+      pool = widen().filter(r => others.every(o => o.has(r))).map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && desc && x.m <= 0));
+      if (pool.length) wideNote = `None of the ${rows.length} plans that fit this client have ${f.name} — these other plans sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} do (tap one to see why it isn't on this client's list):`;
+    }
+    if (!pool.length) return A({headline: `No plan in this list has ${f.name}.`, notes: [scopeNote + '.'], followUps: follow});
+    pool.sort((a, b) => (desc ? b.m - a.m : a.m - b.m) || ((b.r.score || 0) - (a.r.score || 0)));
+    const top = pool.slice(0, 5);
+    if (wideNote) return A({headline: wideNote, rows: top.map(x => ({idx: x.r.plan.idx, text: f.say(x.r) + ruledOut(x.r)})), notes: [`Best on this: ${rowLabel(top[0].r, top.map(x => x.r))}.`], followUps: follow});
+    return A({headline: `${desc ? 'Highest' : 'Lowest'} ${f.label}${others.length ? ' (also with ' + others.map(o => o.name).join(' and ') + ')' : ''}: **${rowLabel(top[0].r, rows)}**`,
+      rows: top.map(x => ({idx: x.r.plan.idx, text: f.say(x.r) + (x.r.score != null ? ` · fit ${Math.round(x.r.score)}` : '')})),
+      notes: [scopeNote + (pool.length > 5 ? `; showing 5 of ${pool.length}.` : '.')].concat(top[0].r.score != null && ranked[0] && top[0].r.plan.idx !== ranked[0].plan.idx ? [`Best overall fit for this client is still ${ranked[0].plan.name} — a top number on one benefit isn't the whole picture.`] : []),
+      compare: top.length >= 2 ? top.slice(0, 3).map(x => x.r.plan.idx) : null, followUps: follow});
+  }
+
+  // ── which plans have X (filter)
+  if (feats.length) {
+    let pool = rows.filter(r => feats.every(f => f.has(r)));
+    const what = feats.map(f => f.name).join(' and ');
+    if (!pool.length && usingClient) {
+      const wide = widen().filter(r => feats.every(f => f.has(r))).sort((a, b) => (feats[0].metric(b) || 0) - (feats[0].metric(a) || 0));
+      if (wide.length) return A({headline: `None of the ${rows.length} plans that fit this client have ${what} — but ${wide.length} other plan${wide.length > 1 ? 's' : ''} sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} do:`,
+        rows: wide.slice(0, 8).map(r => ({idx: r.plan.idx, text: feats.map(f => f.say(r)).join(' · ') + ruledOut(r)})),
+        notes: ['Tap a plan to see its benefits and why it isn\'t on this client\'s list.' + (wide.length > 8 ? ` Showing 8 of ${wide.length}.` : '')], followUps: follow});
+    }
+    pool.sort((a, b) => (b.score || 0) - (a.score || 0) || feats[0].metric(b) - feats[0].metric(a));
+    if (!pool.length) return A({headline: `No plan in this list has ${what}.`, notes: [scopeNote + '.'], followUps: follow});
+    const shown = pool.slice(0, 8);
+    const one = pool.length === 1 && rows.length === 1;
+    return A({headline: `${pool.length} of ${rows.length} plan${rows.length === 1 ? '' : 's'} ${one ? 'has' : 'have'} ${what}${pool.length > 1 && pool[0].score != null ? ' — best fit for this client first' : ''}:`,
+      rows: shown.map(r => ({idx: r.plan.idx, text: feats.map(f => f.say(r)).join(' · ') + (r.score != null ? ` · fit ${Math.round(r.score)}` : '')})),
+      notes: [scopeNote + (pool.length > shown.length ? `; showing the first ${shown.length}.` : '.')],
+      compare: shown.length >= 2 ? shown.slice(0, 3).map(r => r.plan.idx) : null, followUps: follow});
+  }
+
+  // ── best / recommend
+  if (/best|recommend|suggest|which one|what should|top|mejor|recomienda|lead with|number one/i.test(q) && ranked.length) {
+    const top = ranked.slice(0, 3);
+    return A({headline: `For this client I'd start with **${top[0].plan.name}** (fit ${Math.round(top[0].score)}).`,
+      rows: top.map(r => ({idx: r.plan.idx, text: `fit ${Math.round(r.score)} · ${r.fit.slice(0, 3).join(' · ')}`})),
+      notes: ['Tap “Write the recommendation” for the full write-up, or ask “Why is #1 first?”.'], compare: top.map(r => r.plan.idx), followUps: follow});
+  }
+
+  // ── fall back to a text search through every benefit cell
+  const words = [...new Set(normName(q).split(' ').filter(w => w.length >= 4 && !STOP_WORDS.has(w) && !CARRIER_WORDS.has(w)))];
+  if (words.length) {
+    const stem = w => w.replace(/(ing|es|s)$/, '');
+    let found = [], wide = false;
+    const search = list => { const out = [];
+    for (const r of list) {
+      const hay = Object.entries(r.plan.fields).map(([k, v]) => [k, T(v)]);
+      const hit = words.filter(w => hay.some(([, v]) => v.toLowerCase().includes(stem(w))));
+      if (hit.length) { const [k, v] = hay.find(([, v]) => v.toLowerCase().includes(stem(hit[0]))); const at = v.toLowerCase().indexOf(stem(hit[0])); out.push({r, n: hit.length, snippet: `${k}: …${v.slice(Math.max(0, at - 40), at + 80)}…`}); }
+    }
+    return out; };
+    found = search(rows);
+    if (!found.length && usingClient) { found = search(widen()); wide = found.length > 0; }
+    found.sort((a, b) => b.n - a.n || (b.r.score || 0) - (a.r.score || 0));
+    if (found.length) {
+      const shown = found.slice(0, 8);
+      return A({headline: `${wide ? `None of the ${rows.length} plans that fit this client mention “${words.join(' ')}”, but ` : ''}${found.length} plan${found.length > 1 ? 's' : ''} sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} ${wide ? '' : 'mention'}${found.length > 1 || wide ? (wide ? 'do' : '') : ''}${wide ? '' : ' “' + words.join(' ') + '” in their benefits'}:`.replace(/\s+/g, ' ').replace(' :', ':'),
+        rows: shown.map(x => ({idx: x.r.plan.idx, text: x.snippet + (wide ? ruledOut(x.r) : '')})),
+        notes: [(wide ? 'Tap a plan to see why it isn\'t on this client\'s list. ' : scopeNote + '. ') + 'This is a plain text match — open the plan to read the full wording.'], followUps: follow});
+    }
+  }
+  return A({headline: 'I couldn\'t match that to the plan data. I can answer questions like these:', followUps: follow,
+    notes: ['Rankings (“lowest MOOP”, “biggest giveback”), filters (“which plans cover implants?”), one plan (“does Smart 055 have dental?”), “compare Smart 055 and Smart 013”, “why is #1 first?”, “is Facey in network?”, “what should I verify?”. For open-ended questions you can use Claude (optional, uses your key).']});
+}
+
+function defaultFollowUps(ctx) {
+  const out = ['Which plan has the lowest max out-of-pocket?', 'Which plans cover dental implants?'];
+  const top = ctx.result.results[0];
+  if (top) { out.push('Why is the top plan ranked first?', `Tell me about ${top.plan.name.replace(/\s*\(.*$/, '')}`, 'Compare the top 3'); }
+  if (ctx.profile.medicalGroup) out.push(`Is ${ctx.profile.medicalGroup} in network?`);
+  out.push('What should I verify before enrolling?');
+  return out.slice(0, 6);
+}
+
+function findGroupIn(q, data) {
+  const all = [...new Set(KNOWN_GROUPS.concat(data.groups.map(g => g.network)))];
+  for (const g of all) {
+    const core = g.replace(/\b(medical (group|foundation)|mg|ipa|medical|foundation|health)\b/ig, '').trim();
+    if (core.length >= 4 && new RegExp('\\b' + core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(q)) return core;
+  }
+  return null;
+}
+
+function verifyAnswer(ctx, A, follow) {
+  const top = ctx.result.results.slice(0, 3), p = ctx.profile, items = [];
+  if (!top.length) return A({headline: 'Find plans for a client first, then I can list what to verify.', followUps: follow});
+  items.push('The exact wording in the carrier\'s Summary of Benefits for the plan you pick (this tool shows the workbook\'s text).');
+  items.push(p.medicalGroup ? `That ${p.medicalGroup} and the client's own doctors/hospital are in the plan's network.` : 'That the client\'s doctors, specialists and hospital are in the plan\'s network (the workbook lists networks for very few plans).');
+  if (p.conditions.length || (p.priorities.drugs || 0) > 0) items.push('That every medication is on the plan\'s formulary, at the tier and cost you expect.');
+  if (top.some(r => r.plan.n.csnp)) items.push('That the client qualifies for the C-SNP (diagnosis confirmation / provider verification).');
+  if (top.some(r => r.plan.n.dsnp) || p.mediCal !== 'none') items.push('The client\'s Medi-Cal level and that it matches the plan (D-SNPs need Medi-Cal).');
+  for (const r of top) for (const v of r.verify) { const line = `${r.plan.name.replace(/\s*\(.*$/, '')}: ${v}`; if (!items.includes(line)) items.push(line); }
+  return A({headline: 'Before enrolling, verify:', rows: [], facts: items.map((t, i) => [String(i + 1), t]), followUps: follow});
+}
+
+function networkAnswer(q, ctx, profile, groupMention, planRefs, rows, A, follow) {
+  const group = groupMention || profile.medicalGroup;
+  if (!group) return A({headline: 'Which medical group or doctor? Type it in the profile (“Medical group / doctor”) or ask, for example, “Is Facey in network?”.', followUps: follow});
+  const prof = Object.assign({}, profile, {medicalGroup: group});
+  const list = (planRefs.length ? planRefs.map(p => rows.find(r => r.plan.idx === p.idx) || {plan: p}) : rows);
+  const st = list.map(r => ({r, net: networkStatus(r.plan, prof, ctx.data, ctx.notes)}));
+  const inN = st.filter(x => x.net && x.net.status === 'in'), outN = st.filter(x => x.net && x.net.status === 'out'), unk = st.filter(x => x.net && x.net.status === 'unknown');
+  const out = A({followUps: follow});
+  if (planRefs.length) {
+    out.headline = `${group} and ${planRefs.map(p => p.name).join(' / ')}:`;
+    out.rows = st.map(x => ({idx: x.r.plan.idx, text: x.net ? (x.net.status === 'in' ? `in network (${x.net.source})${x.net.detail ? ' — ' + x.net.detail : ''}` : x.net.status === 'out' ? `NOT in network (${x.net.source})` : 'not listed in the workbook — verify with the carrier, then save Yes/No on the plan card') : 'unknown'}));
+    return out;
+  }
+  out.headline = inN.length ? `${group} is in network for ${inN.length} plan${inN.length > 1 ? 's' : ''}:` : `The workbook doesn't confirm ${group} for any of these plans.`;
+  out.rows = inN.slice(0, 8).map(x => ({idx: x.r.plan.idx, text: `${x.net.source}${x.net.detail ? ' — ' + x.net.detail : ''}`}));
+  if (!inN.length) { // maybe the workbook confirms it on plans outside this client's list
+    const wide = ctx.data.plans.filter(pl => !profile.county || pl.counties.includes(profile.county))
+      .map(pl => ({pl, net: networkStatus(pl, prof, ctx.data, ctx.notes)})).filter(x => x.net && x.net.status === 'in');
+    if (wide.length) {
+      const ex = pl => { const e = ctx.result.excluded.find(z => z.plan.idx === pl.idx); return e ? ` — not on this client's list: ${e.reasons[0]}` : ''; };
+      out.headline = `${group} is not confirmed for this client's plans — but the workbook lists it in network for ${wide.length} other plan${wide.length > 1 ? 's' : ''}:`;
+      out.rows = wide.slice(0, 6).map(x => ({idx: x.pl.idx, text: `${x.net.source}${x.net.detail ? ' — ' + x.net.detail : ''}${ex(x.pl)}`}));
+    }
+  }
+  const bits = [];
+  if (outN.length) bits.push(`${outN.length} plan${outN.length === 1 ? ' is' : 's are'} not in ${group}'s network`);
+  if (unk.length) bits.push(`${unk.length} ${unk.length === 1 ? "isn't" : "aren't"} listed in the workbook`);
+  if (bits.length) out.notes.push(bits.join(' and ') + (unk.length ? ' — confirm those with the carrier and save the answer with the Yes/No buttons on the plan card (it is remembered for every client).' : '.'));
+  return out;
+}
+
+function whyTopAnswer(ctx, profile, A, follow) {
+  const rs = ctx.result.results;
+  if (!rs.length) return A({headline: 'No plans fit yet, so nothing is ranked.', followUps: follow});
+  const top = rs[0], second = rs[1];
+  const out = A({headline: `**${top.plan.name}** ranks first (fit ${Math.round(top.score)})${second ? ` — ahead of ${second.plan.name} (${Math.round(second.score)})` : ''}.`, followUps: follow});
+  out.rows = top.fit.slice(0, 6).map(t => ({idx: null, text: t}));
+  const lead = top.parts.slice().sort((a, b) => b.weight * b.score - a.weight * a.score).slice(0, 3).map(x => x.label.toLowerCase());
+  out.notes.push(`Weighted most for this client: ${lead.join(', ')}.`);
+  if (second) {
+    const better = second.parts.filter(sp => { const tp = top.parts.find(x => x.id === sp.id); return tp && sp.score - tp.score >= 0.2 && sp.weight >= 0.9; }).map(sp => describePart(sp.id, second.plan, second.v, profile)).filter(Boolean);
+    if (better.length) out.notes.push(`${second.plan.name} is stronger on: ${better.slice(0, 3).join('; ')}.`);
+  }
+  if (top.warn.length) out.notes.push('Trade-offs of #1: ' + top.warn.slice(0, 3).join('; ') + '.');
+  return out;
+}
+
+function whyNotAnswer(plan, ctx, profile, A, follow) {
+  const rs = ctx.result.results, i = rs.findIndex(r => r.plan.idx === plan.idx);
+  if (i < 0) {
+    const ex = ctx.result.excluded.find(e => e.plan.idx === plan.idx);
+    if (ex) return A({headline: `${plan.name} is ruled out for this client:`, rows: ex.reasons.map(t => ({idx: null, text: t})), followUps: follow});
+    return A({headline: `${plan.name} isn't sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the client\'s county'} (${plan.counties.map(c => COUNTY_BY_ID[c].name).join(', ')}).`, followUps: follow});
+  }
+  const r = rs[i], top = rs[0];
+  if (i === 0) return whyTopAnswer(ctx, profile, A, follow);
+  const out = A({headline: `${plan.name} is #${i + 1} (fit ${Math.round(r.score)}) vs #1 ${top.plan.name} (${Math.round(top.score)}).`, followUps: follow});
+  const worse = r.parts.filter(rp => { const tp = top.parts.find(x => x.id === rp.id); return tp && tp.score - rp.score >= 0.2 && rp.weight >= 0.9; });
+  out.rows = worse.slice(0, 4).map(rp => ({idx: null, text: `Weaker on ${rp.label.toLowerCase()}: ${describePart(rp.id, r.plan, r.v, profile)} (#1: ${describePart(rp.id, top.plan, top.v, profile)})`}));
+  const better = r.parts.filter(rp => { const tp = top.parts.find(x => x.id === rp.id); return tp && rp.score - tp.score >= 0.2 && rp.weight >= 0.9; }).map(rp => describePart(rp.id, r.plan, r.v, profile)).filter(Boolean);
+  if (better.length) out.notes.push(`It is stronger on: ${better.slice(0, 3).join('; ')}.`);
+  if (r.warn.length) out.notes.push('Trade-offs: ' + r.warn.slice(0, 3).join('; ') + '.');
+  return out;
+}
+
+function compareAnswer(plans, ctx, profile, A, follow) {
+  const rowOf = p => ctx.result.results.find(r => r.plan.idx === p.idx) || {plan: p, v: planValues(p, profile), score: null};
+  const rs = plans.map(rowOf);
+  const out = A({headline: `Comparing ${plans.map(p => p.name).join(' vs ')}`, compare: plans.map(p => p.idx), followUps: follow});
+  const lines = [
+    ['Premium', r => fmt$(r.v.premium) + '/mo', r => r.v.premium, 'min'],
+    ['Part B giveback', r => r.v.giveback ? fmt$(r.v.giveback) + '/mo' : '—', r => r.v.giveback, 'max'],
+    ['Max out-of-pocket', r => fmt$(r.v.moop), r => r.v.moop, 'min'],
+    ['Specialist copay', r => r.plan.n.spec == null ? '?' : fmt$(r.plan.n.spec), r => r.plan.n.spec, 'min'],
+    ['Drug deductible', r => r.plan.n.noPartD ? 'no Part D' : fmt$(r.plan.n.rxDeductible), r => r.plan.n.noPartD ? null : r.plan.n.rxDeductible, 'min'],
+    ['Dental', r => r.plan.n.dentalNotCovered ? 'not covered' : r.plan.n.dentalNoMax ? 'no annual max' : r.plan.n.dentalMax ? fmt$(r.plan.n.dentalMax) + '/yr' : r.plan.n.dentalComprehensive ? 'comprehensive' : 'preventive', r => r.v.dental, 'max'],
+    ['OTC / flex card', r => r.v.card ? '≈' + fmt$(r.v.card) + '/yr' : 'none', r => r.v.card, 'max'],
+    ['Rides', r => r.plan.n.ridesUnlimited ? 'unlimited' : r.plan.n.rides ? r.plan.n.rides + '/yr' : 'none', r => r.plan.n.rides, 'max'],
+  ];
+  for (const [label, show, val, dir] of lines) {
+    const vals = rs.map(val).filter(v => v != null);
+    const best = vals.length > 1 && new Set(vals).size > 1 ? (dir === 'min' ? Math.min(...vals) : Math.max(...vals)) : null;
+    out.facts.push([label, rs.map((r, i) => `${plans[i].name.replace(/\s*\(.*$/, '')}: ${show(r)}${best != null && val(r) === best ? ' ✓' : ''}`).join('   |   ')]);
+  }
+  out.notes.push('✓ = best of these on that line. Use “Compare side by side” for every benefit row.');
+  return out;
+}
+
+function planSummary(plans, ctx, profile, A, follow, inResults, rowOf) {
+  const out = A({followUps: follow});
+  const plan = plans[0], r = rowOf(plan), n = plan.n;
+  out.headline = plans.length > 1 ? `Several plans match — showing the first: **${plan.name}**` + ` (also: ${plans.slice(1).map(p => p.name + ' [' + p.counties.join(', ') + ']').join('; ')})` : `**${plan.name}** — ${plan.carrier} · ${plan.counties.map(c => COUNTY_BY_ID[c].name).join(', ')} · ${plan.id}`;
+  out.plan = plan.idx;
+  out.facts = [
+    ['Type', shortTxt(plan.fields['Plan Type'], 120)],
+    ['Premium / giveback', `${fmt$(r.v.premium)}/mo · ${r.v.giveback ? fmt$(r.v.giveback) + '/mo giveback' : 'no giveback'}`],
+    ['Max out-of-pocket', fmt$(r.v.moop) + (n.moopCombined ? ` (${fmt$(n.moopCombined)} in + out of network)` : '')],
+    ['Doctor visits', `PCP ${n.pcp == null ? '?' : fmt$(n.pcp)} · specialist ${n.spec == null ? '?' : fmt$(n.spec)} · hospital ${shortTxt(plan.fields['Inpatient Hospital'], 70)}`],
+    ['Drugs', n.noPartD ? 'No Part D drug coverage' : `deductible ${fmt$(n.rxDeductible)} · Tier 3: ${shortTxt(n.tier3Text, 40)} · insulin ${n.insulin === 0 ? '$0' : fmt$(n.insulin) + '/mo'}`],
+    ['Dental', shortTxt(plan.fields['Dental'], 130)], ['Vision', shortTxt(plan.fields['Vision'], 90)], ['Hearing', shortTxt(plan.fields['Hearing'], 90)],
+    ['OTC / flex card', r.v.card ? `≈${fmt$(r.v.card)}/yr — ${shortTxt(cardText(plan), 90)}` : 'none'],
+    ['Rides', n.rides ? shortTxt(plan.fields['Transportation'], 90) : 'none'],
+  ].filter(([, v]) => v);
+  if (inResults(plan)) {
+    out.rows = r.fit.slice(0, 5).map(t => ({idx: null, text: '✓ ' + t})).concat(r.warn.slice(0, 3).map(t => ({idx: null, text: '! ' + t})), r.verify.slice(0, 3).map(t => ({idx: null, text: '? ' + t})));
+    out.notes.push(`Ranked #${ctx.result.results.findIndex(x => x.plan.idx === plan.idx) + 1} of ${ctx.result.results.length} for this client (fit ${Math.round(r.score)}).`);
+  } else {
+    const ex = ctx.result.excluded.find(e => e.plan.idx === plan.idx);
+    if (ex) out.notes.push('Ruled out for this client: ' + ex.reasons.join('; ') + '.');
+    else if (profile.county && !plan.counties.includes(profile.county)) out.notes.push(`Not sold in ${COUNTY_BY_ID[profile.county].name}.`);
+  }
+  return out;
+}
+
+/* ─── free recommendation write-up (English / Spanish) ─── */
+const ES_COND = {diabetes: 'diabetes', heart: 'enfermedad del corazón', lung: 'EPOC/asma', kidney: 'enfermedad renal', esrd: 'diálisis', dementia: 'demencia'};
+const ES_PRI = {giveback: 'recibir dinero de vuelta de la Parte B', zeroPremium: 'una prima de $0', lowMoop: 'un límite bajo de gastos de bolsillo', drugs: 'sus medicamentos', dental: 'el dental', vision: 'los lentes', hearing: 'los audífonos', otc: 'la tarjeta de beneficios', rides: 'el transporte', acupuncture: 'la acupuntura', chiro: 'el quiropráctico', fitness: 'el gimnasio', ppo: 'poder ver a cualquier doctor', travel: 'la cobertura al viajar', lowCopays: 'copagos bajos'};
+const EN_PRI = {giveback: 'a Part B giveback', zeroPremium: 'a $0 premium', lowMoop: 'low out-of-pocket costs', drugs: 'drug costs', dental: 'dental', vision: 'vision', hearing: 'hearing aids', otc: 'an OTC/grocery card', rides: 'transportation', acupuncture: 'acupuncture', chiro: 'chiropractic', fitness: 'a gym benefit', ppo: 'seeing any doctor', travel: 'coverage when traveling', lowCopays: 'low copays'};
+const ES_COUNTY = {LA: 'Los Ángeles', OC: 'Orange', RIV: 'Riverside', SB: 'San Bernardino', SD: 'San Diego', VEN: 'Ventura'};
+
+function localRecommendation(ctx, lang) {
+  const es = lang === 'es', t = (en, sp) => es ? sp : en;
+  const rs = ctx.result.results, p = ctx.profile;
+  if (!rs.length) return t('## Recommendation\nNo plans fit yet — adjust the client profile (county, conditions, must-haves) and try again.', '## Recomendación\nTodavía no hay planes que encajen — ajuste el perfil del cliente e intente de nuevo.');
+  const top = rs[0], L = [];
+  const nm = r => r.plan.name;
+  L.push(t('## Recommendation', '## Recomendación'));
+  L.push(t(`- Lead with **${nm(top)}** — fit score ${Math.round(top.score)}/100 (${top.plan.carrier}, ${top.plan.counties.map(c => COUNTY_BY_ID[c].name).join(', ')}).`,
+    `- Empiece con **${nm(top)}** — puntaje de ajuste ${Math.round(top.score)}/100 (${top.plan.carrier}, ${top.plan.counties.map(c => ES_COUNTY[c]).join(', ')}).`));
+  if (es) L.push('_(Datos del plan tal como aparecen en el libro, en inglés)_');
+  for (const f of top.fit.slice(0, 5)) L.push('- ' + f);
+  L.push('');
+  if (rs.length > 1) {
+    L.push(t('## Also consider', '## También considere'));
+    for (const r of rs.slice(1, 3)) {
+      const adv = r.parts.filter(x => { const tp = top.parts.find(y => y.id === x.id); return tp && x.score - tp.score >= 0.2 && x.weight >= 0.9; });
+      const dis = r.parts.filter(x => { const tp = top.parts.find(y => y.id === x.id); return tp && tp.score - x.score >= 0.2 && x.weight >= 0.9; });
+      const a = adv.slice(0, 3).map(x => describePart(x.id, r.plan, r.v, p)).filter(Boolean).join('; ');
+      const d = dis.slice(0, 3).map(x => describePart(x.id, top.plan, top.v, p)).filter(Boolean).join('; ');
+      L.push(t(`- **${nm(r)}** (fit ${Math.round(r.score)})${a ? ` — stronger on: ${a}` : ''}${d ? `. Gives up what #1 has: ${d}` : ''}.`,
+        `- **${nm(r)}** (ajuste ${Math.round(r.score)})${a ? ` — mejor en: ${a}` : ''}${d ? `. Pierde lo que tiene el #1: ${d}` : ''}.`));
+    }
+    L.push('');
+  }
+  L.push(t('## Verify before enrolling', '## Verifique antes de inscribir'));
+  const ver = [];
+  ver.push(t(p.medicalGroup ? `${p.medicalGroup} and the client's own doctors are in the plan's network.` : "The client's doctors, specialists and hospital are in the plan's network.", p.medicalGroup ? `${p.medicalGroup} y los doctores del cliente están en la red del plan.` : 'Los doctores, especialistas y hospital del cliente están en la red del plan.'));
+  if (p.conditions.length || (p.priorities.drugs || 0) > 0) ver.push(t("Each of the client's medications is on the formulary, at the expected cost.", 'Cada medicamento del cliente está en el formulario, al costo esperado.'));
+  if (rs.slice(0, 3).some(r => r.plan.n.csnp)) ver.push(t('The client qualifies for the C-SNP (diagnosis confirmation).', 'El cliente califica para el C-SNP (confirmación del diagnóstico).'));
+  if (rs.slice(0, 3).some(r => r.plan.n.dsnp)) ver.push(t('Medi-Cal level matches the D-SNP.', 'El nivel de Medi-Cal corresponde al D-SNP.'));
+  ver.push(t("Exact benefit wording in the carrier's Summary of Benefits.", 'El texto exacto de beneficios en el Resumen de Beneficios de la aseguradora.'));
+  for (const r of rs.slice(0, 3)) for (const v of r.verify) { if (/network|in network/i.test(v) && ver.length > 1) continue; ver.push((es ? '(nota de la herramienta, en inglés) ' : '') + `${r.plan.name.replace(/\s*\(.*$/, '')}: ${v}`); }
+  for (const v of [...new Set(ver)].slice(0, 9)) L.push('- ' + v);
+  L.push('');
+  L.push(t('## How to explain it to the client', '## Cómo explicárselo al cliente'));
+  const bits = es
+    ? [p.county ? ES_COUNTY[p.county] : null, ...p.conditions.map(c => ES_COND[c]), ...Object.entries(p.priorities).filter(([, v]) => v >= 2).slice(0, 3).map(([k]) => ES_PRI[k])].filter(Boolean)
+    : [p.county ? COUNTY_BY_ID[p.county].name : null, ...p.conditions.map(c => COND_BY_ID[c].label.split(' /')[0].toLowerCase()), ...Object.entries(p.priorities).filter(([, v]) => v >= 2).slice(0, 3).map(([k]) => EN_PRI[k])].filter(Boolean);
+  const v = top.v, prem = v.premium === 0 ? t('a $0 monthly premium', 'una prima mensual de $0') : t(`a ${fmt$(v.premium)} monthly premium`, `una prima mensual de ${fmt$(v.premium)}`);
+  const gb = v.giveback > 0 ? t(` and it gives back ${fmt$(v.giveback)} a month toward your Part B premium`, ` y devuelve ${fmt$(v.giveback)} al mes de su prima de la Parte B`) : '';
+  const warn = top.warn.find(x => !/giveback won't help/i.test(x));
+  L.push(t(`“Based on what you've told me${bits.length ? ' — ' + bits.join(', ') : ''} — I'd start by looking at ${nm(top)} from ${top.plan.carrier}. It has ${prem}${gb}. The most you'd pay out of pocket for covered medical care in a year is ${fmt$(v.moop)}.${warn ? ` One thing to know: ${warn.replace(/\.$/, '')}.` : ''} Before we enroll, I want to confirm your doctors${p.conditions.length ? ' and medications' : ''} are covered. Does that sound right to you?”`,
+    `“Según lo que me comentó${bits.length ? ' — ' + bits.join(', ') : ''} — empezaría por revisar ${nm(top)} de ${top.plan.carrier}. Tiene ${prem}${gb}. Lo máximo que pagaría de su bolsillo por la atención médica cubierta en un año es ${fmt$(v.moop)}. Antes de inscribirnos, quiero confirmar que sus doctores${p.conditions.length ? ' y medicamentos' : ''} estén cubiertos. ¿Le parece bien?”`));
+  L.push('');
+  L.push(t('_Built from the workbook — no AI. Confirm details with the carrier before enrolling._', '_Hecho con los datos del libro de Excel — sin IA. Confirme los detalles con la aseguradora antes de inscribir._'));
+  return L.join('\n');
+}
+/* ═══════════════ END FREE ANSWERS ═══════════════ */
+
+if (typeof module !== 'undefined') module.exports = {COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$, planValues, answerQuestion, localRecommendation, FEATURES};
 </script>
 
 <script>
@@ -1052,7 +1555,7 @@ const store = {
   set(k, v) { try { localStorage.setItem(k, v); return true; } catch (_) { return false; } },
   del(k) { try { localStorage.removeItem(k); } catch (_) {} },
 };
-const S = {data: null, profile: blankProfile(), notes: {}, compare: [], result: null, showAll: false, expanded: new Set(), aiRead: false};
+const S = {useClaudeRead: store.get('pc_use_claude_read') === '1', lastFree: null, lastKind: '', data: null, profile: blankProfile(), notes: {}, compare: [], result: null, showAll: false, expanded: new Set(), aiRead: false};
 try { S.notes = JSON.parse(store.get(STORE.notes) || '{}') || {}; } catch (_) { S.notes = {}; }
 
 /* API key: shared with the hub (same localStorage key + postMessage). */
@@ -1207,7 +1710,7 @@ async function findPlans() {
   addRecent(text);
   rerank();
   if (isPhone()) setTab('plans');
-  if (!apiKey) return;
+  if (!apiKey || !S.useClaudeRead) return; // Claude is opt-in — the built-in reader is free
   const btn = $('findBtn'); btn.disabled = true;
   $('aiBadge').className = 'ai-badge'; $('aiBadge').innerHTML = '<span class="spinner"></span>Claude is reading the description…';
   try {
@@ -1250,15 +1753,18 @@ function rerank(full = true) {
   const tc = $('tabCount'); tc.hidden = !S.result.results.length; tc.textContent = S.result.results.length;
   renderNetSum();
   const out = $('aiOut');
-  if (out && !out.hidden && !out.querySelector('.stale')) out.insertAdjacentHTML('afterbegin', '<p class="stale hint">⟳ The shortlist changed since this was written — run it again for an updated answer.</p>');
+  if (out && !out.hidden) {
+    if (S.lastKind === 'free' && S.lastFree) refreshFree();
+    else if (!out.querySelector('.stale')) out.insertAdjacentHTML('afterbegin', '<p class="stale hint">⟳ The shortlist changed since this was written — run it again for an updated answer.</p>');
+  }
 }
 
 function renderAiBadge() {
   const b = $('aiBadge');
   if (!b || b.querySelector('.spinner')) return;
   if (S.aiRead) { b.className = 'ai-badge on'; b.textContent = '✓ Read by Claude' + (S.profile.aiSummary ? ' — ' + S.profile.aiSummary : ''); }
-  else if (apiKey) { b.className = 'ai-badge'; b.textContent = 'Claude will read the description'; }
-  else { b.className = 'ai-badge'; b.textContent = 'Built-in reader (add the API key in the hub for Claude)'; }
+  else if (apiKey && S.useClaudeRead) { b.className = 'ai-badge'; b.textContent = 'Claude will read the description (a few cents)'; }
+  else { b.className = 'ai-badge on'; b.textContent = 'Built-in reader — free'; }
 }
 
 function profileLine(p) {
@@ -1603,33 +2109,93 @@ Ground rules:
 - Plan IDs marked "(verify)" must be confirmed before enrolling.
 Write in ${lang === 'es' ? 'Spanish (natural, warm Latin-American Spanish; keep plan names in English)' : 'English'}.`;
 
+const ctxFree = () => ({data: S.data, profile: S.profile, notes: S.notes, result: S.result});
+
 function renderAiCard() {
   const el = $('aiCard'); if (!el || !S.result) return;
   const lang = store.get(STORE.lang) || 'en';
-  if (!apiKey) {
-    el.innerHTML = `<span class="h">Claude recommendation</span>
-      <p style="font-size:13px;color:var(--text-mid)">Add a Claude API key to have Claude read client notes, write the recommendation and answer questions about these plans. Paste it in the hub's top bar — or here:</p>
-      <div class="ai-key"><input class="inp" type="password" id="keyInput" placeholder="sk-ant-…"/><button class="btn small" id="keySave">Save</button></div>`;
-    return;
-  }
-  if (el.dataset.ready) return;
-  el.dataset.ready = '1';
-  el.innerHTML = `<span class="h">Claude recommendation</span>
-    <div class="row" style="margin-top:0"><button class="btn gold" id="aiWrite">Write the recommendation</button>
+  const state = apiKey ? 'key' : 'nokey';
+  if (el.dataset.ready === state) { renderQChips(); return; }
+  el.dataset.ready = state;
+  const claudeBox = apiKey
+    ? `<p class="hint">Claude can answer open-ended questions the built-in answers can't. Each use sends the top plans to Claude and costs a few cents.</p>
+       <label class="tg"><input type="checkbox" id="useClaudeRead" ${S.useClaudeRead ? 'checked' : ''}/> Let Claude read the client description when I tap “Find best plans”</label>
+       <div class="row"><button class="btn small" id="claudeAsk">Ask Claude this question</button><button class="btn small" id="claudeWrite">Claude's recommendation</button><button class="linkbtn" id="keyForget">Change key</button></div>`
+    : `<p class="hint">Not needed — everything above is free. Paste a Claude key only if you want open-ended answers (a few cents each).</p>
+       <div class="ai-key"><input class="inp" type="password" id="keyInput" placeholder="sk-ant-…"/><button class="btn small" id="keySave">Save</button></div>`;
+  el.innerHTML = `<span class="h">Ask about these plans <span class="free-tag">FREE</span></span>
+    <div class="qa"><input class="inp" id="aiQ" placeholder="Ask — e.g. Which plan has the lowest MOOP? Does Smart 055 cover implants?"/><button class="btn primary small" id="aiAsk">Ask</button></div>
+    <div class="qchips" id="qChips"></div>
+    <div class="row"><button class="btn gold" id="aiWrite">Write the recommendation</button>
       <select class="inp" id="aiLang" style="width:auto"><option value="en" ${lang === 'en' ? 'selected' : ''}>English</option><option value="es" ${lang === 'es' ? 'selected' : ''}>Español</option></select>
-      <span class="hint" style="margin:0">Uses the top plans above + the workbook notes. <button class="linkbtn" id="keyForget">Change key</button></span></div>
-    <div class="qa"><input class="inp" id="aiQ" placeholder="Ask about these plans — e.g. Which one covers implants with no waiting period?"/><button class="btn small" id="aiAsk">Ask</button></div>
-    <div class="ai-out" id="aiOut" hidden></div>`;
+      <span class="hint" style="margin:0">Free — built from your workbook, no credits used.</span></div>
+    <div class="ai-out" id="aiOut" hidden></div>
+    <details class="claude-box"><summary>Optional: use Claude <span class="hint">(your key — a few cents per use)</span></summary>${claudeBox}</details>`;
+  renderQChips();
 }
+function renderQChips() {
+  const el = $('qChips'); if (!el) return;
+  el.innerHTML = defaultFollowUps(ctxFree()).map(x => `<button class="qchip" data-q="${esc(x)}">${esc(x)}</button>`).join('');
+}
+
+/* Free answers: computed here from the workbook — no network, no credits. */
+function showFree(a, q) {
+  const out = $('aiOut'); out.hidden = false;
+  const labelRows = (a.rows || []).map(r => r.idx != null ? S.data.plans[r.idx] : null).filter(Boolean);
+  const lbl = plan => plan.name + (labelRows.filter(x => x.name === plan.name).length > 1 ? ` [${plan.counties.join(', ')}]` : '');
+  let html = q ? `<p class="hint"><b>Q:</b> ${esc(q)}</p>` : '';
+  html += `<div class="ans-head">${md(a.headline)}</div>`;
+  if (a.rows && a.rows.length) html += '<ul class="ans">' + a.rows.map(r => {
+    const [first, ...rest] = String(r.text).split('\n');
+    const head = r.idx != null ? `<button class="alink" data-open-plan="${r.idx}">${esc(lbl(S.data.plans[r.idx]))}</button> — ` : '';
+    return `<li>${head}${esc(first)}${rest.length ? `<span class="raw">${esc(rest.join(' '))}</span>` : ''}</li>`;
+  }).join('') + '</ul>';
+  if (a.facts && a.facts.length) html += '<table class="facts"><tbody>' + a.facts.map(([k, v]) => `<tr><th>${esc(k)}</th><td>${esc(v)}</td></tr>`).join('') + '</tbody></table>';
+  for (const n of a.notes || []) html += `<p class="hint">${esc(n)}</p>`;
+  const acts = [];
+  if (a.compare && a.compare.length >= 2) acts.push(`<button class="btn small" data-cmpset="${a.compare.join(',')}">Compare side by side</button>`);
+  if (a.plan != null) acts.push(`<button class="btn small" data-details="${a.plan}">All benefits</button>`);
+  if (acts.length) html += `<div class="ans-actions">${acts.join('')}</div>`;
+  if (a.followUps && a.followUps.length) html += '<div class="qchips">' + a.followUps.slice(0, 4).map(x => `<button class="qchip" data-q="${esc(x)}">${esc(x)}</button>`).join('') + '</div>';
+  out.innerHTML = html;
+  S.lastKind = 'free';
+}
+function askFree(q) {
+  q = (q == null ? $('aiQ').value : q).trim();
+  if (!q) { $('aiQ').focus(); return; }
+  $('aiQ').value = q;
+  S.lastFree = {kind: 'ask', q};
+  showFree(answerQuestion(q, ctxFree()), q);
+}
+function writeFree() {
+  S.lastFree = {kind: 'write'}; S.lastKind = 'free';
+  const out = $('aiOut'); out.hidden = false;
+  out.innerHTML = md(localRecommendation(ctxFree(), $('aiLang').value));
+}
+function refreshFree() { if (!S.lastFree) return; if (S.lastFree.kind === 'ask') showFree(answerQuestion(S.lastFree.q, ctxFree()), S.lastFree.q); else writeFree(); }
+function openPlan(idx) {
+  if (S.result.results.some(r => r.plan.idx === idx)) gotoPlan(idx); else showDetails(idx);
+}
+
 $('aiCard').addEventListener('click', async e => {
-  const id = e.target.id;
+  const t = e.target, id = t.id;
+  const chip = t.closest('.qchip'); if (chip) { askFree(chip.dataset.q); return; }
+  const op = t.closest('[data-open-plan]'); if (op) { openPlan(+op.dataset.openPlan); return; }
+  const cs = t.closest('[data-cmpset]'); if (cs) { showCompare(cs.dataset.cmpset.split(',').map(i => S.data.plans[+i])); return; }
+  const det = t.closest('[data-details]'); if (det) { showDetails(+det.dataset.details); return; }
   if (id === 'keySave') { const k = $('keyInput').value.trim(); if (k) { apiKey = k; store.set(STORE.key, k); $('aiCard').dataset.ready = ''; renderAiCard(); renderAiBadge(); } return; }
   if (id === 'keyForget') { forgetKey(); return; }
-  if (id === 'aiWrite') return runAi('write');
-  if (id === 'aiAsk') return runAi('ask');
+  if (id === 'aiAsk') return askFree();
+  if (id === 'aiWrite') return writeFree();
+  if (id === 'claudeWrite') return runAi('write');
+  if (id === 'claudeAsk') return runAi('ask');
 });
-$('aiCard').addEventListener('change', e => { if (e.target.id === 'aiLang') store.set(STORE.lang, e.target.value); });
-$('aiCard').addEventListener('keydown', e => { if (e.target.id === 'aiQ' && e.key === 'Enter') runAi('ask'); });
+$('aiCard').addEventListener('change', e => {
+  if (e.target.id === 'aiLang') { store.set(STORE.lang, e.target.value); if (S.lastKind === 'free' && S.lastFree && S.lastFree.kind === 'write') writeFree(); }
+  if (e.target.id === 'useClaudeRead') { S.useClaudeRead = e.target.checked; store.set('pc_use_claude_read', S.useClaudeRead ? '1' : '0'); renderAiBadge(); }
+});
+$('aiCard').addEventListener('keydown', e => { if (e.target.id === 'aiQ' && e.key === 'Enter') askFree(); });
+function setClaudeBusy(b) { for (const id of ['claudeAsk', 'claudeWrite']) { const x = $(id); if (x) x.disabled = b; } }
 
 function forgetKey() { apiKey = ''; store.del(STORE.key); $('aiCard').dataset.ready = ''; renderAiCard(); renderAiBadge(); }
 
@@ -1641,7 +2207,7 @@ async function runAi(kind) {
   const lang = $('aiLang').value;
   const out = $('aiOut'); out.hidden = false; out.innerHTML = '<p><span class="spinner"></span>Claude is reviewing the plans…</p>';
   const head = kind === 'ask' ? `<p class="hint"><b>Q:</b> ${esc(q)}</p>` : '';
-  aiBusy = true; $('aiWrite').disabled = $('aiAsk').disabled = true;
+  aiBusy = true; setClaudeBusy(true); S.lastKind = 'claude';
   const ctx = aiContext(kind === 'ask' ? 12 : 6);
   const task = kind === 'write'
     ? `Write the recommendation for the agent with these sections:
@@ -1657,7 +2223,7 @@ Keep it under 350 words.`
       onText: t => { out.innerHTML = head + md(t); }});
   } catch (e) {
     out.innerHTML = `<p style="color:var(--red)">Couldn't get an answer: ${esc(e.message)}</p>`;
-  } finally { aiBusy = false; $('aiWrite').disabled = $('aiAsk').disabled = false; }
+  } finally { aiBusy = false; setClaudeBusy(false); }
 }
 
 function md(s) {
