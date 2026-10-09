@@ -427,7 +427,7 @@ const MEDICARE_PACK = [
 
 - luna_registrar_actividad(tipo="INTAKE", descripcion="Intake completo: tomó SCAN HMO, X medicamentos, Dr. Y. Quiere review en 3 días.", miembro_id={id})
 - Si el cliente NO completó algunas preguntas, marca los gaps en el resumen y proponme follow-up para la próxima vez.
-- Si Skarleth debe contactarlo: luna_crear_ticket(tipo="LLAMADA", prioridad="ALTA", descripcion="Lead nuevo del intake — confirmar cita", asignado_a="7", miembro_id={id})`,
+- Si alguien del equipo debe contactarlo: luna_crear_ticket(tipo="LLAMADA", prioridad="ALTA", descripcion="Lead nuevo del intake — confirmar cita", asignado_a="10", miembro_id={id}). Si el ticket falla → mensaje_a_sami con la misma instrucción.`,
   },
   {
     nombre: 'Check-in 12 meses (CMS)',
@@ -517,7 +517,7 @@ const MEDICARE_PACK = [
 ## Pasos
 
 1. luna_expediente_miembro(miembro_id={miembro_id}) — necesito drug_list y providers del miembro.
-2. Si drug_list o providers NO están en el expediente: PARA. "No puedo comparar formulary sin saber qué toma. Pide a Samia o Skarleth que capture esa info en LUNA primero."
+2. Si drug_list o providers NO están en el expediente: PARA. "No puedo comparar formulary sin saber qué toma. Pide a Samia o Arlette que capture esa info en LUNA primero."
 3. Para cada plan en {planes}: web_search "[plan] 2026 premium deductible MOOP formulary".
 4. Arma tabla 4 columnas: Plan / Premium / Deductible+MOOP / Cobertura de SUS medicamentos.
 5. Para cobertura de medicamentos, verifica cada uno contra el formulary del plan (asume Tier 1-5).

@@ -244,7 +244,7 @@ export function buildWikiContext() {
 - Email: connect@withisabelfuentes.com
 - "llámame" / "call me" / "marcame" → llamar_cliente(+13102700626) sin preguntar.
 - "mándame email" → enviar_email(connect@withisabelfuentes.com,...)
-- IDs equipo LUNA: 7=Skarleth, 9=Arlette, 10=Samia, 6=Isabel.`);
+- IDs equipo LUNA: 10=Sami(Samia), 9=Arlette, 8=Suri (id por confirmar), 6=Isabel. Skarleth (7) ya NO está en el equipo — no asignarle nada.`);
   // Vacation mode — bloque al frente si está activo, para que TODA decisión
   // de Athena considere "Isabel no debe ser molestada con esto".
   try {
