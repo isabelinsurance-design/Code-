@@ -59,12 +59,12 @@ button{cursor:pointer}
 .drop{border:2px dashed var(--border-d);border-radius:18px;background:var(--white);padding:40px 24px;transition:.15s}
 .drop.over{border-color:var(--gold);background:var(--gold-lt)}
 .drop h2{font-family:'Fraunces',serif;font-weight:400;font-size:24px;margin-bottom:8px}
-.drop p{color:var(--text-mid);margin-bottom:18px}
+.drop p{color:var(--text-mid);margin-bottom:18px;overflow-wrap:anywhere}
 .drop .fine{font-size:12px;color:var(--text-muted);margin-top:14px}
 .err{color:var(--red);font-weight:600;margin-top:12px}
 
 /* layout */
-.workspace{display:grid;grid-template-columns:minmax(320px,400px) 1fr;grid-template-areas:"side plans" "side ai";gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
+.workspace{display:grid;grid-template-columns:minmax(320px,400px) 1fr;grid-template-rows:auto 1fr;grid-template-areas:"side plans" "side ai";gap:20px;padding:20px;max-width:1500px;margin:0 auto;align-items:start}
 .side{grid-area:side;grid-row:1 / span 2;position:sticky;top:76px;display:flex;flex-direction:column;gap:14px;max-height:calc(100vh - 92px);overflow:auto;padding-bottom:8px}
 .ai-pane{grid-area:ai;display:flex;flex-direction:column;gap:16px;min-width:0}
 .top{padding-left:max(20px,env(safe-area-inset-left));padding-right:max(20px,env(safe-area-inset-right));padding-top:max(10px,env(safe-area-inset-top))}
@@ -84,6 +84,7 @@ button{cursor:pointer}
 .recent-head{display:flex;justify-content:space-between;align-items:center}
 .linkbtn{border:0;background:transparent;color:var(--text-muted);font-size:11.5px;text-decoration:underline}
 .tabbar{display:none}
+.phone-only{display:none}
 .card{background:var(--white);border:1.5px solid var(--border);border-radius:var(--r);padding:16px;box-shadow:var(--sh)}
 .h{display:block;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:8px;font-weight:500}
 textarea{width:100%;border:1.5px solid var(--border);border-radius:10px;padding:10px 12px;resize:vertical;background:var(--surface);min-height:92px;outline:none}
@@ -231,6 +232,19 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   .stats{grid-template-columns:repeat(2,minmax(0,1fr))}
   .modal{padding:12px 8px}
   .modal-box{padding:16px 12px}
+  /* iOS zooms into fields under 16px */
+  textarea,select,select.mic-lang,input:not([type=checkbox]):not([type=radio]){font-size:16px}
+  /* compare tray: full width, and room under the last item */
+  .tray{left:max(12px,env(safe-area-inset-left));right:max(12px,env(safe-area-inset-right));transform:none;max-width:none;justify-content:space-between}
+  .tray .long{display:none}
+  body.has-tray .workspace{padding-bottom:calc(150px + env(safe-area-inset-bottom))}
+  /* tables in modals: own scroll box, sticky header row + label column, close button always reachable */
+  .cmp-wrap{max-height:calc(100dvh - 160px)}
+  .cmp thead th{z-index:2;min-width:160px}
+  .cmp tbody tr:not(.grp) th,.cmp thead th:first-child{position:sticky;left:0;z-index:1;width:110px;min-width:110px}
+  .cmp thead th:first-child{z-index:3}
+  .modal-x{position:sticky;top:0;float:right;min-width:44px;min-height:44px;z-index:4;background:var(--white);border-radius:10px}
+  .phone-only{display:block}
 }
 @media print{
   body{background:#fff}
@@ -257,7 +271,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
     <input type="file" id="fileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/>
   </div>
 </header>
-<div class="ios-hint" id="iosHint" hidden><span>Install on your iPhone: tap <b>Share</b> <span aria-hidden="true">⬆︎</span> in Safari, then <b>Add to Home Screen</b>.</span><button id="iosHintX" aria-label="Dismiss">×</button></div>
+<div class="ios-hint" id="iosHint" hidden><span>Install on your iPhone: tap <b>Share</b> <span aria-hidden="true">⬆︎</span> in Safari, then <b>Add to Home Screen</b>. Then open <b>Plans 2027</b> from your Home Screen and load the workbook there — the Home Screen app keeps its own copy, separate from Safari.</span><button id="iosHintX" aria-label="Dismiss">×</button></div>
 
 <section class="empty" id="emptyState">
   <div class="drop" id="drop">
@@ -1044,7 +1058,9 @@ try { S.notes = JSON.parse(store.get(STORE.notes) || '{}') || {}; } catch (_) { 
 /* API key: shared with the hub (same localStorage key + postMessage). */
 let apiKey = store.get(STORE.key) || '';
 window.addEventListener('message', e => {
-  if (e && e.data && e.data.type === 'ISABEL_API_KEY') { apiKey = e.data.key || ''; store.set(STORE.key, apiKey); renderAiBadge(); renderAiCard(); }
+  if (!e || !e.data || e.data.type !== 'ISABEL_API_KEY') return;
+  if (window.parent === window || e.source !== window.parent || e.origin !== location.origin) return; // only the hub that embeds this page
+  apiKey = e.data.key || ''; store.set(STORE.key, apiKey); $('aiCard').dataset.ready = ''; renderAiBadge(); renderAiCard();
 });
 try { if (window.parent && window.parent !== window) window.parent.postMessage({type: 'ISABEL_REQUEST_KEY'}, '*'); } catch (_) {}
 
@@ -1067,9 +1083,11 @@ async function loadFile(file) {
     useData(data);
   } catch (e) {
     console.error(e);
-    err.textContent = e.message || String(e); err.hidden = false;
-    $('emptyState').hidden = false; $('workspace').hidden = true;
+    const msg = e.message || String(e);
     renderStatus();
+    if (S.data) { alert(`Couldn't load that file: ${msg}\nStill using ${S.data.meta.fileName || 'the saved workbook'}.`); return; }
+    err.textContent = msg; err.hidden = false;
+    $('emptyState').hidden = false; $('workspace').hidden = true; $('tabbar').hidden = true;
   }
 }
 
@@ -1138,7 +1156,7 @@ $('profile').addEventListener('change', e => {
   if (t.dataset.flag) p[t.dataset.flag] = t.checked;
   else if (t.id === 'maxPrem') p.maxPremium = t.value === '' ? null : Math.max(0, parseFloat(t.value));
   else if (t.id === 'langSel') p.language = t.value;
-  else if (t.id === 'mgInput') p.medicalGroup = t.value.trim();
+  else if (t.id === 'mgInput') { clearTimeout(mgTimer); const v = t.value.trim(); if (v !== p.medicalGroup) { p.medicalGroup = v; rerank(false); } return; }
   else return;
   profileChanged();
 });
@@ -1172,14 +1190,18 @@ const EXAMPLES = [
 function renderExamples() {
   $('examples').innerHTML = '<span class="hint">Try an example:</span>' + EXAMPLES.map(x => `<button class="ex">${esc(x)}</button>`).join('');
 }
-$('examples').addEventListener('click', e => { const b = e.target.closest('.ex'); if (b) { $('clientText').value = b.textContent; findPlans(); } });
+$('examples').addEventListener('click', e => { const b = e.target.closest('.ex'); if (b) { dropDictation(); $('clientText').value = b.textContent; findPlans(); } });
 $('findBtn').addEventListener('click', findPlans);
 $('clientText').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) findPlans(); });
 
 async function findPlans() {
+  if (rec) { // let the recognizer deliver its final words before ranking
+    const r = rec; let done = false;
+    const go = () => { if (done) return; done = true; rec = null; $('micBtn').classList.remove('rec'); findPlans(); };
+    r.onend = go; setTimeout(go, 1500); r.stop(); return;
+  }
   const text = $('clientText').value.trim();
   if (!text) { $('clientText').focus(); return; }
-  if (rec) rec.stop();
   S.profile = parseClientText(text, S.data.groups);
   S.aiRead = false; S.showAll = false; S.expanded.clear();
   addRecent(text);
@@ -1301,7 +1323,7 @@ function gotoPlan(idx) {
   el.classList.remove('flash'); void el.offsetWidth; el.classList.add('flash');
 }
 
-function stat(k, v, s, hl) { return `<div class="stat ${hl ? 'hl' : ''}"><div class="k">${k}</div><div class="v">${v}</div>${s ? `<div class="s">${s}</div>` : ''}</div>`; }
+function stat(k, v, s, hl) { return `<div class="stat ${hl ? 'hl' : ''}"><div class="k">${esc(k)}</div><div class="v">${esc(v)}</div>${s ? `<div class="s">${esc(s)}</div>` : ''}</div>`; }
 
 function planCard(r, i) {
   const {plan, v} = r, n = plan.n, p = S.profile, pr = p.priorities, f = plan.fields;
@@ -1406,10 +1428,11 @@ function toggleCompare(idx, on) {
 }
 function renderTray() {
   const t = $('tray');
+  document.body.classList.toggle('has-tray', S.compare.length > 0);
   if (!S.compare.length) { t.hidden = true; return; }
   t.hidden = false;
   t.innerHTML = `<span>${S.compare.length} plan${S.compare.length > 1 ? 's' : ''} selected${S.compare.length === 4 ? ' (max 4)' : ''}</span>
-    <button class="btn small gold" id="cmpGo" ${S.compare.length < 2 ? 'disabled' : ''}>Compare side by side</button>
+    <button class="btn small gold" id="cmpGo" ${S.compare.length < 2 ? 'disabled' : ''}>Compare<span class="long"> side by side</span></button>
     <button class="btn small" id="cmpClear" style="background:transparent;color:#fff">Clear</button>`;
 }
 $('tray').addEventListener('click', e => {
@@ -1453,8 +1476,13 @@ function showDetails(idx) {
 }
 $('modalBody').addEventListener('click', e => { const b = e.target.closest('[data-addcmp]'); if (b) { toggleCompare(+b.dataset.addcmp, !S.compare.includes(+b.dataset.addcmp)); b.textContent = S.compare.includes(+b.dataset.addcmp) ? '✓ In compare' : 'Add to compare'; } });
 
-function openModal(html) { $('modalBody').innerHTML = html; $('modal').hidden = false; document.body.style.overflow = 'hidden'; }
-function closeModal() { $('modal').hidden = true; document.body.style.overflow = ''; }
+function openModal(html) {
+  $('modalBody').innerHTML = html;
+  if ($('modal').hidden) history.pushState({pcModal: 1, pcTab: $('workspace').dataset.tab}, '');
+  $('modal').hidden = false; document.body.style.overflow = 'hidden';
+}
+function hideModal() { $('modal').hidden = true; document.body.style.overflow = ''; }
+function closeModal() { if (history.state && history.state.pcModal) history.back(); else hideModal(); }
 $('modalX').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
@@ -1464,7 +1492,7 @@ $('browseBtn').addEventListener('click', () => {
   const plans = S.data.plans.filter(x => !p.county || x.counties.includes(p.county));
   openModal(`<h2>All plans${p.county ? ' in ' + countyName(p.county) : ''} (${plans.length})</h2><div class="hint">Click a plan for every benefit.</div>
     <div class="cmp-wrap"><table class="cmp"><thead><tr><th>Plan</th><th>Type</th><th>Premium</th><th>Giveback</th><th>MOOP</th><th>Dental</th><th>Card/yr</th><th>Counties</th></tr></thead><tbody>
-    ${plans.map(x => `<tr><td><a href="#" data-open="${x.idx}">${esc(x.name)}</a><div class="hint mono">${esc(x.id)}</div></td><td>${esc(cut(x.fields['Plan Type'], 40))}</td><td>${fmt$(x.n.premium)}</td><td>${x.n.giveback ? fmt$(x.n.giveback) : '—'}</td><td>${fmt$(x.n.moop)}</td><td>${esc(x.n.dentalNoMax ? 'No max' : x.n.dentalMax ? fmt$(x.n.dentalMax) : x.n.dentalComprehensive ? 'Comp.' : x.n.dentalNotCovered ? '—' : 'Prev.')}</td><td>${x.n.cardYear ? fmt$(x.n.cardYear) : '—'}</td><td>${x.counties.join(', ')}</td></tr>`).join('')}
+    ${plans.map(x => `<tr><td><a href="#" data-open="${x.idx}">${esc(x.name)}</a><div class="hint mono">${esc(x.id)}</div><div class="hint phone-only">${fmt$(x.n.premium)}/mo · giveback ${x.n.giveback ? fmt$(x.n.giveback) : '—'} · MOOP ${fmt$(x.n.moop)}</div></td><td>${esc(cut(x.fields['Plan Type'], 40))}</td><td>${fmt$(x.n.premium)}</td><td>${x.n.giveback ? fmt$(x.n.giveback) : '—'}</td><td>${fmt$(x.n.moop)}</td><td>${esc(x.n.dentalNoMax ? 'No max' : x.n.dentalMax ? fmt$(x.n.dentalMax) : x.n.dentalComprehensive ? 'Comp.' : x.n.dentalNotCovered ? '—' : 'Prev.')}</td><td>${x.n.cardYear ? fmt$(x.n.cardYear) : '—'}</td><td>${x.counties.join(', ')}</td></tr>`).join('')}
     </tbody></table></div>`);
 });
 $('modalBody').addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a) { e.preventDefault(); showDetails(+a.dataset.open); } });
@@ -1484,7 +1512,7 @@ async function claude({system, messages, maxTokens = 2000, effort = 'low', forma
   if (!res.ok) {
     let msg = 'HTTP ' + res.status;
     try { const j = await res.json(); msg = (j.error && j.error.message) || msg; } catch (_) {}
-    if (res.status === 401) msg = 'The API key was rejected — check it in the hub.';
+    if (res.status === 401) { forgetKey(); msg = 'The API key was rejected — paste a new one in the Ask AI tab.'; }
     throw new Error(msg);
   }
   if (!onText) {
@@ -1589,18 +1617,21 @@ function renderAiCard() {
   el.innerHTML = `<span class="h">Claude recommendation</span>
     <div class="row" style="margin-top:0"><button class="btn gold" id="aiWrite">Write the recommendation</button>
       <select class="inp" id="aiLang" style="width:auto"><option value="en" ${lang === 'en' ? 'selected' : ''}>English</option><option value="es" ${lang === 'es' ? 'selected' : ''}>Español</option></select>
-      <span class="hint" style="margin:0">Uses the top plans above + the workbook notes.</span></div>
+      <span class="hint" style="margin:0">Uses the top plans above + the workbook notes. <button class="linkbtn" id="keyForget">Change key</button></span></div>
     <div class="qa"><input class="inp" id="aiQ" placeholder="Ask about these plans — e.g. Which one covers implants with no waiting period?"/><button class="btn small" id="aiAsk">Ask</button></div>
     <div class="ai-out" id="aiOut" hidden></div>`;
 }
 $('aiCard').addEventListener('click', async e => {
   const id = e.target.id;
   if (id === 'keySave') { const k = $('keyInput').value.trim(); if (k) { apiKey = k; store.set(STORE.key, k); $('aiCard').dataset.ready = ''; renderAiCard(); renderAiBadge(); } return; }
+  if (id === 'keyForget') { forgetKey(); return; }
   if (id === 'aiWrite') return runAi('write');
   if (id === 'aiAsk') return runAi('ask');
 });
 $('aiCard').addEventListener('change', e => { if (e.target.id === 'aiLang') store.set(STORE.lang, e.target.value); });
 $('aiCard').addEventListener('keydown', e => { if (e.target.id === 'aiQ' && e.key === 'Enter') runAi('ask'); });
+
+function forgetKey() { apiKey = ''; store.del(STORE.key); $('aiCard').dataset.ready = ''; renderAiCard(); renderAiBadge(); }
 
 let aiBusy = false;
 async function runAi(kind) {
@@ -1646,18 +1677,23 @@ function md(s) {
 
 /* ═══════════════ APP: tabs, recent clients, dictation, install ═══════════════ */
 const isPhone = () => matchMedia('(max-width: 900px)').matches;
-function setTab(tab) {
+function setTab(tab, push = true) {
+  if (push && isPhone() && $('workspace').dataset.tab !== tab) history.pushState({pcTab: tab}, '');
   $('workspace').dataset.tab = tab;
   $('tabbar').querySelectorAll('button').forEach(b => b.classList.toggle('on', b.dataset.tab === tab));
   window.scrollTo(0, 0);
 }
 $('tabbar').addEventListener('click', e => { const b = e.target.closest('[data-tab]'); if (b) setTab(b.dataset.tab); });
+addEventListener('popstate', e => {
+  if (!$('modal').hidden) { hideModal(); return; }
+  setTab((e.state && e.state.pcTab) || 'client', false);
+});
 
 /* Recent clients — kept on this device only. */
 const RECENT = 'pc_recent_v1';
 const readRecent = () => { try { return JSON.parse(store.get(RECENT) || '[]') || []; } catch (_) { return []; } };
 function addRecent(text) {
-  const list = [{text, at: Date.now()}].concat(readRecent().filter(r => r.text !== text)).slice(0, 8);
+  const list = [{text, at: Date.now()}].concat(readRecent().filter(r => r.text !== text)).slice(0, 5);
   store.set(RECENT, JSON.stringify(list)); renderRecent();
 }
 function ago(t) {
@@ -1672,14 +1708,21 @@ function renderRecent() {
     list.slice(0, 5).map((r, i) => `<button class="rc" data-recent="${i}"><span>${esc(cut(r.text, 90))}</span><time>${ago(r.at)}</time></button>`).join('');
 }
 $('recent').addEventListener('click', e => {
-  if (e.target.id === 'recentClear') { store.del(RECENT); renderRecent(); return; }
+  if (e.target.id === 'recentClear') {
+    dropDictation(); store.del(RECENT); store.del(STORE.last);
+    $('clientText').value = ''; S.profile = blankProfile(); S.aiRead = false; S.compare = [];
+    rerank(); renderRecent(); return;
+  }
   const b = e.target.closest('[data-recent]'); if (!b) return;
-  const r = readRecent()[+b.dataset.recent]; if (r) { $('clientText').value = r.text; findPlans(); }
+  const r = readRecent()[+b.dataset.recent]; if (r) { dropDictation(); $('clientText').value = r.text; findPlans(); }
 });
+document.addEventListener('visibilitychange', () => { if (!document.hidden && S.data) renderRecent(); });
+setInterval(() => { if (S.data && !document.hidden) renderRecent(); }, 60000);
 
 /* Dictation (Chrome, Safari, Edge). */
 const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
 let rec = null;
+function dropDictation() { if (rec) { rec.onresult = null; try { rec.abort(); } catch (_) {} rec = null; $('micBtn').classList.remove('rec'); } }
 if (SpeechRec) {
   $('micBtn').hidden = false; $('micLang').hidden = false;
   $('micLang').value = store.get('pc_mic_lang') || 'en-US';

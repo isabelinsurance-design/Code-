@@ -1448,9 +1448,10 @@ let calendarItems = {
 const API_KEY_STORE = 'isabel_anthropic_key';
 function broadcastApiKey(targetWindow){
   const msg = {type:'ISABEL_API_KEY', key:apiKey};
-  if(targetWindow){ try{targetWindow.postMessage(msg,'*');}catch(_){} return; }
+  const to = /^https?:$/.test(location.protocol) ? location.origin : '*';
+  if(targetWindow){ try{targetWindow.postMessage(msg,to);}catch(_){} return; }
   document.querySelectorAll('iframe.tool-frame').forEach(f=>{
-    try{ if(f.contentWindow) f.contentWindow.postMessage(msg,'*'); }catch(_){}
+    try{ if(f.contentWindow) f.contentWindow.postMessage(msg,to); }catch(_){}
   });
 }
 function persistApiKey(){
@@ -1899,9 +1900,11 @@ loadApiKey();
 
 // Reply to tools requesting the shared key (e.g. on iframe load)
 window.addEventListener('message', function(e){
-  if(e && e.data && e.data.type === 'ISABEL_REQUEST_KEY'){
-    broadcastApiKey(e.source);
-  }
+  if(!e || !e.data || e.data.type !== 'ISABEL_REQUEST_KEY') return;
+  // Only our own tool iframes get the key — never another window or site.
+  var ours = Array.prototype.some.call(document.querySelectorAll('iframe.tool-frame'), function(f){ return f.contentWindow === e.source; });
+  if(!ours || e.origin !== location.origin) return;
+  broadcastApiKey(e.source);
 });
 </script>
 </body>
