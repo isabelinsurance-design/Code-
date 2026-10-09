@@ -2586,7 +2586,8 @@ $('iosHintX').addEventListener('click', () => { $('iosHint').hidden = true; stor
 
 /* Offline support (needs https or localhost). */
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || ['localhost', '127.0.0.1'].includes(location.hostname))) {
-  window.addEventListener('load', () => navigator.serviceWorker.register('plan-comparison-sw.js', {scope: './plan-comparison'}).catch(e => console.warn('Offline support unavailable:', e)));
+  // try: a sandboxed frame (some preview panels) throws on navigator.serviceWorker
+  window.addEventListener('load', () => { try { navigator.serviceWorker.register('plan-comparison-sw.js', {scope: './plan-comparison'}).catch(e => console.warn('Offline support unavailable:', e)); } catch (e) { console.warn('Offline support unavailable:', e); } });
 }
 
 /* ═══════════════ BOOT ═══════════════ */
