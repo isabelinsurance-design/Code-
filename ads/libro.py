@@ -967,7 +967,7 @@ pasos = [
     ("Anuncio · formulario", "«Formulario instantáneo» → «Crear formulario nuevo» y copia todo de la hoja «Formulario» (tipo «Mayor intención», preguntas, permiso, privacidad, pantalla de gracias). El mismo formulario sirve para todos los anuncios."),
     ("Revisar y publicar", "Mira la vista previa en Feed, Historias y Reels: el pie legal de la imagen debe leerse. Publica. Meta revisa en hasta ~1 día."),
     ("Después de aprobarse", "Toma una captura de pantalla de cada anuncio publicado (con la fecha) y guárdala en una carpeta «Anuncios AEP 2026»."),
-    ("Avisos de leads", "En Meta Business Suite, en el Centro de clientes potenciales (Leads Center), activa los avisos por correo y por la app en el celular de Isabel. Un lead se llama en la primera hora."),
+    ("Avisos de leads", "Meta no manda un correo cuando llega un lead: quedan en el Centro de clientes potenciales (Leads Center) de Meta Business Suite. Para que a Isabel le llegue un correo al instante, conecta el formulario con su Gmail en Make.com (plan gratis, unos 10 minutos; los pasos están en la página de Sammy, «Segunda tarea»). Mientras tanto, revisen el Centro de clientes potenciales varias veces al día: un lead se llama en la primera hora."),
 ]
 fila = 5
 for k, (donde, que) in enumerate(pasos, 1):

@@ -223,6 +223,11 @@ content, receive leads and manage audiences, none creates paid ads. What the pac
   texts live one line per row so they copy without quotes; the notice fills itself with `CONCATENATE`.
 - Cadence follows `AEP_PERIODS`: 3 ads launch 14 Oct (carta de cambios, español claro, primer Medicare), then one per week (22 Oct
   medicinas, 29 Oct beneficios, 5 Nov doctores, 12 Nov referidos, 19 Nov familias, 30 Nov últimos días); all end 7 Dec, check 8 Dec.
+- **Lead alerts:** Meta does not email new leads by itself (they sit in Leads Center; vendor-sourced, unverified by Meta docs). Zapier's
+  Facebook Lead Ads app is Premium (paid Professional plan) and the Zapier MCP here can only run one-off actions, not create an
+  always-on Zap; Isabel had no Zapier connections on 10 Oct. So the free route is a Make.com scenario (Facebook Lead Ads "New Lead"
+  → Gmail "Send an email" to Isabel), written as the "Segunda tarea" on Sammy's page (artifact RJBY5aMmy5wb78ckzwLJRS) and step 13
+  of "Cómo subirlo". A person with admin access to her Page has to connect it; Claude cannot log in to Meta, Make or Zapier.
 - The daily routine's Tuesday `[ad]` job follows the pack: `node agent/empleado.cjs compilar` appends an "ANUNCIOS DE META" section built from `ads/anuncios.json` (which ad to switch on this week, 2 new texts to test, the Monday tracking reminder).
 - To change copy: edit `ads/anuncios.json`, then `node ads/render.cjs --out ads/salida/imagenes` and
   `python3 ads/libro.py ads/salida/Anuncios-Facebook-AEP-2026.xlsx --planes <her xlsx>`; `node tests/ads.cjs` checks limits, CMS
