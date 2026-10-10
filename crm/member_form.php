@@ -521,7 +521,16 @@ function submitMemberForm(e) {
     if(!form.querySelector('[name="'+n+'"]')?.checked) fd.set(n,'0'); else fd.set(n,'1');
   });
 
-  (typeof fetchJson==='function' ? fetchJson('api.php',{method:'POST',body:fd}) : fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()))
+  const _mfEnviar = () => (typeof fetchJson==='function' ? fetchJson('api.php',{method:'POST',body:fd}) : fetch('api.php',{method:'POST',body:fd}).then(r=>r.json()));
+  _mfEnviar()
+    .then(d=>{
+      // Ya existe alguien con ese teléfono: se pregunta (puede ser un familiar).
+      if(!d.ok && d.duplicado && confirm('⚠ '+d.error+'\n\n¿Crear de todas formas un miembro NUEVO?')){
+        fd.set('confirmar_duplicado','1');
+        return _mfEnviar();
+      }
+      return d;
+    })
     .then(d=>{
       if(d.ok){
         toast('✓ MIEMBRO GUARDADO');

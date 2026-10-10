@@ -771,6 +771,20 @@ case 'save_member':
             jsonOkNotify(['id'=>$d['id'],'msg'=>'Miembro actualizado','cambio_plan'=>!empty($cambio_log)], 'MIEMBROS');
         } else {
             // INSERT NUEVO PROSPECTO
+            // ¿Ya existe alguien con ese teléfono? Se avisa antes de crear un duplicado
+            // (el formulario pregunta y puede confirmar: a veces es un familiar).
+            if (empty($d['confirmar_duplicado'])) {
+                $tels = array_filter([normalizar_tel($d['telefono'] ?? ''), normalizar_tel($d['telefono2'] ?? '')]);
+                foreach ($tels as $tl) {
+                    $dq = $pdo->prepare("SELECT id, nombre, apellido, estado FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+                    $dq->execute([$tl, $tl]);
+                    if ($ex = $dq->fetch(PDO::FETCH_ASSOC)) {
+                        echo json_encode(['ok'=>false,'duplicado'=>true,'existente_id'=>(int)$ex['id'],
+                            'error'=>'Ya existe un miembro con ese teléfono: '.trim($ex['nombre'].' '.$ex['apellido']).' (#'.$ex['id'].', '.$ex['estado'].').']);
+                        exit;
+                    }
+                }
+            }
             $cols_str = implode(',', $fields);
             $placeholders = implode(',', array_fill(0, count($fields), '?'));
             $vals = array_map($clean, $fields);
@@ -2013,10 +2027,12 @@ case 'import_csv':
         $mbi = trim($data[4]??'') ?: null;
         $carrier = trim($data[5]??'') ?: null;
         $plan = trim($data[6]??'') ?: null;
-        $estado = trim($data[7]??'') ?: 'PROSPECTO';
-        $estados_validos = ['ACTIVO','HOT LEAD','T65','PROSPECTO','FOLLOW-UP','PENDIENTE','CANCELADO'];
-        if (!in_array(strtoupper($estado), $estados_validos)) $estado = 'PROSPECTO';
-        $estado = strtoupper($estado);
+        // Se guarda con los estados que usa el resto del CRM (antes quedaban como
+        // "PROSPECTO"/"ACTIVO" y no salían en filtros ni conteos).
+        $mapa_est = ['ACTIVO'=>'ACTIVE','ACTIVE'=>'ACTIVE','PROSPECTO'=>'PROSPECT','PROSPECT'=>'PROSPECT','HOT LEAD'=>'PROSPECT',
+                     'T65'=>'PROSPECT','FOLLOW-UP'=>'PROSPECT','PENDIENTE'=>'PENDING','PENDING'=>'PENDING','CANCELADO'=>'CANCELED','CANCELED'=>'CANCELED',
+                     'IN PROCESS'=>'IN PROCESS','EN PROCESO'=>'IN PROCESS'];
+        $estado = $mapa_est[strtoupper(trim($data[7] ?? ''))] ?? 'PROSPECT';
         if (!$nombre) {$errors++;continue;}
         try {
             if ($telefono) {
@@ -2271,6 +2287,7 @@ case 'sms_marcar_atendido':
     break;
 
 case 'sms_plantilla_guardar':
+    if (!$admin) jsonErr('Solo un administrador puede cambiar las plantillas de texto');
     $pdo = db();
     asegurarTablaSmsPlantillas($pdo);
     $pid    = (int)($_POST['id'] ?? 0);
@@ -2291,6 +2308,7 @@ case 'sms_plantilla_guardar':
     break;
 
 case 'sms_plantilla_eliminar':
+    if (!$admin) jsonErr('Solo un administrador puede borrar plantillas de texto');
     $pdo = db();
     asegurarTablaSmsPlantillas($pdo);
     $pdo->prepare("DELETE FROM sms_plantillas WHERE id=?")->execute([(int)($_POST['id'] ?? 0)]);
@@ -2959,7 +2977,8 @@ case 'get_gastos':
     $ts->execute($tp);
     $totales = ['total'=>0,'aprobado'=>0,'pendiente'=>0,'rechazado'=>0];
     foreach ($ts->fetchAll() as $t) {
-        $totales['total'] += floatval($t['suma']);
+        // RECHAZADO no es gasto real: no suma al total.
+        if (strtoupper($t['estado']) !== 'RECHAZADO') $totales['total'] += floatval($t['suma']);
         $key = strtolower($t['estado']);
         if (isset($totales[$key])) $totales[$key] = floatval($t['suma']);
     }
@@ -3013,8 +3032,12 @@ case 'toggle_gasto_reembolso':
     $id     = intval($_POST['id'] ?? 0);
     $pagado = !empty($_POST['pagado']) ? 1 : 0;
     if (!$id) jsonErr('ID requerido');
+    $gq = $pdo->prepare("SELECT estado, monto FROM gastos WHERE id=?"); $gq->execute([$id]); $gr = $gq->fetch();
+    if (!$gr) jsonErr('Gasto no encontrado');
+    if ($pagado && $gr['estado'] === 'RECHAZADO') jsonErr('Este gasto fue RECHAZADO: no se reembolsa');
     $pdo->prepare("UPDATE gastos SET reembolsado=?, reembolsado_at=".($pagado?'NOW()':'NULL')." WHERE id=?")
         ->execute([$pagado, $id]);
+    try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$u['id'],'GASTOS','Gasto #'.$id.' ($'.number_format((float)$gr['monto'],2).') reembolso '.($pagado?'PAGADO':'DESMARCADO')]); } catch (Exception $e) {}
     jsonOk();
     break;
 
@@ -3027,6 +3050,7 @@ case 'update_gasto_status':
     $estado = trim($_POST['estado'] ?? '');
     if (!$id || !in_array($estado, ['PENDIENTE','APROBADO','RECHAZADO'])) jsonErr('Datos inválidos');
     $pdo->prepare("UPDATE gastos SET estado=?, aprobado_por=? WHERE id=?")->execute([$estado, $u['id'], $id]);
+    try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$u['id'],'GASTOS','Gasto #'.$id.' marcado '.$estado]); } catch (Exception $e) {}
     jsonOk();
     break;
 
@@ -3037,10 +3061,17 @@ case 'delete_gasto':
     $id = intval($_POST['id'] ?? 0);
     if (!$id) jsonErr('ID requerido');
     // Admin borra cualquiera; el empleado solo los suyos
+    $gq = $pdo->prepare("SELECT monto, descripcion FROM gastos WHERE id=?"); $gq->execute([$id]); $gr = $gq->fetch();
     if (isAdmin()) {
-        $pdo->prepare("DELETE FROM gastos WHERE id=?")->execute([$id]);
+        $del = $pdo->prepare("DELETE FROM gastos WHERE id=?"); $del->execute([$id]);
     } else {
-        $pdo->prepare("DELETE FROM gastos WHERE id=? AND enviado_por=?")->execute([$id, $gu['id']]);
+        // Un empleado solo borra lo suyo y solo mientras sigue PENDIENTE y sin reembolsar.
+        $del = $pdo->prepare("DELETE FROM gastos WHERE id=? AND enviado_por=? AND estado='PENDIENTE' AND COALESCE(reembolsado,0)=0");
+        $del->execute([$id, $gu['id']]);
+        if ($del->rowCount() === 0) jsonErr('Solo puedes borrar tus gastos mientras están PENDIENTES');
+    }
+    if ($gr && $del->rowCount() > 0) {
+        try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$gu['id'],'GASTOS','Gasto #'.$id.' borrado ($'.number_format((float)$gr['monto'],2).' — '.mb_substr($gr['descripcion'] ?? '',0,80).')']); } catch (Exception $e) {}
     }
     jsonOk();
     break;

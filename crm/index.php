@@ -127,6 +127,9 @@ if (!empty($_POST['cue_ajax'])) {
     case 'delete_cuenta':
         $cid = (int)($_POST['cid'] ?? 0);
         ob_clean();
+        // Borrar una cuenta arrastra visitas, contactos y referidos: solo admin.
+        if (!isAdmin()) { echo json_encode(['ok'=>false,'error'=>'Solo un administrador puede borrar una cuenta']); exit; }
+        try { $pdo_x->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_x,'SISTEMA','Cuenta #'.$cid.' borrada (con sus visitas, contactos y referidos)']); } catch (Exception $e) {}
         if (!$cid) { echo json_encode(['ok'=>false]); exit; }
         foreach (['cuentas_interacciones','cuentas_contactos','referidos','miembro_cuentas_referidas'] as $t)
             $pdo_x->prepare("DELETE FROM $t WHERE cuenta_id=?")->execute([$cid]);
@@ -162,6 +165,8 @@ if (!empty($_POST['cue_ajax'])) {
         break;
     case 'delete_contacto':
         $ctid = (int)($_POST['ctid'] ?? 0);
+        if (!isAdmin()) { ob_clean(); echo json_encode(['ok'=>false,'error'=>'Solo un administrador puede borrar contactos de una cuenta']); exit; }
+        try { $pdo_x->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_x,'SISTEMA','Contacto de cuenta #'.$ctid.' borrado']); } catch (Exception $e) {}
         $pdo_x->prepare("UPDATE referidos SET contacto_id=NULL WHERE contacto_id=?")->execute([$ctid]);
         $pdo_x->prepare("UPDATE cuentas_interacciones SET contacto_id=NULL WHERE contacto_id=?")->execute([$ctid]);
         $pdo_x->prepare("DELETE FROM cuentas_contactos WHERE id=?")->execute([$ctid]);
@@ -190,7 +195,11 @@ if (!empty($_POST['cue_ajax'])) {
         break;
     case 'delete_interaccion':
         $iid = (int)($_POST['iid'] ?? 0);
-        $pdo_x->prepare("DELETE FROM cuentas_interacciones WHERE id=?")->execute([$iid]);
+        // Solo quien registró la visita, o un admin (puede llevar un gasto).
+        $di = isAdmin() ? $pdo_x->prepare("DELETE FROM cuentas_interacciones WHERE id=?") : $pdo_x->prepare("DELETE FROM cuentas_interacciones WHERE id=? AND agente_id=?");
+        $di->execute(isAdmin() ? [$iid] : [$iid, $uid_x]);
+        if ($di->rowCount() === 0) { ob_clean(); echo json_encode(['ok'=>false,'error'=>'Solo quien registró la visita (o un admin) puede borrarla']); exit; }
+        try { $pdo_x->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_x,'SISTEMA','Visita #'.$iid.' borrada']); } catch (Exception $e) {}
         ob_clean();
         echo json_encode(['ok'=>true]);
         break;
@@ -236,9 +245,20 @@ if (!empty($_POST['cue_ajax'])) {
         $ref->execute([$rid]); $r = $ref->fetch(PDO::FETCH_ASSOC);
         ob_clean();
         if (!$r) { echo json_encode(['ok'=>false,'error'=>'No encontrado']); exit; }
-        $ins = $pdo_x->prepare("INSERT INTO miembros (nombre,apellido,telefono,dob,idioma,estado,agente_id,referido_por,created_by) VALUES (?,?,?,?,?,'PROSPECT',?,?,?)");
-        $ins->execute([$r['nombre'],$r['apellido'],$r['telefono'],$r['dob'],$r['idioma'],$r['agente_id']?:$uid_x,$r['cuenta_id'],$uid_x]);
-        $nuevo_id = $pdo_x->lastInsertId();
+        // Ya convertido (doble clic): no se crea otro.
+        if (!empty($r['miembro_id'])) { echo json_encode(['ok'=>true,'miembro_id'=>(int)$r['miembro_id']]); exit; }
+        // ¿Ya existe un miembro con ese teléfono? Se liga a ese en vez de crear un duplicado.
+        $nuevo_id = 0;
+        if (!empty($r['telefono'])) {
+            $ex = $pdo_x->prepare("SELECT id FROM miembros WHERE telefono=? OR telefono2=? LIMIT 1");
+            $ex->execute([$r['telefono'], $r['telefono']]);
+            $nuevo_id = (int)($ex->fetchColumn() ?: 0);
+        }
+        if (!$nuevo_id) {
+            $ins = $pdo_x->prepare("INSERT INTO miembros (nombre,apellido,telefono,dob,idioma,estado,agente_id,referido_por,created_by) VALUES (?,?,?,?,?,'PROSPECT',?,?,?)");
+            $ins->execute([$r['nombre'],$r['apellido'],$r['telefono'],$r['dob'],$r['idioma'],$r['agente_id']?:$uid_x,$r['cuenta_id'],$uid_x]);
+            $nuevo_id = $pdo_x->lastInsertId();
+        }
         if ($r['cuenta_id']) {
             try {
                 $pdo_x->prepare("INSERT INTO miembro_cuentas_referidas (miembro_id,cuenta_id,tipo_referido) VALUES (?,?,'ENTRANTE')")
@@ -251,7 +271,10 @@ if (!empty($_POST['cue_ajax'])) {
         break;
     case 'delete_referido':
         $rid = (int)($_POST['rid'] ?? 0);
-        $pdo_x->prepare("DELETE FROM referidos WHERE id=?")->execute([$rid]);
+        $dr = isAdmin() ? $pdo_x->prepare("DELETE FROM referidos WHERE id=?") : $pdo_x->prepare("DELETE FROM referidos WHERE id=? AND agente_id=?");
+        $dr->execute(isAdmin() ? [$rid] : [$rid, $uid_x]);
+        if ($dr->rowCount() === 0) { ob_clean(); echo json_encode(['ok'=>false,'error'=>'Solo el agente del referido (o un admin) puede borrarlo']); exit; }
+        try { $pdo_x->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_x,'SISTEMA','Referido #'.$rid.' borrado']); } catch (Exception $e) {}
         ob_clean();
         echo json_encode(['ok'=>true]);
         break;
@@ -11026,7 +11049,7 @@ $p_pendientes= count(array_filter($portal_members,fn($m)=>$m['estado']==='IN PRO
 <select id="pf-carrier" onchange="filterPortalTab()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
 <option value="">TODOS LOS CARRIERS</option>
 
-<?php foreach(['SCAN','ANTHEM','HUMANA','ALIGNMENT','LA CARE','HEALTH NET','MOLINA','UNITED'] as $c):?>
+<?php foreach(['SCAN','ANTHEM','HUMANA','ALIGNMENT','LA CARE','HEALTH NET','MOLINA','UNITED','BLUE SHIELD','KAISER','WELLCARE'] as $c):?>
 <option><?=$c?></option>
 <?php endforeach;?>
 </select>
@@ -11037,6 +11060,7 @@ $p_pendientes= count(array_filter($portal_members,fn($m)=>$m['estado']==='IN PRO
 <option value="CANCELED"> CANCELED</option>
 <option value="DENIED"> DENIED</option>
 <option value="CERRADO"> CERRADO</option>
+<option value="DISENROLLED"> DISENROLLED</option>
 </select>
 </div>
 <div class="card">
@@ -13005,7 +13029,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <div style="padding:10px 14px;border-top:1px solid <?=$CB?>">
         <div id="sms-pl-btns" style="display:flex;gap:4px;flex-wrap:wrap;margin-bottom:7px">
           <?php foreach($sms_plantillas as $pl):?><button class="btn btn-gh btn-sm sms-pl-btn" data-plantilla-id="<?=(int)$pl['id']?>" onclick="setSmsTemplate(<?=(int)$pl['id']?>)"><?=h($pl['nombre'])?></button><?php endforeach;?>
-          <button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button>
+          <?php if($admin):?><button class="btn btn-sky btn-sm" onclick="openSmsPlantillasModal()" title="Editar plantillas">✎ EDITAR</button><?php endif;?>
         </div>
         <div style="display:flex;gap:6px">
           <textarea id="sms-panel-msg" class="form-input" rows="2" placeholder="Escribe un mensaje..." style="flex:1" oninput="updateSmsCount()"></textarea>
@@ -14885,15 +14909,15 @@ try {
     <select id="gastos-est" onchange="loadGastos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
       <option value="all">TODOS LOS ESTADOS</option>
       <option value="PENDIENTE">PENDIENTE</option>
-      <option value="APROBADO">PAGADO</option>
+      <option value="APROBADO">APROBADO</option>
       <option value="RECHAZADO">RECHAZADO</option>
     </select>
   </div>
   <button class="btn btn-p btn-sm" onclick="openGastoForm()">+ AGREGAR GASTO</button>
 </div>
 <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-bottom:14px">
-  <div class="stat-card"><div class="stat-icon">💰 TOTAL MES</div><div class="stat-val" id="gkpi-total" style="color:<?=$P1?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">todos los estados</div></div>
-  <div class="stat-card"><div class="stat-icon"> PAGADO</div><div class="stat-val" id="gkpi-aprobado" style="color:<?=$G?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">pagado</div></div>
+  <div class="stat-card"><div class="stat-icon">💰 TOTAL</div><div class="stat-val" id="gkpi-total" style="color:<?=$P1?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">pendiente + aprobado</div></div>
+  <div class="stat-card"><div class="stat-icon"> APROBADO</div><div class="stat-val" id="gkpi-aprobado" style="color:<?=$G?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">aprobado</div></div>
   <div class="stat-card"><div class="stat-icon"> PENDIENTE</div><div class="stat-val" id="gkpi-pendiente" style="color:<?=$A?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">por aprobar</div></div>
   <div class="stat-card"><div class="stat-icon"> RECHAZADO</div><div class="stat-val" id="gkpi-rechazado" style="color:<?=$R?>">—</div><div style="font-size:8px;color:<?=$MU?>;margin-top:2px;text-transform:uppercase">denegado</div></div>
 </div>
@@ -18667,7 +18691,7 @@ const GASTO_CAT_LABELS={OFFICE:'OFFICE',MEETING:'MEETING',PAYROLL:'PAYROLL',MARK
 const GASTO_CAT_COLORS={OFFICE:'#1B4A6B',MEETING:'#1E7A5C',PAYROLL:'#7A90A4',MARKETING:'#C07A1A',TRAINING:'#2876A8'};
 const GASTO_EST_COLOR={PENDIENTE:'#C07A1A',APROBADO:'#1E7A5C',RECHAZADO:'#B83232'};
 const GASTO_EST_BG={PENDIENTE:'#FDF6EC',APROBADO:'#EAF5F0',RECHAZADO:'#FDF0EE'};
-const GASTO_EST_LABEL={PENDIENTE:'PENDIENTE',APROBADO:'PAGADO',RECHAZADO:'RECHAZADO'};
+const GASTO_EST_LABEL={PENDIENTE:'PENDIENTE',APROBADO:'APROBADO',RECHAZADO:'RECHAZADO'};
 function renderGastos(rows){
   const tb=document.getElementById('gastos-tbody');
   if(!tb) return;
@@ -18686,7 +18710,7 @@ function renderGastos(rows){
         reemb=`<span style="background:#EAF5F0;color:#1E7A5C;border:1px solid #8DCFBA;border-radius:20px;padding:2px 7px;font-size:7px;font-weight:900;white-space:nowrap">✓ PAGADO A ${esc(g.reembolsar_nombre.split(' ')[0].toUpperCase())}</span>`;
       } else {
         reemb=`<span style="background:#FEF8EE;color:#C07A1A;border:1px solid #F5D5A0;border-radius:20px;padding:2px 7px;font-size:7px;font-weight:900;white-space:nowrap">⏳ DEBE A ${esc(g.reembolsar_nombre.split(' ')[0].toUpperCase())}</span>`
-          + (ADMIN?`<button onclick="toggleGastoReembolso(${g.id},1)" title="MARCAR COMO PAGADO" class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 6px;margin-left:3px">💵 PAGAR</button>`:'');
+          + ((ADMIN && g.estado!=='RECHAZADO')?`<button onclick="toggleGastoReembolso(${g.id},1)" title="MARCAR COMO PAGADO" class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 6px;margin-left:3px">💵 PAGAR</button>`:'');
       }
     } else { reemb='<span style="color:#C8DFF0;font-size:9px">—</span>'; }
     return `
@@ -18703,7 +18727,7 @@ function renderGastos(rows){
       <td style="text-align:center">${reemb}</td>
       <td><span style="background:${GASTO_EST_BG[g.estado]||'#F5F5F5'};color:${GASTO_EST_COLOR[g.estado]||'#333'};border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;white-space:nowrap">${esc(GASTO_EST_LABEL[g.estado]||g.estado||'—')}</span></td>
       <td><div style="display:flex;gap:3px;flex-wrap:nowrap">
-        ${(ADMIN&&g.estado==='PENDIENTE')?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="MARCAR COMO PAGADO" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
+        ${(ADMIN&&g.estado==='PENDIENTE')?`<button onclick="updateGastoStatus(${g.id},'APROBADO')" title="APROBAR" class="btn btn-gh btn-sm" style="font-size:7px;padding:3px 7px">✓</button><button onclick="updateGastoStatus(${g.id},'RECHAZADO')" title="RECHAZAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#FDF0EE;color:#B83232;border:1px solid #EFA09A">✕</button>`:''}
         ${(ADMIN||g.enviado_por==UID)?`<button onclick="deleteGasto(${g.id})" title="ELIMINAR" class="btn btn-sm" style="font-size:7px;padding:3px 7px;background:#F5F5F5;color:#7A90A4;border:1px solid #D0D7DE">🗑</button>`:''}
       </div></td>
     </tr>`;}).join('');
@@ -21108,7 +21132,8 @@ function filterPortalTab() {
         const rowNombre  = (row.dataset.nombre  || '').trim();
 
         const okQ       = !q || rowNombre.includes(q);
-        const okCarrier = !carrier || rowCarrier === carrier;
+        // Empieza con (ej. 'UNITED' encuentra 'UNITED HEALTHCARE', 'ANTHEM' a 'ANTHEM BLUE CROSS').
+        const okCarrier = !carrier || rowCarrier.startsWith(carrier);
         const okEstado  = !estado  || rowEstado  === estado;
 
         if (okQ && okCarrier && okEstado) {
