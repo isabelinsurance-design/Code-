@@ -1,0 +1,333 @@
+{
+  "version": "2026-10-10",
+  "legal": {
+    "licencia": "Isabel Fuentes, agente de seguros con licencia en California (#0D96598). No afiliada ni respaldada por el gobierno de EE. UU. ni por el programa federal de Medicare.",
+    "tpmo": "No ofrecemos todos los planes disponibles en su área. Actualmente representamos a {ORG} organizaciones que ofrecen {PLANES} productos en su área. Comuníquese con Medicare.gov o al 1-800-MEDICARE para obtener información sobre todas sus opciones.",
+    "pie": [
+      "Isabel Fuentes · Agente de seguros con licencia en California #0D96598 · +1 (310) 270-0626",
+      "No afiliada ni respaldada por el gobierno de EE. UU. ni por el programa federal de Medicare. No ofrecemos todos los planes disponibles en su área. Medicare.gov · 1-800-MEDICARE"
+    ]
+  },
+  "anuncios": [
+    {
+      "id": "carta-de-cambios",
+      "nombre": "Tu carta de cambios 2027",
+      "enciende": "2026-10-14",
+      "apaga": "2026-12-07",
+      "tema": "suave",
+      "fase": "Lanzamiento · fase «Llenar el pipeline» del plan AEP",
+      "por_que": "Es la conversación que ya está pasando en tu comunidad: la carta de cambios del plan llegó por correo. Es el anuncio con el que arranca todo.",
+      "imagen": {
+        "kicker": "MEDICARE 2027",
+        "titulo": "¿Ya abriste la <em>carta de cambios</em> de tu plan?",
+        "sub": "Te explico en español qué cambia para 2027.",
+        "cta": "Pide tu revisión"
+      },
+      "titulares": ["Revisa tu carta de cambios 2027", "Medicare 2027, explicado en español"],
+      "descripcion": "Revisión sin compromiso",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "¿Ya abriste la carta de cambios de tu plan Medicare? Dice qué cambia en 2027. Te la explico en español, con calma.",
+          "",
+          "Si quieres, la revisamos juntos:",
+          "✔ Qué cambia en tu plan para 2027",
+          "✔ Si tus doctores y tus medicinas siguen en la red y en la lista del plan",
+          "✔ Qué opciones hay entre el 15 de octubre y el 7 de diciembre",
+          "",
+          "👉 Toca el botón y déjame tus datos. Te llamo para agendar tu revisión, sin compromiso."
+        ],
+        "B": [
+          "Cada año los planes de Medicare pueden cambiar sus beneficios, sus costos y sus redes de doctores. La carta de cambios de tu plan te dice cuáles.",
+          "",
+          "Yo te ayudo a entenderla, en español y sin prisa.",
+          "",
+          "👉 Déjame tus datos y te llamo para revisarla juntos, sin compromiso."
+        ]
+      }
+    },
+    {
+      "id": "espanol-claro",
+      "nombre": "Medicare en español, claro",
+      "enciende": "2026-10-14",
+      "apaga": "2026-12-07",
+      "tema": "navy",
+      "fase": "Lanzamiento · confianza (todo el AEP)",
+      "por_que": "Es tu promesa de marca: explicar Medicare claro y en tu idioma. Funciona para quien aún no sabe qué preguntar.",
+      "imagen": {
+        "kicker": "MEDICARE EN ESPAÑOL",
+        "titulo": "Te explico Medicare <em>claro</em>, hasta la letra chiquita",
+        "sub": "Agente de seguros con licencia en California.",
+        "cta": "Hablemos"
+      },
+      "titulares": ["Medicare en español, claro", "Te lo explico con paciencia"],
+      "descripcion": "Agente con licencia en CA",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "Medicare puede sonar complicado. Yo te lo explico claro, en español, hasta la letra chiquita.",
+          "",
+          "Soy Isabel, agente de seguros en el Sur de California. Conmigo no hay prisa ni palabras difíciles:",
+          "✔ Respondo tus preguntas en español",
+          "✔ Te explico las opciones que ofrezco en tu área",
+          "✔ Tú decides, sin compromiso",
+          "",
+          "👉 Déjame tus datos y te llamo."
+        ],
+        "B": [
+          "Medicare en español, con paciencia y sin tecnicismos.",
+          "",
+          "Si tienes preguntas sobre tu plan o sobre cómo funciona Medicare, toca el botón, déjame tus datos y te llamo."
+        ]
+      }
+    },
+    {
+      "id": "primer-medicare",
+      "nombre": "Primer Medicare, paso a paso",
+      "enciende": "2026-10-14",
+      "apaga": "2026-12-07",
+      "tema": "cielo",
+      "fase": "Lanzamiento · Turning 65 (no se detiene en AEP)",
+      "por_que": "Quien está por cumplir 65 tiene una fecha propia, aparte del 15 de octubre. Es tráfico que sigue llegando todo el año.",
+      "imagen": {
+        "kicker": "PRIMER MEDICARE",
+        "titulo": "Primer Medicare: <em>cuándo y cómo</em> inscribirse",
+        "sub": "Explicado en español, paso a paso.",
+        "cta": "Hablemos"
+      },
+      "titulares": ["Primer Medicare, paso a paso", "Medicare al cumplir 65 años"],
+      "descripcion": "Te explico en español",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "Medicare para quienes están por cumplir 65 años: el período para inscribirse por primera vez dura 7 meses.",
+          "",
+          "Empieza 3 meses antes del mes en que se cumplen 65 años y termina 3 meses después de ese mes.",
+          "",
+          "Te explico, en español y paso a paso:",
+          "✔ Qué son las Partes A, B y D",
+          "✔ Qué es Medicare Advantage y en qué se diferencia de Medicare Original",
+          "✔ Cuándo y cómo inscribirse",
+          "",
+          "👉 Déjame tus datos y te llamo, sin compromiso."
+        ],
+        "B": [
+          "¿Tu mamá, tu papá o un familiar va a recibir su primer Medicare? Te explico los pasos en español, para que nadie tenga que descifrarlo solo.",
+          "",
+          "👉 Déjame tus datos y te llamo. Si quieres, hablamos con tu familiar en la misma llamada."
+        ]
+      }
+    },
+    {
+      "id": "medicinas",
+      "nombre": "La lista de medicinas de tu plan",
+      "enciende": "2026-10-22",
+      "apaga": "2026-12-07",
+      "tema": "suave",
+      "fase": "Semana 2 · «Medicinas»",
+      "por_que": "El plan de esta semana es «¿tus medicinas siguen cubiertas en 2027?». Sin prometer nada: solo enseñas a revisar la lista del plan.",
+      "imagen": {
+        "kicker": "ANTES DEL 7 DE DICIEMBRE",
+        "titulo": "Revisa la <em>lista de medicinas</em> de tu plan 2027",
+        "sub": "Puede cambiar de un año a otro. Te ayudo a revisarla.",
+        "cta": "Revisa tu plan"
+      },
+      "titulares": ["Medicinas en tu plan 2027", "Revisa la lista de tu plan"],
+      "descripcion": "Te explico en español",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "La lista de medicinas de tu plan puede cambiar de un año a otro. Antes del 7 de diciembre, revisemos juntos qué dice para 2027.",
+          "",
+          "Te explico en español:",
+          "✔ Cómo buscar una medicina en la lista del plan",
+          "✔ Qué significan los niveles y los copagos",
+          "✔ Qué opciones hay durante la inscripción abierta (15 de octubre al 7 de diciembre)",
+          "",
+          "La cobertura depende de cada plan.",
+          "👉 Déjame tus datos y te llamo, sin compromiso."
+        ],
+        "B": [
+          "¿Quién te ayuda a entender la letra de tu plan? Si tienes dudas sobre su lista de medicinas, te explico en español, sin tecnicismos.",
+          "",
+          "La cobertura depende de cada plan.",
+          "👉 Toca el botón, déjame tus datos y te llamo para revisarlo juntos."
+        ]
+      }
+    },
+    {
+      "id": "beneficios",
+      "nombre": "Beneficios extra, según el plan",
+      "enciende": "2026-10-29",
+      "apaga": "2026-12-07",
+      "tema": "cielo",
+      "fase": "Semana 3 · «Beneficios extra»",
+      "por_que": "El plan de esta semana es dental, visión y transporte «según el plan». Es general: no nombra ningún plan ni precio, por eso se puede publicar sin aprobación de carrier.",
+      "imagen": {
+        "kicker": "MEDICARE ADVANTAGE 2027",
+        "titulo": "Dental, visión, audífonos: <em>revisa qué incluye</em> cada plan",
+        "sub": "Los beneficios dependen del plan y del área.",
+        "cta": "Pregúntame"
+      },
+      "titulares": ["Beneficios extra: según el plan", "Dental, visión y más: revísalo"],
+      "descripcion": "Según el plan y el área",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "Algunos planes Medicare Advantage incluyen beneficios extra, como dental, visión o audífonos. Lo que incluye cada uno depende del plan y del área.",
+          "",
+          "Te explico en español:",
+          "✔ Qué beneficios existen y quién puede calificar",
+          "✔ Qué límites y copagos tiene cada plan (la letra chiquita)",
+          "✔ Qué planes ofrezco en tu área",
+          "",
+          "Pueden aplicar limitaciones y copagos.",
+          "👉 Déjame tus datos y te llamo, sin compromiso."
+        ],
+        "B": [
+          "Antes de elegir un plan, mira más allá de la prima: pregunta por dental, visión, audífonos y transporte.",
+          "",
+          "Lo que se incluye depende del plan y del área, y pueden aplicar limitaciones y copagos. Yo te ayudo a revisarlo, en español.",
+          "",
+          "👉 Toca el botón y déjame tus datos."
+        ]
+      }
+    },
+    {
+      "id": "doctores",
+      "nombre": "¿Tu doctor está en la red?",
+      "enciende": "2026-11-05",
+      "apaga": "2026-12-07",
+      "tema": "navy",
+      "fase": "Semana 4 · «Doctores y red»",
+      "por_que": "El plan de esta semana es «¿tu doctor sigue en la red?». Es la pregunta que más frena a la gente a cambiar de plan.",
+      "imagen": {
+        "kicker": "ANTES DE CAMBIAR DE PLAN",
+        "titulo": "¿Tu <em>doctor</em> está en la red de tu plan?",
+        "sub": "Cada plan tiene su propia red de doctores y hospitales.",
+        "cta": "Revisa tu plan"
+      },
+      "titulares": ["¿Tu doctor está en la red?", "Revisa la red de tu plan 2027"],
+      "descripcion": "Te ayudo en español",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "Cada plan Medicare tiene su propia red de doctores y hospitales, y puede cambiar de un año a otro.",
+          "",
+          "Antes del 7 de diciembre, revisemos la tuya. Te ayudo a:",
+          "✔ Buscar a tu doctor en la red del plan",
+          "✔ Entender qué pasa si un doctor queda fuera de la red",
+          "✔ Ver las opciones que ofrezco en tu área, en español",
+          "",
+          "👉 Déjame tus datos y te llamo, sin compromiso."
+        ],
+        "B": [
+          "Tu doctor de confianza es lo más importante. Si estás pensando en cambiar de plan, primero revisa que siga en la red.",
+          "",
+          "Yo lo reviso contigo, en español. 👉 Toca el botón y déjame tus datos."
+        ]
+      }
+    },
+    {
+      "id": "referidos",
+      "nombre": "Comparte con quien lo necesite",
+      "enciende": "2026-11-12",
+      "apaga": "2026-12-07",
+      "tema": "suave",
+      "fase": "Semana 5 · «Historias y referidos»",
+      "por_que": "El plan de esta semana es referidos. Sin regalos ni premios (CMS limita lo que se puede ofrecer): solo pides que lo compartan.",
+      "imagen": {
+        "kicker": "COMPARTE",
+        "titulo": "¿Conoces a alguien que necesita ayuda con <em>Medicare</em>?",
+        "sub": "Compártele este anuncio. Yo le explico en español.",
+        "cta": "Compártelo"
+      },
+      "titulares": ["Medicare en español, con paciencia", "Comparte con quien lo necesite"],
+      "descripcion": "Yo le explico en español",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "¿Conoces a alguien que necesita ayuda para entender Medicare? Compártele este anuncio.",
+          "",
+          "Yo se lo explico en español, con paciencia y sin compromiso.",
+          "",
+          "👉 Si quieres revisar tu propio plan, toca el botón y déjame tus datos."
+        ],
+        "B": [
+          "Un familiar, un vecino, una amiga: casi todos conocemos a alguien con dudas sobre Medicare.",
+          "",
+          "Compártele este anuncio. Yo le explico en español, paso a paso.",
+          "",
+          "👉 Y si las dudas son tuyas, déjame tus datos y te llamo."
+        ]
+      }
+    },
+    {
+      "id": "familias",
+      "nombre": "Medicare en familia (Thanksgiving)",
+      "enciende": "2026-11-19",
+      "apaga": "2026-12-07",
+      "tema": "cielo",
+      "fase": "Semana 6 · «Antes de Thanksgiving»",
+      "por_que": "El plan de esta semana es hablar con los papás en Thanksgiving. Va dirigido a hijos y cuidadores: llamas a quien llenó el formulario y la cita con el beneficiario se agenda después (el permiso para llamarle y el SOA siempre son de la persona con Medicare).",
+      "imagen": {
+        "kicker": "EN FAMILIA",
+        "titulo": "Thanksgiving: <em>pregunta</em> por el Medicare de mamá o papá",
+        "sub": "Lo revisamos juntos, en español.",
+        "cta": "Agenda una llamada"
+      },
+      "titulares": ["Medicare en familia", "Ayuda a tus papás con su plan"],
+      "descripcion": "Explicado en español",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "Este Thanksgiving, en la mesa: pregúntale a tu mamá o a tu papá si ya revisó su plan Medicare para 2027.",
+          "",
+          "El período para hacer cambios termina el 7 de diciembre. Si necesitas ayuda para explicárselo, yo lo hago en español y con paciencia:",
+          "✔ Revisamos juntos sus doctores, sus medicinas y sus beneficios",
+          "✔ Pueden acompañarlos sus hijos o cuidadores",
+          "✔ La decisión es de ellos; yo solo explico",
+          "",
+          "👉 Déjame tus datos y te llamo. Si quieres, después agendamos una llamada con ellos."
+        ],
+        "B": [
+          "¿Quién ayuda a tus papás con su Medicare? Si eres tú, no tienes por qué hacerlo sin ayuda.",
+          "",
+          "Déjame tus datos y te llamo: te explico en español y, si quieres, agendamos una llamada con ellos antes del 7 de diciembre."
+        ]
+      }
+    },
+    {
+      "id": "ultimos-dias",
+      "nombre": "Últimos días: 7 de diciembre",
+      "enciende": "2026-11-30",
+      "apaga": "2026-12-07",
+      "tema": "navy",
+      "fase": "Semana 7 y Cierre AEP",
+      "por_que": "La urgencia es real: el 7 de diciembre cierra la inscripción abierta. Solo se enciende desde el 30 de noviembre y se apaga el 7 de diciembre por la noche.",
+      "imagen": {
+        "kicker": "ÚLTIMOS DÍAS",
+        "titulo": "El <em>7 de diciembre</em> termina la inscripción abierta de Medicare",
+        "sub": "Revisa tu plan con tiempo y en español.",
+        "cta": "Hablemos hoy"
+      },
+      "titulares": ["Termina el 7 de diciembre", "Últimos días para revisar tu plan"],
+      "descripcion": "Inscripción abierta Medicare",
+      "boton": "Más información",
+      "textos": {
+        "A": [
+          "El 7 de diciembre termina el Período de Inscripción Abierta de Medicare, que empezó el 15 de octubre.",
+          "",
+          "Si quieres revisar tu plan para 2027, todavía hay tiempo. Te ayudo en español, con calma.",
+          "",
+          "👉 Déjame tus datos y te llamo, sin compromiso."
+        ],
+        "B": [
+          "Quedan pocos días para revisar tu plan Medicare 2027.",
+          "",
+          "Toca el botón, déjame tus datos y lo vemos juntos, en español, sin compromiso."
+        ]
+      }
+    }
+  ]
+}

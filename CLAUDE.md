@@ -27,7 +27,8 @@ her finished files over technical steps.
 | `inject.py` | Syncs `tools-interceptor.js` into every `tools/*.html`. `build.py` runs it first. |
 | `build.py` | Regenerates the UNICO file (and `bot/isabel_system.txt`). See "Build step". |
 | `agent/` | The Marketing employee. `empleado.cjs` compiles the routine prompts (`compilar`) and has `hoy` / `revisar` helpers; `TRABAJO-DIARIO.md` / `RADAR-SEMANAL.md` are the job texts; `config.json` holds Isabel's Live time and TPMO numbers; `generado/` is the exact text installed in the routines. These are the agent's instructions, not docs. See "Marketing employee". |
-| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈355 checks). |
+| `ads/` | The Facebook/Instagram ad pack (AEP 2026). `anuncios.json` is the single source of truth (9 angles: image text, 2 headlines, description, texts A/B, dates); `render.cjs` draws the 18 PNGs (feed 1080x1350 + stories 1080x1920) with the brand fonts in `fuentes/`; `libro.py` builds the 9-sheet Excel. Outputs go to `ads/salida/` (git-ignored, regenerate). See "Facebook ads". |
+| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ads`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈385 checks). |
 | `AUDIT.md` | Security/architecture audit with task status. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -199,10 +200,35 @@ They only **draft**: she approves and publishes. Nothing goes out, no lead is co
 - Runs use Isabel's Claude plan usage and fail when the limit is reached (one of her older routines failed that way on 9 Oct 2026).
 - Routine sessions must never commit or push (see Git below).
 
+**Facebook ads (Oct 2026):** Claude can write, design and check the ads but CANNOT log in to Meta, publish or spend; a person
+(Isabel, Sammy or her designer) uploads them (~10 min per campaign, sheet "Cómo subirlo"). Zapier's Facebook apps only post organic
+content, receive leads and manage audiences, none creates paid ads. What the pack decided (and why):
+- **Meta treats insurance ads as "Financial products and services" (special ad category, required for US advertisers since Jan 2025;
+  read in third-party summaries, Meta's own page was blocked: confirm in Ads Manager).** Under it there is NO age, gender or ZIP
+  targeting, no lookalikes and a 15-mile minimum radius, so the old "Spanish · LA/OC/IE · 64+" plan became: radius by city (LA,
+  Santa Ana, San Bernardino/Riverside), Spanish language, and the Spanish Medicare creative does the targeting. The in-app
+  `AEP_SPECS.ad` text (age 64+, "qué tiene hoy", "edad" in the setup) is OUTDATED and queued for the next UNICO release.
+- **Meta "personal attributes" policy:** copy never asserts or implies the viewer's age, health, money or origin ("¿Cumples 65?",
+  "¿Tomas medicinas?", "Si tienes Medi-Cal" are out); it talks about the topic ("Medicare para quienes están por cumplir 65").
+- **Instant form asks only name, phone, ZIP + two multiple-choice questions** (topic, call or text). No Medicare number, birth date,
+  health, medicines, doctor, current plan or income (Meta treats them as sensitive). Consent text covers calls and automated texts.
+- Generic ads only (no plan names or figures). Plan-specific ideas live in the sheet "Planes (con aprobación)": NOT publishable until
+  the carrier/FMO approves and Isabel is contracted for 2027; UHC/AARP data is excluded (agent-use-only grid). Figures are verified
+  against her comparison workbook by `python3 ads/libro.py out.xlsx --planes <her xlsx>`.
+- Every primary text ends with the license line + the TPMO notice; the images carry a short footer (license, phone, not affiliated,
+  "no ofrecemos todos los planes", Medicare.gov / 1-800-MEDICARE). The two TPMO numbers are inputs in the Excel ("Empieza aquí"):
+  texts live one line per row so they copy without quotes; the notice fills itself with `CONCATENATE`.
+- Cadence follows `AEP_PERIODS`: 3 ads launch 14 Oct (carta de cambios, español claro, primer Medicare), then one per week (22 Oct
+  medicinas, 29 Oct beneficios, 5 Nov doctores, 12 Nov referidos, 19 Nov familias, 30 Nov últimos días); all end 7 Dec, check 8 Dec.
+- To change copy: edit `ads/anuncios.json`, then `node ads/render.cjs --out ads/salida/imagenes` and
+  `python3 ads/libro.py ads/salida/Anuncios-Facebook-AEP-2026.xlsx --planes <her xlsx>`; `node tests/ads.cjs` checks limits, CMS
+  alerts, Meta wording, the legal text against the app, image sizes and the workbook. The scratch tooling used to eyeball the Excel
+  (HyperFormula for formulas, an HTML render) is not kept; LibreOffice Calc is not installed in this container.
+
 ## Testing
 
 `python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke`, `features` (≈315 checks) against both
-`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈40 checks on `agent/`, including that `agent/generado` is in sync with `index.html`). A fake Anthropic server streams real SSE events, so streaming, web search,
+`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈40 checks on `agent/`, including that `agent/generado` is in sync with `index.html`) and `ads` (≈31 checks on `ads/`). A fake Anthropic server streams real SSE events, so streaming, web search,
 `pause_turn`, fallbacks and errors are all exercised. Add a test with every feature.
 The bot has its own offline tests: `python bot/test_bot.py` (needs `pip install -r bot/requirements.txt`).
 
