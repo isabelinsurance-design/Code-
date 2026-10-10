@@ -2,11 +2,13 @@
 //
 // Every time the employee switches tab, window or app, goes idle, or locks the
 // computer, the time since the previous change is credited to whatever was in
-// front of them. Time is kept in 5-minute slots and uploaded once a minute.
+// front of them. Time is kept in 5-minute slots and uploaded once a minute,
+// along with an activity log: each unbroken stretch on one site (or idle,
+// lunch…) with its start and end time.
 //
-// Privacy: only the site's hostname (e.g. "humana.com") and seconds are stored
-// or sent. Never the full URL, page contents, form fields or keystrokes; URLs
-// on carrier portals can contain member IDs.
+// Privacy: only the site's hostname (e.g. "humana.com") and times are stored
+// or sent. Never the full URL, page titles, page contents, form fields or
+// keystrokes; URLs and titles on carrier portals can contain member data.
 
 const VERSION = chrome.runtime.getManifest().version;
 const TICK_MINUTES = 1;              // heartbeat + upload cadence
@@ -81,8 +83,9 @@ function segmentState(s) {
   return s.idle;                        // active | idle
 }
 
-// Credit [from, to) to what was in front of the employee, split at 5-minute slots.
-function credit(s, buckets, from, to) {
+// Credit [from, to) to what was in front of the employee, split at 5-minute slots,
+// and extend the activity log (a stretch on the same site and state stays one entry).
+function credit(s, buckets, log, from, to) {
   if (s.mode === 'off' || !s.clockIn) return;
   const state = segmentState(s);
   const domain = state === 'active' || state === 'idle' ? s.domain || OUTSIDE_CHROME : '';
@@ -94,18 +97,22 @@ function credit(s, buckets, from, to) {
     t = end;
   }
   s.totals[state] = (s.totals[state] || 0) + (to - from);
+  const last = log[log.length - 1];
+  if (last && last.domain === domain && last.state === state && from - last.to < 2000) last.to = to;
+  else log.push({ from, to, domain, state });
 }
 
 async function checkpoint({ idle, fresh = false } = {}) {
   const now = Date.now();
-  const stored = await chrome.storage.local.get(['state', 'buckets', 'config']);
+  const stored = await chrome.storage.local.get(['state', 'buckets', 'log', 'config']);
   const s = { ...FRESH_STATE, ...stored.state };
   const buckets = stored.buckets || {};
+  const log = stored.log || [];
 
   // Close the segment that just ended. A long gap means the computer slept or
   // Chrome was closed, so only the first moments of it are credited.
   if (s.lastTick && !fresh && now > s.lastTick) {
-    credit(s, buckets, s.lastTick, Math.min(now, s.lastTick + MAX_GAP_MS));
+    credit(s, buckets, log, s.lastTick, Math.min(now, s.lastTick + MAX_GAP_MS));
   }
 
   const today = localDay(now);
@@ -120,7 +127,7 @@ async function checkpoint({ idle, fresh = false } = {}) {
   if (s.mode === 'work' && !s.clockIn && s.idle === 'active') s.clockIn = now;
   s.lastTick = now;
 
-  await chrome.storage.local.set({ state: s, buckets });
+  await chrome.storage.local.set({ state: s, buckets, log });
   showBadge(s, stored.config);
   return s;
 }
@@ -169,16 +176,16 @@ function liveStatus(s) {
 // Move finished buckets into a batch with a unique id. The server ignores ids it
 // has already stored, so re-sending after a lost response never double-counts.
 async function sealBatch() {
-  const { buckets = {}, outbox = [] } = await chrome.storage.local.get(['buckets', 'outbox']);
+  const { buckets = {}, log = [], outbox = [] } = await chrome.storage.local.get(['buckets', 'log', 'outbox']);
   const items = Object.entries(buckets)
     .map(([key, ms]) => {
       const [date, slot, domain, state] = key.split('|');
       return { date, slot, domain, state, seconds: Math.round(ms / 100) / 10 };
     })
     .filter(item => item.seconds > 0);
-  if (items.length) outbox.push({ id: crypto.randomUUID(), items });
+  if (items.length || log.length) outbox.push({ id: crypto.randomUUID(), items, log });
   outbox.splice(0, Math.max(0, outbox.length - MAX_OUTBOX));
-  await chrome.storage.local.set({ buckets: {}, outbox });
+  await chrome.storage.local.set({ buckets: {}, log: [], outbox });
 }
 
 let uploading = false;
@@ -202,20 +209,48 @@ async function upload() {
       signal: AbortSignal.timeout(15000),
     });
     if (!res.ok) throw new Error(res.status === 401 ? 'Wrong tracker key' : `Server answered ${res.status}`);
-    const done = new Set((await res.json()).accepted || []);
+    const answer = await res.json();
+    const done = new Set(answer.accepted || []);
     await serial(async () => {
       const { outbox: current = [] } = await chrome.storage.local.get('outbox');
       await chrome.storage.local.set({
         outbox: current.filter(batch => !done.has(batch.id)),
         lastSync: { at: Date.now(), ok: true },
+        // The employee's own day as the office counts it (calls included), for the popup.
+        me: answer.me ? { ...answer.me, at: Date.now() } : null,
       });
     });
+    await nudge(answer.nudge);
   } catch (err) {
     await chrome.storage.local.set({ lastSync: { at: Date.now(), ok: false, error: String(err.message || err) } });
   } finally {
     uploading = false;
   }
 }
+
+// A reminder from the server (not-work site, idle, long lunch…), shown once each.
+async function nudge(n) {
+  if (!n || typeof n.id !== 'string') return;
+  const { lastNudge } = await chrome.storage.local.get('lastNudge');
+  if (n.id === lastNudge) return;
+  const action = MODES.includes(n.action) ? n.action : null;
+  await chrome.storage.local.set({ lastNudge: n.id, nudgeAction: action });
+  chrome.notifications.create('nudge', {
+    type: 'basic',
+    iconUrl: 'icons/icon128.png',
+    title: String(n.title || 'Work Tracker').slice(0, 80),
+    message: String(n.message || '').slice(0, 200),
+    buttons: action ? [{ title: action === 'break' ? 'Start break' : 'Back to work' }] : [],
+    priority: 1,
+  });
+}
+
+chrome.notifications.onButtonClicked.addListener(async id => {
+  if (id !== 'nudge') return;
+  chrome.notifications.clear(id);
+  const { nudgeAction } = await chrome.storage.local.get('nudgeAction');
+  if (MODES.includes(nudgeAction)) serial(() => setMode(nudgeAction)).then(upload);
+});
 
 chrome.tabs.onActivated.addListener(() => serial(() => checkpoint()));
 chrome.tabs.onUpdated.addListener((_id, change, tab) => {

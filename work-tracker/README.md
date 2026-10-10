@@ -1,14 +1,28 @@
 # NetConnect Work Tracker
 
-A small call-center workforce system: who is on a call, in the CRM, on a carrier portal, on break or idle, and what got done.
-No per-employee subscription. It has four parts:
+A call-center workforce system: who is on a call, in the CRM, on a carrier portal, on break or idle, and what got done.
+A Time Doctor-style tracker for a browser-based team, with no per-employee subscription. It has three parts:
 
 ```
 work-tracker/
-  extension/   Chrome extension on each employee computer: which site is in front, active vs idle, lunch/break/meeting buttons
-  server/      API + live dashboard. Plain Node.js, no dependencies, data saved as JSON files
+  extension/   Chrome extension on each employee computer: which site is in front and when, active vs idle,
+               lunch/break/meeting buttons, reminders
+  server/      API + dashboard (Live, Activity log, Reports, Settings). Plain Node.js, no dependencies, data saved as JSON files
   (your phone system / CRM)  sends call start/end and CRM actions to the server
 ```
+
+**The usual time-tracker features:** sites and apps used, active vs idle time, breaks, a minute-by-minute activity log
+per person, reports and timesheets with CSV export, late / absent / long-break / not-work alerts, and reminders to the
+employee ("Still working?" with a one-click **Start break**).
+
+**Built for a call center on top of that:**
+- Phone calls count as work even with no clicking, so nobody looks idle for talking. Calls show in the activity log
+  next to the sites.
+- CRM actions, after-call work, connected calls and average handle time on every card and report.
+- The employee sees the same numbers as the manager, in the extension popup.
+- Free and on your own server: no per-user fee, and the data stays with you.
+- **No screenshots, on purpose.** They would capture member names, Medicare numbers and health data (HIPAA). Calls,
+  CRM actions and the activity log show the work without them.
 
 ## How time is counted
 
@@ -31,14 +45,21 @@ idle for talking instead of clicking. Calls that overlap (transfers, two lines) 
 **CRM open vs CRM work.** *CRM open* is every minute the CRM tab was in front. *CRM work* is the part with real activity
 (input within 5 minutes), excluding call and after-call time. Both appear on each card, along with the number of CRM actions.
 
+**Productive %** = working ÷ (working + not work + idle + away). Working includes calls, after-call work, meetings and
+every site in a category that counts as work. Lunch and breaks are allowed time, and sites not categorized yet are neutral,
+so neither counts against anyone.
+
 The browser side uses only the hostname (`humana.com`). Time is kept in 5-minute slots and uploaded once a minute. If the
 server can't be reached, the extension keeps the data and sends it later, and retries are never counted twice.
 A sleeping computer or a closed Chrome shows as "unaccounted".
 
 ## Privacy (built in, not optional)
 
-- The extension records only the hostname, seconds and active/idle/locked state. **Never** full URLs (carrier URLs
-  can contain member IDs), page contents, passwords, Medicare numbers or keystrokes.
+- The extension records only the hostname, when it was in front (start and end time) and the active/idle/locked state.
+  **Never** full URLs or page titles (carrier URLs and titles can contain member IDs and names), page contents,
+  screenshots, passwords, Medicare numbers or keystrokes.
+- The employee sees their own working time, productivity and calls in the extension popup, counted the same way as
+  the dashboard.
 - Member or prospect names from the phone system and CRM are shown live on the manager's dashboard
   ("CRM record open: …"). They are **not shown in TV mode** and **not saved in history**. Saved calls keep only the
   times, outcome, direction and CRM record id.
@@ -46,6 +67,22 @@ A sleeping computer or a closed Chrome shows as "unaccounted".
 
 Tell employees in writing before turning it on. Some states (for example New York, Connecticut and Delaware) require
 written notice of electronic monitoring.
+
+## The dashboard
+
+- **Live**: one card per person with their status right now, today's working time, productivity, a timeline and
+  where the time went. **Needs attention** at the top lists alerts: on a not-work site, idle or locked with no call,
+  long lunch, tracker offline without clocking out, late or not clocked in, too much break or not-work time.
+  📺 **TV mode** is a dark, read-only version for an office screen.
+- **Activity log** (click a name): the person's whole day in order: every site that was in front, how long, its category,
+  idle stretches, breaks, calls (with outcome and CRM record id), gaps where nothing was recorded, clock in and out.
+  Use ← → to see other days.
+- **Reports**: any date range up to 93 days (this week, last week, this month…): a summary per person (days, logged in,
+  working, productive %, idle, lunch/break, not work, calls, average handle time, CRM actions, late arrivals, missed
+  shifts), a daily timesheet per person, and the sites the team used. **⬇ Timesheet CSV** gives one row per person per
+  day with clock in/out and hours as decimals, ready for payroll. **⬇ Summary CSV** gives one row per person.
+- **Settings**: shift start time and work days (with per-person exceptions), the late grace period, lunch and break
+  limits, alert thresholds (0 turns one off), whether employees also get reminders, and the sites → categories table.
 
 ## 1. Run the server
 
@@ -88,6 +125,10 @@ Open the dashboard link on the office TV and click **📺 TV mode**, or bookmark
 3. The Settings page opens. Enter the employee's name **exactly as the phone system and CRM will send it**, the server
    address, and the tracker key. Click **Save and test connection**. (Names match case-insensitively.)
 4. Pin the extension (puzzle icon → pin) so the Lunch / Break / Meeting / Clock out buttons are one click away.
+
+**Updating from an earlier version:** copy the new `extension` folder over the old one and click the ↻ reload icon on
+the extension in `chrome://extensions`. Version 1.2 adds the minute-by-minute activity log and reminders (it asks for
+the *notifications* permission). Days recorded before the update still have all the totals, just no activity log.
 
 If someone removes or disables the extension, their card turns **🔴 Offline**, unless they're on a call.
 To stop employees from removing it, force-install it with Google Admin / Chrome Enterprise policy
@@ -144,13 +185,17 @@ Changes apply immediately, to past days too.
 
 | Endpoint | Key | Purpose |
 |---|---|---|
-| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}]}]}` |
+| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}], log:[{from, to, domain, state}]}]}`. Answers with the employee's own numbers (`me`) and a reminder (`nudge`) when one is due |
 | `POST /api/calls` | integration | Call start / end (above) |
 | `POST /api/crm-events` | integration | CRM actions (above) |
 | `POST /api/counters` | integration or admin | Set counters on a card |
 | `GET /api/ping` | tracker or integration | Connection test |
 | `GET /api/day?date=YYYY-MM-DD` | admin | Everything the dashboard shows: live status, logged-in time, calls, after-call work, CRM, categories, timeline |
+| `GET /api/person?date=YYYY-MM-DD&id=name` | admin | One person's day: the same report plus the activity log and calls in order |
+| `GET /api/range?from=YYYY-MM-DD&to=YYYY-MM-DD` | admin | Reports tab: totals and daily timesheet per person, team sites (93 days max) |
+| `GET /api/settings` · `PUT /api/settings` | admin | Schedule and alert rules (see the Settings tab) |
 | `GET /api/categories` · `PUT /api/categories` | admin | `{categories:[{name, work}], domains:{"humana.com":"Carrier portals"}}` |
 
 Extension `state` is one of `active`, `idle`, `away`, `lunch`, `break`, `meeting`. Raw data is in
-`server/data/days/YYYY-MM-DD.json` if you'd rather import it into the CRM's own database.
+`server/data/days/YYYY-MM-DD.json` if you'd rather import it into the CRM's own database. Each person's `log` there is a list of
+`[from, to, domain, state]` (epoch milliseconds).

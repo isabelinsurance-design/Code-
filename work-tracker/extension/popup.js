@@ -23,7 +23,7 @@ function describe(s) {
 }
 
 async function render(s) {
-  const { config = {}, lastSync, outbox = [] } = await chrome.storage.local.get(['config', 'lastSync', 'outbox']);
+  const { config = {}, lastSync, outbox = [], me } = await chrome.storage.local.get(['config', 'lastSync', 'outbox', 'me']);
   $('who').textContent = config.employee || 'Work Tracker';
   $('setup').hidden = Boolean(config.serverUrl && config.employee);
 
@@ -31,10 +31,19 @@ async function render(s) {
   $('state').textContent = state;
   $('site').textContent = site;
 
+  // Prefer the office's count (it includes phone calls); fall back to this computer's own.
   const t = s.totals || {};
-  $('active').textContent = duration((t.active || 0) + (t.meeting || 0));
-  $('idle').textContent = duration((t.idle || 0) + (t.away || 0));
-  $('lunch').textContent = duration((t.lunch || 0) + (t.break || 0));
+  const office = me && me.date === s.day && Date.now() - me.at < 10 * 60000 ? me : null;
+  $('active').textContent = duration(office ? office.working * 1000 : (t.active || 0) + (t.meeting || 0));
+  $('idle').textContent = duration(office ? office.idleAway * 1000 : (t.idle || 0) + (t.away || 0));
+  $('lunch').textContent = duration(office ? office.lunchBreak * 1000 : (t.lunch || 0) + (t.break || 0));
+  $('score').textContent = office
+    ? [
+        office.productivity != null ? `Productive ${Math.round(office.productivity * 100)}%` : '',
+        office.calls ? `${office.calls} call${office.calls === 1 ? '' : 's'}` : '',
+        office.crmActions ? `${office.crmActions} CRM actions` : '',
+      ].filter(Boolean).join(' · ')
+    : '';
 
   $('work').hidden = s.mode === 'work';
   $('work').textContent = s.mode === 'off' ? '▶ Clock back in' : '▶ Back to work';
