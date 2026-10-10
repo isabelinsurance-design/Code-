@@ -205,6 +205,28 @@ case 'break_end':
     jsonOk(['hora'=>$t,'html'=>render_checkin_card($pdo, $uid, date('Y-m-d'))]);
     break;
 
+// ── AGREGAR UN DÍA DE ASISTENCIA QUE FALTA (admin) ─────────────
+// Antes solo el propio empleado podía crear el día con su toque; si se le olvidó
+// todo el día, no había forma de agregarlo.
+case 'add_asistencia':
+    if (!$admin) jsonErr('Solo admin puede agregar días de asistencia');
+    $aid   = intval($_POST['agente_id'] ?? 0);
+    $fecha = trim($_POST['fecha'] ?? '');
+    if (!$aid || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $fecha)) jsonErr('Empleado y fecha requeridos');
+    $pdo = db();
+    $ex = $pdo->prepare("SELECT id FROM asistencia WHERE agente_id=? AND fecha=?"); $ex->execute([$aid, $fecha]);
+    if ($ex->fetch()) jsonErr('Ese día ya existe — corrígelo con ✏️ en la tabla');
+    $t = function($k){ $v = trim($_POST[$k] ?? ''); return $v === '' ? null : (strlen($v) === 5 ? $v.':00' : $v); };
+    $ci = $t('check_in'); $co = $t('check_out'); $lo = $t('lunch_out'); $li = $t('lunch_in');
+    if (!$ci || !$co) jsonErr('Pon al menos CHECK-IN y CHECK-OUT');
+    if (strtotime("1970-01-01 $co") <= strtotime("1970-01-01 $ci")) jsonErr('El CHECK-OUT debe ser después del CHECK-IN');
+    $pdo->prepare("INSERT INTO asistencia (agente_id, fecha, check_in, lunch_out, lunch_in, check_out) VALUES (?,?,?,?,?,?)")
+        ->execute([$aid, $fecha, $ci, $lo, $li, $co]);
+    $nm = $pdo->prepare("SELECT nombre FROM usuarios WHERE id=?"); $nm->execute([$aid]);
+    try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid,'ASISTENCIA',$user['nombre'].' agregó el día '.$fecha.' de '.($nm->fetchColumn() ?: '#'.$aid).': '.substr($ci,0,5).'–'.substr($co,0,5)]); } catch (Exception $e) {}
+    jsonOk();
+    break;
+
 // ── CORREGIR ASISTENCIA (admin) ───────────────────────────────
 // El admin corrige check-in/out de un registro; queda en el HISTORIAL.
 case 'edit_asistencia':
@@ -229,6 +251,8 @@ case 'edit_asistencia':
         if ($oldv !== $newv) $cambios[] = $lbl[$col].": $oldv→$newv";
     }
     if (empty($sets)) jsonErr('Sin columnas válidas');
+    $__ci = trim($_POST['check_in'] ?? ''); $__co = trim($_POST['check_out'] ?? '');
+    if ($__ci !== '' && $__co !== '' && strtotime("1970-01-01 $__co") <= strtotime("1970-01-01 $__ci")) jsonErr('El CHECK-OUT debe ser después del CHECK-IN');
     $vals[] = $aid;
     $pdo->prepare("UPDATE asistencia SET ".implode(',', $sets)." WHERE id=?")->execute($vals);
     if ($cambios) {
@@ -494,6 +518,17 @@ case 'toggle_usuario_activo':
         $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")
             ->execute([$uid, 'SISTEMA', ($nuevoActivo ? 'Empleado reactivado: ' : 'Empleado marcado INACTIVO: ') . $target['nombre']]);
     } catch (Exception $e) {}
+    jsonOk();
+    break;
+
+case 'save_certificacion':
+    if (!$admin) jsonErr('Solo admin');
+    $c = strtoupper(trim($_POST['carrier'] ?? '')); $f = trim($_POST['fecha_vence'] ?? '');
+    if ($c === '') jsonErr('Carrier requerido');
+    if ($f !== '' && !preg_match('/^\d{4}-\d{2}-\d{2}$/', $f)) jsonErr('Fecha inválida');
+    $pdo = db();
+    $pdo->exec("CREATE TABLE IF NOT EXISTS certificaciones (carrier VARCHAR(40) PRIMARY KEY, fecha_vence DATE NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
+    $pdo->prepare("INSERT INTO certificaciones (carrier, fecha_vence) VALUES (?,?) ON DUPLICATE KEY UPDATE fecha_vence=VALUES(fecha_vence)")->execute([$c, $f ?: null]);
     jsonOk();
     break;
 

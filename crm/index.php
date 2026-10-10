@@ -8959,9 +8959,13 @@ if ($admin) {
     } catch (Exception $e) { /* la tabla aún no existe: ningún cron ha corrido desde el deploy */
         $__cron_avisos[] = 'TAREAS AUTOMÁTICAS: todavía no hay registro de ninguna (revisa los Cron Jobs en cPanel)';
     }
+    try {
+        foreach ($pdo->query("SELECT carrier, fecha_vence FROM certificaciones WHERE fecha_vence IS NOT NULL AND fecha_vence <= DATE_ADD(CURDATE(), INTERVAL 30 DAY)") as $__cv)
+            $__cron_avisos[] = 'CERTIFICACIÓN ' . $__cv['carrier'] . ' vence ' . date('m/d/Y', strtotime($__cv['fecha_vence']));
+    } catch (Exception $e) {}
     if ($__cron_avisos): ?>
 <div class="alert-bar" style="background:#FDF0EE;border-left-color:#B83232;color:#B83232">
-⚠ TAREA AUTOMÁTICA DETENIDA — <?=h(implode(' · ', $__cron_avisos))?>
+⚠ REVISAR — <?=h(implode(' · ', $__cron_avisos))?>
 </div>
 <?php endif;
 }
@@ -12687,6 +12691,25 @@ $q_label  = $q_default === 1 ? '1ª QUINCENA (1–15)' : '2ª QUINCENA (16–' .
   </div>
 </div>
  
+<!-- Agregar un día que falta (admin) -->
+<div class="card" style="margin-bottom:14px"><div class="card-header"><div class="card-title">＋ AGREGAR DÍA QUE FALTA</div><div class="card-sub">Para cuando alguien no marcó nada ese día</div></div>
+<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:flex-end;padding:11px 14px">
+  <select id="addas-ag" class="form-input" style="max-width:170px"><?php foreach($users_all as $__u):?><option value="<?=(int)$__u['id']?>"><?=h($__u['nombre'])?></option><?php endforeach;?></select>
+  <input type="date" id="addas-fecha" class="form-input" style="max-width:150px" value="<?=date('Y-m-d')?>">
+  <label class="form-label">ENTRADA<input type="time" id="addas-ci" class="form-input"></label>
+  <label class="form-label">SAL.ALM.<input type="time" id="addas-lo" class="form-input"></label>
+  <label class="form-label">REG.ALM.<input type="time" id="addas-li" class="form-input"></label>
+  <label class="form-label">SALIDA<input type="time" id="addas-co" class="form-input"></label>
+  <button class="btn btn-p btn-sm" onclick="agregarDiaAsistencia()">AGREGAR</button>
+</div></div>
+<script>
+function agregarDiaAsistencia(){
+  const v=id=>document.getElementById(id).value;
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'add_asistencia',agente_id:v('addas-ag'),fecha:v('addas-fecha'),check_in:v('addas-ci'),lunch_out:v('addas-lo'),lunch_in:v('addas-li'),check_out:v('addas-co')})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ DÍA AGREGADO'); if(typeof softReload==='function') softReload(); } else toast('⚠ '+(d.error||'Error')); })
+    .catch(()=>toast('⚠ Error de red'));
+}
+</script>
 <!-- Tabla de asistencia agrupada por quincena -->
 <?php
 // Asistencia de la quincena activa
@@ -12778,7 +12801,7 @@ $_xb_quincena_batch = extra_breaks_batch($pdo, array_column($rows_q, 'id'));
 <div class="card" style="margin-top:14px">
   <div class="card-header">
     <div class="card-title">◐ HISTORIAL COMPLETO</div>
-    <div class="card-sub">INMUTABLE</div>
+    <div class="card-sub">LAS CORRECCIONES QUEDAN EN EL HISTORIAL</div>
   </div>
   <div style="overflow-x:auto"><table>
     <tr>
@@ -15063,7 +15086,20 @@ try {
 </div></td><td><button onclick="saveSalario(<?=$u['id']?>)" class="btn btn-p btn-sm" style="font-size:8px;padding:5px 11px">GUARDAR</button></td><?php endif;?></tr><?php endforeach;?></table></div><div style="padding:8px 14px;font-size:8px;color:<?=$MU?>;text-transform:uppercase;letter-spacing:.5px;background:<?=$BG?>;border-top:1px solid <?=$CB?>">⚠ Quien no tenga SALARIO QUINCENAL (borde rojo) NO aparece en la nómina · Marca los DÍAS QUE TRABAJA para que cuenten las horas esperadas · Marca INACTIVO para que un empleado deje de aparecer en nómina y ya no pueda iniciar sesión</div></div></div>
 <div id="atab-CERTIFICACIONES" style="display:none">
 <div style="background:#EBF5FB;border:1px solid #A9D0E8;border-radius:10px;padding:9px 14px;font-size:8px;color:#1B5E8C;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">◎ SOLO ISABEL FUENTES LLEVA CERTIFICACIONES · CA LIC #0D96598</div>
-<?php $isabel=current(array_filter($users_all,fn($u)=>$u['rol']==='admin'));if($isabel):?><div style="background:#fff;border:1px solid <?=$CB?>;border-radius:13px;overflow:hidden;max-width:480px"><div style="padding:14px 16px;border-bottom:1px solid <?=$CB?>;display:flex;gap:9px;align-items:center"><?=av(h($isabel['iniciales']),h($isabel['color']),40)?><div><div style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($isabel['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>">BROKER · CA LIC #0D96598</div></div></div><div style="padding:13px 16px"><?php foreach([['AHIP',$isabel['ahip_date']??'—'],['LICENCIA CA','#0D96598'],['SCAN','2025-09-30'],['ANTHEM','2025-09-30'],['HUMANA','2025-09-30'],['ALIGNMENT','2025-09-30'],['LA CARE','2025-09-30'],['HEALTH NET','2025-09-30'],['MOLINA','2025-09-30'],['UHC','2025-09-30']] as [$l,$v]):?><div style="display:flex;justify-content:space-between;padding:6px 0;font-size:9px;border-bottom:1px solid <?=$BG?>"><span style="color:<?=$MU?>;font-weight:700;text-transform:uppercase"><?=$l?></span><span style="font-weight:900;color:<?=$P1?>"><?=$v?></span></div><?php endforeach;?></div></div><?php endif;?>
+<?php
+// Fechas de certificación editables (antes estaban escritas en el código: 2025-09-30 para todos).
+$__cert_carriers = ['AHIP','SCAN','ANTHEM','HUMANA','ALIGNMENT','LA CARE','HEALTH NET','MOLINA','UHC'];
+$__cert = [];
+try {
+  $pdo->exec("CREATE TABLE IF NOT EXISTS certificaciones (carrier VARCHAR(40) PRIMARY KEY, fecha_vence DATE NULL, updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP)");
+  foreach ($pdo->query("SELECT carrier, fecha_vence FROM certificaciones") as $__r) $__cert[$__r['carrier']] = $__r['fecha_vence'];
+} catch (Exception $e) {}
+$isabel=current(array_filter($users_all,fn($u)=>$u['rol']==='admin'));if($isabel):?><div style="background:#fff;border:1px solid <?=$CB?>;border-radius:13px;overflow:hidden;max-width:520px"><div style="padding:14px 16px;border-bottom:1px solid <?=$CB?>;display:flex;gap:9px;align-items:center"><?=av(h($isabel['iniciales']),h($isabel['color']),40)?><div><div style="font-weight:900;font-size:11px;color:<?=$P1?>"><?=h($isabel['nombre'])?></div><div style="font-size:8px;color:<?=$MU?>">BROKER · CA LIC #0D96598</div></div></div><div style="padding:13px 16px">
+<div style="font-size:8px;color:<?=$MU?>;margin-bottom:8px;text-transform:uppercase">Fecha en que VENCE cada certificación (se guarda al cambiarla). Se avisa en el Dashboard 30 días antes.</div>
+<?php foreach($__cert_carriers as $__c): $__f=$__cert[$__c] ?? ''; $__vence=$__f && strtotime($__f) <= strtotime('+30 days'); ?><div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;font-size:9px;border-bottom:1px solid <?=$BG?>"><span style="color:<?=$__vence?'#B83232':$MU?>;font-weight:700;text-transform:uppercase"><?=$__vence?'⚠ ':''?><?=h($__c)?></span><input type="date" value="<?=h($__f)?>" onchange="guardarCertificacion('<?=h($__c)?>',this.value)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:4px 6px;font-size:9px"></div><?php endforeach;?>
+</div></div>
+<script>function guardarCertificacion(c,f){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'save_certificacion',carrier:c,fecha_vence:f})}).then(r=>r.json()).then(d=>toast(d.ok?'✓ GUARDADO':('⚠ '+(d.error||'Error')))).catch(()=>toast('⚠ Error de red'));}</script>
+<?php endif;?>
 </div>
 <div id="atab-METAS" style="display:none"><div class="card"><div class="card-header"><div class="card-title">METAS MENSUALES</div></div><table><tr><th>EMPLEADO</th><th>LLAMADAS/DÍA</th><th>CITAS/MES</th><th>APPS/MES</th><th>META AEP</th></tr><?php foreach($agents as $ag):?><tr><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($ag['iniciales']),h($ag['color']),26)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h(explode(' ',$ag['nombre'])[0])?></span></div></td><td style="font-weight:900;color:<?=$P2?>;font-size:12px">20</td><td style="font-weight:900;color:<?=$P1?>;font-size:12px">8</td><td style="font-weight:900;color:#1E7A5C;font-size:12px">4</td><td style="font-weight:900;color:#C07A1A;font-size:12px">15</td></tr><?php endforeach;?></table></div></div>
 <div id="atab-NOTIFICACIONES" style="display:none">
