@@ -351,6 +351,16 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
 .tag.cur{border-color:var(--amber);color:var(--amber)}
 @media (max-width:600px){.sw-sum{grid-template-columns:1fr}.sw-table th:first-child{width:auto}}
 @media print{.sw-table td.win{background:#eef7f0}.sw-table td.lose{background:#fbeeec}}
+/* member notes */
+.mn-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mn-grid .inline{min-width:0}
+.mn-grid input[type=date]{flex:1;min-width:0}
+.recent .rc .mn-name{font-weight:700;color:var(--text)}
+.recent .rc .mn-tag{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;border:1px solid var(--border-d);border-radius:999px;padding:0 6px;margin-left:6px;color:var(--text-mid);vertical-align:middle}
+.recent .rc .mn-tag.due{border-color:var(--amber);color:var(--amber)}
+.recent .rc .mn-tag.late{border-color:var(--red);color:var(--red)}
+.recent .rc .mn-tag.ok{border-color:var(--green);color:var(--green)}
+@media (max-width:480px){.mn-grid{grid-template-columns:1fr}}
 @media print{
   body{background:#fff}
   .top,.workspace,.tray,.tabbar,.ios-hint,.modal-x,.no-print{display:none!important}
@@ -406,6 +416,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
       <div class="recent" id="recent"></div>
       <div class="examples" id="examples"></div>
     </div>
+    <div class="card" id="memberNotes" hidden></div>
     <div class="card"><span class="h">Client profile <small style="text-transform:none;letter-spacing:0;color:var(--text-muted);font-family:'DM Sans'">— adjust anything, results update live</small></span><div class="pf" id="profile"></div></div>
   </aside>
 
@@ -844,7 +855,7 @@ function normalize(plan) {
 /* ─── client description → profile (local, no AI) ─── */
 function blankProfile() {
   return {county: '', mediCal: 'unknown', extraHelp: false, conditions: [], medicalGroup: '', hospital: '', currentPlan: '', insulin: false, tier3: 0, drugs: [], rxStandard: false, doctors: '',
-    priorities: {}, maxPremium: null, veteran: false, vaDrugCoverage: false, costco: false, language: '', notes: ''};
+    priorities: {}, maxPremium: null, veteran: false, vaDrugCoverage: false, costco: false, language: '', notes: '', member: null};
 }
 
 function parseClientText(text, groups = []) {
@@ -2373,6 +2384,7 @@ function cleanProfile(saved) {
   for (const k of ['medicalGroup', 'hospital', 'currentPlan', 'doctors', 'language', 'notes']) p[k] = typeof p[k] === 'string' ? p[k].slice(0, 500) : '';
   for (const k of ['extraHelp', 'insulin', 'rxStandard', 'veteran', 'vaDrugCoverage', 'costco', 'dentalImplants', 'keepDoctor']) p[k] = !!p[k];
   p.maxPremium = p.maxPremium == null || !isFinite(+p.maxPremium) ? null : Math.max(0, +p.maxPremium);
+  if (p.member && typeof p.member === 'object') { const m = {}; for (const k of ['name', 'phone', 'offered', 'status', 'followUp', 'notes']) m[k] = typeof p.member[k] === 'string' ? p.member[k].slice(0, k === 'notes' ? 4000 : 120) : ''; if (!/^\d{4}-\d{2}-\d{2}$/.test(m.followUp)) m.followUp = ''; if (!MEMBER_STATUS.some(([v]) => v === m.status)) m.status = ''; p.member = memberFilled(m) ? m : null; } else p.member = null;
   return p;
 }
 
@@ -2594,6 +2606,7 @@ function rerank(full = true) {
   store.set(STORE.last, JSON.stringify({v: 2, text: $('clientText').value, profile: S.profile, aiRead: S.aiRead}));
   saveRecentDrugs();
   if (full) renderProfile(); else renderNetSum();
+  const mnBox = $('memberNotes'); if (mnBox) { mnBox.hidden = !T($('clientText').value) && !S.profile.member; renderMember(); }   // shown for a described client, or once notes were taken
   renderAiBadge(); renderSummary(); renderPicks(); renderPlans(); renderExcluded(); renderAiCard(); renderTray();
   const tc = $('tabCount'); tc.hidden = !S.result.results.length; tc.textContent = S.result.results.length;
   renderNetSum();
@@ -3229,6 +3242,7 @@ function renderAppointment(keep, parts) {
       ${p.currentPlan && !currentPlanOf(p) ? `<div class="hint" style="color:var(--amber)">“${esc(p.currentPlan)}” isn't in the workbook — pick a name from the list to compare.</div>` : ''}`)}
     ${sec(7, 'Budget and other', '', `<div class="ap-two"><div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Max premium $</span><input class="inp" type="number" min="0" step="1" id="apMaxPrem" placeholder="no limit" value="${p.maxPremium ?? ''}" style="max-width:110px"/><span class="hint" style="margin:0">/mo</span></div>
       <div class="toggles"><label class="tg"><input type="checkbox" data-ap-flag="veteran" ${p.veteran ? 'checked' : ''}/> Veteran</label><label class="tg"><input type="checkbox" data-ap-flag="vaDrugCoverage" ${p.vaDrugCoverage ? 'checked' : ''}/> Drugs via VA</label><label class="tg"><input type="checkbox" data-ap-flag="costco" ${p.costco ? 'checked' : ''}/> Costco member</label><label class="tg"><input type="checkbox" data-ap-flag="dentalImplants" ${p.dentalImplants ? 'checked' : ''}/> Needs implants</label></div></div>`)}
+    ${sec(9, 'Member notes', 'Name, phone, what you offered, when to follow up.', memberHtml('am'))}
     </div>
     <div class="ap-bar" id="apBar"></div>`;
   if (keep && parts === 'bar') { $('apBar').innerHTML = apptBarHtml(); $('apNet').innerHTML = apptNetLine(p.medicalGroup, 'group') + apptNetLine(p.hospital, 'hospital'); return; }
@@ -3354,7 +3368,7 @@ function showMemberCard(idx, lang) {
   for (const w of r.warn.filter(x => !/NOT in network/i.test(x)).slice(0, 2)) know.push((es ? '(nota, en inglés) ' : '') + w);
   const title = `${t('Why', 'Por qué')} ${esc(plan.name)}`;
   openModal(`<div class="mc" id="memberCard" data-plan="${idx}">
-    <div class="mc-head"><div><div class="mc-eyebrow">${t('Plan for', 'Plan para')} ${esc(profileLine(p) || t('this member', 'este miembro'))}</div><h2>${title}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(c => es ? ES_COUNTY[c] : countyName(c)).join(', ')} · <span class="mono">${esc(plan.id)}</span>${rank ? ` · ${t('ranked', 'puesto')} #${rank} ${t('for this member', 'para este miembro')}` : ''}</div></div></div>
+    <div class="mc-head"><div><div class="mc-eyebrow">${t('Plan for', 'Plan para')} ${memberOf(p).name ? esc(memberOf(p).name) + ' · ' : ''}${esc(profileLine(p) || t('this member', 'este miembro'))}</div><h2>${title}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(c => es ? ES_COUNTY[c] : countyName(c)).join(', ')} · <span class="mono">${esc(plan.id)}</span>${rank ? ` · ${t('ranked', 'puesto')} #${rank} ${t('for this member', 'para este miembro')}` : ''}</div></div></div>
     <div class="row no-print">${backBtn()}<div class="seg" style="width:auto"><button class="${!es ? 'on' : ''}" data-mc-lang="en">English</button><button class="${es ? 'on' : ''}" data-mc-lang="es">Español</button></div>
       <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-mc-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button>${currentPlanOf(p) && currentPlanOf(p).idx !== idx ? `<button class="btn small" data-mc-switch="${idx}">${t('vs current plan', 'vs plan actual')}</button>` : ''}</div>
     <div class="mc-lines">${lines.join('')}</div>
@@ -3466,6 +3480,51 @@ $('modalBody').addEventListener('click', e => {
   const idx = +sw.dataset.plan;
   const lg = e.target.closest('[data-sw-lang]'); if (lg) { const keep = S.modalBack; showSwitch(idx, lg.dataset.swLang); S.modalBack = keep; return; }
   const mb = e.target.closest('[data-sw-member]'); if (mb) { const outer = S.modalBack; backFrom(AP.lang === 'es' ? 'Comparación' : 'Comparison', () => { S.modalBack = outer; showSwitch(idx); }); showMemberCard(idx); return; }
+});
+
+/* ═══════════════ MEMBER NOTES — who this is, what was offered, when to follow up (this device only) ═══════════════ */
+const MEMBER_STATUS = [['', '—'], ['offered', 'Offered'], ['thinking', 'Thinking it over'], ['enrolled', 'Enrolled'], ['followup', 'Needs follow-up'], ['declined', 'Not interested']];
+const blankMember = () => ({name: '', phone: '', offered: '', status: '', followUp: '', notes: ''});
+const memberOf = p => Object.assign(blankMember(), p && p.member && typeof p.member === 'object' ? p.member : {});
+const memberFilled = m => !!(m.name || m.phone || m.offered || m.status || m.followUp || m.notes);
+const fmtDate = s => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(s || ''); return m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) : ''; };
+const today = () => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; };
+function memberHtml(pre) {
+  const m = memberOf(S.profile), top = S.result && S.result.results[0];
+  return `<div class="mn" id="${pre}Box">
+    <div class="mn-grid">
+      <input class="inp" id="${pre}Name" placeholder="Member name" value="${esc(m.name)}" autocomplete="off"/>
+      <input class="inp" id="${pre}Phone" type="tel" placeholder="Phone" value="${esc(m.phone)}" autocomplete="off"/>
+      <div class="inline"><input class="inp" id="${pre}Offered" list="${pre}OfferedList" placeholder="Plan offered" value="${esc(m.offered)}" style="flex:1;min-width:0"/><datalist id="${pre}OfferedList">${planNames().map(nm => `<option value="${esc(nm)}">`).join('')}</datalist>${top && m.offered !== top.plan.name ? `<button class="btn small" data-mn-top="${pre}" title="Use the best fit">#1</button>` : ''}</div>
+      <select class="inp" id="${pre}Status">${MEMBER_STATUS.map(([v, l]) => `<option value="${v}" ${m.status === v ? 'selected' : ''}>${v ? l : 'Status'}</option>`).join('')}</select>
+      <div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Follow up</span><input class="inp" type="date" id="${pre}Follow" value="${esc(m.followUp)}"/></div>
+    </div>
+    <textarea id="${pre}Notes" placeholder="Notes — what they said, what to check, what to bring next time" style="min-height:64px;margin-top:8px">${esc(m.notes)}</textarea>
+    <div class="hint">Saved with this client on this device only. Shown in Recent clients.</div>
+  </div>`;
+}
+function renderMember() { const el = $('memberNotes'); if (!el) return; if (el.contains(document.activeElement)) return; el.innerHTML = `<span class="h">Member notes</span>` + memberHtml('mn'); }
+/* Keep what was typed: on the profile, on the saved last client and on its Recent entry. */
+function saveMember(pre) {
+  const m = memberOf(S.profile);
+  m.name = T($(pre + 'Name').value).slice(0, 120); m.phone = T($(pre + 'Phone').value).slice(0, 40); m.offered = T($(pre + 'Offered').value).slice(0, 120);
+  m.status = $(pre + 'Status').value; m.followUp = /^\d{4}-\d{2}-\d{2}$/.test($(pre + 'Follow').value) ? $(pre + 'Follow').value : ''; m.notes = $(pre + 'Notes').value.slice(0, 4000);
+  S.profile.member = memberFilled(m) ? m : null;
+  store.set(STORE.last, JSON.stringify({v: 2, text: $('clientText').value, profile: S.profile, aiRead: S.aiRead}));
+  const text = T($('clientText').value), list = readRecent();
+  if (list.length && T(list[0].text) === text) { list[0].profile = S.profile; store.set(RECENT, JSON.stringify(list)); renderRecent(); }
+  else if (text && S.profile.member) addRecent(text);   // notes on a client that was never saved: save it now
+  for (const other of [pre === 'mn' ? 'am' : 'mn']) if ($(other + 'Name') && !$(other + 'Box').contains(document.activeElement)) { const box = $(other + 'Box'); box.outerHTML = memberHtml(other); }
+}
+const onMember = pre => e => { const t = e.target; if (!t.id || !t.id.startsWith(pre) || !$(pre + 'Name')) return; saveMember(pre); };
+$('memberNotes').addEventListener('input', onMember('mn'));
+$('memberNotes').addEventListener('change', onMember('mn'));
+$('modalBody').addEventListener('input', onMember('am'));
+$('modalBody').addEventListener('change', onMember('am'));
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-mn-top]'); if (!b) return;
+  const pre = b.dataset.mnTop, top = S.result && S.result.results[0]; if (!top) return;
+  $(pre + 'Offered').value = top.plan.name; saveMember(pre); const box = $(pre + 'Box'); if (box) box.outerHTML = memberHtml(pre);
 });
 
 /* ═══════════════ NETWORKS — which plans take a doctor group or hospital ═══════════════ */
@@ -3804,7 +3863,8 @@ addEventListener('popstate', e => {
 const RECENT = 'pc_recent_v1';
 const readRecent = () => { try { const x = JSON.parse(store.get(RECENT) || '[]'); return Array.isArray(x) ? x.filter(r => r && typeof r.text === 'string') : []; } catch (_) { return []; } };
 function addRecent(text) {
-  const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard, profile: S.profile}].concat(readRecent().filter(r => r && r.text !== text)).slice(0, 5);
+  const nm = memberOf(S.profile).name;   // the same description for two different members stays two entries
+  const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard, profile: S.profile}].concat(readRecent().filter(r => r && !(r.text === text && memberOf(r.profile).name === nm))).slice(0, 8);
   store.set(RECENT, JSON.stringify(list)); renderRecent();
 }
 function ago(t) {
@@ -3816,7 +3876,8 @@ function ago(t) {
 function renderRecent() {
   const list = readRecent();
   $('recent').innerHTML = !list.length ? '' : `<div class="recent-head"><span class="hint" style="margin:0">Recent clients (this device only)</span><button class="linkbtn" id="recentClear">Clear</button></div>` +
-    list.slice(0, 5).map((r, i) => `<button class="rc" data-recent="${i}"><span>${esc(cut(r.text, 90))}</span><time>${ago(r.at)}</time></button>`).join('');
+    list.slice(0, 8).map((r, i) => { const m = memberOf(r.profile), st = MEMBER_STATUS.find(([v]) => v && v === m.status), due = m.followUp ? (m.followUp < today() ? 'late' : m.followUp === today() ? 'due' : '') : '';
+      return `<button class="rc" data-recent="${i}"><span>${m.name ? `<span class="mn-name">${esc(m.name)}</span> · ` : ''}${esc(cut(r.text, m.name ? 60 : 90))}${st ? `<span class="mn-tag ${m.status === 'enrolled' ? 'ok' : ''}">${esc(st[1])}</span>` : ''}${m.followUp ? `<span class="mn-tag ${due}">${due === 'late' ? 'overdue ' : 'follow up '}${esc(fmtDate(m.followUp))}</span>` : ''}</span><time>${ago(r.at)}</time></button>`; }).join('');
 }
 $('recent').addEventListener('click', e => {
   if (e.target.id === 'recentClear') {
