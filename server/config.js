@@ -11,8 +11,10 @@ export const PORT = Number(process.env.PORT) || 8137;
 export const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY || '';
 
 export const MODELS = {
-  orchestrator: process.env.MODEL_ORCHESTRATOR || 'claude-opus-4-1',
-  specialist: process.env.MODEL_SPECIALIST || 'claude-sonnet-4-5',
+  // Tiers al dia (oct 2026): misma generacion que corre Athena en produccion.
+  // Overridables por entorno; si un ID no existe, callWithFallback cae al specialist.
+  orchestrator: process.env.MODEL_ORCHESTRATOR || 'claude-opus-4-8',
+  specialist: process.env.MODEL_SPECIALIST || 'claude-sonnet-4-6',
   classifier: process.env.MODEL_CLASSIFIER || 'claude-haiku-4-5-20251001',
 };
 
