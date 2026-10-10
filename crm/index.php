@@ -1303,6 +1303,13 @@ try {
         foreach ($pm_seed as $i=>$m) $pm_ins->execute([$m[0],$m[1],$m[2],$m[3],$m[4],$i]);
     }
 } catch (Exception $e) {}
+// Temperatura del prospecto en su propia columna (antes pisaba 'fuente').
+// Los que ya tenían la temperatura guardada en 'fuente' se copian una vez.
+try {
+    if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'temperatura'")->fetch())
+        $pdo->exec("ALTER TABLE miembros ADD COLUMN temperatura VARCHAR(10) NULL");
+    $pdo->exec("UPDATE miembros SET temperatura=LOWER(fuente) WHERE temperatura IS NULL AND LOWER(fuente) IN ('hot','warm','cold','aep','t65')");
+} catch (Exception $e) {}
 } // fin: estructura una vez por deploy (parte 1)
 
 // Contar llamadas de hoy para el reporte — comparar por rango (col >= hoy
@@ -11618,6 +11625,14 @@ foreach($members as $m){
     elseif(in_array($est,$states_lost)) { if(!empty($m['en_recuperacion'])) $pipe_pros[] = $m; }
     else $pipe_pros[] = $m;
 }
+// En el pipeline la "temperatura" sale de su propia columna; si un miembro viejo
+// todavía no la tiene, se usa la que había quedado guardada en 'fuente'.
+$pipe_pros = array_map(function($m){
+    $t = strtolower(trim($m['temperatura'] ?? ''));
+    if (($m['temperatura'] ?? null) === null) { $f = strtolower(trim($m['fuente'] ?? '')); $t = in_array($f, ['hot','warm','cold','aep','t65'], true) ? $f : ''; }
+    $m['fuente'] = $t; // solo en esta copia local del pipeline
+    return $m;
+}, $pipe_pros);
 
 // Ordenar prospectos: hot primero, luego warm, cold, aep, t65, sin clasificar
 $temp_order = ['hot'=>0,'warm'=>1,'cold'=>2,'aep'=>3,'t65'=>4,null=>5,''=>5];

@@ -2046,7 +2046,13 @@ case 'set_prospect_temp':
     if (!$id) jsonErr('ID requerido');
     if (!in_array(strtolower($temp), $allowed)) jsonErr('Temperatura no válida');
     $pdo = db();
-    $pdo->prepare("UPDATE miembros SET fuente=? WHERE id=?")->execute([$temp ?: null, $id]);
+    // La temperatura va en su PROPIA columna. Antes se guardaba en 'fuente' y
+    // borraba de dónde vino el lead (Facebook, referido, evento...).
+    try {
+        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'temperatura'")->fetch())
+            $pdo->exec("ALTER TABLE miembros ADD COLUMN temperatura VARCHAR(10) NULL");
+    } catch (Exception $e) {}
+    $pdo->prepare("UPDATE miembros SET temperatura=? WHERE id=?")->execute([$temp ? strtolower($temp) : '', $id]); // '' = sin clasificar a propósito
     $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
         ->execute([$uid, $id, 'SISTEMA', 'Temperatura prospecto: ' . ($temp ?: 'sin clasificar')]);
     jsonOk(['msg'=>'Temperatura actualizada']);
