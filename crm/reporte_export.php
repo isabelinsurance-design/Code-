@@ -1,6 +1,7 @@
 <?php
 require_once 'session_boot.php';
 require_once 'config.php';
+require_once 'nomina_calc.php';
 $user = auth();
 if (empty($user)) { echo 'Sin acceso'; exit; }
 
@@ -30,6 +31,19 @@ $cq = "SELECT a.*,u.nombre,u.iniciales FROM asistencia a LEFT JOIN usuarios u ON
 $cst = $pdo->prepare($cq);
 $cst->execute($ag ? [$from, $to, $ag] : [$from, $to]);
 $ckins = $cst->fetchAll();
+// Breaks adicionales (2º, 3º...) de todos los días de una sola vez — antes el
+// export los ignoraba y las horas salían de más.
+$_xb_export = asistencia_breaks_batch($pdo, array_column($ckins, 'id'));
+function horas_reg(array $c, array $xb): string {
+    if (empty($c['check_in']) || empty($c['check_out'])) return '—';
+    $t = segundos_trabajados($c, $xb[(int)($c['id'] ?? 0)] ?? []);
+    return $t > 0 ? floor($t/3600).'H '.floor(($t%3600)/60).'M' : '—';
+}
+function dur_almuerzo(array $c): string {
+    if (empty($c['lunch_out']) || empty($c['lunch_in'])) return '—';
+    $t = strtotime('1970-01-01 '.$c['lunch_in']) - strtotime('1970-01-01 '.$c['lunch_out']);
+    return $t > 0 ? floor($t/3600).'H '.floor(($t%3600)/60).'M' : '—';
+}
 
 function horas_net($ci,$lo,$li,$co,$bo=null,$bi=null) {
     if(!$ci||!$co) return '—';
@@ -57,8 +71,8 @@ if ($fmt === 'csv') {
             $r['citas_confirmadas'], $r['tickets_resueltos'],
             $r['apps_enviadas'], $r['polizas_escritas'], $r['nota']??'',
             $ck['check_in']??'', $ck['check_out']??'',
-            $ck ? horas_net($ck['check_in'],$ck['lunch_out'],$ck['lunch_in'],$ck['check_out'],$ck['break_out']??null,$ck['break_in']??null) : '—',
-            ($ck&&$ck['lunch_out']&&$ck['lunch_in'])? horas_net($ck['lunch_out'],$ck['lunch_out'],$ck['lunch_in'],$ck['lunch_in']??null) : '—',
+            $ck ? horas_reg($ck, $_xb_export) : '—',
+            $ck ? dur_almuerzo($ck) : '—',
             ($ck&&!empty($ck['break_out'])&&!empty($ck['break_in']))?'SÍ':'—',
         ]);
     }
@@ -71,8 +85,8 @@ if ($fmt === 'csv') {
                 $c['fecha'],$c['nombre'],$c['iniciales']??'',
                 '','','','','','','','',
                 $c['check_in']??'',$c['check_out']??'',
-                horas_net($c['check_in'],$c['lunch_out'],$c['lunch_in'],$c['check_out'],$c['break_out']??null,$c['break_in']??null),
-                '','',
+                horas_reg($c, $_xb_export),
+                dur_almuerzo($c), (!empty($c['break_out'])&&!empty($c['break_in']))?'SÍ':'—',
             ]);
         }
     }
@@ -88,7 +102,7 @@ $agNombre = $ag ? ($pdo->query("SELECT nombre FROM usuarios WHERE id=$ag")->fetc
 $tot_ll = array_sum(array_map(fn($r)=>$r['llamadas_prospectos']+$r['llamadas_servicio'],$reportes));
 $tot_apps = array_sum(array_column($reportes,'apps_enviadas'));
 $open_tks = $pdo->query("SELECT COUNT(*) FROM tickets WHERE estado!='CERRADO'")->fetchColumn();
-$activos  = $pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVO'")->fetchColumn();
+$activos  = $pdo->query("SELECT COUNT(*) FROM miembros WHERE estado='ACTIVE'")->fetchColumn();
 
 echo "REPORTE DE OPERACIONES — MEDICARE WITH ISABEL\n";
 echo "withisabelfuentes.com · CA Lic #0D96598\n";
@@ -104,7 +118,7 @@ echo str_repeat('=',60)."\n\n";
 echo "ASISTENCIA\n";
 foreach ($ckins as $c) {
     $bo = $c['break_out']??null; $bi = $c['break_in']??null;
-    $w = horas_net($c['check_in'],$c['lunch_out'],$c['lunch_in'],$c['check_out'],$bo,$bi);
+    $w = horas_reg($c, $_xb_export);
     echo "{$c['fecha']} · {$c['nombre']}: CI={$c['check_in']} CO={$c['check_out']} HORAS=$w";
     if ($bo&&$bi) echo " BREAK={$bo}-{$bi}";
     echo "\n";

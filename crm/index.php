@@ -10627,7 +10627,7 @@ $stmt = $pdo->prepare("SELECT item_key, item_texto FROM tareas_personalizadas
                        AND (
                            frecuencia = 'DIARIA'
                            OR (frecuencia = 'DIAS_ESPECIFICOS' AND FIND_IN_SET(?, dias_semana) > 0)
-                           OR (frecuencia = 'MENSUAL' AND dia_mes = ?)
+                           OR (frecuencia = 'MENSUAL' AND (dia_mes = ? OR (dia_mes > DAY(LAST_DAY(CURDATE())) AND DAY(CURDATE()) = DAY(LAST_DAY(CURDATE())))))
                        )");
 $stmt->execute([$uid, $dia_semana, $dia_mes]);
 $mis_tareas_maestras = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -11213,8 +11213,10 @@ function cargarHistorial(mes) {
     const h = d.historial;
     const newEnroll = h.filter(x=>x.subestado==='NEW ENROLLMENT'||!x.subestado);
     const reSigned  = h.filter(x=>x.subestado==='RE-SIGNED');
-    const dt = new Date(mes+'-01');
-    const mesLabel = dt.toLocaleDateString('en-US',{month:'long',year:'numeric'}).toUpperCase();
+    // "2026-10" → "OCTUBRE 2026" sin pasar por Date (que lo leía en UTC y mostraba el mes anterior).
+    const _mp = String(mes).split('-');
+    const _MESES = ['ENERO','FEBRERO','MARZO','ABRIL','MAYO','JUNIO','JULIO','AGOSTO','SEPTIEMBRE','OCTUBRE','NOVIEMBRE','DICIEMBRE'];
+    const mesLabel = (_MESES[parseInt(_mp[1],10)-1] || mes) + ' ' + (_mp[0] || '');
 
     let html = `<div style="display:flex;gap:10px;padding:12px 15px;border-bottom:1px solid #C8DFF0;flex-wrap:wrap">
       <div style="background:#EAF5F0;border:1px solid #8DCFBA;border-radius:9px;padding:8px 16px;text-align:center;min-width:100px">
@@ -11675,7 +11677,7 @@ foreach($members as $m){
     $est = $m['estado'] ?? '';
     // "CON CITA" solo cuenta si tiene una cita activa (no completada) — una cita
     // vieja ya completada no debe seguir apareciendo aquí como si estuviera pendiente.
-    $tiene_cita_activa = !empty(array_filter($citas_por_miembro[$m['id']] ?? [], fn($c)=>$c['estado']!=='COMPLETADA'));
+    $tiene_cita_activa = !empty(array_filter($citas_por_miembro[$m['id']] ?? [], fn($c)=>$c['estado']==='PENDIENTE' && ($c['fecha'] ?? '') >= date('Y-m-d')));
     if($est==='ACTIVE') $pipe_sold[] = $m;
     elseif(in_array($est,$states_app)) $pipe_app[] = $m;
     elseif($tiene_cita_activa) $pipe_cita[] = $m;
@@ -12010,12 +12012,12 @@ if(count($t65_pipe)>0):
 
         <div class="form-group">
           <label class="form-label" style="margin-bottom:10px">¿QUÉ PASÓ?</label>
-          <input type="hidden" name="resultado" id="lr-resultado" value="Contestó">
+          <input type="hidden" name="resultado" id="lr-resultado" value="">
           <div class="lr-grid-3">
             <div class="lr-grid-btn" data-res="No contestó" onclick="setLrResult(this)">
               <span class="lr-icon">🚫</span><span class="lr-text">No contestó</span>
             </div>
-            <div class="lr-grid-btn active" data-res="Contestó" onclick="setLrResult(this)">
+            <div class="lr-grid-btn" data-res="Contestó" onclick="setLrResult(this)">
               <span class="lr-icon">✅</span><span class="lr-text">Contestó</span>
             </div>
             <div class="lr-grid-btn" data-res="Dejó buzón" onclick="setLrResult(this)">
@@ -15016,7 +15018,7 @@ try {
 <div style="display:flex;border-bottom:2px solid <?=$CB?>;margin-bottom:14px;overflow-x:auto;background:#fff;border-radius:11px 11px 0 0;border:1px solid <?=$CB?>">
 <?php foreach(['EMPLEADOS','CERTIFICACIONES','METAS','NOTIFICACIONES','INCENTIVOS','IMPORTAR','HISTORIAL'] as $at):?><button class="ntab<?=$at==='EMPLEADOS'?' active':''?>" onclick="showAdminTab('<?=$at?>')" data-atab="<?=$at?>"><?=$at?></button><?php endforeach;?>
 </div>
-<div id="atab-EMPLEADOS"><div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal, horas y fecha de nacimiento (para el saludo de cumpleaños)</div></div><button class="btn btn-p btn-sm" onclick="openModal('modal-nuevo-usuario')">+ NUEVO EMPLEADO</button></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>ESTADO</th><th>USUARIO</th><th>🎂 CUMPLEAÑOS</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all_con_inactivos as $u): $u_es_admin=$u['rol']==='admin'; $u_activo=(int)($u['activo']??1)===1; ?><tr style="<?=$u_activo?'':'opacity:.55;background:#F7F7F7'?>"><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td><?php if((int)$u['id']===(int)$uid):?><span style="font-size:7px;color:<?=$MU?>;text-transform:uppercase">— ERES TÚ —</span><?php else:?><button onclick="toggleUsuarioActivo(<?=$u['id']?>,'<?=h(addslashes($u['nombre']))?>',<?=$u_activo?'0':'1'?>,this)" class="btn btn-sm" style="font-size:7px;padding:4px 9px;background:<?=$u_activo?'#EAF5F0':'#FDF0EE'?>;color:<?=$u_activo?'#1E7A5C':'#B83232'?>;border:1px solid <?=$u_activo?'#8DCFBA':'#EFA09A'?>"><?=$u_activo?'✓ ACTIVO':'⏸ INACTIVO'?></button><?php endif;?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?></td><td><input type="date" id="dob-<?=$u['id']?>" value="<?=h($u['dob']??'')?>" onchange="saveCumple(<?=$u['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 6px;font-size:9px;font-family:'DM Sans',sans-serif;color:<?=$P1?>"></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
+<div id="atab-EMPLEADOS"><div class="card"><div class="card-header" style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div><div class="card-title">EMPLEADOS</div><div class="card-sub">Configura salario quincenal, horas y fecha de nacimiento (para el saludo de cumpleaños)</div></div><button class="btn btn-p btn-sm" onclick="openModal('modal-nuevo-usuario')">+ NUEVO EMPLEADO</button></div><div style="overflow-x:auto"><table><tr><th>EMPLEADO</th><th>ROL</th><th>ESTADO</th><th>USUARIO</th><th>🎂 CUMPLEAÑOS</th><th>SALARIO QUINCENAL</th><th>HORAS/DÍA (L–V)</th><th>HORAS SÁB</th><th>DÍAS QUE TRABAJA</th><th></th></tr><?php foreach($users_all_con_inactivos as $u): $u_es_admin=$u['rol']==='admin'; $u_activo=(int)($u['activo']??1)===1; ?><tr style="<?=$u_activo?'':'opacity:.55;background:#F7F7F7'?>"><td><div style="display:flex;gap:7px;align-items:center"><?=av(h($u['iniciales']),h($u['color']),28)?><span style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($u['nombre'])?></span></div></td><td><?=badge($u_es_admin?'ADMIN':'EMPLEADO',true)?></td><td><?php if((int)$u['id']===(int)$uid):?><span style="font-size:7px;color:<?=$MU?>;text-transform:uppercase">— ERES TÚ —</span><?php else:?><button onclick="toggleUsuarioActivo(<?=$u['id']?>,'<?=h(addslashes($u['nombre']))?>',<?=$u_activo?'0':'1'?>,this)" class="btn btn-sm" style="font-size:7px;padding:4px 9px;background:<?=$u_activo?'#EAF5F0':'#FDF0EE'?>;color:<?=$u_activo?'#1E7A5C':'#B83232'?>;border:1px solid <?=$u_activo?'#8DCFBA':'#EFA09A'?>"><?=$u_activo?'✓ ACTIVO':'⏸ INACTIVO'?></button><?php endif;?></td><td style="font-size:9px;color:#1B5E8C;font-weight:800"><?=h($u['username'])?> <button type="button" class="btn btn-gh btn-sm" style="font-size:7px;padding:2px 6px;margin-left:4px" title="Cambiar contraseña" onclick="cambiarPasswordUsuario(<?=(int)$u['id']?>,'<?=h(addslashes($u['nombre']))?>')">🔑</button></td><td><input type="date" id="dob-<?=$u['id']?>" value="<?=h($u['dob']??'')?>" onchange="saveCumple(<?=$u['id']?>)" style="border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 6px;font-size:9px;font-family:'DM Sans',sans-serif;color:<?=$P1?>"></td><?php if($u_es_admin):?><td colspan="5" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase">— No aplica nómina —</td><?php else:?><td><div style="display:flex;align-items:center;gap:3px"><span style="color:<?=$MU?>;font-size:10px">$</span><input type="number" step="0.01" min="0" id="sal-<?=$u['id']?>" value="<?=h($u['salario_quincenal']??'')?>" placeholder="0.00" style="width:90px;border:1.5px solid <?=($u['salario_quincenal']??'')===''||$u['salario_quincenal']===null?'#EFA09A':$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></div></td><td><input type="number" step="0.5" min="0" id="hs-<?=$u['id']?>" value="<?=h($u['horas_semana']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><input type="number" step="0.5" min="0" id="hsab-<?=$u['id']?>" value="<?=h($u['horas_sabado']??'')?>" placeholder="0" style="width:60px;border:1.5px solid <?=$CB?>;border-radius:7px;padding:5px 8px;font-size:10px;font-family:'DM Sans',sans-serif"></td><td><div style="display:flex;gap:3px">
 <?php foreach(['lun'=>['trabaja_lunes','L'],'mar'=>['trabaja_martes','M'],'mie'=>['trabaja_miercoles','X'],'jue'=>['trabaja_jueves','J'],'vie'=>['trabaja_viernes','V'],'sab'=>['trabaja_sabado','S']] as $dk=>$dd): $on=(int)($u[$dd[0]]??0)===1; ?>
 <label style="display:inline-flex;flex-direction:column;align-items:center;font-size:7px;font-weight:900;color:<?=$MU?>;cursor:pointer"><?=$dd[1]?><input type="checkbox" id="d<?=$dk?>-<?=$u['id']?>"<?=$on?' checked':''?> style="cursor:pointer;margin-top:2px"></label>
 <?php endforeach;?>
@@ -17115,7 +17117,10 @@ function openTicketForm(mid=null, tktData=null){
   document.getElementById('tkt-resultado').value = '';
   document.getElementById('tkt-cliente').value = '';
   document.getElementById('tkt-nref').value = '';
-  document.getElementById('tkt-sla').value = '';
+  // Ticket nuevo: fecha límite por defecto a 2 días hábiles (antes vacía, y un ticket
+  // sin fecha nunca salía como vencido). Se puede cambiar en el formulario.
+  { const d=new Date(); let n=0; while(n<2){ d.setDate(d.getDate()+1); const w=d.getDay(); if(w!==0&&w!==6) n++; }
+    document.getElementById('tkt-sla').value = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
   document.getElementById('tkt-fseg').value = '<?=date('Y-m-d',strtotime('+7 days'))?>';
   document.getElementById('tkt-estado-sel').value = 'ABIERTO';
   document.getElementById('tkt-fuente').value = '';
@@ -17997,6 +18002,14 @@ setInterval(()=>{
   }).catch(()=>{});
 }, 20000);
 function toggleNotifPanel(){const p=document.getElementById('notif-dropdown');p.classList.toggle('open');if(p.classList.contains('open'))loadNotifs();}
+function cambiarPasswordUsuario(id, nombre){
+  const pw = prompt('Nueva contraseña para '+nombre+' (mínimo 8 caracteres, sin patrón fácil):');
+  if(pw===null) return;
+  if(pw.length<8){ toast('⚠ Mínimo 8 caracteres'); return; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'set_password_usuario',id,password:pw})})
+    .then(r=>r.json()).then(d=>toast(d.ok?'✓ CONTRASEÑA CAMBIADA — dásela a '+nombre+' en persona':('⚠ '+(d.error||'Error'))))
+    .catch(()=>toast('⚠ Error de red'));
+}
 function smsMarcarAtendido(){
   if(typeof _smsHiloAbierto==='undefined' || !_smsHiloAbierto){ toast('Abre una conversación primero'); return; }
   fetch('api.php',{method:'POST',body:new URLSearchParams({action:'sms_marcar_atendido',telefono:_smsHiloAbierto})})
@@ -21043,9 +21056,9 @@ function openLlamadaRapidaModal() {
     ['lr-mpick-drop','lr-sv-mpick-drop'].forEach(id => { const el = document.getElementById(id); if(el) el.style.display='none'; });
     setLrMode('prospecto');
     document.querySelectorAll('.lr-grid-btn').forEach(b => b.classList.remove('active'));
-    const def = document.querySelector('.lr-grid-btn[data-res="Contestó"]');
-    if (def) def.classList.add('active');
-    document.getElementById('lr-resultado').value = 'Contestó';
+    // Sin resultado elegido de entrada: antes venía "Contestó" marcado y una llamada
+    // sin contestar se guardaba como contestada si nadie lo cambiaba.
+    document.getElementById('lr-resultado').value = '';
     openModal('llamada-rapida-modal');
 }
 
@@ -21077,6 +21090,11 @@ function submitLlamadaRapida(e) {
 
     let fd;
     if (mode === 'prospecto') {
+        if (!document.getElementById('lr-resultado').value) {
+            toast('⚠ Elige qué pasó en la llamada (contestó, no contestó, buzón…)');
+            btn.disabled = false; btn.textContent = 'GUARDAR ➜';
+            return;
+        }
         fd = new FormData(e.target);
         fd.append('action', 'save_llamada_prospecto');
     } else {

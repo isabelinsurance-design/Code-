@@ -75,8 +75,13 @@ function calcStreak(PDO $pdo, int $agenteId): int {
     if (!$set) return 0;
     $cur = new DateTime(today());
     if (!isset($set[$cur->format('Y-m-d')])) $cur->modify('-1 day'); // día en curso aún sin reporte
-    $streak = 0;
-    while (isset($set[$cur->format('Y-m-d')])) { $streak++; $cur->modify('-1 day'); }
+    // Sábado y domingo no rompen la racha (nadie llama en fin de semana).
+    $streak = 0; $guard = 0;
+    while ($guard++ < 200) {
+        if ((int)$cur->format('N') >= 6 && !isset($set[$cur->format('Y-m-d')])) { $cur->modify('-1 day'); continue; }
+        if (!isset($set[$cur->format('Y-m-d')])) break;
+        $streak++; $cur->modify('-1 day');
+    }
     return $streak;
 }
 $rachas = [];

@@ -497,6 +497,22 @@ case 'toggle_usuario_activo':
     jsonOk();
     break;
 
+// ── CAMBIAR CONTRASEÑA DE UN EMPLEADO (admin) ──────────────────
+// Antes había que hacerlo directo en la base de datos (phpMyAdmin).
+case 'set_password_usuario':
+    if (!$admin) jsonErr('Solo un administrador puede cambiar contraseñas');
+    $tid = intval($_POST['id'] ?? 0);
+    $pw  = (string)($_POST['password'] ?? '');
+    if (!$tid) jsonErr('Empleado requerido');
+    if (strlen($pw) < 8) jsonErr('La contraseña debe tener al menos 8 caracteres');
+    $pdo = db();
+    $chk = $pdo->prepare("SELECT nombre FROM usuarios WHERE id=?"); $chk->execute([$tid]); $tn = $chk->fetchColumn();
+    if (!$tn) jsonErr('Empleado no encontrado');
+    $pdo->prepare("UPDATE usuarios SET password_hash=? WHERE id=?")->execute([password_hash($pw, PASSWORD_DEFAULT), $tid]);
+    try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid,'SISTEMA','Contraseña cambiada para '.$tn]); } catch (Exception $e) {}
+    jsonOk();
+    break;
+
 // ── FECHA DE NACIMIENTO DEL EMPLEADO (para el saludo de cumpleaños) ──
 case 'save_cumple':
     if (!$admin) jsonErr('Solo admin puede configurar cumpleaños');
@@ -906,6 +922,11 @@ case 'complete_next_step':
     $id    = (int)($_POST['id'] ?? 0);
     $notas = trim($_POST['notas_completado'] ?? '');
     if (!$id) jsonErr('ID inválido');
+    // Solo el dueño del ticket, quien lo creó, o un admin (antes cualquiera).
+    $own = $pdo->prepare("SELECT t.agente_id, t.asignado_a FROM ticket_next_steps ns JOIN tickets t ON t.id=ns.ticket_id WHERE ns.id=?");
+    $own->execute([$id]); $ow = $own->fetch();
+    if (!$ow) jsonErr('No encontrado');
+    if (!$admin && (int)$ow['agente_id'] !== (int)$uid && (int)$ow['asignado_a'] !== (int)$uid) jsonErr('Solo el responsable del ticket o un admin puede cambiar sus next steps');
     $pdo->prepare("UPDATE ticket_next_steps SET completado=1, fecha_completado=NOW(), notas_completado=? WHERE id=?")
         ->execute([$notas ?: null, $id]);
     jsonOk();
@@ -915,6 +936,11 @@ case 'reopen_next_step':
     $pdo = db(); // <--- CONEXIÓN AÑADIDA
     $id = (int)($_POST['id'] ?? 0);
     if (!$id) jsonErr('ID inválido');
+    // Solo el dueño del ticket, quien lo creó, o un admin (antes cualquiera).
+    $own = $pdo->prepare("SELECT t.agente_id, t.asignado_a FROM ticket_next_steps ns JOIN tickets t ON t.id=ns.ticket_id WHERE ns.id=?");
+    $own->execute([$id]); $ow = $own->fetch();
+    if (!$ow) jsonErr('No encontrado');
+    if (!$admin && (int)$ow['agente_id'] !== (int)$uid && (int)$ow['asignado_a'] !== (int)$uid) jsonErr('Solo el responsable del ticket o un admin puede cambiar sus next steps');
     $pdo->prepare("UPDATE ticket_next_steps SET completado=0, fecha_completado=NULL, notas_completado=NULL WHERE id=?")->execute([$id]);
     jsonOk();
     break;
@@ -923,6 +949,11 @@ case 'delete_next_step':
     $pdo = db(); // <--- CONEXIÓN AÑADIDA
     $id = (int)($_POST['id'] ?? 0);
     if (!$id) jsonErr('ID inválido');
+    // Solo el dueño del ticket, quien lo creó, o un admin (antes cualquiera).
+    $own = $pdo->prepare("SELECT t.agente_id, t.asignado_a FROM ticket_next_steps ns JOIN tickets t ON t.id=ns.ticket_id WHERE ns.id=?");
+    $own->execute([$id]); $ow = $own->fetch();
+    if (!$ow) jsonErr('No encontrado');
+    if (!$admin && (int)$ow['agente_id'] !== (int)$uid && (int)$ow['asignado_a'] !== (int)$uid) jsonErr('Solo el responsable del ticket o un admin puede cambiar sus next steps');
     $pdo->prepare("DELETE FROM ticket_next_steps WHERE id=?")->execute([$id]);
     jsonOk();
     break;    
@@ -2137,6 +2168,7 @@ case 'save_llamada_prospecto':
     $nombre = $_POST['nombre_libre'] ?? '';
     $telefono = normalizar_tel($_POST['telefono'] ?? '');
     $resultado = $_POST['resultado'] ?? ''; // Tomamos la opción del grid
+    if (trim($resultado) === '') jsonErr('Elige qué pasó en la llamada');
     $notas = $_POST['notas'] ?? '';
 
     // Si marcó no contestó o dejó buzón, es 0. Si no, es 1.
