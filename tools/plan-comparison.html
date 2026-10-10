@@ -339,6 +339,18 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
 .mc-know{background:var(--amber-lt);border-color:#f3d9a4}
 @media (max-width:600px){.mc-line{grid-template-columns:1fr;gap:2px}}
 @media print{.mc-lines{border-color:#999}.mc-line{border-color:#ddd}}
+/* current plan vs offer */
+.sw-table th:first-child{width:200px}
+.sw-table td.win{background:var(--green-lt);color:var(--green);font-weight:600}
+.sw-table td.lose{background:var(--red-lt);color:var(--red)}
+.sw-mark{font-size:11px}
+.sw-sum{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.sw-good,.sw-bad{border-radius:12px;padding:10px 14px;font-size:13px;border:1px solid var(--border)}
+.sw-good{background:var(--green-lt)}.sw-bad{background:var(--red-lt)}
+.sw-sum ul{margin:6px 0 0 18px}
+.tag.cur{border-color:var(--amber);color:var(--amber)}
+@media (max-width:600px){.sw-sum{grid-template-columns:1fr}.sw-table th:first-child{width:auto}}
+@media print{.sw-table td.win{background:#eef7f0}.sw-table td.lose{background:#fbeeec}}
 @media print{
   body{background:#fff}
   .top,.workspace,.tray,.tabbar,.ios-hint,.modal-x,.no-print{display:none!important}
@@ -831,7 +843,7 @@ function normalize(plan) {
 
 /* ─── client description → profile (local, no AI) ─── */
 function blankProfile() {
-  return {county: '', mediCal: 'unknown', extraHelp: false, conditions: [], medicalGroup: '', hospital: '', insulin: false, tier3: 0, drugs: [], rxStandard: false, doctors: '',
+  return {county: '', mediCal: 'unknown', extraHelp: false, conditions: [], medicalGroup: '', hospital: '', currentPlan: '', insulin: false, tier3: 0, drugs: [], rxStandard: false, doctors: '',
     priorities: {}, maxPremium: null, veteran: false, vaDrugCoverage: false, costco: false, language: '', notes: ''};
 }
 
@@ -944,6 +956,9 @@ function parseClientText(text, groups = []) {
   const labG = t.match(new RegExp('\\bmedical group:\\s*' + LAB, 'i')), labH = t.match(new RegExp('\\bhospital:\\s*' + LAB, 'i'));
   if (labG) p.medicalGroup = T(labG[1]);
   if (labH) p.hospital = T(labH[1]);
+  const labC = t.match(new RegExp('\\b(?:current plan|plan actual|currently (?:on|has|with)|now (?:on|has|with)|has now|tiene ahora):?\\s*' + LAB, 'i'));
+  if (labC) p.currentPlan = T(labC[1]);
+  if (!p.currentPlan && /\boriginal medicare\b/i.test(t)) p.currentPlan = 'Original Medicare';
   const dr = t.match(/\b(dr\.?|doctor)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
   if (dr) p.doctors = 'Dr. ' + dr[2];
   p.notes = T(text);
@@ -2355,7 +2370,7 @@ function cleanProfile(saved) {
   p.drugs = (Array.isArray(p.drugs) ? p.drugs : []).filter(d => d && typeof d === 'object' && T(d.name) && RX_TIERS.includes(String(d.tier)))
     .slice(0, 40).map(d => ({name: T(d.name).slice(0, 60), tier: String(d.tier), price: Math.min(1e6, Math.max(0, +d.price || 0)), ...(d.manual ? {manual: true} : {})}));
   p.tier3 = Math.min(6, Math.max(0, Math.floor(+p.tier3 || 0)));
-  for (const k of ['medicalGroup', 'hospital', 'doctors', 'language', 'notes']) p[k] = typeof p[k] === 'string' ? p[k].slice(0, 500) : '';
+  for (const k of ['medicalGroup', 'hospital', 'currentPlan', 'doctors', 'language', 'notes']) p[k] = typeof p[k] === 'string' ? p[k].slice(0, 500) : '';
   for (const k of ['extraHelp', 'insulin', 'rxStandard', 'veteran', 'vaDrugCoverage', 'costco', 'dentalImplants', 'keepDoctor']) p[k] = !!p[k];
   p.maxPremium = p.maxPremium == null || !isFinite(+p.maxPremium) ? null : Math.max(0, +p.maxPremium);
   return p;
@@ -2400,6 +2415,9 @@ function renderProfile() {
       <button class="btn small" data-open-rx style="margin-top:8px">💊 Add drugs by name — Prescriptions</button></div>
     <div class="pf-sec"><div class="lbl">What matters <small>click: ★ important → must-have → off</small></div>
       <div class="chips">${PRIORITIES.map(pr => { const lv = p.priorities[pr.id] || 0; return `<button class="chip ${lv >= 3 ? 'l3' : lv >= 1 ? 'l2' : ''}" data-pri="${pr.id}">${pr.icon} ${pr.label}${lv ? `<span class="lv">${LEVEL_TXT[lv] || '★'}</span>` : ''}</button>`; }).join('')}</div></div>
+    <div class="pf-sec"><div class="lbl">Current plan <small>what they have now</small></div>
+      <input class="inp" id="curPlan" list="curPlanList" placeholder="e.g. SCAN Classic, Original Medicare" value="${esc(p.currentPlan || '')}"/>
+      <datalist id="curPlanList"><option value="Original Medicare">${planNames().map(nm => `<option value="${esc(nm)}">`).join('')}</datalist></div>
     <div class="pf-sec"><div class="lbl">Max monthly premium</div>
       <div class="inline"><input class="inp" type="number" min="0" step="1" id="maxPrem" placeholder="No limit" value="${p.maxPremium ?? ''}" style="max-width:130px"/><span class="hint">leave blank for no limit</span></div></div>
     <div class="pf-sec"><div class="lbl">Other</div>
@@ -2432,6 +2450,7 @@ $('profile').addEventListener('change', e => {
     if (t.dataset.flag === 'insulin' && !t.checked) p.drugs = (p.drugs || []).filter(d => String(d.tier) !== 'insulin');
   }
   else if (t.id === 'maxPrem') p.maxPremium = t.value === '' ? null : Math.max(0, parseFloat(t.value));
+  else if (t.id === 'curPlan') p.currentPlan = t.value.trim();
   else if (t.id === 'langSel') p.language = t.value;
   else if (t.id === 'mgInput') { clearTimeout(mgTimer); const v = t.value.trim(); if (v !== p.medicalGroup) { p.medicalGroup = v; rerank(false); } return; }
   else if (t.id === 'hospInput') { clearTimeout(mgTimer); const v = t.value.trim(); if (v !== p.hospital) { p.hospital = v; rerank(false); } return; }
@@ -2688,7 +2707,7 @@ function planCard(r, i) {
   return `<article class="plan ${i === 0 ? 'top1' : ''} ${compact ? 'compact' : ''}" id="plan-${plan.idx}">
     <div class="p-head" data-toggle="${plan.idx}">
       <div class="rank">#${i + 1}</div>
-      <div class="p-title"><h3>${esc(plan.name)}${plan.isNew ? '<span class="tag new">NEW</span>' : ''}${n.csnp ? '<span class="tag snp">C-SNP</span>' : ''}${n.dsnp ? '<span class="tag snp">D-SNP</span>' : ''}</h3>
+      <div class="p-title"><h3>${esc(plan.name)}${plan.isNew ? '<span class="tag new">NEW</span>' : ''}${(currentPlanOf(p) || {}).idx === plan.idx ? '<span class="tag cur">HAS NOW</span>' : ''}${n.csnp ? '<span class="tag snp">C-SNP</span>' : ''}${n.dsnp ? '<span class="tag snp">D-SNP</span>' : ''}</h3>
         <div class="p-meta">${esc(plan.carrier)} · ${esc(type)} · ${plan.counties.map(countyName).join(', ')} · <span class="mono">${esc(plan.id)}</span>${compact ? ` · <b style="color:var(--text-mid)">${prem} premium · ${v.giveback ? fmt$(v.giveback) + ' giveback · ' : ''}MOOP ${fmt$(v.moop)}</b>` : ''}</div></div>
       <div class="score"><b>${Math.round(r.score)}</b><div class="bar"><i style="width:${Math.max(4, r.score)}%"></i></div><small>fit score</small></div>
     </div>
@@ -2717,6 +2736,7 @@ function planCard(r, i) {
         <label><input type="checkbox" data-cmp="${plan.idx}" ${checked ? 'checked' : ''}/> Compare</label>
         <button class="btn small" data-details="${plan.idx}">All benefits</button>
         <button class="btn small" data-member="${plan.idx}">Member card</button>
+        ${currentPlanOf(p) && currentPlanOf(p).idx !== plan.idx ? `<button class="btn small" data-switch="${plan.idx}">vs current plan</button>` : ''}
       </div>
     </div>
   </article>`;
@@ -2737,6 +2757,8 @@ $('planList').addEventListener('click', e => {
   if (det) { showDetails(+det.dataset.details); return; }
   const mb = t.closest('[data-member]');
   if (mb) { showMemberCard(+mb.dataset.member); return; }
+  const swb = t.closest('[data-switch]');
+  if (swb) { showSwitch(+swb.dataset.switch); return; }
   if (t.closest('[data-cmp]') || t.closest('label')) return;
   const head = t.closest('[data-toggle]');
   if (head) { const idx = +head.dataset.toggle; const card = head.parentElement; if (card.classList.contains('compact')) { S.expanded.add(idx); card.classList.remove('compact'); } }
@@ -3151,6 +3173,7 @@ function apptText(p) {
   for (const c of p.conditions) bits.push({diabetes: 'diabetic', heart: 'heart disease', lung: 'COPD', kidney: 'kidney disease', esrd: 'on dialysis', dementia: 'dementia'}[c] || COND_BY_ID[c].label.toLowerCase());
   if (p.medicalGroup) bits.push(`medical group: ${p.medicalGroup}${p.keepDoctor ? ' (must keep this doctor)' : ''}`);
   if (p.hospital) bits.push(`hospital: ${p.hospital}`);
+  if (p.currentPlan) bits.push(`current plan: ${p.currentPlan}`);
   const known = (p.drugs || []).filter(d => findDrug(d.name)), unknown = (p.drugs || []).length - known.length;
   if (known.length) bits.push('takes ' + known.map(d => d.name).join(', '));
   if (p.insulin && !(p.drugs || []).some(d => String(d.tier) === 'insulin')) bits.push('takes insulin');
@@ -3202,6 +3225,8 @@ function renderAppointment(keep, parts) {
       <div class="ap-two" style="margin-top:8px"><label class="tg"><input type="checkbox" data-ap-flag="insulin" ${p.insulin ? 'checked' : ''}/> 💉 Takes insulin</label>
       <div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Other brand drugs:</span><div class="seg" style="flex:1">${[0, 1, 2, 3].map(k => `<button class="${Math.min(p.tier3 || 0, 3) === k ? 'on' : ''}" data-ap-tier3="${k}">${k === 3 ? '3+' : k}</button>`).join('')}</div></div></div>`)}
     ${sec(6, 'What matters most to them?', 'Tap once = important, twice = must have, three times = off.', `<div class="chips">${AP_WANTS.map(id => { const pr = PRI_BY_ID[id], lv = p.priorities[id] || 0; return `<button class="chip ${lv >= 3 ? 'l3' : lv >= 1 ? 'l2' : ''}" data-ap-pri="${id}">${pr.icon} ${pr.label}${lv ? `<span class="lv">${lv >= 3 ? 'must' : '★'}</span>` : ''}</button>`; }).join('')}</div>`)}
+    ${sec(8, 'What plan do they have now?', 'Pick it from the list (or type Original Medicare) to see what gets better and what gets worse.', `<input class="inp" id="apCur" list="apCurList" placeholder="Current plan" value="${esc(p.currentPlan || '')}"/><datalist id="apCurList"><option value="Original Medicare">${planNames().map(nm => `<option value="${esc(nm)}">`).join('')}</datalist>
+      ${p.currentPlan && !currentPlanOf(p) ? `<div class="hint" style="color:var(--amber)">“${esc(p.currentPlan)}” isn't in the workbook — pick a name from the list to compare.</div>` : ''}`)}
     ${sec(7, 'Budget and other', '', `<div class="ap-two"><div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Max premium $</span><input class="inp" type="number" min="0" step="1" id="apMaxPrem" placeholder="no limit" value="${p.maxPremium ?? ''}" style="max-width:110px"/><span class="hint" style="margin:0">/mo</span></div>
       <div class="toggles"><label class="tg"><input type="checkbox" data-ap-flag="veteran" ${p.veteran ? 'checked' : ''}/> Veteran</label><label class="tg"><input type="checkbox" data-ap-flag="vaDrugCoverage" ${p.vaDrugCoverage ? 'checked' : ''}/> Drugs via VA</label><label class="tg"><input type="checkbox" data-ap-flag="costco" ${p.costco ? 'checked' : ''}/> Costco member</label><label class="tg"><input type="checkbox" data-ap-flag="dentalImplants" ${p.dentalImplants ? 'checked' : ''}/> Needs implants</label></div></div>`)}
     </div>
@@ -3221,6 +3246,7 @@ function apptBarHtml() {
     <div class="row" style="margin-top:6px">
       <button class="btn primary small" id="apSeePlans">See the ${Math.min(rs.length, 10) || ''} plans</button>
       ${top ? `<button class="btn gold small" data-member="${top.plan.idx}">Member card for #1</button>` : ''}
+      ${top && currentPlanOf(p) ? `<button class="btn small" data-switch="${top.plan.idx}">vs their current plan</button>` : ''}
       ${rs.length >= 2 ? `<button class="btn small" id="apCompare">Compare top ${Math.min(3, rs.length)}</button>` : ''}
       <button class="btn small" id="apReset">Start over</button>
     </div>`;
@@ -3261,6 +3287,7 @@ $('modalBody').addEventListener('click', e => {
   if (t.id === 'apReset') { S.lastFree = null; S.showAll = false; S.expanded.clear(); BN.picked = []; const out = $('aiOut'); if (out) { out.hidden = true; out.innerHTML = ''; }
     apptApply(x => { const county = x.county; for (const k of Object.keys(x)) delete x[k]; Object.assign(x, blankProfile(), {county}); }); renderAppointment(true); return; }
   const mb = t.closest('[data-member]'); if (mb) { backFrom('Appointment', () => renderAppointment(false)); showMemberCard(+mb.dataset.member); return; }
+  const swb = t.closest('[data-switch]'); if (swb) { backFrom('Appointment', () => renderAppointment(false)); showSwitch(+swb.dataset.switch); return; }
 });
 $('modalBody').addEventListener('change', e => {
   if (!$('apBar')) return;
@@ -3271,12 +3298,13 @@ $('modalBody').addEventListener('change', e => {
       if (k === 'dentalImplants' && t.checked) x.priorities.dental = Math.max(x.priorities.dental || 0, 2); }, t.dataset.apFlag === 'keepDoctor' ? 'bar' : undefined); return; }
   if (t.id === 'apGroup') { apptApply(x => { x.medicalGroup = T(t.value); }, 'bar'); return; }
   if (t.id === 'apHosp') { apptApply(x => { x.hospital = T(t.value); }, 'bar'); return; }
+  if (t.id === 'apCur') { apptApply(x => { x.currentPlan = T(t.value); }); return; }
   if (t.id === 'apMaxPrem') { apptApply(x => { x.maxPremium = t.value === '' ? null : Math.max(0, +t.value); }, 'bar'); return; }
 });
 $('modalBody').addEventListener('keydown', e => {
   if (!$('apBar') || e.key !== 'Enter') return;
   if (e.target.id === 'apDrug') { e.preventDefault(); $('apDrugAdd').click(); }
-  else if (['apGroup', 'apHosp', 'apMaxPrem'].includes(e.target.id)) { e.preventDefault(); e.target.blur(); }
+  else if (['apGroup', 'apHosp', 'apMaxPrem', 'apCur'].includes(e.target.id)) { e.preventDefault(); e.target.blur(); }
 });
 
 /* ═══════════════ MEMBER CARD — "why this plan", in the member's words ═══════════════ */
@@ -3328,7 +3356,7 @@ function showMemberCard(idx, lang) {
   openModal(`<div class="mc" id="memberCard" data-plan="${idx}">
     <div class="mc-head"><div><div class="mc-eyebrow">${t('Plan for', 'Plan para')} ${esc(profileLine(p) || t('this member', 'este miembro'))}</div><h2>${title}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(c => es ? ES_COUNTY[c] : countyName(c)).join(', ')} · <span class="mono">${esc(plan.id)}</span>${rank ? ` · ${t('ranked', 'puesto')} #${rank} ${t('for this member', 'para este miembro')}` : ''}</div></div></div>
     <div class="row no-print">${backBtn()}<div class="seg" style="width:auto"><button class="${!es ? 'on' : ''}" data-mc-lang="en">English</button><button class="${es ? 'on' : ''}" data-mc-lang="es">Español</button></div>
-      <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-mc-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button></div>
+      <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-mc-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button>${currentPlanOf(p) && currentPlanOf(p).idx !== idx ? `<button class="btn small" data-mc-switch="${idx}">${t('vs current plan', 'vs plan actual')}</button>` : ''}</div>
     <div class="mc-lines">${lines.join('')}</div>
     ${know.length ? `<div class="mc-conf mc-know"><b>${t('Good to know:', 'Tenga en cuenta:')}</b><ul>${know.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${conf.length ? `<div class="mc-conf"><b>${t('Before we enroll, we confirm:', 'Antes de inscribir, confirmamos:')}</b><ul>${conf.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
@@ -3340,6 +3368,7 @@ $('modalBody').addEventListener('click', e => {
   const lg = e.target.closest('[data-mc-lang]');
   const idx = +card.dataset.plan;
   if (lg) { const keepBack = S.modalBack; showMemberCard(idx, lg.dataset.mcLang); S.modalBack = keepBack; return; }
+  const sw = e.target.closest('[data-mc-switch]'); if (sw) { const outer = S.modalBack; backFrom(AP.lang === 'es' ? 'Tarjeta' : 'Member card', () => { S.modalBack = outer; showMemberCard(idx); }); showSwitch(idx); return; }
   const det = e.target.closest('[data-mc-details]'); if (det) { const outer = S.modalBack; backFrom('Member card', () => { S.modalBack = outer; showMemberCard(idx); }); showDetails(idx); return; }
   if (e.target.id === 'mcCopy') {
     const text = [...card.querySelectorAll('h2, .mc-line, .mc-conf b, .mc-conf li')].map(el => { if (!el.classList.contains('mc-line')) return (el.tagName === 'LI' ? '- ' : '') + el.textContent.trim();
@@ -3349,6 +3378,94 @@ $('modalBody').addEventListener('click', e => {
     const fallback = () => { const sel = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(card.querySelector('.mc-lines')); sel.removeAllRanges(); sel.addRange(rg); };
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }
   }
+});
+
+/* ═══════════════ CURRENT PLAN vs THE OFFER — what gets better, what gets worse, and the dollars ═══════════════ */
+const OM_NAME = 'Original Medicare';
+/* Original Medicare, for members who have no Advantage plan today (numbers: 2026 Part A/B cost sharing). */
+const ORIGINAL_MEDICARE = {idx: -1, key: '__om', name: OM_NAME, carrier: 'Medicare', counties: COUNTIES.map(c => c.id), fields: {}, om: true,
+  n: {premium: 0, premiumWithMediCal: 0, giveback: 0, moop: null, moopWithMediCal: null, pcp: null, spec: null, inpatient5: 1736, er: null, noPartD: true, rxDeductible: null, tier3: null, tier1: 0, tier2: 0, insulin: null,
+    dentalValue: 0, dentalNotCovered: true, dentalComprehensive: false, eyewear: 0, hearingValue: 0, cardYear: 0, cardYearChronic: 0, rides: 0, acuVisits: 0, chiroVisits: 0, fitness: false, ppo: true, pos: false, referrals: false, worldwide: false, worldwideLimit: 0, ssbciYear: 0, dsnp: false, csnp: false, snpConditions: []}};
+function planNames() { return [...new Set(S.data.plans.map(p => p.name))].sort(); }
+/* The plan the member has today: a workbook plan (the one sold in the client's county when the name repeats) or Original Medicare. */
+function currentPlanOf(profile) {
+  const nm = T(profile.currentPlan); if (!nm) return null;
+  if (/^original medicare$|^medicare only$|^traditional medicare$/i.test(nm)) return ORIGINAL_MEDICARE;
+  const same = S.data.plans.filter(p => normName(p.name) === normName(nm));
+  if (!same.length) return null;
+  return same.find(p => profile.county && p.counties.includes(profile.county)) || same[0];
+}
+/* Premiums for the year + the client's drug estimate − the Part B money back. Copays aren't included (they depend on use). */
+function yearlyCost(plan, profile) {
+  if (plan.om) return {total: 0, premium: 0, giveback: 0, drugs: null};
+  const v = planValues(plan, profile);
+  return {total: v.premium * 12 - v.giveback * 12 + (v.drugsYear || 0), premium: v.premium, giveback: v.giveback, drugs: v.drugsYear};
+}
+function showSwitch(idx, lang) {
+  if (lang) { AP.lang = lang; store.set(STORE.lang, lang); }
+  const es = AP.lang === 'es', t = (en, sp) => es ? sp : en;
+  const p = S.profile, cur = currentPlanOf(p), offer = S.data.plans[idx];
+  if (!cur) { openModal(`<h2>${t('Current plan', 'Plan actual')}</h2><p class="hint">${t('Tell me what plan the member has now (Appointment, question 8, or the Current plan box) and I\'ll show what changes.', 'Indique el plan actual del miembro (Cita, pregunta 8, o la casilla Plan actual) y le muestro qué cambia.')}</p>`); return; }
+  const cv = cur.om ? null : planValues(cur, p), ov = planValues(offer, p), cn = cur.n, on = offer.n;
+  const money = x => x == null ? '—' : x < 0 ? '−' + fmtc(-x) : fmtc(x), yr = t('yr', 'año'), mo = t('mo', 'mes');
+  const rows = [];
+  // each row: [label, current text, offer text, who is better: 'offer' | 'current' | null]
+  const R = (label, a, b, better) => rows.push({label, a, b, better});
+  const cmpMin = (x, y) => x == null || y == null ? null : (y < x ? 'offer' : y > x ? 'current' : null);
+  const cmpMax = (x, y) => x == null || y == null ? null : (y > x ? 'offer' : y < x ? 'current' : null);
+  const curPrem = cur.om ? 0 : cv.premium, curGb = cur.om ? 0 : cv.giveback, curMoop = cur.om ? null : cv.moop;
+  R(t('Monthly premium', 'Prima mensual'), money(curPrem) + (cur.om ? ' ' + t('(plus any Part D plan)', '(más el plan de la Parte D)') : ''), money(ov.premium), cmpMin(curPrem, ov.premium));
+  R(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), curGb ? `${money(curGb)}/${mo}` : t('none', 'no'), ov.giveback ? `${money(ov.giveback)}/${mo}` : t('none', 'no'), cmpMax(curGb, ov.giveback));
+  R(t('Most you pay in a year (medical)', 'Máximo al año (médico)'), cur.om ? t('no limit', 'sin límite') : money(curMoop), money(ov.moop), cur.om ? 'offer' : cmpMin(curMoop, ov.moop));
+  R(t('Doctor visits', 'Visitas al doctor'), cur.om ? t('20% after the deductible', '20% después del deducible') : `${t('PCP', 'Primario')} ${money(cn.pcp)} · ${t('specialist', 'especialista')} ${money(cn.spec)}`, `${t('PCP', 'Primario')} ${money(on.pcp)} · ${t('specialist', 'especialista')} ${money(on.spec)}`, cur.om ? (on.spec != null && on.spec <= 50 ? 'offer' : null) : cmpMin((cn.pcp ?? 0) + (cn.spec ?? 0), (on.pcp ?? 0) + (on.spec ?? 0)));
+  R(t('Hospital stay (5 days)', 'Hospitalización (5 días)'), cur.om ? t('$1,736 deductible per stay', '$1,736 de deducible por estancia') : money(cn.inpatient5), money(on.inpatient5), cmpMin(cn.inpatient5, on.inpatient5));
+  const dl = effectiveDrugs(p);
+  if (dl.length) {
+    const cd = cur.om ? null : drugEstimate(cur, p), od = drugEstimate(offer, p);
+    R(t('Your medicines (year, estimate)', 'Sus medicinas (año, estimado)'), cur.om ? t('separate Part D plan', 'plan de la Parte D aparte') : cd ? `≈${money(cd.yearly)}` : t('no drug coverage', 'sin cobertura de medicinas'), od ? `≈${money(od.yearly)}` : t('no drug coverage', 'sin cobertura de medicinas'), cur.om || !cd || !od ? null : cmpMin(cd.yearly, od.yearly));
+  } else if (!cur.om && !cn.noPartD && !on.noPartD) R(t('Drug deductible', 'Deducible de medicinas'), money(cn.rxDeductible), money(on.rxDeductible), cmpMin(cn.rxDeductible, on.rxDeductible));
+  R(t('Dental', 'Dental'), cur.om ? t('not covered', 'no cubierto') : short(cur.fields['Dental'], 80) || '—', short(offer.fields['Dental'], 80) || '—', cmpMax(cur.om ? 0 : cv.dental, ov.dental));
+  R(t('Glasses', 'Lentes'), cur.om ? t('not covered', 'no cubierto') : short(cur.fields['Vision'], 70) || '—', short(offer.fields['Vision'], 70) || '—', cmpMax(cur.om ? 0 : cv.vision, ov.vision));
+  R(t('Hearing aids', 'Audífonos'), cur.om ? t('not covered', 'no cubierto') : short(cur.fields['Hearing'], 70) || '—', short(offer.fields['Hearing'], 70) || '—', cmpMax(cur.om ? 0 : cv.hearing, ov.hearing));
+  R(t('Benefits card (year)', 'Tarjeta de beneficios (año)'), cur.om ? t('none', 'no') : (cv.card ? `≈${money(cv.card)}` : t('none', 'no')), ov.card ? `≈${money(ov.card)}` : t('none', 'no'), cmpMax(cur.om ? 0 : cv.card, ov.card));
+  R(t('Rides', 'Transporte'), cur.om ? t('none', 'no') : (cn.rides ? short(cur.fields['Transportation'], 60) : t('none', 'no')), on.rides ? short(offer.fields['Transportation'], 60) : t('none', 'no'), cmpMax(cur.om ? 0 : cv.rides, ov.rides));
+  const netTxt = n => n.ppo ? 'PPO' : n.pos ? 'HMO-POS' : 'HMO';
+  R(t('Any doctor without referral', 'Cualquier doctor sin referido'), cur.om ? t('yes (any Medicare doctor)', 'sí (cualquier doctor de Medicare)') : netTxt(cn) + (cn.referrals === false ? t(' · no referral', ' · sin referido') : ''), netTxt(on) + (on.referrals === false ? t(' · no referral', ' · sin referido') : ''), cur.om ? (ov.ppo >= 1 ? null : 'current') : cmpMax(cv.ppo, ov.ppo));
+  if (p.medicalGroup) {
+    const st = x => { const s = x.om ? {status: 'in'} : networkStatus(x, p, S.data, S.notes); return s ? s.status : 'unknown'; };
+    const a = st(cur), b = st(offer), word = s => s === 'in' ? t('in network', 'en la red') : s === 'out' ? t('NOT in network', 'NO está en la red') : t('check', 'por confirmar');
+    R(`${t('Your doctor', 'Su doctor')} (${esc(p.medicalGroup)})`, word(a), word(b), a === b ? null : b === 'in' ? 'offer' : a === 'in' ? 'current' : null);
+  }
+  // the yearly dollar picture
+  const yc = yearlyCost(cur, p), yo = yearlyCost(offer, p);
+  const diff = cur.om ? null : yc.total - yo.total;
+  const better = rows.filter(r => r.better === 'offer'), worse = rows.filter(r => r.better === 'current');
+  const head = cur.om ? t(`Moving from Original Medicare to ${offer.name}`, `De Medicare Original a ${offer.name}`)
+    : diff > 0 ? t(`Switching saves about ${money(diff)} a year`, `Cambiar ahorra unos ${money(diff)} al año`)
+    : diff < 0 ? t(`Switching costs about ${money(-diff)} more a year`, `Cambiar cuesta unos ${money(-diff)} más al año`)
+    : t('Same yearly cost — the difference is in the benefits', 'Mismo costo anual — la diferencia está en los beneficios');
+  const basis = cur.om ? t('Original Medicare has no yearly limit and no dental, vision, hearing or card benefits; drugs need a separate Part D plan.', 'Medicare Original no tiene límite anual ni beneficios dentales, de visión, audición o tarjeta; las medicinas requieren un plan de la Parte D aparte.')
+    : t(`Year = premiums${dl.length ? ' + the medicines estimate' : ''} − Part B money back. ${cur.name}: ${money(yc.total)} · ${offer.name}: ${money(yo.total)} (a minus sign means the plan pays the member more than it costs). Copays depend on use and aren't included.`,
+        `Año = primas${dl.length ? ' + el estimado de medicinas' : ''} − dinero de vuelta de la Parte B. ${cur.name}: ${money(yc.total)} · ${offer.name}: ${money(yo.total)} (un signo de menos significa que el plan le paga más de lo que cuesta). Los copagos dependen del uso y no se incluyen.`);
+  const cell = (txt, mark) => `<td class="${mark || ''}">${mark === 'win' ? '<span class="sw-mark">✓</span> ' : mark === 'lose' ? '<span class="sw-mark">▼</span> ' : ''}${txt}</td>`;
+  openModal(`<div class="sw" id="switchView" data-plan="${idx}">
+    <div class="mc-eyebrow">${t('Current plan vs the offer', 'Plan actual vs la propuesta')}${profileLine(p) ? ' · ' + esc(profileLine(p)) : ''}</div>
+    <h2>${esc(head)}</h2>
+    <div class="hint">${esc(basis)}</div>
+    <div class="row no-print">${backBtn()}<div class="seg" style="width:auto"><button class="${!es ? 'on' : ''}" data-sw-lang="en">English</button><button class="${es ? 'on' : ''}" data-sw-lang="es">Español</button></div>
+      <button class="btn small" data-sw-member="${idx}">${t('Member card', 'Tarjeta del miembro')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button></div>
+    <div class="cmp-wrap sw-wrap"><table class="cmp sw-table"><thead><tr><th></th><th>${t('Has now', 'Tiene ahora')}<div class="hint" style="font-weight:400">${esc(cur.name)}</div></th><th>${t('We\'d offer', 'Propuesta')}<div class="hint" style="font-weight:400">${esc(offer.name)}</div></th></tr></thead>
+      <tbody>${rows.map(r => `<tr class="${r.better ? 'diff' : ''}"><th>${r.label}</th>${cell(r.a, r.better === 'current' ? 'win' : r.better === 'offer' ? 'lose' : '')}${cell(r.b, r.better === 'offer' ? 'win' : r.better === 'current' ? 'lose' : '')}</tr>`).join('')}</tbody></table></div>
+    <div class="sw-sum"><div class="sw-good"><b>${t('Better with the offer', 'Mejor con la propuesta')} (${better.length})</b>${better.length ? `<ul>${better.map(r => `<li>${r.label}</li>`).join('')}</ul>` : `<div class="hint">${t('nothing', 'nada')}</div>`}</div>
+      <div class="sw-bad"><b>${t('Better with what they have', 'Mejor con lo que tiene')} (${worse.length})</b>${worse.length ? `<ul>${worse.map(r => `<li>${r.label}</li>`).join('')}</ul>` : `<div class="hint">${t('nothing', 'nada')}</div>`}</div></div>
+    <p class="hint">${t('Benefit wording comes from the carrier workbook; amounts are estimates until confirmed with the plan. A switch may need an enrollment period.', 'Los beneficios vienen del libro de la aseguradora (texto en inglés); los montos son estimados hasta confirmarlos con el plan. Un cambio puede requerir un periodo de inscripción.')}</p>
+  </div>`);
+}
+$('modalBody').addEventListener('click', e => {
+  const sw = $('switchView'); if (!sw) return;
+  const idx = +sw.dataset.plan;
+  const lg = e.target.closest('[data-sw-lang]'); if (lg) { const keep = S.modalBack; showSwitch(idx, lg.dataset.swLang); S.modalBack = keep; return; }
+  const mb = e.target.closest('[data-sw-member]'); if (mb) { const outer = S.modalBack; backFrom(AP.lang === 'es' ? 'Comparación' : 'Comparison', () => { S.modalBack = outer; showSwitch(idx); }); showMemberCard(idx); return; }
 });
 
 /* ═══════════════ NETWORKS — which plans take a doctor group or hospital ═══════════════ */
