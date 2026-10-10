@@ -189,6 +189,8 @@ table.rx-drugs thead th,table.rx-table thead th{min-width:0}
 table.rx-table td{min-width:110px}
 table.rx-table td:nth-child(2){min-width:220px}
 .bn-top{font-weight:700;color:var(--text);margin-bottom:2px}
+.bn-actions{position:sticky;bottom:-1px;z-index:5;background:var(--white);padding:8px 0;border-top:1px solid var(--border)}
+table.rx-drugs input.inp{max-width:120px}
 .bn-raw{color:var(--text-mid);font-size:12px}
 .bn-pick{margin-top:6px;font-weight:400}
 table.bn-table thead th{min-width:170px}
@@ -299,6 +301,13 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   table.cards thead{display:none}
   table.cards,table.cards tbody,table.cards tr,table.cards tbody tr:not(.grp) th,table.cards td{display:block;width:auto!important;min-width:0!important;position:static!important}
   table.cards tr{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--white)}
+  table.rx-drugs.cards td{display:inline-block!important;vertical-align:top;border-bottom:0;padding:4px 10px 10px}
+  table.rx-drugs.cards td select.inp{min-width:170px} table.rx-drugs.cards td input.inp{min-width:96px;max-width:none}
+  table.rx-drugs.cards td.rx-x{float:right;padding-top:22px}
+  .top-actions .btn{min-height:40px}
+  [data-rxdrop],[data-rxdropph],[data-rxpharm],#rxAdd,#bnCompare{min-height:40px}
+  .bn-pick{padding:8px 0;font-size:14px} .bn-pick input{width:20px;height:20px}
+  [data-rxsort]{padding:8px 0}
   table.cards td::before{content:attr(data-label);display:block;font-size:10.5px;font-weight:700;color:var(--gold-dk);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 }
 @media print{
@@ -396,7 +405,7 @@ const COUNTIES = [
 const COUNTY_BY_ID = Object.fromEntries(COUNTIES.map(c => [c.id, c]));
 
 const CONDITIONS = [
-  {id:'diabetes', label:'Diabetes', re:/\b(diabet\w*|a1c|insulin|metformin|type ?(1|2|i|ii)\b|az[uú]car)/i},
+  {id:'diabetes', label:'Diabetes', re:/\b(diabet\w*|a1c|insulin(?!\s+resist)|metformin|type ?(1|2|i|ii)\b|az[uú]car)/i},
   {id:'heart', label:'Heart / CHF / cardiovascular', re:/\b(heart|chf|cardio\w*|coronary|afib|a-?fib|atrial|arrhythmia|hypertension|high blood pressure|stroke|coraz[oó]n|card[ií]ac\w*|presi[oó]n alta|stent|bypass)/i},
   {id:'lung', label:'COPD / asthma / lung', re:/\b(copd|asthma|asma|emphysema|enfisema|bronchitis|bronquitis|lung|pulmon\w*|oxygen|ox[ií]geno|inhaler)/i},
   {id:'kidney', label:'Chronic kidney disease', re:/\b(kidney|ckd|renal|ri[ñn][oó]n\w*)/i},
@@ -798,16 +807,28 @@ function parseClientText(text, groups = []) {
   for (const pr of PRIORITIES) if (pr.re.test(t)) p.priorities[pr.id] = 2;
   if (/\bppo\b/i.test(t) && !/\b(no|not|doesn'?t want( a)?)\s+ppo\b/i.test(t)) p.priorities.ppo = 3;
   // Drugs: insulin, Tier 3 / brand-name drugs (brand counts as Tier 3 — the formulary decides the real tier)
-  if (/insulin|insulina|lantus|humalog|novolog|tresiba|basaglar|toujeo|levemir|admelog|lyumjev|fiasp/i.test(t)) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  if (/\b(qmb|slmb|qi|medicare savings(?: program)?|msp)\b/i.test(t)) { p.extraHelp = true; if (p.mediCal === 'unknown') p.mediCal = 'partial'; }   // MSP members get Extra Help automatically
+  const insulinSaid = [...t.matchAll(/\binsulina?\b(?!\s+resist)/gi)].some(m => !NEG_BEFORE.test(t.slice(Math.max(0, m.index - 40), m.index)));
+  if (insulinSaid) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  // Brand drugs the agent counts without naming: "one tier 3 drug", "tier 3 x2", "Eliquis and two other brand drugs"
   const NUM = {one: 1, two: 2, three: 3, four: 4, five: 5, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4};
-  const tierM = tl.match(/(\d|one|two|three|four|five|una?|dos|tres|cuatro)?\s*(?:brand(?:-name)?\s+)?(?:drugs?\s+|medications?\s+|meds?\s+|medicinas?\s+)?(?:on |in |de |del )?(?:tier|nivel)\s*(?:3|three|iii|tres)\b/);
-  let tier3 = tierM ? (+tierM[1] || NUM[tierM[1]] || 1) : 0;
-  const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*[x×:]?\s*\(?(\d)\)?/);
-  if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10) tier3 = Math.max(tier3, +tierM2[1]);
+  const MEDS = '(?:drugs?|medications?|meds?|prescriptions?|medicinas?|medicamentos?)';
+  const otherM = tl.match(new RegExp('(\\d|one|two|three|four|five|una?|dos|tres|cuatro)\\s+(?:other|more|otras?|otros?|m[aá]s)\\s+(?:(?:brand(?:-name)?|tier\\s*3|nivel\\s*3)\\s+' + MEDS + '|' + MEDS + '\\s+(?:on|in|de|en|del)\\s+(?:tier|nivel)\\s*3)'));
+  let said3 = 0;
+  if (!otherM) {
+    const tierM = tl.match(/(\d|one|two|three|four|five|una?|dos|tres|cuatro)?\s*(?:brand(?:-name)?\s+)?(?:drugs?\s+|medications?\s+|meds?\s+|medicinas?\s+)?(?:on |in |de |del )?(?:tier|nivel)\s*(?:3|three|iii|tres)\b/);
+    said3 = tierM ? (+tierM[1] || NUM[tierM[1]] || 1) : 0;
+    const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*(?:[x×:]\s*|\(\s*)(\d)\)?/);
+    if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10) said3 = Math.max(said3, +tierM2[1]);
+  }
   // Named drugs from the common-drug list ("takes Eliquis and metformin") — each with its usual tier and price
   for (const d of drugsIn(t)) p.drugs.push({name: d[0], tier: d[1], price: d[2]});
   if (p.drugs.some(d => d.tier === 'insulin')) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
-  if (!tier3 && !p.drugs.some(d => d.tier === '3') && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t)) tier3 = 1;
+  for (const d of p.drugs) { const c = DRUG_COND[d.name]; if (c && !p.conditions.includes(c)) p.conditions.push(c); }
+  // "a tier 3 drug" next to a named Tier 3 drug is usually that same drug
+  let tier3 = otherM ? (+otherM[1] || NUM[otherM[1]] || 1) : Math.max(0, said3 - p.drugs.filter(d => d.tier === '3').length);
+  const namedBrand = p.drugs.some(d => ['3', '4', '5'].includes(d.tier) && d.price > 0);
+  if (!tier3 && !said3 && !namedBrand && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t) && !/\b(?:no|not|never|without|sin|doesn'?t take)\s+(?:any\s+)?brand/i.test(t)) tier3 = 1;
   p.tier3 = Math.min(tier3, 6);
   if (hasDrugs(p)) p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
   if (/implant/i.test(t)) p.dentalImplants = true;
@@ -821,7 +842,7 @@ function parseClientText(text, groups = []) {
   }
   if (!p.medicalGroup) {
     const m = t.match(/\b(?:goes to|sees doctors? at|doctor is (?:at|with)|with|medical group(?: is)?|va (?:a|con))\s+([A-Z][\w.&'-]+(?:\s+[A-Z][\w.&'-]+){0,3})/);
-    if (m && !COUNTIES.some(c => c.re.test(m[1])) && !/^(Medi|Medicare|Part|Extra|Diab|Costco|The)\b/i.test(m[1])) p.medicalGroup = m[1].trim();
+    if (m && !COUNTIES.some(c => c.re.test(m[1])) && !/^(Medi|Medicare|Part|Extra|Diab|Costco|The)\b/i.test(m[1]) && !drugsIn(m[1], true).length) p.medicalGroup = m[1].trim();
   }
   // Hospital: the known name closest to the word "hospital" (or a hospital-only name); city names count only right next to it
   const hosWord = [...t.matchAll(/hospital|\bhosp\b|medical center|\ber\b|emergency room/ig)].map(m => m.index);
@@ -891,28 +912,28 @@ const PARTD = {year: 2027, deductible: 700, oopCap: 2400, insulinCap: 35, lisGen
    typical plan-paid / list prices (NADAC, GoodRx, Drugs.com); tiers from 2026–27 MA-PD formularies. */
 const DRUG_LIST = [
   ["acarbose", "2", 20, "Precose", "acarbosa"],
-  ["adalimumab biosimilar", "5", 1400, "Hyrimoz", "adalimumab-adaz", "Cyltezo", "adalimumab-adbm", "Simlandi", "adalimumab-ryvk"],
+  ["adalimumab biosimilar", "5", 1400, "Hyrimoz", "adalimumab-adaz", "Cyltezo", "adalimumab-adbm", "Simlandi"],
   ["Admelog", "insulin", 180, "Admelog SoloStar", "Admalog", "Admelog vial", "Admelog pen"],
-  ["albuterol", "2", 25.0, "ProAir", "ProAir HFA", "Ventolin", "Ventolin HFA", "Proventil", "albuterol inhaler"],
+  ["albuterol", "2", 25.0, "albuterol sulfate HFA 90 mcg inhaler", "ProAir", "ProAir HFA", "Ventolin", "Ventolin HFA", "Proventil"],
   ["alendronate", "1", 12.0, "alendronate sodium", "Fosamax", "alendronato", "alendronic acid", "alendranate", "fosamax weekly"],
   ["allopurinol", "1", 8.0, "Zyloprim", "allopurinal", "alopurinol", "allopurinol 100", "allopurinol 300"],
   ["amiodarone", "2", 15, "Pacerone", "Cordarone", "amiodarona"],
   ["amlodipine", "1", 4.0, "amlodipine besylate", "Norvasc", "amlodipino", "amlodapine", "amlodipin"],
   ["amlodipine-benazepril", "1", 12, "Lotrel"],
-  ["Anoro Ellipta", "3", 250, "umeclidinium/vilanterol", "Anoro", "Anoro Elipta", "umeclidinium-vilanterol", "umeclidinio/vilanterol"],
+  ["Anoro Ellipta", "3", 250, "umeclidinium/vilanterol", "Anoro", "Anoro Elipta", "umeclidinio/vilanterol"],
   ["aripiprazole", "2", 10.0, "Abilify", "aripiprazol", "aripripazole", "aripiprazole ODT", "Abilify Mycite"],
   ["atenolol", "1", 6, "Tenormin"],
   ["atorvastatin", "1", 8.0, "atorvastatin calcium", "Lipitor", "atorvastatina", "atorvastatine", "atorvastin", "Lipitor 40"],
   ["Austedo", "5", 4093, "deutetrabenazine", "Austedo XR", "deutetrabenazina", "austido"],
   ["Basaglar", "insulin", 326, "Basaglar KwikPen", "Basalgar", "Basiglar", "Basaglar Tempo Pen"],
   ["benazepril", "1", 6, "Lotensin"],
-  ["Biktarvy", "5", 4200, "bictegravir/emtricitabine/tenofovir alafenamide", "bictegravir", "bictegravir/emtricitabina/tenofovir alafenamida", "Biktarvi", "Bictarvy", "Biktarbi"],
-  ["Breo Ellipta", "3", 67.0, "fluticasone furoate/vilanterol", "Breo", "Brio Ellipta", "Breo Elipta", "fluticasone furoate-vilanterol", "fluticasona/vilanterol"],
+  ["Biktarvy", "5", 4200, "bictegravir", "bictegravir/emtricitabina/tenofovir alafenamida", "Biktarvi", "Bictarvy", "Biktarbi"],
+  ["Breo Ellipta", "3", 67.0, "fluticasone furoate/vilanterol", "Breo", "Brio Ellipta", "Breo Elipta", "fluticasona/vilanterol"],
   ["Breztri", "3", 680, "budesonide/glycopyrrolate/formoterol", "Breztri Aerosphere", "Brestri", "Breztry", "budesonida/glicopirronio/formoterol"],
   ["Brilinta", "3", 45.0, "ticagrelor", "Brilenta", "Brillinta", "Brilinta 90 mg", "ticagrelor 90 mg"],
   ["Brukinsa", "5", 15900, "zanubrutinib", "Brukinza", "Bruckinsa", "Brukinsa capsules", "Brukinsa tablets"],
-  ["budesonide nebulizer", "4", 80.0, "Pulmicort", "Pulmicort Respules", "budesonide neb", "budesonide inhalation suspension", "budesonida para nebulizar", "budesonida"],
-  ["budesonide-formoterol", "3", 200, "Breyna", "generic Symbicort", "budesonide formoterol"],
+  ["budesonide nebulizer", "4", 80.0, "budesonide inhalation suspension", "Pulmicort", "Pulmicort Respules", "budesonide neb", "budesonida para nebulizar", "budesonida"],
+  ["budesonide-formoterol", "3", 200, "budesonide/formoterol HFA", "~Breyna", "generic Symbicort"],
   ["bumetanide", "1", 10, "Bumex"],
   ["bupropion", "2", 15.0, "Wellbutrin", "Wellbutrin XL", "Wellbutrin SR", "bupropion XL", "bupropion SR", "buproprion"],
   ["Calquence", "5", 8600, "acalabrutinib", "Calquense", "Calquinse", "Kalquence", "Calquence tablets"],
@@ -928,12 +949,13 @@ const DRUG_LIST = [
   ["digoxin", "2", 25, "Lanoxin", "digoxina"],
   ["diltiazem ER", "2", 25, "Cardizem", "Cardizem CD", "Tiazac", "diltiazem"],
   ["donepezil", "1", 9.0, "Aricept", "donepezilo", "donezepil", "donepezil HCl", "donepezil ODT"],
+  ["Dulera", "3", 350, "mometasone-formoterol", "mometasona/formoterol"],
   ["duloxetine", "2", 15.0, "Cymbalta", "duloxetina", "duloxitine", "duloxetine DR", "Drizalma"],
   ["Dupixent", "5", 4500, "dupilumab", "Dupixent pen", "Dupixant", "Dupixen"],
   ["Eliquis", "3", 231, "apixaban", "apixabán", "Eliquiz", "Eloquis", "Elequis", "Eliquis 5 mg"],
   ["enalapril", "1", 8, "Vasotec"],
   ["Enbrel", "5", 2355, "etanercept", "Embrel", "Enbril", "Enbrell", "Enbrel SureClick", "Enbrel Mini"],
-  ["Entresto", "3", 50.0, "sacubitril/valsartan", "sacubitril-valsartan", "sacubitril valsartan", "sacubitrilo/valsartán", "Entrestro", "Enresto"],
+  ["Entresto", "3", 50.0, "sacubitril/valsartan", "sacubitrilo/valsartán", "Entrestro", "Enresto"],
   ["escitalopram", "1", 10.0, "escitalopram oxalate", "Lexapro", "lexipro", "escitalopran", "escitalopram oxalato"],
   ["ezetimibe", "1", 14.0, "Zetia", "ezetimiba", "ezetemibe", "ezetimib", "ezetimibe 10 mg"],
   ["famotidine", "1", 8.0, "Pepcid", "famotadine", "famotidina", "pepsid"],
@@ -943,8 +965,8 @@ const DRUG_LIST = [
   ["finasteride", "1", 10.0, "Proscar", "Propecia", "finastride", "finasterid", "finasterida"],
   ["flecainide", "2", 25, "Tambocor"],
   ["fluoxetine", "1", 10.0, "Prozac", "fluoxetina", "fluoxitine", "fluoxetine HCl", "Sarafem"],
-  ["fluticasone HFA", "3", 180, "Flovent", "Flovent HFA", "Flovent Diskus", "fluticasone inhaler", "fluticasona"],
-  ["fluticasone-salmeterol", "2", 80.0, "Advair", "Advair Diskus", "Advair HFA", "fluticasone salmeterol", "Advare"],
+  ["fluticasone HFA", "3", 180, "fluticasone propionate HFA inhaler", "Flovent", "Flovent HFA", "Flovent Diskus", "fluticasone inhaler", "fluticasona"],
+  ["fluticasone-salmeterol", "2", 80.0, "Advair", "Advair Diskus", "Advair HFA", "fluticasone salmeterol", "fluticasona/salmeterol", "Advare"],
   ["furosemide", "1", 4.0, "Lasix", "furosemida", "furosemid", "furosamide"],
   ["gabapentin", "2", 14.0, "Neurontin", "Gralise", "Horizant", "gabapentina", "gabapentine", "gabapenten"],
   ["Gemtesa", "3", 550, "vibegron", "gemtessa", "gemtesa 75", "vibegrón"],
@@ -954,8 +976,8 @@ const DRUG_LIST = [
   ["glyburide", "1", 8, "Diabeta", "Glynase", "gliburida"],
   ["glyburide-metformin", "1", 10, "Glucovance"],
   ["Glyxambi", "3", 600, "empagliflozin-linagliptin"],
-  ["Humalog", "insulin", 100, "Humalog KwikPen", "Humalog Junior KwikPen", "Humalog Mix 75/25", "Humulog"],
-  ["Humira", "5", 7400, "adalimumab", "Humera", "Hamira", "Humeera", "Humira Pen", "Humira CF"],
+  ["Humalog", "insulin", 100, "Humalog KwikPen", "Humalog Junior KwikPen", "Humalog Mix 75/25", "Humulog", "insulina lispro"],
+  ["Humira", "5", 7400, "adalimumab", "~Humera", "~Hamira", "~Humeera", "Humira Pen", "Humira CF"],
   ["Humulin", "insulin", 45.0, "Humulin R", "Humulin N", "Humulin 70/30", "Humulin R U-500", "insulina humana NPH"],
   ["hydralazine", "2", 12, "hidralazina"],
   ["hydrochlorothiazide", "1", 4.0, "HCTZ", "Microzide", "hidroclorotiazida", "hydrochlorthiazide", "hydrochlorothiazid"],
@@ -964,21 +986,21 @@ const DRUG_LIST = [
   ["Imbruvica", "5", 9319, "ibrutinib", "Imbruvika", "Imbrubica", "Imbruvica tablets", "Imbruvica capsules"],
   ["Incruse Ellipta", "3", 210, "umeclidinium", "Incruse", "Encruse", "Incruse Elipta", "umeclidinio"],
   ["Ingrezza", "5", 10000, "valbenazine", "valbenazina", "ingreza", "Ingrezza Sprinkle"],
-  ["insulin aspart", "insulin", 100, "aspart", "generic NovoLog", "Merilog", "Kirsty", "insulina aspart generica"],
-  ["insulin glargine", "insulin", 85.0, "glargine", "generic Lantus", "Rezvoglar", "insulin glargine-aglr", "insulina glargina generica"],
+  ["insulin aspart", "insulin", 100, "aspart", "generic NovoLog", "~Merilog", "~Kirsty", "insulina aspart generica"],
+  ["insulin glargine", "insulin", 85.0, "glargine", "generic Lantus", "Rezvoglar", "insulin glargine-aglr", "insulina glargina generica", "Semglee", "insulin glargine-yfgn"],
   ["insulin lispro", "insulin", 40.0, "lispro", "generic Humalog", "Insulin Lispro KwikPen", "Insulin Lispro Junior KwikPen", "insulina lispro generica"],
   ["Invokana", "3", 570, "canagliflozin", "canagliflozina", "Invocana", "Invokanna", "Invokana 100 mg", "Invokana 300 mg"],
-  ["ipratropium-albuterol nebulizer", "2", 20.0, "ipratropium bromide/albuterol sulfate inhalation solution", "DuoNeb", "ipratropium albuterol neb", "Combivent nebulizer", "ipratropio/salbutamol", "ipratropium"],
+  ["ipratropium-albuterol nebulizer", "2", 20.0, "DuoNeb", "ipratropium albuterol neb", "Combivent nebulizer", "ipratropio/salbutamol", "ipratropium"],
   ["irbesartan", "1", 10, "Avapro", "irbesartán"],
   ["isosorbide mononitrate", "1", 10, "Imdur", "isosorbide"],
   ["Jakafi", "5", 18000, "ruxolitinib", "Jakafy", "Jakaffi", "Jakavi", "Jakafi tablets"],
-  ["Janumet", "3", 80.0, "Janumet XR", "sitagliptin-metformin", "sitagliptina y metformina", "Janument", "Janumet 50/1000"],
+  ["Janumet", "3", 80.0, "sitagliptin / metformin", "Janumet XR", "sitagliptina y metformina", "Janument", "Janumet 50/1000"],
   ["Januvia", "3", 113, "sitagliptin phosphate", "Januvea", "Janavia", "Januvia 100 mg"],
   ["Jardiance", "3", 197, "empagliflozin", "empagliflozina", "Jardience", "Jardians", "Jardiance 10 mg", "Jardiance 25 mg"],
-  ["Jentadueto", "3", 571, "linagliptin / metformin", "Jentadueto XR", "linagliptin-metformin", "linagliptina y metformina", "Jentaduoto", "Jentadeuto"],
+  ["Jentadueto", "3", 571, "linagliptin / metformin", "Jentadueto XR", "linagliptina y metformina", "Jentaduoto", "Jentadeuto"],
   ["Kerendia", "3", 650, "finerenone", "finerenona"],
   ["lamotrigine", "2", 12.0, "Lamictal", "Lamictal XR", "lamotrigina", "lamotrigene", "lamotrigine ER", "Lamictal ODT"],
-  ["Lantus", "insulin", 90.0, "Lantus SoloStar", "Lantis", "Lantos", "Lantus vial"],
+  ["Lantus", "insulin", 90.0, "Lantus SoloStar", "~Lantis", "~Lantos", "insulina glargina", "Lantus vial"],
   ["latanoprost", "1", 15.0, "Xalatan", "latanaprost", "latanoprost eye drops", "latanoprost drops", "latanoprosta"],
   ["lenalidomide", "5", 450, "lenalidomida", "generic Revlimid", "lenalidomide capsules"],
   ["levetiracetam", "2", 9.0, "Keppra", "Keppra XR", "levetiracetam ER", "levitiracetam", "levetiracetan"],
@@ -992,7 +1014,7 @@ const DRUG_LIST = [
   ["Lyumjev", "insulin", 159, "insulin lispro-aabc", "Lyumjev KwikPen", "Lumjev", "Lyumjev Tempo Pen", "insulina lispro-aabc", "Lyumjev vial"],
   ["meloxicam", "1", 8.0, "Mobic", "meloxicam 15", "meloxicam 7.5", "meloxican", "meloxicam tablets"],
   ["memantine", "2", 18.0, "Namenda", "Namenda XR", "memantina", "memantine ER"],
-  ["metformin", "1", 6.0, "Glucophage", "Glucophage XR", "metformin ER", "metformin XR", "metformina", "metforman"],
+  ["metformin", "1", 6.0, "metformin hydrochloride", "Glucophage", "Glucophage XR", "metformin ER", "metformin XR", "metformina"],
   ["metoprolol succinate", "1", 15.0, "metoprolol succinate ER", "Toprol XL", "Toprol", "metoprolol ER", "metoprolol XL", "metoprolol succinato"],
   ["metoprolol tartrate", "1", 4.0, "Lopressor", "metoprolol", "metoprolol tartrato", "metoprolol tart", "metropolol", "metoprolol 25 mg"],
   ["mirtazapine", "2", 9.0, "Remeron", "RemeronSolTab", "mirtazapina", "mirtazepine", "mirtazapine ODT"],
@@ -1004,7 +1026,7 @@ const DRUG_LIST = [
   ["Nexletol", "3", 450, "bempedoic acid", "ácido bempedoico", "Nexletal", "Nexlatol", "Nexletol 180 mg"],
   ["nifedipine ER", "2", 20, "Procardia XL", "Adalat CC", "nifedipine", "nifedipino"],
   ["nitroglycerin", "2", 25, "Nitrostat", "nitroglicerina"],
-  ["Novolin", "insulin", 48.0, "Novolin R", "Novolin N", "Novolin 70/30", "ReliOn Novolin", "insulina humana"],
+  ["Novolin", "insulin", 48.0, "human insulin", "Novolin R", "Novolin N", "Novolin 70/30", "ReliOn Novolin", "insulina humana"],
   ["NovoLog", "insulin", 119, "NovoLog FlexPen", "NovoLog PenFill", "Novalog", "insulina aspart"],
   ["Nurtec", "4", 1100, "rimegepant", "Nurtec ODT", "rimegepante", "nurtek", "nertec"],
   ["Ofev", "5", 6350, "nintedanib", "Ofev capsules", "Offev", "Ofeb"],
@@ -1013,14 +1035,14 @@ const DRUG_LIST = [
   ["omeprazole", "1", 9.0, "Prilosec", "Prilosec OTC", "omeprazol", "omeprezole", "omeprazole DR", "prilosek"],
   ["Otezla", "5", 1650, "apremilast", "otesla", "otezla 30", "otezla starter pack", "apremilast tabletas"],
   ["oxybutynin", "1", 10.0, "oxybutynin chloride", "Ditropan", "Ditropan XL", "oxybutinin", "oxybutinin ER", "oxybutynin ER"],
-  ["Ozempic", "3", 274, "semaglutida", "Ozempik", "Ozempic pen", "Ozempick", "Osempic"],
+  ["Ozempic", "3", 274, "semaglutide", "semaglutida", "Ozempik", "Ozempic pen", "Ozempick", "Osempic"],
   ["pantoprazole", "1", 14.0, "pantoprazole sodium", "Protonix", "protonics", "pantoprazol", "pantaprazole", "pantoprazole DR"],
-  ["pioglitazone", "1", 10.0, "pioglitazone hydrochloride", "Actos", "pioglitazona", "pioglitazone HCl", "pioglitizone", "pioglitazon"],
+  ["pioglitazone", "1", 10.0, "pioglitazone hydrochloride", "~Actos", "pioglitazona", "pioglitazone HCl", "pioglitizone", "pioglitazon"],
   ["Pomalyst", "5", 8650, "pomalidomide", "pomalidomida", "Pomalist", "Pomolyst", "Pomalyst capsules"],
   ["Praluent", "3", 580, "alirocumab", "Praluet", "Pralient", "Praluent pen"],
   ["prasugrel", "2", 30, "Effient"],
   ["pravastatin", "1", 8.0, "pravastatin sodium", "Pravachol", "pravastatina", "pravistatin"],
-  ["prednisone", "1", 6.0, "Deltasone", "predisone", "prednisona", "prednizone", "pred"],
+  ["prednisone", "1", 6.0, "Deltasone", "predisone", "prednisona", "prednizone", "~pred"],
   ["pregabalin", "2", 15.0, "Lyrica", "Lyrica CR", "pregabalina", "pregablin", "pregabalin ER"],
   ["propranolol", "1", 10, "Inderal", "propranolol ER"],
   ["quetiapine", "2", 10.0, "quetiapine fumarate", "Seroquel", "Seroquel XR", "quetiapina", "quietapine", "quetiapine ER"],
@@ -1037,44 +1059,44 @@ const DRUG_LIST = [
   ["rosuvastatin", "1", 10.0, "rosuvastatin calcium", "Crestor", "rosuvastatina", "rosuvastitin", "rosuvastatine"],
   ["Rybelsus", "3", 274, "semaglutida oral", "Rybelsis", "Ribelsus", "Rybelsus 7 mg", "oral semaglutide"],
   ["sertraline", "1", 8.0, "Zoloft", "sertralina", "sertaline", "setraline", "sertraline HCl"],
-  ["Shingrix", "3", 0.0, "shingles vaccine", "shingles shot", "zoster vaccine", "shingrex", "singrix", "vacuna contra la culebrilla"],
   ["simvastatin", "1", 5.0, "Zocor", "simvastatina", "simvastatin 20 mg", "simvastatin 40 mg", "simvastain"],
   ["sitagliptin", "2", 60.0, "generic Januvia", "Zituvio", "sitagliptina", "sitagliptin phosphate generic", "sitagliptan"],
   ["Skyrizi", "5", 8500, "risankizumab", "risankizumab-rzaa", "Skyrizzi", "Skirizi", "Sky rizi"],
+  ["solifenacin", "1", 15, "Vesicare", "solifenacina"],
   ["Soliqua", "insulin", 300, "insulin glargine-lixisenatide"],
   ["sotalol", "2", 20, "Betapace"],
   ["Spiriva", "3", 520, "Spiriva Respimat", "Spiriva HandiHaler", "Spiriba", "Speriva", "Spiriva Respimat 2.5"],
   ["spironolactone", "1", 6.0, "Aldactone", "espironolactona", "spironolacton", "spirolactone", "spironolactone 25 mg"],
   ["Stelara", "5", 4695, "ustekinumab", "Stelera", "Stellara", "Stelarra", "Estelara"],
   ["Stiolto", "3", 480, "tiotropium/olodaterol", "Stiolto Respimat", "Stiolto Respimat inhaler", "Stiolto Respimet", "tiotropio/olodaterol"],
-  ["Symbicort", "4", 230, "Simbicort", "Symbicourt", "Symbacort"],
-  ["Synjardy", "3", 350, "Synjardy XR", "empagliflozin-metformin", "empagliflozina y metformina", "Sinjardy", "Synjardi"],
+  ["Symbicort", "4", 230, "budesonide/formoterol", "Simbicort", "Symbicourt", "Symbacort", "budesonida/formoterol"],
+  ["Synjardy", "3", 350, "empagliflozin / metformin", "Synjardy XR", "empagliflozina y metformina", "Sinjardy", "Synjardi"],
   ["Tagrisso", "5", 26000, "osimertinib", "Tagriso", "Tagrisio", "Tagriso 80"],
   ["tamsulosin", "1", 14.0, "tamsulosin HCl", "Flomax", "tamsolusin", "tamulosin", "tamsulosina"],
   ["telmisartan", "1", 12, "Micardis", "telmisartán"],
   ["timolol", "2", 11.0, "timolol maleate ophthalmic", "Timoptic", "Timoptic-XE", "Betimol", "Istalol", "timolol eye drops"],
-  ["tiotropium", "3", 330, "tiotropium HandiHaler", "Spiriva HandiHaler generic", "tiotropium bromide", "tiatropium"],
+  ["tiotropium", "3", 330, "tiotropium HandiHaler", "Spiriva HandiHaler generic", "tiotropium bromide", "tiatropium", "tiotropio"],
   ["tofacitinib", "5", 1500, "generic Xeljanz", "tofacitinib citrate", "tofacitinib 5 mg", "tofacitinib ER"],
   ["torsemide", "2", 15, "Demadex", "Soaanz"],
   ["Toujeo", "insulin", 400, "Toujeo SoloStar", "Toujeo Max SoloStar", "Tujeo", "Toujeo Max", "insulina glargina U-300"],
   ["Tradjenta", "3", 78.0, "linagliptin", "linagliptina", "Tradgenta", "Tragenta", "Trajenta"],
   ["tramadol", "2", 16.0, "tramadol HCl", "Ultram", "tramadol 50", "tramodol", "tramadal", "tramadol ER"],
   ["trazodone", "1", 6.0, "Desyrel", "trazodona", "trazadone", "trazodone HCl"],
-  ["Trelegy Ellipta", "3", 175, "fluticasone furoate/umeclidinium/vilanterol", "Trelegy", "Trelegi", "Trelegy Elipta", "Treleggy", "fluticasona/umeclidinio/vilanterol"],
+  ["Trelegy Ellipta", "3", 175, "Trelegy", "Trelegi", "Trelegy Elipta", "Treleggy", "fluticasona/umeclidinio/vilanterol"],
   ["Tresiba", "insulin", 141, "insulin degludec", "Tresiba FlexTouch", "Tresiva", "Treshiba", "insulina degludec"],
   ["Trulicity", "3", 987, "dulaglutide", "dulaglutida", "Truliciti", "Trulicty", "Trulicity pen"],
   ["Ubrelvy", "4", 1150, "ubrogepant", "ubrogepante", "ubrelvi", "ubrelvey"],
-  ["ustekinumab biosimilar", "5", 1900, "Selarsdi", "ustekinumab-aekn", "Wezlana", "ustekinumab-auub", "Pyzchiva", "ustekinumab-ttwe"],
+  ["ustekinumab biosimilar", "5", 1900, "Selarsdi", "ustekinumab-aekn", "Wezlana", "ustekinumab-auub", "Pyzchiva"],
   ["valsartan", "1", 15.0, "Diovan", "valsartán", "valsarten", "valsartan 160 mg"],
   ["Venclexta", "5", 16700, "venetoclax", "Venclexa", "Venclextra", "Venclexta starting pack"],
   ["venlafaxine", "2", 12.0, "Effexor", "Effexor XR", "venlafaxine ER", "venlafaxina", "venlafexine", "venlafaxine XR"],
-  ["verapamil ER", "2", 20, "Calan", "Calan SR", "verapamil"],
+  ["verapamil ER", "2", 20, "~Calan", "Calan SR", "verapamil"],
   ["Verzenio", "5", 17300, "abemaciclib", "Verzenia", "Verzinio", "Versenio"],
   ["Victoza", "3", 815, "liraglutide", "liraglutida", "Victosa", "Viktoza", "liraglutide pen"],
   ["Vraylar", "3", 770, "cariprazine", "cariprazina", "vralar", "vrylar", "vraylor"],
   ["Vyndamax", "5", 22000, "Vyndaqel", "tafamidis"],
   ["warfarin", "1", 5.0, "warfarin sodium", "Coumadin", "Jantoven", "warfarina", "warferin", "coumadine"],
-  ["Wixela", "2", 80.0, "Wixela Inhub", "Wixella", "Wixela Inhaler"],
+  ["Wixela", "2", 80.0, "fluticasone propionate/salmeterol", "Wixela Inhub", "Wixella", "Wixela Inhaler"],
   ["Xarelto", "3", 590, "rivaroxaban", "rivaroxabán", "Xeralto", "Zarelto", "Xarleto", "Xarelto 20 mg"],
   ["Xeljanz", "5", 5500, "Xeljanz XR", "Zeljanz", "Xeljans", "Xelganz", "Xeljanz oral solution"],
   ["Xifaxan", "5", 1000, "rifaximin", "xifaxin", "zifaxan", "xifaxan 550", "rifaximina"],
@@ -1083,17 +1105,37 @@ const DRUG_LIST = [
   ["Xtandi", "5", 7004, "enzalutamide", "enzalutamida", "Extandi", "Xtandy", "X-tandi", "Xtandi tablets"],
   ["Xultophy", "insulin", 300, "insulin degludec-liraglutide"]
 ];
-const DRUG_BY_KEY = (() => { const m = {}; for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) { const key = lc(k).replace(/[\s-]+/g, ' ').trim(); if (!m[key]) m[key] = d; } return m; })();
-const findDrug = name => DRUG_BY_KEY[lc(T(name)).replace(/[\s-]+/g, ' ')] || null;
+/* A drug that means the client has the condition (counts for C-SNPs): diabetes drugs, COPD/asthma inhalers. */
+const DRUG_COND = {"Admelog": "diabetes", "Anoro Ellipta": "lung", "Basaglar": "diabetes", "Breo Ellipta": "lung", "Breztri": "lung", "Dulera": "lung", "Fiasp": "diabetes", "Glyxambi": "diabetes", "Humalog": "diabetes", "Humulin": "diabetes", "Incruse Ellipta": "lung", "Invokana": "diabetes", "Janumet": "diabetes", "Januvia": "diabetes", "Jentadueto": "diabetes", "Lantus": "diabetes", "Lyumjev": "diabetes", "Mounjaro": "diabetes", "NovoLog": "diabetes", "Novolin": "diabetes", "Ofev": "lung", "Ohtuvayre": "lung", "Ozempic": "diabetes", "Rybelsus": "diabetes", "Soliqua": "diabetes", "Spiriva": "lung", "Stiolto": "lung", "Symbicort": "lung", "Synjardy": "diabetes", "Toujeo": "diabetes", "Tradjenta": "diabetes", "Trelegy Ellipta": "lung", "Tresiba": "diabetes", "Trulicity": "diabetes", "Victoza": "diabetes", "Wixela": "lung", "Xigduo XR": "diabetes", "Xultophy": "diabetes", "acarbose": "diabetes", "albuterol": "lung", "budesonide nebulizer": "lung", "budesonide-formoterol": "lung", "fluticasone HFA": "lung", "fluticasone-salmeterol": "lung", "glimepiride": "diabetes", "glipizide": "diabetes", "glipizide-metformin": "diabetes", "glyburide": "diabetes", "glyburide-metformin": "diabetes", "insulin aspart": "diabetes", "insulin glargine": "diabetes", "insulin lispro": "diabetes", "ipratropium-albuterol nebulizer": "lung", "metformin": "diabetes", "pioglitazone": "diabetes", "repaglinide": "diabetes", "roflumilast": "lung", "sitagliptin": "diabetes", "tiotropium": "lung"};
+const drugKey = s => lc(T(s)).replace(/^~/, '').replace(/[\s\/-]+/g, ' ').trim();
+/* name/alias → drug. An alias written "~Kirsty" is a person's name or an ordinary word: found when typed in
+   Prescriptions, never picked out of a client description. */
+const DRUG_BY_KEY = Object.create(null), DRUG_TEXT_KEYS = [];
+for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) {
+  const key = drugKey(k);
+  if (!key || DRUG_BY_KEY[key]) continue;
+  DRUG_BY_KEY[key] = d;
+  if (!String(k).startsWith('~') && key.length >= 4) DRUG_TEXT_KEYS.push(key);
+}
+const findDrug = name => DRUG_BY_KEY[drugKey(name)] || null;
+const drugAlso = d => d.slice(3).find(x => !String(x).startsWith('~')) || '';   // one other name, for display
+const isGenericDrug = (name, tier) => { const d = findDrug(name); return d ? /^[a-z]/.test(d[0]) : (tier === '1' || tier === '2'); };
+/* "not on X", "allergic to X", "switched from X", "sin X" — the drug isn't taken */
+const NEG_BEFORE = /\b(?:no|not|not on|not taking|never|stopped|stopped taking|quit|off|switched from|used to take|allergic to|without|doesn'?t|isn'?t|sin|ya no|dej[oó] de)\s+(?:[\w\u00C0-\u024F'-]+\s+)?$/i;
 /* Every drug named in a text (longest name first, so "Janumet XR" wins over "Janumet"); accents count as letters. */
 let DRUG_RE = null;
-function drugsIn(text) {
+function drugsIn(text, keepNegated) {
   if (!DRUG_RE) {
-    const keys = Object.keys(DRUG_BY_KEY).filter(k => k.length >= 4).sort((a, b) => b.length - a.length);
-    DRUG_RE = keys.length ? new RegExp('(?<![\\w\\u00C0-\\u024F])(?:' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '[\\s-]+')).join('|') + ')(?![\\w\\u00C0-\\u024F])', 'gi') : /$^/g;
+    const keys = DRUG_TEXT_KEYS.slice().sort((a, b) => b.length - a.length);
+    DRUG_RE = keys.length ? new RegExp('(?<![\\w\\u00C0-\\u024F])(?:' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/ /g, '[\\s/-]+')).join('|') + ')(?![\\w\\u00C0-\\u024F])', 'gi') : /$^/g;
   }
-  const out = [];
-  for (const m of T(text).matchAll(DRUG_RE)) { const d = DRUG_BY_KEY[lc(m[0]).replace(/[\s-]+/g, ' ')] || DRUG_BY_KEY[lc(m[0])]; if (d && !out.includes(d)) out.push(d); }
+  const t = T(text), out = [];
+  for (const m of t.matchAll(DRUG_RE)) {
+    const d = DRUG_BY_KEY[drugKey(m[0])];
+    if (!d || out.includes(d)) continue;
+    if (!keepNegated && NEG_BEFORE.test(t.slice(Math.max(0, m.index - 40), m.index))) continue;
+    out.push(d);
+  }
   return out;
 }
 const RX_TIERS = ['1', '2', '3', '4', '5', 'insulin'];
@@ -1131,51 +1173,59 @@ function rxDeductibleSpec(s) {
   return out;
 }
 
-/* The client's drugs as one list: named drugs + "a Tier 3 drug" / "takes insulin" placeholders. */
+/* The client's drugs as one list: named drugs + unnamed "Tier 3 / brand drug" and "takes insulin" placeholders.
+   profile.tier3 counts brand drugs the agent did NOT name. */
 function effectiveDrugs(profile) {
-  const named = (profile.drugs || []).filter(d => d && T(d.name) && RX_TIERS.includes(String(d.tier)));
-  const out = named.map(d => ({name: T(d.name), tier: String(d.tier), price: Math.max(0, +d.price || 0)}));
-  const extra3 = Math.max(0, (profile.tier3 || 0) - named.filter(d => String(d.tier) === '3').length);
+  const raw = Array.isArray(profile.drugs) ? profile.drugs : [];
+  const named = raw.filter(d => d && typeof d === 'object' && T(d.name) && RX_TIERS.includes(String(d.tier))).slice(0, 40);
+  const out = named.map(d => ({name: T(d.name).slice(0, 60), tier: String(d.tier), price: Math.min(1e6, Math.max(0, +d.price || 0))}));
+  const extra3 = Math.min(6, Math.max(0, Math.floor(+profile.tier3 || 0)));
   for (let i = 0; i < extra3; i++) out.push({name: 'Tier 3 brand drug', tier: '3', price: TIER_PRICE[3], placeholder: 'tier3'});
   if (profile.insulin && !named.some(d => String(d.tier) === 'insulin')) out.push({name: 'Insulin', tier: 'insulin', price: TIER_PRICE.insulin, placeholder: 'insulin'});
   return out;
 }
 const hasDrugs = p => effectiveDrugs(p).length > 0;
+/* Extra Help (LIS): full Medi-Cal, or the client has it (QMB/SLMB/QI get it automatically). */
+const getsLIS = p => p.mediCal === 'full' || !!p.extraHelp;
 
 /* Month-by-month for one year: plan deductible on the tiers it covers, then the tier copay/coinsurance;
-   insulin never has a deductible and is capped at $35/month; Extra Help caps each fill; the yearly
-   out-of-pocket cap stops all costs once reached. */
+   insulin never has a deductible and costs the lesser of $35 or 25% of its price; with Extra Help the client
+   pays at most $5.80 (generic) / $14.40 (brand) a fill, and what Extra Help pays still counts toward the
+   yearly out-of-pocket cap, after which every drug is $0. */
 function drugEstimate(plan, profile) {
   const list = effectiveDrugs(profile);
   if (!list.length) return null;
   const n = plan.n;
   if (n.noPartD) return profile.vaDrugCoverage ? {yearly: 0, perDrug: [], text: 'drugs through VA/TRICARE'} : null;
-  const lis = profile.mediCal === 'full' || !!profile.extraHelp;
+  const lis = getsLIS(profile);
   const ded = n.rxDed || {amount: 0, tiers: []};
-  let dedLeft = lis ? 0 : ded.amount, capLeft = PARTD.oopCap, capMonth = null;
-  const per = list.map(d => ({name: d.name, tier: d.tier, placeholder: d.placeholder || '', cost: 0, dedPaid: 0, fills: []}));
+  let dedLeft = ded.amount, capLeft = PARTD.oopCap, capMonth = null;
+  const per = list.map(d => ({name: d.name, tier: d.tier, placeholder: d.placeholder || '', cost: 0, dedPaid: 0, fills: [],
+    lisMax: !d.placeholder && isGenericDrug(d.name, d.tier) ? PARTD.lisGeneric : PARTD.lisBrand}));
   for (let mo = 1; mo <= 12; mo++) {
     list.forEach((d, i) => {
-      let pay, dd = 0;
-      if (d.tier === 'insulin') pay = Math.min(n.insulin ?? PARTD.insulinCap, PARTD.insulinCap, d.price || PARTD.insulinCap);
+      const x = per[i];
+      let full, dd = 0;   // the plan's cost-sharing for this fill — all of it counts toward the cap
+      const spec = d.tier === 'insulin' ? null : (n.rxTiers || {})[d.tier];
+      if (d.tier === 'insulin') full = Math.min(n.insulin ?? PARTD.insulinCap, PARTD.insulinCap, 0.25 * d.price);
       else {
-        const spec = (n.rxTiers || {})[d.tier];
         const sh = spec && !spec.lis ? (profile.rxStandard ? spec.std : spec.pref) : null;
-        const share = x => sh ? (sh.copay != null ? Math.min(sh.copay, x) : x * sh.coins) : x * 0.25;
-        if (dedLeft > 0 && ded.tiers.includes(+d.tier)) { dd = Math.min(d.price, dedLeft); dedLeft -= dd; pay = dd + (d.price > dd ? share(d.price - dd) : 0); }
-        else pay = share(d.price);
-        if (spec && spec.lis && !lis) pay = Math.min(pay, d.tier === '1' || d.tier === '2' ? PARTD.lisGeneric : PARTD.lisBrand);
+        const share = v => sh ? (sh.copay != null ? Math.min(sh.copay, v) : v * sh.coins) : v * 0.25;
+        if (dedLeft > 0 && ded.tiers.includes(+d.tier)) { dd = Math.min(d.price, dedLeft); dedLeft -= dd; full = dd + (d.price > dd ? share(d.price - dd) : 0); }
+        else full = share(d.price);
       }
-      if (lis) pay = Math.min(pay, d.tier === '1' || d.tier === '2' ? PARTD.lisGeneric : PARTD.lisBrand);
-      pay = Math.min(pay, capLeft); capLeft -= pay;
-      const x = per[i]; x.cost += pay; x.dedPaid += Math.min(dd, pay); if (!dd && capLeft > 0.005) x.fills.push(pay);
+      const helped = lis || (spec && spec.lis);
+      let pay = capLeft <= 0.005 ? 0 : Math.min(helped ? Math.min(full, x.lisMax) : full, capLeft);
+      capLeft = Math.max(0, capLeft - (helped ? full : pay));
+      x.cost += pay; if (!helped) x.dedPaid += Math.min(dd, pay);
+      if (!(dd && !helped) && pay > 0.004) x.fills.push(pay);
       if (capLeft <= 0.005 && capMonth == null) capMonth = mo;
     });
   }
   const yearly = Math.round(per.reduce((s, x) => s + x.cost, 0));
   // usual cost per fill once the deductible is paid (the most common amount)
   const steady = x => { if (!x.fills.length) return null; const c = {}; for (const f of x.fills) { const k = Math.round(f * 100) / 100; c[k] = (c[k] || 0) + 1; } return +Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; };
-  const fill = x => { const s = steady(x); return (x.dedPaid >= 1 ? `${fmt$(Math.round(x.dedPaid))} deductible${s == null ? (capMonth ? ', then up to the cap' : '') : ', then '}` : '') + (s == null ? (x.dedPaid >= 1 || !capMonth ? '' : 'up to the cap') : `${fmtc(s)}/fill`); };
+  const fill = x => { const s = steady(x); return (x.dedPaid >= 1 ? `${fmt$(Math.round(x.dedPaid))} deductible${s == null ? (capMonth ? ', then up to the cap' : '') : ', then '}` : '') + (s == null ? (x.dedPaid >= 1 ? '' : capMonth && x.cost > 0 ? 'up to the cap' : '$0/fill') : `${fmtc(s)}/fill`); };
   const label = x => x.placeholder === 'tier3' ? 'Tier 3' : x.placeholder === 'insulin' ? 'insulin' : x.name;
   const text = per.map(x => `${label(x)}: ${fill(x)} ≈${fmt$(Math.round(x.cost))}`).join(' · ')
     + (capMonth ? ` · reaches the ${fmt$(PARTD.oopCap)} yearly cap in ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][capMonth - 1]}` : '')
@@ -1282,7 +1332,9 @@ function rankPlans(data, profile, notes = {}) {
     add('premium', 'Monthly premium', 1.5 + w('zeroPremium'), lo('premium', v.premium));
     add('copays', 'Doctor & hospital copays', 1.5 + w('lowCopays') + (chronic ? 1 : 0), lo('copays', v.copays));
     const myDrugs = effectiveDrugs(profile);
-    if (myDrugs.length) add('drugcost', 'Estimated drug cost', 2.5 + myDrugs.reduce((s, d) => s + (d.tier === '1' || d.tier === '2' ? 0.3 : 1), 0), v.drugsYear == null ? (profile.vaDrugCoverage ? 1 : 0) : lo('drugsYear', v.drugsYear));
+    // dollars, not min-max: a $96/yr difference between generics must not outweigh a $2,000 giveback
+    const drugScore = () => { const [a, b] = ranges.drugsYear; return 1 - (v.drugsYear - a) / Math.max(b - a, 1200); };
+    if (myDrugs.length) add('drugcost', 'Estimated drug cost', 2.5 + myDrugs.reduce((s, d) => s + (d.tier === '1' || d.tier === '2' ? 0.3 : 1), 0), v.drugsYear == null ? (profile.vaDrugCoverage ? 1 : 0) : drugScore());
     else {
       if (!n.noPartD || !profile.vaDrugCoverage) add('rx', 'Drug costs', 1 + w('drugs') + (chronic ? 0.5 : 0), v.rx == null ? (profile.vaDrugCoverage ? 1 : 0) : lo('rx', v.rx));
       if (profile.conditions.includes('diabetes')) add('insulin', 'Insulin cost', 1.5, lo('insulin', v.insulin));
@@ -1440,7 +1492,10 @@ const FEATURES = [
   {id: 'insulin', re: /insulin/i, label: 'insulin cost', dir: 'min', fields: ['Insulin (Part D)'],
     metric: r => r.plan.n.noPartD ? null : r.plan.n.insulin, has: r => !r.plan.n.noPartD && r.plan.n.insulin === 0, name: '$0 insulin',
     say: r => r.plan.n.noPartD ? 'no Part D' : `insulin ${r.plan.n.insulin === 0 ? '$0' : fmt$(r.plan.n.insulin) + '/mo'}`},
-  {id: 'drugs', re: /drugs?|\brx\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?|deductible/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
+  {id: 'rxded', re: /(?<!medical\s)(?<!doctor\s)deductible|deducible/i, label: 'drug deductible', dir: 'min', fields: ['Rx Deductible'],
+    metric: r => r.plan.n.noPartD ? null : r.plan.n.rxDeductible, has: r => !r.plan.n.noPartD && r.plan.n.rxDeductible === 0, name: 'a $0 drug deductible',
+    say: r => r.plan.n.noPartD ? 'no Part D' : `drug deductible ${fmt$(r.plan.n.rxDeductible)}${r.plan.n.rxDed && r.plan.n.rxDed.amount && r.plan.n.rxDed.tiers.length < 5 ? ' (tiers ' + r.plan.n.rxDed.tiers[0] + '–' + r.plan.n.rxDed.tiers[r.plan.n.rxDed.tiers.length - 1] + ')' : ''}`},
+  {id: 'drugs', re: /drugs?|\brx\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
     metric: r => r.v.drugsYear != null ? r.v.drugsYear : r.v.rx, has: r => !r.plan.n.noPartD, name: 'Part D drug coverage',
     say: r => r.plan.n.noPartD ? (r.v.drugsYear === 0 ? 'drugs through VA/TRICARE' : 'no Part D')
       : r.drugs ? `≈${fmt$(r.drugs.yearly)}/yr for this client's drugs (est.) — ${r.drugs.text}`
@@ -1488,7 +1543,17 @@ function planTokens(plan) {
 const featureish = w => FEATURES.some(f => f.re.test(w));
 
 /* Which plans does the question name? Returns plans (may be several when names repeat across counties). */
-function matchPlansInQuestion(q, plans, prefCounty, ctx) {
+function matchPlansInQuestion(q, plans, prefCounty, ctx, split = true) {
+  if (split && /\b(?:or|vs\.?|versus|and|compared? (?:to|with))\b|,/i.test(q)) {
+    const whole = matchPlansInQuestion(q, plans, prefCounty, ctx, false);
+    if (whole.length <= 1) {
+      const parts = q.split(/\b(?:or|vs\.?|versus|and|compared? (?:to|with))\b|,/i).map(s => s.trim()).filter(s => s.length > 2);
+      const each = parts.map(s => matchPlansInQuestion(s, plans, prefCounty, ctx, false).slice(0, 1)).filter(x => x.length).map(x => x[0]);
+      const uniq = [...new Set(each)];
+      if (uniq.length >= 2) return uniq.slice(0, 4);
+    }
+    return whole;
+  }
   const qn = normName(q), qTok = new Set(qn.split(' ').filter(Boolean));
   const hits = [];
   const ids = [...T(q).matchAll(/h\d{4}[- ]?\d{3}/ig)].map(m => m[0].replace(/[^a-z0-9]/ig, '').toLowerCase());
@@ -1554,6 +1619,7 @@ function answerQuestion(question, ctx) {
   const feats = FEATURES.map(f => ({f, at: ql.search(f.re)})).filter(x => x.at >= 0).sort((a, b) => a.at - b.at).map(x => x.f);
   const hasFeat = id => feats.some(f => f.id === id);
   if (hasFeat('implants')) { const i = feats.findIndex(f => f.id === 'dental'); if (i >= 0) feats.splice(i, 1); }
+  if (hasFeat('rxded')) { const i = feats.findIndex(f => f.id === 'drugs'); if (i >= 0) feats.splice(i, 1); }   // "drug deductible" is about the deductible
   const wantsHi = SUP_HI.test(q), wantsLo = SUP_LO.test(q);
 
   // plan names in the question
@@ -1562,7 +1628,13 @@ function answerQuestion(question, ctx) {
   if (topN && ranked.length) { const n = ({two: 2, three: 3, four: 4})[topN[1]] || +topN[1]; planRefs = ranked.slice(0, Math.min(4, Math.max(1, n))).map(r => r.plan); }
   else planRefs = matchPlansInQuestion(q, data.plans, profile.county, {inResults});
 
+  const qDrugs = findDrugsIn(q);
   // ── how many
+  if (/how many|cu[aá]ntos|number of plans/i.test(q) && !planRefs.length && qDrugs.length) {
+    const withD = rows.filter(r => !r.plan.n.noPartD).length;
+    return A({headline: `${scopeNote}: ${withD} plan${withD === 1 ? ' has' : 's have'} Part D drug coverage — but your workbook doesn't list which drugs each plan covers.`,
+      notes: [`Whether ${qDrugs.map(d => d[0]).join(' / ')} is on a plan's drug list (and at what tier) is in each plan's formulary — check it there or in Medicare Plan Finder. Ask “cheapest plan for ${qDrugs[0][0]}” to compare yearly costs at its usual tier.`], followUps: follow});
+  }
   if (/how many|cu[aá]ntos|number of plans/i.test(q) && !planRefs.length) {
     const byCarrier = {}; for (const r of rows) byCarrier[r.plan.carrier] = (byCarrier[r.plan.carrier] || 0) + 1;
     let n = rows.length, text = '';
@@ -1584,8 +1656,8 @@ function answerQuestion(question, ctx) {
   if (askNet) return networkAnswer(q, ctx, profile, mention, planRefs, rows, A, follow);
 
   // ── a named drug: "how much is Eliquis on Smart 055?", "cheapest plan for Ozempic"
-  const qDrugs = findDrugsIn(q);
-  if (qDrugs.length && !/\bwhy\b|por qu/i.test(q)) return drugAnswer(qDrugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient);
+  const otherFeat = feats.some(f => f.id !== 'drugs' && f.id !== 'insulin');
+  if (qDrugs.length && !otherFeat && !/\bwhy\b|por qu|\b(best|recommend|suggest|mejor|recomienda)\b/i.test(q)) return drugAnswer(qDrugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q);
 
   // ── why
   if (/\bwhy\b|por qu[eé]|how come|explain (the )?(rank|ranking|score)/i.test(q)) {
@@ -1730,11 +1802,24 @@ function findGroupIn(q, data, notes) {
 
 /* Drugs named in a question (from the common-drug list). */
 function findDrugsIn(q) { return drugsIn(q).slice(0, 5); }
-function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient) {
+function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q = '') {
+  const lisAsk = /extra help|\blis\b|ayuda extra|low income subsidy/i.test(q);
+  const base = Object.assign({}, profile, lisAsk ? {extraHelp: true} : {});
+  // "Eliquis or Xarelto?", "Eliquis vs Xarelto" — each drug on its own, not added together
+  if (drugs.length >= 2 && /\b(?:or|vs\.?|versus|instead of|compared? (?:to|with)|o)\b/i.test(q)) {
+    const top = planRefs.length ? planRefs : rows.slice(0, 1).map(r => r.plan);
+    const out = A({headline: `${drugs.map(d => d[0]).join(' vs ')}${top.length ? ' — yearly cost on ' + (top.length > 1 ? 'these plans' : top[0].name) : ''}:`, followUps: follow,
+      notes: [drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ') + '. Every plan has its own drug list — check the formulary.'].concat(lisAsk ? ['Priced with Extra Help.'] : [])});
+    for (const plan of top) for (const d of drugs) {
+      const e = drugEstimate(plan, Object.assign({}, base, {drugs: [{name: d[0], tier: d[1], price: d[2]}], tier3: 0, insulin: false}));
+      out.rows.push({idx: plan.idx, text: `${d[0]}: ${e ? `≈${fmt$(e.yearly)}/yr — ${e.text}` : 'no Part D drug coverage'}`});
+    }
+    return out;
+  }
   const names = drugs.map(d => d[0]).join(' + ');
-  const prof = Object.assign({}, profile, {drugs: drugs.map(d => ({name: d[0], tier: d[1], price: d[2]})), tier3: 0, insulin: false});
+  const prof = Object.assign({}, base, {drugs: drugs.map(d => ({name: d[0], tier: d[1], price: d[2]})), tier3: 0, insulin: false});
   const about = drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ');
-  const notes = [about + '. Every plan has its own drug list — check the plan\'s formulary before enrolling.'];
+  const notes = [about + '. Every plan has its own drug list — check the plan\'s formulary before enrolling.'].concat(lisAsk ? ['Priced with Extra Help.'] : []);
   if (!(profile.drugs || []).some(x => drugs.some(d => lc(x.name) === lc(d[0])))) notes.push('To count it in the ranking, add it in Prescriptions (or say it in the client description).');
   if (planRefs.length) {
     return A({headline: `${names} — yearly cost on ${planRefs.length > 1 ? 'these plans' : planRefs[0].name}:`, followUps: follow, notes,
@@ -1938,19 +2023,22 @@ function localRecommendation(ctx, lang) {
   const v = top.v, prem = v.premium === 0 ? t('a $0 monthly premium', 'una prima mensual de $0') : t(`a ${fmt$(v.premium)} monthly premium`, `una prima mensual de ${fmt$(v.premium)}`);
   const gb = v.giveback > 0 ? t(` and it gives back ${fmt$(v.giveback)} a month toward your Part B premium`, ` y devuelve ${fmt$(v.giveback)} al mes de su prima de la Parte B`) : '';
   const warn = top.warn.find(x => !/giveback won't help/i.test(x));
-  const rxNames = effectiveDrugs(p).map(d => d.placeholder === 'tier3' ? t('a brand-name medicine', 'una medicina de marca') : d.placeholder === 'insulin' ? t('insulin', 'insulina') : d.name);
-  const rxList = [...new Set(rxNames)].join(', ');
+  const effD = effectiveDrugs(p), n3 = effD.filter(d => d.placeholder === 'tier3').length;
+  const NUMW = es ? ['', 'una', 'dos', 'tres', 'cuatro', 'cinco', 'seis'] : ['', 'a', 'two', 'three', 'four', 'five', 'six'];
+  const rxNames = effD.filter(d => d.placeholder !== 'tier3').map(d => d.placeholder === 'insulin' ? t('insulin', 'insulina') : d.name)
+    .concat(n3 ? [n3 === 1 ? t('a brand-name medicine', 'una medicina de marca') : `${NUMW[n3] || n3} ${t('brand-name medicines', 'medicinas de marca')}`] : []);
+  const rxList = rxNames.join(', ');
   const rx = top.drugs && top.v.drugsYear != null ? t(` For your medicines (${rxList}), I estimate about ${fmt$(top.v.drugsYear)} for the year on this plan.`,
     ` Para sus medicinas (${rxList}), calculo unos ${fmt$(top.v.drugsYear)} al año en este plan.`) : '';
-  L.push(t(`“Based on what you've told me${bits.length ? ' — ' + bits.join(', ') : ''} — I'd start by looking at ${nm(top)} from ${top.plan.carrier}. It has ${prem}${gb}. The most you'd pay out of pocket for covered medical care in a year is ${fmt$(v.moop)}.${rx}${warn ? ` One thing to know: ${warn.replace(/\.$/, '')}.` : ''} Before we enroll, I want to confirm your doctors${p.conditions.length ? ' and medications' : ''} are covered. Does that sound right to you?”`,
-    `“Según lo que me comentó${bits.length ? ' — ' + bits.join(', ') : ''} — empezaría por revisar ${nm(top)} de ${top.plan.carrier}. Tiene ${prem}${gb}. Lo máximo que pagaría de su bolsillo por la atención médica cubierta en un año es ${fmt$(v.moop)}.${rx} Antes de inscribirnos, quiero confirmar que sus doctores${p.conditions.length ? ' y medicamentos' : ''} estén cubiertos. ¿Le parece bien?”`));
+  L.push(t(`“Based on what you've told me${bits.length ? ' — ' + bits.join(', ') : ''} — I'd start by looking at ${nm(top)} from ${top.plan.carrier}. It has ${prem}${gb}. The most you'd pay out of pocket for covered medical care in a year is ${fmt$(v.moop)}.${rx}${warn ? ` One thing to know: ${warn.replace(/\.$/, '')}.` : ''} Before we enroll, I want to confirm your doctors${p.conditions.length || hasDrugs(p) ? ' and medications' : ''} are covered. Does that sound right to you?”`,
+    `“Según lo que me comentó${bits.length ? ' — ' + bits.join(', ') : ''} — empezaría por revisar ${nm(top)} de ${top.plan.carrier}. Tiene ${prem}${gb}. Lo máximo que pagaría de su bolsillo por la atención médica cubierta en un año es ${fmt$(v.moop)}.${rx} Antes de inscribirnos, quiero confirmar que sus doctores${p.conditions.length || hasDrugs(p) ? ' y medicamentos' : ''} estén cubiertos. ¿Le parece bien?”`));
   L.push('');
   L.push(t('_Built from the workbook — no AI. Confirm details with the carrier before enrolling._', '_Hecho con los datos del libro de Excel — sin IA. Confirme los detalles con la aseguradora antes de inscribir._'));
   return L.join('\n');
 }
 /* ═══════════════ END FREE ANSWERS ═══════════════ */
 
-if (typeof module !== 'undefined') module.exports = {PARTD, DRUG_LIST, findDrug, effectiveDrugs, hasDrugs, rxTierSpec, rxDeductibleSpec, COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, drugEstimate, KNOWN_HOSPITALS, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$, planValues, answerQuestion, localRecommendation, FEATURES};
+if (typeof module !== 'undefined') module.exports = {PARTD, DRUG_LIST, DRUG_COND, findDrug, drugsIn, getsLIS, effectiveDrugs, hasDrugs, rxTierSpec, rxDeductibleSpec, COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, drugEstimate, KNOWN_HOSPITALS, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$, planValues, answerQuestion, localRecommendation, FEATURES};
 </script>
 
 <script>
@@ -2073,8 +2161,24 @@ function useData(data) {
   $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('netBtn').hidden = false; $('rxBtn').hidden = false; $('tabbar').hidden = false;
   renderStatus(); renderExamples(); renderRecent();
   let last = null; try { last = JSON.parse(store.get(STORE.last) || 'null'); } catch (_) {}
-  if (last && last.profile) { $('clientText').value = last.text || ''; S.profile = Object.assign(blankProfile(), last.profile); S.aiRead = !!last.aiRead; }
-  rerank();
+  if (last && last.profile && typeof last.profile === 'object') { $('clientText').value = T(last.text); S.profile = cleanProfile(last.profile); S.aiRead = !!last.aiRead; }
+  try { rerank(); } catch (e) { console.error(e); S.profile = blankProfile(); store.del(STORE.last); rerank(); }
+}
+
+/* A saved profile may come from an older/newer version or be edited by hand — keep only well-formed values. */
+function cleanProfile(saved) {
+  const b = blankProfile(), p = Object.assign(b, saved);
+  if (!COUNTIES.some(c => c.id === p.county)) p.county = '';
+  if (!['unknown', 'none', 'full', 'partial'].includes(p.mediCal)) p.mediCal = 'unknown';
+  p.conditions = Array.isArray(p.conditions) ? p.conditions.filter(c => COND_BY_ID[c]) : [];
+  p.priorities = p.priorities && typeof p.priorities === 'object' && !Array.isArray(p.priorities) ? Object.fromEntries(Object.entries(p.priorities).filter(([k, v]) => PRI_BY_ID[k] && [1, 2, 3].includes(v))) : {};
+  p.drugs = (Array.isArray(p.drugs) ? p.drugs : []).filter(d => d && typeof d === 'object' && T(d.name) && RX_TIERS.includes(String(d.tier)))
+    .slice(0, 40).map(d => ({name: T(d.name).slice(0, 60), tier: String(d.tier), price: Math.min(1e6, Math.max(0, +d.price || 0)), ...(d.manual ? {manual: true} : {})}));
+  p.tier3 = Math.min(6, Math.max(0, Math.floor(+p.tier3 || 0)));
+  for (const k of ['medicalGroup', 'hospital', 'doctors', 'language', 'notes']) p[k] = typeof p[k] === 'string' ? p[k].slice(0, 500) : '';
+  for (const k of ['extraHelp', 'insulin', 'rxStandard', 'veteran', 'vaDrugCoverage', 'costco', 'dentalImplants', 'keepDoctor']) p[k] = !!p[k];
+  p.maxPremium = p.maxPremium == null || !isFinite(+p.maxPremium) ? null : Math.max(0, +p.maxPremium);
+  return p;
 }
 
 function renderStatus() {
@@ -2142,7 +2246,11 @@ $('profile').addEventListener('click', e => {
 });
 $('profile').addEventListener('change', e => {
   const t = e.target, p = S.profile;
-  if (t.dataset.flag) { p[t.dataset.flag] = t.checked; if (t.dataset.flag === 'insulin' && t.checked && !p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  if (t.dataset.flag) {
+    p[t.dataset.flag] = t.checked;
+    if (t.dataset.flag === 'insulin' && t.checked && !p.conditions.includes('diabetes')) p.conditions.push('diabetes');
+    if (t.dataset.flag === 'insulin' && !t.checked) p.drugs = (p.drugs || []).filter(d => String(d.tier) !== 'insulin');
+  }
   else if (t.id === 'maxPrem') p.maxPremium = t.value === '' ? null : Math.max(0, parseFloat(t.value));
   else if (t.id === 'langSel') p.language = t.value;
   else if (t.id === 'mgInput') { clearTimeout(mgTimer); const v = t.value.trim(); if (v !== p.medicalGroup) { p.medicalGroup = v; rerank(false); } return; }
@@ -2193,12 +2301,14 @@ $('newClient').addEventListener('click', () => {
   $('clientText').value = '';
   S.profile = Object.assign(blankProfile(), {county: S.profile.county});
   S.aiRead = false; S.compare = []; S.lastFree = null; S.showAll = false; S.expanded.clear();
+  BN.picked = []; BN.q = ''; BN.sort = null;
   const out = $('aiOut'); if (out) { out.hidden = true; out.innerHTML = ''; }
   rerank(); if (isPhone()) setTab('client');
   $('clientText').focus();
 });
 
-async function findPlans() {
+async function findPlans(opts) {
+  opts = opts && !(opts instanceof Event) ? opts : {};
   if (rec) { // let the recognizer deliver its final words before ranking
     const r = rec; let done = false;
     const go = () => { if (done) return; done = true; rec = null; $('micBtn').classList.remove('rec'); findPlans(); };
@@ -2206,7 +2316,12 @@ async function findPlans() {
   }
   const text = $('clientText').value.trim();
   if (!text) { $('clientText').focus(); return; }
+  const prev = S.profile, keep = opts.drugs !== undefined ? (Array.isArray(opts.drugs) ? opts.drugs : []) : manualDrugs();
   S.profile = parseClientText(text, S.data.groups);
+  for (const d of keep) if (d && T(d.name) && !S.profile.drugs.some(x => lc(x.name) === lc(d.name))) S.profile.drugs.push(d);
+  S.profile = cleanProfile(S.profile);
+  if (keep.length) { S.profile.priorities.drugs = Math.max(S.profile.priorities.drugs || 0, 2); if (keep.some(d => d.tier === 'insulin')) S.profile.insulin = true; }
+  S.profile.rxStandard = opts.rxStandard !== undefined ? !!opts.rxStandard : !!prev.rxStandard;
   S.aiRead = false; S.showAll = false; S.expanded.clear();
   addRecent(text);
   rerank();
@@ -2232,7 +2347,8 @@ function mergeProfiles(local, ai) {
   if (ai.county) p.county = ai.county;
   if (ai.mediCal && ai.mediCal !== 'unknown') p.mediCal = ai.mediCal;
   p.extraHelp = !!(ai.extraHelp || local.extraHelp);
-  p.conditions = [...new Set((ai.conditions || []).concat(ai.conditions && ai.conditions.length ? [] : local.conditions))];
+  const fromDrugs = (local.drugs || []).map(d => d.tier === 'insulin' ? 'diabetes' : DRUG_COND[d.name]).filter(Boolean);
+  p.conditions = [...new Set((ai.conditions || []).concat(ai.conditions && ai.conditions.length ? fromDrugs : local.conditions))];
   if (ai.medicalGroup) p.medicalGroup = ai.medicalGroup;
   if (ai.doctors) p.doctors = ai.doctors;
   const lv = {off: 0, nice: 1, important: 2, must: 3};
@@ -2481,7 +2597,7 @@ function showCompare(plans) {
   }).join('')).join('');
   openModal(`<h2>Side-by-side comparison</h2>
     <div class="hint">${esc(profileLine(S.profile) || '')}${S.profile.county ? ' · ' : ''}Green = best value in the row · rows shaded where plans differ · source: ${esc(S.data.meta.fileName || 'workbook')}</div>
-    <div class="row no-print"><button class="btn small" onclick="window.print()">Print / save PDF</button></div>
+    <div class="row no-print">${backBtn()}<button class="btn small" onclick="window.print()">Print / save PDF</button></div>
     <div class="cmp-wrap"><table class="cmp"><thead><tr><th></th>${plans.map(p => `<th>${esc(p.name)}<div class="hint" style="font-weight:400">${esc(p.carrier)} · ${p.counties.map(countyName).join(', ')}</div></th>`).join('')}</tr></thead><tbody>${body}</tbody></table></div>
     <p class="hint" style="margin-top:10px">For agent use. Cells reading “Not listed / not stated” mean the carrier document didn't show that benefit — not that it's $0 or excluded. Confirm plan IDs marked “verify” before enrolling.</p>`);
 }
@@ -2492,18 +2608,19 @@ function showDetails(idx) {
   const qt = S.data.quickTake.filter(q => (q.topic + ' ' + q.summary).includes(base));
   const rows = COMPARE_ROWS.map(([g, keys]) => [g, keys.filter(k => plan.fields[k])]).filter(([, ks]) => ks.length);
   openModal(`<h2>${esc(plan.name)}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(countyName).join(', ')} · <span class="mono">${esc(plan.id)}</span></div>
-    <div class="row no-print"><button class="btn small" data-addcmp="${idx}">${S.compare.includes(idx) ? '✓ In compare' : 'Add to compare'}</button><button class="btn small" onclick="window.print()">Print</button></div>
+    <div class="row no-print">${backBtn()}<button class="btn small" data-addcmp="${idx}">${S.compare.includes(idx) ? '✓ In compare' : 'Add to compare'}</button><button class="btn small" onclick="window.print()">Print</button></div>
     <div class="cmp-wrap"><table class="cmp"><tbody>${rows.map(([g, keys]) => `<tr class="grp"><th colspan="2">${esc(g)}</th></tr>` + keys.map(k => `<tr><th>${esc(k)}</th><td>${esc(plan.fields[k])}</td></tr>`).join('')).join('')}</tbody></table></div>
     ${qt.length ? `<div class="qt"><b>Quick Take notes</b>${qt.map(q => `<p style="margin-top:6px"><b style="color:var(--text-mid)">${esc(q.topic)}:</b> ${esc(q.summary)}</p>`).join('')}</div>` : ''}`);
 }
 $('modalBody').addEventListener('click', e => { const b = e.target.closest('[data-addcmp]'); if (b) { toggleCompare(+b.dataset.addcmp, !S.compare.includes(+b.dataset.addcmp)); b.textContent = S.compare.includes(+b.dataset.addcmp) ? '✓ In compare' : 'Add to compare'; } });
 
 function openModal(html) {
+  clearTimeout(bnTimer);
   $('modalBody').innerHTML = html;
   if ($('modal').hidden) history.pushState({pcModal: 1, pcTab: $('workspace').dataset.tab}, '');
   $('modal').hidden = false; document.body.style.overflow = 'hidden';
 }
-function hideModal() { $('modal').hidden = true; document.body.style.overflow = ''; }
+function hideModal() { $('modal').hidden = true; document.body.style.overflow = ''; clearTimeout(bnTimer); S.modalBack = null; }
 function closeModal() { if (history.state && history.state.pcModal) history.back(); else hideModal(); }
 $('modalX').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
@@ -2535,32 +2652,40 @@ const BENEFITS = [
   {id: 'network', label: 'Network · referrals', fields: ['Plan Type', 'Referrals Required', 'Provider Network'], dir: 'max', m: r => r.v.ppo, s: r => `${r.plan.n.ppo ? 'PPO' : r.plan.n.pos ? 'HMO-POS' : 'HMO'}${r.plan.n.referrals === false ? ' · no referrals' : ''}`},
   {id: 'extras', label: 'Other extras', fields: ['Post-Discharge Meals', 'Routine Foot Care', 'Rewards', 'Plan Highlights (UHC)', 'Market Service Area']},
 ];
-const BEN_BY_ID = Object.fromEntries(BENEFITS.map(b => [b.id, b]));
+const BEN_BY_ID = Object.assign(Object.create(null), Object.fromEntries(BENEFITS.map(b => [b.id, b])));
 // "fits this client" only means something once a client has been described
 const clientDescribed = () => { const p = S.profile; return !!(S.result && S.result.results.length && (p.county || p.conditions.length || Object.keys(p.priorities).length || p.medicalGroup || p.hospital || hasDrugs(p) || p.mediCal !== 'unknown' || p.extraHelp || p.maxPremium != null || p.veteran)); };
 const BN = {ids: null, county: '', carrier: '', fit: true, q: '', sort: null, picked: []};
 try { BN.ids = JSON.parse(store.get('pc_benefits_v1') || 'null'); } catch (_) {}
-if (!Array.isArray(BN.ids) || !BN.ids.every(id => BEN_BY_ID[id])) BN.ids = ['premium', 'giveback', 'moop'];
+BN.ids = Array.isArray(BN.ids) ? [...new Set(BN.ids.filter(id => typeof id === 'string' && BEN_BY_ID[id]))].slice(0, 3) : [];
+if (!BN.ids.length) BN.ids = ['premium', 'giveback', 'moop'];
+/* Opening a plan from a list screen shows "← Back to …" (S.modalBack); search, sort and scroll stay. */
+S.modalBack = null;
+function backFrom(label, render) { const y = $('modal').scrollTop; S.modalBack = {label, go: () => { render(); $('modal').scrollTop = y; }}; }
+const backBtn = () => S.modalBack ? `<button class="btn small" data-modalback>← Back to ${esc(S.modalBack.label)}</button>` : '';
+$('modalBody').addEventListener('click', e => { if (e.target.closest('[data-modalback]') && S.modalBack) { const b = S.modalBack; S.modalBack = null; b.go(); } });
 
 $('browseBtn').addEventListener('click', () => showBenefits());
 function showBenefits(ids) {
   if (ids) BN.ids = ids.filter(id => BEN_BY_ID[id]).slice(0, 3);
-  BN.county = S.profile.county || BN.county || '';
+  const county = clientDescribed() ? (S.profile.county || '') : (BN.county || S.profile.county || '');
+  if (county !== BN.county) { BN.county = county; BN.carrier = ''; BN.picked = []; }
   BN.fit = clientDescribed();
-  BN.q = ''; BN.sort = null;
+  S.modalBack = null;
   renderBenefits(false);
 }
+const bnSortId = () => (BN.sort && BN.ids.includes(BN.sort) && BEN_BY_ID[BN.sort].m) ? BN.sort : (BN.ids.find(id => BEN_BY_ID[id].m) || null);
 function benefitRows() {
   const p = Object.assign({}, S.profile, {county: BN.county});
-  const fitRows = clientDescribed() && S.profile.county === BN.county ? S.result.results : [];
+  const fitRows = clientDescribed() && (S.profile.county || '') === BN.county ? S.result.results : [];
   const useFit = BN.fit && fitRows.length;
   let rows = useFit ? fitRows.slice()
     : S.data.plans.filter(x => !BN.county || x.counties.includes(BN.county)).map(plan => ({plan, v: planValues(plan, p), score: (fitRows.find(r => r.plan.idx === plan.idx) || {}).score ?? null}));
   if (BN.carrier) rows = rows.filter(r => r.plan.carrier === BN.carrier);
   const q = lc(BN.q).trim();
   if (q) rows = rows.filter(r => q.split(/\s+/).every(w => lc(r.plan.name + ' ' + r.plan.carrier + ' ' + r.plan.id).includes(w)));
-  const b = BEN_BY_ID[BN.sort || BN.ids[0]];
-  if (b && b.m) rows.sort((x, y) => { const a = b.m(x), c = b.m(y); if (a == null && c == null) return 0; if (a == null) return 1; if (c == null) return -1; return (b.dir === 'min' ? a - c : c - a) || ((y.score || 0) - (x.score || 0)); });
+  const b = BEN_BY_ID[bnSortId()];
+  if (b) rows.sort((x, y) => { const a = b.m(x), c = b.m(y); if (a == null && c == null) return 0; if (a == null) return 1; if (c == null) return -1; return (b.dir === 'min' ? a - c : c - a) || ((y.score || 0) - (x.score || 0)); });
   else rows.sort((x, y) => (y.score || 0) - (x.score || 0) || x.plan.name.localeCompare(y.plan.name));
   return {rows, useFit};
 }
@@ -2574,27 +2699,31 @@ function benefitCell(b, r, best) {
 }
 function renderBenefits(keepScroll) {
   const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
+  const chipsX = ($('modalBody').querySelector('.bn-chips') || {}).scrollLeft || 0;
   const {rows, useFit} = benefitRows();
+  const visible = new Set(rows.map(r => r.plan.idx));
+  BN.picked = BN.picked.filter(i => visible.has(i));
   const cols = BN.ids.map(id => BEN_BY_ID[id]);
   const bestOf = cols.map(b => { if (!b.m) return null; const v = rows.map(b.m).filter(x => x != null); return v.length > 1 && new Set(v).size > 1 ? (b.dir === 'min' ? Math.min(...v) : Math.max(...v)) : null; });
   const carriers = [...new Set(S.data.plans.filter(x => !BN.county || x.counties.includes(BN.county)).map(x => x.carrier))].sort();
-  const canFit = clientDescribed() && S.profile.county === BN.county;
-  const shown = rows.slice(0, 120);
+  const canFit = clientDescribed() && (S.profile.county || '') === BN.county;
+  const shown = rows.slice(0, 120), sortId = bnSortId();
   openModal(`<h2>Benefits</h2>
     <div class="hint">Pick up to 3 benefits to see them side by side for every plan — best first. Text under each number is the exact wording from your workbook.</div>
     <div class="bn-chips no-print">${BENEFITS.map(b => `<button class="chip ${BN.ids.includes(b.id) ? 'on' : ''}" data-bn="${b.id}">${esc(b.label)}</button>`).join('')}</div>
     <div class="row no-print">
       <select class="inp" id="bnCounty" style="width:auto"><option value="">All counties</option>${COUNTIES.map(c => `<option value="${c.id}" ${BN.county === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
       <select class="inp" id="bnCarrier" style="width:auto"><option value="">All carriers</option>${carriers.map(c => `<option ${BN.carrier === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
-      <select class="inp" id="bnSort" style="width:auto" aria-label="Sort by">${cols.filter(b => b.m).map(b => `<option value="${b.id}" ${(BN.sort || BN.ids[0]) === b.id ? 'selected' : ''}>Sort: ${esc(b.label)}</option>`).join('')}</select>
+      <select class="inp" id="bnSort" style="width:auto" aria-label="Sort by">${cols.filter(b => b.m).map(b => `<option value="${b.id}" ${sortId === b.id ? 'selected' : ''}>Sort: ${esc(b.label)}</option>`).join('') || '<option>Sort: best fit</option>'}</select>
       <input class="inp" id="bnQ" placeholder="Find a plan (name, carrier, H-number)" value="${esc(BN.q)}" style="flex:1;min-width:160px"/>
       ${canFit ? `<label class="tg"><input type="checkbox" id="bnFit" ${BN.fit ? 'checked' : ''}/> Only plans that fit this client</label>` : ''}
     </div>
-    <div class="hint" style="margin:6px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${BN.county ? ' in ' + countyName(BN.county) : ''}${BN.carrier ? ' · ' + esc(BN.carrier) : ''} · sorted by ${esc((BEN_BY_ID[BN.sort || BN.ids[0]] || {}).label || 'fit')}${rows.length > shown.length ? ` · showing the first ${shown.length}` : ''}. Tap a column title to sort by it.</div>
-    <div class="cmp-wrap cards"><table class="cmp bn-table cards"><thead><tr><th>Plan</th>${cols.map(b => `<th><button class="linkbtn" data-bnsort="${b.id}">${esc(b.label)}${(BN.sort || BN.ids[0]) === b.id && b.m ? ' ▾' : ''}</button></th>`).join('')}</tr></thead><tbody>
+    <div class="hint" style="margin:6px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${BN.county ? ' in ' + countyName(BN.county) : ''}${BN.carrier ? ' · ' + esc(BN.carrier) : ''} · sorted by ${esc(sortId ? BEN_BY_ID[sortId].label : 'best fit')}${rows.length > shown.length ? ` · showing the first ${shown.length}` : ''}.</div>
+    <div class="cmp-wrap cards"><table class="cmp bn-table cards"><thead><tr><th>Plan</th>${cols.map(b => `<th><button class="linkbtn" data-bnsort="${b.id}">${esc(b.label)}${sortId === b.id ? ' ▾' : ''}</button></th>`).join('')}</tr></thead><tbody>
     ${shown.map(r => `<tr><th><a href="#" data-open="${r.plan.idx}">${esc(r.plan.name)}</a><div class="hint mono">${esc(r.plan.id)} · ${esc(r.plan.counties.join(', '))}</div>${r.score != null ? `<div class="hint">fit ${Math.round(r.score)}</div>` : ''}<label class="tg bn-pick no-print"><input type="checkbox" data-bnpick="${r.plan.idx}" ${BN.picked.includes(r.plan.idx) ? 'checked' : ''}/> compare</label></th>${cols.map((b, i) => benefitCell(b, r, bestOf[i] != null && b.m(r) === bestOf[i])).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 1}" class="hint">No plans match.</td></tr>`}
     </tbody></table></div>
-    <div class="row no-print"><button class="btn small gold" id="bnCompare" ${BN.picked.length < 2 ? 'disabled' : ''}>Compare checked (${BN.picked.length})</button><button class="btn small" onclick="window.print()">Print / save PDF</button><span class="hint" style="margin:0">Green = best on that benefit among these plans.</span></div>`);
+    <div class="row no-print bn-actions"><button class="btn small gold" id="bnCompare" ${BN.picked.length < 2 ? 'disabled' : ''}>Compare checked (${BN.picked.length})</button><button class="btn small" onclick="window.print()">Print / save PDF</button><span class="hint" style="margin:0">Green = best on that benefit among these plans.</span></div>`);
+  const ch = $('modalBody').querySelector('.bn-chips'); if (ch) ch.scrollLeft = chipsX;
   if (keepScroll) box.scrollTop = y;
 }
 $('modalBody').addEventListener('click', e => {
@@ -2604,20 +2733,24 @@ $('modalBody').addEventListener('click', e => {
   if (chip) {
     const id = chip.dataset.bn;
     if (BN.ids.includes(id)) { if (BN.ids.length > 1) BN.ids = BN.ids.filter(x => x !== id); }
-    else { BN.ids = BN.ids.concat(id); if (BN.ids.length > 3) BN.ids.shift(); }
-    if (BN.sort && !BN.ids.includes(BN.sort)) BN.sort = null;
+    else { BN.ids = BN.ids.concat(id); if (BN.ids.length > 3) BN.ids.shift(); if (BEN_BY_ID[id].m) BN.sort = id; }   // the benefit just added is the one sorted on
     store.set('pc_benefits_v1', JSON.stringify(BN.ids)); renderBenefits(true); return;
   }
-  const so = t.closest('[data-bnsort]'); if (so) { BN.sort = so.dataset.bnsort; renderBenefits(true); return; }
-  if (t.id === 'bnCompare' && BN.picked.length >= 2) { showCompare(BN.picked.map(i => S.data.plans[i])); return; }
-});
+  const so = t.closest('[data-bnsort]'); if (so) { if (BEN_BY_ID[so.dataset.bnsort].m) { BN.sort = so.dataset.bnsort; renderBenefits(true); } return; }
+  if (t.id === 'bnCompare' && BN.picked.length >= 2) { backFrom('Benefits', () => renderBenefits(false)); showCompare(BN.picked.map(i => S.data.plans[i])); return; }
+  const a = t.closest('[data-open]'); if (a) { e.preventDefault(); e.stopImmediatePropagation(); backFrom('Benefits', () => renderBenefits(false)); showDetails(+a.dataset.open); }
+}, true);
 $('modalBody').addEventListener('change', e => {
   if (!$('bnQ')) return;
   const t = e.target;
-  if (t.id === 'bnCounty') { BN.county = t.value; renderBenefits(false); }
+  if (t.id === 'bnCounty') {
+    BN.county = t.value;
+    if (BN.carrier && !S.data.plans.some(x => x.carrier === BN.carrier && (!BN.county || x.counties.includes(BN.county)))) BN.carrier = '';
+    renderBenefits(false);
+  }
   else if (t.id === 'bnCarrier') { BN.carrier = t.value; renderBenefits(false); }
   else if (t.id === 'bnFit') { BN.fit = t.checked; renderBenefits(false); }
-  else if (t.id === 'bnSort') { BN.sort = t.value; renderBenefits(true); }
+  else if (t.id === 'bnSort') { if (BEN_BY_ID[t.value]) BN.sort = t.value; renderBenefits(true); }
   else if (t.dataset.bnpick) { const i = +t.dataset.bnpick; BN.picked = BN.picked.filter(x => x !== i); if (t.checked) BN.picked.push(i); if (BN.picked.length > 4) BN.picked.shift(); renderBenefits(true); }
 });
 let bnTimer = null;
@@ -2625,7 +2758,10 @@ $('modalBody').addEventListener('input', e => {
   if (e.target.id !== 'bnQ') return;
   clearTimeout(bnTimer);
   const v = e.target.value, pos = e.target.selectionStart;
-  bnTimer = setTimeout(() => { BN.q = v; renderBenefits(true); const q = $('bnQ'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (_) {} } }, 200);
+  bnTimer = setTimeout(() => {
+    if (!$('bnQ') || $('modal').hidden) return;   // the agent moved on
+    BN.q = v; renderBenefits(true); const q = $('bnQ'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (_) {} }
+  }, 200);
 });
 $('modalBody').addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a) { e.preventDefault(); showDetails(+a.dataset.open); } });
 
@@ -2633,14 +2769,21 @@ $('modalBody').addEventListener('click', e => { const a = e.target.closest('[dat
 const RX = {county: '', fit: true, sort: 'total'};
 $('rxBtn').addEventListener('click', () => showRx());
 function showRx() {
-  RX.county = S.profile.county || RX.county || '';
+  RX.county = clientDescribed() ? (S.profile.county || '') : (RX.county || S.profile.county || '');
   RX.fit = clientDescribed();
+  S.modalBack = null;
   renderRx(false);
 }
-function rxChanged() { rerank(true); renderRx(true); }
+/* After a change: re-rank, then refresh only the parts of the open screen that changed (inputs keep focus). */
+function rxChanged(parts = 'all') {
+  rerank(true); saveRecentDrugs();
+  if ($('modal').hidden || !$('rxName')) return;   // closed meanwhile (Escape right after an edit)
+  if (parts === 'all') { $('rxDrugsBox').innerHTML = rxDrugsHtml(); $('rxOptsBox').innerHTML = rxOptsHtml(); }
+  $('rxResBox').innerHTML = rxResultsHtml();
+}
 function rxRows() {
   const prof = Object.assign({}, S.profile, {county: RX.county});
-  const fitRows = clientDescribed() && S.profile.county === RX.county ? S.result.results : [];
+  const fitRows = clientDescribed() && (S.profile.county || '') === RX.county ? S.result.results : [];
   const useFit = RX.fit && fitRows.length;
   const plans = useFit ? fitRows.map(r => r.plan) : S.data.plans.filter(x => !RX.county || x.counties.includes(RX.county));
   const rows = plans.map(plan => {
@@ -2652,56 +2795,73 @@ function rxRows() {
   rows.sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return x - y || (b.score || 0) - (a.score || 0); });
   return {rows, useFit};
 }
-function renderRx(keepScroll) {
-  const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
-  const p = S.profile, list = effectiveDrugs(p);
-  const canFit = clientDescribed() && S.profile.county === RX.county;
-  const {rows, useFit} = list.length ? rxRows() : {rows: [], useFit: false};
-  const best = rows.length && rows[0].total != null ? rows[0] : null;
-  const tierOpts = sel => RX_TIERS.map(t => `<option value="${t}" ${String(sel) === t ? 'selected' : ''}>${esc(TIER_SHORT[t])}</option>`).join('');
-  const named = p.drugs || [];
-  const drugRows = list.map((d, i) => d.placeholder
-    ? `<tr><th>${esc(d.placeholder === 'tier3' ? 'Brand drug (not named)' : 'Insulin (not named)')}<div class="hint">from “${d.placeholder === 'tier3' ? 'Tier 3 drugs' : 'Takes insulin'}” in the profile — type the name above to make it exact</div></th><td>${esc(TIER_LABEL[d.tier])}</td><td>${fmt$(d.price)}</td><td><button class="btn small" data-rxdropph="${d.placeholder}" aria-label="Remove">✕</button></td></tr>`
+const rxTierOpts = sel => RX_TIERS.map(t => `<option value="${t}" ${String(sel) === t ? 'selected' : ''}>${esc(TIER_SHORT[t])}</option>`).join('');
+function rxDrugsHtml() {
+  const list = effectiveDrugs(S.profile);
+  if (!list.length) return '<p class="hint" style="margin-top:10px">No drugs yet. Add them above — or say them in the client description (“takes Eliquis and metformin”).</p>';
+  return `<div class="cmp-wrap cards"><table class="cmp rx-drugs cards"><thead><tr><th>Drug</th><th>Tier</th><th>Price / mo</th><th></th></tr></thead><tbody>${list.map((d, i) => d.placeholder
+    ? `<tr><th>${esc(d.placeholder === 'tier3' ? 'Brand drug (not named)' : 'Insulin (not named)')}<div class="hint">from “${d.placeholder === 'tier3' ? 'Tier 3 drugs' : 'Takes insulin'}” in the profile — type its name above to make it exact</div></th><td data-label="Tier">${esc(TIER_LABEL[d.tier])}</td><td data-label="Price / month">${fmt$(d.price)}</td><td class="rx-x"><button class="btn small" data-rxdropph="${d.placeholder}" aria-label="Remove">✕ Remove</button></td></tr>`
     : `<tr><th>${esc(d.name)}${findDrug(d.name) ? '' : '<div class="hint">not on the common list — set its tier and price</div>'}</th>
-        <td><select class="inp" data-rxtier="${i}">${tierOpts(d.tier)}</select></td>
-        <td><input class="inp" type="number" min="0" step="1" data-rxprice="${i}" value="${Math.round(d.price)}" style="max-width:110px" aria-label="Price per month"/></td>
-        <td><button class="btn small" data-rxdrop="${i}" aria-label="Remove ${esc(d.name)}">✕</button></td></tr>`).join('');
-  const lis = p.mediCal === 'full' || p.extraHelp;
-  openModal(`<h2>Prescriptions</h2>
-    <div class="hint">Add the client's drugs to see what they'd pay on each plan for the year. Each plan's deductible and tier costs come from your workbook; the 2027 rules are Medicare's (yearly drug cap ${fmt$(PARTD.oopCap)}, insulin ${fmt$(PARTD.insulinCap)}/month, Extra Help ${fmtc(PARTD.lisGeneric)} generic / ${fmtc(PARTD.lisBrand)} brand). The tier and price shown are what's typical — every plan has its own drug list.</div>
-    <div class="row no-print rx-add">
-      <input class="inp" id="rxName" list="rxList" placeholder="Type a drug — Eliquis, metformin, Lantus…" autocomplete="off" style="flex:1;min-width:180px"/>
-      <datalist id="rxList">${DRUG_LIST.map(d => `<option value="${esc(d[0])}">${esc(TIER_LABEL[d[1]])}${d.length > 3 ? ' · ' + esc(d.slice(3, 5).join(', ')) : ''}</option>`).join('')}</datalist>
-      <select class="inp" id="rxTier" style="width:auto"><option value="auto">Usual tier</option>${tierOpts('')}</select>
-      <button class="btn small primary" id="rxAdd">Add drug</button>
-    </div>
-    <div class="hint" id="rxHint" style="margin:4px 0 0;min-height:1.2em"></div>
-    ${list.length ? `<div class="cmp-wrap"><table class="cmp rx-drugs"><thead><tr><th>Drug</th><th>Tier</th><th>Price / mo</th><th></th></tr></thead><tbody>${drugRows}</tbody></table></div>` : '<p class="hint" style="margin-top:10px">No drugs yet. Add them above — or say them in the client description (“takes Eliquis and metformin”).</p>'}
-    <div class="row no-print" style="margin-top:10px">
+        <td data-label="Tier"><select class="inp" data-rxtier="${i}" aria-label="Tier for ${esc(d.name)}">${rxTierOpts(d.tier)}</select></td>
+        <td data-label="Price / month"><input class="inp" type="number" min="0" step="1" data-rxprice="${i}" value="${Math.round(d.price)}" aria-label="Price per month for ${esc(d.name)}"/></td>
+        <td class="rx-x"><button class="btn small" data-rxdrop="${i}" aria-label="Remove ${esc(d.name)}">✕ Remove</button></td></tr>`).join('')}</tbody></table></div>`;
+}
+function rxOptsHtml() {
+  const p = S.profile, lis = getsLIS(p);
+  const canFit = clientDescribed() && (S.profile.county || '') === RX.county;
+  return `<div class="row no-print" style="margin-top:10px">
       <span class="hint" style="margin:0">Pharmacy:</span><div class="seg" style="width:auto"><button class="${p.rxStandard ? '' : 'on'}" data-rxpharm="pref">Preferred</button><button class="${p.rxStandard ? 'on' : ''}" data-rxpharm="std">Standard</button></div>
       <label class="tg"><input type="checkbox" id="rxLis" ${lis ? 'checked' : ''} ${p.mediCal === 'full' ? 'disabled' : ''}/> Extra Help${p.mediCal === 'full' ? ' (has Medi-Cal)' : ''}</label>
       <select class="inp" id="rxCounty" style="width:auto"><option value="">All counties</option>${COUNTIES.map(c => `<option value="${c.id}" ${RX.county === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
       ${canFit ? `<label class="tg"><input type="checkbox" id="rxFit" ${RX.fit ? 'checked' : ''}/> Only plans that fit this client</label>` : ''}
-    </div>
-    ${list.length ? `
-    <div class="hint" style="margin:8px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${RX.county ? ' in ' + countyName(RX.county) : ''} — sorted by <button class="linkbtn" data-rxsort="${RX.sort === 'total' ? 'drugs' : 'total'}">${RX.sort === 'total' ? 'drugs + premium (tap for drugs only)' : 'drugs only (tap for drugs + premium)'}</button>.${best ? ` Lowest: <b>${esc(best.plan.name)}</b> ≈${fmt$(RX.sort === 'drugs' ? best.est.yearly : best.total)}/yr.` : ''}</div>
+    </div>${p.mediCal === 'partial' && !p.extraHelp ? '<div class="hint" style="margin:4px 0 0">Partial Medi-Cal: QMB, SLMB and QI members — and share-of-cost members once they meet their share — get Extra Help automatically. Tick Extra Help if that applies.</div>' : ''}`;
+}
+function rxResultsHtml() {
+  const list = effectiveDrugs(S.profile);
+  if (!list.length) return '';
+  const {rows, useFit} = rxRows();
+  const best = rows.length && rows[0].total != null ? rows[0] : null;
+  return `<div class="hint" style="margin:8px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${RX.county ? ' in ' + countyName(RX.county) : ''} — sorted by <button class="linkbtn" data-rxsort="${RX.sort === 'total' ? 'drugs' : 'total'}">${RX.sort === 'total' ? 'drugs + premium (tap for drugs only)' : 'drugs only (tap for drugs + premium)'}</button>.${best ? ` Lowest: <b>${esc(best.plan.name)}</b> ≈${fmt$(RX.sort === 'drugs' ? best.est.yearly : best.total)}/yr.` : ''}</div>
     <div class="cmp-wrap cards"><table class="cmp rx-table cards"><thead><tr><th>Plan</th><th>Drugs / year</th><th>Premium / year</th><th>Total</th></tr></thead><tbody>
     ${rows.slice(0, 120).map((r, i) => `<tr><th><a href="#" data-open="${r.plan.idx}">${esc(r.plan.name)}</a><div class="hint mono">${esc(r.plan.id)}</div>${r.score != null ? `<div class="hint">fit ${Math.round(r.score)}</div>` : ''}</th>
       <td data-label="Drugs / year" class="${i === 0 && RX.sort === 'drugs' && r.est ? 'best' : ''}">${r.est ? `<b>≈${fmt$(r.est.yearly)}</b><div class="bn-raw">${esc(r.est.text)}</div><div class="bn-raw">Drug deductible: ${esc(cut(r.plan.fields['Rx Deductible'] || '', 90))}</div>` : '<span class="hint">no Part D drug coverage</span>'}</td>
       <td data-label="Premium / year">${fmt$(r.prem)}</td><td data-label="Drugs + premium" class="${i === 0 && RX.sort === 'total' && r.total != null ? 'best' : ''}">${r.total == null ? '—' : `<b>≈${fmt$(r.total)}</b>`}</td></tr>`).join('')}
     </tbody></table></div>
-    <p class="hint" style="margin-top:8px">Estimate only: it assumes a 30-day fill every month at the price shown. The Part B giveback isn't subtracted. Before enrolling, check each drug on the plan's drug list (formulary) or in Medicare Plan Finder.</p>` : ''}`);
+    <p class="hint" style="margin-top:8px">Estimate only: it assumes a 30-day fill every month at the price shown. The Part B giveback isn't subtracted. Before enrolling, check each drug on the plan's drug list (formulary) or in Medicare Plan Finder.</p>`;
+}
+function renderRx(keepScroll) {
+  const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
+  openModal(`<h2>Prescriptions</h2>
+    <div class="hint">Add the client's drugs to see what they'd pay on each plan for the year. Each plan's deductible and tier costs come from your workbook; the 2027 rules are Medicare's (yearly drug cap ${fmt$(PARTD.oopCap)}, insulin ${fmt$(PARTD.insulinCap)}/month or less, Extra Help ${fmtc(PARTD.lisGeneric)} generic / ${fmtc(PARTD.lisBrand)} brand). The tier and price shown are what's typical — every plan has its own drug list.</div>
+    <div class="row no-print rx-add">
+      <input class="inp" id="rxName" list="rxList" placeholder="Type a drug — Eliquis, metformin, Lantus…" autocomplete="off" style="flex:1;min-width:180px"/>
+      <datalist id="rxList">${DRUG_LIST.map(d => `<option value="${esc(d[0])}">${esc(TIER_LABEL[d[1]])}${drugAlso(d) ? ' · ' + esc(drugAlso(d)) : ''}</option>`).join('')}</datalist>
+      <select class="inp" id="rxTier" style="width:auto" aria-label="Tier"><option value="auto">Usual tier</option>${rxTierOpts('')}</select>
+      <button class="btn small primary" id="rxAdd">Add drug</button>
+    </div>
+    <div class="hint" id="rxHint" style="margin:4px 0 0;min-height:1.2em"></div>
+    <div id="rxDrugsBox">${rxDrugsHtml()}</div>
+    <div id="rxOptsBox">${rxOptsHtml()}</div>
+    <div id="rxResBox">${rxResultsHtml()}</div>`);
   if (keepScroll) box.scrollTop = y;
 }
 function addRxDrug() {
   const nm = T($('rxName').value); if (!nm) { $('rxName').focus(); return; }
-  const d = findDrug(nm), sel = $('rxTier').value;
-  const tier = sel === 'auto' ? (d ? d[1] : '3') : sel;
-  const name = d ? d[0] : nm.slice(0, 60);
-  const price = d && tier === d[1] ? d[2] : TIER_PRICE[tier];
-  const p = S.profile; p.drugs = (p.drugs || []).filter(x => lc(x.name) !== lc(name)).concat({name, tier, price});
-  if (tier === 'insulin') { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  const sel = $('rxTier').value, p = S.profile;
+  // "Lantus 20 units", "Eliquis 5 mg and metformin" → the known drugs; anything else → one drug by that name
+  let found = drugsIn(nm, true).map(d => ({name: d[0], tier: d[1], price: d[2]}));
+  if (!found.length) { const d = findDrug(nm); found = d ? [{name: d[0], tier: d[1], price: d[2]}] : [{name: nm.replace(/\s+\d[\d.,/]*\s*(?:mg|mcg|units?|unidades|ml|iu)?\b.*$/i, '').slice(0, 60) || nm.slice(0, 60), tier: '3', price: TIER_PRICE[3], unknown: true}]; }
+  for (const f of found) {
+    const tier = sel !== 'auto' && found.length === 1 ? sel : f.tier;
+    const price = f.unknown ? TIER_PRICE[tier] : f.price;   // a known drug keeps its own price on any tier
+    const had = (p.drugs || []).some(x => lc(x.name) === lc(f.name));
+    p.drugs = (p.drugs || []).filter(x => lc(x.name) !== lc(f.name)).concat({name: f.name, tier, price, manual: true});
+    if (!had && ['3', '4', '5'].includes(tier) && (p.tier3 || 0) > 0) p.tier3--;   // naming a brand drug replaces an unnamed one
+    if (tier === 'insulin') { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+    const c = DRUG_COND[f.name]; if (c && !p.conditions.includes(c)) p.conditions.push(c);
+  }
   p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
+  $('rxName').value = ''; $('rxHint').textContent = '';
   rxChanged(); const f = $('rxName'); if (f) f.focus();
 }
 $('modalBody').addEventListener('click', e => {
@@ -2713,28 +2873,42 @@ $('modalBody').addEventListener('click', e => {
   const ph = t.closest('[data-rxdropph]');
   if (ph) { if (ph.dataset.rxdropph === 'tier3') p.tier3 = Math.max(0, (p.tier3 || 0) - 1); else p.insulin = false; rxChanged(); return; }
   const ps = t.closest('[data-rxpharm]'); if (ps) { p.rxStandard = ps.dataset.rxpharm === 'std'; rxChanged(); return; }
-  const so = t.closest('[data-rxsort]'); if (so) { RX.sort = so.dataset.rxsort; renderRx(true); return; }
-});
+  const so = t.closest('[data-rxsort]'); if (so) { RX.sort = so.dataset.rxsort; $('rxResBox').innerHTML = rxResultsHtml(); return; }
+  const a = t.closest('[data-open]'); if (a) { e.preventDefault(); e.stopImmediatePropagation(); backFrom('Prescriptions', () => renderRx(false)); showDetails(+a.dataset.open); }
+}, true);
 $('modalBody').addEventListener('change', e => {
   if (!$('rxName')) return;
   const t = e.target, p = S.profile, list = effectiveDrugs(p);
   if (t.dataset.rxtier != null || t.dataset.rxprice != null) {
     const d = list[+(t.dataset.rxtier ?? t.dataset.rxprice)]; if (!d || d.placeholder) return;
     const x = (p.drugs || []).find(z => lc(z.name) === lc(d.name)); if (!x) return;
-    if (t.dataset.rxtier != null) { x.tier = t.value; const k = findDrug(x.name); x.price = k && k[1] === x.tier ? k[2] : TIER_PRICE[x.tier]; if (x.tier === 'insulin') p.insulin = true; }
-    else x.price = Math.max(0, parseFloat(t.value) || 0);
-    rxChanged(); return;
+    if (t.dataset.rxtier != null) {
+      const was = String(x.tier); x.tier = t.value; x.manual = true;
+      if (!findDrug(x.name) && Math.round(x.price) === TIER_PRICE[was]) x.price = TIER_PRICE[x.tier];   // only an untouched default price follows the tier
+      if (x.tier === 'insulin') p.insulin = true;
+      else if (was === 'insulin' && !p.drugs.some(z => z !== x && String(z.tier) === 'insulin')) p.insulin = false;
+      rxChanged();
+    } else { x.price = Math.max(0, parseFloat(t.value) || 0); x.manual = true; rxChanged('results'); }
+    return;
   }
   if (t.id === 'rxLis') { p.extraHelp = t.checked; rxChanged(); }
-  else if (t.id === 'rxCounty') { RX.county = t.value; renderRx(false); }
-  else if (t.id === 'rxFit') { RX.fit = t.checked; renderRx(false); }
+  else if (t.id === 'rxCounty') { RX.county = t.value; rxChanged(); }
+  else if (t.id === 'rxFit') { RX.fit = t.checked; $('rxResBox').innerHTML = rxResultsHtml(); }
 });
 $('modalBody').addEventListener('keydown', e => { if (e.target.id === 'rxName' && e.key === 'Enter') { e.preventDefault(); addRxDrug(); } });
 $('modalBody').addEventListener('input', e => {
   if (e.target.id !== 'rxName') return;
-  const d = findDrug(e.target.value), h = $('rxHint');
-  if (h) h.textContent = d ? `${d[0]} — usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month${d.length > 3 ? ' (also: ' + d.slice(3).join(', ') + ')' : ''}` : '';
+  const d = findDrug(e.target.value) || drugsIn(e.target.value, true)[0], h = $('rxHint');
+  if (h) h.textContent = d ? `${d[0]} — usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month${drugAlso(d) ? ' (also: ' + drugAlso(d) + ')' : ''}` : '';
 });
+/* Drugs typed in Prescriptions belong to this client: kept when the description is re-run, saved with the recent client. */
+const manualDrugs = () => (Array.isArray(S.profile.drugs) ? S.profile.drugs : []).filter(d => d && d.manual);
+function saveRecentDrugs() {
+  const text = T($('clientText').value), list = readRecent();
+  if (!text || !list.length || list[0].text !== text) return;
+  list[0].drugs = manualDrugs(); list[0].rxStandard = !!S.profile.rxStandard;
+  store.set(RECENT, JSON.stringify(list));
+}
 
 /* ═══════════════ NETWORKS — which plans take a doctor group or hospital ═══════════════ */
 const NW = {name: '', kind: 'group', county: ''};
@@ -3072,7 +3246,7 @@ addEventListener('popstate', e => {
 const RECENT = 'pc_recent_v1';
 const readRecent = () => { try { return JSON.parse(store.get(RECENT) || '[]') || []; } catch (_) { return []; } };
 function addRecent(text) {
-  const list = [{text, at: Date.now()}].concat(readRecent().filter(r => r.text !== text)).slice(0, 5);
+  const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard}].concat(readRecent().filter(r => r && r.text !== text)).slice(0, 5);
   store.set(RECENT, JSON.stringify(list)); renderRecent();
 }
 function ago(t) {
@@ -3093,7 +3267,7 @@ $('recent').addEventListener('click', e => {
     rerank(); renderRecent(); return;
   }
   const b = e.target.closest('[data-recent]'); if (!b) return;
-  const r = readRecent()[+b.dataset.recent]; if (r) { dropDictation(); $('clientText').value = r.text; findPlans(); }
+  const r = readRecent()[+b.dataset.recent]; if (r && typeof r.text === 'string') { dropDictation(); $('clientText').value = r.text; findPlans({drugs: Array.isArray(r.drugs) ? r.drugs : [], rxStandard: !!r.rxStandard}); }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.data) renderRecent(); });
 setInterval(() => { if (S.data && !document.hidden) renderRecent(); }, 60000);
@@ -3154,8 +3328,10 @@ document.addEventListener('drop', e => { const f = e.dataTransfer && e.dataTrans
 (function boot() {
   const raw = store.get(STORE.wb);
   if (!raw) return;
-  try { const {meta, sheets} = JSON.parse(raw); useData(buildData(sheets, meta)); }
-  catch (e) { console.error(e); store.del(STORE.wb); }
+  let data = null;
+  try { const {meta, sheets} = JSON.parse(raw); data = buildData(sheets, meta); }
+  catch (e) { console.error(e); store.del(STORE.wb); return; }   // only a workbook that can't be read is forgotten
+  try { useData(data); } catch (e) { console.error(e); }
 })();
 </script>
 </body>
