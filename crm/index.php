@@ -90,6 +90,7 @@ try {
 if (!empty($_POST['cue_ajax'])) {
     ob_start();
     header('Content-Type: application/json');
+    if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
     $pdo_x = db(); $u_x = auth(); $uid_x = $u_x['id'];
     $act = $_POST['action'] ?? '';
     try { switch ($act) {
@@ -288,6 +289,7 @@ if (!empty($_POST['cue_ajax'])) {
 // ─── ENTRENAMIENTO — AJAX HANDLER (marcar semana completada por agente) ──────
 if (!empty($_POST['train_ajax'])) {
     header('Content-Type: application/json');
+    if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
     $pdo_t = db(); $u_t = auth(); $uid_t = $u_t['id'];
     try {
         if (($_POST['action'] ?? '') === 'toggle_training') {
@@ -309,6 +311,7 @@ if (!empty($_POST['train_ajax'])) {
 // ─── CAMPAÑAS — AJAX HANDLER ─────────────────────────────────────────────────
 if (!empty($_POST['camp_ajax'])) {
     header('Content-Type: application/json');
+    if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
     $pdo_c = db(); $u_c = auth(); $uid_c = $u_c['id']; $act_c = $_POST['action'] ?? '';
     // Asegurar que todas las columnas existan aunque esta petición ajax se
     // dispare antes de que una carga normal de la página corra la migración.
@@ -363,7 +366,11 @@ if (!empty($_POST['camp_ajax'])) {
             }
             break;
         case 'delete_campana':
+            // Borrar una campaña entera (con todos sus contactos y su historial)
+            // no tiene vuelta atrás: solo un admin.
+            if (!isAdmin()) { echo json_encode(['ok'=>false,'error'=>'Solo un administrador puede borrar una campaña']); break; }
             $id = (int)($_POST['id'] ?? 0);
+            try { $pdo_c->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_c,'SISTEMA','Campaña #'.$id.' borrada']); } catch (Exception $e) {}
             $pdo_c->prepare("DELETE FROM campana_logs WHERE campana_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campana_contactos WHERE campana_id=?")->execute([$id]);
             $pdo_c->prepare("DELETE FROM campanas WHERE id=?")->execute([$id]);
@@ -406,7 +413,9 @@ if (!empty($_POST['camp_ajax'])) {
         // dejó nombres/teléfonos revueltos) y hay que empezar de cero en vez
         // de borrar uno por uno antes de volver a subir la lista corregida.
         case 'vaciar_contactos_campana':
+            if (!isAdmin()) { echo json_encode(['ok'=>false,'error'=>'Solo un administrador puede vaciar la lista de una campaña']); break; }
             $cid = (int)($_POST['campana_id'] ?? 0);
+            try { $pdo_c->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid_c,'SISTEMA','Lista de la campaña #'.$cid.' vaciada']); } catch (Exception $e) {}
             if (!$cid) { echo json_encode(['ok'=>false,'error'=>'Campaña requerida']); break; }
             $pdo_c->prepare("DELETE FROM campana_logs WHERE contacto_id IN (SELECT id FROM campana_contactos WHERE campana_id=?)")->execute([$cid]);
             $pdo_c->prepare("DELETE FROM campana_contactos WHERE campana_id=?")->execute([$cid]);
@@ -854,6 +863,7 @@ if (!empty($_POST['camp_ajax'])) {
 // ─── PLANEACIÓN — AJAX HANDLER ───────────────────────────────────────────────
 if (!empty($_POST['plan_ajax'])) {
     header('Content-Type: application/json');
+    if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
     $pdo_p = db(); $u_p = auth(); $act_p = $_POST['action'] ?? '';
     try { switch ($act_p) {
         case 'update_meta':
@@ -12941,6 +12951,7 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <div style="padding:12px 16px;border-bottom:1px solid <?=$CB?>">
         <div id="sms-panel-title" style="font-size:11px;font-weight:900;color:<?=$P1?>"></div>
         <div id="sms-panel-sub" style="font-size:8px;color:<?=$MU?>;text-transform:uppercase"></div>
+        <button type="button" class="btn btn-gh btn-sm" style="margin-top:6px;font-size:8px" onclick="smsMarcarAtendido()" title="Para mensajes que no necesitan respuesta">✓ MARCAR ATENDIDO</button>
       </div>
       <div id="sms-panel-msgs" style="flex:1;min-height:0;overflow-y:auto;padding:14px;display:flex;flex-direction:column;gap:8px"></div>
       <div style="padding:10px 14px;border-top:1px solid <?=$CB?>">
@@ -17911,6 +17922,12 @@ setInterval(()=>{
   }).catch(()=>{});
 }, 20000);
 function toggleNotifPanel(){const p=document.getElementById('notif-dropdown');p.classList.toggle('open');if(p.classList.contains('open'))loadNotifs();}
+function smsMarcarAtendido(){
+  if(typeof _smsHiloAbierto==='undefined' || !_smsHiloAbierto){ toast('Abre una conversación primero'); return; }
+  fetch('api.php',{method:'POST',body:new URLSearchParams({action:'sms_marcar_atendido',telefono:_smsHiloAbierto})})
+    .then(r=>r.json()).then(d=>{ if(d.ok){ toast('✓ CONVERSACIÓN ATENDIDA'); if(typeof loadSmsConversaciones==='function') loadSmsConversaciones(); } else toast(d.error||'Error'); })
+    .catch(()=>toast('⚠ Error de red'));
+}
 function loadNotifs(){fetch('api.php?action=get_notifs').then(r=>r.json()).then(d=>{if(!d.ok)return;const list=document.getElementById('notif-list');if(!d.data.notifs||!d.data.notifs.length){list.innerHTML='<div style="padding:14px;text-align:center;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN NOTIFICACIONES</div>';return;}list.innerHTML=d.data.notifs.map(n=>'<div style="padding:9px 14px;border-bottom:1px solid #EBF4F9;background:'+(n.leido?'#fff':'#FEF8EE')+'" onclick="markNotifRead('+n.id+',this)"><div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase">'+escapeHtml(n.tipo)+'<span style="float:right;color:#7A90A4;font-weight:400">'+n.created_at.substr(5,11)+'</span></div><div style="font-size:9px;color:#1B3A5C;margin-top:3px">'+escapeHtml(n.mensaje)+'</div></div>').join('');});}
 function markNotifRead(id,el){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id})});if(el)el.style.background='#fff';}
 function markAllNotifRead(){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id:0})});document.getElementById('notif-dropdown').classList.remove('open');const b=document.querySelector('.hbadge');if(b)b.remove();toast('✓ LEÍDAS');}

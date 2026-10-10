@@ -2160,11 +2160,13 @@ case 'sms_get_hilo':
     asegurarColumnasReferido($pdo);
     $telefono = normalizar_tel($_POST['telefono'] ?? '');
     if ($telefono === '') jsonErr('Teléfono requerido');
-    $q = $pdo->prepare("SELECT s.*, u.nombre AS agente_nombre FROM sms_mensajes s LEFT JOIN usuarios u ON s.agente_id=u.id WHERE s.telefono=? ORDER BY s.id ASC LIMIT 300");
+    // Los 300 MÁS RECIENTES (antes eran los 300 más viejos y lo nuevo no se veía).
+    $q = $pdo->prepare("SELECT s.*, u.nombre AS agente_nombre FROM sms_mensajes s LEFT JOIN usuarios u ON s.agente_id=u.id WHERE s.telefono=? ORDER BY s.id DESC LIMIT 300");
     $q->execute([$telefono]);
-    $mensajes = $q->fetchAll(PDO::FETCH_ASSOC);
-    // Al abrir el hilo se marcan como leídos los mensajes entrantes pendientes.
-    $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE telefono=? AND direccion='ENTRANTE' AND leido=0")->execute([$telefono]);
+    $mensajes = array_reverse($q->fetchAll(PDO::FETCH_ASSOC));
+    // Abrir el hilo YA NO lo marca como leído para todos: antes, con solo mirarlo,
+    // el aviso desaparecía para todo el equipo aunque nadie contestara. Ahora se
+    // marca al CONTESTAR (sms_enviar) o con el botón "✓ MARCAR ATENDIDO".
     $mq = $pdo->prepare("SELECT m.id, m.nombre, m.apellido, m.referido_por_texto,
                                  CONCAT(r.nombre,' ',r.apellido) AS referido_por_miembro_nombre
                           FROM miembros m LEFT JOIN miembros r ON r.id=m.referido_por_miembro_id
@@ -2201,7 +2203,19 @@ case 'sms_enviar':
     // saber que ESTE número nunca iba a poder recibirlo.
     if (!$res['ok']) sms_registrar_fallo_envio($pdo, $telefono, $res['codigo'] ?? null, $res['error'] ?? null);
     if (!$res['ok']) jsonErr($res['error']);
+    // Se contestó: los mensajes entrantes de este número quedan atendidos.
+    $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE telefono=? AND direccion='ENTRANTE' AND leido=0")->execute([$telefono]);
     jsonOkNotify(['sid' => $res['sid']], 'COMUNICACION');
+    break;
+
+case 'sms_marcar_atendido':
+    // Para mensajes que no necesitan respuesta (ej. "gracias").
+    $pdo = db();
+    $telefono = normalizar_tel($_POST['telefono'] ?? '');
+    if ($telefono === '') jsonErr('Teléfono requerido');
+    $pdo->prepare("UPDATE sms_mensajes SET leido=1 WHERE telefono=? AND direccion='ENTRANTE' AND leido=0")->execute([$telefono]);
+    try { $pdo->prepare("INSERT INTO actividad (agente_id,tipo,descripcion) VALUES (?,?,?)")->execute([$uid,'SMS','Conversación '.$telefono.' marcada como atendida sin responder']); } catch (Exception $e) {}
+    jsonOkNotify([], 'COMUNICACION');
     break;
 
 case 'sms_plantilla_guardar':
