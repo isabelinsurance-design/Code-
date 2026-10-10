@@ -13,7 +13,7 @@ $pdo = db();
 $RDA_GRUPO_PROCESO = ['IN PROCESS','READY TO ENROLL','PENDING','PLAN CHANGE'];
 $rda_hoy = date('Y-m-d');
 
-$members = $pdo->query("SELECT id,nombre,apellido,estado,carrier,fecha_cancelacion FROM miembros")->fetchAll();
+$members = $pdo->query("SELECT * FROM miembros")->fetchAll();
 
 $rda_por_carrier = [];
 foreach ($members as $m) {
@@ -25,13 +25,13 @@ foreach ($members as $m) {
     } elseif (in_array($m['estado'], $RDA_GRUPO_PROCESO, true)) {
         $rda_por_carrier[$car]['en_proceso']++;
     }
-    if ($m['estado'] === 'CANCELED' && ($m['fecha_cancelacion'] ?? '') === $rda_hoy) {
+    if (in_array($m['estado'], ['CANCELED','DISENROLLED'], true) && (($m['fecha_cancelacion'] ?? '') === $rda_hoy || substr($m['cancelado_registrado_at'] ?? '', 0, 10) === $rda_hoy)) {
         $rda_por_carrier[$car]['cancelados_hoy']++;
     }
 }
 ksort($rda_por_carrier);
 
-$rda_cancelados_hoy = array_values(array_filter($members, fn($m) => $m['estado']==='CANCELED' && ($m['fecha_cancelacion']??'')===$rda_hoy));
+$rda_cancelados_hoy = array_values(array_filter($members, fn($m) => in_array($m['estado'], ['CANCELED','DISENROLLED'], true) && (($m['fecha_cancelacion']??'')===$rda_hoy || substr($m['cancelado_registrado_at']??'',0,10)===$rda_hoy)));
 usort($rda_cancelados_hoy, fn($a,$b)=>strcmp($a['apellido'].$a['nombre'], $b['apellido'].$b['nombre']));
 
 $rda_activos_total = count(array_filter($members, fn($m)=>$m['estado']==='ACTIVE'));

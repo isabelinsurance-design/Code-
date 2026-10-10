@@ -741,6 +741,15 @@ case 'save_member':
                 $est_nuevo = $d['estado'] ?? null;
                 if ($est_nuevo !== null && in_array($est_nuevo, $estados_caida, true)
                     && !in_array($old_data['estado'] ?? '', $estados_caida, true)) {
+                    // Fecha de cancelación: si nadie la puso, hoy. Y se anota CUÁNDO se
+                    // registró, para que el "Reporte del día" la muestre hoy aunque la
+                    // fecha de cancelación real sea otra (antes desaparecía).
+                    try {
+                        if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'cancelado_registrado_at'")->fetch())
+                            $pdo->exec("ALTER TABLE miembros ADD COLUMN cancelado_registrado_at DATETIME NULL");
+                        $pdo->prepare("UPDATE miembros SET fecha_cancelacion=COALESCE(NULLIF(fecha_cancelacion,''), CURDATE()), cancelado_registrado_at=NOW() WHERE id=?")
+                            ->execute([$d['id']]);
+                    } catch (Exception $e) {}
                     $bq = $pdo->prepare("SELECT id, pagado, total FROM pago_bonos WHERE miembro_id=? AND COALESCE(venta_cancelada,0)=0");
                     $bq->execute([$d['id']]);
                     foreach ($bq->fetchAll() as $bn) {
@@ -1141,6 +1150,16 @@ case 'save_cita':
     $notas = trim($_POST['notas']??'') ?: null;
     $direccion = trim($_POST['direccion']??'') ?: null;
     $tipo_persona = (($_POST['tipo_persona'] ?? '') === 'PROSPECTO') ? 'PROSPECTO' : 'MIEMBRO';
+    // ¿Ya hay otra cita PENDIENTE el mismo día a la misma hora? Se avisa; el
+    // formulario puede confirmar y guardar igual (confirmar=1).
+    if (empty($_POST['confirmar'])) {
+        $dup = $pdo->prepare("SELECT c.id, CONCAT(m.nombre,' ',m.apellido) AS quien FROM citas c LEFT JOIN miembros m ON m.id=c.miembro_id
+                              WHERE c.fecha=? AND LEFT(c.hora,5)=LEFT(?,5) AND c.estado='PENDIENTE' AND c.id<>? LIMIT 1");
+        $dup->execute([$fecha, $hora, 0]);
+        if ($dr = $dup->fetch(PDO::FETCH_ASSOC)) {
+            echo json_encode(['ok'=>false,'conflicto'=>true,'error'=>'Ya hay otra cita a esa misma hora (' . ($dr['quien'] ?: 'cita #'.$dr['id']) . ').']); exit;
+        }
+    }
     // Admin puede asignar a otro agente; agentes solo a sí mismos
     $agente = $admin ? intval($_POST['agente_id']??$uid) : $uid;
     if (!$agente) $agente = $uid;
@@ -1194,6 +1213,17 @@ case 'update_cita':
     $direccion = trim($_POST['direccion']??'') ?: null;
     $tipo_persona = (($_POST['tipo_persona'] ?? '') === 'PROSPECTO') ? 'PROSPECTO' : 'MIEMBRO';
     $agente    = $admin ? (intval($_POST['agente_id']??$row['agente_id']) ?: $row['agente_id']) : $row['agente_id'];
+    // ¿Ya hay otra cita PENDIENTE el mismo día a la misma hora? Se avisa; el
+    // formulario puede confirmar y guardar igual (confirmar=1).
+    if (empty($_POST['confirmar'])) {
+        $dup = $pdo->prepare("SELECT c.id, CONCAT(m.nombre,' ',m.apellido) AS quien FROM citas c LEFT JOIN miembros m ON m.id=c.miembro_id
+                              WHERE c.fecha=? AND LEFT(c.hora,5)=LEFT(?,5) AND c.estado='PENDIENTE' AND c.id<>? LIMIT 1");
+        $dup->execute([$fecha, $hora, $id]);
+        if ($dr = $dup->fetch(PDO::FETCH_ASSOC)) {
+            echo json_encode(['ok'=>false,'conflicto'=>true,'error'=>'Ya hay otra cita a esa misma hora (' . ($dr['quien'] ?: 'cita #'.$dr['id']) . ').']); exit;
+        }
+    }
+
     // El formulario de editar ahora deja elegir el estado directamente
     // (PENDIENTE/COMPLETADA/CANCELADA/REAGENDAR) — si no viene uno válido
     // (ej. formularios viejos en caché), se conserva el comportamiento de
@@ -1221,8 +1251,14 @@ case 'update_cita':
     // Pedido de Isabel: SMS de confirmación al instante cuando se cambia la
     // cita — solo si de verdad cambió el horario o la modalidad (editar
     // solo una nota interna no cuenta como "cambiar la cita").
+    // ...y solo si la cita sigue PENDIENTE y la nueva fecha/hora es futura (antes
+    // salía el SMS de "reagendada" aunque la cita fuera vieja, cancelada o completada).
     if ($cambioHorario || $cambioModalidad) {
-        enviar_confirmacion_cita($pdo, $id, true);
+        $est_now = $pdo->prepare("SELECT estado FROM citas WHERE id=?");
+        $est_now->execute([$id]);
+        if ($est_now->fetchColumn() === 'PENDIENTE' && strtotime($fecha . ' ' . substr($hora, 0, 5)) > time()) {
+            enviar_confirmacion_cita($pdo, $id, true);
+        }
     }
     jsonOkNotify([], 'CITAS');
     break;
@@ -1399,7 +1435,11 @@ case 'follow_up_completar':
         $vals[] = $notas_completado;
     }
     $vals[] = $id;
-    $pdo->prepare("UPDATE follow_ups SET $sets WHERE id=?")->execute($vals);
+    // Solo si sigue pendiente: un doble clic ya no completa dos veces ni crea
+    // el siguiente follow-up repetido.
+    $upd = $pdo->prepare("UPDATE follow_ups SET $sets WHERE id=? AND estado <> 'COMPLETADO'");
+    $upd->execute($vals);
+    if ($upd->rowCount() === 0) jsonErr('Este follow up ya estaba completado');
 
     $siguiente_id = null;
     $dias = (int)($_POST['siguiente_dias'] ?? 0);

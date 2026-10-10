@@ -483,7 +483,9 @@ if (!empty($_POST['camp_ajax'])) {
                           ->execute([$uid_c, $prevFu['id']]);
                 }
                 if ($agregarFu && in_array($res, $CADENA_ELEGIBLES, true)) {
-                    $siguienteIntento = $prevPendiente ? ((int)$prevFu['cadena_intento'] + 1) : 1;
+                    // Sigue la cuenta del último intento aunque ya se haya completado (antes,
+                    // completarlo a mano reiniciaba la cadena en el intento 1 y nunca paraba).
+                    $siguienteIntento = $prevFu ? ((int)$prevFu['cadena_intento'] + 1) : 1;
                     if (isset($CADENA_DIAS[$siguienteIntento])) {
                         $dias = $CADENA_DIAS[$siguienteIntento];
                         $fecha = followup_fecha_mas_dias($dias);
@@ -13987,7 +13989,7 @@ foreach ($members as $m) {
     if ($car === '') continue; // sin aseguranza asignada — no aplica a este reporte
     $rda_es_activo   = $m['estado'] === 'ACTIVE';
     $rda_es_proceso  = in_array($m['estado'], $RDA_GRUPO_PROCESO, true);
-    $rda_es_canc_hoy = $m['estado'] === 'CANCELED' && ($m['fecha_cancelacion'] ?? '') === $rda_hoy;
+    $rda_es_canc_hoy = in_array($m['estado'], ['CANCELED','DISENROLLED'], true) && (($m['fecha_cancelacion'] ?? '') === $rda_hoy || substr($m['cancelado_registrado_at'] ?? '', 0, 10) === $rda_hoy);
     // Si el miembro no aporta nada a ninguna de las 3 columnas (ej. está
     // CANCELED de hace tiempo, DENIED, PROSPECT...) no se muestra su
     // aseguranza — así no salen carriers "fantasma" con puros ceros solo
@@ -14000,7 +14002,7 @@ foreach ($members as $m) {
 }
 ksort($rda_por_carrier);
 
-$rda_cancelados_hoy = array_values(array_filter($members, fn($m) => $m['estado']==='CANCELED' && ($m['fecha_cancelacion']??'')===$rda_hoy));
+$rda_cancelados_hoy = array_values(array_filter($members, fn($m) => in_array($m['estado'], ['CANCELED','DISENROLLED'], true) && (($m['fecha_cancelacion']??'')===$rda_hoy || substr($m['cancelado_registrado_at']??'',0,10)===$rda_hoy)));
 usort($rda_cancelados_hoy, fn($a,$b)=>strcmp($a['apellido'].$a['nombre'], $b['apellido'].$b['nombre']));
 
 $rda_activos_total       = count(array_filter($members, fn($m)=>$m['estado']==='ACTIVE'));
@@ -19925,7 +19927,14 @@ function submitCita(e){
         toast(id ? '✓ CITA ACTUALIZADA' : '✓ CITA GUARDADA');
         closeModal('cita-form-modal');
         refreshCitasPanel();
-      } else toast(d.error||'Error al guardar');
+      } else if(d.conflicto && confirm('⚠ '+d.error+'\n\n¿Guardar de todas formas?')){
+        // Otra cita a la misma hora: el usuario decide. Se reenvía confirmando.
+        const fd2 = new FormData(e.target); fd2.append('action', id ? 'update_cita' : 'save_cita'); fd2.append('confirmar','1');
+        fetch('api.php',{method:'POST',body:new URLSearchParams(fd2)}).then(r=>r.json()).then(d2=>{
+          if(d2.ok){ toast(id ? '✓ CITA ACTUALIZADA' : '✓ CITA GUARDADA'); closeModal('cita-form-modal'); refreshCitasPanel(); }
+          else toast(d2.error||'Error al guardar');
+        }).catch(()=>toast('⚠ ERROR DE CONEXIÓN — INTENTA DE NUEVO'));
+      } else if(!d.conflicto) toast(d.error||'Error al guardar');
     })
     // Sin este catch, si el servidor fallaba (error de red, sesión vencida,
     // respuesta no-JSON) la promesa se rechazaba en silencio: no aparecía
