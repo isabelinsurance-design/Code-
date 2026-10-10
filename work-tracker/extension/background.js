@@ -453,17 +453,26 @@ async function addInput(seconds) {
 // title or document name. If the helper isn't installed, connecting just fails
 // and the feature stays off.
 let nativePort = null;
+let nativeRetryAt = 0; // when the helper is missing, don't retry every minute
 function connectApps() {
-  if (nativePort) return;
+  if (nativePort || Date.now() < nativeRetryAt) return;
+  const startedAt = Date.now();
   try {
     nativePort = chrome.runtime.connectNative('com.netconnect.apptracker');
     nativePort.onMessage.addListener(msg => {
       const name = msg && typeof msg.app === 'string' ? msg.app.replace(/[^\w .-]/g, '').trim().slice(0, 40) : null;
       chrome.storage.local.set({ foreground: { name: name || null, at: Date.now() } });
     });
-    nativePort.onDisconnect.addListener(() => { nativePort = null; });
+    nativePort.onDisconnect.addListener(() => {
+      void chrome.runtime.lastError; // "host not found" is expected when the helper isn't installed
+      nativePort = null;
+      // Dropped within 5 s of connecting = not installed (or blocked): try again in 30 min.
+      nativeRetryAt = Date.now() + (Date.now() - startedAt < 5000 ? 30 * 60000 : 0);
+      chrome.storage.local.remove('foreground');
+    });
   } catch {
     nativePort = null;
+    nativeRetryAt = Date.now() + 30 * 60000;
   }
 }
 connectApps();

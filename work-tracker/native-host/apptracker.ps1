@@ -37,22 +37,29 @@ $stdout = [Console]::OpenStandardOutput()
 function Send-Message($obj) {
   $json  = $obj | ConvertTo-Json -Compress
   $bytes = [Text.Encoding]::UTF8.GetBytes($json)
-  $stdout.Write([BitConverter]::GetBytes([int]$bytes.Length), 0, 4)
-  $stdout.Write($bytes, 0, $bytes.Length)
-  $stdout.Flush()
+  try {
+    $stdout.Write([BitConverter]::GetBytes([int]$bytes.Length), 0, 4)
+    $stdout.Write($bytes, 0, $bytes.Length)
+    $stdout.Flush()
+  } catch { exit 0 }                                 # pipe closed: Chrome is gone
 }
 
 # When Chrome closes the connection, stdin reaches end-of-stream: exit then.
-$stdin = [Console]::OpenStandardInput()
-$watcher = [System.Threading.Thread]::new({
-  try { while ($stdin.ReadByte() -ge 0) { } } catch { }
-  [Environment]::Exit(0)
-})
-$watcher.IsBackground = $true
-$watcher.Start()
+# (Polled with a non-blocking read; a background thread can't run PowerShell code.)
+$stdin  = [Console]::OpenStandardInput()
+$inBuf  = New-Object byte[] 64
+$pending = $stdin.BeginRead($inBuf, 0, $inBuf.Length, $null, $null)
+function Test-ChromeGone {
+  if (-not $script:pending.IsCompleted) { return $false }
+  $n = $stdin.EndRead($script:pending)
+  if ($n -le 0) { return $true }                     # end of stream: Chrome is gone
+  $script:pending = $stdin.BeginRead($inBuf, 0, $inBuf.Length, $null, $null)   # ignore what was sent, keep watching
+  return $false
+}
 
 $last = [object]'__start__'
 while ($true) {
+  if (Test-ChromeGone) { exit 0 }
   $app = [Fg]::App()
   if ($app -ne $last) {
     $last = $app
