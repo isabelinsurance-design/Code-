@@ -14986,24 +14986,24 @@ try {
 </div>
 <div id="atab-INCENTIVOS" style="display:none">
 <div style="background:#EAF5F0;border:1px solid #8DCFBA;border-radius:10px;padding:9px 14px;font-size:8px;color:#1E7A5C;font-weight:800;letter-spacing:1px;text-transform:uppercase;margin-bottom:14px">
-REGLA: BONO L.<?=BONO_MONTO?> POR PÓLIZA · SE CONSOLIDA A LOS <?=DIAS_RETENCION?> DÍAS · CANCELACIÓN ANTES = CHARGEBACK
+REGLA: BONO $<?=BONO_MONTO?> POR PÓLIZA · SE CONSOLIDA A LOS <?=DIAS_RETENCION?> DÍAS · CANCELACIÓN ANTES = CHARGEBACK
 </div>
 <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center">
-<select id="bono-filter-emp" onchange="filterBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
+<select id="bono-filter-emp" onchange="filterBonosIncentivos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
 <option value="">TODOS LOS EMPLEADOS</option>
 <?php foreach($agents as $ag):?><option value="<?=h(explode(' ',$ag['nombre'])[0])?>"><?=h(explode(' ',$ag['nombre'])[0])?></option><?php endforeach;?>
 </select>
-<select id="bono-filter-status" onchange="filterBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
+<select id="bono-filter-status" onchange="filterBonosIncentivos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
 <option value="">TODOS LOS ESTADOS</option>
 <option>PENDIENTE</option><option>CONSOLIDADO</option><option>CHARGEBACK</option>
 </select>
-<button class="btn btn-gr btn-sm" onclick="loadBonos()">↻ ACTUALIZAR</button>
+<button class="btn btn-gr btn-sm" onclick="loadBonosIncentivos()">↻ ACTUALIZAR</button>
 </div>
 <div class="card">
 <div class="card-header"><div class="card-title"> LIQUIDACIÓN DE INCENTIVOS</div><div id="bono-resumen" class="card-sub"></div></div>
 <div style="overflow-x:auto"><table>
-<tr><th>EMPLEADO</th><th>MIEMBRO</th><th>EFECTIVA</th><th>DÍAS ACTIVO</th><th>ESTADO</th><th>STATUS BONO</th><th>MONTO (L.)</th></tr>
-<tbody id="bonos-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;font-size:8px;color:#7A90A4;text-transform:uppercase">CARGANDO...</td></tr></tbody>
+<tr><th>EMPLEADO</th><th>MIEMBRO</th><th>EFECTIVA</th><th>DÍAS ACTIVO</th><th>ESTADO</th><th>STATUS BONO</th><th>MONTO ($)</th></tr>
+<tbody id="incent-tbody"><tr><td colspan="7" style="text-align:center;padding:20px;font-size:8px;color:#7A90A4;text-transform:uppercase">CARGANDO...</td></tr></tbody>
 </table></div>
 </div>
 
@@ -18748,7 +18748,7 @@ const data = window._bonosData || [];
 const emp = document.getElementById('bono-filter-emp')?.value||'';
 const sts = document.getElementById('bono-filter-status')?.value||'';
 const filtered = data.filter(b=>(!emp||b.empleado?.includes(emp))&&(!sts||b.status===sts));
-const tbody = document.getElementById('bonos-tbody');
+const tbody = document.getElementById('incent-tbody');
 if(!tbody)return;
 if(!filtered.length){tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:20px;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN RESULTADOS</td></tr>';return;}
 
@@ -18756,12 +18756,12 @@ const colores = {CONSOLIDADO:'#1E7A5C',CHARGEBACK:'#B83232',PENDIENTE:'#C07A1A'}
 let total = 0;
 tbody.innerHTML = filtered.map(b=>{
 const c = colores[b.status]||'#7A90A4';
-if(b.monto!==0)total+=b.monto;
-const monto = b.monto===0?'<span style="color:#7A90A4">CONSOLIDADO</span>':`<span style="color:${c};font-weight:900">${b.monto<0?'− ':'+ '}L. ${Math.abs(b.monto)}.00</span>`;
-return `<tr><td style="font-size:9px;font-weight:900;color:#1B4A6B">${b.empleado||'—'}</td><td style="font-size:9px">${b.miembro}</td><td style="font-size:8px;color:#7A90A4">${b.efectiva||'—'}</td><td style="font-size:9px;font-weight:800">${b.dias} días</td><td>${b.status==='CANCELADO'?'<span style="color:#B83232;font-weight:900">CANCELADO</span>':b.estado}</td><td><span style="font-weight:900;color:${c}">${b.status}</span></td><td>${monto}</td></tr>`;
+const mnt = parseFloat(b.monto)||0; total += mnt;
+const monto = mnt===0?'<span style="color:#7A90A4">CONSOLIDADO</span>':`<span style="color:${c};font-weight:900">${mnt<0?'− ':'+ '}$${Math.abs(mnt).toFixed(2)}</span>`;
+return `<tr><td style="font-size:9px;font-weight:900;color:#1B4A6B">${escapeHtml(b.empleado||'—')}</td><td style="font-size:9px">${escapeHtml(b.miembro)}</td><td style="font-size:8px;color:#7A90A4">${b.efectiva||'—'}</td><td style="font-size:9px;font-weight:800">${b.dias} días</td><td>${b.status==='CANCELADO'?'<span style="color:#B83232;font-weight:900">CANCELADO</span>':b.estado}</td><td><span style="font-weight:900;color:${c}">${b.status}</span></td><td>${monto}</td></tr>`;
 }).join('');
 const res = document.getElementById('bono-resumen');
-if(res) res.textContent = `${filtered.length} PÓLIZAS · BALANCE: L. ${total}.00`;
+if(res) res.textContent = `${filtered.length} PÓLIZAS · BALANCE: $${total.toFixed(2)}`;
 }
 function importCSV(){
 const file = document.getElementById('import-file')?.files[0];

@@ -1933,12 +1933,18 @@ case 'get_bonos_incentivos':
                m.fecha_efectiva as efectiva, m.estado,
                DATEDIFF(CURDATE(),m.fecha_efectiva) as dias,
                CASE
-                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias1 THEN 'CHARGEBACK'
+                 -- Canceló ANTES de cumplir los días de retención → se cobra de vuelta.
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED')
+                      AND DATEDIFF(COALESCE(m.fecha_cancelacion, CURDATE()), m.fecha_efectiva) < :dias1 THEN 'CHARGEBACK'
+                 -- Canceló DESPUÉS de los días de retención → el bono ya quedó firme.
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') THEN 'CONSOLIDADO'
                  WHEN m.estado='ACTIVE' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias2 THEN 'CONSOLIDADO'
                  ELSE 'PENDIENTE'
                END as status,
                CASE
-                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') AND DATEDIFF(CURDATE(),m.fecha_efectiva) < :dias3 THEN :neg
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED')
+                      AND DATEDIFF(COALESCE(m.fecha_cancelacion, CURDATE()), m.fecha_efectiva) < :dias3 THEN :neg
+                 WHEN m.estado IN ('CANCELED','DENIED','CERRADO','DISENROLLED') THEN 0
                  WHEN m.estado='ACTIVE' AND DATEDIFF(CURDATE(),m.fecha_efectiva) >= :dias4 THEN 0
                  ELSE :pos
                END as monto
