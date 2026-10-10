@@ -10711,7 +10711,7 @@ $mis_ck_pct   = $mis_ck_total > 0 ? round(($mis_ck_done / $mis_ck_total) * 100) 
 <!-- ══ CHECKLIST HEADER ══ -->
 <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
   <div style="flex:1;min-width:200px">
-    <div style="font-size:11px;font-weight:900;color:<?=$P1?>;letter-spacing:2px;text-transform:uppercase">📋 MI CHECKLIST DE HOY — <?=strtoupper(date('l m/d'))?></div>
+    <div style="font-size:11px;font-weight:900;color:<?=$P1?>;letter-spacing:2px;text-transform:uppercase">📋 MI CHECKLIST DE HOY — <?=['DOMINGO','LUNES','MARTES','MIÉRCOLES','JUEVES','VIERNES','SÁBADO'][(int)date('w')]?> <?=date('m/d')?></div>
     <div style="font-size:8px;color:<?=$MU?>;letter-spacing:1px;text-transform:uppercase;margin-top:2px">Marca todo antes del cierre del día</div>
     <?php if($total_tareas > 0): ?>
     <div style="margin-top:10px;display:flex;align-items:center;gap:9px">
@@ -11054,7 +11054,7 @@ foreach($rpt_items as [$n,$l,$c]):
 $portal_members = $pdo->query("
 SELECT id,nombre,apellido,carrier,plan,fecha_efectiva,estado,
 app_estado_cms,app_carrier_estado,
-DATEDIFF(CURDATE(),fecha_efectiva) as dias_activo
+DATEDIFF(COALESCE(fecha_cancelacion, CURDATE()),fecha_efectiva) as dias_activo, fecha_cancelacion
 FROM miembros
 WHERE estado IN ('ACTIVE','CANCELED','DENIED','CERRADO','DISENROLLED','IN PROCESS')
 OR (carrier IS NOT NULL AND carrier != '')
@@ -11125,7 +11125,8 @@ if ($dias === null): ?>
 <?php elseif ($dias < 0): ?>
     <td style="font-size:8px;font-weight:900;color:#5B3FAF">Inicia en <?=abs($dias)?> días</td>
 <?php else: ?>
-    <td style="font-size:9px;font-weight:900;color:<?=$dias>90?'#1E7A5C':($dias>30?'#C07A1A':'#B83232')?>"><?=$dias?> días</td>
+    <?php $__canc = in_array($m['estado'], ['CANCELED','DENIED','CERRADO','DISENROLLED'], true); ?>
+    <td style="font-size:9px;font-weight:900;color:<?=$__canc?'#888780':($dias>90?'#1E7A5C':($dias>30?'#C07A1A':'#B83232'))?>"><?=$dias?> días<?=($__canc && !empty($m['fecha_cancelacion']))?'<div style="font-size:7px;font-weight:700">BAJA '.date('m/d/Y',strtotime($m['fecha_cancelacion'])).'</div>':''?></td>
 <?php endif; ?>
 <td><span style="background:<?=$ec_bg?>;color:<?=$ec_color?>;border:1px solid <?=$ec_color?>40;border-radius:20px;padding:2px 9px;font-size:9px;font-weight:900"><?=h($m['estado'])?></span></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['app_estado_cms']??'—')?></td>
@@ -11282,19 +11283,19 @@ function cargarHistorial(mes) {
 
     h.forEach((r,i)=>{
       const fin = r.fecha_fin
-        ? `<span style="color:#B83232">${r.fecha_fin.substring(0,7)}</span> <span style="font-size:7px;background:#FDF0EE;color:#B83232;border-radius:10px;padding:1px 6px">${r.motivo_fin||''}</span>`
+        ? `<span style="color:#B83232">${r.fecha_fin.substring(0,7)}</span> <span style="font-size:7px;background:#FDF0EE;color:#B83232;border-radius:10px;padding:1px 6px">${escapeHtml(r.motivo_fin||'')}</span>`
         : `<span style="color:#1E7A5C;font-weight:900">ACTIVO ✓</span>`;
       const tipo = r.subestado === 'RE-SIGNED'
         ? `<span style="background:#F3F0FB;color:#5B3FAF;border-radius:20px;padding:1px 7px;font-size:7px;font-weight:900">🔄 RE-SIGNED</span>`
         : `<span style="background:#EAF5F0;color:#1E7A5C;border-radius:20px;padding:1px 7px;font-size:7px;font-weight:900">✦ NEW</span>`;
       html += `<tr style="border-bottom:1px solid #EBF4F9;${i%2?'background:#F8FBFD':''}">
         <td style="padding:7px 10px;cursor:pointer" onclick="openProfile(${r.miembro_id})">
-          <div style="font-weight:900;font-size:10px;color:#1B4A6B">${r.apellido}, ${r.nombre}</div>
-          <div style="font-size:8px;color:#7A90A4">${r.telefono||'—'} · ${r.ciudad||'—'}</div>
+          <div style="font-weight:900;font-size:10px;color:#1B4A6B">${escapeHtml(r.apellido)}, ${escapeHtml(r.nombre)}</div>
+          <div style="font-size:8px;color:#7A90A4">${escapeHtml(r.telefono||'—')} · ${escapeHtml(r.ciudad||'—')}</div>
         </td>
         <td style="padding:7px 10px">
-          <div style="font-size:9px;font-weight:800;color:#1B3A5C">${r.plan||'—'}</div>
-          <div style="font-size:8px;color:#2876A8">${r.carrier||'—'}</div>
+          <div style="font-size:9px;font-weight:800;color:#1B3A5C">${escapeHtml(r.plan||'—')}</div>
+          <div style="font-size:8px;color:#2876A8">${escapeHtml(r.carrier||'—')}</div>
         </td>
         <td style="padding:7px 10px">${tipo}</td>
         <td style="padding:7px 10px;font-size:9px;color:#7A90A4">${r.fecha_inicio.substring(0,7)}</td>
@@ -12311,7 +12312,7 @@ $fu_todos_n = $fu_hoy_n + $fu_atrasados_n + $fu_proximos_n + $fu_completados_n +
     <?php if($admin):?>
     <select id="fu-agente-filtro" onchange="filtrarFollowUps()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
       <option value="">Todos los agentes</option>
-      <?php foreach($users_all as $u):?><option value="<?=$u['id']?>"><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?>
+      <?php foreach($users_all as $u):?><option value="<?=$u['id']?>"<?=(!$admin && (int)$u['id']===(int)$uid)?' selected':''?>><?=h(explode(' ',$u['nombre'])[0])?></option><?php endforeach;?>
     </select>
     <?php endif;?>
     <select id="fu-origen-filtro" onchange="filtrarFollowUps()" style="background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:8px;padding:6px 9px;font-size:9px;font-family:'DM Sans',sans-serif;outline:none">
@@ -15818,8 +15819,12 @@ function ejecutarBusquedaGeneral(){
     return;
   }
   wrap.innerHTML = '<div style="padding:40px;text-align:center;color:<?=$MU?>;font-size:9px;text-transform:uppercase">Buscando…</div>';
+  // Solo se muestra la respuesta de lo ÚLTIMO que se escribió (una búsqueda
+  // vieja que llegue tarde ya no pisa a la nueva).
+  var _miBusq = (window._busqSeq = (window._busqSeq||0) + 1);
   fetchJson('api.php?action=busqueda_general&q='+encodeURIComponent(q)+'&areas='+encodeURIComponent(areas))
     .then(function(d){
+      if(_miBusq !== window._busqSeq) return;
       if(!d.ok){ wrap.innerHTML = '<div style="padding:40px;text-align:center;color:#B83232;font-size:9px;text-transform:uppercase">ERROR AL BUSCAR</div>'; return; }
       _renderBusqResultados(d.data.resultados||{}, q);
     })
@@ -15842,11 +15847,14 @@ function _busqCard(titulo, sub, extra, onclick){
 }
 function _busqSeccion(titulo, color, itemsHtml){
   if(!itemsHtml.length) return '';
+  // Cada sección se corta en 25 (15 contactos): avisar para que no parezca el total.
+  var _lim = (titulo.indexOf('CONTACTOS')>-1) ? 15 : 25;
+  var _aviso = itemsHtml.length >= _lim ? '<div style="font-size:8px;color:#C07A1A;font-weight:900;text-transform:uppercase;margin:4px 0 8px">Mostrando los primeros '+_lim+' — escribe más letras para afinar la búsqueda</div>' : '';
   return '<div style="margin-bottom:16px">'
     +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;padding:6px 0;border-bottom:2px solid '+color+'">'
     +'<span style="font-size:10px;font-weight:900;color:'+color+';text-transform:uppercase;letter-spacing:1px">'+titulo+'</span>'
-    +'<span style="background:'+color+';color:#fff;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900">'+itemsHtml.length+'</span>'
-    +'</div>'+itemsHtml.join('')+'</div>';
+    +'<span style="background:'+color+';color:#fff;border-radius:20px;padding:1px 8px;font-size:8px;font-weight:900">'+itemsHtml.length+(itemsHtml.length>=_lim?'+':'')+'</span>'
+    +'</div>'+_aviso+itemsHtml.join('')+'</div>';
 }
 function _renderBusqResultados(resultados, q){
   var wrap = document.getElementById('busq-resultados');
@@ -19663,6 +19671,8 @@ function cambiarSubtabFollowUps(sub){
   if(target) target.style.display = '';
   filtrarFollowUps();
 }
+// Al abrir FOLLOW UPS, cada agente ve los suyos de entrada (el filtro ya viene en su nombre).
+document.addEventListener('DOMContentLoaded',function(){ var s=document.getElementById('fu-agente-filtro'); if(s && s.value) filtrarFollowUps(); });
 function filtrarFollowUps(){
   const q       = (document.getElementById('fu-search')?.value||'').toLowerCase().trim();
   const agente  = document.getElementById('fu-agente-filtro')?.value||'';
