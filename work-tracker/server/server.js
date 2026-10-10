@@ -12,6 +12,7 @@
 //   TRACKER_KEY         key the Chrome extensions send (generated on first run if unset)
 //   INTEGRATION_KEY     key for the phone system / CRM: calls, CRM actions, counters (generated if unset)
 //   ADMIN_KEY           key for the dashboard and categories (generated if unset)
+// Shift times, break limits and alert rules are set on the dashboard's Settings tab.
 
 'use strict';
 const http = require('node:http');
@@ -30,6 +31,8 @@ const AFTER_CALL_MS = minutesFromEnv('AFTER_CALL_MINUTES', 5) * 60000;
 const SLOT_MS = 5 * 60 * 1000;
 const SLOT_SECONDS = SLOT_MS / 1000;
 const MAX_BODY = 2 * 1024 * 1024;
+const MAX_LOG = 6000;                       // activity-log entries kept per employee per day
+const MAX_RANGE_DAYS = 93;                  // longest report the Reports tab can ask for
 const STATES = ['active', 'idle', 'away', 'lunch', 'break', 'meeting'];
 const MODES = ['work', 'lunch', 'break', 'meeting', 'off'];
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
@@ -48,10 +51,11 @@ const OUTCOMES = {
 // ("Sites & categories") or in data/categories.json; the extension never changes.
 const DEFAULT_CATEGORIES = {
   categories: [
-    { name: CRM_CATEGORY, work: true },
+    { name: CRM_CATEGORY, work: true, sections: true },
     { name: 'Carrier portals', work: true },
     { name: 'Medicare', work: true },
     { name: 'Email/Calendar', work: true },
+    { name: 'Phone', work: true },
     { name: 'Other approved work', work: true },
     { name: 'Other apps (outside Chrome)', work: true },
     { name: 'Not work', work: false },
@@ -63,11 +67,29 @@ const DEFAULT_CATEGORIES = {
     'medicare.gov': 'Medicare',
     'mail.google.com': 'Email/Calendar',
     'calendar.google.com': 'Email/Calendar',
+    'nextiva.com': 'Phone',
     'youtube.com': 'Not work',
     '(outside chrome)': 'Other apps (outside Chrome)',
     '(browser)': 'Other approved work',
     '(local file)': 'Other approved work',
   },
+};
+
+// Schedule and alert rules. Edit them on the dashboard's Settings tab (stored in data/settings.json).
+// A limit of 0 turns that alert off.
+const DEFAULT_SETTINGS = {
+  shiftStart: '09:00',          // expected clock-in; '' = no fixed schedule
+  workdays: [1, 2, 3, 4, 5],    // 0 = Sunday … 6 = Saturday
+  lateGraceMinutes: 10,
+  lunchMinutes: 60,
+  breakMinutes: 30,             // all breaks in a day together
+  idleAlertMinutes: 15,
+  nonWorkAlertMinutes: 10,      // one stretch on a not-work site
+  nonWorkDayMinutes: 30,        // all not-work time in a day
+  offlineAlertMinutes: 15,
+  nudges: true,                 // the extension reminds the employee too
+  people: {},                   // per-employee shift: { "arlet": { "shiftStart": "08:00" } }
+  phoneUsers: {},               // call-history import: { "Arlet Gomez (1023)": "arlet" }, "" = skip
 };
 
 function minutesFromEnv(name, fallback) {
@@ -110,17 +132,21 @@ function saveAll() {
   dirty.clear();
 }
 
-const blankEmployee = name => ({ name, clockIn: null, clockOut: null, totals: {}, domains: {}, slots: {}, counters: {}, calls: [], crmActions: 0 });
+const blankEmployee = name => ({ name, clockIn: null, clockOut: null, totals: {}, domains: {}, slots: {}, counters: {}, calls: [], crmActions: 0, log: [], devices: {} });
 const dayDoc = date => doc(`days/${date}.json`, () => ({ date, employees: {} }));
+// Past days are read without being kept in memory.
+const readDay = date => cache.get(`days/${date}.json`) || load(`days/${date}.json`, { date, employees: {} });
 function employeeOn(date, id, name) {
   const emp = (dayDoc(date).employees[id] ||= blankEmployee(name));
   emp.calls ||= []; // day files written before calls were tracked
   emp.counters ||= {};
+  emp.log ||= [];
   return emp;
 }
 const statusDoc = () => doc('status.json', () => ({}));   // latest extension heartbeat per employee
 const liveDoc = () => doc('live.json', () => ({}));       // current call + last CRM action per employee
 const seenDoc = () => doc('seen-batches.json', () => ({}));
+const settingsDoc = () => ({ ...DEFAULT_SETTINGS, ...doc('settings.json', () => ({})) });
 function categoriesDoc() {
   if (!fs.existsSync(path.join(DATA_DIR, 'categories.json')) && !cache.has('categories.json')) {
     cache.set('categories.json', structuredClone(DEFAULT_CATEGORIES));
@@ -178,6 +204,9 @@ const sum = obj => Object.values(obj).reduce((a, b) => a + b, 0);
 const pad = n => String(n).padStart(2, '0');
 const cleanName = v => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, 60) : '');
 const cleanLabel = v => (typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, 100) || null : null);
+// A CRM area ("Leads / New") or a desktop app name ("Microsoft Excel"). The
+// extension already removes record ids; here we just bound it. No digits-only ids.
+const cleanSection = v => (typeof v === 'string' ? v.replace(/[^\w .\/-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40) || null : null);
 const cleanDomain = v =>
   typeof v === 'string' && /^[\w.\-:[\]() ]{1,253}$/.test(v) ? v.toLowerCase().replace(/^www\./, '') : '';
 const cleanDirection = v => {
@@ -227,6 +256,13 @@ function categoryLookup(cats) {
   };
 }
 
+// Hostnames whose category is marked "show sections": the extension sends a
+// sanitized path for these so the board can show which CRM area is open.
+function sectionDomains(cats) {
+  const on = new Set(cats.categories.filter(c => c.sections).map(c => c.name));
+  return Object.entries(cats.domains).filter(([, name]) => on.has(name)).map(([d]) => d).sort();
+}
+
 // ---------- ingest: Chrome extension ----------
 
 function addItem(id, name, item) {
@@ -246,7 +282,69 @@ function addItem(id, name, item) {
   changed(`days/${item.date}.json`);
 }
 
-function updateStatus(id, name, st, skew, version) {
+// Activity level: the seconds in a 5-minute slot that had any keyboard or mouse
+// input. Counts only; never which keys or where the mouse went.
+function addActivity(id, name, a) {
+  if (!a || !DATE_RE.test(a.date) || !SLOT_RE.test(a.slot)) return;
+  const seconds = Number(a.seconds);
+  if (!(seconds > 0)) return;
+  const emp = employeeOn(a.date, id, name);
+  const slot = (emp.slots[a.slot] ||= { s: {}, d: {} });
+  slot.input = Math.min(SLOT_SECONDS, (slot.input || 0) + seconds);
+  changed(`days/${a.date}.json`);
+}
+
+// The activity log: one entry per unbroken stretch on one site, or idle, lunch…
+// Stored compactly as [from, to, domain, state]. A stretch the extension sent in
+// pieces (it uploads every minute) is joined back into one entry.
+function addLogEntry(id, name, entry, skew) {
+  if (!entry || !STATES.includes(entry.state)) return;
+  const from = Math.round(Number(entry.from) + skew);
+  const to = Math.round(Number(entry.to) + skew);
+  if (!(from > 1e12 && to > from && to - from <= 864e5 && to <= Date.now() + 60000)) return;
+  const domain = entry.state === 'active' || entry.state === 'idle' ? cleanDomain(entry.domain) : '';
+  // Section: the CRM area, or (outside Chrome) the desktop app name.
+  const section = entry.state === 'active' || entry.state === 'idle' ? cleanSection(entry.section) : null;
+  const date = localDate(from);
+  const emp = employeeOn(date, id, name);
+  const last = emp.log[emp.log.length - 1];
+  if (last && last[2] === domain && last[3] === entry.state && (last[4] || null) === section && from >= last[0] && from - last[1] < 5000) {
+    last[1] = Math.max(last[1], to);
+  } else if (emp.log.length < MAX_LOG) {
+    emp.log.push(section ? [from, to, domain, entry.state, section] : [from, to, domain, entry.state]);
+  }
+  changed(`days/${date}.json`);
+}
+
+// A call the extension heard in Nextiva's Chrome tab, from start to end.
+function addChromeCall(name, c, skew) {
+  if (!c || typeof c.id !== 'string') return;
+  const from = Math.round(Number(c.from) + skew);
+  const to = Math.round(Number(c.to) + skew);
+  if (!(from > 1e12 && to > from && to - from <= STALE_CALL_MS && to <= Date.now() + 60000)) return;
+  ingestCall({ employee: name, callId: `chrome:${c.id.slice(0, 64)}`, startedAt: from, endedAt: to, outcome: 'connected' }, 'chrome');
+}
+
+// While the extension hears a call, the board shows "On call". A call reported
+// by the phone system itself (POST /api/calls) always wins.
+function updateChromeCall(id, name, call, at) {
+  const info = liveDoc()[id];
+  const current = info && info.call;
+  const startedAt = call && typeof call.id === 'string' ? at(call.startedAt) : null;
+  if (startedAt && (!current || current.source === 'chrome')) {
+    const callId = `chrome:${call.id.slice(0, 64)}`;
+    if (current && current.id === callId) return;
+    const live = (liveDoc()[id] ||= {});
+    live.name = name;
+    live.call = { id: callId, startedAt, direction: null, contact: null, source: 'chrome' };
+    changed('live.json');
+  } else if (!startedAt && current && current.source === 'chrome') {
+    info.call = null;
+    changed('live.json');
+  }
+}
+
+function updateStatus(id, name, st, skew, version, device, computer) {
   if (!st || !MODES.includes(st.mode)) return;
   const at = v => (Number.isFinite(v) && v > 1e12 ? v + skew : null);
   const status = {
@@ -256,15 +354,31 @@ function updateStatus(id, name, st, skew, version) {
     modeSince: at(st.modeSince),
     idle: ['active', 'idle', 'locked'].includes(st.idle) ? st.idle : 'active',
     domain: st.mode === 'work' ? cleanDomain(st.domain) || null : null,
+    section: st.mode === 'work' ? cleanSection(st.section) : null,
     domainSince: at(st.domainSince),
     clockIn: at(st.clockIn),
     clockOut: at(st.clockOut),
     lastActiveAt: at(st.lastActiveAt),
     lastSeen: Date.now(),
     version: String(version || '').slice(0, 20),
+    device,
+    computer,
   };
   statusDoc()[id] = status;
   changed('status.json');
+  updateChromeCall(id, name, st.call, at);
+
+  // Which computers reported under this name today. More than one = a name
+  // typed into two extensions (or a shared Chrome profile) — flagged on the card.
+  if (status.day && device) {
+    const emp = employeeOn(status.day, id, name);
+    emp.devices ||= {};
+    const label = computer || null;
+    if (!(device in emp.devices) || emp.devices[device] !== label) {
+      emp.devices[device] = label;
+      changed(`days/${status.day}.json`);
+    }
+  }
 
   if (status.day && (status.clockIn || status.clockOut)) {
     const emp = employeeOn(status.day, id, name);
@@ -288,18 +402,75 @@ function ingestActivity(body) {
     if (!batch || typeof batch.id !== 'string' || batch.id.length > 64) continue;
     if (rememberId(batch.id)) {
       for (const item of Array.isArray(batch.items) ? batch.items.slice(0, 2000) : []) addItem(id, name, item);
+      for (const entry of Array.isArray(batch.log) ? batch.log.slice(0, 2000) : []) addLogEntry(id, name, entry, skew);
+      for (const call of Array.isArray(batch.calls) ? batch.calls.slice(0, 200) : []) addChromeCall(name, call, skew);
+      for (const a of Array.isArray(batch.activity) ? batch.activity.slice(0, 2000) : []) addActivity(id, name, a);
     }
     accepted.push(batch.id); // already-stored batches are acknowledged, not re-counted
   }
-  updateStatus(id, name, body.status, skew, body.version);
-  return { ok: true, accepted, serverTime: Date.now() };
+  const device = typeof body.device === 'string' && /^[\w-]{1,32}$/.test(body.device) ? body.device : null;
+  updateStatus(id, name, body.status, skew, body.version, device, cleanName(body.computer).slice(0, 40) || null);
+  return { ok: true, accepted, serverTime: Date.now(), pathDomains: sectionDomains(categoriesDoc()), ...forEmployee(id) };
+}
+
+// The employee's own numbers for the extension popup (same counting as the
+// dashboard, calls included), plus a reminder when one is due.
+function forEmployee(id) {
+  const now = Date.now();
+  const date = localDate(now);
+  const settings = settingsDoc();
+  const cats = categoriesDoc();
+  const emp = { ...blankEmployee(null), ...dayDoc(date).employees[id] };
+  const r = employeeReport(id, emp, statusDoc()[id], liveDoc()[id], cats, categoryLookup(cats), date, now);
+  const t = r.totals;
+  const me = {
+    date,
+    working: r.working,
+    productivity: r.productivity,
+    activity: r.activity,
+    idleAway: t.idle + t.away,
+    lunchBreak: t.lunch + t.break,
+    nonWork: t.nonWork,
+    calls: r.calls.count,
+    crmActions: r.crm.actions,
+  };
+  return { me, nudge: settings.nudges ? nudgeFor(r, settings, now) : null };
+}
+
+function nudgeFor(r, settings, now) {
+  const l = r.live;
+  const minutes = l.since ? (now - l.since) / 60000 : 0;
+  const limit = (name, value) => settings[name] > 0 && value >= settings[name];
+  if (l.state === 'working' && l.work === false && limit('nonWorkAlertMinutes', minutes)) {
+    return {
+      id: `nonwork:${l.domain}:${l.since}`,
+      title: 'Is this work?',
+      message: `${l.domain} has been in front for ${Math.round(minutes)} min, and it isn't marked as a work site.`,
+    };
+  }
+  if (l.state === 'idle' && limit('idleAlertMinutes', minutes)) {
+    return {
+      id: `idle:${l.since}`,
+      title: 'Still working?',
+      message: `No keyboard or mouse for ${Math.round(minutes)} min. Stepping away? Start a break so it isn't counted as idle.`,
+      action: 'break',
+    };
+  }
+  if (l.state === 'lunch' && limit('lunchMinutes', minutes)) {
+    return { id: `lunch:${l.since}`, title: 'Lunch is over', message: `You've been at lunch ${Math.round(minutes)} min.`, action: 'work' };
+  }
+  if (l.state === 'break' && limit('breakMinutes', r.totals.break / 60)) {
+    return { id: `break:${l.since}`, title: 'Break time used up', message: `Breaks today: ${Math.round(r.totals.break / 60)} min.`, action: 'work' };
+  }
+  return null;
 }
 
 // ---------- ingest: phone system and CRM ----------
 
 // A call is posted once when it starts (no endedAt) and again when it ends, or
 // only once when it ends. Re-posting the same callId updates it, never duplicates it.
-function ingestCall(c) {
+// source 'chrome' = heard by the extension in Nextiva's Chrome tab (see effectiveCalls).
+function ingestCall(c, source = null) {
   const name = cleanName(c && c.employee);
   const callId = cleanLabel(c && c.callId);
   const start = parseTime(c && c.startedAt);
@@ -330,6 +501,7 @@ function ingestCall(c) {
       outcome: OUTCOMES[String(c.outcome || '').toLowerCase()] || null,
       direction: cleanDirection(c.direction),
       recordId: cleanLabel(c.recordId),
+      ...(source && { source }),
     };
     if (known) Object.assign(known, record);
     else if (emp.calls.length < 3000) emp.calls.push(record);
@@ -395,6 +567,14 @@ function prune() {
 }
 
 // ---------- merging browser time with calls ----------
+
+// The same call can arrive twice: heard in Chrome, and later from the phone
+// system or a Nextiva call-history import. The phone system's record wins.
+function effectiveCalls(calls) {
+  const reported = calls.filter(c => c.source !== 'chrome');
+  if (!reported.length) return calls;
+  return calls.filter(c => c.source !== 'chrome' || !reported.some(r => r.start < c.end && r.end > c.start));
+}
 
 function mergeIntervals(list) {
   const out = [];
@@ -470,8 +650,8 @@ function mergeSlot(ext, callSec, wrapSec, lookup) {
 function live(st, info, lookup, now) {
   const call = info && info.call && now - info.call.startedAt < STALE_CALL_MS ? info.call : null;
   const crm = info && info.crm ? { action: info.crm.action, at: info.crm.at, record: info.crm.record } : null;
-  const base = { day: st && st.day, lastSeen: st ? st.lastSeen : null, lastActiveAt: st && st.lastActiveAt, version: st && st.version, crm };
-  if (call) return { ...base, state: 'call', since: call.startedAt, contact: call.contact, direction: call.direction };
+  const base = { day: st && st.day, lastSeen: st ? st.lastSeen : null, lastActiveAt: st && st.lastActiveAt, version: st && st.version, computer: st && st.computer, crm };
+  if (call) return { ...base, state: 'call', since: call.startedAt, contact: call.contact, direction: call.direction, source: call.source || null };
   if (!st || now - st.lastSeen > OFFLINE_AFTER_MS) return { ...base, state: 'offline' };
   if (st.mode === 'off') return { ...base, state: 'off', since: st.clockOut };
   if (st.mode !== 'work') return { ...base, state: st.mode, since: st.modeSince };
@@ -486,6 +666,7 @@ function live(st, info, lookup, now) {
     ...base,
     state: 'working',
     domain: st.domain,
+    section: st.section || null,
     category: category && category.name,
     work: category ? category.work : null,
     since: st.domainSince,
@@ -493,9 +674,12 @@ function live(st, info, lookup, now) {
 }
 
 function employeeReport(id, emp, st, info, cats, lookup, date, now) {
+  emp = { ...emp, calls: effectiveCalls(emp.calls) };
   const phone = phoneTime(emp, info, date, now);
   const acc = { call: 0, wrap: 0, work: 0, nonWork: 0, unreviewed: 0, meeting: 0, idle: 0, away: 0, lunch: 0, break: 0 };
   const byCategory = {};
+  let inputSec = 0;
+  let deskSec = 0; // desk time (active + idle, after calls take their minutes) — the denominator for activity level
   const slots = [...new Set([...Object.keys(emp.slots), ...Object.keys(phone.calls), ...Object.keys(phone.wrap)])].sort();
 
   const timeline = slots.flatMap(slot => {
@@ -510,6 +694,9 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
       parts[!category ? 'unreviewed' : category.work ? 'work' : 'nonWork'] += secs;
     }
     parts.work += Math.max(0, (m.s.active || 0) - sum(m.d)); // active time without a site still counts
+    const desk = (m.s.active || 0) + (m.s.idle || 0);
+    deskSec += desk;
+    inputSec += Math.min((emp.slots[slot] || {}).input || 0, desk);
     for (const k of ['work', 'nonWork', 'unreviewed', 'idle', 'away']) acc[k] += parts[k];
     for (const k of ['meeting', 'lunch', 'break']) acc[k] += m.s[k] || 0;
     acc.work -= m.s.meeting || 0;
@@ -544,19 +731,39 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
     if ((lookup(dom) || {}).name === CRM_CATEGORY) crmOpen += (t.active || 0) + (t.idle || 0);
   }
   const firstCall = calls.length ? Math.min(...calls.map(c => c.start)) : phone.liveCall ? phone.liveCall.startedAt : null;
+  const status = live(st, info, lookup, now);
+  const clockIn = emp.clockIn && firstCall ? Math.min(emp.clockIn, firstCall) : emp.clockIn || firstCall;
+  const working = acc.call + acc.wrap + acc.work + acc.meeting;
+
+  // Logged in = clock in until clock out, or until now while still connected,
+  // or until the last activity the server heard about.
+  const lastSlot = timeline.length ? timeline[timeline.length - 1].slot : null;
+  const lastSeen = lastSlot ? new Date(`${date}T${lastSlot}:00`).getTime() + SLOT_MS : null;
+  const online = date === localDate(now) && status.state !== 'offline' && status.state !== 'off';
+  const end = emp.clockOut || (online ? now : lastSeen);
+
+  // Productive = share of on-the-clock time spent working. Lunch and breaks are
+  // allowed time and sites not categorized yet are neutral, so neither counts.
+  const counted = working + acc.nonWork + acc.idle + acc.away;
 
   return {
     id,
     name: emp.name || (st && st.name) || (info && info.name) || id,
-    live: live(st, info, lookup, now),
-    clockIn: emp.clockIn && firstCall ? Math.min(emp.clockIn, firstCall) : emp.clockIn || firstCall,
+    live: status,
+    clockIn,
     clockOut: emp.clockOut,
-    working: acc.call + acc.wrap + acc.work + acc.meeting,
+    loggedIn: clockIn && end ? Math.max(0, (end - clockIn) / 1000) : 0,
+    working,
+    productivity: counted >= 300 ? working / counted : null,
+    activity: deskSec >= 300 ? Math.min(1, inputSec / deskSec) : null,
+    activeInput: inputSec,
+    deskSec,
     totals: acc,
     activities,
     calls: {
       count,
       connected,
+      handled,
       byOutcome: calls.reduce((o, c) => ((o[c.outcome || 'unknown'] = (o[c.outcome || 'unknown'] || 0) + 1), o), {}),
       talk: acc.call,
       wrap: acc.wrap,
@@ -572,21 +779,81 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
       .slice(0, 40),
     timeline,
     counters: emp.counters || {},
+    // Computers that reported under this name on this day: [{id, label}]
+    devices: Object.entries(emp.devices || {}).map(([id, label]) => ({ id, label })),
   };
+}
+
+// ---------- schedule and alerts ----------
+
+// When this employee's shift starts that day (epoch ms), or null on a day off / no schedule.
+function shiftFor(id, date, settings) {
+  if (!settings.workdays.includes(new Date(`${date}T12:00:00`).getDay())) return null;
+  const own = settings.people[id];
+  const start = own && typeof own.shiftStart === 'string' ? own.shiftStart : settings.shiftStart;
+  return start ? new Date(`${date}T${start}:00`).getTime() : null;
+}
+
+// What a manager should look at. The dashboard words them; levels are warning | critical.
+function alertsFor(r, date, settings, now) {
+  const out = [];
+  const on = name => settings[name] > 0;
+  const minutes = ms => Math.round(ms / 60000);
+  const shift = shiftFor(r.id, date, settings);
+  const grace = settings.lateGraceMinutes * 60000;
+  if (shift && r.clockIn && r.clockIn > shift + grace) {
+    out.push({ level: 'warning', type: 'late', minutes: minutes(r.clockIn - shift), shift });
+  } else if (shift && !r.clockIn && now > shift + grace) {
+    out.push({ level: 'critical', type: 'absent', shift });
+  }
+
+  const l = r.live;
+  const lasted = l.since ? now - l.since : 0;
+  if (date === localDate(now)) {
+    if ((l.state === 'idle' || l.state === 'away') && on('idleAlertMinutes') && lasted >= settings.idleAlertMinutes * 60000) {
+      out.push({ level: 'warning', type: l.state, minutes: minutes(lasted) });
+    }
+    if (l.state === 'working' && l.work === false && on('nonWorkAlertMinutes') && lasted >= settings.nonWorkAlertMinutes * 60000) {
+      out.push({ level: 'critical', type: 'nonWorkNow', domain: l.domain, minutes: minutes(lasted) });
+    }
+    if (l.state === 'lunch' && on('lunchMinutes') && lasted > settings.lunchMinutes * 60000) {
+      out.push({ level: 'warning', type: 'lunchNow', minutes: minutes(lasted), limit: settings.lunchMinutes });
+    }
+    const [dayStart] = dayBounds(date);
+    if (l.state === 'offline' && r.clockIn && !r.clockOut && l.lastSeen > dayStart && on('offlineAlertMinutes')
+        && now - l.lastSeen >= settings.offlineAlertMinutes * 60000) {
+      out.push({ level: 'critical', type: 'offline', minutes: minutes(now - l.lastSeen) });
+    }
+  }
+  const t = r.totals;
+  if (on('lunchMinutes') && t.lunch > (settings.lunchMinutes + 5) * 60 && !out.some(a => a.type === 'lunchNow')) {
+    out.push({ level: 'warning', type: 'lunchTotal', minutes: minutes(t.lunch * 1000), limit: settings.lunchMinutes });
+  }
+  if (on('breakMinutes') && t.break > (settings.breakMinutes + 5) * 60) {
+    out.push({ level: 'warning', type: 'breakTotal', minutes: minutes(t.break * 1000), limit: settings.breakMinutes });
+  }
+  if (on('nonWorkDayMinutes') && t.nonWork >= settings.nonWorkDayMinutes * 60) {
+    out.push({ level: 'warning', type: 'nonWorkDay', minutes: minutes(t.nonWork * 1000) });
+  }
+  return out;
 }
 
 function report(date) {
   const now = Date.now();
   const cats = categoriesDoc();
   const lookup = categoryLookup(cats);
-  const day = cache.get(`days/${date}.json`) || load(`days/${date}.json`, { date, employees: {} });
+  const settings = settingsDoc();
+  const day = readDay(date);
   const status = statusDoc();
   const liveInfo = liveDoc();
 
   const ids = new Set([...Object.keys(day.employees), ...Object.keys(status), ...Object.keys(liveInfo)]);
   const employees = [...ids].map(id => {
     const emp = { ...blankEmployee(null), ...day.employees[id] };
-    return employeeReport(id, emp, status[id], liveInfo[id], cats, lookup, date, now);
+    const r = employeeReport(id, emp, status[id], liveInfo[id], cats, lookup, date, now);
+    r.alerts = alertsFor(r, date, settings, now);
+    r.shift = shiftFor(id, date, settings);
+    return r;
   });
 
   const unassigned = {};
@@ -603,6 +870,7 @@ function report(date) {
     offlineAfterMs: OFFLINE_AFTER_MS,
     afterCallMs: AFTER_CALL_MS,
     categories: cats.categories,
+    settings,
     employees,
     unassigned: Object.entries(unassigned)
       .map(([domain, seconds]) => ({ domain, seconds }))
@@ -611,14 +879,206 @@ function report(date) {
   };
 }
 
+// One employee's day in full: the report plus every site visit, idle stretch,
+// break and call in order. This is the "what happened, minute by minute" view.
+function personReport(date, id) {
+  const now = Date.now();
+  const cats = categoriesDoc();
+  const lookup = categoryLookup(cats);
+  const settings = settingsDoc();
+  const day = readDay(date);
+  const st = statusDoc()[id];
+  const info = liveDoc()[id];
+  if (!day.employees[id] && !st && !info) throw httpError(404, 'No one by that name');
+  const emp = { ...blankEmployee(null), ...day.employees[id] };
+  const r = employeeReport(id, emp, st, info, cats, lookup, date, now);
+  r.alerts = alertsFor(r, date, settings, now);
+  r.shift = shiftFor(id, date, settings);
+
+  const log = (emp.log || [])
+    .map(([from, to, domain, state, section]) => {
+      const category = domain ? lookup(domain) : null;
+      return { from, to, state, domain, section: section || null, category: category && category.name, work: category ? category.work : null };
+    })
+    .sort((a, b) => a.from - b.from);
+  // Time per CRM area and per desktop app, from the log.
+  const sections = {};
+  for (const e of log) {
+    if (!e.section || (e.state !== 'active' && e.state !== 'idle')) continue;
+    const label = e.domain === '(outside chrome)' ? e.section : `${e.category === CRM_CATEGORY ? 'CRM' : e.category || e.domain}: ${e.section}`;
+    add(sections, label, (e.to - e.from) / 1000);
+  }
+  const sectionList = Object.entries(sections).map(([name, seconds]) => ({ name, seconds })).sort((a, b) => b.seconds - a.seconds);
+  const calls = effectiveCalls(emp.calls).map(c => ({ from: c.start, to: c.end, outcome: c.outcome, direction: c.direction, recordId: c.recordId, source: c.source || null }));
+  const [dayStart, dayEnd] = dayBounds(date);
+  if (r.live.state === 'call' && r.live.since < dayEnd && now > dayStart) {
+    calls.push({ from: r.live.since, to: now, live: true, direction: r.live.direction, source: r.live.source });
+  }
+  calls.sort((a, b) => a.from - b.from);
+  return { date, serverTime: now, afterCallMs: AFTER_CALL_MS, pathDomains: sectionDomains(cats), employee: r, log, calls, sections: sectionList };
+}
+
+function* datesBetween(from, to) {
+  const d = new Date(`${from}T12:00:00`);
+  for (let date = from; date <= to; date = localDate(d)) {
+    yield date;
+    d.setDate(d.getDate() + 1);
+  }
+}
+
+// Totals per employee for a date range, with a timesheet row per day.
+function rangeReport(from, to) {
+  if (!DATE_RE.test(from) || !DATE_RE.test(to) || from > to) throw httpError(400, 'from and to must be YYYY-MM-DD, from first');
+  if ((new Date(`${to}T12:00:00`) - new Date(`${from}T12:00:00`)) / 864e5 >= MAX_RANGE_DAYS) {
+    throw httpError(400, `At most ${MAX_RANGE_DAYS} days at a time`);
+  }
+  const now = Date.now();
+  const today = localDate(now);
+  const cats = categoriesDoc();
+  const lookup = categoryLookup(cats);
+  const settings = settingsDoc();
+  const status = statusDoc();
+  const liveInfo = liveDoc();
+  const people = new Map();
+  const teamSites = {};
+
+  for (const date of datesBetween(from, to)) {
+    if (date > today) break;
+    const day = readDay(date);
+    for (const [id, stored] of Object.entries(day.employees)) {
+      const emp = { ...blankEmployee(null), ...stored };
+      const isToday = date === today;
+      const r = employeeReport(id, emp, isToday ? status[id] : null, isToday ? liveInfo[id] : null, cats, lookup, date, now);
+      const t = r.totals;
+      if (!r.loggedIn && !r.working && !r.calls.count) continue;
+
+      const p = people.get(id) || { id, name: r.name, days: [], activities: {}, sites: {} };
+      p.name = r.name;
+      const late = alertsFor(r, date, settings, now).find(a => a.type === 'late');
+      p.days.push({
+        date,
+        clockIn: r.clockIn,
+        clockOut: r.clockOut,
+        loggedIn: r.loggedIn,
+        working: r.working,
+        productivity: r.productivity,
+        activeInput: r.activeInput,
+        deskSec: r.deskSec,
+        calls: r.calls.count,
+        connected: r.calls.connected,
+        handled: r.calls.handled,
+        talk: r.calls.talk,
+        wrap: r.calls.wrap,
+        crmActions: r.crm.actions,
+        idle: t.idle,
+        away: t.away,
+        lunch: t.lunch,
+        break: t.break,
+        meeting: t.meeting,
+        nonWork: t.nonWork,
+        unreviewed: t.unreviewed,
+        lateMinutes: late ? late.minutes : null,
+        counters: r.counters,
+      });
+      for (const a of r.activities) add((p.activities[a.name] ||= { name: a.name, kind: a.kind, seconds: 0 }), 'seconds', a.seconds);
+      for (const d of r.domains) {
+        add(p.sites, d.domain, d.active);
+        const site = (teamSites[d.domain] ||= { domain: d.domain, category: d.category, work: d.work, seconds: 0, people: new Set() });
+        add(site, 'seconds', d.active);
+        if (d.active >= 60) site.people.add(r.name);
+      }
+      people.set(id, p);
+    }
+  }
+
+  const SUMMED = ['loggedIn', 'working', 'activeInput', 'deskSec', 'calls', 'connected', 'handled', 'talk', 'wrap', 'crmActions', 'idle', 'away', 'lunch', 'break', 'meeting', 'nonWork', 'unreviewed'];
+  const result = [...people.values()].map(p => {
+    const totals = Object.fromEntries(SUMMED.map(k => [k, p.days.reduce((s, d) => s + (d[k] || 0), 0)]));
+    const counted = totals.working + totals.nonWork + totals.idle + totals.away;
+    // Scheduled workdays with no activity, from the employee's first day in this range.
+    const worked = new Set(p.days.map(d => d.date));
+    let missed = 0;
+    for (const date of datesBetween(p.days[0].date, to < today ? to : today)) {
+      const shift = shiftFor(p.id, date, settings);
+      if (shift && !worked.has(date) && now > shift + settings.lateGraceMinutes * 60000) missed++;
+    }
+    return {
+      id: p.id,
+      name: p.name,
+      daysWorked: p.days.length,
+      lateDays: p.days.filter(d => d.lateMinutes != null).length,
+      missedDays: missed,
+      totals,
+      productivity: counted >= 300 ? totals.working / counted : null,
+      activity: totals.deskSec >= 300 ? Math.min(1, totals.activeInput / totals.deskSec) : null,
+      avgHandle: totals.handled ? (totals.talk + totals.wrap) / totals.handled : null,
+      activities: Object.values(p.activities).filter(a => a.seconds >= 60).sort((a, b) => b.seconds - a.seconds),
+      topSites: Object.entries(p.sites)
+        .map(([domain, seconds]) => {
+          const category = lookup(domain);
+          return { domain, seconds, category: category && category.name, work: category ? category.work : null };
+        })
+        .filter(s => s.seconds >= 60)
+        .sort((a, b) => b.seconds - a.seconds)
+        .slice(0, 12),
+      days: p.days,
+    };
+  });
+  result.sort((a, b) => a.name.localeCompare(b.name));
+  return {
+    from,
+    to,
+    serverTime: now,
+    employees: result,
+    sites: Object.values(teamSites)
+      .filter(s => s.seconds >= 60)
+      .sort((a, b) => b.seconds - a.seconds)
+      .slice(0, 40)
+      .map(s => ({ ...s, people: [...s.people].sort() })),
+  };
+}
+
 // ---------- admin writes ----------
+
+function saveSettings(body) {
+  const d = DEFAULT_SETTINGS;
+  const time = v => (v === '' || (typeof v === 'string' && SLOT_RE.test(v)) ? v : null);
+  const minutes = (v, fallback) => {
+    const n = Math.round(Number(v));
+    return v !== '' && v != null && Number.isFinite(n) && n >= 0 && n <= 24 * 60 ? n : fallback;
+  };
+  const next = {
+    shiftStart: time(body.shiftStart) ?? d.shiftStart,
+    workdays: Array.isArray(body.workdays)
+      ? [...new Set(body.workdays.map(Number).filter(n => Number.isInteger(n) && n >= 0 && n <= 6))].sort()
+      : d.workdays,
+    nudges: body.nudges !== false,
+    people: {},
+  };
+  for (const name of ['lateGraceMinutes', 'lunchMinutes', 'breakMinutes', 'idleAlertMinutes', 'nonWorkAlertMinutes', 'nonWorkDayMinutes', 'offlineAlertMinutes']) {
+    next[name] = minutes(body[name], d[name]);
+  }
+  for (const [id, own] of Object.entries(body.people || {}).slice(0, 500)) {
+    const key = cleanName(id).toLowerCase();
+    const start = own ? time(own.shiftStart) : null;
+    if (key && start !== null) next.people[key] = { shiftStart: start };
+  }
+  next.phoneUsers = {};
+  for (const [label, id] of Object.entries(body.phoneUsers || {}).slice(0, 1000)) {
+    const key = cleanLabel(label);
+    if (key && typeof id === 'string') next.phoneUsers[key] = cleanName(id).toLowerCase();
+  }
+  cache.set('settings.json', next);
+  changed('settings.json');
+  return settingsDoc();
+}
 
 function saveCategories(body) {
   const list = Array.isArray(body.categories) ? body.categories : [];
   const categories = [];
   for (const c of list.slice(0, 50)) {
     const name = cleanName(c && c.name).slice(0, 40);
-    if (name && !categories.some(x => x.name === name)) categories.push({ name, work: c.work !== false });
+    if (name && !categories.some(x => x.name === name)) categories.push({ name, work: c.work !== false, ...(c.sections ? { sections: true } : {}) });
   }
   if (!categories.length) throw httpError(400, 'At least one category is required');
   const domains = {};
@@ -677,8 +1137,8 @@ const server = http.createServer(async (req, res) => {
         requireKey(req, url, 'tracker');
         return send(res, 200, ingestActivity(await readBody(req)));
       case 'POST /api/calls':
-        requireKey(req, url, 'integration');
-        return send(res, 200, many(await readBody(req), 'calls', ingestCall));
+        requireKey(req, url, 'integration', 'admin'); // admin: the dashboard's call-history import
+        return send(res, 200, many(await readBody(req), 'calls', c => ingestCall(c)));
       case 'POST /api/crm-events':
         requireKey(req, url, 'integration');
         return send(res, 200, many(await readBody(req), 'events', ingestCrmEvent));
@@ -691,6 +1151,21 @@ const server = http.createServer(async (req, res) => {
         if (!DATE_RE.test(date)) throw httpError(400, 'date must be YYYY-MM-DD');
         return send(res, 200, report(date));
       }
+      case 'GET /api/person': {
+        requireKey(req, url, 'admin');
+        const date = url.searchParams.get('date') || localDate();
+        if (!DATE_RE.test(date)) throw httpError(400, 'date must be YYYY-MM-DD');
+        return send(res, 200, personReport(date, cleanName(url.searchParams.get('id')).toLowerCase()));
+      }
+      case 'GET /api/range':
+        requireKey(req, url, 'admin');
+        return send(res, 200, rangeReport(url.searchParams.get('from') || '', url.searchParams.get('to') || ''));
+      case 'GET /api/settings':
+        requireKey(req, url, 'admin');
+        return send(res, 200, settingsDoc());
+      case 'PUT /api/settings':
+        requireKey(req, url, 'admin');
+        return send(res, 200, saveSettings(await readBody(req)));
       case 'GET /api/categories':
         requireKey(req, url, 'admin');
         return send(res, 200, categoriesDoc());

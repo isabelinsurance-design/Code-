@@ -13,6 +13,8 @@
   --accent:#A07840; --accent-bg:#F0E6D0; --track:#F0EBE1; --bad:#C0392B; --bad-bg:#FDEDEB;
   /* timeline + bar kinds, validated for color-blind separation in light and dark */
   --k-call:#1baf7a; --k-work:#2a78d6; --k-nonWork:#e34948; --k-idle:#eda100; --k-unreviewed:#86b6ef; --k-lunch:#898781; --k-away:#c3c2b7;
+  /* status (alerts): fixed in both modes, always paired with a text label */
+  --s-warning:#fab219; --s-critical:#d03b3b;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
@@ -31,44 +33,67 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 body { background: var(--page); color: var(--ink); font: 14px/1.45 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif; -webkit-font-smoothing: antialiased; }
 button, input, select { font: inherit; color: inherit; }
+a { color: inherit; }
 .wrap { max-width: 1440px; margin: 0 auto; padding: 20px 16px 48px; }
 
 /* top bar */
 .top { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; margin-bottom: 16px; }
 .top h1 { font-size: 22px; font-weight: 700; letter-spacing: -.01em; }
 .top h1 small { display: block; font-size: 12px; font-weight: 500; color: var(--muted); letter-spacing: 0; }
-.datenav { display: flex; align-items: center; gap: 6px; }
-.datenav input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
-.btn { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; white-space: nowrap; }
+.tabs { display: flex; gap: 4px; padding: 3px; border: 1px solid var(--border); border-radius: 10px; background: var(--card); }
+.tabs a { padding: 5px 12px; border-radius: 7px; text-decoration: none; color: var(--ink-2); font-weight: 500; }
+.tabs a[aria-current] { background: var(--accent-bg); color: var(--ink); font-weight: 600; }
+.datenav, .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.datenav input, .controls input { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); }
+.btn { padding: 7px 12px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); cursor: pointer; white-space: nowrap; text-decoration: none; display: inline-block; }
 .btn:hover { border-color: var(--accent); }
 .btn.primary { background: var(--accent); border-color: var(--accent); color: #fff; font-weight: 600; }
+.btn[aria-pressed="true"] { background: var(--accent-bg); border-color: var(--accent); font-weight: 600; }
+.btn:disabled { opacity: .5; cursor: default; }
 .spacer { flex: 1; }
 .updated { color: var(--muted); font-size: 12px; }
+.bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; margin-bottom: 14px; }
 
 .banner { padding: 10px 14px; border-radius: 10px; background: var(--bad-bg); color: var(--bad); margin-bottom: 14px; }
 .summary { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
 .summary span { padding: 6px 12px; border-radius: 999px; background: var(--card); border: 1px solid var(--border); font-weight: 600; }
 .legend { display: flex; flex-wrap: wrap; gap: 4px 16px; color: var(--ink-2); font-size: 12px; margin-bottom: 14px; }
-.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.legend i, .sw { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; flex: none; }
+
+/* alerts */
+.alerts { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 12px 16px; margin-bottom: 14px; }
+.alerts h2 { font-size: 14px; margin-bottom: 6px; }
+.alerts ul { list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 4px 20px; }
+.alerts li { display: flex; gap: 8px; align-items: baseline; font-size: 13px; }
+.alerts li b { white-space: nowrap; }
+.sdot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; flex: none; transform: translateY(-1px); }
+.sdot.warning { background: var(--s-warning); }
+.sdot.critical { background: var(--s-critical); }
+.alerts.inline { margin: 0; padding: 0; border: 0; background: none; }
 
 /* cards */
 .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 14px; }
 .card { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; min-width: 0; }
 .card.dim { opacity: .62; }
 .head { display: flex; justify-content: space-between; gap: 12px; align-items: baseline; }
-.name { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+.name { font-size: 18px; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; text-decoration: none; }
+a.name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .state { font-size: 15px; font-weight: 700; white-space: nowrap; }
 .sub { margin-top: -8px; display: grid; gap: 1px; }
 .detail { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
 .detail.muted { color: var(--ink-2); }
 .clock { color: var(--muted); font-size: 13px; }
-.tiles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
-.tile { padding: 8px 10px; border-radius: 10px; background: var(--page); }
-.tile b { display: block; font-size: 20px; font-weight: 600; line-height: 1.2; }
+.clock.warn { color: var(--bad); font-weight: 600; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
+.tile { padding: 8px 9px; border-radius: 10px; background: var(--page); min-width: 0; }
+.tile b { display: block; font-size: 18px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
 .tile span { font-size: 12px; color: var(--muted); }
+.tiles.wide { grid-template-columns: repeat(auto-fill, minmax(128px, 1fr)); }
+.tiles.wide b { font-size: 22px; }
 .note { font-size: 12px; color: var(--muted); }
 
 .strip { position: relative; height: 18px; border-radius: 4px; background: var(--track); }
+.strip.big { height: 30px; }
 .run { position: absolute; top: 0; bottom: 0; border-radius: 3px; }
 .now { position: absolute; top: -3px; bottom: -3px; width: 2px; background: var(--ink); border-radius: 1px; }
 .ticks { position: relative; height: 14px; font-size: 10px; color: var(--muted); }
@@ -80,25 +105,36 @@ button, input, select { font: inherit; color: inherit; }
 .bars .track { height: 10px; }
 .bars .bar { height: 10px; border-radius: 0 4px 4px 0; min-width: 2px; }
 .bars .val { font-variant-numeric: tabular-nums; color: var(--ink); text-align: right; }
+.split { display: flex; gap: 2px; height: 12px; min-width: 120px; border-radius: 4px; overflow: hidden; }
+.split i { min-width: 2px; }
 .foot { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 4px 12px; font-size: 12px; color: var(--muted); }
 .foot .counters { color: var(--ink-2); font-weight: 600; }
 details summary { cursor: pointer; color: var(--accent); font-size: 13px; }
 table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 8px; }
-th, td { text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--border); }
-th { color: var(--muted); font-weight: 500; }
-td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; }
+th, td { text-align: left; padding: 5px 8px; border-bottom: 1px solid var(--border); vertical-align: top; }
+th { color: var(--muted); font-weight: 500; white-space: nowrap; }
+td.n, th.n { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+td.when { white-space: nowrap; font-variant-numeric: tabular-nums; }
+td.muted { color: var(--ink-2); }
+tr.gap td { color: var(--muted); font-style: italic; }
+tr.mark td { color: var(--ink-2); font-weight: 600; }
+td.what { overflow-wrap: anywhere; }
+.narrow { display: none; color: var(--ink-2); }
+.tablewrap { overflow-x: auto; }
 .empty { padding: 40px; text-align: center; color: var(--muted); background: var(--card); border: 1px dashed var(--border); border-radius: 14px; }
 
-/* admin panels */
+/* panels */
 .admin { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; margin-top: 24px; align-items: start; }
-.panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+.stack { display: grid; gap: 14px; }
+.panel { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 18px; min-width: 0; }
 .panel h2 { font-size: 16px; margin-bottom: 4px; }
+.panel h3.sec { font-size: 14px; margin: 18px 0 2px; }
 .panel .hint { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
-.row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); }
-.row { flex-wrap: wrap; }
+.row { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
 .row .dom { flex: 1 1 140px; min-width: 0; overflow-wrap: anywhere; }
 .row .t { color: var(--muted); font-variant-numeric: tabular-nums; }
-select, .panel input[type=text] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); min-width: 0; }
+select, .panel input[type=text], .panel input[type=time], .panel input[type=number] { padding: 6px 8px; border: 1px solid var(--border); border-radius: 8px; background: var(--card); min-width: 0; }
+.panel input[type=number] { width: 80px; }
 .cat { margin-top: 14px; }
 .cat h3 { font-size: 13px; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
 .cat h3 label { font-weight: 400; color: var(--muted); font-size: 12px; }
@@ -108,6 +144,15 @@ select, .panel input[type=text] { padding: 6px 8px; border: 1px solid var(--bord
 .chip button:hover { color: var(--bad); }
 .inline { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
 .inline input[type=text] { flex: 1 1 160px; }
+.form { display: grid; grid-template-columns: 1fr auto; gap: 10px 14px; align-items: center; }
+.form label { color: var(--ink-2); }
+.days { display: flex; flex-wrap: wrap; gap: 4px 10px; }
+.days label { display: inline-flex; gap: 4px; align-items: center; }
+.saved { color: var(--k-call); font-size: 13px; margin-left: 10px; }
+.person-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px 16px; align-items: baseline; }
+.person-head .name { font-size: 24px; }
+.ts { margin-top: 10px; }
+.ts > summary { font-size: 14px; font-weight: 600; color: var(--ink); padding: 8px 0; }
 
 #tip { position: fixed; z-index: 10; pointer-events: none; background: var(--ink); color: var(--card); padding: 6px 9px; border-radius: 8px; font-size: 12px; line-height: 1.4; max-width: 260px; display: none; white-space: pre-line; }
 .login { max-width: 380px; margin: 12vh auto; background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 24px; display: grid; gap: 10px; }
@@ -116,13 +161,21 @@ select, .panel input[type=text] { padding: 6px 8px; border: 1px solid var(--bord
 /* TV mode: dark, bigger, read-only */
 body.tv { font-size: 16px; }
 body.tv .wrap { max-width: none; padding: 24px 28px; }
-body.tv .grid { grid-template-columns: repeat(auto-fill, minmax(400px, 1fr)); }
+body.tv .grid { grid-template-columns: repeat(auto-fill, minmax(420px, 1fr)); }
 body.tv .name { font-size: 24px; }
 body.tv .state { font-size: 20px; }
 body.tv .detail { font-size: 15px; }
-body.tv .tile b { font-size: 26px; }
-body.tv .admin, body.tv details, body.tv .datenav, body.tv .edit-only { display: none; }
-@media (max-width: 480px) { .grid { grid-template-columns: 1fr; } .tile b { font-size: 17px; } }
+body.tv .tile b { font-size: 22px; }
+body.tv .alerts li { font-size: 15px; }
+body.tv .admin, body.tv details, body.tv .datenav, body.tv .tabs, body.tv .edit-only { display: none; }
+@media (max-width: 480px) { .grid { grid-template-columns: 1fr; } .tiles { grid-template-columns: repeat(2, 1fr); } .form { grid-template-columns: 1fr; } }
+@media (max-width: 640px) { .wide-only { display: none; } .narrow { display: block; } td.when { white-space: normal; } }
+@media print {
+  body { background: #fff; }
+  .tabs, .controls, .datenav, #tvBtn, .no-print { display: none !important; }
+  .panel, .card { break-inside: avoid; }
+  details:not([open]) { display: none; }
+}
 </style>
 </head>
 <body>
@@ -141,6 +194,8 @@ const LIVE_STATES = [
   ['call', '🟢 On call'], ['acw', '🟢 After-call work'], ['working', '🟢 Working'], ['meeting', '👥 Meeting'], ['idle', '🟡 Idle'],
   ['away', '🔒 Away'], ['lunch', '🍴 Lunch'], ['break', '☕ Break'], ['off', '⏹ Clocked out'], ['offline', '🔴 Offline'],
 ];
+const WEEKDAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const PRESETS = [['week', 'This week'], ['lastweek', 'Last week'], ['month', 'This month'], ['lastmonth', 'Last month'], ['30', 'Last 30 days']];
 
 const params = new URLSearchParams(location.search);
 const store = {
@@ -151,10 +206,20 @@ let key = params.get('key') || store.get('wt-key') || '';
 if (params.get('key')) store.set('wt-key', key);
 let date = params.get('date') || localDate(new Date());
 let tv = params.get('tv') === '1';
-let data = null;
+let view = 'live';        // live | person | reports | settings
+let personId = null;
+let data = null;          // /api/day
+let person = null;        // /api/person
+let range = null;         // /api/range
+let [rangeFrom, rangeTo] = preset('week');
 let cats = null;
 let error = '';
+let notice = '';
 let needKey = !key;
+let showShort = false;
+let importing = null;     // Nextiva call-history file being imported (Settings tab)
+let newestFirst = true;
+let seq = 0;
 let clockOffset = 0; // server time minus this screen's time, so a TV with a wrong clock still shows correct "min ago"
 const now = () => Date.now() + clockOffset;
 
@@ -169,6 +234,12 @@ function dur(seconds) {
 }
 const durTip = seconds => (seconds < 60 ? `${Math.round(seconds)}s` : dur(seconds));
 const minSec = seconds => `${Math.floor(seconds / 60)}m ${String(Math.round(seconds % 60)).padStart(2, '0')}s`;
+function len(seconds) {
+  seconds = Math.round(seconds);
+  if (seconds < 60) return `${seconds}s`;
+  return seconds < 600 ? minSec(seconds) : dur(seconds);
+}
+const pct = p => (p == null ? '–' : `${Math.round(p * 100)}%`);
 const clock = t => new Date(t).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
 const since = t => (t ? dur((now() - t) / 1000) : '');
 const ago = t => {
@@ -176,11 +247,29 @@ const ago = t => {
   if (m < 1) return 'just now';
   return m < 60 ? `${m} min ago` : `${dur(m * 60)} ago`;
 };
+const longDate = d => new Date(`${d}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
+const shortDate = d => new Date(`${d}T12:00:00`).toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
 function site(domain) {
   return { '(outside chrome)': 'another app (outside Chrome)', '(browser)': 'a browser page', '(local file)': 'a local file' }[domain] || domain || '';
 }
 const slotMinutes = slot => Number(slot.slice(0, 2)) * 60 + Number(slot.slice(3));
 const hhmm = m => new Date(2000, 0, 1, Math.floor(m / 60), m % 60).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+const personLink = (id, text, d) =>
+  tv ? esc(text) : `<a href="#person/${encodeURIComponent(id)}"${d ? ` data-date="${d}"` : ''}>${esc(text)}</a>`;
+
+function preset(name) {
+  const t = new Date();
+  const monday = new Date(t);
+  monday.setDate(t.getDate() - ((t.getDay() + 6) % 7));
+  const shift = (d, days) => { const x = new Date(d); x.setDate(x.getDate() + days); return x; };
+  switch (name) {
+    case 'lastweek': return [localDate(shift(monday, -7)), localDate(shift(monday, -1))];
+    case 'month': return [localDate(new Date(t.getFullYear(), t.getMonth(), 1)), localDate(t)];
+    case 'lastmonth': return [localDate(new Date(t.getFullYear(), t.getMonth() - 1, 1)), localDate(new Date(t.getFullYear(), t.getMonth(), 0))];
+    case '30': return [localDate(shift(t, -29)), localDate(t)];
+    default: return [localDate(monday), localDate(t)];
+  }
+}
 
 async function api(path, options = {}) {
   const res = await fetch(path, { ...options, headers: { 'Content-Type': 'application/json', 'X-Admin-Key': key } });
@@ -190,21 +279,52 @@ async function api(path, options = {}) {
     throw new Error('unauthorized');
   }
   const body = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(body.error || `HTTP ${res.status}`);
+  if (!res.ok) throw Object.assign(new Error(body.error || `HTTP ${res.status}`), { status: res.status });
   return body;
+}
+
+function route() {
+  const hash = decodeURIComponent(location.hash.slice(1));
+  if (hash.startsWith('person/')) {
+    view = 'person';
+    personId = hash.slice(7);
+  } else {
+    view = ['reports', 'settings'].includes(hash) ? hash : 'live';
+  }
+  if (tv) view = 'live';
 }
 
 async function refresh() {
   if (needKey) return render();
+  const ticket = ++seq;
   try {
-    const [day, categories] = await Promise.all([api(`api/day?date=${date}`), tv ? cats : api('api/categories')]);
-    data = day;
-    cats = categories;
-    clockOffset = day.serverTime - Date.now();
+    if (view === 'person') {
+      const p = await api(`api/person?date=${date}&id=${encodeURIComponent(personId)}`);
+      if (ticket !== seq) return;
+      person = p;
+      clockOffset = p.serverTime - Date.now();
+    } else if (view === 'reports') {
+      const r = await api(`api/range?from=${rangeFrom}&to=${rangeTo}`);
+      if (ticket !== seq) return;
+      range = r;
+    } else {
+      // Live, and Settings (which lists today's people for per-person shifts).
+      const day = view === 'settings' ? localDate(new Date()) : date;
+      const [d, c] = await Promise.all([api(`api/day?date=${day}`), tv ? cats : api('api/categories')]);
+      if (ticket !== seq) return;
+      data = d;
+      cats = c;
+      clockOffset = d.serverTime - Date.now();
+    }
     error = '';
   } catch (err) {
-    if (err.message === 'unauthorized') return;
-    error = `Can't reach the tracker server (${err.message}). Retrying every 30 seconds…`;
+    if (ticket !== seq || err.message === 'unauthorized') return;
+    if (err.status === 404 && view === 'person') {
+      person = { missing: true };
+      error = '';
+    } else {
+      error = `Can't reach the tracker server (${err.message}). Retrying every 30 seconds…`;
+    }
   }
   render();
 }
@@ -221,12 +341,14 @@ function liveLine(l) {
     crm.push(`Last CRM action ${ago(l.crm.at)} (${l.crm.action.replace(/_/g, ' ')})`);
   }
   switch (l.state) {
-    case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : 'Phone call', ...crm]];
+    case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : l.source === 'chrome' ? 'Nextiva call (in Chrome)' : 'Phone call', ...crm]];
     case 'acw': return [`🟢 After-call work ${since(l.since)}`, ['wrapping up the last call', ...crm]];
-    case 'working':
-      if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [site(l.domain)]];
-      if (!l.category) return [`🟢 Working ${since(l.since)}`, [`${site(l.domain)} (not categorized)`, ...crm]];
-      return [`🟢 ${l.category === 'CRM' ? 'CRM work' : l.category} ${since(l.since)}`, [site(l.domain), ...crm]];
+    case 'working': {
+      const where = l.domain === '(outside chrome)' && l.section ? l.section : l.section ? `${site(l.domain)} · ${l.section}` : site(l.domain);
+      if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [where]];
+      if (!l.category) return [`🟢 Working ${since(l.since)}`, [`${where} (not categorized)`, ...crm]];
+      return [`🟢 ${l.category === 'CRM' ? 'CRM work' : l.category} ${since(l.since)}`, [where, ...crm]];
+    }
     case 'meeting': return [`👥 Meeting / training ${since(l.since)}`, [l.since ? `since ${clock(l.since)}` : '']];
     case 'idle': return [`🟡 Idle ${since(l.since)}`, ['no keyboard or mouse for 5+ min', ...crm]];
     case 'away': return [`🔒 Away ${since(l.since)}`, ['computer locked']];
@@ -237,9 +359,36 @@ function liveLine(l) {
   }
 }
 
+function alertText(a) {
+  const m = dur(a.minutes * 60);
+  switch (a.type) {
+    case 'late': return `Late: clocked in ${dur(a.minutes * 60)} after the ${clock(a.shift)} shift start`;
+    case 'absent': return isToday() && view !== 'reports' ? `Not clocked in (shift started ${clock(a.shift)})` : `No activity (shift ${clock(a.shift)})`;
+    case 'idle': return `Idle for ${m}, no call`;
+    case 'away': return `Computer locked for ${m}, not on break`;
+    case 'nonWorkNow': return `On ${site(a.domain)} (not work) for ${m}`;
+    case 'lunchNow': return `At lunch ${m} (limit ${dur(a.limit * 60)})`;
+    case 'offline': return `Tracker offline ${m} without clocking out`;
+    case 'lunchTotal': return `Lunch ${m} (limit ${dur(a.limit * 60)})`;
+    case 'breakTotal': return `Breaks ${m} (limit ${dur(a.limit * 60)})`;
+    case 'nonWorkDay': return `${m} on not-work sites`;
+    default: return a.type;
+  }
+}
+
+function alertsPanel(employees) {
+  const rows = employees
+    .flatMap(e => (e.alerts || []).map(a => ({ e, a })))
+    .sort((x, y) => (x.a.level === 'critical' ? 0 : 1) - (y.a.level === 'critical' ? 0 : 1) || x.e.name.localeCompare(y.e.name));
+  if (!rows.length) return '';
+  return `<section class="alerts" aria-label="Alerts"><h2>Needs attention (${rows.length})</h2><ul>
+    ${rows.map(({ e, a }) => `<li><i class="sdot ${a.level}"></i><span><b>${personLink(e.id, e.name)}</b> · ${esc(alertText(a))}</span></li>`).join('')}
+  </ul></section>`;
+}
+
 // ---------- card pieces ----------
 
-function timeline(e) {
+function timeline(e, big) {
   const slots = e.timeline;
   const current = new Date(now());
   const nowMin = isToday() ? current.getHours() * 60 + current.getMinutes() : null;
@@ -261,52 +410,63 @@ function timeline(e) {
       runs.push({ kind: s.kind, start: m, end: m + 5, parts: { ...s.parts } });
     }
   }
-  const pct = m => ((m - start) / span) * 100;
+  const pctOf = m => ((m - start) / span) * 100;
   const runHtml = runs.map(r => {
     const detail = PART_LABELS.filter(([k]) => r.parts[k] >= 5).map(([k, label]) => `${label} ${durTip(r.parts[k])}`).join('\n');
     const tip = `${hhmm(r.start)} – ${hhmm(r.end)}\n${detail}`;
-    return `<div class="run" data-tip="${esc(tip)}" style="left:${pct(r.start)}%;width:calc(${pct(r.end) - pct(r.start)}% - 2px);background:var(--k-${r.kind})"></div>`;
+    return `<div class="run" data-tip="${esc(tip)}" style="left:${pctOf(r.start)}%;width:calc(${pctOf(r.end) - pctOf(r.start)}% - 2px);background:var(--k-${r.kind})"></div>`;
   }).join('');
-  const nowMark = nowMin != null && nowMin > start && nowMin < end ? `<div class="now" style="left:${pct(nowMin)}%" data-tip="Now"></div>` : '';
-  const step = span > 10 * 60 ? 180 : 120;
+  const nowMark = nowMin != null && nowMin > start && nowMin < end ? `<div class="now" style="left:${pctOf(nowMin)}%" data-tip="Now"></div>` : '';
+  const step = span > 10 * 60 ? (big ? 60 : 180) : big ? 60 : 120;
   let ticks = '';
-  for (let m = start; m < end; m += step) ticks += `<span style="left:${pct(m)}%">${hhmm(m).replace(':00', '').replace(/\s?([AP])M/i, (_, x) => x.toLowerCase())}</span>`;
-  return `<div><div class="strip" role="img" aria-label="Activity timeline for ${esc(e.name)}">${runHtml}${nowMark}</div><div class="ticks">${ticks}</div></div>`;
+  for (let m = start; m < end; m += step) ticks += `<span style="left:${pctOf(m)}%">${hhmm(m).replace(':00', '').replace(/\s?([AP])M/i, (_, x) => x.toLowerCase())}</span>`;
+  return `<div><div class="strip${big ? ' big' : ''}" role="img" aria-label="Activity timeline for ${esc(e.name)}">${runHtml}${nowMark}</div><div class="ticks">${ticks}</div></div>`;
 }
 
-function bars(e) {
-  if (!e.activities.length) return '';
-  const max = Math.max(...e.activities.map(a => a.seconds));
-  return `<div class="bars">${e.activities.map(a => `<span class="label" title="${esc(a.name)}">${esc(a.name)}</span>
+function bars(activities) {
+  if (!activities.length) return '';
+  const max = Math.max(...activities.map(a => a.seconds));
+  return `<div class="bars">${activities.map(a => `<span class="label" title="${esc(a.name)}">${esc(a.name)}</span>
       <div class="track"><div class="bar" style="width:${(a.seconds / max) * 100}%;background:var(--k-${a.kind})" data-tip="${esc(`${a.name}\n${dur(a.seconds)}`)}"></div></div>
-      <span class="val">${dur(a.seconds)}</span>`).join('')}</div>`;
+      <span class="val">${a.seconds < 60 ? '<1m' : dur(a.seconds)}</span>`).join('')}</div>`;
 }
 
-function sitesTable(e) {
-  if (!e.domains.length) return '';
-  return `<details><summary>Sites on screen (${e.domains.length})</summary><table>
+function sitesTable(domains, open) {
+  if (!domains.length) return '';
+  return `<details${open ? ' open' : ''}><summary>Sites on screen (${domains.length})</summary><div class="tablewrap"><table>
     <tr><th>Site</th><th>Category</th><th class="n">Active</th><th class="n">Idle</th></tr>
-    ${e.domains.map(d => `<tr><td>${esc(site(d.domain))}</td><td>${esc(d.category || 'Not categorized')}</td><td class="n">${dur(d.active)}</td><td class="n">${dur(d.idle)}</td></tr>`).join('')}
-  </table></details>`;
+    ${domains.map(d => `<tr><td>${esc(site(d.domain))}</td><td>${esc(d.category || 'Not categorized')}</td><td class="n">${dur(d.active)}</td><td class="n">${dur(d.idle)}</td></tr>`).join('')}
+  </table></div></details>`;
+}
+
+// "Desk 3" (or the install id) and a warning when two computers used one name.
+function computerLine(e) {
+  const devs = e.devices || [];
+  const name = d => d.label || `computer ${d.id}`;
+  if (devs.length > 1) return `⚠️ Reported from ${devs.length} computers today: ${devs.map(name).join(', ')} — the same name is set up on more than one extension`;
+  const current = e.live && e.live.computer;
+  const one = current || (devs[0] && devs[0].label);
+  return one ? `Computer: ${one}` : '';
+}
+
+function clockLine(e) {
+  if (!e.clockIn) return e.shift ? `Not clocked in · shift ${clock(e.shift)}` : 'Not clocked in';
+  let line = `Clock in ${clock(e.clockIn)}`;
+  if (e.clockOut) line += ` · out ${clock(e.clockOut)}`;
+  if (e.loggedIn) line += ` · logged in ${dur(e.loggedIn)}`;
+  return line;
+}
+
+function tracked(e) {
+  const t = e.totals;
+  return e.working + t.nonWork + t.unreviewed + t.idle + t.away + t.lunch + t.break;
 }
 
 function card(e) {
   const today = isToday();
   const l = e.live;
   const t = e.totals;
-  const tracked = e.working + t.nonWork + t.unreviewed + t.idle + t.away + t.lunch + t.break;
-  const lastSlot = e.timeline.length ? e.timeline[e.timeline.length - 1].slot : null;
-  const lastSlotEnd = lastSlot ? new Date(`${date}T${lastSlot}:00`).getTime() + 5 * 60000 : null;
-  const end = e.clockOut || (today && l.state !== 'offline' ? now() : lastSlotEnd);
-  const onClock = e.clockIn && end ? Math.max(0, (end - e.clockIn) / 1000) : 0;
-  const untracked = onClock - tracked;
-
-  let clockLine = 'Not clocked in';
-  if (e.clockIn) {
-    clockLine = `Clock in ${clock(e.clockIn)}`;
-    if (e.clockOut) clockLine += ` · out ${clock(e.clockOut)}`;
-    if (onClock) clockLine += ` · logged in ${dur(onClock)}`;
-  }
+  const untracked = e.loggedIn - tracked(e);
   const [state, details] = today ? liveLine(l) : ['', []];
   const c = e.calls;
   const stats = [
@@ -318,22 +478,25 @@ function card(e) {
   const crmLine = e.crm.open >= 60 || e.crm.actions
     ? `CRM open ${dur(e.crm.open)} · CRM work ${dur(e.crm.active)}${e.crm.actions ? ` · ${e.crm.actions} CRM actions` : ''}`
     : '';
-  const hasData = tracked > 0;
+  const hasData = tracked(e) > 0;
+  const name = tv ? `<span class="name">${esc(e.name)}</span>` : `<a class="name" href="#person/${encodeURIComponent(e.id)}">${esc(e.name)}</a>`;
 
   return `<article class="card${!hasData && (!today || l.state === 'offline') ? ' dim' : ''}">
-    <div class="head"><span class="name">${esc(e.name)}</span>${today ? `<span class="state">${esc(state)}</span>` : ''}</div>
-    <div class="sub">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}<span class="clock">${clockLine}</span></div>
+    <div class="head">${name}${today ? `<span class="state">${esc(state)}</span>` : ''}</div>
+    <div class="sub">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}<span class="clock">${clockLine(e)}</span>${computerLine(e) ? `<span class="clock${(e.devices || []).length > 1 ? ' warn' : ''}">${esc(computerLine(e))}</span>` : ''}</div>
     ${hasData ? `
     <div class="tiles">
       <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
+      <div class="tile"><b>${pct(e.productivity)}</b><span>Productive</span></div>
+      ${e.activity != null ? `<div class="tile"><b>${pct(e.activity)}</b><span>Activity</span></div>` : ''}
       <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
-      <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch / break</span></div>
+      <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch/break</span></div>
     </div>
     ${timeline(e)}
-    ${bars(e)}
+    ${bars(e.activities)}
     ${crmLine ? `<div class="note">${crmLine}</div>` : ''}
     ${untracked > 600 ? `<div class="note">${dur(untracked)} unaccounted (no calls, Chrome closed or computer asleep)</div>` : ''}
-    ${sitesTable(e)}` : `<div class="note">${today ? 'No activity recorded yet today.' : 'No activity recorded this day.'}</div>`}
+    ${tv ? '' : `<div class="note"><a href="#person/${encodeURIComponent(e.id)}">Activity log, minute by minute →</a></div>`}` : `<div class="note">${today ? 'No activity recorded yet today.' : 'No activity recorded this day.'}</div>`}
     <div class="foot">
       <span>${today && l.lastActiveAt && l.state !== 'call' ? `Last keyboard/mouse ${ago(l.lastActiveAt)}` : ''}</span>
       ${stats ? `<span class="counters">${stats}</span>` : ''}
@@ -341,33 +504,597 @@ function card(e) {
   </article>`;
 }
 
-// ---------- categories admin ----------
+// ---------- views ----------
 
-function adminPanels() {
+function dateNav() {
+  const today = isToday();
+  return `<div class="datenav"><button class="btn" data-day="-1" aria-label="Previous day">←</button>
+    <input type="date" id="date" value="${date}" max="${localDate(new Date())}" aria-label="Day">
+    <button class="btn" data-day="1" aria-label="Next day" ${today ? 'disabled' : ''}>→</button>
+    ${today ? '' : '<button class="btn" data-day="0">Today</button>'}</div>`;
+}
+
+function legend() {
+  return `<div class="legend">${KINDS.map(([k, label]) => `<span><i style="background:var(--k-${k})"></i>${label}</span>`).join('')}<span><i style="background:var(--track);outline:1px solid var(--border)"></i>No data</span></div>`;
+}
+
+function liveView() {
+  const today = isToday();
+  const employees = data ? data.employees : [];
+  const counts = {};
+  for (const e of employees) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
+  const summary = LIVE_STATES.filter(([k]) => counts[k]).map(([k, label]) => `<span>${label} ${counts[k]}</span>`).join('');
+  return `
+    <div class="bar">${dateNav()}<span class="spacer"></span>
+      <span class="updated">${data ? `${today ? 'Today' : esc(longDate(date))} · updated ${new Date(data.serverTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Loading…'}</span></div>
+    ${alertsPanel(employees)}
+    ${today && summary ? `<div class="summary">${summary}</div>` : ''}
+    ${legend()}
+    ${data && !employees.length ? `<div class="empty">No one has connected yet. Install the Chrome extension on each computer and enter this server's address and the tracker key in its Settings.</div>` : ''}
+    <div class="grid">${employees.map(card).join('')}</div>
+    ${tv ? '' : unassignedPanel()}`;
+}
+
+function logKind(x) {
+  if (x.state === 'call') return 'call';
+  if (x.state === 'active') return x.work === true ? 'work' : x.work === false ? 'nonWork' : 'unreviewed';
+  if (x.state === 'meeting') return 'work';
+  if (x.state === 'break') return 'lunch';
+  return x.state; // idle | away | lunch
+}
+
+function logRow(x) {
+  const cap = s => s.charAt(0).toUpperCase() + s.slice(1);
+  let what;
+  let notes;
+  switch (x.state) {
+    case 'call':
+      what = `📞 ${x.direction ? cap(x.direction) : x.source === 'chrome' ? 'Nextiva' : 'Phone'} call${x.live ? ' (now)' : ''}`;
+      notes = x.source === 'chrome' ? 'heard in Nextiva in Chrome'
+        : [x.outcome && x.outcome.replace('-', ' '), x.recordId && `record ${x.recordId}`].filter(Boolean).join(' · ');
+      break;
+    case 'active':
+      what = x.domain === '(outside chrome)' && x.section ? x.section : site(x.domain) || 'Unknown site';
+      notes = !x.category ? 'Not categorized' : x.work === false && !/not work/i.test(x.category) ? `${x.category} (not work)` : x.category;
+      if (x.section && x.domain !== '(outside chrome)') notes = `${notes} · ${x.section}`;
+      break;
+    case 'idle': what = 'Idle'; notes = x.domain ? `no keyboard or mouse · ${(x.domain === '(outside chrome)' && x.section ? x.section : site(x.domain))} in front` : 'no keyboard or mouse'; break;
+    case 'away': what = 'Computer locked'; notes = ''; break;
+    case 'lunch': what = '🍴 Lunch'; notes = ''; break;
+    case 'break': what = '☕ Break'; notes = ''; break;
+    case 'meeting': what = '👥 Meeting / training'; notes = ''; break;
+    default: what = x.state; notes = '';
+  }
+  if (x.duringCall) notes = [notes, 'during a call'].filter(Boolean).join(' · ');
+  if (x.skipped) notes = [notes, `interrupted by ${x.skipped} short visit${x.skipped === 1 ? '' : 's'}`].filter(Boolean).join(' · ');
+  const seconds = ((x.to || now()) - x.from) / 1000;
+  return `<tr><td class="when">${clock(x.from)} – ${clock(x.to || now())}</td><td class="n">${len(seconds)}</td>
+    <td class="what"><i class="sw" style="background:var(--k-${logKind(x)})"></i>${esc(what)}${notes ? `<span class="narrow">${esc(notes)}</span>` : ''}</td>
+    <td class="muted wide-only">${esc(notes)}</td></tr>`;
+}
+
+// Every site visit, idle stretch, break and call in time order, with gaps where nothing was recorded.
+function activityLog(p) {
+  const e = p.employee;
+  const calls = p.calls.map(c => ({ ...c, state: 'call', to: c.to || now() }));
+  const entries = [...p.log, ...calls].sort((a, b) => a.from - b.from || (a.state === 'call' ? -1 : 1));
+  for (const x of entries) {
+    if (x.state !== 'call') x.duringCall = calls.some(c => c.from < x.to && c.to > x.from);
+  }
+  const rows = [];
+  const mark = (at, text) => rows.push({ at, html: `<tr class="mark"><td class="when">${clock(at)}</td><td></td><td colspan="2">${esc(text)}</td></tr>` });
+  let hidden = 0;
+  let skipped = 0;
+  let reach = null;
+  let prev = null; // last shown site entry, so a site interrupted only by hidden short visits stays one row
+  if (e.clockIn) mark(e.clockIn, `Clocked in${e.shift ? ` (shift ${clock(e.shift)})` : ''}`);
+  for (const x of entries) {
+    if (reach && x.from - reach > 120000) {
+      rows.push({ at: reach, html: `<tr class="gap"><td class="when">${clock(reach)} – ${clock(x.from)}</td><td class="n">${len((x.from - reach) / 1000)}</td><td colspan="2">Nothing recorded (Chrome closed, computer asleep or clocked out)</td></tr>` });
+      prev = null;
+    }
+    reach = Math.max(reach || 0, x.to);
+    if (x.state === 'call') {
+      rows.push({ at: x.from, x });
+      continue;
+    }
+    if (!showShort && x.to - x.from < 30000) {
+      hidden++;
+      skipped++;
+      continue;
+    }
+    if (prev && skipped && prev.state === x.state && prev.domain === x.domain) {
+      prev.to = x.to;
+      prev.skipped = (prev.skipped || 0) + skipped;
+      prev.duringCall ||= x.duringCall;
+    } else {
+      prev = { ...x };
+      rows.push({ at: x.from, x: prev });
+    }
+    skipped = 0;
+  }
+  if (e.clockOut) mark(e.clockOut, 'Clocked out');
+  rows.sort((a, b) => a.at - b.at);
+  for (const r of rows) if (r.x) r.html = logRow(r.x);
+  if (newestFirst) rows.reverse();
+
+  const switches = p.log.filter(x => x.state === 'active').length;
+  const sites = new Set(p.log.filter(x => x.domain).map(x => x.domain)).size;
+  return `<section class="panel">
+    <h2>Activity log</h2>
+    <p class="hint">Everything that was in front of ${esc(e.name)} in Chrome, plus phone calls, breaks and idle time. ${switches} site visits on ${sites} sites.
+      Only site names and times are recorded, never page contents.</p>
+    <div class="controls no-print">
+      <label><input type="checkbox" id="newestFirst" ${newestFirst ? 'checked' : ''}> Newest first</label>
+      <label><input type="checkbox" id="showShort" ${showShort ? 'checked' : ''}> Show visits under 30 seconds${hidden ? ` (${hidden} hidden)` : ''}</label>
+    </div>
+    ${rows.length ? `<div class="tablewrap"><table>
+      <tr><th>Time</th><th class="n">Length</th><th>What</th><th class="wide-only">Details</th></tr>
+      ${rows.map(r => r.html).join('')}
+    </table></div>` : '<p class="note" style="margin-top:10px">Nothing recorded this day. (The minute-by-minute log starts with extension version 1.2.)</p>'}
+  </section>`;
+}
+
+function personView() {
+  const back = '<a class="btn no-print" href="#live">← Team</a>';
+  if (!person) return `<div class="bar">${back}${dateNav()}</div><p class="note">Loading…</p>`;
+  if (person.missing) return `<div class="bar">${back}${dateNav()}</div><div class="empty">No one by that name on this day.</div>`;
+  const e = person.employee;
+  const t = e.totals;
+  const c = e.calls;
+  const [state, details] = isToday() ? liveLine(e.live) : ['', []];
+  const callLine = c.count
+    ? `Calls ${c.count} · connected ${c.connected} · talk ${dur(c.talk)} · after-call work ${dur(c.wrap)}${c.avgHandle ? ` · avg handle ${minSec(c.avgHandle)}` : ''}`
+    : '';
+  return `
+    <div class="bar">${back}${dateNav()}<span class="spacer"></span><button class="btn no-print" data-print>Print</button></div>
+    <div class="stack">
+      <section class="panel">
+        <div class="person-head"><span class="name">${esc(e.name)}</span>${state ? `<span class="state">${esc(state)}</span>` : ''}</div>
+        <div class="sub" style="margin:6px 0 12px">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}
+          <span class="clock">${isToday() ? '' : `${esc(longDate(date))} · `}${clockLine(e)}</span>${computerLine(e) ? `<span class="clock${(e.devices || []).length > 1 ? ' warn' : ''}">${esc(computerLine(e))}</span>` : ''}</div>
+        ${e.alerts.length ? `<section class="alerts inline"><ul>${e.alerts.map(a => `<li><i class="sdot ${a.level}"></i><span>${esc(alertText(a))}</span></li>`).join('')}</ul></section>` : ''}
+        <div class="tiles wide" style="margin-top:12px">
+          <div class="tile"><b>${dur(e.loggedIn)}</b><span>Logged in</span></div>
+          <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
+          <div class="tile"><b>${pct(e.productivity)}</b><span>Productive</span></div>
+          <div class="tile"><b>${pct(e.activity)}</b><span>Activity</span></div>
+          <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
+          <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch / break</span></div>
+          <div class="tile"><b>${dur(t.nonWork)}</b><span>Not work</span></div>
+          <div class="tile"><b>${c.count}</b><span>Calls</span></div>
+          <div class="tile"><b>${e.crm.actions}</b><span>CRM actions</span></div>
+        </div>
+      </section>
+      <section class="panel">
+        <h2>Day at a glance</h2>
+        <p class="hint">Each block is 5 minutes, colored by what took most of it. Hover for details.</p>
+        ${legend()}
+        ${timeline(e, true)}
+        <h3 class="sec">Where the time went</h3>
+        <p class="hint">${esc(callLine)}</p>
+        ${bars(e.activities) || '<p class="note">No activity yet.</p>'}
+        ${e.activity != null ? `<p class="note" style="margin-top:8px">Activity level ${pct(e.activity)} — share of desk time (not calls, lunch or breaks) with keyboard or mouse input.</p>` : ''}
+        ${person.sections && person.sections.length ? `<h3 class="sec">CRM areas &amp; apps</h3>
+          <div class="tablewrap"><table><tr><th>Where</th><th class="n">Time</th></tr>
+          ${person.sections.map(x => `<tr><td>${esc(x.name)}</td><td class="n">${dur(x.seconds)}</td></tr>`).join('')}</table></div>` : ''}
+        <div style="margin-top:12px">${sitesTable(e.domains, false)}</div>
+      </section>
+      ${activityLog(person)}
+    </div>`;
+}
+
+function splitBar(t) {
+  const parts = [
+    ['call', t.talk + t.wrap, 'On call / after-call'], ['work', t.working - t.talk - t.wrap, 'Work'], ['nonWork', t.nonWork, 'Not work'],
+    ['unreviewed', t.unreviewed, 'Not categorized'], ['idle', t.idle, 'Idle'], ['lunch', t.lunch + t.break, 'Lunch / break'], ['away', t.away, 'Away (locked)'],
+  ].filter(([, s]) => s > 0);
+  const total = parts.reduce((s, [, x]) => s + x, 0);
+  if (!total) return '';
+  return `<div class="split" role="img" aria-label="Time split">${parts.filter(([, s]) => s / total >= 0.005)
+    .map(([k, s, label]) => `<i style="flex:${s} 1 0;background:var(--k-${k})" data-tip="${esc(`${label}\n${dur(s)} (${Math.round((s / total) * 100)}%)`)}"></i>`).join('')}</div>`;
+}
+
+function reportsView() {
+  const presets = PRESETS.map(([k, label]) => {
+    const [f, t] = preset(k);
+    return `<button class="btn" data-preset="${k}" aria-pressed="${f === rangeFrom && t === rangeTo}">${label}</button>`;
+  }).join('');
+  const controls = `<div class="controls">${presets}
+    <input type="date" id="rangeFrom" value="${rangeFrom}" max="${localDate(new Date())}" aria-label="From">
+    <span class="note">to</span>
+    <input type="date" id="rangeTo" value="${rangeTo}" max="${localDate(new Date())}" aria-label="To">
+    <span class="spacer"></span>
+    <button class="btn" data-csv="timesheet" ${range && range.employees.length ? '' : 'disabled'}>⬇ Timesheet CSV</button>
+    <button class="btn" data-csv="summary" ${range && range.employees.length ? '' : 'disabled'}>⬇ Summary CSV</button>
+    <button class="btn" data-print>Print</button></div>`;
+  const heading = `<p class="note" style="margin:10px 0 14px">${esc(shortDate(rangeFrom))} – ${esc(shortDate(rangeTo))}</p>`;
+  if (!range) return `${controls}${heading}<p class="note">Loading…</p>`;
+  const people = range.employees;
+  if (!people.length) return `${controls}${heading}<div class="empty">No activity in these dates.</div>`;
+
+  const sum = k => people.reduce((s, p) => s + p.totals[k], 0);
+  const counted = sum('working') + sum('nonWork') + sum('idle') + sum('away');
+  const team = `<section class="panel" style="margin-bottom:14px"><div class="tiles wide">
+    <div class="tile"><b>${people.length}</b><span>People</span></div>
+    <div class="tile"><b>${dur(sum('working'))}</b><span>Working, all</span></div>
+    <div class="tile"><b>${pct(counted >= 300 ? sum('working') / counted : null)}</b><span>Productive, team</span></div>
+    <div class="tile"><b>${sum('calls')}</b><span>Calls</span></div>
+    <div class="tile"><b>${sum('crmActions')}</b><span>CRM actions</span></div>
+    <div class="tile"><b>${people.reduce((s, p) => s + p.lateDays, 0)}</b><span>Late arrivals</span></div>
+    <div class="tile"><b>${people.reduce((s, p) => s + p.missedDays, 0)}</b><span>Missed shifts</span></div>
+  </div></section>`;
+
+  const summary = `<section class="panel"><h2>Summary by person</h2>
+    <p class="hint">Productive = working ÷ (working + not work + idle + away). Lunch, breaks and sites not categorized yet don't count against anyone.</p>
+    ${legend()}
+    <div class="tablewrap"><table>
+      <tr><th>Employee</th><th class="n">Days</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th class="n">Activity</th><th>Time split</th>
+        <th class="n">Idle / away</th><th class="n">Lunch / break</th><th class="n">Not work</th><th class="n">Calls</th><th class="n">Avg handle</th>
+        <th class="n">CRM actions</th><th class="n">Late</th><th class="n">Missed</th></tr>
+      ${people.map(p => {
+        const t = p.totals;
+        return `<tr><td><b>${esc(p.name)}</b></td><td class="n">${p.daysWorked}</td><td class="n">${dur(t.loggedIn)}</td><td class="n">${dur(t.working)}</td>
+          <td class="n">${pct(p.productivity)}</td><td class="n">${pct(p.activity)}</td><td style="min-width:140px;vertical-align:middle">${splitBar(t)}</td>
+          <td class="n">${dur(t.idle + t.away)}</td><td class="n">${dur(t.lunch + t.break)}</td><td class="n">${dur(t.nonWork)}</td>
+          <td class="n">${t.calls}</td><td class="n">${p.avgHandle ? minSec(p.avgHandle) : '–'}</td><td class="n">${t.crmActions}</td>
+          <td class="n">${p.lateDays || ''}</td><td class="n">${p.missedDays || ''}</td></tr>`;
+      }).join('')}
+    </table></div></section>`;
+
+  const timesheets = `<section class="panel"><h2>Daily timesheets</h2>
+    <p class="hint">Click a day to open that person's minute-by-minute activity log.</p>
+    ${people.map(p => `<details class="ts"><summary>${esc(p.name)} · ${p.daysWorked} day${p.daysWorked === 1 ? '' : 's'} · ${dur(p.totals.working)} working</summary>
+      <div class="tablewrap"><table>
+        <tr><th>Day</th><th>In</th><th>Out</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th class="n">Activity</th><th class="n">Idle / away</th>
+          <th class="n">Lunch / break</th><th class="n">Not work</th><th class="n">Calls</th><th class="n">CRM</th><th>Late</th></tr>
+        ${p.days.map(d => `<tr><td>${personLink(p.id, shortDate(d.date), d.date)}</td><td class="when">${d.clockIn ? clock(d.clockIn) : '–'}</td>
+          <td class="when">${d.clockOut ? clock(d.clockOut) : '–'}</td><td class="n">${dur(d.loggedIn)}</td><td class="n">${dur(d.working)}</td>
+          <td class="n">${pct(d.productivity)}</td><td class="n">${pct(d.deskSec >= 300 ? Math.min(1, d.activeInput / d.deskSec) : null)}</td><td class="n">${dur(d.idle + d.away)}</td><td class="n">${dur(d.lunch + d.break)}</td>
+          <td class="n">${dur(d.nonWork)}</td><td class="n">${d.calls}</td><td class="n">${d.crmActions}</td>
+          <td>${d.lateMinutes != null ? `<i class="sdot warning"></i> ${dur(d.lateMinutes * 60)} late` : ''}</td></tr>`).join('')}
+      </table></div>
+      <div class="admin" style="margin-top:12px">
+        <div><h3 class="sec" style="margin-top:0">Where the time went</h3>${bars(p.activities)}</div>
+        <div><h3 class="sec" style="margin-top:0">Top sites</h3>${p.topSites.length ? `<table>${p.topSites.map(s => `<tr><td><i class="sw" style="background:var(--k-${s.work === true ? 'work' : s.work === false ? 'nonWork' : 'unreviewed'})"></i>${esc(site(s.domain))}</td><td class="muted">${esc(s.category || 'Not categorized')}</td><td class="n">${dur(s.seconds)}</td></tr>`).join('')}</table>` : '<p class="note">None</p>'}</div>
+      </div>
+    </details>`).join('')}
+  </section>`;
+
+  const sites = range.sites.length ? `<section class="panel"><h2>Sites used by the team</h2>
+    <p class="hint">Active time with each site in front, all people together.</p>
+    <div class="tablewrap"><table><tr><th>Site</th><th>Category</th><th class="n">Time</th><th>Used by</th></tr>
+    ${range.sites.map(s => `<tr><td><i class="sw" style="background:var(--k-${s.work === true ? 'work' : s.work === false ? 'nonWork' : 'unreviewed'})"></i>${esc(site(s.domain))}</td>
+      <td class="muted">${esc(s.category || 'Not categorized')}</td><td class="n">${dur(s.seconds)}</td><td class="muted">${esc(s.people.join(', '))}</td></tr>`).join('')}
+    </table></div></section>` : '';
+
+  return `${controls}${heading}${team}<div class="stack">${summary}${timesheets}${sites}</div>`;
+}
+
+// ---------- CSV ----------
+
+function downloadCsv(name, rows) {
+  const cell = v => {
+    if (v == null) return '';
+    let s = String(v);
+    if (typeof v === 'string' && /^[=+\-@\t\r]/.test(s)) s = `'${s}`; // keep spreadsheet formulas out
+    return /[",\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const csv = rows.map(r => r.map(cell).join(',')).join('\r\n');
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = name;
+  document.body.append(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+const hours = s => Math.round((s / 3600) * 100) / 100;
+const percent = p => (p == null ? '' : Math.round(p * 100));
+const time24 = t => (t ? new Date(t).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: false }) : '');
+
+function exportCsv(kind) {
+  const people = range.employees;
+  if (kind === 'timesheet') {
+    downloadCsv(`timesheet_${rangeFrom}_to_${rangeTo}.csv`, [
+      ['Employee', 'Date', 'Clock in', 'Clock out', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Activity (%)', 'Idle/away (h)', 'Lunch (h)', 'Break (h)',
+        'Not work (h)', 'Calls', 'Connected', 'CRM actions', 'Late (min)'],
+      ...people.flatMap(p => p.days.map(d => [p.name, d.date, time24(d.clockIn), time24(d.clockOut), hours(d.loggedIn), hours(d.working),
+        percent(d.productivity), percent(d.deskSec >= 300 ? Math.min(1, d.activeInput / d.deskSec) : null), hours(d.idle + d.away), hours(d.lunch), hours(d.break), hours(d.nonWork), d.calls, d.connected, d.crmActions,
+        d.lateMinutes ?? ''])),
+    ]);
+  } else {
+    downloadCsv(`summary_${rangeFrom}_to_${rangeTo}.csv`, [
+      ['Employee', 'Days worked', 'Late days', 'Missed shifts', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Activity (%)', 'Idle/away (h)', 'Lunch/break (h)',
+        'Not work (h)', 'Calls', 'Connected', 'Avg handle (min)', 'CRM actions'],
+      ...people.map(p => {
+        const t = p.totals;
+        return [p.name, p.daysWorked, p.lateDays, p.missedDays, hours(t.loggedIn), hours(t.working), percent(p.productivity), percent(p.activity), hours(t.idle + t.away),
+          hours(t.lunch + t.break), hours(t.nonWork), t.calls, t.connected, p.avgHandle ? Math.round((p.avgHandle / 60) * 10) / 10 : '', t.crmActions];
+      }),
+    ]);
+  }
+}
+
+// ---------- categories and settings ----------
+
+function unassignedPanel() {
   if (!cats || !data) return '';
   const options = cats.categories.map(c => `<option>${esc(c.name)}</option>`).join('');
   const unassigned = data.unassigned.length
     ? data.unassigned.map(u => `<div class="row"><span class="dom">${esc(site(u.domain))}</span><span class="t">${dur(u.seconds)}</span>
         <select data-assign="${esc(u.domain)}"><option value="">Pick category…</option>${options}</select></div>`).join('')
     : '<p class="hint">Every site used this day has a category.</p>';
+  return `<section class="admin">
+    <div class="panel"><h2>Sites not categorized yet</h2>
+      <p class="hint">Active time on these sites counts as neither work nor not-work until you pick a category. Subdomains are included automatically.
+        Manage all sites on the <a href="#settings">Settings</a> tab.</p>
+      ${unassigned}</div></section>`;
+}
+
+function categoriesPanel() {
+  if (!cats) return '';
+  const options = cats.categories.map(c => `<option>${esc(c.name)}</option>`).join('');
   const groups = cats.categories.map((c, i) => {
     const domains = Object.keys(cats.domains).filter(d => cats.domains[d] === c.name).sort();
     return `<div class="cat"><h3>${esc(c.name)}
         <label><input type="checkbox" data-work="${i}" ${c.work ? 'checked' : ''}> counts as work</label>
+        <label><input type="checkbox" data-sections="${i}" ${c.sections ? 'checked' : ''}> show areas (CRM)</label>
         ${domains.length ? '' : `<button class="btn" data-delcat="${i}" style="padding:2px 8px;font-size:12px">Remove</button>`}</h3>
       <div class="chips">${domains.map(d => `<span class="chip">${esc(site(d))}<button title="Remove" data-unassign="${esc(d)}">×</button></span>`).join('') || '<span class="hint">No sites yet</span>'}</div></div>`;
   }).join('');
-  return `<section class="admin">
-    <div class="panel"><h2>Sites not categorized yet</h2>
-      <p class="hint">Active time on these sites counts as neither work nor not-work until you pick a category. Subdomains are included automatically.</p>
-      ${unassigned}</div>
-    <div class="panel"><h2>Sites & categories</h2>
+  return `<div class="panel"><h2>Sites & categories</h2>
       <p class="hint">Changes apply right away, to today and to past days. No extension update needed.</p>
       <form class="inline" id="addSite"><input type="text" name="domain" placeholder="humana.com" required><select name="category">${options}</select><button class="btn primary">Add site</button></form>
       ${groups}
       <form class="inline" id="addCat"><input type="text" name="name" placeholder="New category name" required maxlength="40">
         <label class="hint" style="margin:0;align-self:center"><input type="checkbox" name="work" checked> counts as work</label><button class="btn">Add category</button></form>
-    </div></section>`;
+    </div>`;
+}
+
+function settingsView() {
+  if (!data || !cats) return '<p class="note">Loading…</p>';
+  const s = data.settings;
+  const num = (name, label) => `<label for="${name}">${label}</label><span><input type="number" id="${name}" name="${name}" min="0" max="1440" value="${s[name]}"> min</span>`;
+  const people = data.employees.map(e => {
+    const own = s.people[e.id];
+    const mode = !own ? 'team' : own.shiftStart ? 'custom' : 'none';
+    return `<div class="row"><span class="dom">${esc(e.name)}</span>
+      <select data-shiftmode="${esc(e.id)}"><option value="team" ${mode === 'team' ? 'selected' : ''}>Team schedule${s.shiftStart ? ` (${esc(s.shiftStart)})` : ''}</option>
+        <option value="custom" ${mode === 'custom' ? 'selected' : ''}>Starts at…</option><option value="none" ${mode === 'none' ? 'selected' : ''}>No fixed schedule</option></select>
+      ${mode === 'custom' ? `<input type="time" data-shift="${esc(e.id)}" value="${esc(own.shiftStart)}" aria-label="Shift start for ${esc(e.name)}">` : ''}</div>`;
+  }).join('');
+  return `<div class="admin" style="margin-top:0">
+    <div class="stack">
+      <form class="panel" id="settingsForm"><h2>Schedule & alerts</h2>
+        <p class="hint">Alerts show at the top of the Live tab. 0 turns an alert off.</p>
+        <div class="form">
+          <label for="shiftStart">Shift starts at</label><input type="time" id="shiftStart" name="shiftStart" value="${esc(s.shiftStart)}">
+          <label>Work days</label><span class="days">${WEEKDAYS.map((d, i) => `<label><input type="checkbox" name="workdays" value="${i}" ${s.workdays.includes(i) ? 'checked' : ''}>${d}</label>`).join('')}</span>
+          ${num('lateGraceMinutes', 'Late after (grace period)')}
+          ${num('lunchMinutes', 'Lunch limit')}
+          ${num('breakMinutes', 'Breaks per day, total')}
+          ${num('idleAlertMinutes', 'Alert when idle or locked for')}
+          ${num('nonWorkAlertMinutes', 'Alert when on a not-work site for')}
+          ${num('nonWorkDayMinutes', 'Alert when not-work time in a day reaches')}
+          ${num('offlineAlertMinutes', 'Alert when the tracker is offline for')}
+          <label for="nudges">Also remind the employee<br><span class="note">a Chrome notification for idle, not-work sites, long lunch and breaks</span></label>
+          <input type="checkbox" id="nudges" name="nudges" ${s.nudges ? 'checked' : ''}>
+        </div>
+        <div style="margin-top:16px"><button class="btn primary">Save</button>${notice ? `<span class="saved">${esc(notice)}</span>` : ''}</div>
+      </form>
+      <div class="panel"><h2>Shifts by person</h2>
+        <p class="hint">For anyone whose shift starts at a different time. Saved right away.</p>
+        ${people || '<p class="hint">People appear here once their extension connects.</p>'}</div>
+      ${importPanel()}
+    </div>
+    ${categoriesPanel()}
+  </div>`;
+}
+
+// ---------- Nextiva call-history import ----------
+// Calls made in Nextiva in Chrome are picked up live by the extension. Calls in
+// the Nextiva desktop app (or a desk phone) come from Nextiva's call history:
+// Call History → Download CSV. The file is read here in the browser; only the
+// person, start time, length, direction and result are sent, never phone numbers.
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  text = text.replace(/^\ufeff/, '');
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch !== '"') cell += ch;
+      else if (text[i + 1] === '"') { cell += '"'; i++; }
+      else quoted = false;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else cell += ch;
+  }
+  if (cell || row.length) rows.push([...row, cell]);
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+const COLUMNS = [
+  ['when', 'Date and time the call started', true],
+  ['time', 'Time (if it is in its own column)', false],
+  ['duration', 'Duration', true],
+  ['person', 'Person (user, name or extension)', true],
+  ['direction', 'Direction or call type', false],
+  ['result', 'Result or status', false],
+];
+
+function guessColumns(headers) {
+  const find = (...patterns) => {
+    for (const p of patterns) {
+      const i = headers.findIndex(h => p.test(h));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const when = find(/start.*(date|time)/i, /date.*time|time.*date/i, /^(call )?date$/i, /date/i, /time/i);
+  const time = /time/i.test(headers[when] || '') ? -1 : headers.findIndex((h, i) => i !== when && /^(start )?time$|^time/i.test(h.trim()));
+  return {
+    when,
+    time,
+    duration: find(/duration/i, /length/i, /talk ?time/i, /seconds/i),
+    person: find(/^user ?name$/i, /^user$/i, /user/i, /agent/i, /employee/i, /^name$/i, /extension/i),
+    direction: find(/direction/i, /call ?type/i, /^type$/i),
+    result: find(/result/i, /status/i, /disposition/i, /answer/i),
+  };
+}
+
+function parseDuration(v) {
+  v = String(v || '').trim().toLowerCase();
+  let m;
+  if ((m = v.match(/^(\d+):(\d{1,2}):(\d{1,2})(\.\d+)?$/))) return +m[1] * 3600 + +m[2] * 60 + +m[3];
+  if ((m = v.match(/^(\d+):(\d{1,2})(\.\d+)?$/))) return +m[1] * 60 + +m[2];
+  if (/^\d+(\.\d+)?$/.test(v)) return Math.round(Number(v));
+  const h = v.match(/(\d+)\s*h/);
+  const mi = v.match(/(\d+)\s*m(?!s)/);
+  const se = v.match(/(\d+)\s*s/);
+  return h || mi || se ? (h ? +h[1] * 3600 : 0) + (mi ? +mi[1] * 60 : 0) + (se ? +se[1] : 0) : null;
+}
+
+function callFromRow(row, map) {
+  const text = `${row[map.when] || ''} ${map.time >= 0 ? row[map.time] || '' : ''}`.trim();
+  const start = text.includes(':') ? Date.parse(text) : NaN;
+  const seconds = parseDuration(row[map.duration]);
+  const person = String(row[map.person] || '').trim();
+  if (!Number.isFinite(start) || seconds == null || !person) return null;
+  const d = String(map.direction >= 0 ? row[map.direction] : '').toLowerCase();
+  const both = `${d} ${String(map.result >= 0 ? row[map.result] : '').toLowerCase()}`;
+  const direction = /out|placed|dial/.test(d) ? 'outbound' : /\bin|received|incoming|missed/.test(d) ? 'inbound' : null;
+  const outcome = /miss|no.?answer|unanswered|not answered|abandon/.test(both) ? 'no-answer'
+    : /voice ?mail/.test(both) ? 'voicemail'
+    : /busy/.test(both) ? 'busy'
+    : /fail|error/.test(both) ? 'failed'
+    : /answer|connect|complet|success/.test(both) || seconds > 0 ? 'connected' : 'no-answer';
+  return { person, start, seconds, direction, outcome };
+}
+
+// "Arlet Gomez (1023)" → the tracker's "arlet", when the names line up.
+function matchPerson(label, employees) {
+  const words = label.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const hit = employees.find(e => e.id === label.toLowerCase())
+    || employees.find(e => e.id.includes(' ') && e.id.split(' ').every(w => words.includes(w)))
+    || employees.find(e => words[0] === e.id)
+    || employees.find(e => words.includes(e.id));
+  return hit ? hit.id : '';
+}
+
+function readCallFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseCsv(String(reader.result));
+    // Reports often start with a title or date-range line; the header row is the first one naming a date and a duration.
+    let at = rows.findIndex(r => r.some(c => /date|time/i.test(c)) && r.some(c => /duration|length/i.test(c)));
+    if (at < 0) at = 0;
+    const headers = (rows[at] || []).map(h => h.trim());
+    importing = { name: file.name, headers, rows: rows.slice(at + 1), map: guessColumns(headers), people: {}, result: '' };
+    render();
+  };
+  reader.readAsText(file);
+}
+
+function importPlan() {
+  const { map, rows } = importing;
+  const employees = data.employees;
+  const saved = data.settings.phoneUsers || {};
+  const calls = [];
+  let unreadable = 0;
+  if (COLUMNS.every(([k, , required]) => !required || map[k] >= 0)) {
+    for (const row of rows) {
+      const call = callFromRow(row, map);
+      if (call) calls.push(call);
+      else unreadable++;
+    }
+  } else {
+    unreadable = rows.length;
+  }
+  const labels = {};
+  for (const c of calls) labels[c.person] = (labels[c.person] || 0) + 1;
+  for (const label of Object.keys(labels)) {
+    if (!(label in importing.people)) importing.people[label] = label in saved ? saved[label] : matchPerson(label, employees);
+  }
+  const ready = calls.filter(c => importing.people[c.person]);
+  return { calls, ready, labels, unreadable };
+}
+
+function importPanel() {
+  const intro = `<div class="panel"><h2>Nextiva call history</h2>
+    <p class="hint">Calls made in Nextiva in Chrome show up live by themselves. To add calls made in the Nextiva desktop app,
+      download the call history from Nextiva and import it here: Nextiva admin dashboard → Call History → pick the dates →
+      Download CSV. Importing the same file again is safe. Phone numbers in the file are not saved.</p>
+    <label class="btn">Choose CSV file…<input type="file" id="callFile" accept=".csv,text/csv" hidden></label>`;
+  if (!importing) return `${intro}</div>`;
+  const { headers, map, rows } = importing;
+  const sample = i => (rows[0] && rows[0][i] ? ` (e.g. ${rows[0][i].slice(0, 24)})` : '');
+  const columns = COLUMNS.map(([k, label, required]) => `<label for="col-${k}">${label}</label>
+    <select id="col-${k}" data-col="${k}">${required ? '' : '<option value="-1">— none —</option>'}
+      ${map[k] < 0 && required ? '<option value="-1" selected>Pick a column…</option>' : ''}
+      ${headers.map((h, i) => `<option value="${i}" ${map[k] === i ? 'selected' : ''}>${esc(h || `Column ${i + 1}`)}${esc(sample(i))}</option>`).join('')}</select>`).join('');
+  const plan = importPlan();
+  const names = Object.entries(plan.labels).sort((a, b) => b[1] - a[1]);
+  const options = id => `<option value="">Skip</option>${data.employees.map(e => `<option value="${esc(e.id)}" ${id === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}`;
+  const skipped = plan.calls.length - plan.ready.length;
+  return `${intro}
+    <p class="note" style="margin-top:10px">${esc(importing.name)} · ${rows.length} rows</p>
+    <h3 class="sec">Columns</h3>
+    <div class="form">${columns}</div>
+    ${names.length ? `<h3 class="sec">Who is who</h3>
+      <p class="hint">Match each Nextiva user to a person on the board. Remembered for next time.</p>
+      ${names.map(([label, n]) => `<div class="row"><span class="dom">${esc(label)} <span class="t">· ${n} call${n === 1 ? '' : 's'}</span></span>
+        <select data-person="${esc(label)}">${options(importing.people[label])}</select></div>`).join('')}` : ''}
+    ${plan.ready.length ? `<h3 class="sec">Preview</h3><div class="tablewrap"><table>
+      <tr><th>Person</th><th>Started</th><th class="n">Length</th><th>Direction</th><th>Result</th></tr>
+      ${plan.ready.slice(0, 5).map(c => `<tr><td>${esc(data.employees.find(e => e.id === importing.people[c.person]).name)}</td>
+        <td class="when">${esc(new Date(c.start).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td>
+        <td class="n">${len(c.seconds)}</td><td>${esc(c.direction || '–')}</td><td>${esc(c.outcome.replace('-', ' '))}</td></tr>`).join('')}
+    </table></div>` : ''}
+    <p class="note" style="margin-top:10px">${plan.ready.length} calls ready${skipped ? ` · ${skipped} skipped (person not matched)` : ''}${plan.unreadable ? ` · ${plan.unreadable} row${plan.unreadable === 1 ? '' : 's'} without a readable date, duration or person` : ''}.
+      Times are read in this computer's time zone.</p>
+    <div style="margin-top:12px"><button class="btn primary" data-import ${plan.ready.length && !importing.busy ? '' : 'disabled'}>Import ${plan.ready.length} calls</button>
+      <button class="btn" data-import-cancel>Cancel</button>${importing.result ? `<span class="saved">${esc(importing.result)}</span>` : ''}</div>
+  </div>`;
+}
+
+async function runImport() {
+  const plan = importPlan();
+  const names = Object.fromEntries(data.employees.map(e => [e.id, e.name]));
+  const calls = plan.ready.map(c => ({
+    employee: names[importing.people[c.person]],
+    callId: `nextiva:${c.start}:${c.seconds}`,
+    startedAt: c.start,
+    durationSeconds: c.seconds,
+    direction: c.direction,
+    outcome: c.outcome,
+  }));
+  importing.busy = true;
+  importing.result = 'Importing…';
+  render();
+  try {
+    for (let i = 0; i < calls.length; i += 500) {
+      await api('api/calls', { method: 'POST', body: JSON.stringify({ calls: calls.slice(i, i + 500) }) });
+    }
+    const phoneUsers = { ...data.settings.phoneUsers, ...importing.people };
+    data.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify({ ...data.settings, phoneUsers }) });
+    importing.result = `✓ ${calls.length} calls imported. They now count in Live, the activity logs and Reports.`;
+  } catch (err) {
+    importing.result = err.message === 'unauthorized' ? '' : `Couldn't import: ${err.message}`;
+  }
+  importing.busy = false;
+  render();
 }
 
 async function saveCats(next) {
@@ -377,6 +1104,16 @@ async function saveCats(next) {
     if (err.message !== 'unauthorized') alert(`Couldn't save: ${err.message}`);
   }
   refresh();
+}
+async function saveSettings(next) {
+  try {
+    data.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify(next) });
+    notice = '✓ Saved';
+    setTimeout(() => { notice = ''; if (view === 'settings') render(); }, 2500);
+  } catch (err) {
+    if (err.message !== 'unauthorized') alert(`Couldn't save: ${err.message}`);
+  }
+  render();
 }
 function cleanDomain(v) {
   v = v.trim().toLowerCase();
@@ -406,36 +1143,40 @@ function render() {
     return;
   }
 
-  const today = isToday();
-  const employees = data ? data.employees : [];
-  const counts = {};
-  for (const e of employees) counts[e.live.state] = (counts[e.live.state] || 0) + 1;
-  const summary = LIVE_STATES
-    .filter(([k]) => counts[k]).map(([k, label]) => `<span>${label} ${counts[k]}</span>`).join('');
-  const heading = today ? 'Today' : new Date(`${date}T12:00:00`).toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
-
+  const tab = (id, label) => `<a href="#${id}"${view === id || (id === 'live' && view === 'person') ? ' aria-current="page"' : ''}>${label}</a>`;
+  const body = { live: liveView, person: personView, reports: reportsView, settings: settingsView }[view]();
+  // Keep the page where it was when it refreshes under the reader, opened sections included.
+  const scroll = window.scrollY;
+  const opened = new Set([...app.querySelectorAll('details[open] > summary')].map(s => s.textContent));
   app.innerHTML = `
     <div class="top">
-      <h1>Team Activity<small>${esc(heading)}</small></h1>
-      <div class="datenav"><button class="btn" data-day="-1" aria-label="Previous day">←</button>
-        <input type="date" id="date" value="${date}" max="${localDate(new Date())}">
-        <button class="btn" data-day="1" aria-label="Next day" ${today ? 'disabled' : ''}>→</button>
-        ${today ? '' : '<button class="btn" data-day="0">Today</button>'}</div>
+      <h1>Team Activity<small>Chrome, calls and CRM in one place</small></h1>
+      <nav class="tabs">${tab('live', 'Live')}${tab('reports', 'Reports')}${tab('settings', 'Settings')}</nav>
       <span class="spacer"></span>
-      <span class="updated">${data ? `Updated ${new Date(data.serverTime).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit', second: '2-digit' })}` : 'Loading…'}</span>
-      <button class="btn" id="tvBtn">${tv ? 'Exit TV mode' : '📺 TV mode'}</button>
+      ${view === 'live' ? `<button class="btn" id="tvBtn">${tv ? 'Exit TV mode' : '📺 TV mode'}</button>` : ''}
     </div>
     ${error ? `<div class="banner">${esc(error)}</div>` : ''}
-    ${today && summary ? `<div class="summary">${summary}</div>` : ''}
-    <div class="legend">${KINDS.map(([k, label]) => `<span><i style="background:var(--k-${k})"></i>${label}</span>`).join('')}<span><i style="background:var(--track);outline:1px solid var(--border)"></i>No data</span></div>
-    ${data && !employees.length ? `<div class="empty">No one has connected yet. Install the Chrome extension on each computer and enter this server's address and the tracker key in its Settings.</div>` : ''}
-    <div class="grid">${employees.map(card).join('')}</div>
-    ${tv ? '' : adminPanels()}`;
+    ${body}`;
+  for (const s of app.querySelectorAll('details > summary')) if (opened.has(s.textContent)) s.parentElement.open = true;
+  window.scrollTo(0, scroll);
 }
 
 // ---------- events ----------
 
+window.addEventListener('hashchange', () => {
+  const before = view;
+  route();
+  if (view === 'person') person = null;
+  // Settings loads today's list of people; Live may be showing another day.
+  if (before !== view && (view === 'live' || view === 'settings') && !isToday()) data = null;
+  if (before !== view || view === 'person') window.scrollTo(0, 0);
+  render();
+  refresh();
+});
+
 document.addEventListener('click', ev => {
+  const link = ev.target.closest('a[data-date]');
+  if (link) date = link.dataset.date; // a timesheet row opens that day
   const el = ev.target.closest('button');
   if (!el) return;
   if (el.id === 'tvBtn') {
@@ -452,7 +1193,23 @@ document.addEventListener('click', ev => {
     d.setDate(d.getDate() + step);
     date = localDate(d);
     data = null;
+    person = null;
     refresh();
+  } else if (el.dataset.preset) {
+    [rangeFrom, rangeTo] = preset(el.dataset.preset);
+    range = null;
+    render();
+    refresh();
+  } else if (el.dataset.import !== undefined) {
+    runImport();
+  } else if (el.dataset.importCancel !== undefined) {
+    importing = null;
+    render();
+  } else if (el.dataset.csv) {
+    exportCsv(el.dataset.csv);
+  } else if (el.dataset.print !== undefined) {
+    document.querySelectorAll('details').forEach(d => (d.open = true));
+    window.print();
   } else if (el.dataset.unassign) {
     const domains = { ...cats.domains };
     delete domains[el.dataset.unassign];
@@ -467,11 +1224,40 @@ document.addEventListener('change', ev => {
   if (el.id === 'date' && el.value) {
     date = el.value;
     data = null;
+    person = null;
     refresh();
+  } else if ((el.id === 'rangeFrom' || el.id === 'rangeTo') && el.value) {
+    if (el.id === 'rangeFrom') rangeFrom = el.value;
+    else rangeTo = el.value;
+    if (rangeFrom > rangeTo) [rangeFrom, rangeTo] = [rangeTo, rangeFrom];
+    range = null;
+    render();
+    refresh();
+  } else if (el.id === 'showShort' || el.id === 'newestFirst') {
+    if (el.id === 'showShort') showShort = el.checked;
+    else newestFirst = el.checked;
+    render();
+  } else if (el.id === 'callFile' && el.files[0]) {
+    readCallFile(el.files[0]);
+  } else if (el.dataset.col) {
+    importing.map[el.dataset.col] = Number(el.value);
+    render();
+  } else if (el.dataset.person !== undefined && importing) {
+    importing.people[el.dataset.person] = el.value;
+    render();
+  } else if (el.dataset.shiftmode) {
+    const people = { ...data.settings.people };
+    if (el.value === 'team') delete people[el.dataset.shiftmode];
+    else people[el.dataset.shiftmode] = { shiftStart: el.value === 'none' ? '' : data.settings.shiftStart || '09:00' };
+    saveSettings({ ...data.settings, people });
+  } else if (el.dataset.shift && el.value) {
+    saveSettings({ ...data.settings, people: { ...data.settings.people, [el.dataset.shift]: { shiftStart: el.value } } });
   } else if (el.dataset.assign && el.value) {
     saveCats({ ...cats, domains: { ...cats.domains, [el.dataset.assign]: el.value } });
   } else if (el.dataset.work !== undefined) {
     saveCats({ ...cats, categories: cats.categories.map((c, i) => (i === Number(el.dataset.work) ? { ...c, work: el.checked } : c)) });
+  } else if (el.dataset.sections !== undefined) {
+    saveCats({ ...cats, categories: cats.categories.map((c, i) => (i === Number(el.dataset.sections) ? { ...c, sections: el.checked } : c)) });
   }
 });
 
@@ -485,6 +1271,14 @@ document.addEventListener('submit', ev => {
     ev.preventDefault();
     const name = form.name.value.trim();
     if (name) saveCats({ ...cats, categories: [...cats.categories, { name, work: form.work.checked }] });
+  } else if (form.id === 'settingsForm') {
+    ev.preventDefault();
+    const f = new FormData(form);
+    const next = { ...data.settings, shiftStart: f.get('shiftStart') || '', workdays: f.getAll('workdays').map(Number), nudges: form.nudges.checked };
+    for (const name of ['lateGraceMinutes', 'lunchMinutes', 'breakMinutes', 'idleAlertMinutes', 'nonWorkAlertMinutes', 'nonWorkDayMinutes', 'offlineAlertMinutes']) {
+      next[name] = Number(f.get(name));
+    }
+    saveSettings(next);
   }
 });
 
@@ -500,9 +1294,12 @@ document.addEventListener('mousemove', ev => {
   tip.style.top = `${ev.clientY + 16}px`;
 });
 
+route();
 refresh();
 setInterval(() => {
+  // Live and person views follow the day as it happens; reports and settings wait for the reader.
   // Don't redraw under someone who is picking a category.
+  if (view !== 'live' && view !== 'person') return;
   if (!document.activeElement || !document.activeElement.closest('.admin')) refresh();
 }, 30000);
 </script>

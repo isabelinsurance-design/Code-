@@ -1,5 +1,5 @@
 const $ = id => document.getElementById(id);
-const FIELDS = ['employee', 'serverUrl', 'key'];
+const FIELDS = ['employee', 'serverUrl', 'key', 'computer'];
 
 chrome.storage.local.get('config').then(({ config = {} }) => {
   for (const field of FIELDS) $(field).value = config[field] || '';
