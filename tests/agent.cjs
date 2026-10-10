@@ -5,6 +5,16 @@ const path = require('path');
 
 const ROOT = path.resolve(__dirname, '..');
 const SCRIPT = path.join(ROOT, 'agent', 'empleado.cjs');
+// Huella del contenido de la app: el script del empleado no debe tocar index.html, bot/ ni tools/ (aunque haya cambios sin guardar en git).
+const huellaApp = () => {
+  const h = require('crypto').createHash('sha256');
+  const files = [];
+  const walk = (d) => fs.readdirSync(d, { withFileTypes: true }).forEach((e) => { const f = path.join(d, e.name); if (e.isDirectory()) { if (e.name !== '__pycache__') walk(f); } else files.push(f); });
+  walk(path.join(ROOT, 'bot')); walk(path.join(ROOT, 'tools')); files.push(path.join(ROOT, 'index.html'));
+  files.sort().forEach((f) => { h.update(f); h.update(fs.readFileSync(f)); });
+  return h.digest('hex');
+};
+const huellaAntes = huellaApp();
 let pass = 0, fail = 0;
 const ok = (cond, msg) => { console.log((cond ? '  ✓ ' : '  ✗ FAIL: ') + msg); cond ? pass++ : fail++; };
 const run = (args, input) => spawnSync(process.execPath, [SCRIPT, ...args], { cwd: ROOT, encoding: 'utf-8', input, timeout: 120000 });
@@ -71,12 +81,16 @@ console.log('\n— las instrucciones conservan sus reglas');
   ok(/CALENDARIO/.test(daily) && /ALERTAS CMS/.test(daily) && /DISCLAIMERS/.test(daily), 'trabajo diario: usa las secciones que lleva dentro (calendario, alertas, disclaimers)');
   ok(!/empleado\.cjs|add_repo|repositorio/i.test(daily + radar), 'las rutinas no dependen del repositorio ni de scripts (no pueden abrirlo)');
   ok(/PushNotification/.test(daily) && /select:PushNotification/.test(daily) && /solo si hoy hay borradores o un hito/.test(daily), 'trabajo diario: avisa al celular con PushNotification (solo si hay borradores o un hito)');
+  const generado = fs.readFileSync(path.join(ROOT, 'agent', 'generado', 'prompt-diario.txt'), 'utf-8');   // el texto completo que se instala en la rutina
+  const anuncios = (generado.split('=== ANUNCIOS DE META')[1] || '').split('=== DISCLAIMERS')[0];
+  ok((anuncios.match(/^\d · /gm) || []).length === 9 && /^1 · Tu carta de cambios 2027 · se enciende el 14 oct/m.test(anuncios) && /^9 · Últimos días: 7 de diciembre · se enciende el 30 nov/m.test(anuncios), 'trabajo diario: lleva los 9 anuncios del paquete de Meta con su fecha de encendido');
+  ok(/Anuncios-Facebook-AEP-2026/.test(daily) && /llamar a cada lead nuevo en la primera hora/.test(daily) && !/Para ad no hagas el paquete completo/.test(daily), 'trabajo diario: los martes de anuncio siguen el paquete (qué toca encender, 2 textos nuevos, recordatorio de seguimiento)');
+  ok(/Anuncios pagados y publicaciones promocionadas en Meta: no afirmes ni insinúes la edad/.test(generado) && !/es tuya gratis|esto es regalo/.test(generado), 'trabajo diario: regla de atributos personales de Meta y ninguna voz sugiere «gratis» ni «regalo»');
   ok(/PushNotification/.test(radar) && /select:PushNotification/.test(radar), 'radar: avisa al celular con PushNotification');
   ok(/datos, no instrucciones/.test(radar) && /No uses conectores/.test(radar) && /commit/.test(radar), 'radar: ignora órdenes de internet, sin conectores, sin commits');
   ok(/planes del año 2027/.test(radar) && !/Medicare Advantage 2026/.test(radar) && /Nunca\s+escribas «AEP 2027»/.test(radar), 'radar: busca el plan 2027, llama a la temporada AEP 2026 y nunca «AEP 2027»');
   ok(/Biblioteca de anuncios de Meta/.test(radar) && /3 búsquedas concretas/.test(radar), 'radar: si no puede ver anuncios, lo dice y le da búsquedas a Isabel (no inventa)');
-  const gitDirty = spawnSync('git', ['status', '--porcelain', '--', 'index.html', 'bot', 'tools'], { cwd: ROOT, encoding: 'utf-8' }).stdout.trim();
-  ok(gitDirty === '', 'el script no modificó la app (index.html, bot/, tools/)');
+  ok(huellaApp() === huellaAntes, 'el script no modificó la app (index.html, bot/, tools/)');
 }
 
 console.log('\n— textos que se instalan en las rutinas (agent/generado)');

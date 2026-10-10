@@ -52,6 +52,11 @@ def rel(hex_):
     return PatternFill("solid", fgColor=hex_)
 
 
+def cf(hex_):
+    """Relleno para formato condicional: Excel toma el color de bgColor, así que se ponen los dos."""
+    return PatternFill(start_color=hex_, end_color=hex_, fill_type="solid")
+
+
 MESES = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"]
 DIAS = ["lun", "mar", "mié", "jue", "vie", "sáb", "dom"]
 
@@ -225,8 +230,8 @@ dv.add(C_PLANES)
 celda(ws, 10, 2, "Estado de tus números", negrita=True)
 celda(ws, 10, 3, f'=IF(OR({C_ORG}="",{C_PLANES}=""),"⚠ Falta escribir tus 2 números TPMO antes de publicar","✔ Números TPMO completos")', negrita=True)
 ws.merge_cells("C10:D10")
-ws.conditional_formatting.add("C10:D10", FormulaRule(formula=[f'OR({C_ORG}="",{C_PLANES}="")'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
-ws.conditional_formatting.add("C10:D10", FormulaRule(formula=[f'AND({C_ORG}<>"",{C_PLANES}<>"")'], fill=rel(VERDE_FONDO), font=Font(name=FUENTE, bold=True, color=VERDE)))
+ws.conditional_formatting.add("C10:D10", FormulaRule(formula=[f'OR({C_ORG}="",{C_PLANES}="")'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
+ws.conditional_formatting.add("C10:D10", FormulaRule(formula=[f'AND({C_ORG}<>"",{C_PLANES}<>"")'], fill=cf(VERDE_FONDO), font=Font(bold=True, color=VERDE)))
 ws.row_dimensions[10].height = 22
 
 banda(ws, 12, "2 · Qué está listo y qué falta", 4, desde=2)
@@ -401,8 +406,8 @@ celda(ws, 6, 2, TPMO_FORMULA)
 ws.row_dimensions[6].height = lineas_est(TPMO_MUESTRA, W[2]) * 13.4 + 5
 celda(ws, 7, 1, "Estado", negrita=True, fondo=FONDO)
 celda(ws, 7, 2, f"={q(HOJA_EMPIEZA)}!C10", negrita=True)
-ws.conditional_formatting.add("B7", FormulaRule(formula=[f'LEFT(B7,1)="⚠"'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
-ws.conditional_formatting.add("B7", FormulaRule(formula=[f'LEFT(B7,1)="✔"'], fill=rel(VERDE_FONDO), font=Font(name=FUENTE, bold=True, color=VERDE)))
+ws.conditional_formatting.add("B7", FormulaRule(formula=[f'LEFT(B7,1)="⚠"'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
+ws.conditional_formatting.add("B7", FormulaRule(formula=[f'LEFT(B7,1)="✔"'], fill=cf(VERDE_FONDO), font=Font(bold=True, color=VERDE)))
 banda(ws, 9, "Índice (haz clic para ir al anuncio)", 4, color=AZUL)
 fila_indice = 10
 fila = fila_indice + len(ANUNCIOS) + 1
@@ -475,7 +480,7 @@ for i, a in enumerate(ANUNCIOS):
 
 # regla de color para largos
 for f_, mx in LARGO_OK.items():
-    ws.conditional_formatting.add(f"C{f_}", CellIsRule(operator="greaterThan", formula=[str(mx)], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
+    ws.conditional_formatting.add(f"C{f_}", CellIsRule(operator="greaterThan", formula=[str(mx)], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
 for i, a in enumerate(ANUNCIOS):
     vinculo(celda(ws, fila_indice + i, 1, ""), f"{q(HOJA_ANUN)}!A{inicios[a['id']]}", f"Anuncio {i + 1}")
     celda(ws, fila_indice + i, 2, f"{a['nombre']} · enciende el {corto(a['enciende'])}")
@@ -547,7 +552,7 @@ for k, ln in enumerate(permiso):
 fila += 1
 celda(ws, fila, 1, "Enlace de privacidad", negrita=True, fondo=FONDO)
 celda(ws, fila, 2, f'=IF({REF_PRIV}="","⚠ Falta el enlace: escríbelo en «Empieza aquí»",{REF_PRIV})')
-ws.conditional_formatting.add(f"B{fila}", FormulaRule(formula=[f'LEFT(B{fila},1)="⚠"'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
+ws.conditional_formatting.add(f"B{fila}", FormulaRule(formula=[f'LEFT(B{fila},1)="⚠"'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
 ws.merge_cells(start_row=fila, start_column=2, end_row=fila, end_column=3)
 fila += 1
 celda(ws, fila, 1, "Texto del enlace", negrita=True, fondo=FONDO)
@@ -824,8 +829,8 @@ for carrier, plan, cond, datos, idea, riesgo in planes:
     dvp.add(f"G{fila}")
     altura(ws, fila, W)
     fila += 1
-ws.conditional_formatting.add(f"G6:G{fila - 1}", FormulaRule(formula=['G6="Aprobado por carrier/FMO"'], fill=rel(VERDE_FONDO), font=Font(name=FUENTE, bold=True, color=VERDE)))
-ws.conditional_formatting.add(f"G6:G{fila - 1}", FormulaRule(formula=['G6="Descartado"'], fill=rel("F3F4F6"), font=Font(name=FUENTE, color=GRIS)))
+ws.conditional_formatting.add(f"G6:G{fila - 1}", FormulaRule(formula=['G6="Aprobado por carrier/FMO"'], fill=cf(VERDE_FONDO), font=Font(bold=True, color=VERDE)))
+ws.conditional_formatting.add(f"G6:G{fila - 1}", FormulaRule(formula=['G6="Descartado"'], fill=cf("F3F4F6"), font=Font(color=GRIS)))
 fila += 1
 cuando = ("Cuando un carrier o tu FMO apruebe una idea: cámbiale el estado a «Aprobado por carrier/FMO», mándame el texto exacto que aprobaron (con sus avisos) y preparo la imagen y el anuncio completo. "
           "Hasta entonces, los 9 anuncios de la hoja «Anuncios» son los únicos que se pueden publicar.")
@@ -845,6 +850,11 @@ W = anchos(ws, [22, 20, 14, 12, 12, 14, 16, 16, 18, 14])
 titulo(ws, "Seguimiento · tus números cada lunes",
        "Anota solo lo amarillo. Gasto y leads salen del Administrador de anuncios de Meta; citas y aplicaciones, de tu CRM. Lo demás se calcula solo.", 10)
 ws.row_dimensions[2].height = 30
+celda(ws, 3, 1, "Costo máximo por lead que aceptas (se escribe en «Empieza aquí»)", negrita=True, borde=False, color=GRIS, size=9)
+ws.merge_cells("A3:B3")
+celda(ws, 3, 3, f'=IF({REF_CPL}="","",{REF_CPL})', formato=DINERO, negrita=True)
+ws.row_dimensions[3].height = 28
+REF_CPL_LOCAL = "$C$3"
 encabezado(ws, 4, ["Semana", "Fechas", "Gasto ($)", "Leads", "Citas", "Aplicaciones", "Costo por lead", "Costo por cita", "Costo por aplicación", "Leads → citas"])
 semanas_seg = [
     ("Semana 1", "14–21 oct"), ("Semana 2", "22–28 oct"), ("Semana 3", "29 oct–4 nov"), ("Semana 4", "5–11 nov"),
@@ -877,8 +887,8 @@ celda(ws, ft, 9, f'=IFERROR(IF(F{ft}=0,"",C{ft}/F{ft}),"")', negrita=True, fondo
 celda(ws, ft, 10, f'=IFERROR(IF(D{ft}=0,"",E{ft}/D{ft}),"")', negrita=True, fondo=CIELO, formato="0%")
 ws.row_dimensions[ft].height = 22
 # costo por lead: rojo si pasa lo que aceptas, verde si no
-ws.conditional_formatting.add(f"G{f0}:G{ft}", FormulaRule(formula=[f'AND(ISNUMBER(G{f0}),{REF_CPL}<>"",G{f0}>{REF_CPL})'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
-ws.conditional_formatting.add(f"G{f0}:G{ft}", FormulaRule(formula=[f'AND(ISNUMBER(G{f0}),{REF_CPL}<>"",G{f0}<={REF_CPL})'], fill=rel(VERDE_FONDO), font=Font(name=FUENTE, bold=True, color=VERDE)))
+ws.conditional_formatting.add(f"G{f0}:G{ft}", FormulaRule(formula=[f'AND(ISNUMBER(G{f0}),ISNUMBER({REF_CPL_LOCAL}),G{f0}>{REF_CPL_LOCAL})'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
+ws.conditional_formatting.add(f"G{f0}:G{ft}", FormulaRule(formula=[f'AND(ISNUMBER(G{f0}),ISNUMBER({REF_CPL_LOCAL}),G{f0}<={REF_CPL_LOCAL})'], fill=cf(VERDE_FONDO), font=Font(bold=True, color=VERDE)))
 
 fr = ft + 2
 banda(ws, fr, "Por región (acumulado)", 10, color=AZUL)
@@ -899,7 +909,7 @@ for reg in ("Los Ángeles", "Orange County", "Inland Empire"):
     celda(ws, fr, 10, "")
     ws.row_dimensions[fr].height = 20
     fr += 1
-ws.conditional_formatting.add(f"G{r0}:G{fr - 1}", FormulaRule(formula=[f'AND(ISNUMBER(G{r0}),{REF_CPL}<>"",G{r0}>{REF_CPL})'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
+ws.conditional_formatting.add(f"G{r0}:G{fr - 1}", FormulaRule(formula=[f'AND(ISNUMBER(G{r0}),ISNUMBER({REF_CPL_LOCAL}),G{r0}>{REF_CPL_LOCAL})'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
 fr += 1
 banda(ws, fr, "Por anuncio (acumulado) · decide cada lunes", 10, color=AZUL)
 fr += 1
@@ -923,9 +933,9 @@ for i, a in enumerate(ANUNCIOS):
     celda(ws, fr, 10, "")
     ws.row_dimensions[fr].height = 20
     fr += 1
-ws.conditional_formatting.add(f"G{a0}:G{fr - 1}", FormulaRule(formula=[f'AND(ISNUMBER(G{a0}),{REF_CPL}<>"",G{a0}>{REF_CPL})'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
-ws.conditional_formatting.add(f"I{a0}:I{fr - 1}", FormulaRule(formula=[f'I{a0}="Apagar"'], fill=rel(ROJO_FONDO), font=Font(name=FUENTE, bold=True, color=ROJO)))
-ws.conditional_formatting.add(f"I{a0}:I{fr - 1}", FormulaRule(formula=[f'I{a0}="Seguir"'], fill=rel(VERDE_FONDO), font=Font(name=FUENTE, bold=True, color=VERDE)))
+ws.conditional_formatting.add(f"G{a0}:G{fr - 1}", FormulaRule(formula=[f'AND(ISNUMBER(G{a0}),ISNUMBER({REF_CPL_LOCAL}),G{a0}>{REF_CPL_LOCAL})'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
+ws.conditional_formatting.add(f"I{a0}:I{fr - 1}", FormulaRule(formula=[f'I{a0}="Apagar"'], fill=cf(ROJO_FONDO), font=Font(bold=True, color=ROJO)))
+ws.conditional_formatting.add(f"I{a0}:I{fr - 1}", FormulaRule(formula=[f'I{a0}="Seguir"'], fill=cf(VERDE_FONDO), font=Font(bold=True, color=VERDE)))
 fr += 1
 celda(ws, fr, 1, "Rojo = cuesta más de lo que aceptas (casilla «Costo máximo por lead» de «Empieza aquí»). Si ves rojo en todo durante 7 días, cambia la imagen o el texto A/B antes de subir presupuesto.",
       borde=False, color=GRIS, italica=True)

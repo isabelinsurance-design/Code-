@@ -11,7 +11,7 @@
 //       de index.html, agent/*.md y agent/config.json. Las rutinas programadas no pueden abrir este repositorio, así
 //       que llevan TODO dentro de su prompt. Con --check solo verifica que lo generado esté al día (código 4 si no).
 //
-// Necesita Playwright (npm i -g playwright). Solo lee index.html: no escribe nada en el repositorio.
+// Necesita Playwright (npm i -g playwright). Solo lee index.html y ads/anuncios.json: no escribe nada en el repositorio.
 const fs = require('fs');
 const http = require('http');
 const path = require('path');
@@ -141,6 +141,12 @@ async function datosDeLaApp(cfg) {
   }, { cfg, DESDE, HASTA }));
 }
 
+// Los 9 anuncios de ads/anuncios.json: nombre, cuándo se encienden y por qué (los textos completos van en el Excel de Isabel).
+function anunciosDelPaquete() {
+  const a = JSON.parse(fs.readFileSync(path.join(ROOT, 'ads', 'anuncios.json'), 'utf8')).anuncios;
+  return a.map((x, i) => (i + 1) + ' · ' + x.nombre + ' · se enciende el ' + corto(x.enciende) + ' · ' + x.fase + ' · idea: ' + x.por_que).join('\n');
+}
+
 async function textosGenerados() {
   const cfg = Object.assign({ live: null, tpmoOrgs: '', tpmoPlans: '' }, JSON.parse(fs.readFileSync(process.env.AGENT_CONFIG || path.join(__dirname, 'config.json'), 'utf8')));
   const d = await datosDeLaApp(cfg);
@@ -152,6 +158,7 @@ async function textosGenerados() {
     + seccion('ESPECIFICACIÓN POR TIPO (qué entregar)', Object.entries(d.specs).map(([k, v]) => '[' + k + '] ' + v).join('\n\n'))
     + seccion('FASES DEL PLAN', d.fases.map((f) => f.id + ' · ' + f.nombre + ' · ' + corto(f.desde) + ' al ' + corto(f.hasta) + ' · tema: «' + f.tema + '» · regla CMS: ' + f.cms).join('\n'))
     + seccion('CALENDARIO (fecha, día, fase, elementos [tipo])', d.dias.map((x) => x.ymd + ' ' + x.dow + ' ' + x.fase + ' | ' + x.items.map((i) => '[' + i.tipo + '] ' + i.texto).join(' || ')).join('\n'))
+    + seccion('ANUNCIOS DE META (paquete de Isabel: uno nuevo cada semana; todos se apagan el 7 de diciembre)', anunciosDelPaquete())
     + seccion('DISCLAIMERS (cópialos tal cual al final de cada pieza que se publique)', d.disclaimers)
     + seccion('ALERTAS CMS (reescribe cualquier frase que caiga en una de estas)', d.alertas.map((a) => '- ' + a).join('\n'))
     + '\n';

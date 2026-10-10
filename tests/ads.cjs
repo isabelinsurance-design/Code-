@@ -63,6 +63,25 @@ console.log('\n— aviso legal');
   ok(!/\bSHIP\b/.test(datos.legal.tpmo), 'el aviso TPMO 2027 no menciona los SHIP');
 }
 
+console.log('\n— la app (index.html) ya no contradice el paquete');
+{
+  const app = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const modAds = app.slice(app.indexOf('id="mod-ads"'), app.indexOf('<!-- ══════ VIRAL GENERATOR'));
+  const pane = (id) => { const i = modAds.indexOf('id="' + id + '"'); return modAds.slice(i, i + 6000); };
+  const biblioteca = modAds.slice(modAds.indexOf('id="ads-library"'), modAds.indexOf('id="ads-targeting"'));
+  const generador = modAds.slice(modAds.indexOf('id="ads-generator"'), modAds.indexOf('id="ads-library"'));
+  ok(!/CPL estimado|leads\/mes|CTR Esperado|⭐\s*\d/.test(modAds), 'Meta Ads Studio: sin CPL, leads por mes, CTR ni puntuaciones inventadas');
+  ok(!/Edad:|Lookalike|INTERESES \(META\)|Audience Network/.test(modAds) && /Productos y servicios financieros/.test(modAds) && /no se puede elegir edad/.test(modAds), 'Meta Ads Studio: ya no recomienda edad, intereses ni audiencias parecidas y explica la categoría especial');
+  ok(!/gratis/i.test(biblioteca) && !/gratis/i.test(generador), 'Meta Ads Studio: ni la biblioteca ni el generador usan «gratis»');
+  ok((biblioteca.match(/class="comp-card"/g) || []).length === 4 && A.slice(0, 1).every((a) => biblioteca.includes(a.textos.A[0].replace(/&/g, '&amp;'))), 'la biblioteca muestra 4 textos del paquete (el primero es el de la carta de cambios)');
+  ok(/Los Ángeles \$15 · Orange \$12 · Inland Empire \$12/.test(pane('ads-budgets')) && /\$39\/día/.test(pane('ads-budgets')), 'presupuestos: el plan del Excel ($15 + $12 + $12 = $39/día)');
+  const spec = (app.match(/ad: `Entrega un PAQUETE[^`]+`/) || [''])[0];
+  ok(/Productos y servicios financieros/.test(spec) && !/64 años|qué tiene hoy|, edad,/.test(spec) && /No pidas número de Medicare/.test(spec), 'el botón de anuncio de la app: categoría especial, sin edad y sin preguntar el plan actual');
+  ok(/Medicare Advantage 2027/.test(app) && !/Medicare Advantage 2026/.test(app), 'el Radar de la app pregunta por Medicare Advantage 2027 (no 2026)');
+  ok(/Anuncios pagados y publicaciones promocionadas en Meta: no afirmes ni insinúes la edad/.test(app) && !/"si tienes 64 te urge saber"/.test(app), 'ISABEL_SYSTEM trae la regla de atributos personales de Meta y el gancho de ejemplo ya no afirma la edad');
+  ok(/t\.startsWith\('📞'\) \|\| t\.startsWith\('📊'\)\) return null/.test(app), 'las llamadas y reuniones post-AEP ya no se tratan como publicaciones');
+}
+
 console.log('\n— imágenes (feed 1080x1350 e historias 1080x1920)');
 {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'anuncios-'));

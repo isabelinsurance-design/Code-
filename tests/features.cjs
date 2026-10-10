@@ -46,7 +46,7 @@ run('Features', async (t) => {
       await p.click('button:has-text("Crear mi anuncio de AEP ahora")');
       await p.waitForFunction(() => /garantizado/.test(document.getElementById('aepcGenOut').innerText), null, { timeout: 8000 });
       const c = mainCalls(calls)[0].body;
-      t.ok(/PAQUETE para Meta Ads/.test(c.messages[0].content) && /personas de 64 años o más que hablan español/.test(c.messages[0].content), 'urgent button asks for a complete Meta ad package (no ethnic targeting wording)');
+      t.ok(/PAQUETE para Meta Ads/.test(c.messages[0].content) && /Productos y servicios financieros/.test(c.messages[0].content) && !/64 años|latin[oa]s?\b/i.test(c.messages[0].content) && !/qué tiene hoy/.test(c.messages[0].content), 'urgent button asks for a complete Meta ad package (special ad category, no age targeting, no ethnic wording, no current-plan question)');
       t.ok(/amiga generosa/.test(c.system), 'uses the lead-capture coach voice');
       t.ok(await p.locator('#aepcGenOut_cms').count() === 1, 'a CMS warning appears when the draft says "garantizado"');
       await ctx.close();
