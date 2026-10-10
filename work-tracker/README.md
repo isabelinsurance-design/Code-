@@ -12,8 +12,9 @@ work-tracker/
 ```
 
 **The usual time-tracker features:** sites and apps used, active vs idle time, breaks, a minute-by-minute activity log
-per person, reports and timesheets with CSV export, late / absent / long-break / not-work alerts, and reminders to the
-employee ("Still working?" with a one-click **Start break**).
+per person, an **activity level %** (how much of the desk time had keyboard or mouse input), reports and timesheets
+with CSV export, late / absent / long-break / not-work alerts, and reminders to the employee ("Still working?" with a
+one-click **Start break**). Since the team works in Chrome, this covers almost the whole workday.
 
 **Built for a call center on top of that:**
 - Phone calls count as work even with no clicking, so nobody looks idle for talking. Calls show in the activity log
@@ -61,6 +62,16 @@ A sleeping computer or a closed Chrome shows as "unaccounted".
 - On Nextiva's page (NextivaONE in Chrome) the extension checks only whether a call's audio connection is open, to
   time calls. No phone numbers, names or audio. The call-history import sends only the person, start time, length,
   direction and result, never phone numbers.
+- **CRM areas (sections).** For a CRM site you mark "show areas", the extension sends the first word of the path or
+  hash (e.g. `leads`, `quotes`, `calendar`) so the board can show which area is open. It keeps only one word, letters
+  and hyphens, 2–24 characters: anything with a digit, and every deeper segment where a record id or a person's name
+  would sit, is dropped on the computer before anything is sent. This is **off by default** and sensible only for your
+  own CRM, whose routes you control; if your CRM ever puts a person's name in that first path word, turn it off.
+- **Activity level** counts, per 5-minute slot, only the number of seconds in which the keyboard or mouse was used.
+  Never which keys, what is typed, mouse positions, the page or its contents. It's the same idea as Time Doctor's
+  "activity", without recording anything.
+- **Desktop app names** (optional helper): only the name of the app in front while outside Chrome — never window
+  titles, document names or contents. See `native-host/`.
 - The employee sees their own working time, productivity and calls in the extension popup, counted the same way as
   the dashboard.
 - Member or prospect names from the phone system and CRM are shown live on the manager's dashboard
@@ -73,19 +84,21 @@ written notice of electronic monitoring.
 
 ## The dashboard
 
-- **Live**: one card per person with their status right now, today's working time, productivity, a timeline and
-  where the time went. **Needs attention** at the top lists alerts: on a not-work site, idle or locked with no call,
+- **Live**: one card per person with their status right now, today's working time, **productive %** and **activity %**,
+  a timeline and where the time went. For a CRM with areas on, the status shows the area ("CRM work: Leads"). **Needs attention** at the top lists alerts: on a not-work site, idle or locked with no call,
   long lunch, tracker offline without clocking out, late or not clocked in, too much break or not-work time.
   📺 **TV mode** is a dark, read-only version for an office screen.
-- **Activity log** (click a name): the person's whole day in order: every site that was in front, how long, its category,
-  idle stretches, breaks, calls (with outcome and CRM record id), gaps where nothing was recorded, clock in and out.
+- **Activity log** (click a name): the person's whole day in order: every site that was in front, how long, its category
+  and CRM area, desktop apps by name (with the helper), idle stretches, breaks, calls (with outcome and CRM record id),
+  gaps where nothing was recorded, clock in and out. A **CRM areas & apps** list sums the time per area and per app.
   Use ← → to see other days.
 - **Reports**: any date range up to 93 days (this week, last week, this month…): a summary per person (days, logged in,
   working, productive %, idle, lunch/break, not work, calls, average handle time, CRM actions, late arrivals, missed
   shifts), a daily timesheet per person, and the sites the team used. **⬇ Timesheet CSV** gives one row per person per
   day with clock in/out and hours as decimals, ready for payroll. **⬇ Summary CSV** gives one row per person.
 - **Settings**: shift start time and work days (with per-person exceptions), the late grace period, lunch and break
-  limits, alert thresholds (0 turns one off), whether employees also get reminders, and the sites → categories table.
+  limits, alert thresholds (0 turns one off), whether employees also get reminders, the Nextiva call-history import,
+  and the sites → categories table — where each category also has **show areas (CRM)** to turn on area tracking.
 
 ## 1. Run the server
 
@@ -132,7 +145,9 @@ Open the dashboard link on the office TV and click **📺 TV mode**, or bookmark
 **Updating from an earlier version:** copy the new `extension` folder over the old one and click the ↻ reload icon on
 the extension in `chrome://extensions`. Version 1.2 adds the minute-by-minute activity log and reminders (it asks for
 the *notifications* permission). Version 1.3 notices Nextiva calls made in Chrome (it asks to run on nextiva.com).
-Days recorded before an update keep all their totals.
+Version 1.4 adds the activity level and CRM areas: it runs a tiny counter on pages (to measure keyboard/mouse activity,
+counts only) and reads the path on CRM sites you mark "show areas", so it asks to *read and change data on sites you
+visit* — it reads no page content. Days recorded before an update keep all their totals.
 
 If someone removes or disables the extension, their card turns **🔴 Offline**, unless they're on a call.
 To stop employees from removing it, force-install it with Google Admin / Chrome Enterprise policy
@@ -218,11 +233,24 @@ Categories are set on the server, never in the extension. On the dashboard (norm
 Add the CRM's own domain to the **CRM** category on day one. It drives *CRM work*, *CRM open* and *After-call work*.
 Changes apply immediately, to past days too.
 
+**Show areas (CRM).** Each category has a **show areas (CRM)** checkbox next to *counts as work*. Turn it on for your
+own CRM to see which area each person is in (Leads, Quotes, Calendar…) on the live cards and in the activity log. The
+extension sends only the first area word of the path, never record ids or names (see Privacy). Leave it off for carrier
+portals and anything whose address can contain member data.
+
+**Activity level** needs nothing to set up — it's on as soon as the extension is installed (version 1.4). The
+**Activity %** on each card and report is the share of desk time (not calls, lunch or breaks) with any keyboard or
+mouse input.
+
+**Desktop apps by name.** By default, time outside Chrome shows as *another app (outside Chrome)*. Install the optional
+helper in `native-host/` on each computer to see the app's name instead (Nextiva, Excel…). Apps appear in the activity
+log and the *CRM areas & apps* list; add an app's name under a category if you want to mark it work or not work.
+
 ## API reference
 
 | Endpoint | Key | Purpose |
 |---|---|---|
-| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}], log:[{from, to, domain, state}], calls:[{id, from, to}]}]}`. `status.call` is the call going on now, if any. Answers with the employee's own numbers (`me`) and a reminder (`nudge`) when one is due |
+| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}], log:[{from, to, domain, state, section}], calls:[{id, from, to}], activity:[{date, slot, seconds}]}]}`. `section` is the CRM area or desktop app; `activity[].seconds` is the input-active seconds in that slot. `status.call` is the call going on now; the response returns `pathDomains` (CRM sites to record the area of), `me` and `nudge`. Answers with the employee's own numbers (`me`) and a reminder (`nudge`) when one is due |
 | `POST /api/calls` | integration or admin | Call start / end (above). The dashboard's Nextiva import uses it with the admin key |
 | `POST /api/crm-events` | integration | CRM actions (above) |
 | `POST /api/counters` | integration or admin | Set counters on a card |

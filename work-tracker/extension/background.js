@@ -7,6 +7,9 @@
 // lunch…) with its start and end time.
 //
 // Phone calls made in Nextiva's Chrome tab are noticed too (see "phone calls" below).
+// For CRM sites the manager marks "show sections", a sanitized path says which
+// area is open (e.g. "leads"), with record ids removed. If a desktop-app helper
+// is installed, the app in front is named while the person is outside Chrome.
 //
 // Privacy: only the site's hostname (e.g. "humana.com") and times are stored
 // or sent. Never the full URL, page titles, page contents, form fields or
@@ -29,6 +32,7 @@ const FRESH_STATE = {
   modeSince: null,
   idle: 'active',     // active | idle | locked       (from chrome.idle)
   domain: null,       // hostname in front of the employee right now
+  section: null,      // CRM area, or (outside Chrome) the desktop app in front
   domainSince: null,
   clockIn: null,
   clockOut: null,
@@ -69,15 +73,51 @@ function hostnameOf(url) {
   return '(browser)'; // new tab, settings, extension pages
 }
 
-async function frontDomain() {
+async function front() {
   try {
     const win = await chrome.windows.getLastFocused();
-    if (!win || !win.focused) return OUTSIDE_CHROME;
+    if (!win || !win.focused) return { domain: OUTSIDE_CHROME, url: null };
     const [tab] = await chrome.tabs.query({ active: true, windowId: win.id });
-    return tab ? hostnameOf(tab.url || tab.pendingUrl) : OUTSIDE_CHROME;
+    const url = tab ? tab.url || tab.pendingUrl : null;
+    return { domain: tab ? hostnameOf(url) : OUTSIDE_CHROME, url };
   } catch {
-    return OUTSIDE_CHROME;
+    return { domain: OUTSIDE_CHROME, url: null };
   }
+}
+
+// The CRM area in front, from the path and hash. Keeps only the FIRST word-like
+// segment (letters and hyphens, 2–24 chars), skipping routing wrappers. Anything
+// with a digit is dropped, and deeper segments (where a record or a person's name
+// would sit) are never taken, so ids, member ids, dates and names stay on the
+// computer. "…/leads/4411" and "…/contacts/johnsmith" both become just the area.
+const PATH_SKIP = new Set([
+  'app', 'apps', 'index', 'home', 'main', 'default', 'dashboard',
+  'v1', 'v2', 'v3', 'api', 'public', 'web', 'portal', 'location', 'locations',
+  'account', 'accounts', 'org', 'orgs', 'workspace', 'view', 'detail', 'details',
+  'u', 's', 'p', 'c', 'r', 'e', 'd', 'id',
+]);
+function crmSection(url) {
+  try {
+    const u = new URL(url);
+    for (const seg of `${u.pathname}/${u.hash.replace(/^#!?/, '')}`.split(/[/?&=]+/)) {
+      const s = seg.trim().toLowerCase();
+      if (!/^[a-z][a-z-]{1,23}$/.test(s) || PATH_SKIP.has(s)) continue;
+      return s; // the first real area word; deeper segments are not read
+    }
+    return null;
+  } catch {
+    return null;
+  }
+}
+
+// On a CRM site marked "show sections" → the CRM area. Outside Chrome, if the
+// desktop-app helper is installed → the app in front. Otherwise nothing.
+function sectionFor(f, pathDomains, foreground) {
+  if (f.domain === OUTSIDE_CHROME) {
+    return foreground && foreground.name && Date.now() - foreground.at < 90000 ? foreground.name : null;
+  }
+  if (f.url && (pathDomains || []).some(pd => f.domain === pd || f.domain.endsWith(`.${pd}`))) return crmSection(f.url);
+  return null;
 }
 
 function segmentState(s) {
@@ -91,7 +131,9 @@ function segmentState(s) {
 function credit(s, buckets, log, from, to) {
   if (s.mode === 'off' || !s.clockIn) return;
   const state = segmentState(s);
-  const domain = state === 'active' || state === 'idle' ? s.domain || OUTSIDE_CHROME : '';
+  const onSite = state === 'active' || state === 'idle';
+  const domain = onSite ? s.domain || OUTSIDE_CHROME : '';
+  const section = onSite ? s.section || null : null;
   for (let t = from; t < to; ) {
     const slot = Math.floor(t / SLOT_MS) * SLOT_MS;
     const end = Math.min(to, slot + SLOT_MS);
@@ -101,13 +143,13 @@ function credit(s, buckets, log, from, to) {
   }
   s.totals[state] = (s.totals[state] || 0) + (to - from);
   const last = log[log.length - 1];
-  if (last && last.domain === domain && last.state === state && from - last.to < 2000) last.to = to;
-  else log.push({ from, to, domain, state });
+  if (last && last.domain === domain && last.state === state && (last.section || null) === section && from - last.to < 2000) last.to = to;
+  else log.push({ from, to, domain, state, section });
 }
 
 async function checkpoint({ idle, fresh = false } = {}) {
   const now = Date.now();
-  const stored = await chrome.storage.local.get(['state', 'buckets', 'log', 'config']);
+  const stored = await chrome.storage.local.get(['state', 'buckets', 'log', 'config', 'pathDomains', 'foreground']);
   const s = { ...FRESH_STATE, ...stored.state };
   const buckets = stored.buckets || {};
   const log = stored.log || [];
@@ -124,8 +166,9 @@ async function checkpoint({ idle, fresh = false } = {}) {
   }
 
   s.idle = idle || (await chrome.idle.queryState(IDLE_AFTER_SECONDS));
-  const domain = await frontDomain();
-  if (domain !== s.domain) Object.assign(s, { domain, domainSince: now });
+  const f = await front();
+  const section = sectionFor(f, stored.pathDomains, stored.foreground);
+  if (f.domain !== s.domain || (section || null) !== (s.section || null)) Object.assign(s, { domain: f.domain, section: section || null, domainSince: now });
   if ((await chrome.idle.queryState(15)) === 'active') s.lastActiveAt = now;
   if (s.mode === 'work' && !s.clockIn && s.idle === 'active') s.clockIn = now;
   s.lastTick = now;
@@ -169,6 +212,7 @@ function liveStatus(s, phone) {
     modeSince: s.modeSince,
     idle: s.idle,
     domain: working ? s.domain : null,
+    section: working ? s.section || null : null,
     domainSince: working ? s.domainSince : null,
     clockIn: s.clockIn,
     clockOut: s.clockOut,
@@ -304,17 +348,21 @@ function onPhoneChange(change) {
 // Move finished buckets into a batch with a unique id. The server ignores ids it
 // has already stored, so re-sending after a lost response never double-counts.
 async function sealBatch() {
-  const { buckets = {}, log = [], outbox = [], phone } = await chrome.storage.local.get(['buckets', 'log', 'outbox', 'phone']);
+  const { buckets = {}, log = [], outbox = [], phone, inputSlots = {} } = await chrome.storage.local.get(['buckets', 'log', 'outbox', 'phone', 'inputSlots']);
   const calls = (phone && phone.done) || [];
+  const activity = Object.entries(inputSlots).map(([key, seconds]) => {
+    const [date, slot] = key.split('|');
+    return { date, slot, seconds: Math.round(seconds * 10) / 10 };
+  }).filter(a => a.seconds > 0);
   const items = Object.entries(buckets)
     .map(([key, ms]) => {
       const [date, slot, domain, state] = key.split('|');
       return { date, slot, domain, state, seconds: Math.round(ms / 100) / 10 };
     })
     .filter(item => item.seconds > 0);
-  if (items.length || log.length || calls.length) outbox.push({ id: crypto.randomUUID(), items, log, calls });
+  if (items.length || log.length || calls.length || activity.length) outbox.push({ id: crypto.randomUUID(), items, log, calls, activity });
   outbox.splice(0, Math.max(0, outbox.length - MAX_OUTBOX));
-  await chrome.storage.local.set({ buckets: {}, log: [], outbox, ...(calls.length && { phone: { ...phone, done: [] } }) });
+  await chrome.storage.local.set({ buckets: {}, log: [], outbox, inputSlots: {}, ...(calls.length && { phone: { ...phone, done: [] } }) });
 }
 
 let uploading = false;
@@ -351,6 +399,8 @@ async function upload() {
         lastSync: { at: Date.now(), ok: true },
         // The employee's own day as the office counts it (calls included), for the popup.
         me: answer.me ? { ...answer.me, at: Date.now() } : null,
+        // Which CRM sites to record the area of (the manager decides on the dashboard).
+        ...(Array.isArray(answer.pathDomains) && { pathDomains: answer.pathDomains }),
       });
     });
     await nudge(answer.nudge);
@@ -389,6 +439,35 @@ chrome.notifications.onButtonClicked.addListener(async id => {
   if (MODES.includes(nudgeAction)) serial(() => setMode(nudgeAction)).then(upload);
 });
 
+// Keyboard/mouse active-seconds from a page's activity.js, added to the current slot.
+async function addInput(seconds) {
+  const now = Date.now();
+  const key = `${localDay(now)}|${localTime(Math.floor(now / SLOT_MS) * SLOT_MS)}`;
+  const { inputSlots = {} } = await chrome.storage.local.get('inputSlots');
+  inputSlots[key] = Math.min(SLOT_MS / 1000, (inputSlots[key] || 0) + seconds);
+  await chrome.storage.local.set({ inputSlots });
+}
+
+// Optional desktop-app helper (native messaging): names the app in front while
+// the person is outside Chrome. Only the app name is received, never a window
+// title or document name. If the helper isn't installed, connecting just fails
+// and the feature stays off.
+let nativePort = null;
+function connectApps() {
+  if (nativePort) return;
+  try {
+    nativePort = chrome.runtime.connectNative('com.netconnect.apptracker');
+    nativePort.onMessage.addListener(msg => {
+      const name = msg && typeof msg.app === 'string' ? msg.app.replace(/[^\w .-]/g, '').trim().slice(0, 40) : null;
+      chrome.storage.local.set({ foreground: { name: name || null, at: Date.now() } });
+    });
+    nativePort.onDisconnect.addListener(() => { nativePort = null; });
+  } catch {
+    nativePort = null;
+  }
+}
+connectApps();
+
 chrome.tabs.onActivated.addListener(() => serial(() => checkpoint()));
 chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.url && tab.active) serial(() => checkpoint());
@@ -398,7 +477,10 @@ chrome.tabs.onRemoved.addListener(tabId => onPhoneChange((p, now) => forgetTab(p
 chrome.windows.onFocusChanged.addListener(() => serial(() => checkpoint()));
 chrome.idle.onStateChanged.addListener(idle => serial(() => checkpoint({ idle })).then(upload));
 chrome.alarms.onAlarm.addListener(({ name }) => {
-  if (name === 'tick') serial(() => checkpoint()).then(() => serial(phoneTick)).then(upload);
+  if (name === 'tick') {
+    connectApps(); // the service worker may have been restarted
+    serial(() => checkpoint()).then(() => serial(phoneTick)).then(upload);
+  }
 });
 
 // Chrome was closed: nothing happened since the last tick, so don't credit the gap.
@@ -412,6 +494,10 @@ chrome.runtime.onMessage.addListener((msg, sender, reply) => {
   if (msg.type === 'phone' && sender.tab) {
     const key = `${sender.tab.id}:${sender.frameId || 0}`;
     onPhoneChange((p, now) => openSignal(p, key, Number(msg.open) || 0, now));
+    return false;
+  }
+  if (msg.type === 'input' && sender.tab) {
+    serial(() => addInput(Math.min(SLOT_MS / 1000, Number(msg.seconds) || 0)));
     return false;
   }
   if (msg.type === 'status') {

@@ -51,7 +51,7 @@ const OUTCOMES = {
 // ("Sites & categories") or in data/categories.json; the extension never changes.
 const DEFAULT_CATEGORIES = {
   categories: [
-    { name: CRM_CATEGORY, work: true },
+    { name: CRM_CATEGORY, work: true, sections: true },
     { name: 'Carrier portals', work: true },
     { name: 'Medicare', work: true },
     { name: 'Email/Calendar', work: true },
@@ -204,6 +204,9 @@ const sum = obj => Object.values(obj).reduce((a, b) => a + b, 0);
 const pad = n => String(n).padStart(2, '0');
 const cleanName = v => (typeof v === 'string' ? v.trim().replace(/\s+/g, ' ').slice(0, 60) : '');
 const cleanLabel = v => (typeof v === 'string' || typeof v === 'number' ? String(v).trim().slice(0, 100) || null : null);
+// A CRM area ("Leads / New") or a desktop app name ("Microsoft Excel"). The
+// extension already removes record ids; here we just bound it. No digits-only ids.
+const cleanSection = v => (typeof v === 'string' ? v.replace(/[^\w .\/-]/g, '').replace(/\s+/g, ' ').trim().slice(0, 40) || null : null);
 const cleanDomain = v =>
   typeof v === 'string' && /^[\w.\-:[\]() ]{1,253}$/.test(v) ? v.toLowerCase().replace(/^www\./, '') : '';
 const cleanDirection = v => {
@@ -253,6 +256,13 @@ function categoryLookup(cats) {
   };
 }
 
+// Hostnames whose category is marked "show sections": the extension sends a
+// sanitized path for these so the board can show which CRM area is open.
+function sectionDomains(cats) {
+  const on = new Set(cats.categories.filter(c => c.sections).map(c => c.name));
+  return Object.entries(cats.domains).filter(([, name]) => on.has(name)).map(([d]) => d).sort();
+}
+
 // ---------- ingest: Chrome extension ----------
 
 function addItem(id, name, item) {
@@ -272,6 +282,18 @@ function addItem(id, name, item) {
   changed(`days/${item.date}.json`);
 }
 
+// Activity level: the seconds in a 5-minute slot that had any keyboard or mouse
+// input. Counts only; never which keys or where the mouse went.
+function addActivity(id, name, a) {
+  if (!a || !DATE_RE.test(a.date) || !SLOT_RE.test(a.slot)) return;
+  const seconds = Number(a.seconds);
+  if (!(seconds > 0)) return;
+  const emp = employeeOn(a.date, id, name);
+  const slot = (emp.slots[a.slot] ||= { s: {}, d: {} });
+  slot.input = Math.min(SLOT_SECONDS, (slot.input || 0) + seconds);
+  changed(`days/${a.date}.json`);
+}
+
 // The activity log: one entry per unbroken stretch on one site, or idle, lunch…
 // Stored compactly as [from, to, domain, state]. A stretch the extension sent in
 // pieces (it uploads every minute) is joined back into one entry.
@@ -281,13 +303,15 @@ function addLogEntry(id, name, entry, skew) {
   const to = Math.round(Number(entry.to) + skew);
   if (!(from > 1e12 && to > from && to - from <= 864e5 && to <= Date.now() + 60000)) return;
   const domain = entry.state === 'active' || entry.state === 'idle' ? cleanDomain(entry.domain) : '';
+  // Section: the CRM area, or (outside Chrome) the desktop app name.
+  const section = entry.state === 'active' || entry.state === 'idle' ? cleanSection(entry.section) : null;
   const date = localDate(from);
   const emp = employeeOn(date, id, name);
   const last = emp.log[emp.log.length - 1];
-  if (last && last[2] === domain && last[3] === entry.state && from >= last[0] && from - last[1] < 5000) {
+  if (last && last[2] === domain && last[3] === entry.state && (last[4] || null) === section && from >= last[0] && from - last[1] < 5000) {
     last[1] = Math.max(last[1], to);
   } else if (emp.log.length < MAX_LOG) {
-    emp.log.push([from, to, domain, entry.state]);
+    emp.log.push(section ? [from, to, domain, entry.state, section] : [from, to, domain, entry.state]);
   }
   changed(`days/${date}.json`);
 }
@@ -330,6 +354,7 @@ function updateStatus(id, name, st, skew, version) {
     modeSince: at(st.modeSince),
     idle: ['active', 'idle', 'locked'].includes(st.idle) ? st.idle : 'active',
     domain: st.mode === 'work' ? cleanDomain(st.domain) || null : null,
+    section: st.mode === 'work' ? cleanSection(st.section) : null,
     domainSince: at(st.domainSince),
     clockIn: at(st.clockIn),
     clockOut: at(st.clockOut),
@@ -365,11 +390,12 @@ function ingestActivity(body) {
       for (const item of Array.isArray(batch.items) ? batch.items.slice(0, 2000) : []) addItem(id, name, item);
       for (const entry of Array.isArray(batch.log) ? batch.log.slice(0, 2000) : []) addLogEntry(id, name, entry, skew);
       for (const call of Array.isArray(batch.calls) ? batch.calls.slice(0, 200) : []) addChromeCall(name, call, skew);
+      for (const a of Array.isArray(batch.activity) ? batch.activity.slice(0, 2000) : []) addActivity(id, name, a);
     }
     accepted.push(batch.id); // already-stored batches are acknowledged, not re-counted
   }
   updateStatus(id, name, body.status, skew, body.version);
-  return { ok: true, accepted, serverTime: Date.now(), ...forEmployee(id) };
+  return { ok: true, accepted, serverTime: Date.now(), pathDomains: sectionDomains(categoriesDoc()), ...forEmployee(id) };
 }
 
 // The employee's own numbers for the extension popup (same counting as the
@@ -386,6 +412,7 @@ function forEmployee(id) {
     date,
     working: r.working,
     productivity: r.productivity,
+    activity: r.activity,
     idleAway: t.idle + t.away,
     lunchBreak: t.lunch + t.break,
     nonWork: t.nonWork,
@@ -624,6 +651,7 @@ function live(st, info, lookup, now) {
     ...base,
     state: 'working',
     domain: st.domain,
+    section: st.section || null,
     category: category && category.name,
     work: category ? category.work : null,
     since: st.domainSince,
@@ -635,6 +663,8 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
   const phone = phoneTime(emp, info, date, now);
   const acc = { call: 0, wrap: 0, work: 0, nonWork: 0, unreviewed: 0, meeting: 0, idle: 0, away: 0, lunch: 0, break: 0 };
   const byCategory = {};
+  let inputSec = 0;
+  let deskSec = 0; // desk time (active + idle, after calls take their minutes) — the denominator for activity level
   const slots = [...new Set([...Object.keys(emp.slots), ...Object.keys(phone.calls), ...Object.keys(phone.wrap)])].sort();
 
   const timeline = slots.flatMap(slot => {
@@ -649,6 +679,9 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
       parts[!category ? 'unreviewed' : category.work ? 'work' : 'nonWork'] += secs;
     }
     parts.work += Math.max(0, (m.s.active || 0) - sum(m.d)); // active time without a site still counts
+    const desk = (m.s.active || 0) + (m.s.idle || 0);
+    deskSec += desk;
+    inputSec += Math.min((emp.slots[slot] || {}).input || 0, desk);
     for (const k of ['work', 'nonWork', 'unreviewed', 'idle', 'away']) acc[k] += parts[k];
     for (const k of ['meeting', 'lunch', 'break']) acc[k] += m.s[k] || 0;
     acc.work -= m.s.meeting || 0;
@@ -707,6 +740,9 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
     loggedIn: clockIn && end ? Math.max(0, (end - clockIn) / 1000) : 0,
     working,
     productivity: counted >= 300 ? working / counted : null,
+    activity: deskSec >= 300 ? Math.min(1, inputSec / deskSec) : null,
+    activeInput: inputSec,
+    deskSec,
     totals: acc,
     activities,
     calls: {
@@ -843,18 +879,26 @@ function personReport(date, id) {
   r.shift = shiftFor(id, date, settings);
 
   const log = (emp.log || [])
-    .map(([from, to, domain, state]) => {
+    .map(([from, to, domain, state, section]) => {
       const category = domain ? lookup(domain) : null;
-      return { from, to, state, domain, category: category && category.name, work: category ? category.work : null };
+      return { from, to, state, domain, section: section || null, category: category && category.name, work: category ? category.work : null };
     })
     .sort((a, b) => a.from - b.from);
+  // Time per CRM area and per desktop app, from the log.
+  const sections = {};
+  for (const e of log) {
+    if (!e.section || (e.state !== 'active' && e.state !== 'idle')) continue;
+    const label = e.domain === '(outside chrome)' ? e.section : `${e.category === CRM_CATEGORY ? 'CRM' : e.category || e.domain}: ${e.section}`;
+    add(sections, label, (e.to - e.from) / 1000);
+  }
+  const sectionList = Object.entries(sections).map(([name, seconds]) => ({ name, seconds })).sort((a, b) => b.seconds - a.seconds);
   const calls = effectiveCalls(emp.calls).map(c => ({ from: c.start, to: c.end, outcome: c.outcome, direction: c.direction, recordId: c.recordId, source: c.source || null }));
   const [dayStart, dayEnd] = dayBounds(date);
   if (r.live.state === 'call' && r.live.since < dayEnd && now > dayStart) {
     calls.push({ from: r.live.since, to: now, live: true, direction: r.live.direction, source: r.live.source });
   }
   calls.sort((a, b) => a.from - b.from);
-  return { date, serverTime: now, afterCallMs: AFTER_CALL_MS, employee: r, log, calls };
+  return { date, serverTime: now, afterCallMs: AFTER_CALL_MS, pathDomains: sectionDomains(cats), employee: r, log, calls, sections: sectionList };
 }
 
 function* datesBetween(from, to) {
@@ -901,6 +945,8 @@ function rangeReport(from, to) {
         loggedIn: r.loggedIn,
         working: r.working,
         productivity: r.productivity,
+        activeInput: r.activeInput,
+        deskSec: r.deskSec,
         calls: r.calls.count,
         connected: r.calls.connected,
         handled: r.calls.handled,
@@ -928,7 +974,7 @@ function rangeReport(from, to) {
     }
   }
 
-  const SUMMED = ['loggedIn', 'working', 'calls', 'connected', 'handled', 'talk', 'wrap', 'crmActions', 'idle', 'away', 'lunch', 'break', 'meeting', 'nonWork', 'unreviewed'];
+  const SUMMED = ['loggedIn', 'working', 'activeInput', 'deskSec', 'calls', 'connected', 'handled', 'talk', 'wrap', 'crmActions', 'idle', 'away', 'lunch', 'break', 'meeting', 'nonWork', 'unreviewed'];
   const result = [...people.values()].map(p => {
     const totals = Object.fromEntries(SUMMED.map(k => [k, p.days.reduce((s, d) => s + (d[k] || 0), 0)]));
     const counted = totals.working + totals.nonWork + totals.idle + totals.away;
@@ -947,6 +993,7 @@ function rangeReport(from, to) {
       missedDays: missed,
       totals,
       productivity: counted >= 300 ? totals.working / counted : null,
+      activity: totals.deskSec >= 300 ? Math.min(1, totals.activeInput / totals.deskSec) : null,
       avgHandle: totals.handled ? (totals.talk + totals.wrap) / totals.handled : null,
       activities: Object.values(p.activities).filter(a => a.seconds >= 60).sort((a, b) => b.seconds - a.seconds),
       topSites: Object.entries(p.sites)
@@ -1014,7 +1061,7 @@ function saveCategories(body) {
   const categories = [];
   for (const c of list.slice(0, 50)) {
     const name = cleanName(c && c.name).slice(0, 40);
-    if (name && !categories.some(x => x.name === name)) categories.push({ name, work: c.work !== false });
+    if (name && !categories.some(x => x.name === name)) categories.push({ name, work: c.work !== false, ...(c.sections ? { sections: true } : {}) });
   }
   if (!categories.length) throw httpError(400, 'At least one category is required');
   const domains = {};

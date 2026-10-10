@@ -20,7 +20,9 @@ function describe(s, phone) {
   const started = `Clocked in ${clock(s.clockIn)}`;
   if (s.idle === 'locked') return ['🔒 Computer locked', started];
   if (s.idle === 'idle') return ['🟡 Idle', started];
-  return ['🟢 Working', `${s.domain === '(outside chrome)' ? 'Another app (outside Chrome)' : s.domain} · ${started}`];
+  const where = s.domain === '(outside chrome)' ? (s.section ? `${s.section} (outside Chrome)` : 'Another app (outside Chrome)')
+    : s.section ? `${s.domain} · ${s.section}` : s.domain;
+  return ['🟢 Working', `${where} · ${started}`];
 }
 
 async function render(s) {
@@ -41,6 +43,7 @@ async function render(s) {
   $('score').textContent = office
     ? [
         office.productivity != null ? `Productive ${Math.round(office.productivity * 100)}%` : '',
+        office.activity != null ? `Activity ${Math.round(office.activity * 100)}%` : '',
         office.calls ? `${office.calls} call${office.calls === 1 ? '' : 's'}` : '',
         office.crmActions ? `${office.crmActions} CRM actions` : '',
       ].filter(Boolean).join(' · ')

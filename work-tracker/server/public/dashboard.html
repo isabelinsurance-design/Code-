@@ -83,7 +83,7 @@ a.name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .detail { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
 .detail.muted { color: var(--ink-2); }
 .clock { color: var(--muted); font-size: 13px; }
-.tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
+.tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
 .tile { padding: 8px 9px; border-radius: 10px; background: var(--page); min-width: 0; }
 .tile b { display: block; font-size: 18px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
 .tile span { font-size: 12px; color: var(--muted); }
@@ -342,10 +342,12 @@ function liveLine(l) {
   switch (l.state) {
     case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : l.source === 'chrome' ? 'Nextiva call (in Chrome)' : 'Phone call', ...crm]];
     case 'acw': return [`🟢 After-call work ${since(l.since)}`, ['wrapping up the last call', ...crm]];
-    case 'working':
-      if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [site(l.domain)]];
-      if (!l.category) return [`🟢 Working ${since(l.since)}`, [`${site(l.domain)} (not categorized)`, ...crm]];
-      return [`🟢 ${l.category === 'CRM' ? 'CRM work' : l.category} ${since(l.since)}`, [site(l.domain), ...crm]];
+    case 'working': {
+      const where = l.domain === '(outside chrome)' && l.section ? l.section : l.section ? `${site(l.domain)} · ${l.section}` : site(l.domain);
+      if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [where]];
+      if (!l.category) return [`🟢 Working ${since(l.since)}`, [`${where} (not categorized)`, ...crm]];
+      return [`🟢 ${l.category === 'CRM' ? 'CRM work' : l.category} ${since(l.since)}`, [where, ...crm]];
+    }
     case 'meeting': return [`👥 Meeting / training ${since(l.since)}`, [l.since ? `since ${clock(l.since)}` : '']];
     case 'idle': return [`🟡 Idle ${since(l.since)}`, ['no keyboard or mouse for 5+ min', ...crm]];
     case 'away': return [`🔒 Away ${since(l.since)}`, ['computer locked']];
@@ -475,6 +477,7 @@ function card(e) {
     <div class="tiles">
       <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
       <div class="tile"><b>${pct(e.productivity)}</b><span>Productive</span></div>
+      ${e.activity != null ? `<div class="tile"><b>${pct(e.activity)}</b><span>Activity</span></div>` : ''}
       <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
       <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch/break</span></div>
     </div>
@@ -540,10 +543,11 @@ function logRow(x) {
         : [x.outcome && x.outcome.replace('-', ' '), x.recordId && `record ${x.recordId}`].filter(Boolean).join(' · ');
       break;
     case 'active':
-      what = site(x.domain) || 'Unknown site';
+      what = x.domain === '(outside chrome)' && x.section ? x.section : site(x.domain) || 'Unknown site';
       notes = !x.category ? 'Not categorized' : x.work === false && !/not work/i.test(x.category) ? `${x.category} (not work)` : x.category;
+      if (x.section && x.domain !== '(outside chrome)') notes = `${notes} · ${x.section}`;
       break;
-    case 'idle': what = 'Idle'; notes = x.domain ? `no keyboard or mouse · ${site(x.domain)} in front` : 'no keyboard or mouse'; break;
+    case 'idle': what = 'Idle'; notes = x.domain ? `no keyboard or mouse · ${(x.domain === '(outside chrome)' && x.section ? x.section : site(x.domain))} in front` : 'no keyboard or mouse'; break;
     case 'away': what = 'Computer locked'; notes = ''; break;
     case 'lunch': what = '🍴 Lunch'; notes = ''; break;
     case 'break': what = '☕ Break'; notes = ''; break;
@@ -643,6 +647,7 @@ function personView() {
           <div class="tile"><b>${dur(e.loggedIn)}</b><span>Logged in</span></div>
           <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
           <div class="tile"><b>${pct(e.productivity)}</b><span>Productive</span></div>
+          <div class="tile"><b>${pct(e.activity)}</b><span>Activity</span></div>
           <div class="tile"><b>${dur(t.idle + t.away)}</b><span>Idle / away</span></div>
           <div class="tile"><b>${dur(t.lunch + t.break)}</b><span>Lunch / break</span></div>
           <div class="tile"><b>${dur(t.nonWork)}</b><span>Not work</span></div>
@@ -658,6 +663,10 @@ function personView() {
         <h3 class="sec">Where the time went</h3>
         <p class="hint">${esc(callLine)}</p>
         ${bars(e.activities) || '<p class="note">No activity yet.</p>'}
+        ${e.activity != null ? `<p class="note" style="margin-top:8px">Activity level ${pct(e.activity)} — share of desk time (not calls, lunch or breaks) with keyboard or mouse input.</p>` : ''}
+        ${person.sections && person.sections.length ? `<h3 class="sec">CRM areas &amp; apps</h3>
+          <div class="tablewrap"><table><tr><th>Where</th><th class="n">Time</th></tr>
+          ${person.sections.map(x => `<tr><td>${esc(x.name)}</td><td class="n">${dur(x.seconds)}</td></tr>`).join('')}</table></div>` : ''}
         <div style="margin-top:12px">${sitesTable(e.domains, false)}</div>
       </section>
       ${activityLog(person)}
@@ -709,13 +718,13 @@ function reportsView() {
     <p class="hint">Productive = working ÷ (working + not work + idle + away). Lunch, breaks and sites not categorized yet don't count against anyone.</p>
     ${legend()}
     <div class="tablewrap"><table>
-      <tr><th>Employee</th><th class="n">Days</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th>Time split</th>
+      <tr><th>Employee</th><th class="n">Days</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th class="n">Activity</th><th>Time split</th>
         <th class="n">Idle / away</th><th class="n">Lunch / break</th><th class="n">Not work</th><th class="n">Calls</th><th class="n">Avg handle</th>
         <th class="n">CRM actions</th><th class="n">Late</th><th class="n">Missed</th></tr>
       ${people.map(p => {
         const t = p.totals;
         return `<tr><td><b>${esc(p.name)}</b></td><td class="n">${p.daysWorked}</td><td class="n">${dur(t.loggedIn)}</td><td class="n">${dur(t.working)}</td>
-          <td class="n">${pct(p.productivity)}</td><td style="min-width:140px;vertical-align:middle">${splitBar(t)}</td>
+          <td class="n">${pct(p.productivity)}</td><td class="n">${pct(p.activity)}</td><td style="min-width:140px;vertical-align:middle">${splitBar(t)}</td>
           <td class="n">${dur(t.idle + t.away)}</td><td class="n">${dur(t.lunch + t.break)}</td><td class="n">${dur(t.nonWork)}</td>
           <td class="n">${t.calls}</td><td class="n">${p.avgHandle ? minSec(p.avgHandle) : '–'}</td><td class="n">${t.crmActions}</td>
           <td class="n">${p.lateDays || ''}</td><td class="n">${p.missedDays || ''}</td></tr>`;
@@ -726,11 +735,11 @@ function reportsView() {
     <p class="hint">Click a day to open that person's minute-by-minute activity log.</p>
     ${people.map(p => `<details class="ts"><summary>${esc(p.name)} · ${p.daysWorked} day${p.daysWorked === 1 ? '' : 's'} · ${dur(p.totals.working)} working</summary>
       <div class="tablewrap"><table>
-        <tr><th>Day</th><th>In</th><th>Out</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th class="n">Idle / away</th>
+        <tr><th>Day</th><th>In</th><th>Out</th><th class="n">Logged in</th><th class="n">Working</th><th class="n">Productive</th><th class="n">Activity</th><th class="n">Idle / away</th>
           <th class="n">Lunch / break</th><th class="n">Not work</th><th class="n">Calls</th><th class="n">CRM</th><th>Late</th></tr>
         ${p.days.map(d => `<tr><td>${personLink(p.id, shortDate(d.date), d.date)}</td><td class="when">${d.clockIn ? clock(d.clockIn) : '–'}</td>
           <td class="when">${d.clockOut ? clock(d.clockOut) : '–'}</td><td class="n">${dur(d.loggedIn)}</td><td class="n">${dur(d.working)}</td>
-          <td class="n">${pct(d.productivity)}</td><td class="n">${dur(d.idle + d.away)}</td><td class="n">${dur(d.lunch + d.break)}</td>
+          <td class="n">${pct(d.productivity)}</td><td class="n">${pct(d.deskSec >= 300 ? Math.min(1, d.activeInput / d.deskSec) : null)}</td><td class="n">${dur(d.idle + d.away)}</td><td class="n">${dur(d.lunch + d.break)}</td>
           <td class="n">${dur(d.nonWork)}</td><td class="n">${d.calls}</td><td class="n">${d.crmActions}</td>
           <td>${d.lateMinutes != null ? `<i class="sdot warning"></i> ${dur(d.lateMinutes * 60)} late` : ''}</td></tr>`).join('')}
       </table></div>
@@ -778,19 +787,19 @@ function exportCsv(kind) {
   const people = range.employees;
   if (kind === 'timesheet') {
     downloadCsv(`timesheet_${rangeFrom}_to_${rangeTo}.csv`, [
-      ['Employee', 'Date', 'Clock in', 'Clock out', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Idle/away (h)', 'Lunch (h)', 'Break (h)',
+      ['Employee', 'Date', 'Clock in', 'Clock out', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Activity (%)', 'Idle/away (h)', 'Lunch (h)', 'Break (h)',
         'Not work (h)', 'Calls', 'Connected', 'CRM actions', 'Late (min)'],
       ...people.flatMap(p => p.days.map(d => [p.name, d.date, time24(d.clockIn), time24(d.clockOut), hours(d.loggedIn), hours(d.working),
-        percent(d.productivity), hours(d.idle + d.away), hours(d.lunch), hours(d.break), hours(d.nonWork), d.calls, d.connected, d.crmActions,
+        percent(d.productivity), percent(d.deskSec >= 300 ? Math.min(1, d.activeInput / d.deskSec) : null), hours(d.idle + d.away), hours(d.lunch), hours(d.break), hours(d.nonWork), d.calls, d.connected, d.crmActions,
         d.lateMinutes ?? ''])),
     ]);
   } else {
     downloadCsv(`summary_${rangeFrom}_to_${rangeTo}.csv`, [
-      ['Employee', 'Days worked', 'Late days', 'Missed shifts', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Idle/away (h)', 'Lunch/break (h)',
+      ['Employee', 'Days worked', 'Late days', 'Missed shifts', 'Logged in (h)', 'Working (h)', 'Productive (%)', 'Activity (%)', 'Idle/away (h)', 'Lunch/break (h)',
         'Not work (h)', 'Calls', 'Connected', 'Avg handle (min)', 'CRM actions'],
       ...people.map(p => {
         const t = p.totals;
-        return [p.name, p.daysWorked, p.lateDays, p.missedDays, hours(t.loggedIn), hours(t.working), percent(p.productivity), hours(t.idle + t.away),
+        return [p.name, p.daysWorked, p.lateDays, p.missedDays, hours(t.loggedIn), hours(t.working), percent(p.productivity), percent(p.activity), hours(t.idle + t.away),
           hours(t.lunch + t.break), hours(t.nonWork), t.calls, t.connected, p.avgHandle ? Math.round((p.avgHandle / 60) * 10) / 10 : '', t.crmActions];
       }),
     ]);
@@ -820,6 +829,7 @@ function categoriesPanel() {
     const domains = Object.keys(cats.domains).filter(d => cats.domains[d] === c.name).sort();
     return `<div class="cat"><h3>${esc(c.name)}
         <label><input type="checkbox" data-work="${i}" ${c.work ? 'checked' : ''}> counts as work</label>
+        <label><input type="checkbox" data-sections="${i}" ${c.sections ? 'checked' : ''}> show areas (CRM)</label>
         ${domains.length ? '' : `<button class="btn" data-delcat="${i}" style="padding:2px 8px;font-size:12px">Remove</button>`}</h3>
       <div class="chips">${domains.map(d => `<span class="chip">${esc(site(d))}<button title="Remove" data-unassign="${esc(d)}">×</button></span>`).join('') || '<span class="hint">No sites yet</span>'}</div></div>`;
   }).join('');
@@ -1235,6 +1245,8 @@ document.addEventListener('change', ev => {
     saveCats({ ...cats, domains: { ...cats.domains, [el.dataset.assign]: el.value } });
   } else if (el.dataset.work !== undefined) {
     saveCats({ ...cats, categories: cats.categories.map((c, i) => (i === Number(el.dataset.work) ? { ...c, work: el.checked } : c)) });
+  } else if (el.dataset.sections !== undefined) {
+    saveCats({ ...cats, categories: cats.categories.map((c, i) => (i === Number(el.dataset.sections) ? { ...c, sections: el.checked } : c)) });
   }
 });
 

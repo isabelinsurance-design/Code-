@@ -1,0 +1,7 @@
+{
+  "name": "com.netconnect.apptracker",
+  "description": "NetConnect Work Tracker desktop-app helper (names the app in front, nothing else)",
+  "path": "apptracker.bat",
+  "type": "stdio",
+  "allowed_origins": ["chrome-extension://REPLACE_WITH_EXTENSION_ID/"]
+}

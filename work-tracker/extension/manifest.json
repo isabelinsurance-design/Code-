@@ -1,9 +1,9 @@
 {
   "manifest_version": 3,
   "name": "NetConnect Work Tracker",
-  "version": "1.3.0",
-  "description": "Records which work sites are in use, when and for how long, and calls made in Nextiva. Site name and times only, never page contents.",
-  "permissions": ["tabs", "idle", "storage", "alarms", "notifications"],
+  "version": "1.4.0",
+  "description": "Records which work sites are in use, when and for how long, calls made in Nextiva, and keyboard/mouse activity level. Names and counts only, never page contents or keystrokes.",
+  "permissions": ["tabs", "idle", "storage", "alarms", "notifications", "nativeMessaging"],
   "content_scripts": [
     {
       "matches": ["https://*.nextiva.com/*"],
@@ -19,6 +19,11 @@
       "run_at": "document_start",
       "all_frames": true,
       "match_origin_as_fallback": true
+    },
+    {
+      "matches": ["<all_urls>"],
+      "js": ["activity.js"],
+      "run_at": "document_idle"
     }
   ],
   "background": {
