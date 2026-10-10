@@ -445,6 +445,27 @@ case 'luna_whoami':
     ]);
     break;
 
+// ── COSTO DIARIO — cuánto ha gastado LUNA hoy en llamadas a Anthropic ──
+case 'luna_cost_status':
+    $cf = __DIR__ . '/luna_cost_today.json';
+    $tk = date('Y-m-d');
+    $cd = is_file($cf) ? (json_decode(file_get_contents($cf), true) ?: []) : [];
+    $cap = (float)(getenv('LUNA_COST_DAILY_CAP')
+        ?: (defined('LUNA_COST_DAILY_CAP') ? LUNA_COST_DAILY_CAP : 2.00));
+    if (($cd['date'] ?? '') !== $tk) {
+        $cd = ['date' => $tk, 'cost_usd' => 0.0, 'calls' => 0, 'last_model' => ''];
+    }
+    ok([
+        'date'       => $cd['date'],
+        'cost_usd'   => round((float)($cd['cost_usd'] ?? 0), 6),
+        'calls'      => (int)($cd['calls'] ?? 0),
+        'cap_usd'    => $cap,
+        'pct_used'   => $cap > 0 ? round(($cd['cost_usd'] ?? 0) / $cap * 100, 1) : null,
+        'last_model' => $cd['last_model'] ?? '',
+        'remaining'  => $cap > 0 ? round(max(0, $cap - ($cd['cost_usd'] ?? 0)), 4) : null,
+    ]);
+    break;
+
 // ── LUNA CHAT — proxy a Anthropic (la API key vive en el servidor) ──
 // El browser ya NO lleva la API key. Llama aquí; reenviamos a Anthropic
 // con la key del servidor y devolvemos el mismo stream SSE tal cual,
@@ -483,6 +504,29 @@ case 'luna_chat':
         if (++$_SESSION['_chat_n'] > $chatCap) {
             err("Se alcanzó el límite diario del chat ($chatCap consultas). Vuelve mañana o ajusta LUNA_CHAT_DAILY_CAP.", 429);
         }
+    }
+
+    // ── TOPE DIARIO DE COSTO EN DÓLARES ──────────────────────────────────────────
+    // LUNA_COST_DAILY_CAP (env o constante): límite en USD/día. Default: $2.00.
+    // Cuando se alcanza, LUNA muestra un mensaje claro y se detiene hasta mañana.
+    // Ajústalo en luna_config.php: define('LUNA_COST_DAILY_CAP', 5.00);
+    $costCapUsd = (float)(getenv('LUNA_COST_DAILY_CAP')
+        ?: (defined('LUNA_COST_DAILY_CAP') ? LUNA_COST_DAILY_CAP : 2.00));
+    $costFile = __DIR__ . '/luna_cost_today.json';
+    $todayKey = date('Y-m-d');
+    $costData = [];
+    if (is_file($costFile)) { $costData = json_decode(file_get_contents($costFile), true) ?: []; }
+    if (($costData['date'] ?? '') !== $todayKey) {
+        $costData = ['date' => $todayKey, 'cost_usd' => 0.0, 'calls' => 0, 'last_model' => ''];
+    }
+    if ($costCapUsd > 0 && $costData['cost_usd'] >= $costCapUsd) {
+        $spent = number_format($costData['cost_usd'], 4);
+        echo "event: error\ndata: " . json_encode([
+            'error' => "⚠️ Límite diario alcanzado. Gasto hoy: \$$spent / límite \$$costCapUsd. "
+                     . "LUNA se reactiva mañana automáticamente. "
+                     . "Para subir el límite, agrega define('LUNA_COST_DAILY_CAP', 5.00); en luna_config.php"
+        ]) . "\n\n";
+        exit;
     }
 
     $apiKey = getenv('ANTHROPIC_API_KEY')
@@ -551,9 +595,20 @@ case 'luna_chat':
     }
     unset($_m);
 
-    // Modelo configurable con LUNA_AI_MODEL (env o constante) sin tocar código.
-    $aiModel = trim((string)(getenv('LUNA_AI_MODEL')
-        ?: (defined('LUNA_AI_MODEL') ? LUNA_AI_MODEL : ''))) ?: 'claude-sonnet-4-6';
+    // ── SELECCIÓN DE MODELO: HAIKU (rápido/barato) vs SONNET (lento/poderoso) ─────
+    // El frontend manda model_tier='fast' (haiku, default) o 'smart' (sonnet).
+    // LUNA_AI_MODEL en config/env hace override total (para pruebas o cambios de precio).
+    // Precios aproximados por turno típico (~3k tokens entrada, ~500 salida):
+    //   Haiku 3.5:   ~$0.001  — ideal para Q&A, briefings, consultas rápidas
+    //   Sonnet 4.6:  ~$0.010  — para análisis profundo, escritura, compliance
+    $overrideModel = trim((string)(getenv('LUNA_AI_MODEL')
+        ?: (defined('LUNA_AI_MODEL') ? LUNA_AI_MODEL : '')));
+    if ($overrideModel) {
+        $aiModel = $overrideModel;
+    } else {
+        $reqTier = strtolower(trim((string)($body['model_tier'] ?? 'fast')));
+        $aiModel = ($reqTier === 'smart') ? 'claude-sonnet-4-6' : 'claude-haiku-3-5';
+    }
     $reqBody = [
         'model'      => $aiModel,
         'max_tokens' => $maxTok,
@@ -608,9 +663,45 @@ case 'luna_chat':
 
     // Registro de diagnóstico del chat (visible en luna_diag.php): qué devolvió Anthropic.
     @file_put_contents(__DIR__ . '/luna_chat_last.log',
-        date('c') . " | http=$code | curl_err=" . ($cerr ?: '-') . " | len=" . strlen((string)$resp)
+        date('c') . " | model=$aiModel | http=$code | curl_err=" . ($cerr ?: '-') . " | len=" . strlen((string)$resp)
         . " | head=" . str_replace(["\r", "\n"], ' ', mb_substr((string)$resp, 0, 600)) . "\n",
         FILE_APPEND);
+
+    // ── RASTREO DE COSTO: parsea tokens del stream y actualiza el contador diario ─
+    // Solo se contabiliza si la llamada fue exitosa (HTTP 200).
+    if ($resp !== false && $code < 400) {
+        $inTok = 0; $outTok = 0;
+        foreach (explode("\n", $resp) as $_line) {
+            if (!str_starts_with($_line, 'data: ')) continue;
+            $_evt = json_decode(substr($_line, 6), true);
+            if (!is_array($_evt)) continue;
+            if (($_evt['type'] ?? '') === 'message_start' && isset($_evt['message']['usage'])) {
+                $inTok  = (int)($_evt['message']['usage']['input_tokens']  ?? 0);
+                $outTok = (int)($_evt['message']['usage']['output_tokens'] ?? 0);
+            } elseif (($_evt['type'] ?? '') === 'message_delta' && isset($_evt['usage'])) {
+                $outTok = (int)($_evt['usage']['output_tokens'] ?? $outTok);
+            }
+        }
+        // Precios por token (USD). Haiku ~10x más barato que Sonnet.
+        static $_rates = [
+            'claude-haiku-3-5'  => ['in' => 0.80e-6, 'out' => 4.00e-6],
+            'claude-haiku-3'    => ['in' => 0.25e-6, 'out' => 1.25e-6],
+            'claude-sonnet-4-6' => ['in' => 3.00e-6, 'out' => 15.00e-6],
+            'claude-sonnet-4-5' => ['in' => 3.00e-6, 'out' => 15.00e-6],
+            'claude-opus-4'     => ['in' => 15.0e-6, 'out' => 75.00e-6],
+        ];
+        $_r = $_rates[$aiModel] ?? ['in' => 3.00e-6, 'out' => 15.00e-6];
+        $callCost = $inTok * $_r['in'] + $outTok * $_r['out'];
+
+        if (($costData['date'] ?? '') !== $todayKey) {
+            $costData = ['date' => $todayKey, 'cost_usd' => 0.0, 'calls' => 0, 'last_model' => ''];
+        }
+        $costData['cost_usd'] += $callCost;
+        $costData['calls']++;
+        $costData['last_model'] = $aiModel;
+        $costData['last_tokens'] = ['in' => $inTok, 'out' => $outTok];
+        @file_put_contents($costFile, json_encode($costData, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE));
+    }
 
     if ($resp === false) {
         echo "event: error\ndata: " . json_encode(['error' => 'No se pudo conectar a Anthropic: ' . $cerr]) . "\n\n";

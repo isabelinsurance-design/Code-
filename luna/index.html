@@ -508,6 +508,8 @@ html,body { background:var(--bg);color:var(--t1);font-family:var(--font);min-hei
       <div style="display:flex;align-items:center;gap:8px;padding:9px 16px;border-bottom:1px solid var(--border);background:var(--panel);flex-shrink:0;">
         <span style="font-size:10px;font-weight:800;letter-spacing:.6px;text-transform:uppercase;color:var(--t3);">Hablando con</span>
         <select id="agentSelect" onchange="openWorkspace(this.value)" style="padding:6px 10px;border-radius:10px;background:var(--ink);border:1px solid var(--border);font-family:var(--font);font-size:13px;font-weight:700;color:var(--t1);cursor:pointer;"></select>
+        <span id="modelBadge" title="Modelo de IA activo" style="margin-left:auto;font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:20px;background:var(--ink);border:1px solid var(--border);color:var(--t3);cursor:default;"></span>
+        <span id="costBadge" title="Gasto en IA hoy" style="font-size:10px;font-weight:700;letter-spacing:.4px;padding:3px 8px;border-radius:20px;background:var(--ink);border:1px solid var(--border);color:var(--t3);cursor:pointer;" onclick="showCostDetail()"></span>
       </div>
       <div class="chat-area" id="chatArea"></div>
       <div class="chat-footer">
@@ -714,7 +716,7 @@ const AGENTS = [
      Conoce todos los subagentes y sabe cuándo usar cada uno.
   ════════════════════════════════════════════════════════ */
   {
-    id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA', webSearch:true,
+    id:'luna_main', cat:'principal', emoji:'🌙', name:'LUNA', webSearch:true, model_tier:'fast',
     color:'#8b6f47', colorS:'rgba(139,111,71,.12)',
     desc:'El cerebro de tu negocio — háblale en lenguaje natural, ella decide qué hacer y a qué subagente consultar',
     quick:[
@@ -766,7 +768,7 @@ ${OP}`
      🎛️ CENTRO DE COMANDO — Tareas multi-paso con plan
   ════════════════════════════════════════════════════════ */
   {
-    id:'comando', cat:'principal', emoji:'🎛️', name:'Centro de Comando',
+    id:'comando', cat:'principal', emoji:'🎛️', name:'Centro de Comando', model_tier:'fast',
     color:'#6741d9', colorS:'rgba(103,65,217,.10)',
     desc:'Para tareas que requieren múltiples acciones — LUNA planifica, tú apruebas, ella ejecuta',
     quick:[
@@ -842,7 +844,7 @@ ${OP}`
      📊 ANALISTA — Datos del negocio (Analítico+Comisiones+CRM+Metas)
   ════════════════════════════════════════════════════════ */
   {
-    id:'analista', cat:'inteligencia', emoji:'📊', name:'Analista', webSearch:true,
+    id:'analista', cat:'inteligencia', emoji:'📊', name:'Analista', webSearch:true, model_tier:'smart',
     color:'#0097a7', colorS:'rgba(0,151,167,.10)',
     desc:'Todo lo de datos: pipeline, comisiones, metas, métricas y proyecciones del negocio',
     adminOnly: ['comisiones'], // 🔒 comisiones = Isabel only
@@ -915,7 +917,7 @@ ${OP}`
      ✍️ ESTUDIO CREATIVO — Todo el contenido (Contenido+Redes)
   ════════════════════════════════════════════════════════ */
   {
-    id:'estudio', cat:'contenido', emoji:'✍️', name:'Estudio Creativo', webSearch:true,
+    id:'estudio', cat:'contenido', emoji:'✍️', name:'Estudio Creativo', webSearch:true, model_tier:'smart',
     color:'#c2185b', colorS:'rgba(194,24,91,.10)',
     desc:'Crea todo el contenido: redes sociales, emails, scripts, presentaciones, videos — todo CMS-compliant',
     quick:[
@@ -999,7 +1001,7 @@ ${OP}`
      ⚖️ COMPLIANCE — Guardián de la licencia
   ════════════════════════════════════════════════════════ */
   {
-    id:'compliance', cat:'operaciones', emoji:'⚖️', name:'Compliance', webSearch:true,
+    id:'compliance', cat:'operaciones', emoji:'⚖️', name:'Compliance', webSearch:true, model_tier:'smart',
     color:'#d97706', colorS:'rgba(217,119,6,.10)',
     desc:'Guardián de tu licencia — revisa contenido, monitorea SOAs, te alerta sobre riesgos CMS',
     quick:[
@@ -1078,7 +1080,7 @@ ${OP}`
      🎯 SALES COACH — Prospección + Cierre + Referidos
   ════════════════════════════════════════════════════════ */
   {
-    id:'sales_coach', cat:'ventas', emoji:'🎯', name:'Sales Coach',
+    id:'sales_coach', cat:'ventas', emoji:'🎯', name:'Sales Coach', model_tier:'fast',
     color:'#00875a', colorS:'rgba(0,135,90,.10)',
     desc:'Todo lo de venta consultiva: prospección T65, cierres, objeciones, referidos — scripts listos',
     quick:[
@@ -1177,7 +1179,7 @@ ${OP}`
      💎 RETENCIÓN & SERVICIO — Libro de negocio + Day 1/15/30
   ════════════════════════════════════════════════════════ */
   {
-    id:'retencion', cat:'ventas', emoji:'💎', name:'Retención & Servicio',
+    id:'retencion', cat:'ventas', emoji:'💎', name:'Retención & Servicio', model_tier:'fast',
     color:'#0097a7', colorS:'rgba(0,151,167,.10)',
     desc:'Protege tu libro de negocio: retención automática Day 1/15/30, prevención de cancelaciones, intake nuevos miembros',
     quick:[
@@ -1278,7 +1280,7 @@ ${OP}`
      💪 COACH — Mentalidad y bienestar de Isabel
   ════════════════════════════════════════════════════════ */
   {
-    id:'coach', cat:'principal', emoji:'💪', name:'Coach',
+    id:'coach', cat:'principal', emoji:'💪', name:'Coach', model_tier:'fast',
     color:'#c2185b', colorS:'rgba(194,24,91,.10)',
     desc:'Tu coach personal — mentalidad, productividad, manejo del rechazo y balance vida/trabajo',
     quick:[
@@ -1359,7 +1361,7 @@ ${OP}`
      ⚙️ CONFIGURACIÓN LUNA — Memoria + Equipo + Metas + AHIP
   ════════════════════════════════════════════════════════ */
   {
-    id:'config', cat:'principal', emoji:'⚙️', name:'Configuración LUNA',
+    id:'config', cat:'principal', emoji:'⚙️', name:'Configuración LUNA', model_tier:'fast',
     color:'#52606d', colorS:'rgba(82,96,109,.10)',
     desc:'Configura todo: metas del equipo, roles, memoria del negocio, certificaciones AHIP',
     quick:[
@@ -1462,7 +1464,7 @@ ${OP}`
 
   // ── ONBOARDING — nuevo agente ─────────────────────────
   {
-    id:'onboarding', cat:'operaciones', emoji:'🎓', name:'Onboarding',
+    id:'onboarding', cat:'operaciones', emoji:'🎓', name:'Onboarding', model_tier:'fast',
     color:'#6741d9', colorS:'rgba(103,65,217,.10)',
     desc:'Capacita a nuevas empleadas — compliance, sistema LUNA, procesos y certificaciones',
     quick:[
@@ -1563,7 +1565,7 @@ ${OP}`
      Migrado del "Sistema Maestro IA": métricas/ROI + intel competitiva.
   ════════════════════════════════════════════════════════ */
   {
-    id:'ads', cat:'inteligencia', emoji:'📢', name:'Ads & Métricas', webSearch:true,
+    id:'ads', cat:'inteligencia', emoji:'📢', name:'Ads & Métricas', webSearch:true, model_tier:'smart',
     color:'#0097a7', colorS:'rgba(0,151,167,.10)',
     adminOnly:true,   // 🔒 ruta accesible solo a Isabel
     desc:'Análisis semanal de anuncios: CPL, ROI, rendimiento por tipo de contenido e inteligencia competitiva — solo Isabel',
@@ -1618,7 +1620,7 @@ ${OP}`
      ahora como agente nativo de LUNA.
   ════════════════════════════════════════════════════════ */
   {
-    id:'marketing', cat:'contenido', emoji:'📣', name:'Marketing', webSearch:true,
+    id:'marketing', cat:'contenido', emoji:'📣', name:'Marketing', webSearch:true, model_tier:'smart',
     color:'#db2777', colorS:'rgba(219,39,119,.10)',
     desc:'Tu estratega de crecimiento — Facebook, contenido viral, anuncios y plan semanal para atraer leads hispanos de Medicare',
     quick:[
@@ -2808,7 +2810,7 @@ async function quietLLM(systemPrompt, userText) {
     method:'POST',
     headers:{ 'Content-Type':'application/json' },
     credentials:'same-origin',
-    body: JSON.stringify({ system:systemPrompt, messages:[{role:'user', content:userText}], max_tokens:1200, agent:(currentAgent?.id||'')+':consulta' })
+    body: JSON.stringify({ system:systemPrompt, messages:[{role:'user', content:userText}], max_tokens:1200, agent:(currentAgent?.id||'')+':consulta', model_tier: currentAgent?.model_tier||'fast' })
   });
   if (!res.ok) {
     let _d=''; try { const _j=await res.json(); if(_j&&_j.error) _d=' — '+_j.error; } catch(_){}
@@ -3139,6 +3141,9 @@ function openWorkspace(id) {
 
   // Render chat
   renderChat();
+
+  // Update model badge for this agent
+  updateModelBadge(a);
 
   // ── ANTICIPACIÓN: Check alerts when opening LUNA or Comando ──
   if (a.id === 'luna_main' || a.id === 'comando') {
@@ -3751,7 +3756,7 @@ async function sendMsg() {
       method:'POST',
       headers:{ 'Content-Type':'application/json' },
       credentials:'same-origin',
-      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:2048, web_search: !!a.webSearch, tools: tools || [], agent: a.id })
+      body: JSON.stringify({ system:systemPrompt, messages, max_tokens:2048, web_search: !!a.webSearch, tools: tools || [], agent: a.id, model_tier: a.model_tier||'fast' })
     });
     if (!res.ok) {
       let _d=''; try { const _j=await res.json(); if(_j&&_j.error) _d=' — '+_j.error; } catch(_){}
@@ -3891,6 +3896,7 @@ async function sendMsg() {
   document.getElementById('sendBtn').disabled = false;
   saveHistory();
   renderChat();
+  refreshCostBadge();
 }
 
 /* ══════════════════════════════════════════
@@ -4084,6 +4090,45 @@ function toast(m) {
   clearTimeout(nt); nt = setTimeout(()=>n.style.display='none', 3000);
 }
 
+// ── BADGES: modelo activo y costo diario ─────────────────────────────────
+function updateModelBadge(agent) {
+  const b = document.getElementById('modelBadge');
+  if (!b) return;
+  const tier = agent?.model_tier || 'fast';
+  b.textContent = tier === 'smart' ? '⚡ Sonnet' : '◇ Haiku';
+  b.title = tier === 'smart'
+    ? 'Usando claude-sonnet-4-6 (análisis profundo)'
+    : 'Usando claude-haiku-3-5 (rápido y económico)';
+  b.style.color = tier === 'smart' ? '#8b6f47' : 'var(--t3)';
+}
+
+async function refreshCostBadge() {
+  const b = document.getElementById('costBadge');
+  if (!b) return;
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_cost_status`);
+    if (!r.ok) { b.textContent = ''; return; }
+    const d = await r.json();
+    if (!d.ok) { b.textContent = ''; return; }
+    const c = d.data;
+    const usd = (c.cost_usd || 0).toFixed(4);
+    const pct = c.pct_used != null ? ` · ${c.pct_used}%` : '';
+    b.textContent = `$${usd}${pct}`;
+    b.title = `Gasto hoy: $${usd} de $${c.cap_usd} límite · ${c.calls} llamadas`;
+    b.style.color = (c.pct_used || 0) > 80 ? '#e05c00' : 'var(--t3)';
+  } catch { b.textContent = ''; }
+}
+
+async function showCostDetail() {
+  try {
+    const r = await fetch(`${CRM_BASE}?action=luna_cost_status`);
+    const d = await r.json();
+    if (!d.ok) { toast('Error al obtener costo'); return; }
+    const c = d.data;
+    toast(`Hoy: $${(c.cost_usd||0).toFixed(4)} · ${c.calls} llamadas · Límite: $${c.cap_usd} · Modelo: ${c.last_model||'-'}`);
+  } catch { toast('Error al obtener costo'); }
+}
+
 // Auto-resize textarea
 document.getElementById('chatInput')?.addEventListener('input', function() {
   this.style.height = '46px';
@@ -4113,6 +4158,9 @@ openWorkspace('luna_main');
 
 // ¿El radar de tendencias de hoy ya está listo? (enciende el punto verde)
 radarCheckFresh();
+
+// Carga el costo de hoy y lo mantiene actualizado
+refreshCostBadge();
 
 // ¿Hay tareas pendientes de juntas? (badge en el botón 🗓️ Junta)
 meetingCheckPending();
