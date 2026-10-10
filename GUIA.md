@@ -100,6 +100,8 @@ computadora, nunca a los clientes reales.
 
 Bluehost trae **Git Version Control** en cPanel. Se configura una vez:
 
+> ⚠ **La guía actualizada y completa está en `DEPLOY-BLUEHOST.md`.** Puntos clave: la rama a publicar es `claude/beautiful-planck-1PYtr` (no `main`), y el CRM vive en `public_html/website_5a1c69e7/crm/`.
+
 1. Sube tu clave SSH de Bluehost a GitHub (o usa un token). *(Te guío si llegas aquí.)*
 2. En **cPanel → Git Version Control → Create**:
    - **Clone URL:** la del repo de GitHub.

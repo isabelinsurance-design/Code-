@@ -5,6 +5,20 @@ Objetivo: que para publicar cambios solo tengas que **subir a GitHub** y dar
 
 Se configura **una sola vez**. Después, publicar es de 10 segundos.
 
+> ### ⚠ Datos que importan (actualizado octubre 2026)
+> - **Rama que se publica:** `claude/beautiful-planck-1PYtr`. El CRM vive SOLO en esa
+>   rama. `main` es **otro proyecto** — si cPanel apunta a `main`, el CRM no se actualiza.
+>   En cPanel → Git Version Control → Manage → **Basic Information → Checked-Out Branch**
+>   debe decir `claude/beautiful-planck-1PYtr`.
+> - **Carpeta real del CRM en el servidor:**
+>   `/home1/emzmuumy/public_html/website_5a1c69e7/crm` (es lo que copia `.cpanel.yml`),
+>   **no** `public_html/crm/`.
+> - **Deploy nunca borra archivos.** Si se quita un archivo del proyecto, hay que
+>   borrarlo a mano en el servidor (File Manager).
+> - **`config.php` y la carpeta `uploads/` solo existen en el servidor.** Respáldalos.
+> - **Si un deploy rompe algo:** en Git Version Control → Manage → History, elige el
+>   commit anterior y despliégalo, o pídele a Claude que deshaga el último cambio.
+
 ---
 
 ## ✅ Antes de empezar — verifica tu usuario de cPanel
@@ -60,19 +74,28 @@ La opción más sencilla es con un **token**:
 ## PARTE C — Publicar (esto es lo que repetirás siempre)
 1. En cPanel → **Git Version Control** → junto a tu repo, pulsa **Manage**.
 2. Pestaña **Pull or Deploy**:
+   - Revisa que la rama sea **`claude/beautiful-planck-1PYtr`**.
    - **Update from Remote** → trae lo último de GitHub.
    - **Deploy HEAD Commit** → ejecuta `.cpanel.yml` y copia `crm/` a
-     `public_html/crm/`. 🎉
+     `public_html/website_5a1c69e7/crm/`. 🎉
 3. Abre **withisabelfuentes.com/crm/** y verifica que todo está bien.
 
 ---
 
 ## PARTE D — La primera vez en el servidor (importante)
 Como `config.php` **no viene en el repositorio** (lleva tus claves), asegúrate de
-que ya exista en `public_html/crm/config.php` en el servidor:
+que ya exista en `public_html/website_5a1c69e7/crm/config.php` en el servidor:
 - Si tu CRM ya estaba funcionando ahí, **ya existe** — no toques nada.
 - Si es un servidor nuevo: copia `config.example.php` a `config.php` (una vez, por
   File Manager o SSH) y pon tus claves reales. Después, ya nunca más el File Manager.
+
+---
+
+## ⏰ Tareas automáticas (cron jobs) — cPanel → Cron Jobs
+Revisa que existan estas tareas (los comandos exactos los tiene Sammy; anótalos aquí):
+- Recordatorios de citas por SMS: `cron_recordatorios_citas.php`
+- SMS de cumpleaños: `cron_cumpleanos_sms.php`
+- `twilio_calls/worker.php` (vive FUERA del proyecto, solo en el servidor)
 
 ---
 
