@@ -56,6 +56,7 @@ function cumpleanos_sms_procesar(PDO $pdo): array {
                             WHERE dob IS NOT NULL
                               AND MONTH(dob) = MONTH(CURDATE())
                               AND DAY(dob) = DAY(CURDATE())
+                              AND estado IN ('ACTIVE','IN PROCESS','PLAN CHANGE')
                               AND (cumpleanos_sms_anio IS NULL OR cumpleanos_sms_anio <> ?)");
     $stmt->execute([$anioActual]);
     $miembros = $stmt->fetchAll(PDO::FETCH_ASSOC);

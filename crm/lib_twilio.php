@@ -336,14 +336,24 @@ function asegurarTablaSmsOptOut(PDO $pdo): void {
 
 // Igual que hace Twilio: se compara el mensaje COMPLETO contra la palabra,
 // no como substring — así "cancelar mi cita" no dispara un opt-out.
-const SMS_PALABRAS_STOP  = ['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'ALTO', 'BAJA'];
+const SMS_PALABRAS_STOP  = ['STOP', 'STOPALL', 'STOP ALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT', 'ALTO', 'BAJA',
+                            'PARA', 'PARAR', 'DETENER', 'BASTA', 'NO MAS', 'NOMAS', 'OPTOUT', 'OPT OUT', 'REMOVE', 'DESUSCRIBIR', 'QUITAR'];
 const SMS_PALABRAS_START = ['START', 'UNSTOP', 'YES'];
 
+// Normaliza el mensaje: mayúsculas, sin acentos ni puntuación, espacios simples.
+// Así "Stop.", " stop ", "¡PARA!" o "no más" se reconocen igual que "STOP".
+// Sigue comparando el mensaje COMPLETO, no un pedazo.
+function sms_normalizar_cuerpo(string $cuerpo): string {
+    $c = strtoupper(trim($cuerpo));
+    $c = strtr($c, ['Á'=>'A','É'=>'E','Í'=>'I','Ó'=>'O','Ú'=>'U','Ü'=>'U','Ñ'=>'N','á'=>'A','é'=>'E','í'=>'I','ó'=>'O','ú'=>'U','ü'=>'U','ñ'=>'N']);
+    $c = preg_replace('/[^A-Z0-9 ]+/', ' ', $c);
+    return trim(preg_replace('/\s+/', ' ', $c));
+}
 function sms_es_palabra_stop(string $cuerpo): bool {
-    return in_array(strtoupper(trim($cuerpo)), SMS_PALABRAS_STOP, true);
+    return in_array(sms_normalizar_cuerpo($cuerpo), SMS_PALABRAS_STOP, true);
 }
 function sms_es_palabra_start(string $cuerpo): bool {
-    return in_array(strtoupper(trim($cuerpo)), SMS_PALABRAS_START, true);
+    return in_array(sms_normalizar_cuerpo($cuerpo), SMS_PALABRAS_START, true);
 }
 
 // ¿Este teléfono ya nos pidió que no le mandemos más mensajes?
@@ -385,6 +395,12 @@ const SMS_CODIGOS_PERMANENTES = ['21211', '21214', '21614', '30006'];
 // pena seguir intentándole — puede ser temporal la primera vez, pero no
 // dos veces seguidas.
 const SMS_FALLOS_PARA_BLOQUEAR = 2;
+// Solo estos errores son culpa del NÚMERO (inalcanzable, bloqueado, destino
+// desconocido) y cuentan para bloquearlo. Cualquier otro (caída de Twilio,
+// cuenta/saldo, límite de velocidad, error de red, filtro del carrier por el
+// contenido del mensaje) NO es culpa del cliente: antes dos fallos de cualquier
+// tipo lo metían a la lista de "no enviar" como si hubiera respondido STOP.
+const SMS_CODIGOS_CONTABLES = ['30003', '30004', '30005'];
 
 // Se llama tanto si Twilio rechaza el envío al instante (número mal
 // formado — se sabe en el momento) como cuando avisa DESPUÉS, por el
@@ -394,6 +410,9 @@ const SMS_FALLOS_PARA_BLOQUEAR = 2;
 function sms_registrar_fallo_envio(PDO $pdo, string $telefono, ?string $codigo, ?string $error): void {
     $telefono = normalizar_tel($telefono);
     if ($telefono === '') return;
+    $esPermanenteCod = $codigo && in_array((string) $codigo, SMS_CODIGOS_PERMANENTES, true);
+    $esContable      = $codigo && in_array((string) $codigo, SMS_CODIGOS_CONTABLES, true);
+    if (!$esPermanenteCod && !$esContable) return; // fallo que no es culpa del número: no se cuenta
     asegurarTablaSmsFallos($pdo);
     try {
         $pdo->prepare("INSERT INTO sms_fallos (telefono, veces, ultimo_codigo, ultimo_error) VALUES (?, 1, ?, ?)
