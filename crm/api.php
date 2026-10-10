@@ -1913,6 +1913,9 @@ case 'get_pago_bonos':
         if ($ag_f) { $sql .= " AND b.agente_id = ?"; $params[] = $ag_f; }
     }
     if ($mes_f && $mes_f !== 'all') { $sql .= " AND b.mes = ?"; $params[] = $mes_f; }
+    // El mes no guarda año: se filtra por el año de la fecha del bono.
+    $anio_f = $_GET['anio'] ?? $_POST['anio'] ?? 'all';
+    if ($anio_f !== 'all' && (int)$anio_f > 2000) { $sql .= " AND YEAR(b.fecha) = ?"; $params[] = (int)$anio_f; }
     $sql .= " ORDER BY b.fecha DESC, b.id DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);

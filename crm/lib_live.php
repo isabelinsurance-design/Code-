@@ -161,6 +161,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
                            FROM tickets
                            WHERE sla_fecha IS NOT NULL AND sla_fecha <= ?
                              AND (estado != 'CERRADO' OR DATE(fecha_cierre) = ?)
+                             AND tipo NOT IN ('LLAMADA','LLAMADA PERDIDA') -- igual que la columna CERRADOS
                            GROUP BY owner_id");
         $q->execute([$hoy, $hoy, $hoy]);
         foreach ($q->fetchAll() as $r) {

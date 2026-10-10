@@ -220,6 +220,14 @@ function enviar_confirmacion_cita(PDO $pdo, int $citaId, bool $esReagendada = fa
             ]);
         if (!$res['ok']) {
             sms_registrar_fallo_envio($pdo, $telefono, $res['codigo'] ?? null, $res['error'] ?? null);
+        } else {
+            // Si la cita es dentro de las próximas 48 horas, la confirmación que se
+            // acaba de mandar ya dice el día y la hora: se da por hecho el
+            // recordatorio de "48h antes" (antes llegaban dos SMS casi seguidos).
+            $hrs = (strtotime($cita['fecha'] . ' ' . $cita['hora']) - time()) / 3600;
+            if ($hrs <= 48 && $hrs > 2) {
+                $pdo->prepare("UPDATE citas SET recordatorio_48h_enviado_at=NOW() WHERE id=? AND recordatorio_48h_enviado_at IS NULL")->execute([$cita['id']]);
+            }
         }
     } catch (Exception $e) {}
 }

@@ -190,6 +190,19 @@ if (!empty($_POST['cue_ajax'])) {
         $cols = implode(',', array_map(fn($k)=>"`$k`", array_keys($d)));
         $phs  = implode(',', array_fill(0, count($d), '?'));
         $pdo_x->prepare("INSERT INTO cuentas_interacciones ($cols) VALUES ($phs)")->execute(array_values($d));
+        // Si la visita tuvo un gasto, también entra a GASTOS como PENDIENTE para que
+        // pase por la misma aprobación/reembolso (antes era una lista aparte).
+        if ($d['gasto_monto'] > 0) {
+            try {
+                $cn = $pdo_x->prepare("SELECT nombre FROM cuentas WHERE id=?"); $cn->execute([$cid]);
+                $cnom = (string)($cn->fetchColumn() ?: ('cuenta #'.$cid));
+                $pdo_x->prepare("INSERT INTO gastos (fecha,categoria,tipo,descripcion,vendedor,monto,metodo_pago,enviado_por,recibo,notas)
+                                 VALUES (?,?,?,?,?,?,?,?,0,?)")
+                      ->execute([$d['fecha'] ?: date('Y-m-d'), 'MEETING', null,
+                                 'Visita a '.$cnom.($d['gasto_descripcion'] ? ' — '.$d['gasto_descripcion'] : ''),
+                                 $cnom, $d['gasto_monto'], 'CARD', $uid_x, 'Registrado desde CONTACTOS (visita)']);
+            } catch (Exception $e) {}
+        }
         ob_clean();
         echo json_encode(['ok'=>true]);
         break;
@@ -9323,6 +9336,25 @@ $train_pct   = $train_total > 0 ? round($train_compl / $train_total * 100) : 0;
   </div>
   <div id="train-pct-label" style="font-size:8px;color:<?=$MU?>;margin-top:4px;letter-spacing:1px;text-transform:uppercase"><?=$train_pct?>% DEL PROGRAMA</div>
 </div>
+<?php if($admin):
+  // Vista del admin: quién completó cada semana (antes cada quien solo veía lo suyo).
+  $__tr_rows = [];
+  try { foreach ($pdo->query("SELECT agente_id, semana, completado_at FROM entrenamiento_progreso WHERE completado=1") as $__r) $__tr_rows[(int)$__r['agente_id']][(int)$__r['semana']] = $__r['completado_at']; } catch (Exception $e) {}
+  $__tr_users = array_filter($users_all, fn($u)=>$u['rol']==='agent');
+?>
+<div class="card" style="margin-bottom:14px;overflow-x:auto">
+  <div class="card-header"><div class="card-title">👥 PROGRESO DEL EQUIPO (SOLO ADMIN)</div></div>
+  <table><tr><th>EMPLEADO</th><?php foreach($TRAINING_CALENDAR as $w):?><th style="text-align:center"><?=$w['week']?></th><?php endforeach;?><th style="text-align:center">TOTAL</th></tr>
+  <?php foreach($__tr_users as $__u): $__n=count($__tr_rows[(int)$__u['id']] ?? []); ?>
+  <tr><td style="font-weight:900;font-size:9px;color:<?=$P1?>"><?=h($__u['nombre'])?></td>
+  <?php foreach($TRAINING_CALENDAR as $w): $__at=$__tr_rows[(int)$__u['id']][$w['week']] ?? null; ?>
+    <td style="text-align:center;font-size:10px" title="<?=$__at?h(date('m/d/Y',strtotime($__at))):''?>"><?=$__at?'<span style="color:#1E7A5C;font-weight:900">✓</span>':'<span style="color:#C8DFF0">·</span>'?></td>
+  <?php endforeach;?>
+  <td style="text-align:center;font-weight:900;font-size:9px"><?=$__n?>/<?=count($TRAINING_CALENDAR)?></td></tr>
+  <?php endforeach;?>
+  </table>
+</div>
+<?php endif;?>
 <?php foreach($TRAINING_CALENDAR as $w): $done = !empty($train_done[$w['week']]); ?>
 <div class="card" style="margin-bottom:11px;border-left:4px solid <?=$done?'#1E7A5C':$CB?>">
   <div class="card-header" style="flex-wrap:wrap;gap:8px">
@@ -12837,6 +12869,12 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
       <option value="Noviembre">NOVIEMBRE</option>
       <option value="Diciembre">DICIEMBRE</option>
     </select>
+    <select id="bonos-anio" onchange="loadBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800">
+      <?php for($__y=(int)date('Y'); $__y>=(int)date('Y')-2; $__y--):?><option value="<?=$__y?>"><?=$__y?></option><?php endfor;?>
+      <option value="all">TODOS LOS AÑOS</option>
+    </select>
+    <script>/* Abre en el mes actual (antes mostraba todo lo de siempre) */
+    (function(){var m=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()];var s=document.getElementById('bonos-mes');if(s)s.value=m;})();</script>
     <?php if($admin):?>
     <select id="bonos-agente" onchange="loadBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
       <option value="all">TODAS LAS AGENTES</option>
@@ -18498,7 +18536,8 @@ const isAdmin = <?=$admin?'true':'false'?>;
 function loadBonos(){
   const mes = document.getElementById('bonos-mes')?.value||'all';
   const agente = isAdmin ? (document.getElementById('bonos-agente')?.value||'all') : 'me';
-  let url = 'api.php?action=get_pago_bonos&mes='+encodeURIComponent(mes);
+  const anio = document.getElementById('bonos-anio')?.value||'all';
+  let url = 'api.php?action=get_pago_bonos&mes='+encodeURIComponent(mes)+'&anio='+encodeURIComponent(anio);
   if(isAdmin && agente !== 'all') url += '&agente_id='+agente;
   fetchJson(url).then(d=>{
     if(!d.ok){toast('Error cargando bonos');return;}
