@@ -6,6 +6,10 @@
 //       instrucciones que usa el botón "Crear con IA" de la app. Sin --live, la hora de los Lives sale como [hora].
 //   node agent/empleado.cjs revisar <archivo|->
 //       Alertas CMS de un texto (las mismas expresiones que usa la app). Sale con código 3 si hay alguna.
+//   node agent/empleado.cjs compilar [--check]
+//       Genera los textos que se instalan en las rutinas (agent/generado/prompt-diario.txt y prompt-radar.txt) a partir
+//       de index.html, agent/*.md y agent/config.json. Las rutinas programadas no pueden abrir este repositorio, así
+//       que llevan TODO dentro de su prompt. Con --check solo verifica que lo generado esté al día (código 4 si no).
 //
 // Necesita Playwright (npm i -g playwright). Solo lee index.html: no escribe nada en el repositorio.
 const fs = require('fs');
@@ -101,11 +105,83 @@ async function revisar() {
   process.exitCode = issues.length ? 3 : 0;
 }
 
+const DESDE = '2026-10-12', HASTA = '2026-12-31';
+const MESES = ['ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic'];
+const corto = (ymd) => Number(ymd.slice(8)) + ' ' + MESES[Number(ymd.slice(5, 7)) - 1];
+const seccion = (titulo, cuerpo) => '\n\n=== ' + titulo + ' ===\n' + String(cuerpo).trim();
+
+// Todo lo que la app sabe y las rutinas necesitan, leído de la propia app para que no se desfase.
+async function datosDeLaApp(cfg) {
+  return withApp(null, (page) => page.evaluate(({ cfg, DESDE, HASTA }) => {
+    if (cfg.live) saveSettings({ liveTime: cfg.live }); else window.aepLiveLabel = () => '[hora]';
+    if (cfg.tpmoOrgs && cfg.tpmoPlans) saveSettings({ tpmoOrgs: cfg.tpmoOrgs, tpmoPlans: cfg.tpmoPlans });
+    const dow = ['dom', 'lun', 'mar', 'mié', 'jue', 'vie', 'sáb'];
+    const dias = [];
+    for (const d = _parseYmd(DESDE); _ymd(d) <= HASTA; d.setDate(d.getDate() + 1)) {
+      const ymd = _ymd(d), p = aepPeriodFor(ymd);
+      // Las llamadas y reuniones post-AEP (📞, 📊) vienen tipadas como "post" en la app (allí solo ofrece un botón de más);
+      // al empleado se le marcan como tareas para que no escriba un post de Facebook sobre una reunión interna.
+      const items = aepItemsFor(ymd).filter((it) => it.kind !== 'goal').map((it) => {
+        let tipo = aepKindOf(it) || (it.kind === 'ms' ? 'hito' : 'tarea');
+        if (tipo === 'post' && /^(📞|📊)/.test(it.text)) tipo = 'tarea';
+        return { tipo, texto: it.text };
+      });
+      if (items.length) dias.push({ ymd, dow: dow[d.getDay()], fase: p ? p.id : '—', items });
+    }
+    return {
+      fases: AEP_PERIODS.filter((p) => p.end >= DESDE).map((p) => ({ id: p.id, nombre: p.name, desde: p.start, hasta: p.end, tema: p.theme, cms: p.cms })),
+      dias,
+      sistema: ISABEL_SYSTEM,
+      voces: { reel: COACHES[AEP_COACH.reel].voice, live: COACHES[AEP_COACH.live].voice, post: COACHES[AEP_COACH.post].voice, ad: COACHES[AEP_COACH.ad].voice },
+      specs: { reel: AEP_SPECS.reel, live: AEP_SPECS.live, post: AEP_SPECS.post },
+      regla: buildAepPrompt('2026-10-12', { text: 'x' }, 'reel').split('\n\n').pop(),
+      disclaimers: aepDisclaimerBlock(),
+      alertas: CMS_FLAGS.map((f) => f.msg),
+    };
+  }, { cfg, DESDE, HASTA }));
+}
+
+async function textosGenerados() {
+  const cfg = Object.assign({ live: null, tpmoOrgs: '', tpmoPlans: '' }, JSON.parse(fs.readFileSync(process.env.AGENT_CONFIG || path.join(__dirname, 'config.json'), 'utf8')));
+  const d = await datosDeLaApp(cfg);
+  const md = (f) => fs.readFileSync(path.join(__dirname, f), 'utf8').trim();
+  const diario = md('TRABAJO-DIARIO.md')
+    + seccion('SISTEMA (voz y reglas CMS de Isabel; síguelas al pie de la letra)', d.sistema)
+    + seccion('REGLAS PARA CADA BORRADOR', d.regla.replace('NO escribas los disclaimers legales: el sistema los agrega al final.', 'No inventes los disclaimers legales: copia el bloque DISCLAIMERS.'))
+    + seccion('VOZ POR TIPO', Object.entries(d.voces).map(([k, v]) => '[' + k + '] ' + v).join('\n\n'))
+    + seccion('ESPECIFICACIÓN POR TIPO (qué entregar)', Object.entries(d.specs).map(([k, v]) => '[' + k + '] ' + v).join('\n\n'))
+    + seccion('FASES DEL PLAN', d.fases.map((f) => f.id + ' · ' + f.nombre + ' · ' + corto(f.desde) + ' al ' + corto(f.hasta) + ' · tema: «' + f.tema + '» · regla CMS: ' + f.cms).join('\n'))
+    + seccion('CALENDARIO (fecha, día, fase, elementos [tipo])', d.dias.map((x) => x.ymd + ' ' + x.dow + ' ' + x.fase + ' | ' + x.items.map((i) => '[' + i.tipo + '] ' + i.texto).join(' || ')).join('\n'))
+    + seccion('DISCLAIMERS (cópialos tal cual al final de cada pieza que se publique)', d.disclaimers)
+    + seccion('ALERTAS CMS (reescribe cualquier frase que caiga en una de estas)', d.alertas.map((a) => '- ' + a).join('\n'))
+    + '\n';
+  return { 'prompt-diario.txt': diario, 'prompt-radar.txt': md('RADAR-SEMANAL.md') + '\n' };
+}
+
+async function compilar() {
+  const check = args.includes('--check');
+  const dir = process.env.AGENT_OUT || path.join(__dirname, 'generado');
+  const textos = await textosGenerados();
+  const viejos = [];
+  for (const [nombre, texto] of Object.entries(textos)) {
+    const f = path.join(dir, nombre);
+    if (check) { if (!fs.existsSync(f) || fs.readFileSync(f, 'utf8') !== texto) viejos.push(nombre); continue; }
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(f, texto);
+    console.log(nombre + ': ' + Buffer.byteLength(texto) + ' bytes');
+  }
+  if (check) {
+    console.log(viejos.length ? 'DESACTUALIZADO: ' + viejos.join(', ') + ' (corre: node agent/empleado.cjs compilar)' : 'OK: agent/generado está al día');
+    process.exitCode = viejos.length ? 4 : 0;
+  }
+}
+
 (async () => {
-  if (cmd === 'hoy') await hoy();
+  if (cmd === 'compilar') await compilar();
+  else if (cmd === 'hoy') await hoy();
   else if (cmd === 'revisar') await revisar();
   else {
-    console.error('Uso:\n  node agent/empleado.cjs hoy [--date AAAA-MM-DD] [--dias 2] [--live HH:MM]\n  node agent/empleado.cjs revisar <archivo|->');
+    console.error('Uso:\n  node agent/empleado.cjs hoy [--date AAAA-MM-DD] [--dias 2] [--live HH:MM]\n  node agent/empleado.cjs revisar <archivo|->\n  node agent/empleado.cjs compilar [--check]');
     process.exitCode = 2;
   }
 })().catch((e) => { console.error('Error: ' + (e && e.message || e)); process.exitCode = 1; });

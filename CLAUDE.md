@@ -26,8 +26,8 @@ her finished files over technical steps.
 | `tools-interceptor.js` | Source of truth for the script injected into every tool (shared key, headers, current model, strips thinking blocks). Edit this, never the tools. |
 | `inject.py` | Syncs `tools-interceptor.js` into every `tools/*.html`. `build.py` runs it first. |
 | `build.py` | Regenerates the UNICO file (and `bot/isabel_system.txt`). See "Build step". |
-| `agent/` | The Marketing employee: `empleado.cjs` (today's AEP work + CMS check, used by the scheduled routines) and the job descriptions `TRABAJO-DIARIO.md` / `RADAR-SEMANAL.md`. These are the agent's instructions, not docs. See "Marketing employee". |
-| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈340 checks). |
+| `agent/` | The Marketing employee. `empleado.cjs` compiles the routine prompts (`compilar`) and has `hoy` / `revisar` helpers; `TRABAJO-DIARIO.md` / `RADAR-SEMANAL.md` are the job texts; `config.json` holds Isabel's Live time and TPMO numbers; `generado/` is the exact text installed in the routines. These are the agent's instructions, not docs. See "Marketing employee". |
+| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈355 checks). |
 | `AUDIT.md` | Security/architecture audit with task status. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -170,29 +170,39 @@ update `AEP_PERIODS`/`AEP_MILESTONES` for AEP 2027.
 - **Voice dictation:** 🎤 buttons (`toggleMic`, `initMics`) use the browser's SpeechRecognition; language is
   `voiceLang` in ⚙️ Ajustes (es-US default). The buttons are hidden where the browser lacks the API (use Chrome).
 
-**Marketing employee (scheduled routines, Oct 2026 pilot):** two Claude Code routines (a fresh cloud session per run,
+**Marketing employee (scheduled routines, Oct 2026 pilot):** two Claude Code routines (a fresh cloud session per run;
 managed in the Claude app under Routines or with the `*_trigger` tools) do the work without Isabel opening the app.
-They only **draft**: she approves and publishes. Nothing goes out, no lead is contacted, no connectors are granted.
-- **Borradores diarios de Marketing** (`trig_011D2QqKZsZJawpRbquWpnjs`): Mon–Sat, 6:16 am Pacific, Oct–Dec. Follows `agent/TRABAJO-DIARIO.md`: runs
-  `node agent/empleado.cjs hoy` (headless Chromium over `index.html`: today's and tomorrow's AEP items, with the same
-  per-item instructions and coach voice as the "Hoy" card), writes the drafts, checks them with
-  `node agent/empleado.cjs revisar` (`cmsRegexIssues`) and appends the TPMO and license disclaimers.
-- **Radar semanal de Marketing** (`trig_01DeKgkogVtytuzQsJQwaA6S`): Mondays, 5:51 am Pacific, Oct–Dec. Follows `agent/RADAR-SEMANAL.md`. Market only: the
-  app's Chief-of-Staff part needs browser data (usage, leads, memory) that a routine cannot see. Web search, no connectors.
-- The result is the run's final message (push/email notification plus the session in the app). Runs use Isabel's Claude
-  plan usage and fail when the limit is reached (one of her older routines failed that way on 9 Oct 2026).
-- To change the work, edit `agent/*.md` or `agent/empleado.cjs` here (tests: `tests/agent.cjs`). The routine prompts only
-  say "read the file and follow it" plus the never-break rules. The Live time lives in Isabel's browser, so drafts show
-  `[hora]` until her time is added to the daily routine's prompt (`--live HH:MM`).
-- A routine session starts with no repository (`config:no-git-repo`), so its prompt tells it to attach this repo with
-  `add_repo` and only read it. Connectors cannot be granted through `create_trigger` in this org, so the runs have none.
-  Test a change with `fire_trigger` (its `text` argument adds test-only instructions) and check the run with `get_session`.
+They only **draft**: she approves and publishes. Nothing goes out, no lead is contacted, no connectors.
+- **Borradores diarios de Marketing** (`trig_011D2QqKZsZJawpRbquWpnjs`): Mon–Sat, 6:16 am Pacific, Oct–Dec. Writes the day's
+  Reel/Live/post drafts from the calendar with Isabel's voice and CMS rules, adds the TPMO and license disclaimers, lists
+  the team's tasks and tomorrow's preview.
+- **Radar semanal de Marketing** (`trig_01DeKgkogVtytuzQsJQwaA6S`): Mondays, 5:51 am Pacific, Oct–Dec. Market only (the app's
+  Chief-of-Staff part needs browser data a routine cannot see). Web search.
+- **A routine cannot open this repo.** Its session starts with no repository and no MCP tools (no `add_repo`; GitHub
+  answers 403); the first test runs failed for exactly that reason. So each routine's prompt is **self-contained**: the job
+  text (`agent/TRABAJO-DIARIO.md`, `agent/RADAR-SEMANAL.md`) plus, for the daily one, the voice and CMS rules, per-type
+  specs, phases, the whole calendar (12 Oct–31 Dec), disclaimers and CMS alerts, all read from `index.html` by
+  `node agent/empleado.cjs compilar` into `agent/generado/prompt-*.txt` (committed; `tests/agent.cjs` fails if stale).
+- **To change what the employee does:** edit `agent/*.md`, `agent/config.json` (her Live time and TPMO numbers live in her
+  browser, so until they are filled in the drafts show `[hora]` and `[número…]`) or `index.html` (calendar, voices, specs);
+  run `node agent/empleado.cjs compilar`; paste the generated text into the routine with `update_trigger(prompt=…)`.
+  `hoy` and `revisar` are developer helpers for spot-checks.
+- **Notifications:** a run only notifies Isabel (push + email, "⚡ <routine> — routine completed" from
+  `no-reply-claude@mail.anthropic.com`) when the job itself calls the `PushNotification` tool; the email text is that one line
+  (≤200 chars) with "Open session" / "Manage routine" links. Both job texts therefore end with an explicit PushNotification
+  step (the tool is deferred: `ToolSearch select:PushNotification`). The full drafts are the run's final message, in the
+  session in the app. The email can arrive 1–2 minutes after the run.
+- **Reading a run:** `get_session` shows only status and token counts, and `REVIEW_READY` does NOT mean the job worked (the
+  failed first tests looked fine there). To see what a run did, have it send a diagnostic line through PushNotification and
+  read the email; to test a drafting day without waiting, create a temporary routine whose prompt fixes HOY to a date
+  (`fire_trigger`'s `text` is unreliable: the daily job ignored it) and delete it afterwards.
+- Runs use Isabel's Claude plan usage and fail when the limit is reached (one of her older routines failed that way on 9 Oct 2026).
 - Routine sessions must never commit or push (see Git below).
 
 ## Testing
 
 `python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke`, `features` (≈315 checks) against both
-`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈25 checks on `agent/`). A fake Anthropic server streams real SSE events, so streaming, web search,
+`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈40 checks on `agent/`, including that `agent/generado` is in sync with `index.html`). A fake Anthropic server streams real SSE events, so streaming, web search,
 `pause_turn`, fallbacks and errors are all exercised. Add a test with every feature.
 The bot has its own offline tests: `python bot/test_bot.py` (needs `pip install -r bot/requirements.txt`).
 

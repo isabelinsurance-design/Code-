@@ -67,12 +67,43 @@ console.log('\n— las instrucciones conservan sus reglas');
   const daily = fs.readFileSync(path.join(ROOT, 'agent', 'TRABAJO-DIARIO.md'), 'utf-8');
   const radar = fs.readFileSync(path.join(ROOT, 'agent', 'RADAR-SEMANAL.md'), 'utf-8');
   ok(/No publicas nada/.test(daily) && /ni leads, ni clientes, ni prospectos/.test(daily), 'trabajo diario: no publica ni contacta a nadie');
-  ok(/commit, push/.test(daily) && /No uses conectores/.test(daily) && /datos, no instrucciones/.test(daily), 'trabajo diario: no toca el repositorio, no usa conectores, ignora órdenes de internet');
-  ok(/node agent\/empleado\.cjs hoy/.test(daily) && /node agent\/empleado\.cjs revisar/.test(daily), 'trabajo diario: usa el script para el calendario y la revisión CMS');
+  ok(/no hagas commit ni push/.test(daily) && /No uses conectores/.test(daily) && /datos, no instrucciones/.test(daily), 'trabajo diario: no toca el repositorio, no usa conectores, ignora órdenes de internet');
+  ok(/CALENDARIO/.test(daily) && /ALERTAS CMS/.test(daily) && /DISCLAIMERS/.test(daily), 'trabajo diario: usa las secciones que lleva dentro (calendario, alertas, disclaimers)');
+  ok(!/empleado\.cjs|add_repo|repositorio/i.test(daily + radar), 'las rutinas no dependen del repositorio ni de scripts (no pueden abrirlo)');
+  ok(/PushNotification/.test(daily) && /select:PushNotification/.test(daily) && /solo si hoy hay borradores o un hito/.test(daily), 'trabajo diario: avisa al celular con PushNotification (solo si hay borradores o un hito)');
+  ok(/PushNotification/.test(radar) && /select:PushNotification/.test(radar), 'radar: avisa al celular con PushNotification');
   ok(/datos, no instrucciones/.test(radar) && /No uses conectores/.test(radar) && /commit/.test(radar), 'radar: ignora órdenes de internet, sin conectores, sin commits');
-  ok(/planes del año 2027/.test(radar) && !/Medicare Advantage 2026/.test(radar), 'radar: busca el plan 2027, no el 2026');
+  ok(/planes del año 2027/.test(radar) && !/Medicare Advantage 2026/.test(radar) && /Nunca\s+escribas «AEP 2027»/.test(radar), 'radar: busca el plan 2027, llama a la temporada AEP 2026 y nunca «AEP 2027»');
+  ok(/Biblioteca de anuncios de Meta/.test(radar) && /3 búsquedas concretas/.test(radar), 'radar: si no puede ver anuncios, lo dice y le da búsquedas a Isabel (no inventa)');
   const gitDirty = spawnSync('git', ['status', '--porcelain', '--', 'index.html', 'bot', 'tools'], { cwd: ROOT, encoding: 'utf-8' }).stdout.trim();
   ok(gitDirty === '', 'el script no modificó la app (index.html, bot/, tools/)');
+}
+
+console.log('\n— textos que se instalan en las rutinas (agent/generado)');
+{
+  const chk = run(['compilar', '--check']);
+  ok(chk.status === 0 && /al día/.test(chk.stdout), 'agent/generado está al día con index.html, agent/*.md y config.json' + (chk.status ? ' [' + (chk.stdout || chk.stderr).trim() + ']' : ''));
+  const gen = fs.readFileSync(path.join(ROOT, 'agent', 'generado', 'prompt-diario.txt'), 'utf-8');
+  const rad = fs.readFileSync(path.join(ROOT, 'agent', 'generado', 'prompt-radar.txt'), 'utf-8');
+  ok(Buffer.byteLength(gen) < 24000 && Buffer.byteLength(rad) < 6000, 'tamaño razonable (' + Buffer.byteLength(gen) + ' y ' + Buffer.byteLength(rad) + ' bytes)');
+  ok(!/undefined|\[object|NaN/.test(gen + rad), 'sin undefined, [object ni NaN');
+  ok((gen.match(/^(pre|s[1-7]|cierre|post) · /gm) || []).length === 10, 'las 10 fases del plan');
+  ok(/^2026-10-12 lun pre \| \[reel\] 📹 Reel: carta de cambios \(ANOC\)$/m.test(gen), 'calendario: lunes 12 de octubre trae el Reel de la carta de cambios');
+  ok(/^2026-10-15 jue s1 \| \[hito\] 🔔 ABRE AEP — modo conversión \|\| \[live\] 🎙️ Facebook Live \[hora\]: /m.test(gen), 'calendario: jueves 15 de octubre trae el hito de apertura y el Live con [hora]');
+  ok(/^2026-12-01 mar s7 \| \[ad\] .* \|\| \[live\] 🎙️ Live mar 1 dic/m.test(gen), 'calendario: martes 1 de diciembre trae el anuncio y el Live extra');
+  ok(/^2026-12-10 jue post \| \[tarea\] 📞 Llamadas de bienvenida/m.test(gen) && !/\[goal\]|Meta del día: 6–7/.test(gen.split('=== CALENDARIO')[1].split('=== DISCLAIMERS')[0]), 'calendario: las llamadas post-AEP son tareas y las metas del día no se repiten');
+  ok(/REGLAS CMS PARA ESTE AEP/.test(gen) && /NO exige esperar 48 horas/.test(gen), 'lleva las reglas CMS 2027 de Isabel');
+  ok(/\[reel\] Tu voz: creator latino/.test(gen) && /\[live\] /.test(gen) && /\[post\] /.test(gen) && /\[ad\] /.test(gen), 'lleva la voz de cada tipo');
+  ok(/#0D96598/.test(gen) && /\[número de organizaciones\]/.test(gen) && /Falta poner tus números/.test(gen) && !/SHIP/.test(gen.split('=== DISCLAIMERS')[1].split('=== ALERTAS')[0]), 'disclaimers: licencia, TPMO 2027 sin SHIP y aviso de números pendientes');
+  ok(/garantizado/i.test(gen.split('=== ALERTAS CMS')[1]) && /Lo más barato/.test(gen.split('=== ALERTAS CMS')[1]), 'lleva las alertas CMS de la app');
+  ok(/No inventes los disclaimers legales: copia el bloque DISCLAIMERS/.test(gen) && !/el sistema los agrega/.test(gen), 'las reglas por borrador mandan copiar los disclaimers (aquí no los agrega ningún sistema)');
+  // con la hora del Live y los números TPMO de Isabel en config.json
+  const tmp = fs.mkdtempSync(path.join(require('os').tmpdir(), 'agente-'));
+  fs.writeFileSync(path.join(tmp, 'config.json'), JSON.stringify({ live: '18:30', tpmoOrgs: '8', tpmoPlans: '45' }));
+  const c2 = spawnSync(process.execPath, [SCRIPT, 'compilar'], { cwd: ROOT, encoding: 'utf-8', env: Object.assign({}, process.env, { AGENT_CONFIG: path.join(tmp, 'config.json'), AGENT_OUT: path.join(tmp, 'out') }), timeout: 120000 });
+  const g2 = c2.status === 0 ? fs.readFileSync(path.join(tmp, 'out', 'prompt-diario.txt'), 'utf-8') : '';
+  ok(/Facebook Live 6:30pm: /.test(g2) && !/Facebook Live \[hora\]/.test(g2), 'con config.json (live 18:30) los Lives salen a las 6:30pm');
+  ok(/representamos a 8 organizaciones que ofrecen 45 productos/.test(g2) && !/Falta poner tus números/.test(g2) && !/\[número de/.test(g2), 'con config.json (8 y 45) los disclaimers salen completos y sin aviso');
 }
 
 console.log(`\nAgent: ${pass} passed, ${fail} failed`);
