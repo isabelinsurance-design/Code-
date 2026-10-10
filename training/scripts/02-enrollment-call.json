@@ -1,0 +1,33 @@
+{
+  "voices": {
+    "Narrator": {"voice": "bf_emma", "lang": "en-gb"},
+    "Isabel": {"voice": "af_heart", "lang": "en-us"},
+    "Kim": {"voice": "am_michael", "lang": "en-us", "speed": 0.92},
+    "Rep": {"voice": "am_fenrir", "lang": "en-us"}
+  },
+  "lines": [
+    {"speaker": "Narrator", "text": "Training example two. The telephonic enrollment confirmation call. All names, plans and numbers are fictional."},
+    {"speaker": "Isabel", "text": "Hello, Mr. Kim, this is Isabel Fuentes, a licensed insurance agent, license number zero, G, one, two, three, four, five."},
+    {"speaker": "Isabel", "text": "Before we begin, this call is being recorded, and I am not affiliated with Medicare or the government. We do not offer every plan available in your area. Currently we represent six organizations which offer forty-two products in your area. Please contact Medicare dot gov or one eight hundred Medicare to get information on all of your options."},
+    {"speaker": "Isabel", "text": "We have your signed Scope of Appointment to discuss Medicare Advantage plans today. Is that correct?"},
+    {"speaker": "Kim", "text": "Yes."},
+    {"speaker": "Isabel", "text": "You've chosen to enroll in the Example Advantage plan from Example Health Plan. I'll now call their enrollment line to confirm your information and finalize your enrollment. Is it okay to proceed?"},
+    {"speaker": "Kim", "text": "Yes, go ahead."},
+    {"speaker": "Narrator", "text": "Isabel conferences in the carrier's enrollment line."},
+    {"speaker": "Isabel", "text": "Hello, I'm Isabel Fuentes, a licensed agent appointed with Example Health Plan. I have Robert Kim on the line. He has completed a plan review and is ready to enroll. This call is recorded, and I am not affiliated with Medicare or the government. His Scope of Appointment covers Medicare Advantage."},
+    {"speaker": "Rep", "text": "Thank you. Mr. Kim, please state your full name and date of birth."},
+    {"speaker": "Kim", "text": "Robert Kim. March third, nineteen fifty-nine."},
+    {"speaker": "Rep", "text": "Mr. Kim, you are completing an enrollment request into the Example Advantage plan, effective January first, twenty twenty-seven. Is that correct?"},
+    {"speaker": "Kim", "text": "Yes."},
+    {"speaker": "Rep", "text": "Please read the Medicare number from your card."},
+    {"speaker": "Kim", "text": "Um, where is that?"},
+    {"speaker": "Isabel", "text": "It's the eleven-character Medicare Number printed on your card."},
+    {"speaker": "Kim", "text": "Oh, here it is. One, E, G, four. T, E, five. M, K, seven, three."},
+    {"speaker": "Rep", "text": "Thank you. Do you understand that you are enrolling, and do you agree?"},
+    {"speaker": "Kim", "text": "I agree."},
+    {"speaker": "Rep", "text": "Your confirmation number is E, X, four, eight, two, one, seven."},
+    {"speaker": "Isabel", "text": "Reading it back. E, X, four, eight, two, one, seven. Thank you.", "pause": 0.9},
+    {"speaker": "Isabel", "text": "Congratulations, Mr. Kim. I'm writing your confirmation number on your application, your Scope of Appointment, and your receipt now. Example Health Plan will mail your enrollment materials and ID card, and your coverage starts January first. Call me at five five five, zero one four two with any questions.", "pause": 1.2},
+    {"speaker": "Narrator", "text": "Notice that Isabel pointed Mr. Kim to his card but never read the number for him, and read the confirmation number back before the call ended."}
+  ]
+}

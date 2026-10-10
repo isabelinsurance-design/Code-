@@ -1,0 +1,19 @@
+{
+  "voices": {
+    "Narrator": {"voice": "bf_emma", "lang": "en-gb"},
+    "Isabel": {"voice": "af_heart", "lang": "en-us"},
+    "Lopez": {"voice": "af_bella", "lang": "en-us", "speed": 0.95}
+  },
+  "lines": [
+    {"speaker": "Narrator", "text": "Training example one. A Scope of Appointment taken by phone. All names and numbers are fictional."},
+    {"speaker": "Isabel", "text": "Hi, Mrs. Lopez, this is Isabel Fuentes, a licensed insurance agent. This call is being recorded. Is that okay with you?"},
+    {"speaker": "Lopez", "text": "Yes."},
+    {"speaker": "Isabel", "text": "I'm not with Medicare or the government. We do not offer every plan available in your area. Currently we represent six organizations which offer forty-two products in your area. Please contact Medicare dot gov or one eight hundred Medicare to get information on all of your options."},
+    {"speaker": "Isabel", "text": "Before we talk about any plans, I need your permission. Can you please state your full name?"},
+    {"speaker": "Lopez", "text": "Maria Lopez."},
+    {"speaker": "Isabel", "text": "Thank you. Today is Tuesday, October twentieth, twenty twenty-six. Agreeing to talk with me does not obligate you to enroll, does not change your current coverage, and does not enroll you in anything. Do you agree to discuss Medicare Advantage plans with me today?"},
+    {"speaker": "Lopez", "text": "Yes, I agree."},
+    {"speaker": "Isabel", "text": "Thank you, Mrs. Lopez. Let's get started.", "pause": 1.2},
+    {"speaker": "Narrator", "text": "Key moments. Mrs. Lopez said yes to the recording, the disclaimer came before any benefit was mentioned, and she said, yes, I agree, before any plan was discussed."}
+  ]
+}

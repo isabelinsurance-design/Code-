@@ -1,0 +1,16 @@
+{
+  "voices": {
+    "Isabel": {"voice": "ef_dora", "lang": "es"},
+    "Ramirez": {"voice": "em_alex", "lang": "es", "speed": 0.95}
+  },
+  "lines": [
+    {"speaker": "Isabel", "text": "Hola, señor Ramírez. Le habla Isabel Fuentes, agente de seguros con licencia. Esta llamada está siendo grabada. ¿Está de acuerdo?"},
+    {"speaker": "Ramirez", "text": "Sí."},
+    {"speaker": "Isabel", "text": "No estoy afiliada con Medicare ni con el gobierno. No ofrecemos todos los planes disponibles en su área. Actualmente representamos a seis organizaciones que ofrecen cuarenta y dos productos en su área. Para obtener información sobre todas sus opciones, comuníquese con Medicare punto gov o al uno, ochocientos, Medicare."},
+    {"speaker": "Isabel", "text": "Antes de hablar de planes, necesito su permiso. ¿Me puede decir su nombre completo?"},
+    {"speaker": "Ramirez", "text": "Roberto Ramírez."},
+    {"speaker": "Isabel", "text": "Gracias. Hoy es martes, veinte de octubre de dos mil veintiséis. Hablar conmigo no le obliga a inscribirse, no cambia su cobertura actual y no lo inscribe en nada. ¿Está de acuerdo en hablar hoy sobre planes Medicare Ádvantich?"},
+    {"speaker": "Ramirez", "text": "Sí, estoy de acuerdo."},
+    {"speaker": "Isabel", "text": "Gracias, señor Ramírez. Empecemos."}
+  ]
+}

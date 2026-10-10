@@ -1,0 +1,24 @@
+{
+  "voices": {
+    "Narrator": {"voice": "bf_emma", "lang": "en-gb"},
+    "Agent": {"voice": "af_heart", "lang": "en-us", "speed": 1.08},
+    "Grant": {"voice": "am_puck", "lang": "en-us", "speed": 0.92},
+    "Rep": {"voice": "am_fenrir", "lang": "en-us"}
+  },
+  "lines": [
+    {"speaker": "Narrator", "text": "Training example three. What not to do. Listen for four mistakes. The answers come at the end."},
+    {"speaker": "Agent", "text": "Hi, Mr. Grant! I'm calling about your Medicare benefits. Let's get you into a better plan today."},
+    {"speaker": "Grant", "text": "Oh. Okay. Do you need my credit card for the premium?"},
+    {"speaker": "Agent", "text": "Sure, go ahead and read me the number, and I'll set up autopay.", "pause": 0.9},
+    {"speaker": "Narrator", "text": "Later, on the confirmation call."},
+    {"speaker": "Rep", "text": "Mr. Grant, do you understand that you are enrolling, and do you agree?"},
+    {"speaker": "Grant", "text": "Well, I'm not really sure..."},
+    {"speaker": "Agent", "text": "He agrees. Go ahead."},
+    {"speaker": "Agent", "text": "And while I have you, Mr. Grant, I also have a great hospital indemnity plan for just twenty dollars a month.", "pause": 1.2},
+    {"speaker": "Narrator", "text": "Here are the four mistakes."},
+    {"speaker": "Narrator", "text": "One. No recording notice, no disclaimers, and no Scope of Appointment, and the opening sounded like a call from Medicare."},
+    {"speaker": "Narrator", "text": "Two. The agent asked for a credit card number. Payment information is never collected on this call."},
+    {"speaker": "Narrator", "text": "Three. The agent answered the attestation for Mr. Grant. Only the beneficiary or an authorized representative can agree, and he was not sure. The right move is to pause the enrollment."},
+    {"speaker": "Narrator", "text": "Four. The agent pitched a hospital indemnity plan that was not on the Scope of Appointment."}
+  ]
+}
