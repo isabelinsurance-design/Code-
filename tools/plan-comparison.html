@@ -405,7 +405,7 @@ const COUNTIES = [
 const COUNTY_BY_ID = Object.fromEntries(COUNTIES.map(c => [c.id, c]));
 
 const CONDITIONS = [
-  {id:'diabetes', label:'Diabetes', re:/\b(diabet\w*|a1c|insulin(?!\s+resist)|metformin|type ?(1|2|i|ii)\b|az[uú]car)/i},
+  {id:'diabetes', label:'Diabetes', re:/\b(diabet\w*|a1c|type ?(1|2|i|ii)\b|az[uú]car)/i},
   {id:'heart', label:'Heart / CHF / cardiovascular', re:/\b(heart|chf|cardio\w*|coronary|afib|a-?fib|atrial|arrhythmia|hypertension|high blood pressure|stroke|coraz[oó]n|card[ií]ac\w*|presi[oó]n alta|stent|bypass)/i},
   {id:'lung', label:'COPD / asthma / lung', re:/\b(copd|asthma|asma|emphysema|enfisema|bronchitis|bronquitis|lung|pulmon\w*|oxygen|ox[ií]geno|inhaler)/i},
   {id:'kidney', label:'Chronic kidney disease', re:/\b(kidney|ckd|renal|ri[ñn][oó]n\w*)/i},
@@ -791,11 +791,15 @@ function parseClientText(text, groups = []) {
   for (const c of COUNTIES) if (c.re.test(t)) { p.county = c.id; break; }
   for (const c of CONDITIONS) if (c.re.test(t)) p.conditions.push(c.id);
   if (p.conditions.includes('esrd') && !p.conditions.includes('kidney')) p.conditions.push('kidney');
-  if (/\b(no|not|without|doesn'?t have|does not have|sin)\s+(medi-?cal|medicaid)\b/i.test(t)) p.mediCal = 'none';
-  else if (/\b(medi-?cal|medicaid|medi-?medi|dual|qmb|full benefit)\b/i.test(t)) p.mediCal = /share of cost|soc\b|partial|slmb|qi\b/i.test(t) ? 'partial' : 'full';
+  // "Medi-Cal", "Medi Cal", "MediCal" — but "medical group / copays / center" is not Medi-Cal (a bare "medical" counts only as "has medical")
+  const MEDICAL_NOT = '(?!\\s+(?:group|center|centre|copays?|foundation|clinic|doctors?|care|records|conditions?|history|plan|bills|expenses|office|equipment|supplies|deductible|issues|problems|team|staff|needs))';
+  const MEDICAL = '(?:medi[- ]cal|medicaid|medi-?medi|(?<=\\b(?:has|have|with|on|tiene|full|partial|and|plus|y|con)\\s)medical' + MEDICAL_NOT + ')';
+  if (new RegExp('\\b(?:no|not|without|doesn\'?t have|does not have|sin)\\s+(?:' + MEDICAL + '|medical' + MEDICAL_NOT + '|MediCal)(?![\\w-])', 'i').test(t)) p.mediCal = 'none';
+  else if (new RegExp('\\b(?:' + MEDICAL + '|dual|(?<!\\b(?:no|not)\\s)qmb|full benefit)(?![\\w-])', 'i').test(t) || /\bMediCal\b/.test(t)) p.mediCal = /share of cost|\bsoc\b|partial|slmb/i.test(t) || /\bQI\b/.test(t) ? 'partial' : 'full';
   else if (/\b(medicare only|only medicare|solo medicare)\b/i.test(t)) p.mediCal = 'none';
-  if (/\b(extra help|lis\b|low income subsidy|ayuda extra)/i.test(t)) p.extraHelp = true;
-  if (/\b(veteran|va\b|v\.a\.|tricare|army|navy|marine|air force|militar|veterano)/i.test(t)) p.veteran = true;
+  const NO_HELP = /\b(?:no|not|without|doesn'?t (?:have|get|qualify for)|does not (?:have|get|qualify for)|sin|not on)\s+(?:\w+\s+){0,2}(?:extra help|lis\b|low income subsidy|ayuda extra|qmb|slmb|msp|medicare savings)/i;
+  if (/\b(extra help|lis\b|low income subsidy|ayuda extra)/i.test(t) && !NO_HELP.test(t)) p.extraHelp = true;
+  if (/\b(veteran|v\.a\.|tricare|army|navy|marine|air force|militar|veterano)/i.test(t) || /\bVA\b/.test(t) || /\bthe va\b/i.test(t)) p.veteran = true;
   if (p.veteran && /\b(va (pharmacy|meds|drugs|prescriptions)|gets? (his|her|their)? ?(meds|drugs|prescriptions) (from|through) (the )?va|tricare)/i.test(t)) p.vaDrugCoverage = true;
   if (/costco/i.test(t)) p.costco = true;
   if (/korean|coreano|한국/i.test(t)) p.language = 'korean';
@@ -807,28 +811,37 @@ function parseClientText(text, groups = []) {
   for (const pr of PRIORITIES) if (pr.re.test(t)) p.priorities[pr.id] = 2;
   if (/\bppo\b/i.test(t) && !/\b(no|not|doesn'?t want( a)?)\s+ppo\b/i.test(t)) p.priorities.ppo = 3;
   // Drugs: insulin, Tier 3 / brand-name drugs (brand counts as Tier 3 — the formulary decides the real tier)
-  if (/\b(qmb|slmb|qi|medicare savings(?: program)?|msp)\b/i.test(t)) { p.extraHelp = true; if (p.mediCal === 'unknown') p.mediCal = 'partial'; }   // MSP members get Extra Help automatically
+  if ((/\b(qmb|slmb|medicare savings(?: program)?|msp|qualifying individual)\b/i.test(t) || /\bQI(?:-1)?\b(?!\s*gong)/.test(t)) && !NO_HELP.test(t)) { p.extraHelp = true; if (p.mediCal === 'unknown') p.mediCal = 'partial'; }   // MSP members get Extra Help automatically
   const insulinSaid = [...t.matchAll(/\binsulina?\b(?!\s+resist)/gi)].some(m => !NEG_BEFORE.test(t.slice(Math.max(0, m.index - 40), m.index)));
   if (insulinSaid) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
-  // Brand drugs the agent counts without naming: "one tier 3 drug", "tier 3 x2", "Eliquis and two other brand drugs"
-  const NUM = {one: 1, two: 2, three: 3, four: 4, five: 5, un: 1, una: 1, dos: 2, tres: 3, cuatro: 4};
-  const MEDS = '(?:drugs?|medications?|meds?|prescriptions?|medicinas?|medicamentos?)';
-  const otherM = tl.match(new RegExp('(\\d|one|two|three|four|five|una?|dos|tres|cuatro)\\s+(?:other|more|otras?|otros?|m[aá]s)\\s+(?:(?:brand(?:-name)?|tier\\s*3|nivel\\s*3)\\s+' + MEDS + '|' + MEDS + '\\s+(?:on|in|de|en|del)\\s+(?:tier|nivel)\\s*3)'));
-  let said3 = 0;
-  if (!otherM) {
-    const tierM = tl.match(/(\d|one|two|three|four|five|una?|dos|tres|cuatro)?\s*(?:brand(?:-name)?\s+)?(?:drugs?\s+|medications?\s+|meds?\s+|medicinas?\s+)?(?:on |in |de |del )?(?:tier|nivel)\s*(?:3|three|iii|tres)\b/);
-    said3 = tierM ? (+tierM[1] || NUM[tierM[1]] || 1) : 0;
-    const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*(?:[x×:]\s*|\(\s*)(\d)\)?/);
-    if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10) said3 = Math.max(said3, +tierM2[1]);
+  // Brand drugs the agent counts without naming: "one tier 3 drug", "tier 3 x2", "two brand name drugs",
+  // "Eliquis and two other brand drugs", "another tier 3 drug", "dos medicinas de marca"
+  const NUM = {one: 1, two: 2, three: 3, four: 4, five: 5, a: 1, an: 1, another: 1, un: 1, una: 1, otra: 1, otro: 1, dos: 2, tres: 3, cuatro: 4, cinco: 5};
+  const N = '(\\d|one|two|three|four|five|una?|dos|tres|cuatro|cinco)';
+  const MEDS = '(?:drugs?|medications?|meds?|prescriptions?|medicinas?|medicamentos?|pills?)';
+  const BRAND = '(?:brand(?:[- ]?name)?|tier\\s*3|nivel\\s*3|de marca)';
+  const numOf = s => +s || NUM[s] || 1;
+  const negBrand = i => /\b(?:no|not|not on any|isn'?t on any|aren'?t any|doesn'?t take any|without|sin|ningun[ao]?)\s+(?:any\s+|other\s+)?$/i.test(tl.slice(Math.max(0, i - 30), i));
+  let other3 = 0, said3 = 0;
+  const om = tl.match(new RegExp(N + '\\s+(?:other|more|otras?|otros?|m[aá]s)\\s+(?:' + BRAND + '\\s+' + MEDS + '|' + MEDS + '\\s+(?:' + BRAND + '|(?:on|in|de|en|del)\\s+(?:tier|nivel)\\s*3))'))
+    || tl.match(new RegExp('otr[ao]s\\s+' + N + '\\s+' + MEDS + '\\s+(?:' + BRAND + ')'))
+    || tl.match(new RegExp(N + '\\s+' + MEDS + '\\s+de marca\\s+m[aá]s'));
+  const anotherM = !om && tl.match(new RegExp('\\b(another|otra|otro)\\s+(?:' + BRAND + '\\s+' + MEDS + '|' + MEDS + '\\s+(?:' + BRAND + '|(?:on|in|de|del)\\s+(?:tier|nivel)\\s*3))'));
+  if (om) other3 = numOf(om[1]); else if (anotherM) other3 = 1;
+  else {
+    const cm = [...tl.matchAll(new RegExp('(?:' + N + '\\s+)?(?:' + BRAND + '\\s+' + MEDS + '|' + MEDS + '\\s+(?:' + BRAND + '|(?:on|in|de|del)\\s+(?:tier|nivel)\\s*(?:3|three|tres)\\b)|(?:on |in |de |del )?(?:tier|nivel)\\s*(?:3|three|iii|tres)\\b)', 'g'))].filter(m => !negBrand(m.index));
+    for (const m of cm) said3 = Math.max(said3, m[1] ? numOf(m[1]) : 1);
+    const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*(?:[x×:]\s*|\(\s*)(\d)\)?(?!\s*(?:mg|mcg|units?|unidades|ml|iu|x\s*day|times|veces)\b)(?![\d.])/);
+    if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10 && !negBrand(tierM2.index)) said3 = Math.max(said3, +tierM2[1]);
   }
   // Named drugs from the common-drug list ("takes Eliquis and metformin") — each with its usual tier and price
   for (const d of drugsIn(t)) p.drugs.push({name: d[0], tier: d[1], price: d[2]});
   if (p.drugs.some(d => d.tier === 'insulin')) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
   for (const d of p.drugs) { const c = DRUG_COND[d.name]; if (c && !p.conditions.includes(c)) p.conditions.push(c); }
   // "a tier 3 drug" next to a named Tier 3 drug is usually that same drug
-  let tier3 = otherM ? (+otherM[1] || NUM[otherM[1]] || 1) : Math.max(0, said3 - p.drugs.filter(d => d.tier === '3').length);
-  const namedBrand = p.drugs.some(d => ['3', '4', '5'].includes(d.tier) && d.price > 0);
-  if (!tier3 && !said3 && !namedBrand && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t) && !/\b(?:no|not|never|without|sin|doesn'?t take)\s+(?:any\s+)?brand/i.test(t)) tier3 = 1;
+  const namedBrand = p.drugs.filter(d => ['3', '4', '5'].includes(d.tier) && d.price > 0).length;
+  // "Eliquis, a tier 3 drug" — the count usually includes the drugs that were named
+  let tier3 = other3 || Math.max(0, said3 - (/\btier\s*3|nivel\s*3/i.test(tl) ? p.drugs.filter(d => d.tier === '3').length : namedBrand));
   p.tier3 = Math.min(tier3, 6);
   if (hasDrugs(p)) p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
   if (/implant/i.test(t)) p.dentalImplants = true;
@@ -836,9 +849,10 @@ function parseClientText(text, groups = []) {
   if (/\b(keep|stay with|loves|must keep|wants to keep|has to keep|mantener)\b[^.]{0,40}(doctor|dr\.?|group|medical)/i.test(t)) p.keepDoctor = true;
   // Medical group: known names first, then the Costco list, then "goes to X" phrasing.
   const allGroups = [...new Set(KNOWN_GROUPS.concat(groups.map(g => g.network)))];
+  const tNoCounty = t.replace(/\blos angeles\b|\bsan bernardino\b|\bsan diego\b|\briverside\b|\borange county\b|\bventura\b/ig, ' ');   // "Los Angeles" is not the Angeles IPA
   for (const gname of allGroups) {
     const core = gname.replace(/\b(medical (group|foundation)|mg|ipa|medical|foundation|health)\b/ig, '').trim();
-    if (core.length >= 4 && new RegExp('\\b' + core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(t)) { p.medicalGroup = titleCase(core); break; }
+    if (core.length >= 4 && new RegExp('\\b' + core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(tNoCounty)) { p.medicalGroup = titleCase(core); break; }
   }
   if (!p.medicalGroup) {
     const m = t.match(/\b(?:goes to|sees doctors? at|doctor is (?:at|with)|with|medical group(?: is)?|va (?:a|con))\s+([A-Z][\w.&'-]+(?:\s+[A-Z][\w.&'-]+){0,3})/);
@@ -912,7 +926,7 @@ const PARTD = {year: 2027, deductible: 700, oopCap: 2400, insulinCap: 35, lisGen
    typical plan-paid / list prices (NADAC, GoodRx, Drugs.com); tiers from 2026–27 MA-PD formularies. */
 const DRUG_LIST = [
   ["acarbose", "2", 20, "Precose", "acarbosa"],
-  ["adalimumab biosimilar", "5", 1400, "Hyrimoz", "adalimumab-adaz", "Cyltezo", "adalimumab-adbm", "Simlandi"],
+  ["adalimumab biosimilar", "5", 1400, "Hyrimoz", "adalimumab-adaz", "Cyltezo", "adalimumab-adbm", "Simlandi", "adalimumab-ryvk"],
   ["Admelog", "insulin", 180, "Admelog SoloStar", "Admalog", "Admelog vial", "Admelog pen"],
   ["albuterol", "2", 25.0, "albuterol sulfate HFA 90 mcg inhaler", "ProAir", "ProAir HFA", "Ventolin", "Ventolin HFA", "Proventil"],
   ["alendronate", "1", 12.0, "alendronate sodium", "Fosamax", "alendronato", "alendronic acid", "alendranate", "fosamax weekly"],
@@ -933,7 +947,7 @@ const DRUG_LIST = [
   ["Brilinta", "3", 45.0, "ticagrelor", "Brilenta", "Brillinta", "Brilinta 90 mg", "ticagrelor 90 mg"],
   ["Brukinsa", "5", 15900, "zanubrutinib", "Brukinza", "Bruckinsa", "Brukinsa capsules", "Brukinsa tablets"],
   ["budesonide nebulizer", "4", 80.0, "budesonide inhalation suspension", "Pulmicort", "Pulmicort Respules", "budesonide neb", "budesonida para nebulizar", "budesonida"],
-  ["budesonide-formoterol", "3", 200, "budesonide/formoterol HFA", "~Breyna", "generic Symbicort"],
+  ["budesonide-formoterol", "3", 200, "budesonide/formoterol HFA", "Breyna", "generic Symbicort"],
   ["bumetanide", "1", 10, "Bumex"],
   ["bupropion", "2", 15.0, "Wellbutrin", "Wellbutrin XL", "Wellbutrin SR", "bupropion XL", "bupropion SR", "buproprion"],
   ["Calquence", "5", 8600, "acalabrutinib", "Calquense", "Calquinse", "Kalquence", "Calquence tablets"],
@@ -986,7 +1000,7 @@ const DRUG_LIST = [
   ["Imbruvica", "5", 9319, "ibrutinib", "Imbruvika", "Imbrubica", "Imbruvica tablets", "Imbruvica capsules"],
   ["Incruse Ellipta", "3", 210, "umeclidinium", "Incruse", "Encruse", "Incruse Elipta", "umeclidinio"],
   ["Ingrezza", "5", 10000, "valbenazine", "valbenazina", "ingreza", "Ingrezza Sprinkle"],
-  ["insulin aspart", "insulin", 100, "aspart", "generic NovoLog", "~Merilog", "~Kirsty", "insulina aspart generica"],
+  ["insulin aspart", "insulin", 100, "aspart", "generic NovoLog", "Merilog", "~Kirsty", "insulina aspart generica"],
   ["insulin glargine", "insulin", 85.0, "glargine", "generic Lantus", "Rezvoglar", "insulin glargine-aglr", "insulina glargina generica", "Semglee", "insulin glargine-yfgn"],
   ["insulin lispro", "insulin", 40.0, "lispro", "generic Humalog", "Insulin Lispro KwikPen", "Insulin Lispro Junior KwikPen", "insulina lispro generica"],
   ["Invokana", "3", 570, "canagliflozin", "canagliflozina", "Invocana", "Invokanna", "Invokana 100 mg", "Invokana 300 mg"],
@@ -1082,11 +1096,11 @@ const DRUG_LIST = [
   ["Tradjenta", "3", 78.0, "linagliptin", "linagliptina", "Tradgenta", "Tragenta", "Trajenta"],
   ["tramadol", "2", 16.0, "tramadol HCl", "Ultram", "tramadol 50", "tramodol", "tramadal", "tramadol ER"],
   ["trazodone", "1", 6.0, "Desyrel", "trazodona", "trazadone", "trazodone HCl"],
-  ["Trelegy Ellipta", "3", 175, "Trelegy", "Trelegi", "Trelegy Elipta", "Treleggy", "fluticasona/umeclidinio/vilanterol"],
+  ["Trelegy Ellipta", "3", 175, "Trelegy", "Trelegi", "Trelegy Elipta", "Treleggy", "fluticasona/umeclidinio/vilanterol", "fluticasone furoate/umeclidinium/vilanterol"],
   ["Tresiba", "insulin", 141, "insulin degludec", "Tresiba FlexTouch", "Tresiva", "Treshiba", "insulina degludec"],
   ["Trulicity", "3", 987, "dulaglutide", "dulaglutida", "Truliciti", "Trulicty", "Trulicity pen"],
   ["Ubrelvy", "4", 1150, "ubrogepant", "ubrogepante", "ubrelvi", "ubrelvey"],
-  ["ustekinumab biosimilar", "5", 1900, "Selarsdi", "ustekinumab-aekn", "Wezlana", "ustekinumab-auub", "Pyzchiva"],
+  ["ustekinumab biosimilar", "5", 1900, "Selarsdi", "ustekinumab-aekn", "Wezlana", "ustekinumab-auub", "Pyzchiva", "ustekinumab-ttwe"],
   ["valsartan", "1", 15.0, "Diovan", "valsartán", "valsarten", "valsartan 160 mg"],
   ["Venclexta", "5", 16700, "venetoclax", "Venclexa", "Venclextra", "Venclexta starting pack"],
   ["venlafaxine", "2", 12.0, "Effexor", "Effexor XR", "venlafaxine ER", "venlafaxina", "venlafexine", "venlafaxine XR"],
@@ -1119,9 +1133,9 @@ for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) {
 }
 const findDrug = name => DRUG_BY_KEY[drugKey(name)] || null;
 const drugAlso = d => d.slice(3).find(x => !String(x).startsWith('~')) || '';   // one other name, for display
-const isGenericDrug = (name, tier) => { const d = findDrug(name); return d ? /^[a-z]/.test(d[0]) : (tier === '1' || tier === '2'); };
+const isGenericDrug = (name, tier) => { const d = findDrug(name); return d ? (/^[a-z]/.test(d[0]) || d[1] === '1' || d[1] === '2') : (tier === '1' || tier === '2'); };
 /* "not on X", "allergic to X", "switched from X", "sin X" — the drug isn't taken */
-const NEG_BEFORE = /\b(?:no|not|not on|not taking|never|stopped|stopped taking|quit|off|switched from|used to take|allergic to|without|doesn'?t|isn'?t|sin|ya no|dej[oó] de)\s+(?:[\w\u00C0-\u024F'-]+\s+)?$/i;
+const NEG_BEFORE = /(?:\b(?:no longer(?: takes?| taking| on| uses?)?|not currently(?: taking| on| using)?|(?:is|are)n'?t(?: taking| on)?|(?:is|are) not(?: taking| on)?|does(?:n'?t| not)(?: take| use)?|stopped(?: taking)?|quit(?: taking)?|switched from|used to take|allergic to|not on|not taking|never|without|off|no|not|ya no(?: toma| está tomando| usa)?|no (?:está tomando|toma|usa)|dej[oó] de(?: tomar)?|sin)\s+(?:[\w\u00C0-\u024F'-]+\s+)?|\bswitch(?:ed|ing)? to\s+[\w\u00C0-\u024F'-]+(?:\s+[\w\u00C0-\u024F'-]+)?\s+from\s+)$/i;
 /* Every drug named in a text (longest name first, so "Janumet XR" wins over "Janumet"); accents count as letters. */
 let DRUG_RE = null;
 function drugsIn(text, keepNegated) {
@@ -1219,7 +1233,7 @@ function drugEstimate(plan, profile) {
       let pay = capLeft <= 0.005 ? 0 : Math.min(helped ? Math.min(full, x.lisMax) : full, capLeft);
       capLeft = Math.max(0, capLeft - (helped ? full : pay));
       x.cost += pay; if (!helped) x.dedPaid += Math.min(dd, pay);
-      if (!(dd && !helped) && pay > 0.004) x.fills.push(pay);
+      if (!(dd && !helped) && pay > 0.004 && Math.abs(pay - (helped ? Math.min(full, x.lisMax) : full)) < 0.005) x.fills.push(pay);
       if (capLeft <= 0.005 && capMonth == null) capMonth = mo;
     });
   }
@@ -1293,6 +1307,7 @@ function planValues(plan, profile) {
     rx: n.noPartD ? null : (lowIncome && n.extraHelpCopays ? 5 : (n.rxDeductible ?? 0) / 6 + (n.tier3 ?? 47) + (n.tier1 ?? 0) * 2 + (n.tier2 ?? 0) * 2),
     insulin: n.insulin,
     drugsYear: (drugEstimate(plan, profile) || {}).yearly ?? null,
+    lis: getsLIS(profile),
     dental: n.dentalValue + (profile.dentalImplants && n.dentalImplants ? 1500 : 0) + (dual && n.dentalMediCal ? 500 : 0),
     vision: n.eyewear || 0,
     hearing: n.hearingValue,
@@ -1493,9 +1508,9 @@ const FEATURES = [
   {id: 'insulin', re: /insulin/i, label: 'insulin cost', dir: 'min', fields: ['Insulin (Part D)'],
     metric: r => r.plan.n.noPartD ? null : r.plan.n.insulin, has: r => !r.plan.n.noPartD && r.plan.n.insulin === 0, name: '$0 insulin',
     say: r => r.plan.n.noPartD ? 'no Part D' : `insulin ${r.plan.n.insulin === 0 ? '$0' : fmt$(r.plan.n.insulin) + '/mo'}`},
-  {id: 'rxded', re: /(?<!medical\s)(?<!doctor\s)deductible|deducible/i, label: 'drug deductible', dir: 'min', fields: ['Rx Deductible'],
-    metric: r => r.plan.n.noPartD ? null : r.plan.n.rxDeductible, has: r => !r.plan.n.noPartD && r.plan.n.rxDeductible === 0, name: 'a $0 drug deductible',
-    say: r => r.plan.n.noPartD ? 'no Part D' : `drug deductible ${fmt$(r.plan.n.rxDeductible)}${r.plan.n.rxDed && r.plan.n.rxDed.amount && r.plan.n.rxDed.tiers.length < 5 ? ' (tiers ' + r.plan.n.rxDed.tiers[0] + '–' + r.plan.n.rxDed.tiers[r.plan.n.rxDed.tiers.length - 1] + ')' : ''}`},
+  {id: 'rxded', re: /(?<!(?:medical|doctor|dental|hospital|inpatient|part b|medicare)\s)deductible|deducible/i, label: 'drug deductible', dir: 'min', fields: ['Rx Deductible'],
+    metric: r => r.plan.n.noPartD ? null : (r.v.lis ? 0 : r.plan.n.rxDeductible), has: r => !r.plan.n.noPartD && (r.v.lis || r.plan.n.rxDeductible === 0), name: 'a $0 drug deductible',
+    say: r => r.plan.n.noPartD ? 'no Part D' : r.v.lis && r.plan.n.rxDeductible ? `drug deductible $0 with Extra Help (plan's: ${fmt$(r.plan.n.rxDeductible)})` : `drug deductible ${fmt$(r.plan.n.rxDeductible)}${r.plan.n.rxDed && r.plan.n.rxDed.amount && r.plan.n.rxDed.tiers.length < 5 ? ' (tiers ' + r.plan.n.rxDed.tiers[0] + '–' + r.plan.n.rxDed.tiers[r.plan.n.rxDed.tiers.length - 1] + ')' : ''}`},
   {id: 'drugs', re: /drugs?|\brx\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
     metric: r => r.v.drugsYear != null ? r.v.drugsYear : r.v.rx, has: r => !r.plan.n.noPartD, name: 'Part D drug coverage',
     say: r => r.plan.n.noPartD ? (r.v.drugsYear === 0 ? 'drugs through VA/TRICARE' : 'no Part D')
@@ -1545,13 +1560,24 @@ const featureish = w => FEATURES.some(f => f.re.test(w));
 
 /* Which plans does the question name? Returns plans (may be several when names repeat across counties). */
 function matchPlansInQuestion(q, plans, prefCounty, ctx, split = true) {
-  if (split && /\b(?:or|vs\.?|versus|and|compared? (?:to|with))\b|,/i.test(q)) {
+  const cmpQ = /\bcompare\b|\bvs\.?\b|versus|\bthan\b/i.test(q);
+  const SEP = cmpQ ? /\b(?:or|vs\.?|versus|and|than|compared? (?:to|with)|with|to)\b|,/i : /\b(?:or|vs\.?|versus|and|than|compared? (?:to|with))\b|,/i;
+  if (split && SEP.test(q)) {
     const whole = matchPlansInQuestion(q, plans, prefCounty, ctx, false);
-    if (whole.length <= 1) {
-      const parts = q.split(/\b(?:or|vs\.?|versus|and|compared? (?:to|with))\b|,/i).map(s => s.trim()).filter(s => s.length > 2);
-      const each = parts.map(s => matchPlansInQuestion(s, plans, prefCounty, ctx, false).slice(0, 1)).filter(x => x.length).map(x => x[0]);
-      const uniq = [...new Set(each)];
-      if (uniq.length >= 2) return uniq.slice(0, 4);
+    const base = p => p.name.replace(/\s*[—–-]\s*new$/i, '').replace(/\s*\([^)]*\)/g, '').trim();
+    const oneName = whole.length > 1 && new Set(whole.map(base)).size === 1;   // the same plan in several counties
+    if (whole.length <= 1 || oneName) {
+      const each = [];
+      for (const s of q.split(SEP).map(x => x.trim()).filter(x => x.length > 2)) {
+        const pick = matchPlansInQuestion(s, plans, prefCounty, ctx, false)[0];
+        if (!pick) continue;
+        // a fragment must name its plan clearly — two name words, the plan number, the carrier or the full name — so "total cost" isn't "Total+"
+        const sTok = new Set(normName(s).split(' ')), hit = planTokens(pick).filter(w => sTok.has(w));
+        const strong = hit.length >= 2 || hit.some(w => /\d/.test(w)) || /h\d{4}/i.test(s) || normName(s).includes(normName(pick.name))
+          || CARRIER_ALIASES.some(([cn, re]) => cn === pick.carrier && re.test(s));
+        if (strong && !each.some(x => base(x) === base(pick))) each.push(pick);
+      }
+      if (each.length >= 2) return each.slice(0, 4);
     }
     return whole;
   }
@@ -1620,14 +1646,14 @@ function answerQuestion(question, ctx) {
   const feats = FEATURES.map(f => ({f, at: ql.search(f.re)})).filter(x => x.at >= 0).sort((a, b) => a.at - b.at).map(x => x.f);
   const hasFeat = id => feats.some(f => f.id === id);
   if (hasFeat('implants')) { const i = feats.findIndex(f => f.id === 'dental'); if (i >= 0) feats.splice(i, 1); }
-  if (hasFeat('rxded')) { const i = feats.findIndex(f => f.id === 'drugs'); if (i >= 0) feats.splice(i, 1); }   // "drug deductible" is about the deductible
+  if (hasFeat('rxded') && !/\b(costs?|pay|price|spend|total|how much|cu[aá]nto|cuesta)\b/i.test(q)) { const i = feats.findIndex(f => f.id === 'drugs'); if (i >= 0) feats.splice(i, 1); }   // "drug deductible" is about the deductible
   const wantsHi = SUP_HI.test(q), wantsLo = SUP_LO.test(q);
 
   // plan names in the question
   let planRefs = [];
   const topN = ql.match(/\b(?:top|first)\s*(\d|two|three|four)\b/);
   if (topN && ranked.length) { const n = ({two: 2, three: 3, four: 4})[topN[1]] || +topN[1]; planRefs = ranked.slice(0, Math.min(4, Math.max(1, n))).map(r => r.plan); }
-  else planRefs = matchPlansInQuestion(q, data.plans, profile.county, {inResults});
+  else planRefs = matchPlansInQuestion(q.replace(/\b(?:with|without|no|sin|con|gets?|has)?\s*(?:extra help|ayuda extra)\b/gi, ' '), data.plans, profile.county, {inResults});
 
   const qDrugs = findDrugsIn(q);
   // ── how many
@@ -1657,8 +1683,16 @@ function answerQuestion(question, ctx) {
   if (askNet) return networkAnswer(q, ctx, profile, mention, planRefs, rows, A, follow);
 
   // ── a named drug: "how much is Eliquis on Smart 055?", "cheapest plan for Ozempic"
-  const otherFeat = feats.some(f => f.id !== 'drugs' && f.id !== 'insulin');
-  if (qDrugs.length && !otherFeat && !/\bwhy\b|por qu|\b(best|recommend|suggest|mejor|recomienda)\b/i.test(q)) return drugAnswer(qDrugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q);
+  if (qDrugs.length && !/\bwhy\b|por qu/i.test(q)) {
+    const COST = new Set(['drugs', 'insulin', 'copays', 'moop', 'premium', 'rxded']);
+    // "for a client on Eliquis", "she takes Eliquis" — the drug is background, not what's asked about
+    const asContext = /\b(?:for|with)\s+(?:a\s+|my\s+|the\s+|this\s+)?(?:client|someone|patient|person|member|lady|man|woman|her|him)\s+(?:who\s+)?(?:is\s+)?(?:on|takes?|taking|using|uses)\b|\b(?:client|she|he)\s+(?:is\s+on|takes?|is taking)\b/i.test(q);
+    const nonCost = feats.filter(f => !COST.has(f.id)), costFeat = feats.some(f => COST.has(f.id) && f.id !== 'drugs' && f.id !== 'insulin');
+    const costAsk = /\b(costs?|price|pay|copays?|how much|cheap\w*|expensive|out[- ]of[- ]pocket|cu[aá]nto|cuesta|precio|barat\w*)\b/i.test(q);
+    if (/\b(best|recommend|suggest|mejor|recomienda)\b/i.test(q) && !nonCost.length) return bestForDrugs(qDrugs, ctx, profile, A, follow);
+    if (nonCost.length) { if (!asContext && costAsk) return drugAnswer(qDrugs, planRefs, rows.filter(r => nonCost.every(f => f.has(r))), profile, ctx, A, follow, scopeNote + ' with ' + nonCost.map(f => f.name).join(' and '), usingClient, q); }
+    else if (!(asContext && costFeat)) return drugAnswer(qDrugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q);
+  }
 
   // ── why
   if (/\bwhy\b|por qu[eé]|how come|explain (the )?(rank|ranking|score)/i.test(q)) {
@@ -1804,13 +1838,29 @@ function findGroupIn(q, data, notes) {
 /* Drugs named in a question (from the common-drug list). */
 function findDrugsIn(q) { return drugsIn(q).slice(0, 5); }
 function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q = '') {
-  const lisAsk = /extra help|\blis\b|ayuda extra|low income subsidy/i.test(q);
-  const base = Object.assign({}, profile, lisAsk ? {extraHelp: true} : {});
+  const lisNeg = /\b(?:without|no|not|sin|doesn'?t (?:get|have)|does not (?:get|have)|if (?:she|he|they) (?:does not|doesn'?t) get)\s+(?:\w+\s+)?(?:extra help|lis\b|ayuda extra|low income subsidy)/i.test(q);
+  const lisAsk = !lisNeg && /extra help|\blis\b|ayuda extra|low income subsidy/i.test(q);
+  const base = Object.assign({}, profile, lisAsk ? {extraHelp: true} : lisNeg ? {extraHelp: false, mediCal: profile.mediCal === 'full' ? 'none' : profile.mediCal} : {});
+  const lisNote = lisAsk ? ['Priced with Extra Help.'] : lisNeg ? ['Priced without Extra Help.'] : [];
+  const mcOk = ['full', 'partial'].includes(base.mediCal) || base.extraHelp;
+  if (!usingClient && !mcOk && rows.some(r => r.plan.n.dsnp)) { rows = rows.filter(r => !r.plan.n.dsnp); lisNote.push('D-SNPs (for Medi-Cal members) are left out — say “with Medi-Cal” to include them.'); }
   // "Eliquis or Xarelto?", "Eliquis vs Xarelto" — each drug on its own, not added together
-  if (drugs.length >= 2 && /\b(?:or|vs\.?|versus|instead of|compared? (?:to|with)|o)\b/i.test(q)) {
+  const ms = DRUG_RE ? [...T(q).matchAll(DRUG_RE)] : [];
+  const between = ms.length >= 2 ? T(q).slice(ms[0].index + ms[0][0].length, ms[1].index) : '';
+  if (drugs.length >= 2 && /\b(?:or|vs\.?|versus|than|instead of|compared? (?:to|with)|o)\b/i.test(between)) {
+    if (!planRefs.length && !usingClient) {   // no plan, no client: the cheapest plans for each drug
+      const out = A({headline: `${drugs.map(d => d[0]).join(' vs ')} — cheapest plans for each${profile.county ? ' in ' + COUNTY_BY_ID[profile.county].name : ''}:`, followUps: follow,
+        notes: ['Name a plan (“… on Smart 055”) or describe the client to compare them on one plan.'].concat(lisNote)});
+      for (const d of drugs) {
+        const one = Object.assign({}, base, {drugs: [{name: d[0], tier: d[1], price: d[2]}], tier3: 0, insulin: false});
+        rows.map(r => ({r, e: drugEstimate(r.plan, one)})).filter(x => x.e).sort((x, y) => x.e.yearly - y.e.yearly).slice(0, 3)
+          .forEach(x => out.rows.push({idx: x.r.plan.idx, text: `${d[0]}: ≈${fmt$(x.e.yearly)}/yr — ${x.e.text}`}));
+      }
+      return out;
+    }
     const top = planRefs.length ? planRefs : rows.slice(0, 1).map(r => r.plan);
     const out = A({headline: `${drugs.map(d => d[0]).join(' vs ')}${top.length ? ' — yearly cost on ' + (top.length > 1 ? 'these plans' : top[0].name) : ''}:`, followUps: follow,
-      notes: [drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ') + '. Every plan has its own drug list — check the formulary.'].concat(lisAsk ? ['Priced with Extra Help.'] : [])});
+      notes: [drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ') + '. Every plan has its own drug list — check the formulary.'].concat(lisNote)});
     for (const plan of top) for (const d of drugs) {
       const e = drugEstimate(plan, Object.assign({}, base, {drugs: [{name: d[0], tier: d[1], price: d[2]}], tier3: 0, insulin: false}));
       out.rows.push({idx: plan.idx, text: `${d[0]}: ${e ? `≈${fmt$(e.yearly)}/yr — ${e.text}` : 'no Part D drug coverage'}`});
@@ -1820,7 +1870,7 @@ function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, u
   const names = drugs.map(d => d[0]).join(' + ');
   const prof = Object.assign({}, base, {drugs: drugs.map(d => ({name: d[0], tier: d[1], price: d[2]})), tier3: 0, insulin: false});
   const about = drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ');
-  const notes = [about + '. Every plan has its own drug list — check the plan\'s formulary before enrolling.'].concat(lisAsk ? ['Priced with Extra Help.'] : []);
+  const notes = [about + '. Every plan has its own drug list — check the plan\'s formulary before enrolling.'].concat(lisNote);
   if (!(profile.drugs || []).some(x => drugs.some(d => lc(x.name) === lc(d[0])))) notes.push('To count it in the ranking, add it in Prescriptions (or say it in the client description).');
   if (planRefs.length) {
     return A({headline: `${names} — yearly cost on ${planRefs.length > 1 ? 'these plans' : planRefs[0].name}:`, followUps: follow, notes,
@@ -1834,6 +1884,22 @@ function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, u
     rows: top.map(x => ({idx: x.r.plan.idx, text: `≈${fmt$(x.e.yearly)}/yr — ${x.e.text}${x.r.score != null ? ` · fit ${Math.round(x.r.score)}` : ''}`})),
     notes: [scopeNote + (list.length > top.length ? `; showing 6 of ${list.length}.` : '.'), ...notes, ...(list.length > 1 ? [`Highest: ${list[list.length - 1].r.plan.name} ≈${fmt$(list[list.length - 1].e.yearly)}/yr.`] : [])],
     compare: top.length >= 2 ? top.slice(0, 3).map(x => x.r.plan.idx) : null, followUps: follow});
+}
+
+/* "Best plan for someone on Ozempic": rank again with the drug added (usual tier and price). */
+function bestForDrugs(drugs, ctx, profile, A, follow) {
+  const have = Array.isArray(profile.drugs) ? profile.drugs : [];
+  const prof = Object.assign({}, profile, {conditions: profile.conditions.slice(), priorities: Object.assign({}, profile.priorities),
+    drugs: have.concat(drugs.filter(d => !have.some(x => lc(x.name) === lc(d[0]))).map(d => ({name: d[0], tier: d[1], price: d[2]})))});
+  prof.priorities.drugs = Math.max(prof.priorities.drugs || 0, 2);
+  for (const d of prof.drugs) { const c = d.tier === 'insulin' ? 'diabetes' : DRUG_COND[d.name]; if (c && !prof.conditions.includes(c)) prof.conditions.push(c); if (d.tier === 'insulin') prof.insulin = true; }
+  const res = rankPlans(ctx.data, prof, ctx.notes), names = drugs.map(d => d[0]).join(' + ');
+  if (!res.results.length) return A({headline: `No plan fits a client on ${names} with this profile.`, followUps: follow});
+  const top = res.results.slice(0, 3);
+  return A({headline: `For a client on ${names}${prof.county ? ' in ' + COUNTY_BY_ID[prof.county].name : ''} I'd start with **${top[0].plan.name}** (fit ${Math.round(top[0].score)}).`,
+    rows: top.map(r => ({idx: r.plan.idx, text: `fit ${Math.round(r.score)} · drugs ≈${fmt$(r.v.drugsYear)}/yr · ${r.fit.filter(f => !/^Drugs ≈/.test(f)).slice(0, 2).join(' · ')}`})),
+    notes: [`Ranked with ${names} added at the usual tier and price.` + (have.some(x => drugs.some(d => lc(x.name) === lc(d[0]))) ? '' : ' To keep it for this client, add it in Prescriptions or the description.') + (prof.county ? '' : ' Add the county to narrow it down.')],
+    compare: top.length >= 2 ? top.map(r => r.plan.idx) : null, followUps: follow});
 }
 
 function verifyAnswer(ctx, A, follow) {
@@ -2160,9 +2226,12 @@ async function loadFile(file) {
 function useData(data) {
   S.data = data;
   $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('netBtn').hidden = false; $('rxBtn').hidden = false; $('tabbar').hidden = false;
-  renderStatus(); renderExamples(); renderRecent();
+  renderStatus(); renderExamples(); try { renderRecent(); } catch (e) { console.error(e); }
   let last = null; try { last = JSON.parse(store.get(STORE.last) || 'null'); } catch (_) {}
-  if (last && last.profile && typeof last.profile === 'object') { $('clientText').value = T(last.text); S.profile = cleanProfile(last.profile); S.aiRead = !!last.aiRead; }
+  if (last && last.profile && typeof last.profile === 'object') {
+    $('clientText').value = T(last.text); S.profile = cleanProfile(last.profile); S.aiRead = !!last.aiRead; S.lastFindText = T(last.text);
+    if (!last.v) S.profile.tier3 = Math.max(0, S.profile.tier3 - S.profile.drugs.filter(d => d.tier === '3').length);   // older saves counted named Tier 3 drugs too
+  }
   try { rerank(); } catch (e) { console.error(e); S.profile = blankProfile(); store.del(STORE.last); rerank(); }
 }
 
@@ -2293,7 +2362,18 @@ const EXAMPLES = [
 function renderExamples() {
   $('examples').innerHTML = '<span class="hint">Try an example:</span>' + EXAMPLES.map(x => `<button class="ex">${esc(x)}</button>`).join('');
 }
-$('examples').addEventListener('click', e => { const b = e.target.closest('.ex'); if (b) { dropDictation(); $('clientText').value = b.textContent; findPlans(); } });
+$('callouts').addEventListener('click', e => {
+  if (!e.target.closest('[data-keepdrugs]') || !S.droppedDrugs) return;
+  const p = S.profile, back = S.droppedDrugs; S.droppedDrugs = null;
+  for (const d of back.drugs) {
+    p.drugs = (p.drugs || []).filter(x => lc(x.name) !== lc(d.name)).concat(d);
+    const c = String(d.tier) === 'insulin' ? 'diabetes' : DRUG_COND[d.name]; if (c && !p.conditions.includes(c)) p.conditions.push(c);
+    if (String(d.tier) === 'insulin') p.insulin = true;
+  }
+  p.rxStandard = back.rxStandard; p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
+  rerank();
+});
+$('examples').addEventListener('click', e => { const b = e.target.closest('.ex'); if (b) { dropDictation(); $('clientText').value = b.textContent; findPlans({drugs: [], rxStandard: false}); } });
 $('findBtn').addEventListener('click', findPlans);
 // Enter = Find (Shift+Enter for a new line) — fast in front of a client
 $('clientText').addEventListener('keydown', e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); findPlans(); } });
@@ -2302,7 +2382,7 @@ $('newClient').addEventListener('click', () => {
   $('clientText').value = '';
   S.profile = Object.assign(blankProfile(), {county: S.profile.county});
   S.aiRead = false; S.compare = []; S.lastFree = null; S.showAll = false; S.expanded.clear();
-  BN.picked = []; BN.q = ''; BN.sort = null;
+  BN.picked = []; BN.q = ''; BN.sort = null; S.lastFindText = ''; S.droppedDrugs = null;
   const out = $('aiOut'); if (out) { out.hidden = true; out.innerHTML = ''; }
   rerank(); if (isPhone()) setTab('client');
   $('clientText').focus();
@@ -2317,12 +2397,28 @@ async function findPlans(opts) {
   }
   const text = $('clientText').value.trim();
   if (!text) { $('clientText').focus(); return; }
-  const prev = S.profile, keep = opts.drugs !== undefined ? (Array.isArray(opts.drugs) ? opts.drugs : []) : manualDrugs();
+  // Drugs typed in Prescriptions belong to this client: kept when the description was only added to (or not run yet);
+  // for anything else they are offered back with one tap instead of being guessed.
+  const prev = S.profile, typed = manualDrugs(), same = sameClient(S.lastFindText || '', text);
+  const keep = opts.drugs !== undefined ? (Array.isArray(opts.drugs) ? opts.drugs : []) : (same ? typed : []);
+  S.droppedDrugs = opts.drugs === undefined && !same && typed.length ? {drugs: typed, rxStandard: !!prev.rxStandard} : null;
   S.profile = parseClientText(text, S.data.groups);
-  for (const d of keep) if (d && T(d.name) && !S.profile.drugs.some(x => lc(x.name) === lc(d.name))) S.profile.drugs.push(d);
+  for (const d of keep) {
+    if (!d || !T(d.name)) continue;
+    const i = S.profile.drugs.findIndex(x => lc(x.name) === lc(d.name));
+    if (i >= 0) S.profile.drugs[i] = d;   // the agent's tier / price wins over the usual one
+    else {
+      S.profile.drugs.push(d);
+      if (['3', '4', '5'].includes(String(d.tier)) && S.profile.tier3 > 0) S.profile.tier3--;   // it was the unnamed brand drug
+    }
+    const c = String(d.tier) === 'insulin' ? 'diabetes' : DRUG_COND[d.name];
+    if (c && !S.profile.conditions.includes(c)) S.profile.conditions.push(c);
+    if (String(d.tier) === 'insulin') S.profile.insulin = true;
+  }
   S.profile = cleanProfile(S.profile);
-  if (keep.length) { S.profile.priorities.drugs = Math.max(S.profile.priorities.drugs || 0, 2); if (keep.some(d => d.tier === 'insulin')) S.profile.insulin = true; }
-  S.profile.rxStandard = opts.rxStandard !== undefined ? !!opts.rxStandard : !!prev.rxStandard;
+  if (keep.length) S.profile.priorities.drugs = Math.max(S.profile.priorities.drugs || 0, 2);
+  S.profile.rxStandard = opts.rxStandard !== undefined ? !!opts.rxStandard : (same && !!prev.rxStandard);
+  S.lastFindText = text;
   S.aiRead = false; S.showAll = false; S.expanded.clear();
   addRecent(text);
   rerank();
@@ -2365,7 +2461,8 @@ function mergeProfiles(local, ai) {
 /* ═══════════════ RANK & RENDER ═══════════════ */
 function rerank(full = true) {
   S.result = rankPlans(S.data, S.profile, S.notes);
-  store.set(STORE.last, JSON.stringify({text: $('clientText').value, profile: S.profile, aiRead: S.aiRead}));
+  store.set(STORE.last, JSON.stringify({v: 2, text: $('clientText').value, profile: S.profile, aiRead: S.aiRead}));
+  saveRecentDrugs();
   if (full) renderProfile(); else renderNetSum();
   renderAiBadge(); renderSummary(); renderPicks(); renderPlans(); renderExcluded(); renderAiCard(); renderTray();
   const tc = $('tabCount'); tc.hidden = !S.result.results.length; tc.textContent = S.result.results.length;
@@ -2408,6 +2505,7 @@ function renderSummary() {
   const notes = [];
   if (!p.county) notes.push(['info', 'Pick the client\'s county (or mention the city) — plans are county-specific.']);
   if (p.mediCal === 'unknown' && r.excluded.some(x => x.plan.n.dsnp)) notes.push(['info', 'If the client has Medi-Cal, set Medi-Cal to <b>Full</b> — that unlocks D-SNPs ($0 MOOP) and Medi-Cal-designed plans.']);
+  if (S.droppedDrugs && S.droppedDrugs.drugs.length) notes.push(['info', `Drugs added in Prescriptions for the last client (${S.droppedDrugs.drugs.map(d => esc(d.name)).join(', ')}) weren't carried over to this one. <button class="linkbtn" data-keepdrugs style="font-size:inherit">Keep them for this client</button>`]);
   if ((p.priorities.giveback || 0) >= 2 && p.mediCal === 'unknown') notes.push(['info', '“Doesn\'t want to pay Part B”: if Medi-Cal (QMB) already pays the client\'s Part B, a giveback adds nothing — check before you chase the biggest giveback.']);
   if (p.mediCal === 'full' && (p.priorities.giveback || 0) >= 2) notes.push(['warn', 'With full Medi-Cal the state pays Part B, so a Part B giveback won\'t put money in the client\'s pocket.']);
   if (!r.results.length && r.excluded.length) {
@@ -2702,8 +2800,6 @@ function renderBenefits(keepScroll) {
   const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
   const chipsX = ($('modalBody').querySelector('.bn-chips') || {}).scrollLeft || 0;
   const {rows, useFit} = benefitRows();
-  const visible = new Set(rows.map(r => r.plan.idx));
-  BN.picked = BN.picked.filter(i => visible.has(i));
   const cols = BN.ids.map(id => BEN_BY_ID[id]);
   const bestOf = cols.map(b => { if (!b.m) return null; const v = rows.map(b.m).filter(x => x != null); return v.length > 1 && new Set(v).size > 1 ? (b.dir === 'min' ? Math.min(...v) : Math.max(...v)) : null; });
   const carriers = [...new Set(S.data.plans.filter(x => !BN.county || x.counties.includes(BN.county)).map(x => x.carrier))].sort();
@@ -2851,7 +2947,8 @@ function addRxDrug() {
   const sel = $('rxTier').value, p = S.profile;
   // "Lantus 20 units", "Eliquis 5 mg and metformin" → the known drugs; anything else → one drug by that name
   let found = drugsIn(nm, true).map(d => ({name: d[0], tier: d[1], price: d[2]}));
-  if (!found.length) { const d = findDrug(nm); found = d ? [{name: d[0], tier: d[1], price: d[2]}] : [{name: nm.replace(/\s+\d[\d.,/]*\s*(?:mg|mcg|units?|unidades|ml|iu)?\b.*$/i, '').slice(0, 60) || nm.slice(0, 60), tier: '3', price: TIER_PRICE[3], unknown: true}]; }
+  const bare = nm.replace(/\s+\d[\d.,/]*\s*(?:mg|mcg|units?|unidades|ml|iu)?\b.*$/i, '').trim() || nm;
+  if (!found.length) { const d = findDrug(nm) || findDrug(bare); found = d ? [{name: d[0], tier: d[1], price: d[2]}] : [{name: bare.slice(0, 60), tier: '3', price: TIER_PRICE[3], unknown: true}]; }
   for (const f of found) {
     const tier = sel !== 'auto' && found.length === 1 ? sel : f.tier;
     const price = f.unknown ? TIER_PRICE[tier] : f.price;   // a known drug keeps its own price on any tier
@@ -2889,7 +2986,11 @@ $('modalBody').addEventListener('change', e => {
       if (x.tier === 'insulin') p.insulin = true;
       else if (was === 'insulin' && !p.drugs.some(z => z !== x && String(z.tier) === 'insulin')) p.insulin = false;
       rxChanged();
-    } else { x.price = Math.max(0, parseFloat(t.value) || 0); x.manual = true; rxChanged('results'); }
+    } else {
+      const v = Math.max(0, parseFloat(t.value) || 0); if (v === x.price) return;
+      x.price = v; x.manual = true;
+      if (rxPointerDown) rxPending = true; else rxChanged('results');   // a click is in progress: refresh right after it
+    }
     return;
   }
   if (t.id === 'rxLis') { p.extraHelp = t.checked; rxChanged(); }
@@ -2899,14 +3000,25 @@ $('modalBody').addEventListener('change', e => {
 $('modalBody').addEventListener('keydown', e => { if (e.target.id === 'rxName' && e.key === 'Enter') { e.preventDefault(); addRxDrug(); } });
 $('modalBody').addEventListener('input', e => {
   if (e.target.id !== 'rxName') return;
-  const d = findDrug(e.target.value) || drugsIn(e.target.value, true)[0], h = $('rxHint');
+  const v = e.target.value, d = findDrug(v) || drugsIn(v, true)[0] || findDrug(v.replace(/\s+\d[\d.,/]*\s*(?:mg|mcg|units?|unidades|ml|iu)?\b.*$/i, '')), h = $('rxHint');
   if (h) h.textContent = d ? `${d[0]} — usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month${drugAlso(d) ? ' (also: ' + drugAlso(d) + ')' : ''}` : '';
 });
+/* Same client = no description was run yet, or the new one only adds to the old one (or trims its end).
+   Two clients typed from the same template differ in the middle, so they never count as the same. */
+function sameClient(a, b) {
+  const n = s => lc(T(s)).replace(/[\s.,;]+$/, '');
+  const A = n(a), B = n(b);
+  return !A || B.startsWith(A) || A.startsWith(B);
+}
+let rxPointerDown = false, rxPending = false;
+$('modalBody').addEventListener('pointerdown', () => { rxPointerDown = true; }, true);
+addEventListener('pointerup', () => { rxPointerDown = false; if (rxPending) setTimeout(() => { rxPending = false; rxChanged('results'); }, 0); }, true);
+addEventListener('pointercancel', () => { rxPointerDown = false; if (rxPending) { rxPending = false; rxChanged('results'); } }, true);
 /* Drugs typed in Prescriptions belong to this client: kept when the description is re-run, saved with the recent client. */
 const manualDrugs = () => (Array.isArray(S.profile.drugs) ? S.profile.drugs : []).filter(d => d && d.manual);
 function saveRecentDrugs() {
   const text = T($('clientText').value), list = readRecent();
-  if (!text || !list.length || list[0].text !== text) return;
+  if (!text || !list.length || T(list[0].text) !== text) return;
   list[0].drugs = manualDrugs(); list[0].rxStandard = !!S.profile.rxStandard;
   store.set(RECENT, JSON.stringify(list));
 }
@@ -3245,7 +3357,7 @@ addEventListener('popstate', e => {
 
 /* Recent clients — kept on this device only. */
 const RECENT = 'pc_recent_v1';
-const readRecent = () => { try { return JSON.parse(store.get(RECENT) || '[]') || []; } catch (_) { return []; } };
+const readRecent = () => { try { const x = JSON.parse(store.get(RECENT) || '[]'); return Array.isArray(x) ? x.filter(r => r && typeof r.text === 'string') : []; } catch (_) { return []; } };
 function addRecent(text) {
   const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard}].concat(readRecent().filter(r => r && r.text !== text)).slice(0, 5);
   store.set(RECENT, JSON.stringify(list)); renderRecent();
