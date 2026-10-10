@@ -132,7 +132,7 @@ function saveAll() {
   dirty.clear();
 }
 
-const blankEmployee = name => ({ name, clockIn: null, clockOut: null, totals: {}, domains: {}, slots: {}, counters: {}, calls: [], crmActions: 0, log: [] });
+const blankEmployee = name => ({ name, clockIn: null, clockOut: null, totals: {}, domains: {}, slots: {}, counters: {}, calls: [], crmActions: 0, log: [], devices: {} });
 const dayDoc = date => doc(`days/${date}.json`, () => ({ date, employees: {} }));
 // Past days are read without being kept in memory.
 const readDay = date => cache.get(`days/${date}.json`) || load(`days/${date}.json`, { date, employees: {} });
@@ -344,7 +344,7 @@ function updateChromeCall(id, name, call, at) {
   }
 }
 
-function updateStatus(id, name, st, skew, version) {
+function updateStatus(id, name, st, skew, version, device, computer) {
   if (!st || !MODES.includes(st.mode)) return;
   const at = v => (Number.isFinite(v) && v > 1e12 ? v + skew : null);
   const status = {
@@ -361,10 +361,24 @@ function updateStatus(id, name, st, skew, version) {
     lastActiveAt: at(st.lastActiveAt),
     lastSeen: Date.now(),
     version: String(version || '').slice(0, 20),
+    device,
+    computer,
   };
   statusDoc()[id] = status;
   changed('status.json');
   updateChromeCall(id, name, st.call, at);
+
+  // Which computers reported under this name today. More than one = a name
+  // typed into two extensions (or a shared Chrome profile) — flagged on the card.
+  if (status.day && device) {
+    const emp = employeeOn(status.day, id, name);
+    emp.devices ||= {};
+    const label = computer || null;
+    if (!emp.devices[device] || emp.devices[device] !== label) {
+      emp.devices[device] = label;
+      changed(`days/${status.day}.json`);
+    }
+  }
 
   if (status.day && (status.clockIn || status.clockOut)) {
     const emp = employeeOn(status.day, id, name);
@@ -394,7 +408,8 @@ function ingestActivity(body) {
     }
     accepted.push(batch.id); // already-stored batches are acknowledged, not re-counted
   }
-  updateStatus(id, name, body.status, skew, body.version);
+  const device = typeof body.device === 'string' && /^[\w-]{1,32}$/.test(body.device) ? body.device : null;
+  updateStatus(id, name, body.status, skew, body.version, device, cleanName(body.computer).slice(0, 40) || null);
   return { ok: true, accepted, serverTime: Date.now(), pathDomains: sectionDomains(categoriesDoc()), ...forEmployee(id) };
 }
 
@@ -635,7 +650,7 @@ function mergeSlot(ext, callSec, wrapSec, lookup) {
 function live(st, info, lookup, now) {
   const call = info && info.call && now - info.call.startedAt < STALE_CALL_MS ? info.call : null;
   const crm = info && info.crm ? { action: info.crm.action, at: info.crm.at, record: info.crm.record } : null;
-  const base = { day: st && st.day, lastSeen: st ? st.lastSeen : null, lastActiveAt: st && st.lastActiveAt, version: st && st.version, crm };
+  const base = { day: st && st.day, lastSeen: st ? st.lastSeen : null, lastActiveAt: st && st.lastActiveAt, version: st && st.version, computer: st && st.computer, crm };
   if (call) return { ...base, state: 'call', since: call.startedAt, contact: call.contact, direction: call.direction, source: call.source || null };
   if (!st || now - st.lastSeen > OFFLINE_AFTER_MS) return { ...base, state: 'offline' };
   if (st.mode === 'off') return { ...base, state: 'off', since: st.clockOut };
@@ -764,6 +779,8 @@ function employeeReport(id, emp, st, info, cats, lookup, date, now) {
       .slice(0, 40),
     timeline,
     counters: emp.counters || {},
+    // Computers that reported under this name on this day: [{id, label}]
+    devices: Object.entries(emp.devices || {}).map(([id, label]) => ({ id, label })),
   };
 }
 

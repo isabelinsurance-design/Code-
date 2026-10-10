@@ -142,6 +142,12 @@ Open the dashboard link on the office TV and click **📺 TV mode**, or bookmark
    address, and the tracker key. Click **Save and test connection**. (Names match case-insensitively.)
 4. Pin the extension (puzzle icon → pin) so the Lunch / Break / Meeting / Clock out buttons are one click away.
 
+**Which computer is which.** A card belongs to the *name* saved in that extension's Settings, not to a Google account.
+Fill in **This computer** (e.g. "Desk 3") on each one; it shows under the name on the card. If the same name is saved
+on two computers, both report into one card and the card shows a red ⚠️ *Reported from 2 computers today*, so you can
+fix the second one. Chrome sync copies the extension to another computer but **not its settings**: there it shows a red
+"!" and reports nothing until it's set up.
+
 **Updating from an earlier version:** copy the new `extension` folder over the old one and click the ↻ reload icon on
 the extension in `chrome://extensions`. Version 1.2 adds the minute-by-minute activity log and reminders (it asks for
 the *notifications* permission). Version 1.3 notices Nextiva calls made in Chrome (it asks to run on nextiva.com).

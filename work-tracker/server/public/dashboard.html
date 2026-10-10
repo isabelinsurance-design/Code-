@@ -83,6 +83,7 @@ a.name:hover { text-decoration: underline; text-underline-offset: 3px; }
 .detail { color: var(--ink); font-size: 13px; overflow-wrap: anywhere; }
 .detail.muted { color: var(--ink-2); }
 .clock { color: var(--muted); font-size: 13px; }
+.clock.warn { color: var(--bad); font-weight: 600; }
 .tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(74px, 1fr)); gap: 8px; }
 .tile { padding: 8px 9px; border-radius: 10px; background: var(--page); min-width: 0; }
 .tile b { display: block; font-size: 18px; font-weight: 600; line-height: 1.2; white-space: nowrap; }
@@ -438,6 +439,16 @@ function sitesTable(domains, open) {
   </table></div></details>`;
 }
 
+// "Desk 3" (or the install id) and a warning when two computers used one name.
+function computerLine(e) {
+  const devs = e.devices || [];
+  const name = d => d.label || `computer ${d.id}`;
+  if (devs.length > 1) return `⚠️ Reported from ${devs.length} computers today: ${devs.map(name).join(', ')} — the same name is set up on more than one extension`;
+  const current = e.live && e.live.computer;
+  const one = current || (devs[0] && devs[0].label);
+  return one ? `Computer: ${one}` : '';
+}
+
 function clockLine(e) {
   if (!e.clockIn) return e.shift ? `Not clocked in · shift ${clock(e.shift)}` : 'Not clocked in';
   let line = `Clock in ${clock(e.clockIn)}`;
@@ -472,7 +483,7 @@ function card(e) {
 
   return `<article class="card${!hasData && (!today || l.state === 'offline') ? ' dim' : ''}">
     <div class="head">${name}${today ? `<span class="state">${esc(state)}</span>` : ''}</div>
-    <div class="sub">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}<span class="clock">${clockLine(e)}</span></div>
+    <div class="sub">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}<span class="clock">${clockLine(e)}</span>${computerLine(e) ? `<span class="clock${(e.devices || []).length > 1 ? ' warn' : ''}">${esc(computerLine(e))}</span>` : ''}</div>
     ${hasData ? `
     <div class="tiles">
       <div class="tile"><b>${dur(e.working)}</b><span>Working</span></div>
@@ -641,7 +652,7 @@ function personView() {
       <section class="panel">
         <div class="person-head"><span class="name">${esc(e.name)}</span>${state ? `<span class="state">${esc(state)}</span>` : ''}</div>
         <div class="sub" style="margin:6px 0 12px">${details.filter(Boolean).map((d, i) => `<span class="detail${i ? ' muted' : ''}">${esc(d)}</span>`).join('')}
-          <span class="clock">${isToday() ? '' : `${esc(longDate(date))} · `}${clockLine(e)}</span></div>
+          <span class="clock">${isToday() ? '' : `${esc(longDate(date))} · `}${clockLine(e)}</span>${computerLine(e) ? `<span class="clock${(e.devices || []).length > 1 ? ' warn' : ''}">${esc(computerLine(e))}</span>` : ''}</div>
         ${e.alerts.length ? `<section class="alerts inline"><ul>${e.alerts.map(a => `<li><i class="sdot ${a.level}"></i><span>${esc(alertText(a))}</span></li>`).join('')}</ul></section>` : ''}
         <div class="tiles wide" style="margin-top:12px">
           <div class="tile"><b>${dur(e.loggedIn)}</b><span>Logged in</span></div>

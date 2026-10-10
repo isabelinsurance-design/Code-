@@ -365,6 +365,16 @@ async function sealBatch() {
   await chrome.storage.local.set({ buckets: {}, log: [], outbox, inputSlots: {}, ...(calls.length && { phone: { ...phone, done: [] } }) });
 }
 
+// A random id made once per install, so the dashboard can tell two computers
+// apart even if the same name was typed into both. Not tied to the person.
+async function deviceId() {
+  const { device } = await chrome.storage.local.get('device');
+  if (device) return device;
+  const id = crypto.randomUUID().slice(0, 8);
+  await chrome.storage.local.set({ device: id });
+  return id;
+}
+
 let uploading = false;
 let uploadAgain = false; // something changed (e.g. a call started) while an upload was running
 async function upload() {
@@ -383,6 +393,8 @@ async function upload() {
       body: JSON.stringify({
         employee: config.employee,
         version: VERSION,
+        device: await deviceId(),
+        computer: config.computer || '',
         sentAt: Date.now(),
         status: liveStatus(state, phone),
         batches: outbox.slice(0, BATCHES_PER_REQUEST),
