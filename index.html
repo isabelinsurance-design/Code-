@@ -291,7 +291,7 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .cfg-sec{padding:12px 0;border-top:1px solid var(--border)}
 .cfg-h{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:8px}
 .cfg-radio,.cfg-check{display:flex;gap:10px;align-items:flex-start;font-size:13px;line-height:1.5;padding:6px 0;cursor:pointer;font-weight:400;margin:0}
-.cfg-radio input,.cfg-check input{margin-top:3px;flex-shrink:0}
+.cfg-radio input,.cfg-check input{margin-top:3px;flex-shrink:0;width:17px;height:17px;padding:0;accent-color:var(--gold-dk);cursor:pointer}
 .cfg-note{font-size:11.5px;color:var(--text-muted);line-height:1.5;margin-top:6px}
 .cfg-ok{font-size:12.5px;color:var(--green);padding:3px 0}
 .cfg-bad{font-size:12.5px;color:var(--red);padding:3px 0;line-height:1.4}
@@ -300,6 +300,49 @@ html,body{height:100%;font-family:'DM Sans',sans-serif;background:var(--bg);colo
 .cfg-grid input{width:100%;padding:7px 10px;border:1px solid var(--border-d);border-radius:8px;font-family:inherit;font-size:13px}
 .cfg-usage-row{font-size:13px}
 .cfg-list{margin:0;padding-left:18px;font-size:12.5px;line-height:1.6;color:var(--text-mid)}
+
+/* ─── AEP · HOY / CREAR CON IA ─── */
+.aepc-today{margin-bottom:14px;border-color:var(--gold);box-shadow:0 0 0 3px var(--gold-lt)}
+.aepc-item{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-top:1px solid var(--border);flex-wrap:wrap}
+.aepc-item:first-child{border-top:0}
+.aepc-item.ms .aepc-item-text{font-weight:700;color:var(--red)}
+.aepc-item-text{font-size:13.5px;line-height:1.45;flex:1;min-width:200px}
+.aepc-item-actions{display:flex;gap:6px;flex-shrink:0}
+.aepc-btn-ghost{border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)}
+.aepc-item-empty{font-size:13px;color:var(--text-muted);font-style:italic;padding:8px 0}
+.aepc-gen-title{font-weight:700;font-size:14px;margin-bottom:4px}
+.aepc-gen-status{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-muted);min-height:14px;margin-bottom:8px}
+.aepc-gen-actions{margin-top:8px}
+.aepc-livetime{display:flex;align-items:center;gap:8px;font-size:12.5px;color:var(--text-mid);margin:0 0 12px;font-weight:400}
+.aepc-livetime select{padding:5px 8px;border:1px solid var(--border-d);border-radius:8px;font-family:inherit;font-size:12.5px;background:var(--white)}
+.aepc-urgent-cta{margin:0 0 10px}
+
+/* ─── REVISOR DE PIEZAS ─── */
+.rev-modes{display:flex;gap:16px;flex-wrap:wrap;margin-bottom:12px}
+.rev-modes label{display:flex;gap:8px;align-items:center;font-size:13.5px;font-weight:500;margin:0;cursor:pointer}
+.rev-modes input{flex-shrink:0;width:17px;height:17px;padding:0;margin:0;accent-color:var(--gold-dk);cursor:pointer}
+.rev-drop{border:2px dashed var(--border-d);border-radius:14px;padding:26px 16px;text-align:center;background:var(--surface);cursor:pointer;transition:all .15s}
+.rev-drop:hover,.rev-drop.over{border-color:var(--gold);background:var(--gold-lt)}
+.rev-drop b{display:block;font-size:14px;margin-bottom:4px}
+.rev-drop span{font-size:12px;color:var(--text-muted)}
+.rev-thumbs{display:flex;gap:10px;flex-wrap:wrap;margin:12px 0}
+.rev-thumb{position:relative;width:110px;font-size:10.5px;color:var(--text-muted);text-align:center}
+.rev-thumb img{width:110px;height:110px;object-fit:cover;border-radius:10px;border:1px solid var(--border);display:block;margin-bottom:3px;background:#fff}
+.rev-thumb button{position:absolute;top:-6px;right:-6px;width:22px;height:22px;border-radius:50%;border:0;background:var(--text);color:#fff;cursor:pointer;font-size:14px;line-height:1;padding:0}
+.rev-verdict{display:inline-block;font-weight:700;font-size:15px;padding:9px 16px;border-radius:24px;margin:12px 0 4px}
+.rev-verdict.verde{background:var(--green-lt);color:var(--green);border:1.5px solid var(--green)}
+.rev-verdict.amarillo{background:var(--amber-lt);color:var(--amber);border:1.5px solid var(--amber)}
+.rev-verdict.rojo{background:var(--red-lt);color:var(--red);border:1.5px solid var(--red)}
+.rev-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+@media(max-width:600px){.rev-row{grid-template-columns:1fr}}
+.rev-row select,.rev-row textarea{width:100%;padding:9px 12px;border:1.5px solid var(--border-d);border-radius:10px;font-family:inherit;font-size:13.5px;background:var(--white);color:var(--text)}
+
+/* ─── DICTADO ─── */
+.mic-row{display:flex;justify-content:flex-end;margin:6px 0 0}
+.mic-btn{background:var(--white);border:1px solid var(--border-d);border-radius:20px;padding:5px 13px;font-size:12.5px;cursor:pointer;color:var(--text-mid);font-family:inherit}
+.mic-btn:hover{background:var(--tag)}
+.mic-btn.rec{background:var(--red);color:#fff;border-color:var(--red);animation:micPulse 1.2s infinite}
+@keyframes micPulse{0%,100%{box-shadow:0 0 0 0 rgba(192,57,43,.4)}50%{box-shadow:0 0 0 6px rgba(192,57,43,0)}}
 
 /* ─── CALENDARIO AEP ─── */
 .aepc-hero{background:linear-gradient(135deg,#333A4D,#3D8FD6);color:#fff;border-radius:14px;padding:20px 22px;margin-bottom:14px;box-shadow:var(--sh2);display:grid;grid-template-columns:1fr auto;gap:16px;align-items:center}
@@ -733,6 +776,12 @@ tr:hover td{background:var(--surface)}
     </div>
 
     <div class="cfg-sec">
+      <div class="cfg-h">Dictado por voz (🎤)</div>
+      <label for="cfgVoice" style="display:inline;margin-right:8px">Idioma</label>
+      <select id="cfgVoice" onchange="cfgVoiceLang(this.value)" style="padding:5px 8px;border:1px solid var(--border-d);border-radius:8px"><option value="es-US">Español</option><option value="en-US">English</option></select>
+    </div>
+
+    <div class="cfg-sec">
       <div class="cfg-h">Mis datos para el disclaimer TPMO</div>
       <div class="cfg-grid">
         <label>Organizaciones que representas<input id="cfgOrgs" inputmode="numeric" maxlength="3" placeholder="ej. 8" oninput="cfgTpmo()"></label>
@@ -835,6 +884,9 @@ tr:hover td{background:var(--surface)}
       <button class="nav-item" onclick="showModule('compliance',this)">
         <span class="nav-icon">⚖️</span><span class="nav-label">CMS Compliance</span>
       </button>
+      <button class="nav-item" onclick="showModule('revisor',this)">
+        <span class="nav-icon">🛡️</span><span class="nav-label">Revisor de Piezas</span>
+      </button>
     </div>
     <div class="sidebar-label">NEGOCIOS</div>
     <div class="sidebar-label-desc">Tus leads y tus números</div>
@@ -931,6 +983,39 @@ tr:hover td{background:var(--surface)}
   <!-- ─── MAIN ─── -->
   <main class="main">
 
+    <!-- ══════ REVISOR DE PIEZAS ══════ -->
+    <div class="module" id="mod-revisor">
+      <div class="page-header">
+        <div class="page-title">🛡️ Revisor de <em>Piezas</em></div>
+        <div class="page-sub">Sube el diseño de tu diseñadora (o el anuncio de otra agencia) y la IA lo lee: disclaimers, frases prohibidas, letra para 64+ y qué cambiar.</div>
+      </div>
+      <div class="plan-focus" style="background:var(--amber-lt);border-color:var(--amber)">
+        <span style="font-size:20px">⚖️</span>
+        <div><b>Es una pre-revisión, no una aprobación.</b> La decisión final es de tu FMO o carrier. Las imágenes se envían a Anthropic para analizarlas: no subas datos de clientes.</div>
+      </div>
+      <div class="card"><div class="card-body">
+        <div class="rev-modes">
+          <label><input type="radio" name="revMode" value="mia" checked> Mi pieza (diseño para publicar)</label>
+          <label><input type="radio" name="revMode" value="competencia"> Anuncio de la competencia</label>
+        </div>
+        <div class="rev-drop" id="revDrop" onclick="document.getElementById('revFile').click()">
+          <b>📷 Arrastra las imágenes aquí, pega con Ctrl+V, o toca para elegir</b>
+          <span>PNG, JPG o WEBP · hasta 4 imágenes (por ejemplo los 3 tamaños del mismo anuncio)</span>
+        </div>
+        <input type="file" id="revFile" accept="image/*" multiple style="display:none" onchange="addRevFiles(this.files); this.value=''">
+        <div class="rev-thumbs" id="revThumbs"></div>
+        <div id="revBar" style="display:none;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap"><span class="cfg-note" id="revCount"></span><button class="btn btn-sm aepc-btn-ghost" onclick="clearRevImages()">Quitar todas</button></div>
+        <div class="rev-row">
+          <div><label for="revType">¿Qué es?</label><select id="revType"><option>Anuncio de Meta</option><option>Post de Facebook o Instagram</option><option>Portada de Reel o Live</option><option>Flyer o folleto</option><option>Otra pieza</option></select></div>
+          <div><label for="revCaption">Texto que acompaña la pieza (opcional)</label><textarea id="revCaption" rows="3" placeholder="Pega aquí el texto del anuncio o de la publicación"></textarea><div class="mic-row"><button class="mic-btn" onclick="toggleMic('revCaption',this)">🎤 Dictar</button></div></div>
+        </div>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap"><button class="btn btn-gold" id="revBtn" onclick="runRevisor()">🛡️ Revisar</button><span class="cfg-note" id="revMsg" style="margin:0"></span></div>
+        <div class="route-status" id="revStatus"></div>
+      </div></div>
+      <div id="revVerdict"></div>
+      <div class="ai-box" id="revOut" style="margin-top:6px"><div class="ai-label">🛡️ Revisión</div></div>
+    </div>
+
     <!-- ══════ CALENDARIO AEP ══════ -->
     <div class="module" id="mod-aep">
       <div class="page-header">
@@ -947,9 +1032,23 @@ tr:hover td{background:var(--surface)}
         <div class="aepc-hero-num"><span id="aepcHeroNum">--</span><small id="aepcHeroNumLbl">días</small></div>
       </div>
 
+      <div class="card aepc-today" id="aepcTodayCard">
+        <div class="card-head"><span>⭐</span><div class="card-title" id="aepcTodayTitle">Hoy</div></div>
+        <div class="card-body">
+          <div id="aepcTodayItems"></div>
+          <div id="aepcGenWrap" style="display:none;margin-top:14px">
+            <div class="aepc-gen-title" id="aepcGenTitle"></div>
+            <div class="aepc-gen-status" id="aepcGenStatus"></div>
+            <div class="ai-box" id="aepcGenOut"><div class="ai-label">✨ Borrador</div></div>
+            <div class="aepc-gen-actions"><button class="copy-btn-ai" onclick="copyAI('aepcGenOut')">📋 Copiar</button></div>
+          </div>
+        </div>
+      </div>
+
       <div class="aepc-urgent" id="aepcUrgent" style="display:none">
         <div class="aepc-urgent-title">🚨 Vas atrasada — haz esto antes del 15 de octubre</div>
         <div style="font-size:12.5px;color:var(--text-mid);margin-bottom:8px">Tu propio plan dice: el 15 de octubre empieza <b>modo conversión</b>, no "ahora vamos a preparar". Cada día que el anuncio no corre es un día sin leads. Marca lo que vayas cumpliendo:</div>
+        <div class="aepc-urgent-cta"><button class="btn btn-gold btn-sm" onclick="aepGenerateAd()">✨ Crear mi anuncio de AEP ahora (paquete para Meta)</button></div>
         <div id="aepcChecks"></div>
       </div>
 
@@ -958,6 +1057,13 @@ tr:hover td{background:var(--surface)}
         <button class="btn btn-sm" style="border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)" onclick="openTool('estrategia-aep-2026.html',null,'Estrategia Integral AEP 2026 — Meta 300')">📘 Ver estrategia completa (Meta 300)</button>
         <button class="btn btn-sm" style="border:1px solid var(--border-d);background:var(--white);color:var(--text-mid)" onclick="showModule('ads',document.querySelector('[onclick*=&quot;ads&quot;]'))">📢 Crear anuncio en Meta Ads Studio</button>
       </div>
+
+      <label class="aepc-livetime">🕛 Hora de mis Facebook Lives
+        <select id="aepLiveTime" onchange="setLiveTime(this.value)">
+          <option value="10:00">10:00 am</option><option value="12:00">12:00 pm</option><option value="14:30">2:30 pm</option><option value="18:30">6:30 pm</option><option value="19:00">7:00 pm</option>
+        </select>
+        <span style="font-size:11.5px;color:var(--text-muted)">cambia el calendario y el archivo .ics</span>
+      </label>
 
       <div class="aepc-tabs">
         <button class="aepc-tab active" id="aepcTabWeeks" onclick="setAepView('weeks')">Semana por semana</button>
@@ -1443,6 +1549,7 @@ tr:hover td{background:var(--surface)}
           <div class="route-input">
             <textarea id="routeInput" placeholder='Ej: "Quiero un Reel sobre beneficios dentales que también funcione como anuncio pagado y tenga un CTA fuerte"'></textarea>
             <div class="route-input-actions">
+              <button class="mic-btn" onclick="toggleMic('routeInput',this)">🎤 Dictar</button>
               <span style="font-size:11px;color:var(--text-muted)">Coaches disponibles:</span>
               <button class="route-btn" id="routeBtn" onclick="runOrchestrator()">🧭 Preguntar al equipo</button>
             </div>
@@ -1738,6 +1845,7 @@ tr:hover td{background:var(--surface)}
               <div class="form-row">
                 <label>¿Qué necesitas hoy?</label>
                 <textarea id="cerebroInput" rows="4" placeholder="Ej: Dame 5 ideas de posts para T-65 hispanos en octubre. ¿Qué beneficios de SCAN debo destacar para el mercado de East LA? ¿Cómo explico la brecha de donut en Medicare?"></textarea>
+                <div class="mic-row"><button class="mic-btn" onclick="toggleMic('cerebroInput',this)">🎤 Dictar</button></div>
               </div>
               <div class="form-row-2">
                 <div>
@@ -2334,6 +2442,7 @@ tr:hover td{background:var(--surface)}
               <div class="form-row">
                 <label>Texto a revisar (anuncio, post, guión, email)</label>
                 <textarea id="complianceText" rows="8" placeholder="Pega aquí tu texto de anuncio, post, correo o cualquier comunicación de marketing relacionada con Medicare..."></textarea>
+                <div class="mic-row"><button class="mic-btn" onclick="toggleMic('complianceText',this)">🎤 Dictar</button></div>
               </div>
               <div class="form-row">
                 <label>Tipo de Material</label>
@@ -2613,7 +2722,7 @@ const SYSTEM_TABS = {
   dashboard:'Dashboard', cerebro:'Cerebro IA', ads:'Meta Ads Studio',
   viral:'Viral Generator', live:'FB Live Scripts', calendar:'Calendario',
   intel:'Competencia Intel', compliance:'CMS Compliance', crm:'CRM Leads', metricas:'Métricas',
-  aep:'Calendario AEP',
+  aep:'Calendario AEP', revisor:'Revisor de Piezas',
 };
 
 // ─── NAVIGATION ───
@@ -2671,7 +2780,7 @@ const API_URL = 'https://api.anthropic.com/v1/messages';
 const SETTINGS_STORE = 'isabel_settings';
 const USAGE_STORE = 'isabel_usage';
 const CHAT_MODEL_STORE = 'isabel_chat_model';
-const DEFAULT_SETTINGS = { preset:'equilibrado', useMemory:true, tpmoOrgs:'', tpmoPlans:'', liveTime:'12:00' };
+const DEFAULT_SETTINGS = { preset:'equilibrado', useMemory:true, tpmoOrgs:'', tpmoPlans:'', liveTime:'12:00', voiceLang:'es-US' };
 const MODEL_NAMES = {
   'claude-haiku-5-5':'Haiku 5.5', 'claude-sonnet-5-5':'Sonnet 5.5', 'claude-sonnet-5':'Sonnet 5',
   'claude-sonnet-4-6':'Sonnet 4.6', 'claude-opus-5-5':'Opus 5.5', 'claude-fable-5-1':'Fable 5.1'
@@ -3139,6 +3248,7 @@ function openSettings(){
   document.getElementById('cfgMemory').checked = !!s.useMemory;
   document.getElementById('cfgOrgs').value = s.tpmoOrgs || '';
   document.getElementById('cfgPlans').value = s.tpmoPlans || '';
+  document.getElementById('cfgVoice').value = s.voiceLang || 'es-US';
   document.getElementById('cfgTest').innerHTML = '';
   renderUsage();
   document.getElementById('cfgModal').classList.add('open');
@@ -4325,7 +4435,7 @@ function aepItemsFor(ymd){
   if(p.phase === 'pre'){
     const pre = {
       1:'📹 Reel: carta de cambios (ANOC)', 2:'📞 Bloque de llamadas: Hot Leads → citas desde el 15',
-      3:'📞 Reagendar No-Shows', 4:'🎙️ Facebook Live 12pm: qué revisar en tu carta de cambios',
+      3:'📞 Reagendar No-Shows', 4:'🎙️ Facebook Live ' + aepLiveLabel() + ': qué revisar en tu carta de cambios',
       5:'📢 Revisar anuncio: costo por lead y formularios recibidos', 6:'📅 Follow-Up: "llámame en octubre"',
       0:'🧭 Preparar la semana: citas confirmadas para el 15'
     };
@@ -4338,7 +4448,7 @@ function aepItemsFor(ymd){
     1:{ kind:'reel', text:'📹 Reel: '+t },
     2:{ kind:'ad',   text:'📢 Revisar anuncio Meta + 📞 bloque Hot Leads' },
     3:{ kind:'post', text:'💡 Post educativo: '+t },
-    4:{ kind:'live', text:'🎙️ Facebook Live 12pm: '+t },
+    4:{ kind:'live', text:'🎙️ Facebook Live '+aepLiveLabel()+': '+t },
     5:{ kind:'post', text: p.phase==='post' ? '❤️ Post de agradecimiento' : '❤️ Historia real o post de referidos' },
     6:{ kind:'task', text:'🤝 Citas / evento comunitario' },
     0:{ kind:'task', text:'🧭 Revisión semanal: semáforo + Radar' },
@@ -4499,10 +4609,10 @@ function renderAepDetail(){
   const p = aepPeriodFor(ymd);
   const d = _parseYmd(ymd);
   const dayName = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
-  const items = aepItemsFor(ymd);
   el.innerHTML = `<div class="aepc-detail-title">${dayName} ${_fmtShort(ymd)}${p ? ' · '+escapeHtml(p.name) : ''}${ymd === aepToday() ? ' · <span class="aepc-now-badge">HOY</span>' : ''}</div>` +
-    (items.length ? items.map(i => `<div class="aepc-detail-item">${escapeHtml(i.text)}</div>`).join('') : '<div class="aepc-detail-item">Sin actividades planeadas.</div>') +
+    '<div id="aepcDetailItems"></div>' +
     (p ? `<div class="aepc-detail-item" style="color:var(--text-muted);font-size:12px">⚖️ ${escapeHtml(p.cms)}</div>` : '');
+  renderAepItemRows(ymd, 'aepcDetailItems');
 }
 
 function renderAepCalendar(){
@@ -4510,6 +4620,7 @@ function renderAepCalendar(){
   const today = aepToday();
   if(!aepSelected) aepSelected = (today >= '2026-10-01' && today <= '2026-12-31') ? today : AEP_OPEN;
   renderAepHero(today);
+  renderAepToday();
   renderAepChecks();
   renderAepWeeks(today);
   renderAepMonths(today);
@@ -4531,7 +4642,7 @@ function downloadAepIcs(){
       if(it.kind === 'goal') return;
       const next = new Date(d); next.setDate(next.getDate()+1);
       lines.push('BEGIN:VEVENT', `UID:aep2026-${compact}-${i}@medicarewithisabel`, `DTSTAMP:${stamp}`);
-      if(it.kind === 'live'){ lines.push(`DTSTART:${compact}T120000`, `DTEND:${compact}T130000`); }
+      if(it.kind === 'live'){ const [lh, lm] = aepLiveHM(), z2 = n => String(n).padStart(2, '0'); lines.push(`DTSTART:${compact}T${z2(lh)}${z2(lm)}00`, `DTEND:${compact}T${z2(Math.min(23, lh + 1))}${z2(lm)}00`); }
       else { lines.push(`DTSTART;VALUE=DATE:${compact}`, `DTEND;VALUE=DATE:${_ymd(next).replace(/-/g,'')}`); }
       lines.push(_icsFold('SUMMARY:'+_icsEsc(it.text)));
       if(p) lines.push(_icsFold('DESCRIPTION:'+_icsEsc(p.name+' — '+p.theme+'\n⚖️ '+p.cms)));
@@ -4688,6 +4799,7 @@ const BACKUP_SCHEMA = {
   isabel_t65_leads:           { type: 'array',  itemFields: ['name','source','month','status','date'] },
   isabel_t65_spend:           { type: 'string-num' },
   isabel_settings:            { type: 'object' },
+  isabel_aep_drafts:          { type: 'object' },
   isabel_aep_checks:          { type: 'object' },
   isabel_aep_actuals:         { type: 'object' },
   isabel_aep_maestro:         { type: 'object' },
@@ -4910,6 +5022,270 @@ function restoreToolsToggle(){
   toggleToolsSection(open);
 }
 
+// ─── AEP: crear el contenido de hoy con IA ───
+const AEP_DRAFTS_STORE = 'isabel_aep_drafts';
+const LICENCIA_LINE = 'Isabel Fuentes, agente de seguros con licencia en California (#0D96598). No afiliada ni respaldada por el gobierno de EE. UU. ni por el programa federal de Medicare.';
+function tpmoText(){
+  const s = getSettings();
+  const o = s.tpmoOrgs || '[número de organizaciones]', p = s.tpmoPlans || '[número de planes]';
+  return 'No ofrecemos todos los planes disponibles en su área. Actualmente representamos a ' + o + ' organizaciones que ofrecen ' + p + ' productos en su área. Comuníquese con Medicare.gov o al 1-800-MEDICARE para obtener información sobre todas sus opciones.';
+}
+function aepDisclaimerBlock(){
+  const open = !getSettings().tpmoOrgs || !getSettings().tpmoPlans;
+  return '**Disclaimers (cópialos tal cual en la publicación o dilos en el video):**\n- Licencia: ' + LICENCIA_LINE + '\n- TPMO (antes de hablar de cualquier beneficio): ' + tpmoText() +
+    (open ? '\n- ⚠️ Falta poner tus números de organizaciones y planes en ⚙️ Ajustes.' : '');
+}
+function aepLiveHM(){ const t = String(getSettings().liveTime || '12:00').split(':'); return [Number(t[0]) || 12, Number(t[1]) || 0]; }
+function aepLiveLabel(){
+  const [h, m] = aepLiveHM(), h12 = ((h + 11) % 12) + 1;
+  return h12 + (m ? ':' + String(m).padStart(2, '0') : '') + (h >= 12 ? 'pm' : 'am');
+}
+function setLiveTime(v){ saveSettings({ liveTime:v }); renderAepCalendar(); }
+
+// qué tipo de pieza es cada elemento del calendario (null = no se crea con IA)
+function aepKindOf(it){
+  const t = (it && it.text) || '';
+  if(!it || it.kind === 'ms' || it.kind === 'goal' || t.startsWith('📢 Apagar')) return null;
+  if(it.kind === 'live' || t.startsWith('🎙')) return 'live';
+  if(it.kind === 'reel' || t.startsWith('📹')) return 'reel';
+  if(it.kind === 'ad') return 'ad';
+  if(it.kind === 'post') return 'post';
+  return null;
+}
+const AEP_SPECS = {
+  reel: `Entrega:
+1. **3 ganchos alternativos** para los primeros 3 segundos (una frase cada uno).
+2. **Guion de 30 a 45 segundos**, en líneas cortas que sirvan de subtítulos en pantalla, hablado por Isabel a cámara, con tono de amiga que explica con paciencia.
+3. **Texto de portada** (máximo 6 palabras).
+4. **Descripción de la publicación**: gancho, 2 a 4 líneas, una sola llamada a la acción («Escríbeme MEDICARE») y 3 a 5 hashtags.
+5. **Nota de producción** para Isabel: cómo grabarlo y qué mostrar.`,
+  live: `Entrega:
+1. **Texto para anunciar el Live** (post de hoy o mañana), con fecha y hora.
+2. **Guion del Live de 15 a 20 minutos**: apertura con gancho (primeros 30 segundos), bienvenida cálida, 3 bloques con lo que explica en cada uno, un momento para leer preguntas de los comentarios, y cierre con la fecha límite real (7 de diciembre) y la llamada a la acción «Escríbeme MEDICARE».
+3. **3 comentarios para fijar** durante el Live y generar conversación.
+4. **Recordatorio**: decir el disclaimer TPMO ANTES de hablar de cualquier beneficio.`,
+  post: `Entrega:
+1. **Post para Facebook e Instagram**: gancho en la primera línea, cuerpo de 3 a 6 líneas cortas con saltos de línea, una sola llamada a la acción y 3 a 5 hashtags.
+2. **Versión corta** (máximo 3 líneas) para Stories.
+3. **Indicaciones para la diseñadora**: qué imagen o diseño, y el texto grande que va en la imagen (máximo 8 palabras).`,
+  ad: `Entrega un PAQUETE para Meta Ads (Facebook e Instagram). Objetivo: clientes potenciales con formulario instantáneo. Público: personas de 64 años o más que hablan español en Los Ángeles, Orange County e Inland Empire.
+1. **3 textos principales** distintos (lo importante en los primeros 125 caracteres), con ángulos: (a) tu carta de cambios, (b) medicinas y doctores, (c) ayuda en español sin letra chiquita.
+2. **3 titulares** (máximo 40 caracteres) y **2 descripciones** (máximo 30 caracteres).
+3. **Botón recomendado**.
+4. **Formulario instantáneo**: título, preguntas (nombre, teléfono, código postal, qué tiene hoy, llamada o texto), texto de consentimiento para ser contactada y pantalla de gracias.
+5. **Ideas para la diseñadora**: 3 ideas de imagen o video corto.
+6. **Configuración sugerida**: ubicación, edad, idioma, presupuesto inicial de $10 a $15 por día y cuándo revisar el costo por lead.`
+};
+function buildAepPrompt(ymd, it, kind){
+  const p = aepPeriodFor(ymd), d = _parseYmd(ymd);
+  const dn = ['domingo','lunes','martes','miércoles','jueves','viernes','sábado'][d.getDay()];
+  return `Crea el contenido para este elemento de mi calendario AEP:
+• Fecha: ${dn} ${_fmtShort(ymd)} de 2026
+• Elemento: ${it.text}
+• Fase del plan: ${p ? p.name + ' — tema: «' + p.theme + '»' : 'fuera del plan AEP'}
+• Regla CMS de la fase: ${p ? p.cms : '—'}${kind === 'live' ? '\n• Hora del Live: ' + aepLiveLabel() + ' (hora de California)' : ''}
+
+${AEP_SPECS[kind]}
+
+Reglas: español claro y cálido para personas de 60 años o más en el Sur de California; no inventes datos, cifras ni testimonios; nada de «gratis», «el mejor» ni «garantizado»; los beneficios siempre «según el plan y el área»; menciona la fecha límite real (7 de diciembre) solo si aplica y sin presión falsa. NO escribas los disclaimers legales: el sistema los agrega al final.`;
+}
+function aepDrafts(){ return _aepLoad(AEP_DRAFTS_STORE); }
+function saveAepDraft(key, text){
+  const all = aepDrafts();
+  all[key] = { text:String(text).slice(0, 20000), at:Date.now() };
+  Object.entries(all).sort((a, b) => b[1].at - a[1].at).slice(60).forEach(([k]) => delete all[k]);
+  _aepSave(AEP_DRAFTS_STORE, all);
+}
+const AEP_COACH = { reel:'reels', live:'live', post:'tip', ad:'lead' };
+async function aepGenerate(ymd, idx, custom){
+  const it = custom || aepItemsFor(ymd)[idx];
+  const kind = custom ? custom.kind : aepKindOf(it);
+  if(!it || !kind) return;
+  const key = custom ? ymd + '|ad' : ymd + '|' + idx;
+  const wrap = document.getElementById('aepcGenWrap'), status = document.getElementById('aepcGenStatus');
+  wrap.style.display = '';
+  document.getElementById('aepcGenTitle').textContent = '✨ ' + it.text + ' · ' + _fmtShort(ymd);
+  status.textContent = '';
+  wrap.scrollIntoView({ behavior:'smooth', block:'nearest' });
+  const text = await callClaude(coachSystem(AEP_COACH[kind]), buildAepPrompt(ymd, it, kind), 'aepcGenOut', { tier:'chat', onStatus:(s) => { status.textContent = s; } });
+  if(!text) return;
+  const full = text + '\n\n---\n' + aepDisclaimerBlock();
+  renderAepOutputFinal(full, text);
+  saveAepDraft(key, full);
+  status.textContent = '✅ Borrador guardado. Revísalo, ajústalo y pásaselo a tu diseñadora.';
+  renderAepToday(); renderAepDetail();
+}
+function renderAepOutputFinal(full, bodyOnly){
+  renderAiOutput('aepcGenOut', full);
+  try{ setComplianceWarning('aepcGenOut', cmsRegexIssues(bodyOnly)); }catch(_){}
+}
+function aepShowDraft(ymd, idx){
+  const d = aepDrafts()[ymd + '|' + idx] || aepDrafts()[ymd + '|ad'];
+  if(!d) return;
+  const it = aepItemsFor(ymd)[idx];
+  document.getElementById('aepcGenWrap').style.display = '';
+  document.getElementById('aepcGenTitle').textContent = '📄 Borrador guardado · ' + (it ? it.text : '') + ' · ' + _fmtShort(ymd);
+  document.getElementById('aepcGenStatus').textContent = 'Es el que ya creaste. Toca «Rehacer» si quieres otra versión.';
+  renderAiOutput('aepcGenOut', d.text);
+  document.getElementById('aepcGenWrap').scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function aepGenerateAd(){
+  const ymd = aepToday();
+  aepGenerate(ymd, 0, { kind:'ad', text:'📢 Anuncio AEP «Revisión de tu plan 2027» (paquete completo para Meta)' });
+}
+function renderAepItemRows(ymd, containerId){
+  const el = document.getElementById(containerId); if(!el) return;
+  const items = aepItemsFor(ymd), drafts = aepDrafts();
+  if(!items.length){ el.innerHTML = '<div class="aepc-item-empty">Sin actividades planeadas para este día.</div>'; return; }
+  el.innerHTML = items.map((it, i) => {
+    const kind = aepKindOf(it), has = drafts[ymd + '|' + i];
+    return '<div class="aepc-item' + (it.kind === 'ms' ? ' ms' : '') + '"><div class="aepc-item-text">' + escapeHtml(it.text) + '</div>' +
+      (kind ? '<div class="aepc-item-actions">' + (has ? '<button class="btn btn-sm aepc-btn-ghost" onclick="aepShowDraft(\'' + ymd + '\',' + i + ')">📄 Ver borrador</button>' : '') +
+        '<button class="btn btn-teal btn-sm" onclick="aepGenerate(\'' + ymd + '\',' + i + ')">✨ ' + (has ? 'Rehacer' : 'Crear con IA') + '</button></div>' : '') + '</div>';
+  }).join('');
+}
+function renderAepToday(){
+  const el = document.getElementById('aepcTodayItems'); if(!el) return;
+  const today = aepToday(), d = _parseYmd(today);
+  const dn = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'][d.getDay()];
+  document.getElementById('aepcTodayTitle').textContent = 'Hoy · ' + dn + ' ' + _fmtShort(today);
+  renderAepItemRows(today, 'aepcTodayItems');
+  const sel = document.getElementById('aepLiveTime'); if(sel) sel.value = getSettings().liveTime;
+}
+
+// ─── REVISOR DE PIEZAS (visión) ───
+const REV_MAX = 4;
+let revImages = [];
+const REV_SYSTEM = ISABEL_SYSTEM + `
+
+AHORA ACTÚAS COMO REVISOR de piezas de marketing de Medicare (imágenes). Lee con cuidado todo el texto que aparece en la imagen. Describe solo lo que realmente se ve: si algo no se puede verificar en la imagen, escribe «no se puede verificar». Eres una PRE-REVISIÓN: la aprobación final es de su FMO o carrier.`;
+function fileToImageBlock(file){
+  return new Promise((resolve, reject) => {
+    if(!/^image\//.test(file.type)) return reject(new Error('«' + file.name + '» no es una imagen (usa PNG, JPG o WEBP).'));
+    if(/hei[cf]/i.test(file.type) || /\.hei[cf]$/i.test(file.name)) return reject(new Error('Las fotos HEIC del iPhone no se pueden leer aquí: haz una captura de pantalla o expórtala como JPG.'));
+    const url = URL.createObjectURL(file), img = new Image();
+    img.onload = () => {
+      try{
+        let w = img.naturalWidth, h = img.naturalHeight;
+        if(!w || !h) throw new Error('vacía');
+        const sc = Math.min(1, 1568 / Math.max(w, h)); w = Math.round(w * sc); h = Math.round(h * sc);
+        const c = document.createElement('canvas'); c.width = w; c.height = h;
+        const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, w, h); g.drawImage(img, 0, 0, w, h);
+        const dataUrl = c.toDataURL('image/jpeg', 0.88);
+        URL.revokeObjectURL(url);
+        resolve({ name:file.name, thumb:dataUrl, w, h, block:{ type:'image', source:{ type:'base64', media_type:'image/jpeg', data:dataUrl.split(',')[1] } } });
+      }catch(e){ URL.revokeObjectURL(url); reject(new Error('No pude leer «' + file.name + '».')); }
+    };
+    img.onerror = () => { URL.revokeObjectURL(url); reject(new Error('No pude abrir «' + file.name + '». ¿Es una imagen válida?')); };
+    img.src = url;
+  });
+}
+async function addRevFiles(files){
+  const msgs = [];
+  for(const f of [...files]){
+    if(revImages.length >= REV_MAX){ msgs.push('Máximo ' + REV_MAX + ' imágenes por revisión.'); break; }
+    try{ revImages.push(await fileToImageBlock(f)); }catch(e){ msgs.push(e.message); }
+  }
+  renderRevThumbs();
+  document.getElementById('revMsg').textContent = msgs.join(' ');
+}
+function removeRevImage(i){ revImages.splice(i, 1); renderRevThumbs(); }
+function clearRevImages(){ revImages = []; renderRevThumbs(); document.getElementById('revOut').innerHTML = '<div class="ai-label">🛡️ Revisión</div>'; document.getElementById('revVerdict').innerHTML = ''; }
+function renderRevThumbs(){
+  const el = document.getElementById('revThumbs'); if(!el) return;
+  el.innerHTML = revImages.map((im, i) => '<div class="rev-thumb"><img src="' + im.thumb + '" alt="' + escapeHtml(im.name) + '"><button onclick="removeRevImage(' + i + ')" aria-label="Quitar">×</button><div>' + escapeHtml(im.name.slice(0, 22)) + '</div></div>').join('');
+  document.getElementById('revCount').textContent = revImages.length ? revImages.length + ' de ' + REV_MAX + ' imágenes' : '';
+  document.getElementById('revBar').style.display = revImages.length ? 'flex' : 'none';
+}
+function buildRevPrompt(mode, type, caption, n){
+  const cap = caption ? '\nTexto o descripción que acompañará la pieza:\n"""' + caption + '"""\n' : '\n(No me dieron el texto que acompaña la pieza.)\n';
+  if(mode === 'competencia') return `Te paso ${n} captura(s) de un anuncio de la COMPETENCIA (tipo: ${type}). Analízalo para ayudar a Isabel a competir.${cap}
+Responde en Markdown con estas secciones:
+## Texto que veo
+## Qué ofrece y a quién le habla
+Gancho, oferta, público, formato y llamada a la acción.
+## Qué hace bien
+## Dónde es débil
+## Señales de posible incumplimiento CMS
+Solo informativo: no acuses; di «parece» o «podría».
+## Cómo superarlo: 3 ideas de anuncio para Isabel
+Cada una con gancho + mensaje + llamada a la acción, en español, listas para pasarle a su diseñadora.
+## ✅ Tu próxima acción`;
+  return `Te paso ${n} imagen(es) de una PIEZA de marketing de Medicare hecha por su diseñadora (tipo: ${type}).${cap}
+Revísala para este AEP (plan 2027). Tu respuesta debe empezar EXACTAMENTE con una línea: VEREDICTO: VERDE, VEREDICTO: AMARILLO o VEREDICTO: ROJO (verde = se puede publicar; amarillo = ajustes menores; rojo = no publicar así). Después, en Markdown:
+## Resumen
+Una o dos frases.
+## Texto que veo en la imagen
+Transcríbelo tal cual.
+## Cumplimiento CMS
+Lista con ✅ / ⚠️ / ❌ para cada punto: disclaimer TPMO presente y legible (obligatorio en anuncios y formularios) · línea de licencia o no afiliación al gobierno · frases prohibidas («gratis» sin contexto, «el mejor», «garantizado», «oferta», urgencia falsa) · beneficios con «según el plan» · imágenes de la tarjeta de Medicare o logos del gobierno · comparaciones con otras compañías · testimonios (¿hay permiso?).
+## Diseño y legibilidad (público de 64+ años)
+Tamaño de letra, contraste, cantidad de texto, jerarquía, llamada a la acción clara.
+## Marca
+Colores (azul mariposa #3D8FD6, navy #333A4D, durazno solo para botones), mariposa, tipografías.
+## Qué cambiar
+Lista priorizada con el texto exacto que sugieres.`;
+}
+async function runRevisor(){
+  const status = document.getElementById('revStatus'), btn = document.getElementById('revBtn');
+  if(!revImages.length){ status.textContent = '📷 Sube al menos una imagen.'; return; }
+  if(!apiKey){ status.textContent = '⚠️ Pon tu API Key arriba a la derecha.'; return; }
+  const mode = document.querySelector('input[name=revMode]:checked').value;
+  const type = document.getElementById('revType').value;
+  const caption = document.getElementById('revCaption').value.trim().slice(0, 4000);
+  btn.disabled = true; document.getElementById('revVerdict').innerHTML = '';
+  status.textContent = '🛡️ Revisando… (unos 20 a 40 segundos)';
+  const content = revImages.map(i => i.block).concat([{ type:'text', text:buildRevPrompt(mode, type, caption, revImages.length) }]);
+  const text = await callClaude(REV_SYSTEM, content, 'revOut', { tier:'deep', onStatus:(s) => { status.textContent = s; } });
+  btn.disabled = false;
+  if(!text){ status.textContent = '❌ No se pudo completar. Lee el mensaje de abajo.'; return; }
+  const m = text.match(/^\s*VEREDICTO:\s*(VERDE|AMARILLO|ROJO)/i);
+  if(m){
+    const v = m[1].toUpperCase();
+    document.getElementById('revVerdict').innerHTML = '<div class="rev-verdict ' + v.toLowerCase() + '">' + (v === 'VERDE' ? '🟢 Se puede publicar' : v === 'AMARILLO' ? '🟡 Ajustes menores antes de publicar' : '🔴 No publicar así') + '</div>';
+    renderAiOutput('revOut', text.replace(/^\s*VEREDICTO:.*\n?/i, ''));
+  }
+  status.textContent = '✅ Listo. Es una pre-revisión: la aprobación final es de tu FMO.';
+}
+function initRevisor(){
+  const drop = document.getElementById('revDrop'); if(!drop) return;
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => { if(e.dataTransfer && e.dataTransfer.files) addRevFiles(e.dataTransfer.files); });
+  document.addEventListener('paste', (e) => {
+    const mod = document.getElementById('mod-revisor');
+    if(!mod || !mod.classList.contains('active')) return;
+    const files = [...((e.clipboardData && e.clipboardData.files) || [])].filter(f => /^image\//.test(f.type));
+    if(files.length){ e.preventDefault(); addRevFiles(files); }
+  });
+}
+
+// ─── DICTADO POR VOZ (🎤) ───
+const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+let _micRec = null, _micBtn = null;
+function toggleMic(id, btn){
+  if(!SpeechRec){ alert('Tu navegador no permite dictar. Abre el sistema en Chrome.'); return; }
+  if(_micRec){ const same = _micBtn === btn; try{ _micRec.stop(); }catch(_){} if(same) return; }
+  const ta = document.getElementById(id); if(!ta) return;
+  const rec = new SpeechRec();
+  rec.lang = getSettings().voiceLang || 'es-US'; rec.continuous = true; rec.interimResults = true;
+  const base = ta.value ? ta.value.replace(/\s+$/, '') + ' ' : '';
+  rec.onresult = (e) => {
+    let fin = '', interim = '';
+    for(let i = 0; i < e.results.length; i++){ const r = e.results[i]; if(r.isFinal) fin += r[0].transcript; else interim += r[0].transcript; }
+    ta.value = base + fin + interim;
+    ta.dispatchEvent(new Event('input', { bubbles:true }));
+  };
+  rec.onerror = (e) => {
+    if(e && e.error === 'not-allowed') alert('Permite el micrófono en el candado de la barra de direcciones y vuelve a intentar.');
+  };
+  rec.onend = () => { if(_micBtn){ _micBtn.classList.remove('rec'); _micBtn.textContent = '🎤 Dictar'; } _micRec = null; _micBtn = null; };
+  try{ rec.start(); }catch(_){ return; }
+  _micRec = rec; _micBtn = btn; btn.classList.add('rec'); btn.textContent = '⏹️ Parar';
+}
+function initMics(){ if(!SpeechRec) document.querySelectorAll('.mic-btn').forEach(b => { b.style.display = 'none'; }); }
+function cfgVoiceLang(v){ saveSettings({ voiceLang:v }); }
+
 // ─── INIT ───
 loadCalendar();
 renderCalendar();
@@ -4924,6 +5300,8 @@ renderAEP();
 renderDashUpcoming();
 restoreToolsToggle();
 publishChatModel();
+initRevisor();
+initMics();
 renderAepCalendar();
 // During AEP season the calendar is the most important screen — open it first.
 (function(){ const t = aepToday(); if(t >= '2026-10-01' && t <= AEP_CLOSE) showModule('aep', document.getElementById('navAep')); })();

@@ -42,7 +42,7 @@ usarlo.
 Después de estos 3 pasos:
 - El agente Marketing está vivo dentro de LUNA
 - Isabel ve y usa todo: Plan, Marca, Plantillas, Viral, Memoria, Equipo IA,
-  Radar, Pregunta Inteligente, Agente Móvil + las 18 herramientas
+  Radar, Pregunta Inteligente, Agente Móvil + las 20 herramientas
 - Sus datos quedan en el navegador (single-device por ahora — eso lo
   arregla Fase 2)
 

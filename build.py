@@ -17,6 +17,7 @@ prints the resulting size.
 """
 import json
 import os
+import re
 import sys
 
 REPO = os.path.dirname(os.path.abspath(__file__))
@@ -64,8 +65,27 @@ def safe_js_string(s: str) -> str:
     return json.dumps(s).replace("</", "<\\/").replace("<!--", "<\\!--")
 
 
+def sync_bot_prompt() -> bool:
+    """Copy ISABEL_SYSTEM from index.html to bot/isabel_system.txt so the Telegram bot
+    always speaks with the same instructions as the app."""
+    with open(SOURCE, encoding="utf-8") as fh:
+        m = re.search(r"const ISABEL_SYSTEM = `(.*?)`;", fh.read(), re.S)
+    if not m:
+        print("WARNING: ISABEL_SYSTEM not found in index.html; bot prompt not synced", file=sys.stderr)
+        return False
+    path = os.path.join(REPO, "bot", "isabel_system.txt")
+    new = m.group(1).strip() + "\n"
+    old = open(path, encoding="utf-8").read() if os.path.exists(path) else ""
+    if new != old:
+        with open(path, "w", encoding="utf-8") as fh:
+            fh.write(new)
+        print("bot/isabel_system.txt updated from index.html")
+    return True
+
+
 def main() -> int:
     sys.path.insert(0, REPO)
+    sync_bot_prompt()
     import inject  # keeps every tool on the current shared-key / model interceptor
 
     total, changed = inject.sync_tools()

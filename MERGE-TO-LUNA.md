@@ -59,7 +59,7 @@ integración de datos todavía, pero funciona.
 **Qué funciona después de Fase 1:**
 - Todas las pestañas (Plan, Marca, Plantillas, Viral, Memoria, Equipo IA,
   Pregunta Inteligente, Radar, Agente Móvil)
-- Las 18 herramientas standalone
+- Las 20 herramientas standalone
 - Los patrones Athena ya horneados (memoria, capture-by-default, voces,
   compliance gating, salud, gaps, Radar con 5 lentes y self-grading)
 

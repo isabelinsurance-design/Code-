@@ -28,7 +28,7 @@ LUNA. Eso es normal y correcto.**
 ### 1 — El archivo está subido (15 segundos)
 - Sammy debe haber subido **`isabel-sistema-completo-UNICO.html`** a una
   carpeta dentro de LUNA (típicamente `/marketing/`).
-- Tamaño esperado: **~1.4 MB** (es un archivo grande porque trae las 18
+- Tamaño esperado: **~1.8 MB** (es un archivo grande porque trae las 20
   herramientas embebidas).
 - Si Sammy te dio una URL, ábrela en Chrome. Si carga el sistema, el archivo
   está bien.
@@ -42,7 +42,8 @@ LUNA. Eso es normal y correcto.**
 ### 3 — Las pestañas EMPEZAR AQUÍ funcionan (2 minutos)
 Click sidebar, una por una. Debes ver el contenido cargar para cada una:
 
-- [ ] 🎯 **Plan de Acción** (debe ser el landing) — ves el contador AEP 2026 arriba + Salud del Negocio + Gaps
+- [ ] 📅 **Calendario AEP** — es el landing del 1 de octubre al 7 de diciembre: ves la tarjeta "Hoy", el semáforo de aplicaciones y la lista de lo que toca publicar
+- [ ] 🎯 **Plan de Acción** (es el landing el resto del año) — ves el contador AEP 2026 arriba + Salud del Negocio + Gaps
 - [ ] 🎨 **Identidad de Marca** — paleta de 6 colores con tu hex codes, mariposa, tagline
 - [ ] 🖼️ **Plantillas de Posts** — 4 plantillas visuales (Quién soy, Live, Tip, Lead)
 - [ ] 📣 **Viral & Autoridad** — las 7 reglas para volverte viral
@@ -65,14 +66,15 @@ Click sidebar, una por una. Debes ver el contenido cargar para cada una:
 ### 6 — Las pestañas INTELIGENCIA y NEGOCIOS (20 segundos)
 - [ ] 🕵️ Competencia Intel
 - [ ] ⚖️ CMS Compliance
+- [ ] 🛡️ Revisor de Piezas — caja para soltar o pegar una imagen
 - [ ] 👥 CRM Leads
 - [ ] 📈 Métricas
 
-### 7 — Las 18 Herramientas Avanzadas (30 segundos)
+### 7 — Las 20 Herramientas Avanzadas (30 segundos)
 - En el sidebar, click el botón **"🔧 Herramientas Avanzadas"** con el chip
-  de **"18"**.
-- Debe expandirse mostrando 18 items. Si ves los 18, está completo.
-- Lista esperada:
+  de **"20"**.
+- Debe expandirse mostrando 20 items. Si ves los 20, está completo.
+- Los dos primeros son **📘 Estrategia AEP · Meta 300** y **🎂 Leads T65 DIY**; después vienen estas 18:
   1. Centro de Comando
   2. Sistema Completo
   3. Sistema Maestro v2
@@ -110,6 +112,7 @@ Click sidebar, una por una. Debes ver el contenido cargar para cada una:
 - Después de ~10 segundos debes ver una respuesta + al final
   "✅ Tu próxima acción: …".
 - Si funciona = la integración con Anthropic API funciona desde LUNA.
+- Si falla, abre **⚙️ Ajustes → 🔌 Probar mi conexión**: dice en español si el problema es la llave, el saldo o el modelo.
 
 ---
 
@@ -120,8 +123,8 @@ Click sidebar, una por una. Debes ver el contenido cargar para cada una:
 | El link "Marketing" no está en el menú de LUNA | "Falta agregar el `<a href>` en el nav. Ver PHASE-1-QUICKSTART.md paso 2." |
 | El link existe pero abre página 404 | "El archivo no está donde dice el link. Verifica el path en File Manager." |
 | Abre pero el sidebar está cortado | "El archivo se subió incompleto (corrupto/truncado). Re-subir." |
-| Faltan pestañas en EMPEZAR AQUÍ | "Archivo viejo subido. El UNICO actual tiene 9 pestañas en EMPEZAR AQUÍ." |
-| Las 18 herramientas no aparecen aunque expandas | "El UNICO subido no es el correcto. Tamaño esperado: ~1.4 MB." |
+| Faltan pestañas en EMPEZAR AQUÍ | "Archivo viejo subido. El UNICO actual tiene 10 pestañas en EMPEZAR AQUÍ (la primera es Calendario AEP)." |
+| Las 20 herramientas no aparecen aunque expandas | "El UNICO subido no es el correcto. Tamaño esperado: ~1.8 MB." |
 | Llamada IA da error | "Verifica que la API key pegada empieza con `sk-ant-` y tiene saldo en console.anthropic.com." |
 
 ---
@@ -132,15 +135,15 @@ Si tienes acceso al servidor / Sammy quiere doble-chequear:
 
 | Archivo en MI repo | Tamaño | Debe estar en LUNA |
 |---|---|---|
-| `isabel-sistema-completo-UNICO.html` | **1.4 MB** | ✅ SÍ — el único archivo necesario |
-| `index.html` + carpeta `tools/` | 213 KB + 18 archivos | Opcional (alternativa al UNICO) |
+| `isabel-sistema-completo-UNICO.html` | **1.8 MB** | ✅ SÍ — el único archivo necesario |
+| `index.html` + carpeta `tools/` | ~320 KB + 20 archivos | Opcional (alternativa al UNICO) |
 | `CLAUDE.md` | 8.9 KB | Para devs (no necesario para que funcione) |
 | `MERGE-TO-LUNA.md` | 10 KB | Para Sammy (referencia) |
 | `PARA-LUNA-TEAM.md` | 10 KB | Para Fases 2-3 (no urgente) |
 | `PHASE-1-QUICKSTART.md` | 2 KB | Para Sammy (ya cumplió su rol) |
 | `bot/` | Python | NO sube a Bluehost (no funciona ahí) |
 
-**Lo crítico:** un solo archivo HTML de 1.4 MB en LUNA. Si eso está, Fase 1
+**Lo crítico:** un solo archivo HTML de ~1.8 MB en LUNA. Si eso está, Fase 1
 está completa.
 
 ---

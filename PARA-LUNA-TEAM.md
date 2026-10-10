@@ -13,11 +13,12 @@ el resto de LUNA: **viral en Facebook → leads baratos → autoridad reconocida
 
 | Archivo | Para qué |
 |---|---|
-| `isabel-sistema-completo-UNICO.html` | **El archivo principal.** Single-file de ~1.4 MB con todo embebido (18 herramientas + 5 tabs nuevas). Sirve tal cual desde Bluehost. |
+| `isabel-sistema-completo-UNICO.html` | **El archivo principal.** Single-file de ~1.8 MB con todo embebido (20 herramientas + el Maestro). Sirve tal cual desde Bluehost. |
 | `index.html` | Versión editable que carga `tools/` por separado. Útil para mantenimiento. |
-| `tools/` (18 archivos) | Las 18 herramientas standalone — cada una tiene un interceptor de fetch inyectado (busca `ISABEL UNIFIED`) para compartir la API key. |
+| `tools/` (20 archivos) | Las 20 herramientas standalone — cada una tiene un interceptor de fetch inyectado (busca `ISABEL UNIFIED`) para compartir la API key. |
 | `bot/` | **Bot de Telegram en Python.** ⚠️ No corre en Bluehost (ver "Bot" abajo). |
 | `CLAUDE.md` | Documentación técnica detallada para futuras sesiones de desarrollo. |
+| `tests/` | Pruebas en navegador real (`node tests/run.cjs`) con un servidor falso de Anthropic. |
 
 ## Integración en LUNA (Bluehost)
 
@@ -87,38 +88,65 @@ CREATE TABLE luna_audit (
 30 6 * * * /usr/bin/php /home/USER/luna/cron/briefing.php >> /home/USER/luna/logs/briefing.log 2>&1
 ```
 
+**2b. Helpers compartidos en `config.php`** (llamar a Claude y a Telegram sin sorpresas):
+```php
+// Llama a Claude y devuelve SOLO el texto. Los modelos actuales "piensan" primero
+// (bloques "thinking") y esos tokens cuentan dentro de max_tokens → deja max_tokens holgado
+// y no leas content[0] a ciegas. Si la búsqueda web pausa el turno (pause_turn) se continúa.
+function claude_call(array $body, int $timeout = 120): array {
+  global $ANTHROPIC_KEY;
+  $text = ''; $sources = []; $resp = [];
+  for ($i = 0; $i < 5; $i++) {
+    $ch = curl_init('https://api.anthropic.com/v1/messages');
+    curl_setopt_array($ch, [
+      CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true, CURLOPT_TIMEOUT => $timeout,
+      CURLOPT_POSTFIELDS => json_encode($body),
+      CURLOPT_HTTPHEADER => ['Content-Type: application/json', 'x-api-key: ' . $ANTHROPIC_KEY, 'anthropic-version: 2023-06-01'],
+    ]);
+    $resp = json_decode(curl_exec($ch), true) ?: [];
+    foreach (($resp['content'] ?? []) as $b) {
+      if (($b['type'] ?? '') !== 'text') continue;            // ignora thinking / tool_use / tool_result
+      $text .= ($b['text'] ?? '') . "\n\n";
+      foreach (($b['citations'] ?? []) as $c) if (!empty($c['url'])) $sources[$c['url']] = $c['title'] ?? $c['url'];
+    }
+    if (($resp['stop_reason'] ?? '') !== 'pause_turn') break;
+    $body['messages'][] = ['role' => 'assistant', 'content' => $resp['content']];   // se devuelve tal cual y sigue
+  }
+  return ['text' => trim($text), 'sources' => $sources, 'stop' => $resp['stop_reason'] ?? '',
+          'error' => $resp['error']['message'] ?? null];
+}
+
+// Telegram: POST (no GET: el texto largo no cabe en una URL), en partes de <4096 caracteres y SIN parse_mode
+// (el texto de la IA trae * y _ sueltos que Telegram rechazaría como Markdown).
+function telegram_send($chat_id, string $text): void {
+  global $TELEGRAM_BOT_TOKEN;
+  foreach (mb_str_split($text, 3800) as $part) {
+    $ch = curl_init("https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage");
+    curl_setopt_array($ch, [CURLOPT_RETURNTRANSFER => true, CURLOPT_POST => true,
+      CURLOPT_POSTFIELDS => ['chat_id' => $chat_id, 'text' => $part]]);
+    curl_exec($ch);
+  }
+}
+```
+
 **3. `cron/briefing.php` — esqueleto:**
 ```php
 <?php
-require __DIR__ . '/../config.php';   // $ANTHROPIC_KEY, $TELEGRAM_BOT_TOKEN, $ISABEL_CHAT_ID, $PDO
+require __DIR__ . '/../config.php';   // $ANTHROPIC_KEY, $TELEGRAM_BOT_TOKEN, $ISABEL_CHAT_ID, $PDO + helpers de 2b
 // 1. compute trust score + gaps from luna_memoria
 $score = compute_health($PDO);
 $gaps  = compute_gaps($PDO);
 // 2. call Claude
-$body = json_encode([
-  'model' => 'claude-sonnet-4-20250514',
-  'max_tokens' => 600,
+$r = claude_call([
+  'model' => 'claude-sonnet-5-5',
+  'max_tokens' => 4096,
+  'output_config' => ['effort' => 'medium'],
   'system' => ISABEL_SYSTEM,
   'messages' => [['role'=>'user','content'=>build_briefing_prompt($score, $gaps)]],
 ]);
-$ch = curl_init('https://api.anthropic.com/v1/messages');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_POST => true,
-  CURLOPT_POSTFIELDS => $body,
-  CURLOPT_HTTPHEADER => [
-    'Content-Type: application/json',
-    'x-api-key: ' . $ANTHROPIC_KEY,
-    'anthropic-version: 2023-06-01',
-  ],
-]);
-$resp = json_decode(curl_exec($ch), true);
-$text = $resp['content'][0]['text'] ?? 'Briefing error';
+$text = $r['text'] ?: 'Briefing error: ' . ($r['error'] ?? $r['stop']);
 // 3. send to Telegram
-$msg = "🌅 *Briefing* — Salud: *{$score}/100*\n\n" . $text;
-file_get_contents("https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage?" . http_build_query([
-  'chat_id' => $ISABEL_CHAT_ID, 'text' => $msg, 'parse_mode' => 'Markdown',
-]));
+telegram_send($ISABEL_CHAT_ID, "🌅 Briefing — Salud: {$score}/100\n\n" . $text);
 ```
 
 **4. `webhook-telegram.php` — recibe mensajes:**
@@ -129,7 +157,8 @@ $update = json_decode(file_get_contents('php://input'), true);
 $msg = $update['message']['text'] ?? '';
 $chat = $update['message']['chat']['id'] ?? null;
 if (!$msg || !$chat) exit;
-// llamar a Claude con el mismo ISABEL_SYSTEM…
+if ((string)$chat !== (string)$ISABEL_CHAT_ID) exit;   // SOLO Isabel: si no, cualquiera que encuentre el bot gasta tu saldo de Anthropic
+// llamar a Claude con claude_call() y el mismo ISABEL_SYSTEM…
 // hacer capture-by-default → INSERT luna_memoria
 // responder via /sendMessage
 ```
@@ -185,39 +214,27 @@ Cierra con "✅ Tu próxima acción:" UNA acción operacional.
 NO inventes nombres ni métricas.
 EOT;
 
-$body = json_encode([
-  'model' => 'claude-sonnet-4-20250514',
-  'max_tokens' => 4096,
+$r = claude_call([
+  'model' => 'claude-opus-5-5',            // el Radar usa el nivel "deep" (igual que la app)
+  'max_tokens' => 20000,                   // incluye lo que el modelo "piensa" antes de escribir
+  'output_config' => ['effort' => 'high'],
   'system' => ISABEL_SYSTEM,
-  'tools' => [['type'=>'web_search_20250305', 'name'=>'web_search', 'max_uses'=>6]],
+  'tools' => [[
+    'type' => 'web_search_20250305', 'name' => 'web_search', 'max_uses' => 6,
+    'user_location' => ['type'=>'approximate', 'city'=>'Los Angeles', 'region'=>'California',
+                        'country'=>'US', 'timezone'=>'America/Los_Angeles'],
+  ]],
   'messages' => [['role'=>'user', 'content'=>$prompt]],
-]);
-$ch = curl_init('https://api.anthropic.com/v1/messages');
-curl_setopt_array($ch, [
-  CURLOPT_RETURNTRANSFER => true,
-  CURLOPT_POST => true,
-  CURLOPT_POSTFIELDS => $body,
-  CURLOPT_HTTPHEADER => [
-    'Content-Type: application/json',
-    'x-api-key: ' . $ANTHROPIC_KEY,
-    'anthropic-version: 2023-06-01',
-  ],
-  CURLOPT_TIMEOUT => 120,  // web search puede tardar
-]);
-$resp = json_decode(curl_exec($ch), true);
-
-// Combina text blocks (filtra tool_use/tool_result)
-$text = '';
-foreach (($resp['content'] ?? []) as $b) {
-  if (($b['type'] ?? '') === 'text') $text .= ($b['text'] ?? '') . "\n\n";
+], 300);                                   // búsqueda web + razonamiento pueden tardar minutos
+$text = $r['text'];
+if ($r['sources']) {                       // Anthropic pide mostrar las fuentes de la búsqueda web
+  $text .= "\n\nFuentes:\n";
+  foreach ($r['sources'] as $url => $title) $text .= "• {$title} — {$url}\n";
 }
 
 // Guarda en MySQL para historial + manda a Telegram
 $PDO->prepare("INSERT INTO luna_intel (text) VALUES (?)")->execute([$text]);
-$msg = "🔭 *Inteligencia semanal*\n\n" . substr($text, 0, 3500);
-file_get_contents("https://api.telegram.org/bot{$TELEGRAM_BOT_TOKEN}/sendMessage?" . http_build_query([
-  'chat_id' => $ISABEL_CHAT_ID, 'text' => $msg, 'parse_mode' => 'Markdown',
-]));
+telegram_send($ISABEL_CHAT_ID, "🔭 Inteligencia semanal\n\n" . $text);
 ```
 
 Necesita tabla:
@@ -245,7 +262,9 @@ usando long-polling — Bluehost no corre procesos largos así.
 ## Stack del Browser app
 
 - HTML/CSS/JS vanilla (sin frameworks, sin build step)
-- Anthropic Claude API directo del navegador (`claude-sonnet-4-20250514`)
+- Anthropic Claude API directo del navegador, con modelos por nivel y respaldo automático
+  (`claude-haiku-5-5` / `claude-sonnet-5-5` / `claude-opus-5-5`; el modelo anterior
+  `claude-sonnet-4-20250514` se retiró el 15-jun-2026 — detalles en `CLAUDE.md`)
 - Headers requeridos: `x-api-key`, `anthropic-version: 2023-06-01`,
   `anthropic-dangerous-direct-browser-access: true`
 - localStorage para persistencia (keys documentadas en `CLAUDE.md`)
@@ -255,12 +274,11 @@ usando long-polling — Bluehost no corre procesos largos así.
 Después de editar `index.html` o cualquier `tools/*.html`:
 
 ```bash
-# El script de build está descrito en CLAUDE.md (sección "Build step")
-python3 build_single.py  # produce isabel-sistema-completo-UNICO.html
+python3 build.py          # produce isabel-sistema-completo-UNICO.html (y bot/isabel_system.txt)
+node tests/run.cjs        # ~315 comprobaciones en un navegador real (necesita Playwright)
 ```
 
-(El script de build no está commiteado — está en el flujo de trabajo de Claude
-Code; replicable en 30 líneas de Python.)
+`build.py` está commiteado en la raíz del repo. Detalles en `CLAUDE.md` ("Build step" y "Testing").
 
 ---
 

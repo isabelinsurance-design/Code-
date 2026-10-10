@@ -22,10 +22,11 @@ her finished files over technical steps.
 | `index.html` | **The shell / source of truth.** Single-page app. Edit THIS. Loads tools from `tools/` via iframe `src`. |
 | `tools/` (20 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
 | `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 20 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
-| `bot/` | Telegram bot (Python). Same `ISABEL_SYSTEM` prompt as the web app. Deployable to Railway/Replit/Render. See `bot/README.md`. |
+| `bot/` | Telegram bot (Python, async). Same `ISABEL_SYSTEM` prompt as the web app (`bot/isabel_system.txt`, **generated** by `build.py`). Only answers chats in `ALLOWED_CHAT_IDS`. Offline tests: `python bot/test_bot.py`. Deployable to Railway/Replit/Render. See `bot/README.md`. |
 | `tools-interceptor.js` | Source of truth for the script injected into every tool (shared key, headers, current model, strips thinking blocks). Edit this, never the tools. |
 | `inject.py` | Syncs `tools-interceptor.js` into every `tools/*.html`. `build.py` runs it first. |
-| `tests/` | Browser tests (Playwright + a fake Anthropic server). `node tests/run.cjs` runs them all. |
+| `build.py` | Regenerates the UNICO file (and `bot/isabel_system.txt`). See "Build step". |
+| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ai`, `security`, `smoke`, `features`. `node tests/run.cjs` runs them all (≈315 checks). |
 | `AUDIT.md` | Security/architecture audit with task status. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -38,7 +39,8 @@ build by running:
 python3 build.py
 ```
 
-`build.py` (committed in the repo root) reads `index.html` + every file in
+`build.py` (committed in the repo root) first syncs the interceptor into the tools (`inject.py`) and
+writes `bot/isabel_system.txt` from the `ISABEL_SYSTEM` prompt in `index.html`, then reads `index.html` + every file in
 `tools/`, replaces the iframe `openTool()` function with a blob-URL version,
 embeds the tools as `const TOOL_DATA = {...}` (escaping `</` → `<\/` and
 `<!--` → `<\!--`), and writes `isabel-sistema-completo-UNICO.html`. **Do not
@@ -54,7 +56,7 @@ send the rebuilt UNICO file to Isabel after changes.
 - **Shell** = the "Maestro": top sidebar section `EMPEZAR AQUÍ` (Plan de Acción [default],
   Identidad de Marca, Plantillas de Posts), built-in quick modules (Dashboard, Cerebro IA,
   Meta Ads, Viral, FB Live, Calendario, Intel, Compliance, CRM, Métricas), and
-  `HERRAMIENTAS COMPLETAS` (the 18 full tools opened inside an `#mod-tool` iframe).
+  `HERRAMIENTAS COMPLETAS` (the 20 full tools opened inside an `#mod-tool` iframe).
 - **AI calls** go through ONE core in `index.html` (`// ─── AI CORE ───`): `aiRequest()` →
   `aiStreamOnce()`. Required headers: `x-api-key`, `anthropic-version: 2023-06-01`,
   `anthropic-dangerous-direct-browser-access: true`. Answers stream (SSE) and render through
@@ -89,6 +91,7 @@ send the rebuilt UNICO file to Isabel after changes.
 - `isabel_usage` — monthly call/token counters for the spend estimate; `isabel_chat_model` — the model the tools use
 - `isabel_calendar` — weekly calendar items (sanitized on load)
 - `isabel_aep_checks` / `isabel_aep_actuals` — Calendario AEP pre-AEP checklist and weekly real-application counts (semáforo)
+- `isabel_aep_drafts` — pieces written by the AEP "Hoy" card (`aepGenerate`), keyed by calendar item, so they survive a reload
 - `isabel_aep_maestro` — state of `tools/estrategia-aep-2026.html` (the team's Meta 300 strategy doc)
 - `isabel_t65_leads` / `isabel_t65_spend` — T65 DIY lead tracker (written by `tools/t65-lead-machine.html`, which runs same-origin so it shares the shell's localStorage; included in backup via `BACKUP_SCHEMA`)
 
@@ -153,11 +156,25 @@ items only (ads must stop after Dec 7). `downloadAepIcs()` exports an .ics.
 Between Oct 1 and Dec 7 the app opens on this tab. Dates are hardcoded to 2026 —
 update `AEP_PERIODS`/`AEP_MILESTONES` for AEP 2027.
 
+**Release 2 features (Oct 2026):**
+- **AEP "Hoy" card** (top of `📅 Calendario AEP`): `renderAepToday()` lists today's calendar items and
+  `aepGenerate()` / `aepGenerateAd()` write the piece with AI (`buildAepPrompt`, per-kind specs in `AEP_SPECS`;
+  every draft gets `aepDisclaimerBlock()` = TPMO text from `tpmoText()` + license line, and the CMS regex gate).
+  Drafts are saved in `isabel_aep_drafts`. The Live time is a setting (`aepLiveHM`) because Isabel's Oct 15
+  appointments (9am–2pm) can clash with a 12pm Live; the `.ics` export uses it too.
+- **Revisor de Piezas** (`🛡️`, under INTELIGENCIA): she drops/pastes a designer piece or a competitor ad;
+  `fileToImageBlock()` shrinks it to a 1568 px JPEG, `runRevisor()` sends it to a vision-capable model with
+  `REV_SYSTEM`, and the answer starts with `VEREDICTO: VERDE|AMARILLO|ROJO` (publish / minor edits / don't
+  publish) which is parsed into a colored badge.
+- **Voice dictation:** 🎤 buttons (`toggleMic`, `initMics`) use the browser's SpeechRecognition; language is
+  `voiceLang` in ⚙️ Ajustes (es-US default). The buttons are hidden where the browser lacks the API (use Chrome).
+
 ## Testing
 
-`python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke` (≈225 checks) against both
-`index.html` and the UNICO build. A fake Anthropic server streams real SSE events, so streaming, web search,
+`python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke`, `features` (≈315 checks) against both
+`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice). A fake Anthropic server streams real SSE events, so streaming, web search,
 `pause_turn`, fallbacks and errors are all exercised. Add a test with every feature.
+The bot has its own offline tests: `python bot/test_bot.py` (needs `pip install -r bot/requirements.txt`).
 
 ## Compliance facts (CMS plan year 2027 — AEP 2026)
 
