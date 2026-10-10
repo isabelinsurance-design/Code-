@@ -107,28 +107,81 @@ td strong{color:var(--text)}
 @media(max-width:640px){.lead-form{grid-template-columns:1fr 1fr}.calc{grid-template-columns:1fr}.vs{grid-template-columns:1fr}}
 </style>
 <script>
-/* ISABEL UNIFIED — shared Anthropic key + browser auth (injected by shell) */
+/* ISABEL UNIFIED v2 — shared Anthropic key, browser auth and current models (generated into every tool by inject.py; edit tools-interceptor.js, not the tools) */
 (function(){
-  var KEY='isabel_anthropic_key';
-  var _k=(function(){try{return localStorage.getItem(KEY)||''}catch(e){return ''}})();
+  var KEY='isabel_anthropic_key', CHAT='isabel_chat_model';
+  var FALLBACKS=['claude-sonnet-5-5','claude-sonnet-5','claude-sonnet-4-6','claude-haiku-5-5'];
+  var ORIGIN=(location.origin&&location.origin!=='null')?location.origin:'*';
+  function ls(k){try{return localStorage.getItem(k)||''}catch(e){return ''}}
+  var _k=ls(KEY), _m=ls(CHAT)||FALLBACKS[0];
   window.addEventListener('message',function(e){
-    if(e&&e.data&&e.data.type==='ISABEL_API_KEY'){_k=e.data.key||'';try{localStorage.setItem(KEY,_k)}catch(_){}}
+    if(e.source!==window.parent) return;
+    if(ORIGIN!=='*'&&e.origin!==ORIGIN&&e.origin!=='null') return;
+    var d=e.data; if(!d||d.type!=='ISABEL_API_KEY') return;
+    _k=d.key||''; try{localStorage.setItem(KEY,_k)}catch(_){}
+    if(d.chatModel){_m=d.chatModel; try{localStorage.setItem(CHAT,_m)}catch(_){}}
   });
-  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},'*');}catch(_){}
+  try{if(window.parent&&window.parent!==window)window.parent.postMessage({type:'ISABEL_REQUEST_KEY'},ORIGIN);}catch(_){}
+  function friendly(status,type,msg){
+    msg=String(msg||'');
+    if(/credit balance|billing/i.test(msg)) return 'Tu cuenta de Anthropic no tiene saldo. Agrégalo en console.anthropic.com → Plans & Billing.';
+    if(status===401||type==='authentication_error') return 'Tu API Key no es válida. Revísala arriba a la derecha (empieza con sk-ant-).';
+    if(status===429||type==='rate_limit_error') return 'Hay demasiadas solicitudes a la vez. Espera un minuto e intenta de nuevo.';
+    if(status===529||status>=500||type==='overloaded_error') return 'La IA está muy ocupada. Intenta de nuevo en unos segundos.';
+    return msg;
+  }
+  function isModelErr(status,d){
+    var e=(d&&d.error)||{}, m=e.message||'';
+    return status===404||e.type==='not_found_error'||(/model/i.test(m)&&/not (found|valid)|invalid|retired|deprecated|does not exist/i.test(m));
+  }
+  function json(res,d){
+    return new Response(JSON.stringify(d),{status:res.status,statusText:res.statusText,headers:{'Content-Type':'application/json'}});
+  }
   if(!window.__isabelFetchPatched){
     window.__isabelFetchPatched=true;
     var of=window.fetch.bind(window);
     window.fetch=function(u,o){
-      o=o||{};
       var url=(typeof u==='string')?u:((u&&u.url)||'');
-      if(url.indexOf('api.anthropic.com')>-1){
-        var h=Object.assign({},o.headers||{});
-        h['x-api-key']=_k;
-        h['anthropic-version']='2023-06-01';
-        h['anthropic-dangerous-direct-browser-access']='true';
-        o.headers=h;
+      if(url.indexOf('api.anthropic.com')<0) return of(u,o);
+      o=o||{};
+      var body=null;
+      try{body=(typeof o.body==='string')?JSON.parse(o.body):null;}catch(e){body=null;}
+      var h=Object.assign({},o.headers||{});
+      h['x-api-key']=_k; h['anthropic-version']='2023-06-01'; h['anthropic-dangerous-direct-browser-access']='true';
+      var tried=[], model=_m;
+      function send(){
+        var o2=Object.assign({},o,{headers:h});
+        if(body){
+          var b=Object.assign({},body);
+          b.model=model;
+          if(!b.max_tokens||b.max_tokens<4096) b.max_tokens=4096;   /* el límite incluye el "pensar" del modelo */
+          if(!b.output_config) b.output_config={effort:'medium'};
+          delete b.temperature; delete b.top_p; delete b.top_k;
+          o2.body=JSON.stringify(b);
+        }
+        tried.push(model);
+        return of(u,o2);
       }
-      return of(u,o);
+      function attempt(){
+        return send().then(function(res){
+          if(res.ok){
+            if((res.headers.get('content-type')||'').indexOf('application/json')<0) return res;
+            return res.clone().json().then(function(d){
+              if(d&&Array.isArray(d.content)) d.content=d.content.filter(function(x){return x&&x.type==='text';});
+              return json(res,d);
+            }).catch(function(){return res;});
+          }
+          return res.clone().json().then(function(d){
+            if(isModelErr(res.status,d)){
+              var next=FALLBACKS.filter(function(m){return tried.indexOf(m)<0;})[0];
+              if(next){model=next; return attempt();}
+            }
+            if(d&&d.error) d.error.message=friendly(res.status,d.error.type,d.error.message);
+            return json(res,d);
+          }).catch(function(){return res;});
+        });
+      }
+      return attempt();
     };
   }
 })();
@@ -314,9 +367,9 @@ Texto de consentimiento (obligatorio, va en el formulario):
     <h3>📋 Checklist por lead</h3>
     <ul>
       <li><strong>PTC</strong> (Permission to Contact): el formulario de Meta con el texto de consentimiento lo cumple. Guarda la exportación del lead como evidencia. El PTC es válido 12 meses.</li>
-      <li><strong>SOA</strong> (Scope of Appointment): firmado <strong>al menos 48 horas antes</strong> de la cita de ventas (regla CMS vigente; hay excepciones para walk-ins y fin de período de inscripción).</li>
-      <li><strong>Grabación de llamadas</strong>: las llamadas de ventas/inscripción de MA y PDP deben grabarse y guardarse 10 años.</li>
-      <li><strong>Disclaimer TPMO</strong> en tu marketing: <em>"No ofrecemos todos los planes disponibles en tu área. Cualquier información que proporcionemos se limita a los planes que ofrecemos en tu área. Comunícate con Medicare.gov o al 1-800-MEDICARE para obtener información sobre todas tus opciones."</em></li>
+      <li><strong>SOA</strong> (Scope of Appointment): firmado <strong>antes de hablar de planes específicos</strong>. Desde la regla final de CMS para 2027 ya no hay que esperar 48 horas entre el SOA y la cita (la cita del mismo día es válida), pero <strong>algunos carriers o FMO todavía la piden</strong>: confírmalo con tu FMO.</li>
+      <li><strong>Grabación de llamadas</strong>: las llamadas de ventas y de marketing de MA y PDP deben grabarse. Desde el 1 de octubre de 2026 las grabaciones de marketing se guardan 6 años (las de inscripción, 10); confírmalo con tu FMO.</li>
+      <li><strong>Disclaimer TPMO</strong> en tu marketing y en el formulario, y dicho o mostrado <strong>antes de hablar de cualquier beneficio</strong> (ya no es «en el primer minuto» y ya no menciona los SHIP): <em>"No ofrecemos todos los planes disponibles en tu área. Actualmente representamos a [número] organizaciones que ofrecen [número] productos en tu área. Comunícate con Medicare.gov o al 1-800-MEDICARE para obtener información sobre todas tus opciones."</em> Confirma el texto vigente con tu FMO.</li>
       <li><strong>Disclaimer de no afiliación</strong>: "No estamos conectados con ni respaldados por el gobierno de los EE. UU. ni el programa federal de Medicare."</li>
     </ul>
     <div class="callout teal">Tu sistema ya tiene el módulo <strong>CMS Compliance</strong> — úsalo para verificar cada pieza antes de publicarla. Y confirma los textos exactos con tu upline/FMO, porque los carriers a veces piden lenguaje adicional aprobado.</div>

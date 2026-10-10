@@ -23,6 +23,10 @@ her finished files over technical steps.
 | `tools/` (20 files) | Full standalone tool dashboards. Each has an **injected shared-key fetch interceptor** (search `ISABEL UNIFIED`). |
 | `isabel-sistema-completo-UNICO.html` | **GENERATED build** — all 20 tools embedded as blob URLs so Isabel can open ONE file in Chrome with no `tools/` folder. **Do not hand-edit.** This is the file she actually uses. |
 | `bot/` | Telegram bot (Python). Same `ISABEL_SYSTEM` prompt as the web app. Deployable to Railway/Replit/Render. See `bot/README.md`. |
+| `tools-interceptor.js` | Source of truth for the script injected into every tool (shared key, headers, current model, strips thinking blocks). Edit this, never the tools. |
+| `inject.py` | Syncs `tools-interceptor.js` into every `tools/*.html`. `build.py` runs it first. |
+| `tests/` | Browser tests (Playwright + a fake Anthropic server). `node tests/run.cjs` runs them all. |
+| `AUDIT.md` | Security/architecture audit with task status. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
 ## Build step — IMPORTANT
@@ -51,9 +55,25 @@ send the rebuilt UNICO file to Isabel after changes.
   Identidad de Marca, Plantillas de Posts), built-in quick modules (Dashboard, Cerebro IA,
   Meta Ads, Viral, FB Live, Calendario, Intel, Compliance, CRM, Métricas), and
   `HERRAMIENTAS COMPLETAS` (the 18 full tools opened inside an `#mod-tool` iframe).
-- **AI calls** hit `https://api.anthropic.com/v1/messages`, model `claude-sonnet-4-20250514`.
-  Required headers: `x-api-key`, `anthropic-version: 2023-06-01`,
-  `anthropic-dangerous-direct-browser-access: true`.
+- **AI calls** go through ONE core in `index.html` (`// ─── AI CORE ───`): `aiRequest()` →
+  `aiStreamOnce()`. Required headers: `x-api-key`, `anthropic-version: 2023-06-01`,
+  `anthropic-dangerous-direct-browser-access: true`. Answers stream (SSE) and render through
+  `mdToHtml()` (escapes ALL html first — never use `innerHTML` with AI text directly).
+- **Models are tiered, not hard-coded:** `MODEL_PRESETS` (Económico / Equilibrado / Máximo, picked in ⚙️ Ajustes)
+  map the tiers `fast` (extract/route → haiku-5-5), `chat` (writing → sonnet-5-5) and `deep`
+  (Radar, reviews → opus-5-5) to a fallback chain; a model that answers "not found" is skipped and
+  the next one is used. `output_config.effort` is set per tier. `claude-sonnet-4-20250514` was
+  RETIRED on 15 Jun 2026 (that silently broke every AI button for 4 months) and `claude-haiku-4-5-20251001`
+  retires no sooner than 15 Oct 2026 — check https://platform.claude.com/docs/en/about-claude/model-deprecations
+  before assuming an ID still works. Current IDs: claude-fable-5-1, claude-opus-5-5, claude-sonnet-5-5, claude-haiku-5-5.
+- **Context on every call:** `composeSystem()` appends `buildContextBlock()` (today's date, AEP phase, today's
+  calendar items, and — if enabled in settings — Memoria facts/people/tasks; never CRM phone numbers).
+  Pass `noContext:true` for extraction/routing calls.
+- **Web search** (`webSearchTool()`, `web_search_20250305`, Los Angeles location) streams the queries
+  into the status line, handles `pause_turn`, shows sources under the answer (Anthropic requires
+  citations to be shown) and falls back to no-search if the account has it disabled.
+- **Thinking:** current models think by default and thinking counts toward `max_tokens`, so tiers use large
+  limits. Never send `temperature`/`top_p`/`top_k` or an assistant prefill (400 errors).
 - **Shared API key:** entered once (top-right), saved to localStorage, broadcast to tool
   iframes via `postMessage`. Tools read it via their injected interceptor (which also adds
   the auth headers — the originals shipped with NO auth headers and didn't work in a browser).
@@ -65,6 +85,8 @@ send the rebuilt UNICO file to Isabel after changes.
 - `isabel_memoria_hechos` / `_personas` / `_tareas` / `_compromisos` — layered memory (Athena-style)
 - `isabel_intel_runs` — Radar run history; each entry includes the structured `snapshot` data used at run time so the next run can self-grade against it
 - `isabel_audit_log` — last 500 user-action events `{ts,event,details}` (debounced 30s per event key) used by `getUsageStats(daysBack)` to feed the Radar's "uso del sistema" snapshot
+- `isabel_settings` — AI quality preset, memory toggle, TPMO org/plan numbers (⚙️ Ajustes)
+- `isabel_usage` — monthly call/token counters for the spend estimate; `isabel_chat_model` — the model the tools use
 - `isabel_calendar` — weekly calendar items (sanitized on load)
 - `isabel_aep_checks` / `isabel_aep_actuals` — Calendario AEP pre-AEP checklist and weekly real-application counts (semáforo)
 - `isabel_aep_maestro` — state of `tools/estrategia-aep-2026.html` (the team's Meta 300 strategy doc)
@@ -130,6 +152,21 @@ CMS note. `aepItemsFor(ymd)` derives each day's items; post-AEP uses fixed dated
 items only (ads must stop after Dec 7). `downloadAepIcs()` exports an .ics.
 Between Oct 1 and Dec 7 the app opens on this tab. Dates are hardcoded to 2026 —
 update `AEP_PERIODS`/`AEP_MILESTONES` for AEP 2027.
+
+## Testing
+
+`python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke` (≈225 checks) against both
+`index.html` and the UNICO build. A fake Anthropic server streams real SSE events, so streaming, web search,
+`pause_turn`, fallbacks and errors are all exercised. Add a test with every feature.
+
+## Compliance facts (CMS plan year 2027 — AEP 2026)
+
+Researched 9–10 Oct 2026 (also in the Athena repo's HANDOFF_ISABEL.md). Do NOT reintroduce the old rules:
+- **No 48-hour SOA wait** (CY2027 final rule). SOA is still required BEFORE talking about specific plans;
+  some carriers/FMOs still ask for the wait → always "confirm with the FMO".
+- **TPMO disclaimer goes BEFORE any benefit is discussed** (not "first minute") and no longer mentions SHIPs.
+- Marketing of 2027 plans from 1 Oct; applications only from 15 Oct. Marketing-call recordings: 6 years.
+These live in `ISABEL_SYSTEM`, `CMS_FLAGS`, the AEP calendar notes and `tools/t65-lead-machine.html`.
 
 ## Hard rules / conventions
 

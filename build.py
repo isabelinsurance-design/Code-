@@ -65,6 +65,13 @@ def safe_js_string(s: str) -> str:
 
 
 def main() -> int:
+    sys.path.insert(0, REPO)
+    import inject  # keeps every tool on the current shared-key / model interceptor
+
+    total, changed = inject.sync_tools()
+    if changed:
+        print(f"interceptor: updated {len(changed)} of {total} tools")
+
     with open(SOURCE, encoding="utf-8") as fh:
         shell = fh.read()
 
