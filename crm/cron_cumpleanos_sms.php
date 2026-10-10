@@ -48,7 +48,9 @@ try {
 
 try {
     $resumen = cumpleanos_sms_procesar($pdo);
+    cron_registrar_ejecucion($pdo, 'cumpleanos_sms', true, json_encode($resumen));
     _cron_cumple_responder(200, ['ok' => true, 'resumen' => $resumen]);
 } catch (Exception $e) {
+    cron_registrar_ejecucion($pdo, 'cumpleanos_sms', false, $e->getMessage());
     _cron_cumple_responder(500, ['ok' => false, 'error' => 'Error al procesar cumpleaños: ' . $e->getMessage()]);
 }

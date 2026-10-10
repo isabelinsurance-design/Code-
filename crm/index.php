@@ -8246,14 +8246,16 @@ $alerta_menu = count(array_filter($tickets_open, function($t) use ($hoy_fecha, $
 // No se repiten aquí para evitar queries duplicadas
 
 // Contar tickets cerrados por mí el día de hoy (miembro + tareas generales).
-// Se excluyen APLICACION (se cuenta como APPS) y LLAMADAS (se cuentan aparte).
+// Decisión de Isabel (oct 2026): las APLICACIONES cerradas SÍ cuentan como
+// tickets cerrados (igual que en Today Live). Además se siguen contando aparte
+// en APPS. Solo se excluyen las LLAMADAS (se cuentan aparte).
 $hoy_fmt = date('Y-m-d');
 $mis_cerrados_hoy = count(array_filter($tickets, function($t) use ($uid, $hoy_fmt) {
     $es_mio = (!empty($t['asignado_a'])) ? ($t['asignado_a'] == $uid) : ($t['agente_id'] == $uid);
     $fecha_cierre = $t['fecha_cierre'] ?? '';
     $tipo = $t['tipo'] ?? '';
     return $es_mio && $t['estado'] === 'CERRADO' && str_starts_with($fecha_cierre, $hoy_fmt)
-           && !in_array($tipo, ['APLICACION','LLAMADA','LLAMADA PERDIDA'], true);
+           && !in_array($tipo, ['LLAMADA','LLAMADA PERDIDA'], true);
 }));
 
 // Contar APPS (Tickets cerrados hoy que son de tipo 'APLICACION')
@@ -8899,6 +8901,30 @@ foreach ($users_all as $u) {
 </div>
 <!-- DASHBOARD -->
 <div id="tab-DASHBOARD" class="tab-pane active">
+<?php
+// ── Aviso al admin si una tarea automática (cron) no ha corrido a tiempo ──
+if ($admin) {
+    $__crons = ['recordatorios_citas' => ['RECORDATORIOS DE CITAS POR SMS', 2], 'cumpleanos_sms' => ['SMS DE CUMPLEAÑOS', 26]]; // horas máx. sin correr
+    $__cron_avisos = [];
+    try {
+        $__cr = [];
+        foreach ($pdo->query("SELECT nombre, ultima_ejecucion, ultimo_ok, resultado, detalle, TIMESTAMPDIFF(MINUTE, ultima_ejecucion, NOW()) AS mins FROM cron_ejecuciones") as $__r) $__cr[$__r['nombre']] = $__r;
+        foreach ($__crons as $__k => [$__lbl, $__hmax]) {
+            if (!isset($__cr[$__k])) { $__cron_avisos[] = "$__lbl: no hay registro de que haya corrido desde la actualización (revisa el Cron Job en cPanel)"; continue; }
+            $__r = $__cr[$__k];
+            if ((int)$__r['mins'] > $__hmax * 60) $__cron_avisos[] = "$__lbl: no corre desde " . date('m/d H:i', strtotime($__r['ultima_ejecucion']));
+            elseif ($__r['resultado'] !== 'OK') $__cron_avisos[] = "$__lbl: la última vez falló (" . mb_substr($__r['detalle'] ?? '', 0, 120) . ")";
+        }
+    } catch (Exception $e) { /* la tabla aún no existe: ningún cron ha corrido desde el deploy */
+        $__cron_avisos[] = 'TAREAS AUTOMÁTICAS: todavía no hay registro de ninguna (revisa los Cron Jobs en cPanel)';
+    }
+    if ($__cron_avisos): ?>
+<div class="alert-bar" style="background:#FDF0EE;border-left-color:#B83232;color:#B83232">
+⚠ TAREA AUTOMÁTICA DETENIDA — <?=h(implode(' · ', $__cron_avisos))?>
+</div>
+<?php endif;
+}
+?>
 <?php if(!empty($alertas_hoy) && $alertas_hoy>0): ?>
 <div class="alert-bar" style="background:#FEF8EE;border-left-color:#C07A1A;color:#C07A1A">
 <?=$alertas_hoy?> LLAMADA<?=$alertas_hoy>1?'S':''?> DE RETENCIÓN PENDIENTE<?=$alertas_hoy>1?'S':''?> PARA HOY (7/30/60/90 DÍAS)

@@ -77,7 +77,9 @@ if (!empty($_GET['debug'])) {
 
 try {
     $resumen = recordatorios_citas_procesar($pdo);
+    cron_registrar_ejecucion($pdo, 'recordatorios_citas', true, json_encode($resumen));
     _cron_responder(200, ['ok' => true, 'resumen' => $resumen]);
 } catch (Exception $e) {
+    cron_registrar_ejecucion($pdo, 'recordatorios_citas', false, $e->getMessage());
     _cron_responder(500, ['ok' => false, 'error' => 'Error al procesar recordatorios: ' . $e->getMessage()]);
 }

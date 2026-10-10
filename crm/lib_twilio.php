@@ -465,3 +465,27 @@ function twilio_firma_valida(): bool {
     $firma_esperada = base64_encode(hash_hmac('sha1', $datos, TWILIO_AUTH_TOKEN, true));
     return hash_equals($firma_esperada, $firma_recibida);
 }
+
+// ═══════════════════════════════════════════════════════════════════
+//  "ÚLTIMA VEZ QUE CORRIÓ" DE CADA TAREA AUTOMÁTICA (cron)
+//  Antes, si un cron dejaba de correr, nadie se enteraba. Cada cron anota
+//  aquí cuándo corrió y si salió bien; el Dashboard del admin avisa si una
+//  tarea no ha corrido a tiempo.
+// ═══════════════════════════════════════════════════════════════════
+function cron_registrar_ejecucion(PDO $pdo, string $nombre, bool $ok, string $detalle = ''): void {
+    try {
+        $pdo->exec("CREATE TABLE IF NOT EXISTS cron_ejecuciones (
+            nombre VARCHAR(60) NOT NULL PRIMARY KEY,
+            ultima_ejecucion DATETIME NOT NULL,
+            ultimo_ok DATETIME NULL,
+            resultado VARCHAR(10) NOT NULL,
+            detalle VARCHAR(500) NULL
+        )");
+        $pdo->prepare("INSERT INTO cron_ejecuciones (nombre, ultima_ejecucion, ultimo_ok, resultado, detalle)
+                       VALUES (?, NOW(), IF(?, NOW(), NULL), ?, ?)
+                       ON DUPLICATE KEY UPDATE ultima_ejecucion=NOW(),
+                           ultimo_ok=IF(VALUES(resultado)='OK', NOW(), ultimo_ok),
+                           resultado=VALUES(resultado), detalle=VALUES(detalle)")
+            ->execute([$nombre, $ok ? 1 : 0, $ok ? 'OK' : 'ERROR', mb_substr($detalle, 0, 500)]);
+    } catch (Exception $e) {}
+}
