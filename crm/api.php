@@ -800,7 +800,7 @@ case 'save_member':
                     try {
                         if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'cancelado_registrado_at'")->fetch())
                             $pdo->exec("ALTER TABLE miembros ADD COLUMN cancelado_registrado_at DATETIME NULL");
-                        $pdo->prepare("UPDATE miembros SET fecha_cancelacion=COALESCE(NULLIF(fecha_cancelacion,''), CURDATE()), cancelado_registrado_at=NOW() WHERE id=?")
+                        $pdo->prepare("UPDATE miembros SET fecha_cancelacion=COALESCE(fecha_cancelacion, CURDATE()), cancelado_registrado_at=NOW() WHERE id=?")
                             ->execute([$d['id']]);
                     } catch (Exception $e) {}
                     $bq = $pdo->prepare("SELECT id, pagado, total FROM pago_bonos WHERE miembro_id=? AND COALESCE(venta_cancelada,0)=0");
