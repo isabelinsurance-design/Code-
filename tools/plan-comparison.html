@@ -44,7 +44,7 @@ button{cursor:pointer}
 .brand .sub{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--text-muted);margin-top:3px}
 .data-status{flex:1;min-width:200px;font-size:12px;color:var(--text-muted)}
 .data-status b{color:var(--text-mid);font-weight:600}
-.top-actions{display:flex;gap:8px}
+.top-actions{display:flex;gap:8px;flex-wrap:wrap}
 
 .btn{border:1.5px solid var(--border-d);background:var(--white);border-radius:10px;padding:8px 14px;font-weight:600;font-size:13px;transition:.15s}
 .btn:hover{border-color:var(--gold);background:var(--surface)}
@@ -184,6 +184,16 @@ textarea:focus,input[type=text]:focus,input[type=number]:focus,select:focus{bord
 .nw-tg button.on.clear{background:var(--text-muted);color:#fff}
 .nw-car th{background:var(--gold-lt)!important;color:var(--gold-dk)}
 .nw-names{display:flex;flex-wrap:wrap;gap:6px;margin:10px 0}
+.bn-chips{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0 4px}
+table.rx-drugs thead th,table.rx-table thead th{min-width:0}
+table.rx-table td{min-width:110px}
+table.rx-table td:nth-child(2){min-width:220px}
+.bn-top{font-weight:700;color:var(--text);margin-bottom:2px}
+.bn-raw{color:var(--text-mid);font-size:12px}
+.bn-pick{margin-top:6px;font-weight:400}
+table.bn-table thead th{min-width:170px}
+table.bn-table thead th:first-child{min-width:150px}
+.bn-table thead .linkbtn{font-size:12.5px;font-weight:700;color:var(--text);text-decoration:none;text-align:left;padding:0}
 .nw-carrow{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:center;justify-content:space-between}
 .nw-bulk{display:flex;flex-wrap:wrap;gap:6px}
 .nw-auto{margin-top:4px;font-weight:400}
@@ -251,6 +261,9 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   .brand h1{font-size:17px}
   .logo{width:32px;height:32px;font-size:15px}
   .data-status{order:3;flex-basis:100%;font-size:11px}
+  .top-actions{order:4;flex-basis:100%}
+  .top-actions .btn{flex:1 1 auto}
+  .top-actions #loadBtn{flex:0 0 100%;border:0;background:transparent;padding:0;font-size:12px;font-weight:500;color:var(--text-muted);text-decoration:underline;text-align:right}
   .workspace{display:block;padding:12px max(16px,env(safe-area-inset-right)) calc(86px + env(safe-area-inset-bottom)) max(16px,env(safe-area-inset-left))}
   .workspace>.pane{display:none}
   .workspace[data-tab=client]>.side,.workspace[data-tab=plans]>.results,.workspace[data-tab=ai]>.ai-pane{display:flex}
@@ -280,6 +293,13 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   .cmp thead th:first-child{z-index:3}
   .modal-x{position:sticky;top:0;float:right;min-width:44px;min-height:44px;z-index:4;background:var(--white);border-radius:10px}
   .phone-only{display:block}
+  .bn-chips{flex-wrap:nowrap;overflow-x:auto;padding-bottom:6px;-webkit-overflow-scrolling:touch}
+  .bn-chips .chip{flex:0 0 auto}
+  .cmp-wrap.cards{max-height:none;overflow:visible;border:0}
+  table.cards thead{display:none}
+  table.cards,table.cards tbody,table.cards tr,table.cards tbody tr:not(.grp) th,table.cards td{display:block;width:auto!important;min-width:0!important;position:static!important}
+  table.cards tr{border:1px solid var(--border);border-radius:12px;margin-bottom:10px;overflow:hidden;background:var(--white)}
+  table.cards td::before{content:attr(data-label);display:block;font-size:10.5px;font-weight:700;color:var(--gold-dk);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 }
 @media print{
   body{background:#fff}
@@ -301,8 +321,9 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   <div class="data-status" id="dataStatus">No workbook loaded</div>
   <div class="top-actions">
     <button class="btn small gold" id="installBtn" hidden>Install app</button>
+    <button class="btn small" id="browseBtn" hidden>Benefits</button>
     <button class="btn small" id="netBtn" hidden>Networks</button>
-    <button class="btn small" id="browseBtn" hidden>All plans</button>
+    <button class="btn small" id="rxBtn" hidden>Prescriptions</button>
     <button class="btn small" id="loadBtn">Load workbook</button>
     <input type="file" id="fileInput" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden/>
   </div>
@@ -416,6 +437,7 @@ const money = s => { const m = T(s).replace(/,/g, '').match(/\$\s?(\d+(?:\.\d+)?
 const allMoney = s => [...T(s).replace(/,/g, '').matchAll(/\$\s?(\d+(?:\.\d+)?)/g)].map(m => parseFloat(m[1]));
 const normName = s => lc(s).replace(/\[[^\]]*\]/g, '').replace(/—\s*new\b/g, '').replace(/®/g, '').replace(/[^a-z0-9가-힣]+/g, ' ').trim();
 const fmt$ = n => n == null ? '—' : '$' + Math.round(n).toLocaleString('en-US');
+const fmtc = n => n == null ? '—' : Math.abs(n - Math.round(n)) < 0.005 ? fmt$(n) : '$' + n.toFixed(2);   // keeps cents: $5.80
 
 /* Annual value of an allowance written like "$25/quarter", "$40/month", "$500 every 6 months", "$1,320/yr". */
 function perYear(s) {
@@ -653,6 +675,8 @@ function normalize(plan) {
   n.tier2 = tierCost(g('Tier 2: Generic'));
   n.tier3 = tierCost(g('Tier 3: Preferred Brand')); // % shown as share of a ~$400 brand drug
   n.tier3Text = g('Tier 3: Preferred Brand');
+  n.rxDed = rxDeductibleSpec(g('Rx Deductible'));
+  n.rxTiers = {1: rxTierSpec(g('Tier 1: Preferred Generic')), 2: rxTierSpec(g('Tier 2: Generic')), 3: rxTierSpec(g('Tier 3: Preferred Brand')), 4: rxTierSpec(g('Tier 4: Non-Preferred Drug')), 5: rxTierSpec(g('Tier 5: Specialty Tier'))};
   const ins = g('Insulin (Part D)');
   n.insulin = /^\$0\b/.test(ins) ? 0 : (money(ins) ?? 35);
   n.extraHelpCopays = /extra help copays|lis/i.test(g('Tier 3: Preferred Brand'));
@@ -747,7 +771,7 @@ function normalize(plan) {
 
 /* ─── client description → profile (local, no AI) ─── */
 function blankProfile() {
-  return {county: '', mediCal: 'unknown', extraHelp: false, conditions: [], medicalGroup: '', hospital: '', insulin: false, tier3: 0, doctors: '',
+  return {county: '', mediCal: 'unknown', extraHelp: false, conditions: [], medicalGroup: '', hospital: '', insulin: false, tier3: 0, drugs: [], rxStandard: false, doctors: '',
     priorities: {}, maxPremium: null, veteran: false, vaDrugCoverage: false, costco: false, language: '', notes: ''};
 }
 
@@ -780,11 +804,16 @@ function parseClientText(text, groups = []) {
   let tier3 = tierM ? (+tierM[1] || NUM[tierM[1]] || 1) : 0;
   const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*[x×:]?\s*\(?(\d)\)?/);
   if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10) tier3 = Math.max(tier3, +tierM2[1]);
-  const brands = new Set((tl.match(/\b(eliquis|xarelto|jardiance|farxiga|ozempic|trulicity|mounjaro|januvia|janumet|entresto|symbicort|breo|trelegy|spiriva|tradjenta|rybelsus|victoza|linzess|brilinta|xigduo|synjardy|invokana|anoro|incruse|advair|dulera|restasis|myrbetriq|vesicare)\b/g) || []));
-  tier3 = Math.max(tier3, brands.size);
-  if (!tier3 && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t)) tier3 = 1;
+  // Named drugs from the common-drug list ("takes Eliquis and metformin") — each with its usual tier and price
+  const seen = new Set();
+  for (const [key, d] of Object.entries(DRUG_BY_KEY)) {
+    if (seen.has(d[0]) || key.length < 4) continue;
+    if (new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(t)) { seen.add(d[0]); p.drugs.push({name: d[0], tier: d[1], price: d[2]}); }
+  }
+  if (p.drugs.some(d => d.tier === 'insulin')) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  if (!tier3 && !p.drugs.some(d => d.tier === '3') && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t)) tier3 = 1;
   p.tier3 = Math.min(tier3, 6);
-  if (p.tier3 || p.insulin) p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
+  if (hasDrugs(p)) p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
   if (/implant/i.test(t)) p.dentalImplants = true;
   if (/\b(must|has to|needs to|necesita|tiene que)\b[^.]{0,30}(give ?back|part b)/i.test(t) || /(doesn'?t|does not|don'?t|won'?t|no) (want to )?pay(ing)? (for )?(the )?part b/i.test(t)) p.priorities.giveback = 3;
   if (/\b(keep|stay with|loves|must keep|wants to keep|has to keep|mantener)\b[^.]{0,40}(doctor|dr\.?|group|medical)/i.test(t)) p.keepDoctor = true;
@@ -855,29 +884,101 @@ function networkStatus(plan, profile, data, notes, who, kind = 'group') {
   return {status: 'unknown', source: 'not in the workbook'};
 }
 
-/* Rough yearly drug cost, to compare plans for this client's drugs.
-   Tier 3 = brand drug assumed to list at ~$400/month (only matters while a deductible applies, or for % coinsurance). */
-const BRAND_LIST_PRICE = 400;
-function drugEstimate(plan, profile) {
-  const n = plan.n, N = profile.tier3 || 0, ins = !!profile.insulin;
-  if (!N && !ins) return null;
-  if (n.noPartD) return profile.vaDrugCoverage ? {yearly: 0, text: 'drugs through VA/TRICARE'} : null;
-  const lowIncome = profile.mediCal === 'full' || profile.extraHelp;
-  if (lowIncome && n.extraHelpCopays) { const fills = (N + (ins ? 1 : 0)) * 12; return {yearly: fills * 12, text: 'Extra Help copays (a few dollars per fill)'}; }
-  const rxd = T(plan.fields['Rx Deductible']);
-  let tierCost = 0, dedPart = '';
-  if (N) {
-    const ded = n.rxDeductible || 0, applies = ded > 0 && !/tiers?\s*4\s*-\s*5/i.test(rxd);
-    const per = n.tier3 != null ? n.tier3 : 47, monthly = N * BRAND_LIST_PRICE;
-    const paid = applies ? Math.min(ded, 12 * monthly) : 0, months = applies ? paid / monthly : 0;
-    tierCost = paid + Math.max(0, 12 - months) * N * per;
-    dedPart = applies ? `${fmt$(ded)} deductible, then ` : '';
+/* ─── prescriptions: a client's drug list → yearly cost on each plan ─── */
+/* 2027 Part D standard-benefit numbers (CMS). Only the cap and Extra Help copays matter here —
+   each plan's own deductible and tier costs come from the workbook. */
+const PARTD = {year: 2027, deductible: 700, oopCap: 2400, insulinCap: 35, lisGeneric: 5.80, lisBrand: 14.40, specialtyThreshold: 1080};
+/* Common drugs with the tier they USUALLY sit on and a rough monthly price (what the plan pays) —
+   every plan has its own formulary, so the agent can change the tier/price for a client.
+   [name, tier, monthly $, aliases…] — tier 'insulin' = covered insulin ($35/month cap). */
+const DRUG_LIST = [['Eliquis','3',231,'apixaban'],['metformin','1',10],['Lantus','insulin',300,'insulin glargine']];
+const DRUG_BY_KEY = (() => { const m = {}; for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) m[lc(k)] = d; return m; })();
+const findDrug = name => DRUG_BY_KEY[lc(T(name))] || null;
+const RX_TIERS = ['1', '2', '3', '4', '5', 'insulin'];
+const TIER_LABEL = {1: 'Tier 1 · preferred generic', 2: 'Tier 2 · generic', 3: 'Tier 3 · preferred brand', 4: 'Tier 4 · non-preferred', 5: 'Tier 5 · specialty', insulin: 'Insulin ($35 cap)'};
+const TIER_SHORT = {1: 'Tier 1 · pref. generic', 2: 'Tier 2 · generic', 3: 'Tier 3 · pref. brand', 4: 'Tier 4 · non-preferred', 5: 'Tier 5 · specialty', insulin: 'Insulin'};
+const TIER_PRICE = {1: 10, 2: 15, 3: 400, 4: 300, 5: 5000, insulin: 300};   // when a drug isn't on the list
+
+/* "$0 preferred / $5 standard", "25%", "With LIS: … Without LIS: 24%", "$45 (100-day: …)" → {pref, std} as {copay} or {coins} */
+function rxTierSpec(s) {
+  let t = T(s);
+  if (!t || /^n\/a/i.test(t)) return null;
+  const m = t.match(/(?:medicare only|without lis):\s*(.*)$/i);
+  if (m) t = m[1]; else if (/^(with (lis|medi-?cal):\s*)?extra help copays/i.test(t)) return {lis: true};
+  t = t.replace(/\([^)]*\)/g, ' ');
+  const one = x => { const d = x.match(/\$\s?(\d+(?:\.\d+)?)/), p = x.match(/(\d+(?:\.\d+)?)\s*%/); if (d && (!p || x.indexOf('$') < x.indexOf('%'))) return {copay: +d[1]}; return p ? {coins: +p[1] / 100} : null; };
+  const parts = t.split(/\s*\/\s*/);
+  const pref = one(parts[0]); if (!pref) return null;
+  const stdPart = parts.slice(1).find(x => /standard/i.test(x));
+  return {pref, std: (stdPart && one(stdPart)) || pref};
+}
+/* "$370, Tiers 3-5 (none on insulin)", "$0 Tiers 1-2; $595 Tiers 3-5", "$700, Tiers 4-5", "$615" → {amount, tiers} */
+function rxDeductibleSpec(s) {
+  let t = T(s);
+  if (!t || /^n\/a/i.test(t)) return {amount: 0, tiers: []};
+  const m = t.match(/(?:medicare only|without lis):\s*(.*)$/i); if (m) t = m[1];
+  t = t.replace(/\([^)]*\)/g, ' ');
+  let out = {amount: 0, tiers: []};
+  for (const seg of t.split(';')) {
+    const a = seg.match(/\$\s?([\d,]+(?:\.\d+)?)/); if (!a) continue;
+    const amount = parseFloat(a[1].replace(/,/g, '')); if (!amount) continue;
+    const r = seg.match(/tiers?\s*(\d)\s*(?:-|–|through|to)\s*(\d)/i) || seg.match(/tier\s*(\d)/i);
+    const lo = r ? +r[1] : 1, hi = r ? +(r[2] || r[1]) : 5;
+    out = {amount, tiers: [1, 2, 3, 4, 5].filter(x => x >= lo && x <= hi)};
   }
-  const insCost = ins ? 12 * (n.insulin ?? 35) : 0;
-  const bits = [];
-  if (N) bits.push(`${N > 1 ? N + ' Tier 3 drugs' : 'Tier 3'}: ${dedPart}${shortTxt3(n.tier3Text)} per fill ≈${fmt$(tierCost)}`);
-  if (ins) bits.push(`insulin ${n.insulin === 0 ? '$0' : fmt$(n.insulin) + '/mo'} ≈${fmt$(insCost)}`);
-  return {yearly: tierCost + insCost, tier: tierCost, insulin: insCost, text: bits.join(' · ')};
+  return out;
+}
+
+/* The client's drugs as one list: named drugs + "a Tier 3 drug" / "takes insulin" placeholders. */
+function effectiveDrugs(profile) {
+  const named = (profile.drugs || []).filter(d => d && T(d.name) && RX_TIERS.includes(String(d.tier)));
+  const out = named.map(d => ({name: T(d.name), tier: String(d.tier), price: Math.max(0, +d.price || 0)}));
+  const extra3 = Math.max(0, (profile.tier3 || 0) - named.filter(d => String(d.tier) === '3').length);
+  for (let i = 0; i < extra3; i++) out.push({name: 'Tier 3 brand drug', tier: '3', price: TIER_PRICE[3], placeholder: 'tier3'});
+  if (profile.insulin && !named.some(d => String(d.tier) === 'insulin')) out.push({name: 'Insulin', tier: 'insulin', price: TIER_PRICE.insulin, placeholder: 'insulin'});
+  return out;
+}
+const hasDrugs = p => effectiveDrugs(p).length > 0;
+
+/* Month-by-month for one year: plan deductible on the tiers it covers, then the tier copay/coinsurance;
+   insulin never has a deductible and is capped at $35/month; Extra Help caps each fill; the yearly
+   out-of-pocket cap stops all costs once reached. */
+function drugEstimate(plan, profile) {
+  const list = effectiveDrugs(profile);
+  if (!list.length) return null;
+  const n = plan.n;
+  if (n.noPartD) return profile.vaDrugCoverage ? {yearly: 0, perDrug: [], text: 'drugs through VA/TRICARE'} : null;
+  const lis = profile.mediCal === 'full' || !!profile.extraHelp;
+  const ded = n.rxDed || {amount: 0, tiers: []};
+  let dedLeft = lis ? 0 : ded.amount, capLeft = PARTD.oopCap, capMonth = null;
+  const per = list.map(d => ({name: d.name, tier: d.tier, placeholder: d.placeholder || '', cost: 0, dedPaid: 0, fills: []}));
+  for (let mo = 1; mo <= 12; mo++) {
+    list.forEach((d, i) => {
+      let pay, dd = 0;
+      if (d.tier === 'insulin') pay = Math.min(n.insulin ?? PARTD.insulinCap, PARTD.insulinCap, d.price || PARTD.insulinCap);
+      else {
+        const spec = (n.rxTiers || {})[d.tier];
+        const sh = spec && !spec.lis ? (profile.rxStandard ? spec.std : spec.pref) : null;
+        const share = x => sh ? (sh.copay != null ? Math.min(sh.copay, x) : x * sh.coins) : x * 0.25;
+        if (dedLeft > 0 && ded.tiers.includes(+d.tier)) { dd = Math.min(d.price, dedLeft); dedLeft -= dd; pay = dd + (d.price > dd ? share(d.price - dd) : 0); }
+        else pay = share(d.price);
+        if (spec && spec.lis && !lis) pay = Math.min(pay, d.tier === '1' || d.tier === '2' ? PARTD.lisGeneric : PARTD.lisBrand);
+      }
+      if (lis) pay = Math.min(pay, d.tier === '1' || d.tier === '2' ? PARTD.lisGeneric : PARTD.lisBrand);
+      pay = Math.min(pay, capLeft); capLeft -= pay;
+      const x = per[i]; x.cost += pay; x.dedPaid += Math.min(dd, pay); if (!dd && capLeft > 0.005) x.fills.push(pay);
+      if (capLeft <= 0.005 && capMonth == null) capMonth = mo;
+    });
+  }
+  const yearly = Math.round(per.reduce((s, x) => s + x.cost, 0));
+  // usual cost per fill once the deductible is paid (the most common amount)
+  const steady = x => { if (!x.fills.length) return null; const c = {}; for (const f of x.fills) { const k = Math.round(f * 100) / 100; c[k] = (c[k] || 0) + 1; } return +Object.entries(c).sort((a, b) => b[1] - a[1])[0][0]; };
+  const fill = x => { const s = steady(x); return (x.dedPaid >= 1 ? `${fmt$(Math.round(x.dedPaid))} deductible${s == null ? '' : ', then '}` : '') + (s == null ? '' : `${fmtc(s)}/fill`); };
+  const label = x => x.placeholder === 'tier3' ? 'Tier 3' : x.placeholder === 'insulin' ? 'insulin' : x.name;
+  const text = per.map(x => `${label(x)}: ${fill(x)} ≈${fmt$(Math.round(x.cost))}`).join(' · ')
+    + (capMonth ? ` · reaches the ${fmt$(PARTD.oopCap)} yearly cap in ${['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][capMonth - 1]}` : '')
+    + (lis ? ' · with Extra Help' : '');
+  return {yearly, perDrug: per.map(x => ({name: x.name, tier: x.tier, placeholder: x.placeholder, cost: Math.round(x.cost), perFill: steady(x), dedPaid: Math.round(x.dedPaid)})), capMonth, lis, text};
 }
 // "$45 (100-day: …)" → "$45"; "With LIS: … Without LIS: 24%" → "24%"
 const shortTxt3 = s => { let t = T(s); const m = t.match(/(?:medicare only|without lis):\s*(.*)$/i); if (m) t = m[1]; t = t.split(/\s*[(;]/)[0].trim(); return t.length > 34 ? t.slice(0, 33) + '…' : (t || '?'); };
@@ -978,8 +1079,8 @@ function rankPlans(data, profile, notes = {}) {
     add('moop', 'Max out-of-pocket', 2 + w('lowMoop') + (chronic ? 1 : 0), lo('moop', v.moop));
     add('premium', 'Monthly premium', 1.5 + w('zeroPremium'), lo('premium', v.premium));
     add('copays', 'Doctor & hospital copays', 1.5 + w('lowCopays') + (chronic ? 1 : 0), lo('copays', v.copays));
-    const knowsDrugs = (profile.tier3 || 0) > 0 || profile.insulin;
-    if (knowsDrugs) add('drugcost', 'Estimated drug cost', 2.5 + (profile.tier3 || 0) + (profile.insulin ? 1 : 0), v.drugsYear == null ? (profile.vaDrugCoverage ? 1 : 0) : lo('drugsYear', v.drugsYear));
+    const myDrugs = effectiveDrugs(profile);
+    if (myDrugs.length) add('drugcost', 'Estimated drug cost', 2.5 + myDrugs.reduce((s, d) => s + (d.tier === '1' || d.tier === '2' ? 0.3 : 1), 0), v.drugsYear == null ? (profile.vaDrugCoverage ? 1 : 0) : lo('drugsYear', v.drugsYear));
     else {
       if (!n.noPartD || !profile.vaDrugCoverage) add('rx', 'Drug costs', 1 + w('drugs') + (chronic ? 0.5 : 0), v.rx == null ? (profile.vaDrugCoverage ? 1 : 0) : lo('rx', v.rx));
       if (profile.conditions.includes('diabetes')) add('insulin', 'Insulin cost', 1.5, lo('insulin', v.insulin));
@@ -1233,7 +1334,7 @@ function answerQuestion(question, ctx) {
   const carrier = (CARRIER_ALIASES.find(([, re]) => re.test(q)) || [])[0] || null;
   const wantAll = /\b(all|every|any) (the )?plans?\b|whole workbook|entire workbook|every plan|all carriers/i.test(q);
   if (qCounty && qCounty !== profile.county) profile = Object.assign({}, profile, {county: qCounty});
-  const hasClient = !!(profile.county || profile.conditions.length || Object.keys(profile.priorities).length || profile.medicalGroup || profile.hospital || profile.tier3 || profile.insulin || profile.mediCal !== 'unknown' || profile.extraHelp || profile.maxPremium != null || profile.veteran);
+  const hasClient = !!(profile.county || profile.conditions.length || Object.keys(profile.priorities).length || profile.medicalGroup || profile.hospital || hasDrugs(profile) || profile.mediCal !== 'unknown' || profile.extraHelp || profile.maxPremium != null || profile.veteran);
   const usingClient = hasClient && !wantAll && !qCounty && result.results.length > 0;
   const mk = plan => ({plan, v: planValues(plan, profile), score: null, fit: [], warn: [], verify: [], net: networkStatus(plan, profile, data, notes),
     hosp: networkStatus(plan, profile, data, notes, profile.hospital, 'hospital'), drugs: drugEstimate(plan, profile), parts: []});
@@ -1279,6 +1380,10 @@ function answerQuestion(question, ctx) {
     || (mention && /\b(takes?|work(s)? with|part of|cover(s|ed)?|use(s)?|go(es)? to)\b/i.test(q) && !wantsHi && !wantsLo)
     || (mention && !feats.length && !planRefs.length && !wantsHi && !wantsLo);
   if (askNet) return networkAnswer(q, ctx, profile, mention, planRefs, rows, A, follow);
+
+  // ── a named drug: "how much is Eliquis on Smart 055?", "cheapest plan for Ozempic"
+  const qDrugs = findDrugsIn(q);
+  if (qDrugs.length && !/\bwhy\b|por qu/i.test(q)) return drugAnswer(qDrugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient);
 
   // ── why
   if (/\bwhy\b|por qu[eé]|how come|explain (the )?(rank|ranking|score)/i.test(q)) {
@@ -1395,7 +1500,7 @@ function defaultFollowUps(ctx) {
   const p = ctx.profile, net = [];
   if (p.medicalGroup) net.push(`Is ${p.medicalGroup} in network?`);
   if (p.hospital) net.push(`Is ${p.hospital} hospital in network?`);
-  if ((p.tier3 || 0) > 0 || p.insulin) net.push('Which plan costs least for this client\'s drugs?');
+  if (hasDrugs(p)) net.push('Which plan costs least for this client\'s drugs?');
   out.splice(top ? 2 : 0, 0, ...net);
   out.push('What should I verify before enrolling?');
   return [...new Set(out)].slice(0, 7);
@@ -1421,13 +1526,42 @@ function findGroupIn(q, data, notes) {
   return found[0];
 }
 
+/* Drugs named in a question (from the common-drug list). */
+function findDrugsIn(q) {
+  const out = [];
+  for (const [key, d] of Object.entries(DRUG_BY_KEY)) {
+    if (key.length < 4 || out.includes(d)) continue;
+    if (new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(q)) out.push(d);
+  }
+  return out.slice(0, 5);
+}
+function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient) {
+  const names = drugs.map(d => d[0]).join(' + ');
+  const prof = Object.assign({}, profile, {drugs: drugs.map(d => ({name: d[0], tier: d[1], price: d[2]})), tier3: 0, insulin: false});
+  const about = drugs.map(d => `${d[0]}: usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month`).join(' · ');
+  const notes = [about + '. Every plan has its own drug list — check the plan\'s formulary before enrolling.'];
+  if (!(profile.drugs || []).some(x => drugs.some(d => lc(x.name) === lc(d[0])))) notes.push('To count it in the ranking, add it in Prescriptions (or say it in the client description).');
+  if (planRefs.length) {
+    return A({headline: `${names} — yearly cost on ${planRefs.length > 1 ? 'these plans' : planRefs[0].name}:`, followUps: follow, notes,
+      rows: planRefs.map(plan => { const e = drugEstimate(plan, prof); return {idx: plan.idx, text: e ? `≈${fmt$(e.yearly)}/yr — ${e.text}` : 'no Part D drug coverage'}; }),
+      compare: planRefs.length >= 2 ? planRefs.slice(0, 4).map(p => p.idx) : null});
+  }
+  const list = rows.map(r => ({r, e: drugEstimate(r.plan, prof)})).filter(x => x.e).sort((a, b) => a.e.yearly - b.e.yearly || (b.r.score || 0) - (a.r.score || 0));
+  if (!list.length) return A({headline: `No plan in this list covers drugs (Part D).`, notes: [scopeNote + '.'], followUps: follow});
+  const top = list.slice(0, 6);
+  return A({headline: `Lowest yearly cost for ${names}: **${top[0].r.plan.name}** ≈${fmt$(top[0].e.yearly)}/yr`,
+    rows: top.map(x => ({idx: x.r.plan.idx, text: `≈${fmt$(x.e.yearly)}/yr — ${x.e.text}${x.r.score != null ? ` · fit ${Math.round(x.r.score)}` : ''}`})),
+    notes: [scopeNote + (list.length > top.length ? `; showing 6 of ${list.length}.` : '.'), ...notes, ...(list.length > 1 ? [`Highest: ${list[list.length - 1].r.plan.name} ≈${fmt$(list[list.length - 1].e.yearly)}/yr.`] : [])],
+    compare: top.length >= 2 ? top.slice(0, 3).map(x => x.r.plan.idx) : null, followUps: follow});
+}
+
 function verifyAnswer(ctx, A, follow) {
   const top = ctx.result.results.slice(0, 3), p = ctx.profile, items = [];
   if (!top.length) return A({headline: 'Find plans for a client first, then I can list what to verify.', followUps: follow});
   items.push('The exact wording in the carrier\'s Summary of Benefits for the plan you pick (this tool shows the workbook\'s text).');
   items.push(p.medicalGroup ? `That ${p.medicalGroup} and the client's own doctors are in the plan's network.` : 'That the client\'s doctors and specialists are in the plan\'s network (the workbook lists networks for very few plans).');
   items.push(p.hospital ? `That ${p.hospital} is in the plan's hospital network (hospital lists aren't in the workbook).` : 'That the hospital the client would use is in the plan\'s network.');
-  if ((p.tier3 || 0) > 0 || p.insulin) items.push('The drug-cost estimate is a rough guide (Tier 3 brand assumed ≈$400/month list price) — run the client\'s actual drugs in Medicare Plan Finder or the carrier\'s drug search.');
+  if (hasDrugs(p)) items.push('The drug-cost estimate uses each drug\'s usual tier and a typical price — every plan has its own drug list, so check each drug in the plan\'s formulary (or Medicare Plan Finder).');
   if (p.conditions.length || (p.priorities.drugs || 0) > 0) items.push('That every medication is on the plan\'s formulary, at the tier and cost you expect.');
   if (top.some(r => r.plan.n.csnp)) items.push('That the client qualifies for the C-SNP (diagnosis confirmation / provider verification).');
   if (top.some(r => r.plan.n.dsnp) || p.mediCal !== 'none') items.push('The client\'s Medi-Cal level and that it matches the plan (D-SNPs need Medi-Cal).');
@@ -1517,7 +1651,7 @@ function compareAnswer(plans, ctx, profile, A, follow) {
     ['Max out-of-pocket', r => fmt$(r.v.moop), r => r.v.moop, 'min'],
     ['Specialist copay', r => r.plan.n.spec == null ? '?' : fmt$(r.plan.n.spec), r => r.plan.n.spec, 'min'],
     ['Drug deductible', r => r.plan.n.noPartD ? 'no Part D' : fmt$(r.plan.n.rxDeductible), r => r.plan.n.noPartD ? null : r.plan.n.rxDeductible, 'min'],
-    ...((profile.tier3 || 0) > 0 || profile.insulin ? [['Client\'s drugs (est.)', r => r.v.drugsYear == null ? 'no Part D' : '≈' + fmt$(r.v.drugsYear) + '/yr', r => r.v.drugsYear, 'min']] : []),
+    ...(hasDrugs(profile) ? [['Client\'s drugs (est.)', r => r.v.drugsYear == null ? 'no Part D' : '≈' + fmt$(r.v.drugsYear) + '/yr', r => r.v.drugsYear, 'min']] : []),
     ['Dental', r => r.plan.n.dentalNotCovered ? 'not covered' : r.plan.n.dentalNoMax ? 'no annual max' : r.plan.n.dentalMax ? fmt$(r.plan.n.dentalMax) + '/yr' : r.plan.n.dentalComprehensive ? 'comprehensive' : 'preventive', r => r.v.dental, 'max'],
     ['OTC / flex card', r => r.v.card ? '≈' + fmt$(r.v.card) + '/yr' : 'none', r => r.v.card, 'max'],
     ['Rides', r => r.plan.n.ridesUnlimited ? 'unlimited' : r.plan.n.rides ? r.plan.n.rides + '/yr' : 'none', r => r.plan.n.rides, 'max'],
@@ -1594,7 +1728,7 @@ function localRecommendation(ctx, lang) {
   const ver = [];
   ver.push(t(p.medicalGroup ? `${p.medicalGroup} and the client's own doctors are in the plan's network.` : "The client's doctors, specialists and hospital are in the plan's network.", p.medicalGroup ? `${p.medicalGroup} y los doctores del cliente están en la red del plan.` : 'Los doctores, especialistas y hospital del cliente están en la red del plan.'));
   if (p.hospital && !(top.hosp && top.hosp.status === 'in')) ver.push(t(`${p.hospital} is in the plan's hospital network.`, `${p.hospital} está en la red de hospitales del plan.`));
-  if ((p.tier3 || 0) > 0 || p.insulin) ver.push(t("Run the client's actual drugs in Medicare Plan Finder — the drug cost here is an estimate.", 'Revise los medicamentos reales del cliente en el Buscador de Planes de Medicare — el costo aquí es un estimado.'));
+  if (hasDrugs(p)) ver.push(t("Run the client's actual drugs in Medicare Plan Finder — the drug cost here is an estimate.", 'Revise los medicamentos reales del cliente en el Buscador de Planes de Medicare — el costo aquí es un estimado.'));
   if (p.conditions.length || (p.priorities.drugs || 0) > 0) ver.push(t("Each of the client's medications is on the formulary, at the expected cost.", 'Cada medicamento del cliente está en el formulario, al costo esperado.'));
   if (rs.slice(0, 3).some(r => r.plan.n.csnp)) ver.push(t('The client qualifies for the C-SNP (diagnosis confirmation).', 'El cliente califica para el C-SNP (confirmación del diagnóstico).'));
   if (rs.slice(0, 3).some(r => r.plan.n.dsnp)) ver.push(t('Medi-Cal level matches the D-SNP.', 'El nivel de Medi-Cal corresponde al D-SNP.'));
@@ -1609,8 +1743,10 @@ function localRecommendation(ctx, lang) {
   const v = top.v, prem = v.premium === 0 ? t('a $0 monthly premium', 'una prima mensual de $0') : t(`a ${fmt$(v.premium)} monthly premium`, `una prima mensual de ${fmt$(v.premium)}`);
   const gb = v.giveback > 0 ? t(` and it gives back ${fmt$(v.giveback)} a month toward your Part B premium`, ` y devuelve ${fmt$(v.giveback)} al mes de su prima de la Parte B`) : '';
   const warn = top.warn.find(x => !/giveback won't help/i.test(x));
-  const rx = top.drugs && top.v.drugsYear != null ? t(` For your ${p.insulin && p.tier3 ? 'insulin and brand-name medicine' : p.insulin ? 'insulin' : 'brand-name medicine'}, I estimate about ${fmt$(top.v.drugsYear)} for the year on this plan.`,
-    ` Para su ${p.insulin && p.tier3 ? 'insulina y medicina de marca' : p.insulin ? 'insulina' : 'medicina de marca'}, calculo unos ${fmt$(top.v.drugsYear)} al año en este plan.`) : '';
+  const rxNames = effectiveDrugs(p).map(d => d.placeholder === 'tier3' ? t('a brand-name medicine', 'una medicina de marca') : d.placeholder === 'insulin' ? t('insulin', 'insulina') : d.name);
+  const rxList = [...new Set(rxNames)].join(', ');
+  const rx = top.drugs && top.v.drugsYear != null ? t(` For your medicines (${rxList}), I estimate about ${fmt$(top.v.drugsYear)} for the year on this plan.`,
+    ` Para sus medicinas (${rxList}), calculo unos ${fmt$(top.v.drugsYear)} al año en este plan.`) : '';
   L.push(t(`“Based on what you've told me${bits.length ? ' — ' + bits.join(', ') : ''} — I'd start by looking at ${nm(top)} from ${top.plan.carrier}. It has ${prem}${gb}. The most you'd pay out of pocket for covered medical care in a year is ${fmt$(v.moop)}.${rx}${warn ? ` One thing to know: ${warn.replace(/\.$/, '')}.` : ''} Before we enroll, I want to confirm your doctors${p.conditions.length ? ' and medications' : ''} are covered. Does that sound right to you?”`,
     `“Según lo que me comentó${bits.length ? ' — ' + bits.join(', ') : ''} — empezaría por revisar ${nm(top)} de ${top.plan.carrier}. Tiene ${prem}${gb}. Lo máximo que pagaría de su bolsillo por la atención médica cubierta en un año es ${fmt$(v.moop)}.${rx} Antes de inscribirnos, quiero confirmar que sus doctores${p.conditions.length ? ' y medicamentos' : ''} estén cubiertos. ¿Le parece bien?”`));
   L.push('');
@@ -1619,7 +1755,7 @@ function localRecommendation(ctx, lang) {
 }
 /* ═══════════════ END FREE ANSWERS ═══════════════ */
 
-if (typeof module !== 'undefined') module.exports = {COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, drugEstimate, KNOWN_HOSPITALS, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$, planValues, answerQuestion, localRecommendation, FEATURES};
+if (typeof module !== 'undefined') module.exports = {PARTD, DRUG_LIST, findDrug, effectiveDrugs, hasDrugs, rxTierSpec, rxDeductibleSpec, COUNTIES, CONDITIONS, PRIORITIES, PRI_BY_ID, COND_BY_ID, COUNTY_BY_ID, KNOWN_GROUPS, buildData, normalize, parseClientText, blankProfile, rankPlans, networkStatus, drugEstimate, KNOWN_HOSPITALS, COMPARE_ROWS, planForAI, perYear, groupKey, fmt$, planValues, answerQuestion, localRecommendation, FEATURES};
 </script>
 
 <script>
@@ -1739,7 +1875,7 @@ async function loadFile(file) {
 
 function useData(data) {
   S.data = data;
-  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('netBtn').hidden = false; $('tabbar').hidden = false;
+  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('netBtn').hidden = false; $('rxBtn').hidden = false; $('tabbar').hidden = false;
   renderStatus(); renderExamples(); renderRecent();
   let last = null; try { last = JSON.parse(store.get(STORE.last) || 'null'); } catch (_) {}
   if (last && last.profile) { $('clientText').value = last.text || ''; S.profile = Object.assign(blankProfile(), last.profile); S.aiRead = !!last.aiRead; }
@@ -1778,9 +1914,11 @@ function renderProfile() {
       <datalist id="hospList">${hospList.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
       <div class="net-sum" id="hospSum"></div></div>
     <div class="pf-sec"><div class="lbl">Drugs <small>for the yearly drug-cost estimate</small></div>
+      ${(p.drugs || []).length ? `<div class="chips" style="margin-bottom:6px">${p.drugs.map(d => `<span class="chip on" title="${esc(TIER_LABEL[d.tier] || '')}">${esc(d.name)} <small>${d.tier === 'insulin' ? 'insulin' : 'T' + esc(d.tier)}</small></span>`).join('')}</div>` : ''}
       <label class="tg"><input type="checkbox" data-flag="insulin" ${p.insulin ? 'checked' : ''}/> 💉 Takes insulin</label>
-      <div class="inline" style="margin-top:6px"><span class="hint" style="margin:0;white-space:nowrap">Tier 3 / brand drugs:</span>
-        <div class="seg" style="flex:1">${[0, 1, 2, 3].map(k => `<button class="${Math.min(p.tier3 || 0, 3) === k ? 'on' : ''}" data-tier3="${k}">${k === 3 ? '3+' : k}</button>`).join('')}</div></div></div>
+      <div class="inline" style="margin-top:6px"><span class="hint" style="margin:0;white-space:nowrap">${(p.drugs || []).length ? 'Other brand drugs:' : 'Tier 3 / brand drugs:'}</span>
+        <div class="seg" style="flex:1">${[0, 1, 2, 3].map(k => `<button class="${Math.min(p.tier3 || 0, 3) === k ? 'on' : ''}" data-tier3="${k}">${k === 3 ? '3+' : k}</button>`).join('')}</div></div>
+      <button class="btn small" data-open-rx style="margin-top:8px">💊 Add drugs by name — Prescriptions</button></div>
     <div class="pf-sec"><div class="lbl">What matters <small>click: ★ important → must-have → off</small></div>
       <div class="chips">${PRIORITIES.map(pr => { const lv = p.priorities[pr.id] || 0; return `<button class="chip ${lv >= 3 ? 'l3' : lv >= 1 ? 'l2' : ''}" data-pri="${pr.id}">${pr.icon} ${pr.label}${lv ? `<span class="lv">${LEVEL_TXT[lv] || '★'}</span>` : ''}</button>`; }).join('')}</div></div>
     <div class="pf-sec"><div class="lbl">Max monthly premium</div>
@@ -1839,7 +1977,7 @@ function renderNetSum() {
   const a = $('netSum'); if (a) a.innerHTML = netSummaryHtml(S.profile.medicalGroup, 'group');
   const b = $('hospSum'); if (b) b.innerHTML = netSummaryHtml(S.profile.hospital, 'hospital');
 }
-$('profile').addEventListener('click', e => { const b = e.target.closest('[data-open-networks]'); if (b) showNetworks(b.dataset.openNetworks, b.dataset.kind); });
+$('profile').addEventListener('click', e => { const b = e.target.closest('[data-open-networks]'); if (b) showNetworks(b.dataset.openNetworks, b.dataset.kind); if (e.target.closest('[data-open-rx]')) showRx(); });
 
 /* ═══════════════ CLIENT TEXT → PROFILE ═══════════════ */
 const EXAMPLES = [
@@ -1942,7 +2080,9 @@ function profileLine(p) {
   if (p.extraHelp) bits.push('Extra Help');
   p.conditions.forEach(c => bits.push(COND_BY_ID[c].label.split(' /')[0].toLowerCase()));
   if (p.insulin) bits.push('insulin');
-  if (p.tier3) bits.push(p.tier3 > 1 ? p.tier3 + ' Tier 3 drugs' : 'Tier 3 drug');
+  (p.drugs || []).forEach(d => bits.push(d.name));
+  const extra3 = effectiveDrugs(p).filter(d => d.placeholder === 'tier3').length;
+  if (extra3) bits.push(extra3 > 1 ? extra3 + ' Tier 3 drugs' : 'Tier 3 drug');
   if (p.medicalGroup) bits.push(p.medicalGroup);
   if (p.hospital) bits.push(p.hospital + ' (hospital)');
   return bits.join(' · ');
@@ -1982,10 +2122,10 @@ function renderPicks() {
   }
   if (p.medicalGroup) { const n = rs.find(r => r.net && r.net.status === 'in'); if (n) picks.push([`${p.medicalGroup} in network`, n, n.net.source]); }
   if (p.hospital) { const n = rs.find(r => r.hosp && r.hosp.status === 'in'); if (n) picks.push([`${p.hospital} in network`, n, n.hosp.source]); }
-  if ((p.tier3 || 0) > 0 || p.insulin) { const d = by(r => r.v.drugsYear, (a, b) => a - b); if (d) picks.push(['Lowest drug cost (est.)', d, `≈${fmt$(d.v.drugsYear)}/yr for this client's drugs`]); }
+  if (hasDrugs(p)) { const d = by(r => r.v.drugsYear, (a, b) => a - b); if (d) picks.push(['Lowest drug cost (est.)', d, `≈${fmt$(d.v.drugsYear)}/yr for this client's drugs`]); }
   const ex = by(r => r.v.dental + r.v.card + (r.v.vision || 0) + r.v.hearing / 2, (a, b) => b - a);
   if (ex) picks.push(['Richest extras', ex, `≈${fmt$(ex.v.dental + ex.v.card + (ex.v.vision || 0))}/yr dental + card + eyewear`]);
-  if (!(p.tier3 || 0) && !p.insulin && !rs.every(r => r.v.rx == null)) { const rx = by(r => r.v.rx, (a, b) => a - b); if (rx) picks.push(['Lowest drug costs', rx, `Rx deductible ${fmt$(rx.plan.n.rxDeductible)}`]); }
+  if (!hasDrugs(p) && !rs.every(r => r.v.rx == null)) { const rx = by(r => r.v.rx, (a, b) => a - b); if (rx) picks.push(['Lowest drug costs', rx, `Rx deductible ${fmt$(rx.plan.n.rxDeductible)}`]); }
   const seen = new Set();
   $('picks').innerHTML = picks.filter(([k]) => !seen.has(k) && seen.add(k)).map(([k, r, v]) =>
     `<button class="pick" data-goto="${r.plan.idx}"><div class="k">${esc(k)}</div><div class="n">${esc(cut(r.plan.name, 52))}</div><div class="v">${esc(v)}</div></button>`).join('');
@@ -2174,15 +2314,232 @@ $('modalX').addEventListener('click', closeModal);
 $('modal').addEventListener('click', e => { if (e.target.id === 'modal') closeModal(); });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('modal').hidden) closeModal(); });
 
-$('browseBtn').addEventListener('click', () => {
-  const p = S.profile;
-  const plans = S.data.plans.filter(x => !p.county || x.counties.includes(p.county));
-  openModal(`<h2>All plans${p.county ? ' in ' + countyName(p.county) : ''} (${plans.length})</h2><div class="hint">Click a plan for every benefit.</div>
-    <div class="cmp-wrap"><table class="cmp"><thead><tr><th>Plan</th><th>Type</th><th>Premium</th><th>Giveback</th><th>MOOP</th><th>Dental</th><th>Card/yr</th><th>Counties</th></tr></thead><tbody>
-    ${plans.map(x => `<tr><td><a href="#" data-open="${x.idx}">${esc(x.name)}</a><div class="hint mono">${esc(x.id)}</div><div class="hint phone-only">${fmt$(x.n.premium)}/mo · giveback ${x.n.giveback ? fmt$(x.n.giveback) : '—'} · MOOP ${fmt$(x.n.moop)}</div></td><td>${esc(cut(x.fields['Plan Type'], 40))}</td><td>${fmt$(x.n.premium)}</td><td>${x.n.giveback ? fmt$(x.n.giveback) : '—'}</td><td>${fmt$(x.n.moop)}</td><td>${esc(x.n.dentalNoMax ? 'No max' : x.n.dentalMax ? fmt$(x.n.dentalMax) : x.n.dentalComprehensive ? 'Comp.' : x.n.dentalNotCovered ? '—' : 'Prev.')}</td><td>${x.n.cardYear ? fmt$(x.n.cardYear) : '—'}</td><td>${x.counties.join(', ')}</td></tr>`).join('')}
-    </tbody></table></div>`);
+/* ═══════════════ BENEFITS — look up any benefit across plans ═══════════════ */
+const money1 = s => { const m = T(s).replace(/,/g, '').match(/\$\s?(\d+(?:\.\d+)?)/); return m ? parseFloat(m[1]) : null; };
+const dollars = (v, unit = '') => v == null ? '?' : fmt$(v) + unit;
+const BENEFITS = [
+  {id: 'premium', label: 'Premium', fields: ['Monthly Premium'], dir: 'min', m: r => r.v.premium, s: r => dollars(r.v.premium, '/mo')},
+  {id: 'giveback', label: 'Part B giveback', fields: ['Part B Giveback'], dir: 'max', m: r => r.v.giveback, s: r => r.v.giveback ? dollars(r.v.giveback, '/mo') : 'none'},
+  {id: 'moop', label: 'Max out-of-pocket', fields: ['Max Out-of-Pocket (MOOP)'], dir: 'min', m: r => r.v.moop, s: r => dollars(r.v.moop)},
+  {id: 'copays', label: 'Doctor copays', fields: ['PCP Copay', 'Specialist Copay', 'Referrals Required'], dir: 'min', m: r => r.plan.n.spec == null ? null : (r.plan.n.pcp || 0) + r.plan.n.spec, s: r => `PCP ${dollars(r.plan.n.pcp)} · specialist ${dollars(r.plan.n.spec)}`},
+  {id: 'hospital', label: 'Hospital stay', fields: ['Inpatient Hospital'], dir: 'min', m: r => r.plan.n.inpatient5, s: r => r.plan.n.inpatient5 == null ? '' : `≈${fmt$(r.plan.n.inpatient5)} for 5 days`},
+  {id: 'er', label: 'ER / urgent care', fields: ['ER / Urgent Care', 'Ambulance (Ground)', 'Ambulance'], dir: 'min', m: r => money1(r.plan.fields['ER / Urgent Care']) ?? r.plan.n.er, s: r => { const v = money1(r.plan.fields['ER / Urgent Care']) ?? r.plan.n.er; return v == null ? '' : `ER ${fmt$(v)}`; }},
+  {id: 'meddeduct', label: 'Medical deductible', fields: ['Medical Deductible'], dir: 'min', m: r => money1(r.plan.fields['Medical Deductible']), s: r => { const v = money1(r.plan.fields['Medical Deductible']); return v == null ? '' : fmt$(v); }},
+  {id: 'outpatient', label: 'Outpatient · labs · X-rays', fields: ['ASC / Outpatient Hospital', 'Lab Services', 'Diagnostic Radiology / X-Rays', 'Skilled Nursing Facility']},
+  {id: 'rx', label: 'Drug tiers', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 2: Generic', 'Tier 3: Preferred Brand', 'Tier 4: Non-Preferred Drug', 'Tier 5: Specialty Tier', 'Rx Mail Order (Tiers 1-3, 100-day)'], dir: 'min', m: r => r.plan.n.noPartD ? null : r.plan.n.rxDeductible, s: r => r.plan.n.noPartD ? 'no Part D' : `deductible ${dollars(r.plan.n.rxDeductible)}`},
+  {id: 'insulin', label: 'Insulin', fields: ['Insulin (Part D)'], dir: 'min', m: r => r.plan.n.noPartD ? null : r.plan.n.insulin, s: r => r.plan.n.noPartD ? 'no Part D' : r.plan.n.insulin === 0 ? '$0' : dollars(r.plan.n.insulin, '/mo')},
+  {id: 'dental', label: 'Dental', fields: ['Dental'], dir: 'max', m: r => r.v.dental, s: r => { const n = r.plan.n; return n.dentalNotCovered ? 'not covered' : n.dentalNoMax ? 'no annual max' : n.dentalMax ? fmt$(n.dentalMax) + '/yr' : n.dentalComprehensive ? 'comprehensive' : 'preventive'; }},
+  {id: 'vision', label: 'Vision', fields: ['Vision'], dir: 'max', m: r => r.plan.n.eyewear || 0, s: r => r.plan.n.eyewear ? fmt$(r.plan.n.eyewear) + ' eyewear' : ''},
+  {id: 'hearing', label: 'Hearing aids', fields: ['Hearing'], dir: 'max', m: r => r.plan.n.hearingValue || 0, s: r => r.plan.n.hearingValue ? '≈' + fmt$(r.plan.n.hearingValue) : ''},
+  {id: 'card', label: 'OTC / flex card', fields: ['OTC Allowance', 'OTC Allowance (+ Healthy Food for C-SNPs)', 'Flex Benefits (OTC + Grocery)'], dir: 'max', m: r => r.v.card || 0, s: r => r.v.card ? '≈' + fmt$(r.v.card) + '/yr' : 'none'},
+  {id: 'rides', label: 'Transportation', fields: ['Transportation'], dir: 'max', m: r => r.plan.n.rides || 0, s: r => r.plan.n.ridesUnlimited ? 'unlimited' : r.plan.n.rides ? r.plan.n.rides + ' trips/yr' : 'none'},
+  {id: 'acu', label: 'Acupuncture', fields: ['Acupuncture'], dir: 'max', m: r => r.plan.n.acuVisits || 0, s: r => r.plan.n.acuVisits ? r.plan.n.acuVisits + ' visits' : ''},
+  {id: 'chiro', label: 'Chiropractic', fields: ['Chiropractic'], dir: 'max', m: r => r.plan.n.chiroVisits || 0, s: r => r.plan.n.chiroVisits ? r.plan.n.chiroVisits + ' visits' : ''},
+  {id: 'fitness', label: 'Gym', fields: ['Fitness Benefit'], dir: 'max', m: r => r.plan.n.fitness ? 1 : 0, s: r => r.plan.n.fitness ? 'yes' : 'no'},
+  {id: 'travel', label: 'Worldwide / travel', fields: ['Worldwide Emergency Coverage'], dir: 'max', m: r => r.plan.n.worldwide ? (r.plan.n.worldwideLimit || 1) : 0, s: r => r.plan.n.worldwide ? (r.plan.n.worldwideLimit ? 'up to ' + fmt$(r.plan.n.worldwideLimit) : 'yes') : 'no'},
+  {id: 'network', label: 'Network · referrals', fields: ['Plan Type', 'Referrals Required', 'Provider Network'], dir: 'max', m: r => r.v.ppo, s: r => `${r.plan.n.ppo ? 'PPO' : r.plan.n.pos ? 'HMO-POS' : 'HMO'}${r.plan.n.referrals === false ? ' · no referrals' : ''}`},
+  {id: 'extras', label: 'Other extras', fields: ['Post-Discharge Meals', 'Routine Foot Care', 'Rewards', 'Plan Highlights (UHC)', 'Market Service Area']},
+];
+const BEN_BY_ID = Object.fromEntries(BENEFITS.map(b => [b.id, b]));
+// "fits this client" only means something once a client has been described
+const clientDescribed = () => { const p = S.profile; return !!(S.result && S.result.results.length && (p.county || p.conditions.length || Object.keys(p.priorities).length || p.medicalGroup || p.hospital || hasDrugs(p) || p.mediCal !== 'unknown' || p.extraHelp || p.maxPremium != null || p.veteran)); };
+const BN = {ids: null, county: '', carrier: '', fit: true, q: '', sort: null, picked: []};
+try { BN.ids = JSON.parse(store.get('pc_benefits_v1') || 'null'); } catch (_) {}
+if (!Array.isArray(BN.ids) || !BN.ids.every(id => BEN_BY_ID[id])) BN.ids = ['premium', 'giveback', 'moop'];
+
+$('browseBtn').addEventListener('click', () => showBenefits());
+function showBenefits(ids) {
+  if (ids) BN.ids = ids.filter(id => BEN_BY_ID[id]).slice(0, 3);
+  BN.county = S.profile.county || BN.county || '';
+  BN.fit = clientDescribed();
+  BN.q = ''; BN.sort = null;
+  renderBenefits(false);
+}
+function benefitRows() {
+  const p = Object.assign({}, S.profile, {county: BN.county});
+  const fitRows = clientDescribed() && S.profile.county === BN.county ? S.result.results : [];
+  const useFit = BN.fit && fitRows.length;
+  let rows = useFit ? fitRows.slice()
+    : S.data.plans.filter(x => !BN.county || x.counties.includes(BN.county)).map(plan => ({plan, v: planValues(plan, p), score: (fitRows.find(r => r.plan.idx === plan.idx) || {}).score ?? null}));
+  if (BN.carrier) rows = rows.filter(r => r.plan.carrier === BN.carrier);
+  const q = lc(BN.q).trim();
+  if (q) rows = rows.filter(r => q.split(/\s+/).every(w => lc(r.plan.name + ' ' + r.plan.carrier + ' ' + r.plan.id).includes(w)));
+  const b = BEN_BY_ID[BN.sort || BN.ids[0]];
+  if (b && b.m) rows.sort((x, y) => { const a = b.m(x), c = b.m(y); if (a == null && c == null) return 0; if (a == null) return 1; if (c == null) return -1; return (b.dir === 'min' ? a - c : c - a) || ((y.score || 0) - (x.score || 0)); });
+  else rows.sort((x, y) => (y.score || 0) - (x.score || 0) || x.plan.name.localeCompare(y.plan.name));
+  return {rows, useFit};
+}
+function benefitCell(b, r, best) {
+  const raw = b.fields.filter(k => T(r.plan.fields[k]));
+  let top = b.s ? b.s(r) : '';
+  if (raw.length === 1 && T(r.plan.fields[raw[0]]).length <= 14) { top = ''; }   // short text ("$0", "$2,400") says it all
+  const short1 = raw.length === 1 && !top;
+  const text = raw.map(k => b.fields.length > 1 ? `<b>${esc(k.replace(/\s*\(.*\)$/, ''))}:</b> ${esc(r.plan.fields[k])}` : esc(r.plan.fields[k])).join('<br>');
+  return `<td class="${best ? 'best' : ''}" data-label="${esc(b.label)}">${top ? `<div class="bn-top">${esc(top)}</div>` : ''}<div class="${short1 ? 'bn-top' : 'bn-raw'}">${text || '<span class="hint">not listed</span>'}</div></td>`;
+}
+function renderBenefits(keepScroll) {
+  const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
+  const {rows, useFit} = benefitRows();
+  const cols = BN.ids.map(id => BEN_BY_ID[id]);
+  const bestOf = cols.map(b => { if (!b.m) return null; const v = rows.map(b.m).filter(x => x != null); return v.length > 1 && new Set(v).size > 1 ? (b.dir === 'min' ? Math.min(...v) : Math.max(...v)) : null; });
+  const carriers = [...new Set(S.data.plans.filter(x => !BN.county || x.counties.includes(BN.county)).map(x => x.carrier))].sort();
+  const canFit = clientDescribed() && S.profile.county === BN.county;
+  const shown = rows.slice(0, 120);
+  openModal(`<h2>Benefits</h2>
+    <div class="hint">Pick up to 3 benefits to see them side by side for every plan — best first. Text under each number is the exact wording from your workbook.</div>
+    <div class="bn-chips no-print">${BENEFITS.map(b => `<button class="chip ${BN.ids.includes(b.id) ? 'on' : ''}" data-bn="${b.id}">${esc(b.label)}</button>`).join('')}</div>
+    <div class="row no-print">
+      <select class="inp" id="bnCounty" style="width:auto"><option value="">All counties</option>${COUNTIES.map(c => `<option value="${c.id}" ${BN.county === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
+      <select class="inp" id="bnCarrier" style="width:auto"><option value="">All carriers</option>${carriers.map(c => `<option ${BN.carrier === c ? 'selected' : ''}>${esc(c)}</option>`).join('')}</select>
+      <select class="inp" id="bnSort" style="width:auto" aria-label="Sort by">${cols.filter(b => b.m).map(b => `<option value="${b.id}" ${(BN.sort || BN.ids[0]) === b.id ? 'selected' : ''}>Sort: ${esc(b.label)}</option>`).join('')}</select>
+      <input class="inp" id="bnQ" placeholder="Find a plan (name, carrier, H-number)" value="${esc(BN.q)}" style="flex:1;min-width:160px"/>
+      ${canFit ? `<label class="tg"><input type="checkbox" id="bnFit" ${BN.fit ? 'checked' : ''}/> Only plans that fit this client</label>` : ''}
+    </div>
+    <div class="hint" style="margin:6px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${BN.county ? ' in ' + countyName(BN.county) : ''}${BN.carrier ? ' · ' + esc(BN.carrier) : ''} · sorted by ${esc((BEN_BY_ID[BN.sort || BN.ids[0]] || {}).label || 'fit')}${rows.length > shown.length ? ` · showing the first ${shown.length}` : ''}. Tap a column title to sort by it.</div>
+    <div class="cmp-wrap cards"><table class="cmp bn-table cards"><thead><tr><th>Plan</th>${cols.map(b => `<th><button class="linkbtn" data-bnsort="${b.id}">${esc(b.label)}${(BN.sort || BN.ids[0]) === b.id && b.m ? ' ▾' : ''}</button></th>`).join('')}</tr></thead><tbody>
+    ${shown.map(r => `<tr><th><a href="#" data-open="${r.plan.idx}">${esc(r.plan.name)}</a><div class="hint mono">${esc(r.plan.id)} · ${esc(r.plan.counties.join(', '))}</div>${r.score != null ? `<div class="hint">fit ${Math.round(r.score)}</div>` : ''}<label class="tg bn-pick no-print"><input type="checkbox" data-bnpick="${r.plan.idx}" ${BN.picked.includes(r.plan.idx) ? 'checked' : ''}/> compare</label></th>${cols.map((b, i) => benefitCell(b, r, bestOf[i] != null && b.m(r) === bestOf[i])).join('')}</tr>`).join('') || `<tr><td colspan="${cols.length + 1}" class="hint">No plans match.</td></tr>`}
+    </tbody></table></div>
+    <div class="row no-print"><button class="btn small gold" id="bnCompare" ${BN.picked.length < 2 ? 'disabled' : ''}>Compare checked (${BN.picked.length})</button><button class="btn small" onclick="window.print()">Print / save PDF</button><span class="hint" style="margin:0">Green = best on that benefit among these plans.</span></div>`);
+  if (keepScroll) box.scrollTop = y;
+}
+$('modalBody').addEventListener('click', e => {
+  if (!$('bnQ')) return;
+  const t = e.target;
+  const chip = t.closest('[data-bn]');
+  if (chip) {
+    const id = chip.dataset.bn;
+    if (BN.ids.includes(id)) { if (BN.ids.length > 1) BN.ids = BN.ids.filter(x => x !== id); }
+    else { BN.ids = BN.ids.concat(id); if (BN.ids.length > 3) BN.ids.shift(); }
+    if (BN.sort && !BN.ids.includes(BN.sort)) BN.sort = null;
+    store.set('pc_benefits_v1', JSON.stringify(BN.ids)); renderBenefits(true); return;
+  }
+  const so = t.closest('[data-bnsort]'); if (so) { BN.sort = so.dataset.bnsort; renderBenefits(true); return; }
+  if (t.id === 'bnCompare' && BN.picked.length >= 2) { showCompare(BN.picked.map(i => S.data.plans[i])); return; }
+});
+$('modalBody').addEventListener('change', e => {
+  if (!$('bnQ')) return;
+  const t = e.target;
+  if (t.id === 'bnCounty') { BN.county = t.value; renderBenefits(false); }
+  else if (t.id === 'bnCarrier') { BN.carrier = t.value; renderBenefits(false); }
+  else if (t.id === 'bnFit') { BN.fit = t.checked; renderBenefits(false); }
+  else if (t.id === 'bnSort') { BN.sort = t.value; renderBenefits(true); }
+  else if (t.dataset.bnpick) { const i = +t.dataset.bnpick; BN.picked = BN.picked.filter(x => x !== i); if (t.checked) BN.picked.push(i); if (BN.picked.length > 4) BN.picked.shift(); renderBenefits(true); }
+});
+let bnTimer = null;
+$('modalBody').addEventListener('input', e => {
+  if (e.target.id !== 'bnQ') return;
+  clearTimeout(bnTimer);
+  const v = e.target.value, pos = e.target.selectionStart;
+  bnTimer = setTimeout(() => { BN.q = v; renderBenefits(true); const q = $('bnQ'); if (q) { q.focus(); try { q.setSelectionRange(pos, pos); } catch (_) {} } }, 200);
 });
 $('modalBody').addEventListener('click', e => { const a = e.target.closest('[data-open]'); if (a) { e.preventDefault(); showDetails(+a.dataset.open); } });
+
+/* ═══════════════ PRESCRIPTIONS — the client's drugs → yearly cost on each plan ═══════════════ */
+const RX = {county: '', fit: true, sort: 'total'};
+$('rxBtn').addEventListener('click', () => showRx());
+function showRx() {
+  RX.county = S.profile.county || RX.county || '';
+  RX.fit = clientDescribed();
+  renderRx(false);
+}
+function rxChanged() { rerank(true); renderRx(true); }
+function rxRows() {
+  const prof = Object.assign({}, S.profile, {county: RX.county});
+  const fitRows = clientDescribed() && S.profile.county === RX.county ? S.result.results : [];
+  const useFit = RX.fit && fitRows.length;
+  const plans = useFit ? fitRows.map(r => r.plan) : S.data.plans.filter(x => !RX.county || x.counties.includes(RX.county));
+  const rows = plans.map(plan => {
+    const est = drugEstimate(plan, prof), prem = planValues(plan, prof).premium * 12;
+    const fr = fitRows.find(r => r.plan.idx === plan.idx);
+    return {plan, est, prem, total: est ? est.yearly + prem : null, score: fr ? fr.score : null};
+  });
+  const key = RX.sort === 'drugs' ? r => r.est ? r.est.yearly : null : r => r.total;
+  rows.sort((a, b) => { const x = key(a), y = key(b); if (x == null && y == null) return 0; if (x == null) return 1; if (y == null) return -1; return x - y || (b.score || 0) - (a.score || 0); });
+  return {rows, useFit};
+}
+function renderRx(keepScroll) {
+  const box = $('modal'), y = keepScroll ? box.scrollTop : 0;
+  const p = S.profile, list = effectiveDrugs(p);
+  const canFit = clientDescribed() && S.profile.county === RX.county;
+  const {rows, useFit} = list.length ? rxRows() : {rows: [], useFit: false};
+  const best = rows.length && rows[0].total != null ? rows[0] : null;
+  const tierOpts = sel => RX_TIERS.map(t => `<option value="${t}" ${String(sel) === t ? 'selected' : ''}>${esc(TIER_SHORT[t])}</option>`).join('');
+  const named = p.drugs || [];
+  const drugRows = list.map((d, i) => d.placeholder
+    ? `<tr><th>${esc(d.placeholder === 'tier3' ? 'Brand drug (not named)' : 'Insulin (not named)')}<div class="hint">from “${d.placeholder === 'tier3' ? 'Tier 3 drugs' : 'Takes insulin'}” in the profile — type the name above to make it exact</div></th><td>${esc(TIER_LABEL[d.tier])}</td><td>${fmt$(d.price)}</td><td><button class="btn small" data-rxdropph="${d.placeholder}" aria-label="Remove">✕</button></td></tr>`
+    : `<tr><th>${esc(d.name)}${findDrug(d.name) ? '' : '<div class="hint">not on the common list — set its tier and price</div>'}</th>
+        <td><select class="inp" data-rxtier="${i}">${tierOpts(d.tier)}</select></td>
+        <td><input class="inp" type="number" min="0" step="1" data-rxprice="${i}" value="${Math.round(d.price)}" style="max-width:110px" aria-label="Price per month"/></td>
+        <td><button class="btn small" data-rxdrop="${i}" aria-label="Remove ${esc(d.name)}">✕</button></td></tr>`).join('');
+  const lis = p.mediCal === 'full' || p.extraHelp;
+  openModal(`<h2>Prescriptions</h2>
+    <div class="hint">Add the client's drugs to see what they'd pay on each plan for the year. Each plan's deductible and tier costs come from your workbook; the 2027 rules are Medicare's (yearly drug cap ${fmt$(PARTD.oopCap)}, insulin ${fmt$(PARTD.insulinCap)}/month, Extra Help ${fmtc(PARTD.lisGeneric)} generic / ${fmtc(PARTD.lisBrand)} brand). The tier and price shown are what's typical — every plan has its own drug list.</div>
+    <div class="row no-print rx-add">
+      <input class="inp" id="rxName" list="rxList" placeholder="Type a drug — Eliquis, metformin, Lantus…" autocomplete="off" style="flex:1;min-width:180px"/>
+      <datalist id="rxList">${DRUG_LIST.map(d => `<option value="${esc(d[0])}">${esc(TIER_LABEL[d[1]])}${d.length > 3 ? ' · ' + esc(d.slice(3, 5).join(', ')) : ''}</option>`).join('')}</datalist>
+      <select class="inp" id="rxTier" style="width:auto"><option value="auto">Usual tier</option>${tierOpts('')}</select>
+      <button class="btn small primary" id="rxAdd">Add drug</button>
+    </div>
+    <div class="hint" id="rxHint" style="margin:4px 0 0;min-height:1.2em"></div>
+    ${list.length ? `<div class="cmp-wrap"><table class="cmp rx-drugs"><thead><tr><th>Drug</th><th>Tier</th><th>Price / mo</th><th></th></tr></thead><tbody>${drugRows}</tbody></table></div>` : '<p class="hint" style="margin-top:10px">No drugs yet. Add them above — or say them in the client description (“takes Eliquis and metformin”).</p>'}
+    <div class="row no-print" style="margin-top:10px">
+      <span class="hint" style="margin:0">Pharmacy:</span><div class="seg" style="width:auto"><button class="${p.rxStandard ? '' : 'on'}" data-rxpharm="pref">Preferred</button><button class="${p.rxStandard ? 'on' : ''}" data-rxpharm="std">Standard</button></div>
+      <label class="tg"><input type="checkbox" id="rxLis" ${lis ? 'checked' : ''} ${p.mediCal === 'full' ? 'disabled' : ''}/> Extra Help${p.mediCal === 'full' ? ' (has Medi-Cal)' : ''}</label>
+      <select class="inp" id="rxCounty" style="width:auto"><option value="">All counties</option>${COUNTIES.map(c => `<option value="${c.id}" ${RX.county === c.id ? 'selected' : ''}>${c.name}</option>`).join('')}</select>
+      ${canFit ? `<label class="tg"><input type="checkbox" id="rxFit" ${RX.fit ? 'checked' : ''}/> Only plans that fit this client</label>` : ''}
+    </div>
+    ${list.length ? `
+    <div class="hint" style="margin:8px 0 0">${rows.length} plan${rows.length === 1 ? '' : 's'}${useFit ? ' that fit this client' : ''}${RX.county ? ' in ' + countyName(RX.county) : ''} — sorted by <button class="linkbtn" data-rxsort="${RX.sort === 'total' ? 'drugs' : 'total'}">${RX.sort === 'total' ? 'drugs + premium (tap for drugs only)' : 'drugs only (tap for drugs + premium)'}</button>.${best ? ` Lowest: <b>${esc(best.plan.name)}</b> ≈${fmt$(RX.sort === 'drugs' ? best.est.yearly : best.total)}/yr.` : ''}</div>
+    <div class="cmp-wrap cards"><table class="cmp rx-table cards"><thead><tr><th>Plan</th><th>Drugs / year</th><th>Premium / year</th><th>Total</th></tr></thead><tbody>
+    ${rows.slice(0, 120).map((r, i) => `<tr><th><a href="#" data-open="${r.plan.idx}">${esc(r.plan.name)}</a><div class="hint mono">${esc(r.plan.id)}</div>${r.score != null ? `<div class="hint">fit ${Math.round(r.score)}</div>` : ''}</th>
+      <td data-label="Drugs / year" class="${i === 0 && RX.sort === 'drugs' && r.est ? 'best' : ''}">${r.est ? `<b>≈${fmt$(r.est.yearly)}</b><div class="bn-raw">${esc(r.est.text)}</div><div class="bn-raw">Drug deductible: ${esc(cut(r.plan.fields['Rx Deductible'] || '', 90))}</div>` : '<span class="hint">no Part D drug coverage</span>'}</td>
+      <td data-label="Premium / year">${fmt$(r.prem)}</td><td data-label="Drugs + premium" class="${i === 0 && RX.sort === 'total' && r.total != null ? 'best' : ''}">${r.total == null ? '—' : `<b>≈${fmt$(r.total)}</b>`}</td></tr>`).join('')}
+    </tbody></table></div>
+    <p class="hint" style="margin-top:8px">Estimate only: it assumes a 30-day fill every month at the price shown. The Part B giveback isn't subtracted. Before enrolling, check each drug on the plan's drug list (formulary) or in Medicare Plan Finder.</p>` : ''}`);
+  if (keepScroll) box.scrollTop = y;
+}
+function addRxDrug() {
+  const nm = T($('rxName').value); if (!nm) { $('rxName').focus(); return; }
+  const d = findDrug(nm), sel = $('rxTier').value;
+  const tier = sel === 'auto' ? (d ? d[1] : '3') : sel;
+  const name = d ? d[0] : nm.slice(0, 60);
+  const price = d && tier === d[1] ? d[2] : TIER_PRICE[tier];
+  const p = S.profile; p.drugs = (p.drugs || []).filter(x => lc(x.name) !== lc(name)).concat({name, tier, price});
+  if (tier === 'insulin') { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+  p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
+  rxChanged(); const f = $('rxName'); if (f) f.focus();
+}
+$('modalBody').addEventListener('click', e => {
+  if (!$('rxName')) return;
+  const t = e.target, p = S.profile;
+  if (t.id === 'rxAdd') { addRxDrug(); return; }
+  const dr = t.closest('[data-rxdrop]');
+  if (dr) { const d = effectiveDrugs(p)[+dr.dataset.rxdrop]; p.drugs = (p.drugs || []).filter(x => !(d && lc(x.name) === lc(d.name))); if (d && d.tier === 'insulin' && !p.drugs.some(x => x.tier === 'insulin')) p.insulin = false; rxChanged(); return; }
+  const ph = t.closest('[data-rxdropph]');
+  if (ph) { if (ph.dataset.rxdropph === 'tier3') p.tier3 = Math.max(0, (p.tier3 || 0) - 1); else p.insulin = false; rxChanged(); return; }
+  const ps = t.closest('[data-rxpharm]'); if (ps) { p.rxStandard = ps.dataset.rxpharm === 'std'; rxChanged(); return; }
+  const so = t.closest('[data-rxsort]'); if (so) { RX.sort = so.dataset.rxsort; renderRx(true); return; }
+});
+$('modalBody').addEventListener('change', e => {
+  if (!$('rxName')) return;
+  const t = e.target, p = S.profile, list = effectiveDrugs(p);
+  if (t.dataset.rxtier != null || t.dataset.rxprice != null) {
+    const d = list[+(t.dataset.rxtier ?? t.dataset.rxprice)]; if (!d || d.placeholder) return;
+    const x = (p.drugs || []).find(z => lc(z.name) === lc(d.name)); if (!x) return;
+    if (t.dataset.rxtier != null) { x.tier = t.value; const k = findDrug(x.name); x.price = k && k[1] === x.tier ? k[2] : TIER_PRICE[x.tier]; if (x.tier === 'insulin') p.insulin = true; }
+    else x.price = Math.max(0, parseFloat(t.value) || 0);
+    rxChanged(); return;
+  }
+  if (t.id === 'rxLis') { p.extraHelp = t.checked; rxChanged(); }
+  else if (t.id === 'rxCounty') { RX.county = t.value; renderRx(false); }
+  else if (t.id === 'rxFit') { RX.fit = t.checked; renderRx(false); }
+});
+$('modalBody').addEventListener('keydown', e => { if (e.target.id === 'rxName' && e.key === 'Enter') { e.preventDefault(); addRxDrug(); } });
+$('modalBody').addEventListener('input', e => {
+  if (e.target.id !== 'rxName') return;
+  const d = findDrug(e.target.value), h = $('rxHint');
+  if (h) h.textContent = d ? `${d[0]} — usually ${TIER_LABEL[d[1]]}, about ${fmt$(d[2])}/month${d.length > 3 ? ' (also: ' + d.slice(3).join(', ') + ')' : ''}` : '';
+});
 
 /* ═══════════════ NETWORKS — which plans take a doctor group or hospital ═══════════════ */
 const NW = {name: '', kind: 'group', county: ''};
@@ -2352,11 +2709,11 @@ function aiContext(limit) {
     toolNotes: {whyItFits: x.fit, tradeOffs: x.warn, verify: x.verify},
     medicalGroupStatus: x.net ? `${p.medicalGroup}: ${x.net.status === 'unknown' ? 'not listed in the workbook — must verify' : x.net.status === 'in' ? 'in network' : 'NOT in network'} (${x.net.source})` : undefined,
     hospitalStatus: x.hosp ? `${p.hospital}: ${x.hosp.status === 'unknown' ? 'not listed — must verify' : x.hosp.status === 'in' ? 'in network' : 'NOT in network'} (${x.hosp.source})` : undefined,
-    drugCostEstimate: x.drugs ? `≈$${Math.round(x.drugs.yearly)}/yr — ${x.drugs.text} (assumes a ~$400/month brand list price; check the formulary)` : undefined,
+    drugCostEstimate: x.drugs ? `≈$${Math.round(x.drugs.yearly)}/yr — ${x.drugs.text} (uses each drug's usual tier and a typical price; check the plan's formulary)` : undefined,
   }));
   const prof = {county: countyName(p.county), mediCal: p.mediCal, extraHelp: p.extraHelp, conditions: p.conditions.map(c => COND_BY_ID[c].label), medicalGroup: p.medicalGroup, doctors: p.doctors,
     priorities: Object.fromEntries(Object.entries(p.priorities).map(([k, v]) => [PRI_BY_ID[k].label, v >= 3 ? 'must-have' : 'important'])),
-    hospital: p.hospital, takesInsulin: p.insulin, tier3Drugs: p.tier3,
+    hospital: p.hospital, takesInsulin: p.insulin, drugs: effectiveDrugs(p).map(d => `${d.name} (${TIER_LABEL[d.tier]}, ~$${Math.round(d.price)}/mo)`),
     maxPremium: p.maxPremium, veteran: p.veteran, drugsThroughVA: p.vaDrugCoverage, costcoMember: p.costco, language: p.language, agentNote: $('clientText').value.trim()};
   return {clientProfile: prof, rankedShortlist: shortlist, ruledOutCount: r.excluded.length, quickTakeNotes: S.data.quickTake, workbook: S.data.meta.fileName};
 }
