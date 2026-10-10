@@ -334,6 +334,7 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
       </form>
     </div>
 
+    <?=html_avisos_nomina($n['avisos'] ?? [])?>
     <!-- Detalle diario (colapsable) -->
     <?php if(count($n['detalle']) > 0): ?>
     <details>

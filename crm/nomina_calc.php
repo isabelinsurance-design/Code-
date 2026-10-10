@@ -113,6 +113,7 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
     $breaks_por_registro = asistencia_breaks_batch($pdo, array_column($registros, 'id'));
 
     $seg_trabajados   = 0;
+    $avisos           = []; // días que necesitan revisión ANTES de pagar
     $dias_con_checkin = 0;
     $detalle = [];
     foreach ($registros as $r) {
@@ -121,6 +122,17 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
         $seg_trabajados += $seg;
         if ($r['check_in'] && $r['check_out']) $dias_con_checkin++;
         $extra_breaks_count = count($breaks_extra);
+        // Avisos: marcas incompletas que hacen que se pague de más o de menos.
+        $f_aviso = date('m/d', strtotime($r['fecha']));
+        if ($r['check_in'] && !$r['check_out'])
+            $avisos[] = "$f_aviso: hay CHECK-IN pero no CHECK-OUT (ese día cuenta 0 horas)";
+        if (!empty($r['lunch_out']) && empty($r['lunch_in']))
+            $avisos[] = "$f_aviso: salió a ALMUERZO pero no marcó el regreso (el almuerzo NO se descontó)";
+        if (!empty($r['break_out']) && empty($r['break_in']))
+            $avisos[] = "$f_aviso: salió a BREAK pero no marcó el regreso (el break NO se descontó)";
+        foreach ($breaks_extra as $bx0) {
+            if (empty($bx0['break_in'])) { $avisos[] = "$f_aviso: un BREAK adicional quedó abierto (no se descontó)"; break; }
+        }
         $detalle[] = [
             'fecha'      => $r['fecha'],
             'dow'        => $r['dow'],
@@ -182,5 +194,15 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
         'porcentaje'             => $porcentaje,
         'valor_hora'             => round($valor_hora, 4),
         'detalle'                => $detalle,
+        'avisos'                 => $avisos,
     ];
+}
+
+/** HTML con los avisos de una quincena (vacío si no hay ninguno). */
+function html_avisos_nomina(array $avisos): string {
+    if (!$avisos) return '';
+    $li = '';
+    foreach ($avisos as $a) $li .= '<li>' . htmlspecialchars($a, ENT_QUOTES, 'UTF-8') . '</li>';
+    return '<div style="background:#FEF8EE;border:1px solid #F5D5A0;border-radius:10px;padding:10px 14px;margin:10px 0;font-size:11px;color:#C07A1A">'
+         . '<b>⚠ REVISAR ANTES DE PAGAR (' . count($avisos) . ')</b><ul style="margin:6px 0 0 18px;padding:0">' . $li . '</ul></div>';
 }

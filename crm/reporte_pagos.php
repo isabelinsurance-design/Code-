@@ -59,6 +59,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     $p_q     = (int)($_POST['q'] ?? $q);
     $p_a     = (int)($_POST['a'] ?? $agente_id);
     $action  = $_POST['action'] ?? '';
+    $flash   = '';
 
     if ($action === 'crear_recibo') {
         // Un empleado solo puede armar un recibo para sí mismo — el admin
@@ -74,6 +75,36 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
         $ag = $ag->fetch();
 
         if ($ag) {
+            // Candado por empleado: dos clics rápidos o dos pestañas no pueden crear
+            // dos recibos a la vez (el segundo espera y ya ve al primero).
+            $lock_name = 'recibo_pago_' . $post_agente_id;
+            $pdo->prepare("SELECT GET_LOCK(?, 5)")->execute([$lock_name]);
+
+            // 1) Las horas de una quincena solo se pagan en UN recibo activo.
+            if ($incluye_horas) {
+                $dq = $pdo->prepare("SELECT COUNT(*) FROM recibos_pago WHERE agente_id=? AND anio=? AND mes=? AND quincena=? AND monto_horas>0 AND estado IN ('PENDIENTE','APROBADO','PAGADO')");
+                $dq->execute([$post_agente_id, $p_year, $p_month, $p_q]);
+                if ((int)$dq->fetchColumn() > 0) {
+                    $incluye_horas = false;
+                    $flash = 'Las horas de esta quincena ya están en otro recibo. No se agregaron otra vez.';
+                }
+            }
+            // 2) Gastos y bonos que ya están en un recibo pendiente/aprobado no se repiten.
+            $res_g = []; $res_b = [];
+            $rq = $pdo->prepare("SELECT detalle_json FROM recibos_pago WHERE agente_id=? AND estado IN ('PENDIENTE','APROBADO')");
+            $rq->execute([$post_agente_id]);
+            foreach ($rq->fetchAll(PDO::FETCH_COLUMN) as $dj) {
+                $dd = json_decode($dj ?: '{}', true) ?: [];
+                foreach ($dd['gastos'] ?? [] as $g0) $res_g[] = (int)$g0['id'];
+                foreach ($dd['bonos'] ?? [] as $b0) $res_b[] = (int)$b0['id'];
+            }
+            $n_antes = count($gasto_ids) + count($bono_ids);
+            $gasto_ids = array_values(array_diff($gasto_ids, $res_g));
+            $bono_ids  = array_values(array_diff($bono_ids, $res_b));
+            if ($n_antes > count($gasto_ids) + count($bono_ids)) {
+                $flash = trim($flash . ' Algunos gastos o bonos ya estaban en otro recibo y se quitaron.');
+            }
+
             $monto_horas = 0;
             $horas_info  = ['incluido' => false];
             if ($incluye_horas && $ag['salario_quincenal'] !== null) {
@@ -109,7 +140,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
             $monto_bonos   = 0;
             if ($bono_ids) {
                 $ph = implode(',', array_fill(0, count($bono_ids), '?'));
-                $bq = $pdo->prepare("SELECT id,cliente,total,fecha FROM pago_bonos WHERE id IN ($ph) AND agente_id=? AND pagado=0");
+                $bq = $pdo->prepare("SELECT id,cliente,total,fecha FROM pago_bonos WHERE id IN ($ph) AND agente_id=? AND pagado=0 AND COALESCE(venta_cancelada,0)=0");
                 $bq->execute(array_merge($bono_ids, [$post_agente_id]));
                 foreach ($bq->fetchAll() as $b) {
                     $bonos_detalle[] = ['id' => (int)$b['id'], 'cliente' => $b['cliente'], 'monto' => (float)$b['total'], 'fecha' => $b['fecha']];
@@ -131,6 +162,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
                     mb_substr($notas, 0, 500), (int)$user['id'], $user['nombre'] ?? '',
                 ]);
             }
+            $pdo->prepare("SELECT RELEASE_LOCK(?)")->execute([$lock_name]);
         }
         $p_a = $post_agente_id;
     } elseif ($action === 'decidir_recibo' && $admin) {
@@ -175,7 +207,7 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
     }
 
     if (!$admin) $p_a = (int)$user['id'];
-    header('Location: reporte_pagos.php?a=' . $p_a . '&y=' . $p_year . '&m=' . $p_month . '&q=' . $p_q);
+    header('Location: reporte_pagos.php?a=' . $p_a . '&y=' . $p_year . '&m=' . $p_month . '&q=' . $p_q . ($flash !== '' ? '&msg=' . urlencode($flash) : ''));
     exit;
 }
 
@@ -292,6 +324,9 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
 </style>
 </head>
 <body>
+<?php if (!empty($_GET['msg'])): ?>
+<div style="background:#FEF8EE;border:1px solid #F5D5A0;color:#C07A1A;border-radius:10px;padding:10px 16px;margin:10px 0;font-size:11px;font-weight:800">⚠ <?=htmlspecialchars((string)$_GET['msg'], ENT_QUOTES)?></div>
+<?php endif; ?>
 
 <!-- ENCABEZADO -->
 <div class="page-header">
@@ -394,6 +429,7 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
     <input type="hidden" name="m" value="<?=$month?>">
     <input type="hidden" name="q" value="<?=$q?>">
 
+    <?=$nomina_sel ? html_avisos_nomina($nomina_sel['avisos'] ?? []) : ''?>
     <!-- HORAS -->
     <?php if($nomina_sel): ?>
     <label style="display:flex;align-items:center;gap:8px;padding:10px 12px;background:<?=$BG?>;border:1px solid <?=$CB?>;border-radius:9px;margin-bottom:10px;cursor:pointer">

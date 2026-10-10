@@ -125,10 +125,16 @@ case 'checkin':
     $col = $valid[$field];
     $t = date('H:i:s');
     $pdo = db();
-    $existing = $pdo->prepare("SELECT id FROM asistencia WHERE agente_id=? AND fecha=?");
+    $existing = $pdo->prepare("SELECT * FROM asistencia WHERE agente_id=? AND fecha=?");
     $existing->execute([$uid, date('Y-m-d')]);
     $row = $existing->fetch();
     if ($row) {
+        // Un toque repetido (o una pantalla vieja) NO debe pisar la hora ya marcada:
+        // si se pierde el check-in de las 8:00 se pierden horas de pago. Para
+        // corregir una hora, el admin usa ✏️ en ASISTENCIA.
+        if (!empty($row[$col])) {
+            jsonErr('Ya registraste ese paso hoy a las ' . substr($row[$col], 0, 5) . '. Si está mal, pídele a Isabel que lo corrija.');
+        }
         $pdo->prepare("UPDATE asistencia SET $col=? WHERE id=?")->execute([$t, $row['id']]);
     } else {
         $pdo->prepare("INSERT INTO asistencia (agente_id,fecha,$col) VALUES (?,?,?)")
