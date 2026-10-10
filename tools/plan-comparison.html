@@ -310,6 +310,34 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   [data-rxsort]{padding:8px 0}
   table.cards td::before{content:attr(data-label);display:block;font-size:10.5px;font-weight:700;color:var(--gold-dk);text-transform:uppercase;letter-spacing:.06em;margin-bottom:2px}
 }
+/* appointment */
+.ap-grid{display:grid;gap:14px;margin-top:12px}
+.ap-sec{border:1.5px solid var(--border);border-radius:12px;padding:12px 14px;background:var(--white)}
+.ap-q{display:flex;gap:10px;align-items:flex-start;margin-bottom:10px}
+.ap-q b{font-size:14px}
+.ap-num{flex:none;width:24px;height:24px;border-radius:50%;background:var(--gold-g);color:#3b2b10;font-family:'DM Mono',monospace;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
+.ap-two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ap-net{margin-top:6px}
+.ap-x{border:0;background:transparent;color:inherit;font-size:14px;line-height:1;padding:0 0 0 2px;cursor:pointer}
+.ap-bar{position:sticky;bottom:-1px;z-index:5;background:var(--white);border-top:1.5px solid var(--border);padding:10px 0 2px;margin-top:14px}
+.ap-count{font-size:13px;color:var(--text-mid)}
+.ap-top{margin-top:4px;font-size:13.5px}
+.ap-top .k{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dk);margin-right:4px}
+@media (max-width:900px){.ap-two{grid-template-columns:1fr}.ap-sec .chip,.ap-sec .seg button{min-height:40px}.ap-bar .btn{min-height:40px}}
+/* member card */
+.mc-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:4px}
+.mc-lines{margin-top:14px;border:1.5px solid var(--border);border-radius:12px;overflow:hidden}
+.mc-line{display:grid;grid-template-columns:minmax(120px,170px) 1fr;gap:12px;padding:10px 14px;border-bottom:1px solid var(--border);font-size:14px}
+.mc-line:last-child{border-bottom:0}
+.mc-line:nth-child(even){background:var(--surface)}
+.mc-k{font-weight:700;color:var(--text-mid);font-size:13px}
+.mc-v{min-width:0}
+.mc-raw{color:var(--text-mid);font-size:13px}
+.mc-ok{color:var(--green);font-weight:600}.mc-no{color:var(--red);font-weight:600}.mc-unk{color:var(--amber);font-weight:600}
+.mc-conf{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px}
+.mc-conf ul{margin:6px 0 0 18px}
+@media (max-width:600px){.mc-line{grid-template-columns:1fr;gap:2px}}
+@media print{.mc-lines{border-color:#999}.mc-line{border-color:#ddd}}
 @media print{
   body{background:#fff}
   .top,.workspace,.tray,.tabbar,.ios-hint,.modal-x,.no-print{display:none!important}
@@ -330,6 +358,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
   <div class="data-status" id="dataStatus">No workbook loaded</div>
   <div class="top-actions">
     <button class="btn small gold" id="installBtn" hidden>Install app</button>
+    <button class="btn small gold" id="apptBtn" hidden>Appointment</button>
     <button class="btn small" id="browseBtn" hidden>Benefits</button>
     <button class="btn small" id="netBtn" hidden>Networks</button>
     <button class="btn small" id="rxBtn" hidden>Prescriptions</button>
@@ -2298,7 +2327,7 @@ async function loadFile(file) {
 
 function useData(data) {
   S.data = data;
-  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('netBtn').hidden = false; $('rxBtn').hidden = false; $('tabbar').hidden = false;
+  $('emptyState').hidden = true; $('workspace').hidden = false; $('browseBtn').hidden = false; $('apptBtn').hidden = false; $('netBtn').hidden = false; $('rxBtn').hidden = false; $('tabbar').hidden = false;
   renderStatus(); renderExamples(); try { renderRecent(); } catch (e) { console.error(e); }
   let last = null; try { last = JSON.parse(store.get(STORE.last) || 'null'); } catch (_) {}
   if (last && last.profile && typeof last.profile === 'object') {
@@ -2679,6 +2708,7 @@ function planCard(r, i) {
       <div class="p-actions">
         <label><input type="checkbox" data-cmp="${plan.idx}" ${checked ? 'checked' : ''}/> Compare</label>
         <button class="btn small" data-details="${plan.idx}">All benefits</button>
+        <button class="btn small" data-member="${plan.idx}">Member card</button>
       </div>
     </div>
   </article>`;
@@ -2697,6 +2727,8 @@ $('planList').addEventListener('click', e => {
   if (net) { saveNetwork(net.dataset.key, net.dataset.net, net.dataset.who); return; }
   const det = t.closest('[data-details]');
   if (det) { showDetails(+det.dataset.details); return; }
+  const mb = t.closest('[data-member]');
+  if (mb) { showMemberCard(+mb.dataset.member); return; }
   if (t.closest('[data-cmp]') || t.closest('label')) return;
   const head = t.closest('[data-toggle]');
   if (head) { const idx = +head.dataset.toggle; const card = head.parentElement; if (card.classList.contains('compact')) { S.expanded.add(idx); card.classList.remove('compact'); } }
@@ -3096,6 +3128,200 @@ function saveRecentDrugs() {
   list[0].drugs = manualDrugs(); list[0].rxStandard = !!S.profile.rxStandard;
   store.set(RECENT, JSON.stringify(list));
 }
+
+/* ═══════════════ APPOINTMENT — the questions you ask at the table, plans narrowing as you go ═══════════════ */
+const AP = {lang: store.get(STORE.lang) || 'en'};
+const AP_WANTS = ['giveback', 'zeroPremium', 'dental', 'drugs', 'otc', 'rides', 'vision', 'hearing', 'lowMoop', 'ppo', 'travel', 'fitness', 'acupuncture', 'chiro'];
+$('apptBtn').addEventListener('click', () => showAppointment());
+function showAppointment() { S.modalBack = null; renderAppointment(false); }
+/* The description the appointment writes — plain English the built-in reader understands, so it works like any typed client. */
+function apptText(p) {
+  const bits = [];
+  if (p.county) bits.push(`Lives in ${COUNTY_BY_ID[p.county].name}${p.county === 'OC' ? ' County' : ''}`);
+  if (p.mediCal === 'full') bits.push('has full Medi-Cal'); else if (p.mediCal === 'partial') bits.push('has partial Medi-Cal (share of cost)'); else if (p.mediCal === 'none') bits.push('Medicare only');
+  if (p.extraHelp) bits.push('gets Extra Help');
+  for (const c of p.conditions) bits.push({diabetes: 'diabetic', heart: 'heart disease', lung: 'COPD', kidney: 'kidney disease', esrd: 'on dialysis', dementia: 'dementia'}[c] || COND_BY_ID[c].label.toLowerCase());
+  if (p.medicalGroup) bits.push(p.keepDoctor ? `must keep their doctor at ${p.medicalGroup}` : `goes to ${p.medicalGroup}`);
+  if (p.hospital) bits.push(`hospital: ${p.hospital}`);
+  const named = (p.drugs || []).map(d => d.name);
+  if (named.length) bits.push('takes ' + named.join(', '));
+  if (p.insulin && !(p.drugs || []).some(d => String(d.tier) === 'insulin')) bits.push('takes insulin');
+  if (p.tier3 > 0) bits.push(`${p.tier3} other brand name drug${p.tier3 > 1 ? 's' : ''}`);
+  const wants = Object.entries(p.priorities || {}).filter(([k, v]) => v >= 2 && k !== 'drugs').map(([k, v]) => (PRI_BY_ID[k] ? PRI_BY_ID[k].label.toLowerCase() : k) + (v >= 3 ? ' (must have)' : ''));
+  if (wants.length) bits.push('wants ' + wants.join(', '));
+  if (p.maxPremium != null) bits.push(`premium up to $${p.maxPremium}/mo`);
+  if (p.veteran) bits.push('veteran'); if (p.vaDrugCoverage) bits.push('gets drugs through the VA'); if (p.costco) bits.push('Costco member'); if (p.dentalImplants) bits.push('needs implants');
+  return bits.join(', ') + (bits.length ? '.' : '');
+}
+/* Every answer re-ranks right away; the description box follows so the client is saved like any other. */
+function apptApply(change, parts) {
+  const p = S.profile; change(p);
+  if (String(p.tier3) === 'NaN') p.tier3 = 0;
+  S.profile = cleanProfile(p);
+  const text = apptText(S.profile);
+  $('clientText').value = text; S.lastFindText = text; S.aiRead = false; S.droppedDrugs = null; S.compare = [];
+  rerank();
+  if (!$('modal').hidden && $('apBar')) renderAppointment(true, parts);
+}
+function apptNetLine(who, kind) {
+  if (!T(who)) return '';
+  const rows = S.result.results, inN = rows.filter(r => { const s = networkStatus(r.plan, S.profile, S.data, S.notes, who, kind); return s && s.status === 'in'; }).length;
+  const outN = rows.filter(r => { const s = networkStatus(r.plan, S.profile, S.data, S.notes, who, kind); return s && s.status === 'out'; }).length;
+  return `<div class="hint ap-net">${esc(who)}: <b>${inN}</b> of ${rows.length} fitting plans list it as in network${outN ? `, ${outN} as not` : ''}${rows.length - inN - outN ? `, ${rows.length - inN - outN} unknown` : ''} · <button class="linkbtn" data-ap-networks="${esc(who)}" data-kind="${kind}">mark networks</button></div>`;
+}
+function renderAppointment(keep, parts) {
+  const p = S.profile, rs = S.result ? S.result.results : [], top = rs[0];
+  const box = $('modal'), y = keep ? box.scrollTop : 0;
+  const groupsList = [...new Set(KNOWN_GROUPS.concat(S.data.groups.map(g => g.network), savedNames()))].sort();
+  const hospList = [...new Set(KNOWN_HOSPITALS.concat(savedNames()))].sort();
+  const sec = (n, q, hint, body) => `<section class="ap-sec" data-apsec="${n}"><div class="ap-q"><span class="ap-num">${n}</span><div><b>${q}</b>${hint ? `<div class="hint">${hint}</div>` : ''}</div></div>${body}</section>`;
+  const drugs = effectiveDrugs(p);
+  const html = `<h2>Appointment</h2>
+    <div class="hint">Ask the questions in order — the plans narrow as you answer. Everything here is free and stays on this device.</div>
+    <div class="ap-grid">
+    ${sec(1, 'Where does the member live?', '', `<div class="chips">${COUNTIES.map(c => `<button class="chip ${p.county === c.id ? 'on' : ''}" data-ap-county="${c.id}">${c.name}</button>`).join('')}</div>`)}
+    ${sec(2, 'Do they have Medi-Cal?', 'D-SNPs only show with Medi-Cal. Extra Help lowers drug copays.', `<div class="seg">${[['none', 'No — Medicare only'], ['full', 'Yes, full'], ['partial', 'Share of cost / partial'], ['unknown', 'Not sure']].map(([v, l]) => `<button class="${p.mediCal === v ? 'on' : ''}" data-ap-medi="${v}">${l}</button>`).join('')}</div>
+      <label class="tg" style="margin-top:8px"><input type="checkbox" data-ap-flag="extraHelp" ${p.extraHelp ? 'checked' : ''}/> Gets Extra Help (LIS)</label>`)}
+    ${sec(3, 'Any health conditions?', 'These open up C-SNP plans built for the condition.', `<div class="chips">${CONDITIONS.map(c => `<button class="chip ${p.conditions.includes(c.id) ? 'on' : ''}" data-ap-cond="${c.id}">${c.label}</button>`).join('')}</div>`)}
+    ${sec(4, 'Who is their doctor? Which hospital?', 'Type the medical group (Facey, Optum, Regal…) and the hospital they use.', `<div class="ap-two">
+      <div><input class="inp" id="apGroup" list="apGroupList" placeholder="Medical group / doctor" value="${esc(p.medicalGroup || '')}"/><datalist id="apGroupList">${groupsList.map(g => `<option value="${esc(g)}">`).join('')}</datalist>
+        <label class="tg" style="margin-top:6px"><input type="checkbox" data-ap-flag="keepDoctor" ${p.keepDoctor ? 'checked' : ''}/> Must keep this doctor</label></div>
+      <div><input class="inp" id="apHosp" list="apHospList" placeholder="Hospital" value="${esc(p.hospital || '')}"/><datalist id="apHospList">${hospList.map(g => `<option value="${esc(g)}">`).join('')}</datalist></div></div>
+      <div id="apNet">${apptNetLine(p.medicalGroup, 'group')}${apptNetLine(p.hospital, 'hospital')}</div>`)}
+    ${sec(5, 'What medicines do they take?', 'Name each one — the tool knows the usual tier and price. Brand names you don\'t know: count them.', `<div class="row" style="margin-top:0"><input class="inp" id="apDrug" placeholder="e.g. Eliquis, Jardiance, metformin" style="flex:1;min-width:160px"/><button class="btn small primary" id="apDrugAdd">Add</button></div>
+      <div class="chips" id="apDrugs" style="margin-top:8px">${drugs.map((d, i) => `<span class="chip on">${esc(d.placeholder === 'tier3' ? 'brand drug' : d.name)} <small>${d.tier === 'insulin' ? 'insulin' : 'T' + esc(d.tier)}</small> <button class="ap-x" data-ap-drop="${i}" aria-label="Remove ${esc(d.name)}">×</button></span>`).join('')}${drugs.length ? '' : '<span class="hint" style="margin:0">None yet</span>'}</div>
+      <div class="ap-two" style="margin-top:8px"><label class="tg"><input type="checkbox" data-ap-flag="insulin" ${p.insulin ? 'checked' : ''}/> 💉 Takes insulin</label>
+      <div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Other brand drugs:</span><div class="seg" style="flex:1">${[0, 1, 2, 3].map(k => `<button class="${Math.min(p.tier3 || 0, 3) === k ? 'on' : ''}" data-ap-tier3="${k}">${k === 3 ? '3+' : k}</button>`).join('')}</div></div></div>`)}
+    ${sec(6, 'What matters most to them?', 'Tap once = important, twice = must have, three times = off.', `<div class="chips">${AP_WANTS.map(id => { const pr = PRI_BY_ID[id], lv = p.priorities[id] || 0; return `<button class="chip ${lv >= 3 ? 'l3' : lv >= 1 ? 'l2' : ''}" data-ap-pri="${id}">${pr.icon} ${pr.label}${lv ? `<span class="lv">${lv >= 3 ? 'must' : '★'}</span>` : ''}</button>`; }).join('')}</div>`)}
+    ${sec(7, 'Budget and other', '', `<div class="ap-two"><div class="inline"><span class="hint" style="margin:0;white-space:nowrap">Max premium $</span><input class="inp" type="number" min="0" step="1" id="apMaxPrem" placeholder="no limit" value="${p.maxPremium ?? ''}" style="max-width:110px"/><span class="hint" style="margin:0">/mo</span></div>
+      <div class="toggles"><label class="tg"><input type="checkbox" data-ap-flag="veteran" ${p.veteran ? 'checked' : ''}/> Veteran</label><label class="tg"><input type="checkbox" data-ap-flag="vaDrugCoverage" ${p.vaDrugCoverage ? 'checked' : ''}/> Drugs via VA</label><label class="tg"><input type="checkbox" data-ap-flag="costco" ${p.costco ? 'checked' : ''}/> Costco member</label><label class="tg"><input type="checkbox" data-ap-flag="dentalImplants" ${p.dentalImplants ? 'checked' : ''}/> Needs implants</label></div></div>`)}
+    </div>
+    <div class="ap-bar" id="apBar"></div>`;
+  if (keep && parts === 'bar') { $('apBar').innerHTML = apptBarHtml(); $('apNet').innerHTML = apptNetLine(p.medicalGroup, 'group') + apptNetLine(p.hospital, 'hospital'); return; }
+  openModal(html);
+  $('apBar').innerHTML = apptBarHtml();
+  if (keep) box.scrollTop = y;
+}
+function apptBarHtml() {
+  const rs = S.result ? S.result.results : [], top = rs[0], p = S.profile;
+  const started = !!(p.county || p.conditions.length || p.medicalGroup || hasDrugs(p) || Object.keys(p.priorities).length || p.mediCal !== 'unknown');
+  if (!started) return `<div class="ap-count"><b>${S.data.plans.length}</b> plans in the workbook — start with the county.</div>`;
+  const second = rs[1];
+  return `<div class="ap-count"><b>${rs.length}</b> plan${rs.length === 1 ? '' : 's'} fit${p.county ? ' in ' + countyName(p.county) : ''}${S.result.excluded.length ? ` · ${S.result.excluded.length} ruled out` : ''}</div>
+    ${top ? `<div class="ap-top"><span class="k">Best fit</span> <b>${esc(top.plan.name)}</b> <span class="hint" style="margin:0">fit ${Math.round(top.score)}${top.v.premium === 0 ? ' · $0 premium' : ' · ' + fmt$(top.v.premium) + '/mo'}${top.v.giveback ? ' · ' + fmt$(top.v.giveback) + '/mo back' : ''}${top.v.drugsYear != null ? ' · drugs ≈' + fmt$(top.v.drugsYear) + '/yr' : ''}</span>${second ? `<div class="hint" style="margin:2px 0 0">then ${esc(second.plan.name)} (fit ${Math.round(second.score)})</div>` : ''}</div>` : '<div class="hint" style="margin:0">No plan fits yet — loosen a must-have or check Medi-Cal.</div>'}
+    <div class="row" style="margin-top:6px">
+      <button class="btn primary small" id="apSeePlans">See the ${Math.min(rs.length, 10) || ''} plans</button>
+      ${top ? `<button class="btn gold small" data-member="${top.plan.idx}">Member card for #1</button>` : ''}
+      ${rs.length >= 2 ? `<button class="btn small" id="apCompare">Compare top ${Math.min(3, rs.length)}</button>` : ''}
+      <button class="btn small" id="apReset">Start over</button>
+    </div>`;
+}
+/* Drugs typed in the appointment: same rules as Prescriptions (doses, several names, unknown brands count as Tier 3). */
+function apptAddDrugs(nm) {
+  const p = S.profile;
+  let found = drugsIn(nm, true).map(d => ({name: d[0], tier: d[1], price: d[2]}));
+  const bare = nm.replace(/\s+\d[\d.,/]*\s*(?:mg|mcg|units?|unidades|ml|iu)?\b.*$/i, '').trim() || nm;
+  if (!found.length) { const d = findDrug(nm) || findDrug(bare); found = d ? [{name: d[0], tier: d[1], price: d[2]}] : [{name: bare.slice(0, 60), tier: '3', price: TIER_PRICE[3], unknown: true}]; }
+  for (const f of found) {
+    const had = (p.drugs || []).some(x => lc(x.name) === lc(f.name));
+    p.drugs = (p.drugs || []).filter(x => lc(x.name) !== lc(f.name)).concat({name: f.name, tier: f.tier, price: f.price, manual: true});
+    if (!had && ['3', '4', '5'].includes(String(f.tier)) && (p.tier3 || 0) > 0) p.tier3--;
+    if (f.tier === 'insulin') { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
+    const c = DRUG_COND[f.name]; if (c && !p.conditions.includes(c)) p.conditions.push(c);
+  }
+  p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
+}
+$('modalBody').addEventListener('click', e => {
+  if (!$('apBar')) return;
+  const t = e.target, p = S.profile;
+  const co = t.closest('[data-ap-county]'); if (co) { apptApply(x => { x.county = x.county === co.dataset.apCounty ? '' : co.dataset.apCounty; }); return; }
+  const md = t.closest('[data-ap-medi]'); if (md) { apptApply(x => { x.mediCal = md.dataset.apMedi; }); return; }
+  const cd = t.closest('[data-ap-cond]'); if (cd) { apptApply(x => { const id = cd.dataset.apCond; x.conditions = x.conditions.includes(id) ? x.conditions.filter(c => c !== id) : x.conditions.concat(id); }); return; }
+  const pr = t.closest('[data-ap-pri]'); if (pr) { apptApply(x => { const id = pr.dataset.apPri, lv = x.priorities[id] || 0; if (lv >= 3) delete x.priorities[id]; else x.priorities[id] = lv >= 2 ? 3 : 2; }); return; }
+  const t3 = t.closest('[data-ap-tier3]'); if (t3) { apptApply(x => { x.tier3 = +t3.dataset.apTier3; }); return; }
+  const dr = t.closest('[data-ap-drop]'); if (dr) { apptApply(x => { const d = effectiveDrugs(x)[+dr.dataset.apDrop]; if (!d) return; if (d.placeholder === 'tier3') x.tier3 = Math.max(0, (x.tier3 || 0) - 1); else if (d.placeholder === 'insulin') x.insulin = false; else { x.drugs = (x.drugs || []).filter(y => lc(y.name) !== lc(d.name)); if (d.tier === 'insulin' && !x.drugs.some(y => y.tier === 'insulin')) x.insulin = false; } }); return; }
+  if (t.id === 'apDrugAdd') { const nm = T($('apDrug').value); if (!nm) { $('apDrug').focus(); return; } apptApply(x => apptAddDrugs(nm)); const f = $('apDrug'); if (f) f.focus(); return; }
+  const nw = t.closest('[data-ap-networks]'); if (nw) { backFrom('Appointment', () => renderAppointment(false)); showNetworks(nw.dataset.apNetworks, nw.dataset.kind); return; }
+  if (t.id === 'apSeePlans') { addRecent($('clientText').value.trim()); closeModal(); if (isPhone()) setTab('plans'); return; }
+  if (t.id === 'apCompare') { backFrom('Appointment', () => renderAppointment(false)); showCompare(S.result.results.slice(0, 3).map(r => r.plan)); return; }
+  if (t.id === 'apReset') { $('newClient').click(); renderAppointment(true); return; }
+  const mb = t.closest('[data-member]'); if (mb) { backFrom('Appointment', () => renderAppointment(false)); showMemberCard(+mb.dataset.member); return; }
+});
+$('modalBody').addEventListener('change', e => {
+  if (!$('apBar')) return;
+  const t = e.target;
+  if (t.dataset.apFlag) { apptApply(x => { x[t.dataset.apFlag] = t.checked; if (t.dataset.apFlag === 'insulin' && t.checked && !x.conditions.includes('diabetes')) x.conditions.push('diabetes'); }, t.dataset.apFlag === 'keepDoctor' ? 'bar' : undefined); return; }
+  if (t.id === 'apGroup') { apptApply(x => { x.medicalGroup = T(t.value); }, 'bar'); return; }
+  if (t.id === 'apHosp') { apptApply(x => { x.hospital = T(t.value); }, 'bar'); return; }
+  if (t.id === 'apMaxPrem') { apptApply(x => { x.maxPremium = t.value === '' ? null : Math.max(0, +t.value); }, 'bar'); return; }
+});
+$('modalBody').addEventListener('keydown', e => {
+  if (!$('apBar') || e.key !== 'Enter') return;
+  if (e.target.id === 'apDrug') { e.preventDefault(); $('apDrugAdd').click(); }
+  else if (['apGroup', 'apHosp', 'apMaxPrem'].includes(e.target.id)) { e.preventDefault(); e.target.blur(); }
+});
+
+/* ═══════════════ MEMBER CARD — "why this plan", in the member's words ═══════════════ */
+function showMemberCard(idx, lang) {
+  if (lang) { AP.lang = lang; store.set(STORE.lang, lang); }
+  const es = AP.lang === 'es', t = (en, sp) => es ? sp : en;
+  const plan = S.data.plans[idx], p = S.profile, n = plan.n, f = plan.fields;
+  const r = S.result.results.find(x => x.plan.idx === idx) || {plan, v: planValues(plan, p), fit: [], warn: [], verify: [], net: networkStatus(plan, p, S.data, S.notes), hosp: networkStatus(plan, p, S.data, S.notes, p.hospital, 'hospital'), drugs: drugEstimate(plan, p), score: null};
+  const v = r.v, rank = S.result.results.findIndex(x => x.plan.idx === idx) + 1;
+  const money = x => x == null ? '—' : fmt$(x);
+  const raw = s => T(s) ? `<span class="mc-raw">${esc(shortTxt(s, 140))}</span>` : '';
+  const yn = (ok, en, sp, unk) => ok === 'in' ? `<span class="mc-ok">✓ ${t(en, sp)}</span>` : ok === 'out' ? `<span class="mc-no">✕ ${t('not in network', 'fuera de la red')}</span>` : `<span class="mc-unk">? ${t(unk, 'por confirmar')}</span>`;
+  const lines = [];
+  const L = (k, val, note) => lines.push(`<div class="mc-line"><div class="mc-k">${k}</div><div class="mc-v">${val}${note ? `<div class="hint" style="margin:2px 0 0">${note}</div>` : ''}</div></div>`);
+  L(t('Monthly premium', 'Prima mensual'), v.premium === 0 ? `<b>$0</b>` : `<b>${money(v.premium)}</b>`, p.mediCal === 'full' && n.premium !== v.premium ? t('with Medi-Cal', 'con Medi-Cal') : '');
+  if (v.giveback > 0) L(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), `<b>${money(v.giveback)}/${t('mo', 'mes')}</b> · ${money(v.giveback * 12)}/${t('yr', 'año')}`, t('added back to your Social Security check', 'se le regresa en su cheque del Seguro Social'));
+  else if ((p.priorities.giveback || 0) > 0 && p.mediCal !== 'full') L(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), t('none on this plan', 'no en este plan'));
+  if (p.medicalGroup) L(t('Your doctor', 'Su doctor'), `${esc(p.medicalGroup)} — ${yn(r.net && r.net.status, 'in network', 'en la red', 'check with the plan')}`, r.net && r.net.source ? esc(r.net.source) : '');
+  else L(t('Your doctor', 'Su doctor'), t('we will confirm your doctors are in the network', 'confirmaremos que sus doctores estén en la red'));
+  if (p.hospital) L(t('Your hospital', 'Su hospital'), `${esc(p.hospital)} — ${yn(r.hosp && r.hosp.status, 'in network', 'en la red', 'check with the plan')}`);
+  L(t('Doctor visits', 'Visitas al doctor'), `${t('Primary', 'Primario')} <b>${money(n.pcp)}</b> · ${t('Specialist', 'Especialista')} <b>${money(n.spec)}</b>`);
+  L(t('Hospital stay', 'Hospitalización'), n.inpatient5 == null ? raw(f['Inpatient Hospital']) : `<b>${n.inpatient5 === 0 ? '$0' : t(`about ${money(n.inpatient5)} for a 5-day stay`, `unos ${money(n.inpatient5)} por 5 días`)}</b>`, es ? '' : '');
+  L(t('Most you pay in a year', 'Lo máximo que paga al año'), `<b>${money(v.moop)}</b>`, t('for covered medical care (not drugs)', 'por atención médica cubierta (no medicinas)'));
+  const dl = effectiveDrugs(p);
+  if (n.noPartD) L(t('Your medicines', 'Sus medicinas'), p.vaDrugCoverage ? t('through the VA — this plan has no drug coverage', 'por el VA — este plan no cubre medicinas') : `<span class="mc-no">${t('this plan has no drug coverage', 'este plan no cubre medicinas')}</span>`);
+  else if (dl.length && r.drugs) L(t('Your medicines', 'Sus medicinas'), `<b>≈${money(r.drugs.yearly)}/${t('yr', 'año')}</b> ${t('estimate', 'estimado')}`, esc(r.drugs.text) + (r.drugs.lis ? '' : '') + ` · ${t('we will check each one on the plan\'s drug list', 'revisaremos cada una en la lista del plan')}`);
+  else L(t('Medicines', 'Medicinas'), `${t('Drug deductible', 'Deducible')} <b>${money(n.rxDeductible)}</b> · ${t('brand (Tier 3)', 'marca (Nivel 3)')} ${esc(n.tier3Text || '—')}${p.insulin || p.conditions.includes('diabetes') ? ` · ${t('insulin', 'insulina')} <b>${n.insulin === 0 ? '$0' : money(n.insulin) + '/' + t('mo', 'mes')}</b>` : ''}`);
+  const ben = [['Dental', 'Dental', 'dental'], ['Vision', 'Visión', 'vision'], ['Hearing', 'Audición', 'hearing'], ['Transportation', 'Transporte', 'rides'], ['Worldwide Emergency Coverage', 'Emergencias al viajar', 'travel'], ['Fitness Benefit', 'Gimnasio', 'fitness'], ['Acupuncture', 'Acupuntura', 'acupuncture'], ['Chiropractic', 'Quiropráctico', 'chiro']];
+  const cardTxt = cardText(plan);
+  if (v.card || (p.priorities.otc || 0) > 0) L(t('Benefits card', 'Tarjeta de beneficios'), v.card ? `<b>≈${money(v.card)}/${t('yr', 'año')}</b> ${raw(cardTxt)}` : t('none on this plan', 'no en este plan'));
+  for (const [key, esk, pid] of ben) {
+    const want = (p.priorities[pid] || 0) > 0, txt = T(f[key]);
+    if (!txt && !want) continue;
+    if (['dental', 'vision', 'hearing', 'rides'].includes(pid) || want) L(t(key, esk) + (want ? ' ★' : ''), txt ? raw(txt) : t('not listed', 'no aparece'));
+  }
+  const conf = [];
+  if (!p.medicalGroup || !(r.net && r.net.status === 'in')) conf.push(t('Your doctors and specialists are in the network.', 'Que sus doctores y especialistas estén en la red.'));
+  if (p.hospital && !(r.hosp && r.hosp.status === 'in')) conf.push(t(`${p.hospital} is in the network.`, `Que ${p.hospital} esté en la red.`));
+  if (dl.length) conf.push(t('Each medicine is on the plan\'s drug list at the cost shown.', 'Que cada medicina esté en la lista del plan al costo indicado.'));
+  if (n.csnp) conf.push(t('Your doctor confirms the condition for this plan (C-SNP).', 'Que su doctor confirme la condición para este plan (C-SNP).'));
+  if (n.dsnp) conf.push(t('Your Medi-Cal is active and matches this plan.', 'Que su Medi-Cal esté activo y corresponda a este plan.'));
+  for (const w of r.warn.slice(0, 2)) conf.push((es ? '(nota, en inglés) ' : '') + w);
+  const title = `${t('Why', 'Por qué')} ${esc(plan.name)}`;
+  openModal(`<div class="mc" id="memberCard">
+    <div class="mc-head"><div><div class="mc-eyebrow">${t('Plan for', 'Plan para')} ${esc(profileLine(p) || t('this member', 'este miembro'))}</div><h2>${title}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(c => es ? ES_COUNTY[c] : countyName(c)).join(', ')} · <span class="mono">${esc(plan.id)}</span>${rank ? ` · ${t('ranked', 'puesto')} #${rank} ${t('for this member', 'para este miembro')}` : ''}</div></div></div>
+    <div class="row no-print">${backBtn()}<div class="seg" style="width:auto"><button class="${!es ? 'on' : ''}" data-mc-lang="en">English</button><button class="${es ? 'on' : ''}" data-mc-lang="es">Español</button></div>
+      <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button></div>
+    <div class="mc-lines">${lines.join('')}</div>
+    ${conf.length ? `<div class="mc-conf"><b>${t('Before we enroll, we confirm:', 'Antes de inscribir, confirmamos:')}</b><ul>${conf.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
+    <p class="hint">${t('Benefit wording comes from the carrier workbook; amounts are estimates until confirmed with the plan.', 'Los beneficios vienen del libro de la aseguradora (texto en inglés); los montos son estimados hasta confirmarlos con el plan.')}</p>
+  </div>`);
+}
+$('modalBody').addEventListener('click', e => {
+  const card = $('memberCard'); if (!card) return;
+  const lg = e.target.closest('[data-mc-lang]');
+  if (lg) { const idx = S.data.plans.findIndex(x => x.id === card.querySelector('.mono').textContent) ; const keepBack = S.modalBack; showMemberCard(idx >= 0 ? idx : 0, lg.dataset.mcLang); S.modalBack = keepBack; return; }
+  if (e.target.id === 'mcCopy') {
+    const text = [...card.querySelectorAll('h2, .mc-line, .mc-conf li')].map(el => el.classList.contains('mc-line') ? `${el.querySelector('.mc-k').textContent}: ${el.querySelector('.mc-v').textContent.replace(/\s+/g, ' ').trim()}` : el.textContent.trim()).join('\n');
+    const done = () => { e.target.textContent = AP.lang === 'es' ? 'Copiado' : 'Copied'; setTimeout(() => { if ($('mcCopy')) $('mcCopy').textContent = AP.lang === 'es' ? 'Copiar texto' : 'Copy text'; }, 1500); };
+    const fallback = () => { const sel = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(card.querySelector('.mc-lines')); sel.removeAllRanges(); sel.addRange(rg); };
+    try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }
+  }
+});
 
 /* ═══════════════ NETWORKS — which plans take a doctor group or hospital ═══════════════ */
 const NW = {name: '', kind: 'group', county: ''};
