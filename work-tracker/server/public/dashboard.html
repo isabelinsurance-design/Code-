@@ -216,6 +216,7 @@ let error = '';
 let notice = '';
 let needKey = !key;
 let showShort = false;
+let importing = null;     // Nextiva call-history file being imported (Settings tab)
 let newestFirst = true;
 let seq = 0;
 let clockOffset = 0; // server time minus this screen's time, so a TV with a wrong clock still shows correct "min ago"
@@ -339,7 +340,7 @@ function liveLine(l) {
     crm.push(`Last CRM action ${ago(l.crm.at)} (${l.crm.action.replace(/_/g, ' ')})`);
   }
   switch (l.state) {
-    case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : 'Phone call', ...crm]];
+    case 'call': return [`🟢 On call ${since(l.since)}`, [l.direction ? `${l.direction} call` : l.source === 'chrome' ? 'Nextiva call (in Chrome)' : 'Phone call', ...crm]];
     case 'acw': return [`🟢 After-call work ${since(l.since)}`, ['wrapping up the last call', ...crm]];
     case 'working':
       if (l.work === false) return [`🟠 Not work ${since(l.since)}`, [site(l.domain)]];
@@ -534,8 +535,9 @@ function logRow(x) {
   let notes;
   switch (x.state) {
     case 'call':
-      what = `📞 ${x.direction ? cap(x.direction) : 'Phone'} call${x.live ? ' (now)' : ''}`;
-      notes = [x.outcome && x.outcome.replace('-', ' '), x.recordId && `record ${x.recordId}`].filter(Boolean).join(' · ');
+      what = `📞 ${x.direction ? cap(x.direction) : x.source === 'chrome' ? 'Nextiva' : 'Phone'} call${x.live ? ' (now)' : ''}`;
+      notes = x.source === 'chrome' ? 'heard in Nextiva in Chrome'
+        : [x.outcome && x.outcome.replace('-', ' '), x.recordId && `record ${x.recordId}`].filter(Boolean).join(' · ');
       break;
     case 'active':
       what = site(x.domain) || 'Unknown site';
@@ -864,9 +866,214 @@ function settingsView() {
       <div class="panel"><h2>Shifts by person</h2>
         <p class="hint">For anyone whose shift starts at a different time. Saved right away.</p>
         ${people || '<p class="hint">People appear here once their extension connects.</p>'}</div>
+      ${importPanel()}
     </div>
     ${categoriesPanel()}
   </div>`;
+}
+
+// ---------- Nextiva call-history import ----------
+// Calls made in Nextiva in Chrome are picked up live by the extension. Calls in
+// the Nextiva desktop app (or a desk phone) come from Nextiva's call history:
+// Call History → Download CSV. The file is read here in the browser; only the
+// person, start time, length, direction and result are sent, never phone numbers.
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = '';
+  let quoted = false;
+  text = text.replace(/^\ufeff/, '');
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (quoted) {
+      if (ch !== '"') cell += ch;
+      else if (text[i + 1] === '"') { cell += '"'; i++; }
+      else quoted = false;
+    } else if (ch === '"') quoted = true;
+    else if (ch === ',') { row.push(cell); cell = ''; }
+    else if (ch === '\n' || ch === '\r') {
+      if (ch === '\r' && text[i + 1] === '\n') i++;
+      row.push(cell);
+      rows.push(row);
+      row = [];
+      cell = '';
+    } else cell += ch;
+  }
+  if (cell || row.length) rows.push([...row, cell]);
+  return rows.filter(r => r.some(c => c.trim()));
+}
+
+const COLUMNS = [
+  ['when', 'Date and time the call started', true],
+  ['time', 'Time (if it is in its own column)', false],
+  ['duration', 'Duration', true],
+  ['person', 'Person (user, name or extension)', true],
+  ['direction', 'Direction or call type', false],
+  ['result', 'Result or status', false],
+];
+
+function guessColumns(headers) {
+  const find = (...patterns) => {
+    for (const p of patterns) {
+      const i = headers.findIndex(h => p.test(h));
+      if (i >= 0) return i;
+    }
+    return -1;
+  };
+  const when = find(/start.*(date|time)/i, /date.*time|time.*date/i, /^(call )?date$/i, /date/i, /time/i);
+  const time = /time/i.test(headers[when] || '') ? -1 : headers.findIndex((h, i) => i !== when && /^(start )?time$|^time/i.test(h.trim()));
+  return {
+    when,
+    time,
+    duration: find(/duration/i, /length/i, /talk ?time/i, /seconds/i),
+    person: find(/^user ?name$/i, /^user$/i, /user/i, /agent/i, /employee/i, /^name$/i, /extension/i),
+    direction: find(/direction/i, /call ?type/i, /^type$/i),
+    result: find(/result/i, /status/i, /disposition/i, /answer/i),
+  };
+}
+
+function parseDuration(v) {
+  v = String(v || '').trim().toLowerCase();
+  let m;
+  if ((m = v.match(/^(\d+):(\d{1,2}):(\d{1,2})(\.\d+)?$/))) return +m[1] * 3600 + +m[2] * 60 + +m[3];
+  if ((m = v.match(/^(\d+):(\d{1,2})(\.\d+)?$/))) return +m[1] * 60 + +m[2];
+  if (/^\d+(\.\d+)?$/.test(v)) return Math.round(Number(v));
+  const h = v.match(/(\d+)\s*h/);
+  const mi = v.match(/(\d+)\s*m(?!s)/);
+  const se = v.match(/(\d+)\s*s/);
+  return h || mi || se ? (h ? +h[1] * 3600 : 0) + (mi ? +mi[1] * 60 : 0) + (se ? +se[1] : 0) : null;
+}
+
+function callFromRow(row, map) {
+  const text = `${row[map.when] || ''} ${map.time >= 0 ? row[map.time] || '' : ''}`.trim();
+  const start = text.includes(':') ? Date.parse(text) : NaN;
+  const seconds = parseDuration(row[map.duration]);
+  const person = String(row[map.person] || '').trim();
+  if (!Number.isFinite(start) || seconds == null || !person) return null;
+  const d = String(map.direction >= 0 ? row[map.direction] : '').toLowerCase();
+  const both = `${d} ${String(map.result >= 0 ? row[map.result] : '').toLowerCase()}`;
+  const direction = /out|placed|dial/.test(d) ? 'outbound' : /\bin|received|incoming|missed/.test(d) ? 'inbound' : null;
+  const outcome = /miss|no.?answer|unanswered|not answered|abandon/.test(both) ? 'no-answer'
+    : /voice ?mail/.test(both) ? 'voicemail'
+    : /busy/.test(both) ? 'busy'
+    : /fail|error/.test(both) ? 'failed'
+    : /answer|connect|complet|success/.test(both) || seconds > 0 ? 'connected' : 'no-answer';
+  return { person, start, seconds, direction, outcome };
+}
+
+// "Arlet Gomez (1023)" → the tracker's "arlet", when the names line up.
+function matchPerson(label, employees) {
+  const words = label.toLowerCase().split(/[^a-z0-9]+/).filter(Boolean);
+  const hit = employees.find(e => e.id === label.toLowerCase())
+    || employees.find(e => e.id.includes(' ') && e.id.split(' ').every(w => words.includes(w)))
+    || employees.find(e => words[0] === e.id)
+    || employees.find(e => words.includes(e.id));
+  return hit ? hit.id : '';
+}
+
+function readCallFile(file) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    const rows = parseCsv(String(reader.result));
+    // Reports often start with a title or date-range line; the header row is the first one naming a date and a duration.
+    let at = rows.findIndex(r => r.some(c => /date|time/i.test(c)) && r.some(c => /duration|length/i.test(c)));
+    if (at < 0) at = 0;
+    const headers = (rows[at] || []).map(h => h.trim());
+    importing = { name: file.name, headers, rows: rows.slice(at + 1), map: guessColumns(headers), people: {}, result: '' };
+    render();
+  };
+  reader.readAsText(file);
+}
+
+function importPlan() {
+  const { map, rows } = importing;
+  const employees = data.employees;
+  const saved = data.settings.phoneUsers || {};
+  const calls = [];
+  let unreadable = 0;
+  if (COLUMNS.every(([k, , required]) => !required || map[k] >= 0)) {
+    for (const row of rows) {
+      const call = callFromRow(row, map);
+      if (call) calls.push(call);
+      else unreadable++;
+    }
+  } else {
+    unreadable = rows.length;
+  }
+  const labels = {};
+  for (const c of calls) labels[c.person] = (labels[c.person] || 0) + 1;
+  for (const label of Object.keys(labels)) {
+    if (!(label in importing.people)) importing.people[label] = label in saved ? saved[label] : matchPerson(label, employees);
+  }
+  const ready = calls.filter(c => importing.people[c.person]);
+  return { calls, ready, labels, unreadable };
+}
+
+function importPanel() {
+  const intro = `<div class="panel"><h2>Nextiva call history</h2>
+    <p class="hint">Calls made in Nextiva in Chrome show up live by themselves. To add calls made in the Nextiva desktop app,
+      download the call history from Nextiva and import it here: Nextiva admin dashboard → Call History → pick the dates →
+      Download CSV. Importing the same file again is safe. Phone numbers in the file are not saved.</p>
+    <label class="btn">Choose CSV file…<input type="file" id="callFile" accept=".csv,text/csv" hidden></label>`;
+  if (!importing) return `${intro}</div>`;
+  const { headers, map, rows } = importing;
+  const sample = i => (rows[0] && rows[0][i] ? ` (e.g. ${rows[0][i].slice(0, 24)})` : '');
+  const columns = COLUMNS.map(([k, label, required]) => `<label for="col-${k}">${label}</label>
+    <select id="col-${k}" data-col="${k}">${required ? '' : '<option value="-1">— none —</option>'}
+      ${map[k] < 0 && required ? '<option value="-1" selected>Pick a column…</option>' : ''}
+      ${headers.map((h, i) => `<option value="${i}" ${map[k] === i ? 'selected' : ''}>${esc(h || `Column ${i + 1}`)}${esc(sample(i))}</option>`).join('')}</select>`).join('');
+  const plan = importPlan();
+  const names = Object.entries(plan.labels).sort((a, b) => b[1] - a[1]);
+  const options = id => `<option value="">Skip</option>${data.employees.map(e => `<option value="${esc(e.id)}" ${id === e.id ? 'selected' : ''}>${esc(e.name)}</option>`).join('')}`;
+  const skipped = plan.calls.length - plan.ready.length;
+  return `${intro}
+    <p class="note" style="margin-top:10px">${esc(importing.name)} · ${rows.length} rows</p>
+    <h3 class="sec">Columns</h3>
+    <div class="form">${columns}</div>
+    ${names.length ? `<h3 class="sec">Who is who</h3>
+      <p class="hint">Match each Nextiva user to a person on the board. Remembered for next time.</p>
+      ${names.map(([label, n]) => `<div class="row"><span class="dom">${esc(label)} <span class="t">· ${n} call${n === 1 ? '' : 's'}</span></span>
+        <select data-person="${esc(label)}">${options(importing.people[label])}</select></div>`).join('')}` : ''}
+    ${plan.ready.length ? `<h3 class="sec">Preview</h3><div class="tablewrap"><table>
+      <tr><th>Person</th><th>Started</th><th class="n">Length</th><th>Direction</th><th>Result</th></tr>
+      ${plan.ready.slice(0, 5).map(c => `<tr><td>${esc(data.employees.find(e => e.id === importing.people[c.person]).name)}</td>
+        <td class="when">${esc(new Date(c.start).toLocaleString([], { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' }))}</td>
+        <td class="n">${len(c.seconds)}</td><td>${esc(c.direction || '–')}</td><td>${esc(c.outcome.replace('-', ' '))}</td></tr>`).join('')}
+    </table></div>` : ''}
+    <p class="note" style="margin-top:10px">${plan.ready.length} calls ready${skipped ? ` · ${skipped} skipped (person not matched)` : ''}${plan.unreadable ? ` · ${plan.unreadable} row${plan.unreadable === 1 ? '' : 's'} without a readable date, duration or person` : ''}.
+      Times are read in this computer's time zone.</p>
+    <div style="margin-top:12px"><button class="btn primary" data-import ${plan.ready.length && !importing.busy ? '' : 'disabled'}>Import ${plan.ready.length} calls</button>
+      <button class="btn" data-import-cancel>Cancel</button>${importing.result ? `<span class="saved">${esc(importing.result)}</span>` : ''}</div>
+  </div>`;
+}
+
+async function runImport() {
+  const plan = importPlan();
+  const names = Object.fromEntries(data.employees.map(e => [e.id, e.name]));
+  const calls = plan.ready.map(c => ({
+    employee: names[importing.people[c.person]],
+    callId: `nextiva:${c.start}:${c.seconds}`,
+    startedAt: c.start,
+    durationSeconds: c.seconds,
+    direction: c.direction,
+    outcome: c.outcome,
+  }));
+  importing.busy = true;
+  importing.result = 'Importing…';
+  render();
+  try {
+    for (let i = 0; i < calls.length; i += 500) {
+      await api('api/calls', { method: 'POST', body: JSON.stringify({ calls: calls.slice(i, i + 500) }) });
+    }
+    const phoneUsers = { ...data.settings.phoneUsers, ...importing.people };
+    data.settings = await api('api/settings', { method: 'PUT', body: JSON.stringify({ ...data.settings, phoneUsers }) });
+    importing.result = `✓ ${calls.length} calls imported. They now count in Live, the activity logs and Reports.`;
+  } catch (err) {
+    importing.result = err.message === 'unauthorized' ? '' : `Couldn't import: ${err.message}`;
+  }
+  importing.busy = false;
+  render();
 }
 
 async function saveCats(next) {
@@ -972,6 +1179,11 @@ document.addEventListener('click', ev => {
     range = null;
     render();
     refresh();
+  } else if (el.dataset.import !== undefined) {
+    runImport();
+  } else if (el.dataset.importCancel !== undefined) {
+    importing = null;
+    render();
   } else if (el.dataset.csv) {
     exportCsv(el.dataset.csv);
   } else if (el.dataset.print !== undefined) {
@@ -1003,6 +1215,14 @@ document.addEventListener('change', ev => {
   } else if (el.id === 'showShort' || el.id === 'newestFirst') {
     if (el.id === 'showShort') showShort = el.checked;
     else newestFirst = el.checked;
+    render();
+  } else if (el.id === 'callFile' && el.files[0]) {
+    readCallFile(el.files[0]);
+  } else if (el.dataset.col) {
+    importing.map[el.dataset.col] = Number(el.value);
+    render();
+  } else if (el.dataset.person !== undefined && importing) {
+    importing.people[el.dataset.person] = el.value;
     render();
   } else if (el.dataset.shiftmode) {
     const people = { ...data.settings.people };

@@ -55,6 +55,7 @@ const DEFAULT_CATEGORIES = {
     { name: 'Carrier portals', work: true },
     { name: 'Medicare', work: true },
     { name: 'Email/Calendar', work: true },
+    { name: 'Phone', work: true },
     { name: 'Other approved work', work: true },
     { name: 'Other apps (outside Chrome)', work: true },
     { name: 'Not work', work: false },
@@ -66,6 +67,7 @@ const DEFAULT_CATEGORIES = {
     'medicare.gov': 'Medicare',
     'mail.google.com': 'Email/Calendar',
     'calendar.google.com': 'Email/Calendar',
+    'nextiva.com': 'Phone',
     'youtube.com': 'Not work',
     '(outside chrome)': 'Other apps (outside Chrome)',
     '(browser)': 'Other approved work',
@@ -87,6 +89,7 @@ const DEFAULT_SETTINGS = {
   offlineAlertMinutes: 15,
   nudges: true,                 // the extension reminds the employee too
   people: {},                   // per-employee shift: { "arlet": { "shiftStart": "08:00" } }
+  phoneUsers: {},               // call-history import: { "Arlet Gomez (1023)": "arlet" }, "" = skip
 };
 
 function minutesFromEnv(name, fallback) {
@@ -289,6 +292,34 @@ function addLogEntry(id, name, entry, skew) {
   changed(`days/${date}.json`);
 }
 
+// A call the extension heard in Nextiva's Chrome tab, from start to end.
+function addChromeCall(name, c, skew) {
+  if (!c || typeof c.id !== 'string') return;
+  const from = Math.round(Number(c.from) + skew);
+  const to = Math.round(Number(c.to) + skew);
+  if (!(from > 1e12 && to > from && to - from <= STALE_CALL_MS && to <= Date.now() + 60000)) return;
+  ingestCall({ employee: name, callId: `chrome:${c.id.slice(0, 64)}`, startedAt: from, endedAt: to, outcome: 'connected' }, 'chrome');
+}
+
+// While the extension hears a call, the board shows "On call". A call reported
+// by the phone system itself (POST /api/calls) always wins.
+function updateChromeCall(id, name, call, at) {
+  const info = liveDoc()[id];
+  const current = info && info.call;
+  const startedAt = call && typeof call.id === 'string' ? at(call.startedAt) : null;
+  if (startedAt && (!current || current.source === 'chrome')) {
+    const callId = `chrome:${call.id.slice(0, 64)}`;
+    if (current && current.id === callId) return;
+    const live = (liveDoc()[id] ||= {});
+    live.name = name;
+    live.call = { id: callId, startedAt, direction: null, contact: null, source: 'chrome' };
+    changed('live.json');
+  } else if (!startedAt && current && current.source === 'chrome') {
+    info.call = null;
+    changed('live.json');
+  }
+}
+
 function updateStatus(id, name, st, skew, version) {
   if (!st || !MODES.includes(st.mode)) return;
   const at = v => (Number.isFinite(v) && v > 1e12 ? v + skew : null);
@@ -308,6 +339,7 @@ function updateStatus(id, name, st, skew, version) {
   };
   statusDoc()[id] = status;
   changed('status.json');
+  updateChromeCall(id, name, st.call, at);
 
   if (status.day && (status.clockIn || status.clockOut)) {
     const emp = employeeOn(status.day, id, name);
@@ -332,6 +364,7 @@ function ingestActivity(body) {
     if (rememberId(batch.id)) {
       for (const item of Array.isArray(batch.items) ? batch.items.slice(0, 2000) : []) addItem(id, name, item);
       for (const entry of Array.isArray(batch.log) ? batch.log.slice(0, 2000) : []) addLogEntry(id, name, entry, skew);
+      for (const call of Array.isArray(batch.calls) ? batch.calls.slice(0, 200) : []) addChromeCall(name, call, skew);
     }
     accepted.push(batch.id); // already-stored batches are acknowledged, not re-counted
   }
@@ -394,7 +427,8 @@ function nudgeFor(r, settings, now) {
 
 // A call is posted once when it starts (no endedAt) and again when it ends, or
 // only once when it ends. Re-posting the same callId updates it, never duplicates it.
-function ingestCall(c) {
+// source 'chrome' = heard by the extension in Nextiva's Chrome tab (see effectiveCalls).
+function ingestCall(c, source = null) {
   const name = cleanName(c && c.employee);
   const callId = cleanLabel(c && c.callId);
   const start = parseTime(c && c.startedAt);
@@ -425,6 +459,7 @@ function ingestCall(c) {
       outcome: OUTCOMES[String(c.outcome || '').toLowerCase()] || null,
       direction: cleanDirection(c.direction),
       recordId: cleanLabel(c.recordId),
+      ...(source && { source }),
     };
     if (known) Object.assign(known, record);
     else if (emp.calls.length < 3000) emp.calls.push(record);
@@ -490,6 +525,14 @@ function prune() {
 }
 
 // ---------- merging browser time with calls ----------
+
+// The same call can arrive twice: heard in Chrome, and later from the phone
+// system or a Nextiva call-history import. The phone system's record wins.
+function effectiveCalls(calls) {
+  const reported = calls.filter(c => c.source !== 'chrome');
+  if (!reported.length) return calls;
+  return calls.filter(c => c.source !== 'chrome' || !reported.some(r => r.start < c.end && r.end > c.start));
+}
 
 function mergeIntervals(list) {
   const out = [];
@@ -566,7 +609,7 @@ function live(st, info, lookup, now) {
   const call = info && info.call && now - info.call.startedAt < STALE_CALL_MS ? info.call : null;
   const crm = info && info.crm ? { action: info.crm.action, at: info.crm.at, record: info.crm.record } : null;
   const base = { day: st && st.day, lastSeen: st ? st.lastSeen : null, lastActiveAt: st && st.lastActiveAt, version: st && st.version, crm };
-  if (call) return { ...base, state: 'call', since: call.startedAt, contact: call.contact, direction: call.direction };
+  if (call) return { ...base, state: 'call', since: call.startedAt, contact: call.contact, direction: call.direction, source: call.source || null };
   if (!st || now - st.lastSeen > OFFLINE_AFTER_MS) return { ...base, state: 'offline' };
   if (st.mode === 'off') return { ...base, state: 'off', since: st.clockOut };
   if (st.mode !== 'work') return { ...base, state: st.mode, since: st.modeSince };
@@ -588,6 +631,7 @@ function live(st, info, lookup, now) {
 }
 
 function employeeReport(id, emp, st, info, cats, lookup, date, now) {
+  emp = { ...emp, calls: effectiveCalls(emp.calls) };
   const phone = phoneTime(emp, info, date, now);
   const acc = { call: 0, wrap: 0, work: 0, nonWork: 0, unreviewed: 0, meeting: 0, idle: 0, away: 0, lunch: 0, break: 0 };
   const byCategory = {};
@@ -804,10 +848,10 @@ function personReport(date, id) {
       return { from, to, state, domain, category: category && category.name, work: category ? category.work : null };
     })
     .sort((a, b) => a.from - b.from);
-  const calls = emp.calls.map(c => ({ from: c.start, to: c.end, outcome: c.outcome, direction: c.direction, recordId: c.recordId }));
+  const calls = effectiveCalls(emp.calls).map(c => ({ from: c.start, to: c.end, outcome: c.outcome, direction: c.direction, recordId: c.recordId, source: c.source || null }));
   const [dayStart, dayEnd] = dayBounds(date);
   if (r.live.state === 'call' && r.live.since < dayEnd && now > dayStart) {
-    calls.push({ from: r.live.since, to: now, live: true, direction: r.live.direction });
+    calls.push({ from: r.live.since, to: now, live: true, direction: r.live.direction, source: r.live.source });
   }
   calls.sort((a, b) => a.from - b.from);
   return { date, serverTime: now, afterCallMs: AFTER_CALL_MS, employee: r, log, calls };
@@ -955,6 +999,11 @@ function saveSettings(body) {
     const start = own ? time(own.shiftStart) : null;
     if (key && start !== null) next.people[key] = { shiftStart: start };
   }
+  next.phoneUsers = {};
+  for (const [label, id] of Object.entries(body.phoneUsers || {}).slice(0, 1000)) {
+    const key = cleanLabel(label);
+    if (key && typeof id === 'string') next.phoneUsers[key] = cleanName(id).toLowerCase();
+  }
   cache.set('settings.json', next);
   changed('settings.json');
   return settingsDoc();
@@ -1024,8 +1073,8 @@ const server = http.createServer(async (req, res) => {
         requireKey(req, url, 'tracker');
         return send(res, 200, ingestActivity(await readBody(req)));
       case 'POST /api/calls':
-        requireKey(req, url, 'integration');
-        return send(res, 200, many(await readBody(req), 'calls', ingestCall));
+        requireKey(req, url, 'integration', 'admin'); // admin: the dashboard's call-history import
+        return send(res, 200, many(await readBody(req), 'calls', c => ingestCall(c)));
       case 'POST /api/crm-events':
         requireKey(req, url, 'integration');
         return send(res, 200, many(await readBody(req), 'events', ingestCrmEvent));

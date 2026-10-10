@@ -10,7 +10,8 @@ const ago = t => {
   return minutes < 1 ? 'just now' : `${minutes} min ago`;
 };
 
-function describe(s) {
+function describe(s, phone) {
+  if (phone && phone.call) return ['📞 On a call', `Nextiva · since ${clock(phone.call.from)}`];
   if (s.mode === 'off') return ['⏹ Clocked out', s.clockOut ? `at ${clock(s.clockOut)}` : ''];
   if (s.mode === 'lunch') return ['🍴 At lunch', `since ${clock(s.modeSince)}`];
   if (s.mode === 'break') return ['☕ On break', `since ${clock(s.modeSince)}`];
@@ -23,11 +24,11 @@ function describe(s) {
 }
 
 async function render(s) {
-  const { config = {}, lastSync, outbox = [], me } = await chrome.storage.local.get(['config', 'lastSync', 'outbox', 'me']);
+  const { config = {}, lastSync, outbox = [], me, phone } = await chrome.storage.local.get(['config', 'lastSync', 'outbox', 'me', 'phone']);
   $('who').textContent = config.employee || 'Work Tracker';
   $('setup').hidden = Boolean(config.serverUrl && config.employee);
 
-  const [state, site] = describe(s);
+  const [state, site] = describe(s, phone);
   $('state').textContent = state;
   $('site').textContent = site;
 

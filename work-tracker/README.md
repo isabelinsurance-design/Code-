@@ -58,6 +58,9 @@ A sleeping computer or a closed Chrome shows as "unaccounted".
 - The extension records only the hostname, when it was in front (start and end time) and the active/idle/locked state.
   **Never** full URLs or page titles (carrier URLs and titles can contain member IDs and names), page contents,
   screenshots, passwords, Medicare numbers or keystrokes.
+- On Nextiva's page (NextivaONE in Chrome) the extension checks only whether a call's audio connection is open, to
+  time calls. No phone numbers, names or audio. The call-history import sends only the person, start time, length,
+  direction and result, never phone numbers.
 - The employee sees their own working time, productivity and calls in the extension popup, counted the same way as
   the dashboard.
 - Member or prospect names from the phone system and CRM are shown live on the manager's dashboard
@@ -128,13 +131,47 @@ Open the dashboard link on the office TV and click **📺 TV mode**, or bookmark
 
 **Updating from an earlier version:** copy the new `extension` folder over the old one and click the ↻ reload icon on
 the extension in `chrome://extensions`. Version 1.2 adds the minute-by-minute activity log and reminders (it asks for
-the *notifications* permission). Days recorded before the update still have all the totals, just no activity log.
+the *notifications* permission). Version 1.3 notices Nextiva calls made in Chrome (it asks to run on nextiva.com).
+Days recorded before an update keep all their totals.
 
 If someone removes or disables the extension, their card turns **🔴 Offline**, unless they're on a call.
 To stop employees from removing it, force-install it with Google Admin / Chrome Enterprise policy
 (`ExtensionInstallForcelist`). That requires publishing it as a private Chrome Web Store item.
 
-## 3. Connect the phone system and CRM
+## 3. Nextiva calls
+
+Chrome can't hear phone calls by itself, so calls reach the tracker in up to three ways. All of them can be used together:
+a call reported twice (for example heard in Chrome, then imported) counts once.
+
+| How the agent calls | How the tracker finds out | Live "On call"? |
+|---|---|---|
+| **NextivaONE in a Chrome tab** | The extension notices automatically. Nothing to set up | ✓ |
+| **Nextiva desktop app** or desk phone | Import Nextiva's call history (below) | ✗, added to the day afterwards |
+| Any, once Nextiva turns on its live API | A small connector (not built yet; see "Live calls from Nextiva") | ✓ |
+
+**NextivaONE in Chrome.** Extension 1.3 watches Nextiva's page (`*.nextiva.com`) for one thing only: whether a call's
+audio connection is open. When it opens, the card turns **🟢 On call** within seconds. When the agent hangs up, the call
+is saved with its start and end time, and the next 5 minutes of CRM activity count as after-call work. No phone numbers,
+names or audio are read. If that ever stops working (for example, Nextiva changes its app), the extension falls back to
+listening for sound: the Nextiva tab playing sound for 6+ seconds is a call, which ends after 45 seconds of silence.
+For live tracking, the simplest rule for the team is **make and take calls in NextivaONE in Chrome**.
+
+**Nextiva desktop app: import the call history.** In the Nextiva admin dashboard open **Call History**, pick the dates
+(all users), and **Download CSV**. On the tracker's **Settings** tab, under **Nextiva call history**, choose the file:
+- The columns are matched automatically (date/time, duration, user, direction, result). Change any that are wrong.
+- Match each Nextiva user to a person on the board once; it's remembered for the next import.
+- Click **Import**. The calls appear in Live, the activity logs and Reports, with talk time replacing idle time.
+  Importing the same file again is safe. Phone numbers in the file are not sent to the server.
+
+A weekly import before running payroll reports is enough. Daily is better if you watch handle time.
+
+**Live calls from Nextiva (optional, later).** Nextiva's phone system can send live call events (start, answer, hang-up)
+through Cisco BroadWorks *Xsi-Events*, but Nextiva only turns it on through your account representative, who brings in a
+Solution Engineer. Nextiva's regular support doesn't handle it. Ask for: *"Xsi-Events access to receive call events for our
+users in a third-party application."* Once it's on, a connector can feed those events into `POST /api/calls` below and
+every call is live, including the desktop app and desk phones.
+
+## 4. Connect other phone systems and the CRM
 
 Send JSON with header `X-Integration-Key: <integration key>`. Webhooks that can't set headers can add
 `?key=<integration key>` to the URL instead. Times can be ISO strings, epoch milliseconds or epoch seconds.
@@ -170,7 +207,7 @@ list: `{"calls": [...]}` / `{"events": [...]}`.
 **Counters** (set a number directly, e.g. from a nightly report):
 `POST /api/counters` `{ "employee": "Arlet", "date": "2026-10-07", "counters": { "Applications": 2 } }`
 
-## 4. Categories
+## 5. Categories
 
 Categories are set on the server, never in the extension. On the dashboard (normal mode, not TV mode):
 
@@ -185,8 +222,8 @@ Changes apply immediately, to past days too.
 
 | Endpoint | Key | Purpose |
 |---|---|---|
-| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}], log:[{from, to, domain, state}]}]}`. Answers with the employee's own numbers (`me`) and a reminder (`nudge`) when one is due |
-| `POST /api/calls` | integration | Call start / end (above) |
+| `POST /api/activity` | tracker | Extension upload: `{employee, version, sentAt, status, batches:[{id, items:[{date, slot, domain, state, seconds}], log:[{from, to, domain, state}], calls:[{id, from, to}]}]}`. `status.call` is the call going on now, if any. Answers with the employee's own numbers (`me`) and a reminder (`nudge`) when one is due |
+| `POST /api/calls` | integration or admin | Call start / end (above). The dashboard's Nextiva import uses it with the admin key |
 | `POST /api/crm-events` | integration | CRM actions (above) |
 | `POST /api/counters` | integration or admin | Set counters on a card |
 | `GET /api/ping` | tracker or integration | Connection test |

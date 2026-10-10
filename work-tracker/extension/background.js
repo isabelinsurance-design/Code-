@@ -6,9 +6,12 @@
 // along with an activity log: each unbroken stretch on one site (or idle,
 // lunch…) with its start and end time.
 //
+// Phone calls made in Nextiva's Chrome tab are noticed too (see "phone calls" below).
+//
 // Privacy: only the site's hostname (e.g. "humana.com") and times are stored
 // or sent. Never the full URL, page titles, page contents, form fields or
 // keystrokes; URLs and titles on carrier portals can contain member data.
+// For calls, only start and end times: no numbers, names or audio.
 
 const VERSION = chrome.runtime.getManifest().version;
 const TICK_MINUTES = 1;              // heartbeat + upload cadence
@@ -157,7 +160,7 @@ function showBadge(s, config) {
 }
 
 // What the dashboard shows live. Off the clock, at lunch or in a meeting, the current site is not shared.
-function liveStatus(s) {
+function liveStatus(s, phone) {
   if (!s) return null;
   const working = s.mode === 'work';
   return {
@@ -170,31 +173,161 @@ function liveStatus(s) {
     clockIn: s.clockIn,
     clockOut: s.clockOut,
     lastActiveAt: s.lastActiveAt,
+    call: phone && phone.call ? { id: phone.call.id, startedAt: phone.call.from } : null,
   };
+}
+
+// ---------- phone calls in Nextiva's Chrome tab ----------
+//
+// Two ways to tell a call is on; the first that works wins:
+//  1. phone-hook.js, inside Nextiva's page, sees the call's audio connection open
+//     and close. Exact.
+//  2. Until (1) has worked once on this computer: the Nextiva tab plays sound for
+//     a while (a conversation, not a message ping). The call ends after 45 s of
+//     silence, and its end time is the last sound heard.
+// Calls in the Nextiva desktop app or on a desk phone can't be seen from Chrome;
+// they come from the dashboard's Nextiva call-history import instead.
+const AUDIO_CALL_MS = 6000;   // this much sound = a conversation
+const AUDIO_GAP_MS = 15000;   // sounds closer together than this are one stretch
+const AUDIO_END_MS = 45000;   // silence this long = the call ended
+const MIN_CALL_MS = 5000;
+const freshPhone = () => ({ open: {}, audio: {}, call: null, done: [], hookWorks: false, openEnded: 0 });
+const isPhoneTab = url => hostnameOf(url || '').includes('nextiva');
+
+// Runs one change to the call state, then decides whether a call started or ended.
+// Returns true when it did, so the dashboard can be told right away.
+async function phoneUpdate(change) {
+  const now = Date.now();
+  const { phone: stored } = await chrome.storage.local.get('phone');
+  const p = { ...freshPhone(), ...stored };
+  const before = JSON.stringify(p);
+  const callBefore = p.call && p.call.id;
+  change(p, now);
+  decideCall(p, now);
+  if (JSON.stringify(p) !== before) await chrome.storage.local.set({ phone: p });
+  return (p.call && p.call.id) !== callBefore;
+}
+
+// phone-hook.js in one frame of a Nextiva tab reports how many call connections are open.
+function openSignal(p, key, count, now) {
+  const prev = p.open[key];
+  if (count > 0) {
+    p.open[key] = { since: prev ? prev.since : now, at: now };
+    p.hookWorks = true;
+  } else if (prev) {
+    delete p.open[key];
+    p.openEnded = now;
+  }
+}
+
+function audioSignal(p, tabId, playing, now) {
+  const a = p.audio[tabId] || { since: null, last: 0, heard: 0, playStart: null };
+  if (playing && a.playStart == null) {
+    if (!a.since || now - a.last > AUDIO_GAP_MS) Object.assign(a, { since: now, heard: 0 });
+    a.playStart = now;
+  } else if (!playing && a.playStart != null) {
+    a.heard += now - a.playStart;
+    a.last = now;
+    a.playStart = null;
+  }
+  p.audio[tabId] = a;
+}
+
+// A Nextiva tab closed: its connections are gone. (A reloaded page reports 0 open
+// connections by itself within 2 seconds.)
+function forgetTab(p, tabId, now) {
+  for (const key of Object.keys(p.open)) if (key.startsWith(`${tabId}:`)) openSignal(p, key, 0, now);
+  const a = p.audio[tabId];
+  if (a) {
+    if (a.playStart != null && p.call && !p.call.byHook) p.call.last = Math.max(p.call.last, now);
+    delete p.audio[tabId];
+  }
+}
+
+function decideCall(p, now) {
+  // A page that stopped reporting (crashed, or the extension restarted) no longer counts.
+  for (const [key, o] of Object.entries(p.open)) if (now - o.at > 60000) openSignal(p, key, 0, o.at);
+  const opens = Object.values(p.open);
+
+  let soundNow = false;
+  let soundLast = 0;
+  let talkSince = null;
+  for (const a of Object.values(p.audio)) {
+    const playing = a.playStart != null;
+    const heard = a.heard + (playing ? now - a.playStart : 0);
+    soundNow ||= playing;
+    soundLast = Math.max(soundLast, playing ? now : a.last);
+    if (a.since && heard >= AUDIO_CALL_MS && (playing || now - a.last < AUDIO_END_MS)) talkSince = Math.min(talkSince ?? Infinity, a.since);
+  }
+
+  const c = p.call;
+  if (!c) {
+    if (opens.length) p.call = { id: crypto.randomUUID(), from: Math.min(...opens.map(o => o.since)), last: now, byHook: true };
+    else if (!p.hookWorks && talkSince != null) p.call = { id: crypto.randomUUID(), from: talkSince, last: now, byHook: false };
+    return;
+  }
+  if (opens.length) {
+    Object.assign(c, { byHook: true, last: now });
+  } else if (c.byHook) {
+    finishCall(p, p.openEnded > c.from ? p.openEnded : c.last); // the connection closed: hung up
+  } else if (soundNow) {
+    c.last = now;
+  } else {
+    c.last = Math.max(c.last, soundLast);
+    if (now - c.last >= AUDIO_END_MS) finishCall(p, c.last);
+  }
+}
+
+function finishCall(p, end) {
+  if (end - p.call.from >= MIN_CALL_MS) p.done.push({ id: p.call.id, from: p.call.from, to: end });
+  p.done.splice(0, Math.max(0, p.done.length - 500));
+  p.call = null;
+}
+
+// Once a minute: catch up on any sound changes missed while the extension was asleep.
+async function phoneTick() {
+  const tabs = await chrome.tabs.query({});
+  return phoneUpdate((p, now) => {
+    const phoneTabs = new Map(tabs.filter(t => isPhoneTab(t.url)).map(t => [String(t.id), t]));
+    for (const tabId of Object.keys(p.audio)) if (!phoneTabs.has(tabId)) forgetTab(p, tabId, now);
+    for (const [tabId, t] of phoneTabs) {
+      const playing = Boolean(p.audio[tabId] && p.audio[tabId].playStart != null);
+      if (Boolean(t.audible) !== playing) audioSignal(p, tabId, Boolean(t.audible), now);
+    }
+  });
+}
+
+function onPhoneChange(change) {
+  serial(() => phoneUpdate(change)).then(callChanged => callChanged && upload());
 }
 
 // Move finished buckets into a batch with a unique id. The server ignores ids it
 // has already stored, so re-sending after a lost response never double-counts.
 async function sealBatch() {
-  const { buckets = {}, log = [], outbox = [] } = await chrome.storage.local.get(['buckets', 'log', 'outbox']);
+  const { buckets = {}, log = [], outbox = [], phone } = await chrome.storage.local.get(['buckets', 'log', 'outbox', 'phone']);
+  const calls = (phone && phone.done) || [];
   const items = Object.entries(buckets)
     .map(([key, ms]) => {
       const [date, slot, domain, state] = key.split('|');
       return { date, slot, domain, state, seconds: Math.round(ms / 100) / 10 };
     })
     .filter(item => item.seconds > 0);
-  if (items.length || log.length) outbox.push({ id: crypto.randomUUID(), items, log });
+  if (items.length || log.length || calls.length) outbox.push({ id: crypto.randomUUID(), items, log, calls });
   outbox.splice(0, Math.max(0, outbox.length - MAX_OUTBOX));
-  await chrome.storage.local.set({ buckets: {}, log: [], outbox });
+  await chrome.storage.local.set({ buckets: {}, log: [], outbox, ...(calls.length && { phone: { ...phone, done: [] } }) });
 }
 
 let uploading = false;
+let uploadAgain = false; // something changed (e.g. a call started) while an upload was running
 async function upload() {
-  if (uploading) return;
+  if (uploading) {
+    uploadAgain = true;
+    return;
+  }
   uploading = true;
   try {
     await serial(sealBatch);
-    const { config = {}, state, outbox = [] } = await chrome.storage.local.get(['config', 'state', 'outbox']);
+    const { config = {}, state, outbox = [], phone } = await chrome.storage.local.get(['config', 'state', 'outbox', 'phone']);
     if (!config.serverUrl || !config.employee) return;
     const res = await fetch(`${config.serverUrl.replace(/\/+$/, '')}/api/activity`, {
       method: 'POST',
@@ -203,7 +336,7 @@ async function upload() {
         employee: config.employee,
         version: VERSION,
         sentAt: Date.now(),
-        status: liveStatus(state),
+        status: liveStatus(state, phone),
         batches: outbox.slice(0, BATCHES_PER_REQUEST),
       }),
       signal: AbortSignal.timeout(15000),
@@ -225,6 +358,10 @@ async function upload() {
     await chrome.storage.local.set({ lastSync: { at: Date.now(), ok: false, error: String(err.message || err) } });
   } finally {
     uploading = false;
+    if (uploadAgain) {
+      uploadAgain = false;
+      upload();
+    }
   }
 }
 
@@ -253,13 +390,15 @@ chrome.notifications.onButtonClicked.addListener(async id => {
 });
 
 chrome.tabs.onActivated.addListener(() => serial(() => checkpoint()));
-chrome.tabs.onUpdated.addListener((_id, change, tab) => {
+chrome.tabs.onUpdated.addListener((tabId, change, tab) => {
   if (change.url && tab.active) serial(() => checkpoint());
+  if (change.audible !== undefined && isPhoneTab(tab.url)) onPhoneChange((p, now) => audioSignal(p, tabId, change.audible, now));
 });
+chrome.tabs.onRemoved.addListener(tabId => onPhoneChange((p, now) => forgetTab(p, tabId, now)));
 chrome.windows.onFocusChanged.addListener(() => serial(() => checkpoint()));
 chrome.idle.onStateChanged.addListener(idle => serial(() => checkpoint({ idle })).then(upload));
 chrome.alarms.onAlarm.addListener(({ name }) => {
-  if (name === 'tick') serial(() => checkpoint()).then(upload);
+  if (name === 'tick') serial(() => checkpoint()).then(() => serial(phoneTick)).then(upload);
 });
 
 // Chrome was closed: nothing happened since the last tick, so don't credit the gap.
@@ -269,7 +408,12 @@ chrome.runtime.onInstalled.addListener(({ reason }) => {
   if (reason === 'install') chrome.runtime.openOptionsPage();
 });
 
-chrome.runtime.onMessage.addListener((msg, _sender, reply) => {
+chrome.runtime.onMessage.addListener((msg, sender, reply) => {
+  if (msg.type === 'phone' && sender.tab) {
+    const key = `${sender.tab.id}:${sender.frameId || 0}`;
+    onPhoneChange((p, now) => openSignal(p, key, Number(msg.open) || 0, now));
+    return false;
+  }
   if (msg.type === 'status') {
     serial(() => checkpoint()).then(reply);
   } else if (msg.type === 'setMode' && MODES.includes(msg.mode)) {
