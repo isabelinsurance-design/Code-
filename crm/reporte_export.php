@@ -10,6 +10,8 @@ $fmt  = $_GET['fmt'] ?? 'txt';   // txt or csv
 $from = $_GET['from'] ?? today();
 $to   = $_GET['to']   ?? today();
 $ag   = intval($_GET['agente'] ?? 0);
+// Cada empleado solo exporta lo suyo; el admin, lo que elija.
+if (($user['rol'] ?? '') !== 'admin') $ag = (int)$user['id'];
 
 // Sanitize dates
 if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $from)) $from = today();

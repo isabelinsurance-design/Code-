@@ -903,6 +903,8 @@ if (!empty($_POST['plan_ajax'])) {
     header('Content-Type: application/json');
     if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
     $pdo_p = db(); $u_p = auth(); $act_p = $_POST['action'] ?? '';
+    // Decisión de Isabel: el plan de la oficina lo cambia solo un admin.
+    if (!isAdmin()) { echo json_encode(['ok'=>false,'error'=>'Solo un administrador puede cambiar el plan de la oficina']); exit; }
     try { switch ($act_p) {
         case 'update_meta':
             $id = (int)($_POST['id'] ?? 0); $pr = max(0,min(100,(int)($_POST['progreso'] ?? 0)));
@@ -13639,7 +13641,7 @@ krsort($anios_disponibles_planes);
     </div>
     <div style="display:flex;gap:6px">
       <button class="btn btn-gh btn-sm" id="plan-compare-btn" onclick="mostrarComparacionPlanes()">⚖ COMPARAR SELECCIONADOS</button>
-      <button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button>
+      <?php if($admin):?><button class="btn btn-p btn-sm" onclick="abrirPlanForm()">+ AGREGAR PLAN</button><?php endif;?>
     </div>
   </div>
 
@@ -14334,7 +14336,7 @@ $ck_global_done  = array_sum(array_column($checklist_stats, 'completadas'));
 
 <!-- GRID DE AGENTES -->
 <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:12px;margin-bottom:18px">
-<?php foreach($agents as $ag):
+<?php foreach($agents as $ag): if(!$admin && (int)$ag['id'] !== (int)$uid) continue; // cada quien ve su tarjeta
     $d = $rep_json[$ag['id']];
     $ck_pct = $d['ck_total']>0 ? round(($d['ck_done']/$d['ck_total'])*100) : 0;
     $bar_color = $ck_pct==100 ? '#16A34A' : ($ck_pct>=50 ? '#2876A8' : '#C07A1A');
@@ -14423,8 +14425,8 @@ $ck_global_done  = array_sum(array_column($checklist_stats, 'completadas'));
             <input type="date" id="rep-to" class="form-input" value="<?=$today?>" style="width:148px"></div>
         <div><label class="form-label" style="display:block">EMPLEADO</label>
             <select id="rep-ag" class="form-input" style="width:160px">
-                <option value="">TODOS</option>
-                <?php foreach($agents as $ag):?>
+                <?php if($admin):?><option value="">TODOS</option><?php endif;?>
+                <?php foreach($agents as $ag): if(!$admin && (int)$ag['id'] !== (int)$uid) continue;?>
                 <option value="<?=$ag['id']?>"><?=h(explode(' ',$ag['nombre'])[0])?></option>
                 <?php endforeach;?>
             </select>
@@ -14459,7 +14461,7 @@ $ck_global_done  = array_sum(array_column($checklist_stats, 'completadas'));
 
 <!-- JS DATA + LÓGICA -->
 <script>
-const REP_DATA = <?=json_encode(array_values($rep_json), JSON_UNESCAPED_UNICODE)?>;
+const REP_DATA = <?=json_encode(array_values($admin ? $rep_json : array_filter($rep_json, fn($r)=>(int)$r['id']===(int)$uid)), JSON_UNESCAPED_UNICODE)?>; // empleado: solo sus datos
 
 function showRepDetalle(agId) {
     const d = REP_DATA.find(r => r.id == agId);

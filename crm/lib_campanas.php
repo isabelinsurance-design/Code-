@@ -293,7 +293,7 @@ try{
       <button class="btn btn-p btn-sm" onclick="openCcForm(<?=$c['id']?>)">+ NUEVO CONTACTO</button>
       <button class="btn btn-sky btn-sm" onclick="openCcImport(<?=$c['id']?>)">⤒ SUBIR LISTA (CSV)</button>
       <button class="btn btn-gh btn-sm" onclick="vaciarContactosCampana(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')" title="Borra todos los contactos de esta campaña — úsalo si una lista se subió mal, antes de volver a subirla">🗑 VACIAR CONTACTOS</button>
-      <button class="btn btn-sky btn-sm" onclick="abrirEnvioMasivo(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')">📤 ENVIAR SMS / FLYER</button>
+      <?php if($admin):?>      <button class="btn btn-sky btn-sm" onclick="abrirEnvioMasivo(<?=$c['id']?>,'<?=h(addslashes($c['nombre']))?>')">📤 ENVIAR SMS / FLYER</button><?php endif;?>
       <button class="btn btn-gh btn-sm" onclick="toggleCcReporte(<?=$c['id']?>,this)">📊 REPORTE</button>
       <button class="btn btn-gh btn-sm" onclick="openCampForm(<?=$c['id']?>)">✎ EDITAR CAMPAÑA</button>
       <button class="btn btn-re btn-sm" onclick="deleteCampana(<?=$c['id']?>)">✕ ELIMINAR</button>

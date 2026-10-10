@@ -264,6 +264,7 @@ case 'edit_asistencia':
 
 // ── RECORDATORIOS Y NOTAS (equipo) ────────────────────────────
 case 'save_plan_comparacion':
+    if (!$admin) jsonErr('Solo un administrador puede agregar o cambiar planes');
     $pdo = db();
     // Migración defensiva — este endpoint puede correr antes de que
     // index.php haya creado la tabla en este proceso del servidor.
@@ -342,6 +343,7 @@ case 'save_plan_comparacion':
     break;
 
 case 'delete_plan_comparacion':
+    if (!$admin) jsonErr('Solo un administrador puede borrar planes');
     $pdo = db();
     $pid = (int)($_POST['id'] ?? 0);
     if (!$pid) jsonErr('ID requerido');
@@ -2424,6 +2426,8 @@ case 'campana_envio_masivo_contar':
     break;
 
 case 'campana_envio_masivo_lote':
+    // Decisión de Isabel: los envíos masivos (SMS/MMS a toda una campaña) solo los hace un admin.
+    if (!$admin) jsonErr('Solo un administrador puede hacer envíos masivos');
     $pdo = db();
     asegurarTablaSms($pdo);
     asegurarTablaSmsOptOut($pdo);
@@ -2610,6 +2614,8 @@ case 'get_reportes_historicos':
     $from  = $_POST['from']  ?? date('Y-m-01');
     $to    = $_POST['to']    ?? date('Y-m-d');
     $ag_id = !empty($_POST['agente_id']) ? (int)$_POST['agente_id'] : null;
+    // Decisión de Isabel: cada empleado ve solo SU historial de reportes.
+    if (!$admin) $ag_id = (int)$uid;
 
     // Reportes diarios
     $sql = "SELECT r.*, u.nombre, u.color, u.iniciales, ue.nombre AS editor_nombre
@@ -3033,7 +3039,9 @@ case 'get_gastos':
     if ($mes !== 'all') { $where[] = 'MONTH(g.fecha)=? AND YEAR(g.fecha)=?'; $params[] = intval($mes); $params[] = $year; }
     if ($cat !== 'all') { $where[] = 'g.categoria=?'; $params[] = $cat; }
     if ($est !== 'all') { $where[] = 'g.estado=?'; $params[] = $est; }
-    // Todos ven los gastos de la oficina (las acciones de aprobar/reembolsar siguen siendo admin)
+    // Decisión de Isabel (oct 2026): cada empleado ve SOLO sus gastos (los que envió
+    // o los que se le reembolsan); el admin ve todo.
+    if (!isAdmin()) { $where[] = '(g.enviado_por=? OR g.reembolsar_a=?)'; $params[] = $gu['id']; $params[] = $gu['id']; }
     $wc = $where ? 'WHERE '.implode(' AND ', $where) : '';
     $stmt = $pdo->prepare("SELECT g.*, u.nombre AS enviado_nombre, r.nombre AS reembolsar_nombre FROM gastos g LEFT JOIN usuarios u ON g.enviado_por=u.id LEFT JOIN usuarios r ON g.reembolsar_a=r.id $wc ORDER BY g.fecha DESC, g.id DESC");
     $stmt->execute($params);
@@ -3042,6 +3050,7 @@ case 'get_gastos':
     $tp = []; $tw = [];
     if ($mes !== 'all') { $tw[] = 'MONTH(fecha)=? AND YEAR(fecha)=?'; $tp[] = intval($mes); $tp[] = $year; }
     if ($cat !== 'all') { $tw[] = 'categoria=?'; $tp[] = $cat; }
+    if (!isAdmin()) { $tw[] = '(enviado_por=? OR reembolsar_a=?)'; $tp[] = $gu['id']; $tp[] = $gu['id']; }
     $twc = $tw ? 'WHERE '.implode(' AND ', $tw) : '';
     $ts = $pdo->prepare("SELECT estado, SUM(monto) AS suma FROM gastos $twc GROUP BY estado");
     $ts->execute($tp);
