@@ -1,7 +1,9 @@
 {
   "_meta": {
     "description": "Planes Medicare Advantage que maneja el equipo y que grupos medicos aceptan. Semilla de los tickets. Connecture es la fuente oficial para cotizar.",
-    "lastReviewed": "2026-05-30"
+    "lastReviewed": "2026-05-30",
+    "planYearData": "2026",
+    "needsVerify2027": "Los numeros de plan (ej. Alignment 039/054, Humana Gold Plus 021), montos de give-back/tarjeta ($130, $129) y beneficios pueden cambiar para el plan year 2027. VERIFICAR en Connecture antes de cotizar durante AEP. La estructura de grupos medicos aceptados suele ser estable; los montos NO."
   },
   "plans": [
     {
