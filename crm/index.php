@@ -8149,7 +8149,7 @@ if ($admin) {
 } else {
     $stmt = $pdo->prepare("$tkt_select
                            WHERE (t.asignado_a = ?
-                              OR (t.asignado_a IS NULL AND t.agente_id = ?))
+                              OR ((t.asignado_a IS NULL OR t.asignado_a = 0) AND t.agente_id = ?))
                               AND (t.estado != 'CERRADO' OR t.fecha_cierre >= ?)
                            ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),
                                     IF(t.estado='CERRADO', 0, FIELD(t.prioridad,'ALTA','MEDIA','BAJA')),
@@ -8254,7 +8254,7 @@ $stmt_act = $pdo->prepare("
         WHERE a.agente_id = ?
           AND a.tipo IN ('TICKET', 'NOTA')
           AND a.fecha_hora >= ? AND a.fecha_hora < DATE_ADD(?, INTERVAL 1 DAY)
-          AND (t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?))
+          AND (t.asignado_a = ? OR ((t.asignado_a IS NULL OR t.asignado_a = 0) AND t.agente_id = ?))
           AND t.tipo IN ($tipos_miembro_sql)
     ) combined
 ");
@@ -17059,6 +17059,11 @@ function openTicketForm(mid=null, tktData=null){
   document.getElementById('tkt-nextsteps-wrap').style.display = '';
   document.getElementById('tkt-ns-desc-input').value = '';
   document.getElementById('tkt-ns-date-input').value = '';
+  // Ticket nuevo: prioridad y asignado vuelven a su valor por defecto (antes
+  // heredaba los del último ticket que se había editado).
+  { const fF = document.querySelector('#ticket-form-modal form');
+    if(fF){ const pS=fF.querySelector('[name=prioridad]'); if(pS) pS.value='MEDIA';
+            const aS=fF.querySelector('[name=asignado_a]'); if(aS) aS.value=''; } }
 
   if(tktData){
     window._tktIsNew = false;
@@ -17996,8 +18001,11 @@ function closeCueSub(modalId) {
     if (cueCurrentId) openModal('modal-cue-detalle');
 }
 function openModal(id){document.getElementById(id).classList.add('open');}
-function closeModal(id){document.getElementById(id).classList.remove('open');}
-document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this)this.classList.remove('open');}));
+// Al cerrar el formulario de cita o de ticket se olvida cuál se estaba editando:
+// antes "+ NUEVA CITA" reabría la última cita editada y al guardar la movía.
+function _limpiarIdAlCerrar(id){ if(id==='cita-form-modal'){const c=document.getElementById('cita-id'); if(c) c.value='';} if(id==='ticket-form-modal'){const t=document.getElementById('tkt-id'); if(t) t.value='';} }
+function closeModal(id){document.getElementById(id).classList.remove('open'); _limpiarIdAlCerrar(id);}
+document.querySelectorAll('.modal-overlay').forEach(m=>m.addEventListener('click',function(e){if(e.target===this){this.classList.remove('open'); _limpiarIdAlCerrar(this.id);}}));
 
 // ── REFRESCO SUAVE (sin recargar la página) ─────────────────────────────
 // Reemplaza a location.reload(): vuelve a pedir la página en segundo plano y
@@ -19108,6 +19116,9 @@ function crearTicketDesdeCita(citaId){
       if(!tForm){ toast('No se encontró el formulario de tickets'); return; }
       // Reset y cierra modal de cita si está abierto
       tForm.reset();
+      // reset() no limpia los campos ocultos: sin esto se sobrescribía el último ticket editado.
+      document.getElementById('tkt-id').value = '';
+      window._tktIsNew = true; window._tktNextSteps = [];
       closeModal('cita-form-modal');
       // Llenar campos
       const setFld = (n,v)=>{ const el = tForm.querySelector(`[name=${n}]`); if(el && v!=null) el.value = v; };

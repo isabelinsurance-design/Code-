@@ -318,7 +318,7 @@ function render_tickets_table_html(PDO $pdo, bool $admin, $uid, bool $incluirCer
                      IF(t.estado='CERRADO', t.fecha_cierre, t.fecha_creacion) DESC, t.id DESC");
         $tickets = $stm->fetchAll();
     } else {
-        $where = "WHERE (t.asignado_a = ? OR (t.asignado_a IS NULL AND t.agente_id = ?))" . ($filtroCerrados ? " AND $filtroCerrados" : '');
+        $where = "WHERE (t.asignado_a = ? OR ((t.asignado_a IS NULL OR t.asignado_a = 0) AND t.agente_id = ?))" . ($filtroCerrados ? " AND $filtroCerrados" : '');
         $stm = $pdo->prepare("$sql
             $where
             ORDER BY FIELD(t.estado,'ABIERTO','EN PROCESO','PENDIENTE','CERRADO'),

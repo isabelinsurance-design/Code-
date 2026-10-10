@@ -614,6 +614,24 @@ case 'save_member':
     // Seguro social: solo un admin puede escribirlo, y vacío = "no cambiar" (el
     // formulario ya no muestra el número completo, así que llega vacío).
     if (!$admin || trim((string)($d['ss'] ?? '')) === '') unset($d['ss']);
+    // Tarjeta Medicare / documento del formulario del miembro. Antes el archivo
+    // se mandaba pero nunca se guardaba (la pantalla decía "guardado").
+    $guardarDocMiembro = function(PDO $pdo, int $mid) {
+        if ($mid <= 0 || empty($_FILES['medicare_card']['tmp_name']) || !is_uploaded_file($_FILES['medicare_card']['tmp_name'])) return;
+        if (($_FILES['medicare_card']['size'] ?? 0) > 10 * 1024 * 1024) return;
+        $ext = strtolower(pathinfo($_FILES['medicare_card']['name'] ?? '', PATHINFO_EXTENSION));
+        if (!in_array($ext, ['jpg','jpeg','png','gif','webp','pdf'], true)) return;
+        try {
+            if (!$pdo->query("SHOW COLUMNS FROM miembros LIKE 'doc_path'")->fetch())
+                $pdo->exec("ALTER TABLE miembros ADD COLUMN doc_path VARCHAR(255) NULL");
+            $dir = __DIR__ . '/uploads/miembros/';
+            if (!is_dir($dir)) mkdir($dir, 0755, true);
+            $fname = 'doc_' . $mid . '_' . bin2hex(random_bytes(8)) . '.' . $ext;
+            if (move_uploaded_file($_FILES['medicare_card']['tmp_name'], $dir . $fname)) {
+                $pdo->prepare("UPDATE miembros SET doc_path=? WHERE id=?")->execute(['uploads/miembros/' . $fname, $mid]);
+            }
+        } catch (Exception $e) {}
+    };
     $ESTADOS_VALIDOS = ['ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','PROSPECT','PENDING','CANCELED','DENIED','CERRADO','DISENROLLED'];
     // Antes esto corría afuera de cualquier try/catch — un tropiezo pasajero
     // de la base de datos aquí (conexión, lock, timeout) tronaba la petición
@@ -740,6 +758,7 @@ case 'save_member':
             $tipo_act = $cambio_log ? 'PLAN CHANGE' : 'SISTEMA';
             $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
                 ->execute([$uid,$d['id'],$tipo_act,$desc_act]);
+            $guardarDocMiembro($pdo, (int)$d['id']);
             jsonOkNotify(['id'=>$d['id'],'msg'=>'Miembro actualizado','cambio_plan'=>!empty($cambio_log)], 'MIEMBROS');
         } else {
             // INSERT NUEVO PROSPECTO
@@ -792,6 +811,7 @@ case 'save_member':
             }
             // =========================================================
 
+            $guardarDocMiembro($pdo, (int)$newId);
             jsonOkNotify(['id'=>$newId,'msg'=>'Prospecto guardado y Pipeline generado según configuración'], 'MIEMBROS');
         }
     } catch (PDOException $e) {
