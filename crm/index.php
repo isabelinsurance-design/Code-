@@ -1333,10 +1333,10 @@ try {
     $alertas_hoy = (int) $pdo->query("
         SELECT COUNT(DISTINCT m.id) FROM miembros m
         WHERE m.estado='ACTIVE' AND m.fecha_efectiva IS NOT NULL AND (
-          (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 0  AND 14 AND NOT EXISTS (SELECT 1 FROM efectivos_checks ec WHERE ec.miembro_id=m.id AND ec.tipo='llam_bienvenida' AND ec.done=1))
-          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 25 AND 40 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='30'))
-          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 55 AND 70 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='60'))
-          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 85 AND 100 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='90'))
+          (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 0  AND 14 AND NOT EXISTS (SELECT 1 FROM efectivos_checks ec WHERE ec.miembro_id=m.id AND ec.tipo='llam_bienvenida' AND ec.done=1) AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='BIENVENIDA' AND rl.resultado='COMPLETADA'))
+          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 25 AND 40 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='30' AND rl.resultado='COMPLETADA'))
+          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 55 AND 70 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='60' AND rl.resultado='COMPLETADA'))
+          OR (DATEDIFF(CURDATE(),m.fecha_efectiva) BETWEEN 85 AND 100 AND NOT EXISTS (SELECT 1 FROM retencion_llamadas rl WHERE rl.miembro_id=m.id AND rl.tipo='90' AND rl.resultado='COMPLETADA'))
         )
     ")->fetchColumn();
 } catch (Exception $e) { $alertas_hoy = 0; }
@@ -16184,31 +16184,15 @@ function showAdminTab(id){
   document.querySelectorAll('.ntab[data-atab]').forEach(b=>b.classList.toggle('active',b.dataset.atab===id));
 }
 function registroHora(){
-// Auto-detecta el siguiente paso según lo que ya está registrado
-const steps = ['ci','lo','li','bo','bi','co'];
+// Usa el MISMO "siguiente paso" que ya calcula la tarjeta de CHECK IN (el botón
+// grande). Antes buscaba un '--:--' que esos botones nunca muestran, así que
+// siempre decía "todo completo" aunque no hubiera ni check-in.
 const labels = {ci:'CHECK-IN',lo:'SALIDA ALMUERZO',li:'REGRESO ALMUERZO',bo:'SALIDA BREAK',bi:'REGRESO BREAK',co:'CHECK-OUT'};
-
-// Read current values from the step buttons
 let nextField = null;
-const stepsEl = document.querySelectorAll('.ci-step');
-// Find first step that shows '--:--' (not yet recorded)
-for(const s of steps){
-// Check if any step div shows '--:--'
-const allText = Array.from(document.querySelectorAll('.ci-step-val,.ci-step')).map(e=>e.textContent);
-// Simpler: just call API to get today's record and detect next
-break;
-}
-// Detect from the libre buttons: find first one with '--:--'
-const libreBtns = document.querySelectorAll('.btn[onclick^="doCheckin"]');
-for(const btn of libreBtns){
-const timeSpan = btn.querySelector('span:last-child');
-if(timeSpan && timeSpan.textContent.trim()==='--:--'){
-const match = btn.getAttribute('onclick').match(/doCheckin\('(\w+)'\)/);
-if(match){ nextField = match[1]; break; }
-}
-}
+const big = document.querySelector('.btn.btn-full[onclick^="doCheckin"]');
+if(big){ const m = big.getAttribute('onclick').match(/doCheckin\('(\w+)'\)/); if(m) nextField = m[1]; }
 if(!nextField){ toast('✓ TODOS LOS REGISTROS DEL DÍA COMPLETADOS'); return; }
-if(confirm('¿Registrar ' + labels[nextField] + ' ahora?')){ doCheckin(nextField); }
+if(confirm('¿Registrar ' + (labels[nextField]||nextField) + ' ahora?')){ doCheckin(nextField); }
 }
 // ── VOZ DEL BOT ────────────────────────────────────────
 const NOMBRE_USUARIO = "<?=h(explode(' ',$user['nombre'])[0])?>";

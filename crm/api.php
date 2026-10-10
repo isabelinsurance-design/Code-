@@ -3364,8 +3364,15 @@ case 'busqueda_general':
                                    WHERE nombre LIKE ? OR apellido LIKE ? OR telefono LIKE ? OR email LIKE ?
                                       OR carrier LIKE ? OR mbi LIKE ? OR direccion_calle LIKE ? OR plan LIKE ?
                                       OR extras LIKE ? OR condiciones_cronicas LIKE ?
+                                      OR CONCAT(nombre,' ',apellido) LIKE ? OR CONCAT(apellido,' ',nombre) LIKE ?
+                                      OR CONCAT(apellido,', ',nombre) LIKE ? OR telefono LIKE ? OR telefono2 LIKE ?
                                    ORDER BY apellido, nombre LIMIT 25");
-            $stm->execute(array_fill(0, 10, $like));
+            // Nombre completo ("Juan Perez", "Perez, Juan") y teléfono escrito con
+            // guiones o paréntesis ("(323) 555-0101" → busca solo los dígitos).
+            $q_esp = '%' . preg_replace('/\s+/', ' ', $q) . '%';
+            $digs  = preg_replace('/\D/', '', $q);
+            $likeTel = strlen($digs) >= 4 ? '%' . $digs . '%' : $like;
+            $stm->execute(array_merge(array_fill(0, 10, $like), [$q_esp, $q_esp, $q_esp, $likeTel, $likeTel]));
             $resultados['miembros'] = $stm->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { $resultados['miembros'] = []; }
     }

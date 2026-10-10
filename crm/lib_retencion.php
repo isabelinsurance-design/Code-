@@ -52,23 +52,27 @@ function render_retencion_panel(PDO $pdo): array {
             $call30 = $_ret_calls[$m['id']]['30'] ?? null;
             $call60 = $_ret_calls[$m['id']]['60'] ?? null;
             $call90 = $_ret_calls[$m['id']]['90'] ?? null;
-            $bienv_ok = $bienvenida_done || $callB;
+            // Una llamada solo cuenta como HECHA si el resultado fue COMPLETADA
+            // (antes "no contestó" o "buzón" también la daban por hecha).
+            $hecha = function ($c) { return $c && (($c['resultado'] ?? 'COMPLETADA') === 'COMPLETADA'); };
+            $bienv_ok = $bienvenida_done || $hecha($callB);
             $urgente = false;
             if (!$bienv_ok && $dias <= 14) $urgente = true;
             if (!$bienv_ok && $dias > 14)  $urgente = true;
-            if (!$call30 && $dias >= 25) $urgente = true;
-            if (!$call60 && $dias >= 55) $urgente = true;
-            if (!$call90 && $dias >= 85) $urgente = true;
+            if (!$hecha($call30) && $dias >= 25) $urgente = true;
+            if (!$hecha($call60) && $dias >= 55) $urgente = true;
+            if (!$hecha($call90) && $dias >= 85) $urgente = true;
             $_ret_list[] = ['id'=>$m['id'],'nombre'=>$m['nombre'],'apellido'=>$m['apellido'],'telefono'=>$m['telefono']??'','carrier'=>$m['carrier']??'','fecha_efe'=>$m['fecha_efectiva'],'dias'=>$dias,'bienvenida'=>$bienvenida_done?($_ret_bienvenidas[$m['id']]??''):null,'callB'=>$callB,'call30'=>$call30,'call60'=>$call60,'call90'=>$call90,'q30'=>isset($_ret_q30_ids[$m['id']])?$_ret_q30_ids[$m['id']]:null,'urgente'=>$urgente,
                 'campana_origen_id'=>$m['campana_origen_id']??null,'referido_por_miembro_id'=>$m['referido_por_miembro_id']??null,'referido_por_texto'=>$m['referido_por_texto']??null,'fuente'=>$m['fuente']??null];
         }
         usort($_ret_list, function ($a, $b) { return $b['urgente'] <=> $a['urgente'] ?: $a['dias'] <=> $b['dias']; });
         $_st_total   = count($_ret_list);
         $_st_urgente = count(array_filter($_ret_list, function ($m) { return $m['urgente']; }));
-        $_st_bienok  = count(array_filter($_ret_list, function ($m) { return $m['bienvenida'] || $m['callB']; }));
-        $_st_30ok    = count(array_filter($_ret_list, function ($m) { return $m['call30']; }));
-        $_st_60ok    = count(array_filter($_ret_list, function ($m) { return $m['call60']; }));
-        $_st_90ok    = count(array_filter($_ret_list, function ($m) { return $m['call90']; }));
+        $_hecha_st = function ($c) { return $c && (($c['resultado'] ?? 'COMPLETADA') === 'COMPLETADA'); };
+        $_st_bienok  = count(array_filter($_ret_list, function ($m) use ($_hecha_st) { return $m['bienvenida'] || $_hecha_st($m['callB']); }));
+        $_st_30ok    = count(array_filter($_ret_list, function ($m) use ($_hecha_st) { return $_hecha_st($m['call30']); }));
+        $_st_60ok    = count(array_filter($_ret_list, function ($m) use ($_hecha_st) { return $_hecha_st($m['call60']); }));
+        $_st_90ok    = count(array_filter($_ret_list, function ($m) use ($_hecha_st) { return $_hecha_st($m['call90']); }));
 
         foreach ($_ret_list as $_rm) $nombres[(int)$_rm['id']] = $_rm['nombre'] . ' ' . $_rm['apellido'];
         ?>
