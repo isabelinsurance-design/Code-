@@ -12730,8 +12730,8 @@ foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE
     <?php if($admin):?>
     <select id="bonos-agente" onchange="loadBonos()" style="border:1.5px solid <?=$CB?>;border-radius:9px;padding:7px 11px;font-size:9px;background:#fff;font-family:'DM Sans',sans-serif;font-weight:800;text-transform:uppercase">
       <option value="all">TODAS LAS AGENTES</option>
-      <?php foreach($pdo->query("SELECT id,nombre FROM usuarios WHERE rol='agent' AND activo=1 ORDER BY nombre")->fetchAll() as $ag):?>
-      <option value="<?=$ag['id']?>"><?=strtoupper(h($ag['nombre']))?></option>
+      <?php foreach($pdo->query("SELECT id,nombre,activo FROM usuarios WHERE rol='agent' ORDER BY activo DESC, nombre")->fetchAll() as $ag):?>
+      <option value="<?=$ag['id']?>"><?=strtoupper(h($ag['nombre']))?><?=((int)$ag['activo']===1)?'':' (INACTIVA)'?></option>
       <?php endforeach;?>
     </select>
     <?php endif;?>
@@ -18380,11 +18380,11 @@ function loadBonos(){
   fetchJson(url).then(d=>{
     if(!d.ok){toast('Error cargando bonos');return;}
     window._bonosRows = d.data.registros||[];
-    renderBonos(d.data.registros, d.data.total_pagado, d.data.total_pendiente);
+    renderBonos(d.data.registros, d.data.total_pagado, d.data.total_pendiente, d.data.total_por_cobrar);
   }).catch(err=>toast('⚠ '+((err&&err.message)||'ERROR DE RED')));
 }
 
-function renderBonos(rows, totalPagado, totalPend){
+function renderBonos(rows, totalPagado, totalPend, totalCobrar){
   const tbody = document.getElementById('bonos-tbody');
   const footer = document.getElementById('bonos-footer');
   if(!tbody) return;
@@ -18435,8 +18435,8 @@ function renderBonos(rows, totalPagado, totalPend){
   document.getElementById('bkpi-bonos').textContent  = bonos;
   document.getElementById('bkpi-cancel').textContent = canceladas;
 
-  const total = parseFloat(totalPagado||0)+parseFloat(totalPend||0);
-  footer.innerHTML = `<span>TOTAL: <strong>${fmt(total)}</strong></span><span style="color:#3B6D11;margin-left:16px">PAGADO: <strong>${fmt(totalPagado)}</strong></span><span style="color:#854F0B;margin-left:16px">PENDIENTE: <strong>${fmt(totalPend)}</strong></span>`;
+  const total = parseFloat(totalPagado||0)+parseFloat(totalPend||0); // canceladas no suman
+  footer.innerHTML = `<span>TOTAL: <strong>${fmt(total)}</strong></span><span style="color:#3B6D11;margin-left:16px">PAGADO: <strong>${fmt(totalPagado)}</strong></span><span style="color:#854F0B;margin-left:16px">PENDIENTE: <strong>${fmt(totalPend)}</strong></span>${parseFloat(totalCobrar||0)>0?`<span style="color:#A32D2D;margin-left:16px">POR COBRAR (pagado y luego cancelado): <strong>${fmt(totalCobrar)}</strong></span>`:''}`;
 }
 
 function toggleBonoPagado(id, nuevoValor){
@@ -18495,7 +18495,7 @@ function openBonoForm(row){
   document.getElementById('bf-tipo').value    = row?.tipo||'Bono por venta';
   document.getElementById('bf-cliente').value = row?.cliente||'';
   document.getElementById('bf-fecha').value   = row?.fecha?.slice(0,10)||'<?=date('Y-m-d')?>';
-  document.getElementById('bf-mes').value     = row?.mes||'Abril';
+  document.getElementById('bf-mes').value     = row?.mes||['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'][new Date().getMonth()];
   document.getElementById('bf-cantidad').value= row?.cantidad||1;
   document.getElementById('bf-precio').value  = row?.precio_unidad||250;
   document.getElementById('bf-total').value   = row?.total||250;

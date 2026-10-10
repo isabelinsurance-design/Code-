@@ -686,6 +686,24 @@ case 'save_member':
             // ── HISTORIAL DE PLANES ───────────────────────────────────────────
             _historial_planes($pdo, $d['id'], $old_data, $d, $uid);
 
+            // ── Si la venta se cae (CANCELED/DENIED/DISENROLLED/CERRADO) se marca
+            // como CANCELADA el bono que se mandó a BONOS por este miembro. Antes
+            // quedaba PENDIENTE (o PAGADO sin aviso) hasta que alguien lo notara.
+            try {
+                $estados_caida = ['CANCELED','DENIED','DISENROLLED','CERRADO'];
+                $est_nuevo = $d['estado'] ?? null;
+                if ($est_nuevo !== null && in_array($est_nuevo, $estados_caida, true)
+                    && !in_array($old_data['estado'] ?? '', $estados_caida, true)) {
+                    $bq = $pdo->prepare("SELECT id, pagado, total FROM pago_bonos WHERE miembro_id=? AND COALESCE(venta_cancelada,0)=0");
+                    $bq->execute([$d['id']]);
+                    foreach ($bq->fetchAll() as $bn) {
+                        $pdo->prepare("UPDATE pago_bonos SET venta_cancelada=1 WHERE id=?")->execute([$bn['id']]);
+                        $pdo->prepare("INSERT INTO actividad (agente_id,miembro_id,tipo,descripcion) VALUES (?,?,?,?)")
+                            ->execute([$uid, $d['id'], 'BONOS', 'BONO #'.$bn['id'].' marcado CANCELADA porque el miembro pasó a '.$est_nuevo.($bn['pagado'] ? ' (YA ESTABA PAGADO: revisar si hay que cobrarlo de vuelta)' : '')]);
+                    }
+                }
+            } catch (Exception $e) {}
+
             // Actividad — detalle de qué cambió si se detectó algo; si no,
             // el mensaje genérico de antes (ej. un guardado sin cambios reales).
             if ($cambio_log) array_unshift($campos_cambiados, $cambio_log);
@@ -1755,14 +1773,22 @@ case 'get_pago_bonos':
             FROM pago_bonos b LEFT JOIN usuarios u ON b.agente_id = u.id WHERE 1=1";
     $params = [];
     if (!$admin) { $sql .= " AND b.agente_id = ?"; $params[] = $uid; }
+    else {
+        // El filtro de agente del admin antes se ignoraba y mostraba a todas.
+        $ag_f = intval($_GET['agente_id'] ?? $_POST['agente_id'] ?? 0);
+        if ($ag_f) { $sql .= " AND b.agente_id = ?"; $params[] = $ag_f; }
+    }
     if ($mes_f && $mes_f !== 'all') { $sql .= " AND b.mes = ?"; $params[] = $mes_f; }
     $sql .= " ORDER BY b.fecha DESC, b.id DESC";
     $stmt = $pdo->prepare($sql);
     $stmt->execute($params);
     $rows = $stmt->fetchAll();
-    $total_pagado  = array_sum(array_column(array_filter($rows, fn($r)=>$r['pagado']), 'total'));
-    $total_pending = array_sum(array_column(array_filter($rows, fn($r)=>!$r['pagado']), 'total'));
-    jsonOk(['registros'=>$rows,'total_pagado'=>$total_pagado,'total_pendiente'=>$total_pending]);
+    // Una venta cancelada NO cuenta como por pagar. Si ya se había pagado, va aparte
+    // como 'por cobrar' (chargeback) en vez de quedarse dentro de lo pagado.
+    $total_pagado  = array_sum(array_column(array_filter($rows, fn($r)=>$r['pagado'] && empty($r['venta_cancelada'])), 'total'));
+    $total_pending = array_sum(array_column(array_filter($rows, fn($r)=>!$r['pagado'] && empty($r['venta_cancelada'])), 'total'));
+    $total_cobrar  = array_sum(array_column(array_filter($rows, fn($r)=>$r['pagado'] && !empty($r['venta_cancelada'])), 'total'));
+    jsonOk(['registros'=>$rows,'total_pagado'=>$total_pagado,'total_pendiente'=>$total_pending,'total_por_cobrar'=>$total_cobrar]);
     break;
 
 case 'toggle_bono_pagado':
