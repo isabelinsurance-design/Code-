@@ -167,7 +167,8 @@ function calcular_nomina_agente(PDO $pdo, array $ag, int $year, int $month, int 
 
     $horas_extra = max(0, round($horas_trabajadas_total - $horas_esperadas, 2));
     $valor_hora  = $horas_esperadas > 0 ? ($salario_base / $horas_esperadas) : 0;
-    $pago_extra  = round($horas_extra * $valor_hora * 1, 2); // 1x tiempo y medio
+    // Decisión de Isabel: las horas extra se pagan a tarifa NORMAL (1x), no a tiempo y medio.
+    $pago_extra  = round($horas_extra * $valor_hora * 1, 2);
 
     $pago_calculado = $pago_base + $pago_extra;
 
