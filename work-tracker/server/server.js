@@ -374,7 +374,7 @@ function updateStatus(id, name, st, skew, version, device, computer) {
     const emp = employeeOn(status.day, id, name);
     emp.devices ||= {};
     const label = computer || null;
-    if (!emp.devices[device] || emp.devices[device] !== label) {
+    if (!(device in emp.devices) || emp.devices[device] !== label) {
       emp.devices[device] = label;
       changed(`days/${status.day}.json`);
     }
