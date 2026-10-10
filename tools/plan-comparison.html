@@ -805,11 +805,7 @@ function parseClientText(text, groups = []) {
   const tierM2 = tl.match(/(?:tier|nivel)\s*(?:3|three|tres)\s*(?:drugs?|medications?|meds?|prescriptions?|medicinas?)?\s*[x×:]?\s*\(?(\d)\)?/);
   if (tierM2 && +tierM2[1] > 1 && +tierM2[1] < 10) tier3 = Math.max(tier3, +tierM2[1]);
   // Named drugs from the common-drug list ("takes Eliquis and metformin") — each with its usual tier and price
-  const seen = new Set();
-  for (const [key, d] of Object.entries(DRUG_BY_KEY)) {
-    if (seen.has(d[0]) || key.length < 4) continue;
-    if (new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(t)) { seen.add(d[0]); p.drugs.push({name: d[0], tier: d[1], price: d[2]}); }
-  }
+  for (const d of drugsIn(t)) p.drugs.push({name: d[0], tier: d[1], price: d[2]});
   if (p.drugs.some(d => d.tier === 'insulin')) { p.insulin = true; if (!p.conditions.includes('diabetes')) p.conditions.push('diabetes'); }
   if (!tier3 && !p.drugs.some(d => d.tier === '3') && /\bbrand(?:-name)? (?:drug|medication|med|prescription)s?\b/i.test(t)) tier3 = 1;
   p.tier3 = Math.min(tier3, 6);
@@ -892,8 +888,19 @@ const PARTD = {year: 2027, deductible: 700, oopCap: 2400, insulinCap: 35, lisGen
    every plan has its own formulary, so the agent can change the tier/price for a client.
    [name, tier, monthly $, aliases…] — tier 'insulin' = covered insulin ($35/month cap). */
 const DRUG_LIST = [['Eliquis','3',231,'apixaban'],['metformin','1',10],['Lantus','insulin',300,'insulin glargine']];
-const DRUG_BY_KEY = (() => { const m = {}; for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) m[lc(k)] = d; return m; })();
-const findDrug = name => DRUG_BY_KEY[lc(T(name))] || null;
+const DRUG_BY_KEY = (() => { const m = {}; for (const d of DRUG_LIST) for (const k of [d[0], ...d.slice(3)]) { const key = lc(k).replace(/[\s-]+/g, ' ').trim(); if (!m[key]) m[key] = d; } return m; })();
+const findDrug = name => DRUG_BY_KEY[lc(T(name)).replace(/[\s-]+/g, ' ')] || null;
+/* Every drug named in a text (longest name first, so "Janumet XR" wins over "Janumet"); accents count as letters. */
+let DRUG_RE = null;
+function drugsIn(text) {
+  if (!DRUG_RE) {
+    const keys = Object.keys(DRUG_BY_KEY).filter(k => k.length >= 4).sort((a, b) => b.length - a.length);
+    DRUG_RE = keys.length ? new RegExp('(?<![\\w\\u00C0-\\u024F])(?:' + keys.map(k => k.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/\s+/g, '[\\s-]+')).join('|') + ')(?![\\w\\u00C0-\\u024F])', 'gi') : /$^/g;
+  }
+  const out = [];
+  for (const m of T(text).matchAll(DRUG_RE)) { const d = DRUG_BY_KEY[lc(m[0]).replace(/[\s-]+/g, ' ')] || DRUG_BY_KEY[lc(m[0])]; if (d && !out.includes(d)) out.push(d); }
+  return out;
+}
 const RX_TIERS = ['1', '2', '3', '4', '5', 'insulin'];
 const TIER_LABEL = {1: 'Tier 1 · preferred generic', 2: 'Tier 2 · generic', 3: 'Tier 3 · preferred brand', 4: 'Tier 4 · non-preferred', 5: 'Tier 5 · specialty', insulin: 'Insulin ($35 cap)'};
 const TIER_SHORT = {1: 'Tier 1 · pref. generic', 2: 'Tier 2 · generic', 3: 'Tier 3 · pref. brand', 4: 'Tier 4 · non-preferred', 5: 'Tier 5 · specialty', insulin: 'Insulin'};
@@ -1527,14 +1534,7 @@ function findGroupIn(q, data, notes) {
 }
 
 /* Drugs named in a question (from the common-drug list). */
-function findDrugsIn(q) {
-  const out = [];
-  for (const [key, d] of Object.entries(DRUG_BY_KEY)) {
-    if (key.length < 4 || out.includes(d)) continue;
-    if (new RegExp('\\b' + key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(q)) out.push(d);
-  }
-  return out.slice(0, 5);
-}
+function findDrugsIn(q) { return drugsIn(q).slice(0, 5); }
 function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient) {
   const names = drugs.map(d => d[0]).join(' + ');
   const prof = Object.assign({}, profile, {drugs: drugs.map(d => ({name: d[0], tier: d[1], price: d[2]})), tier3: 0, insulin: false});
