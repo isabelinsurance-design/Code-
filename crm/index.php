@@ -876,6 +876,17 @@ if (!empty($_POST['plan_ajax'])) {
 }
 // ─────────────────────────────────────────────────────────────────────────────
 
+// ─── ESTRUCTURA DE LA BASE DE DATOS: UNA VEZ POR DEPLOY ─────────────────────
+// Antes TODAS estas revisiones ("¿existe esta tabla/columna?") y la semilla de
+// los 104 planes corrían en CADA carga de página (y en cada refresco automático
+// de cada pantalla abierta). Ahora corren solo la primera vez después de un
+// deploy (cuando cambia este archivo) y se anota en uploads/.schema_ok.
+// Para forzarlas otra vez basta con borrar ese archivo.
+$__schema_key  = @filemtime(__FILE__) . '-' . @filesize(__FILE__);
+$__schema_flag = __DIR__ . '/uploads/.schema_ok';
+$__schema_run  = (@file_get_contents($__schema_flag) !== $__schema_key);
+if ($__schema_run) {
+
 // --- CREAR TABLA FALTANTE PARA LOS CHECKLISTS DE EFECTIVOS ---
 try {
     $pdo->exec("CREATE TABLE IF NOT EXISTS efectivos_checks (
@@ -1282,6 +1293,7 @@ try {
         foreach ($pm_seed as $i=>$m) $pm_ins->execute([$m[0],$m[1],$m[2],$m[3],$m[4],$i]);
     }
 } catch (Exception $e) {}
+} // fin: estructura una vez por deploy (parte 1)
 
 // Contar llamadas de hoy para el reporte — comparar por rango (col >= hoy
 // AND col < mañana) en vez de DATE(col)=? para que MySQL sí pueda usar el
@@ -1390,6 +1402,7 @@ try {
 // lado — se llena a mano desde el Summary of Benefits de cada plan) ─────────
 $planes_comparacion = [];
 try {
+  if ($__schema_run) { // semilla y columnas de planes: una vez por deploy
     $pdo->exec("CREATE TABLE IF NOT EXISTS planes_comparacion (
         id INT AUTO_INCREMENT PRIMARY KEY,
         nombre_plan VARCHAR(200) NOT NULL,
@@ -8096,10 +8109,15 @@ try {
     try {
         $pdo->exec("UPDATE planes_comparacion SET nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP) - Fresno' WHERE nombre_plan='Anthem Full Dual Advantage Aligned (HMO D-SNP) 002'");
     } catch (Exception $e) {}
+  } // fin: semilla de planes una vez por deploy
     $planes_comparacion = $pdo->query("SELECT p.*, u.nombre AS agregado_por_nombre
         FROM planes_comparacion p LEFT JOIN usuarios u ON p.agregado_por=u.id
         WHERE p.activo=1 ORDER BY p.carrier, p.nombre_plan")->fetchAll();
 } catch (Exception $e) {}
+if ($__schema_run) {
+    if (!is_dir(__DIR__ . '/uploads')) @mkdir(__DIR__ . '/uploads', 0755, true);
+    @file_put_contents($__schema_flag, $__schema_key);
+}
 
 // ─── LISTAS (catálogo de reportes/archivos Excel importantes) ────────────────
 $listas_excel = [];
