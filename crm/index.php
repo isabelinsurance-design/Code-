@@ -10976,7 +10976,7 @@ $dias = $m['fecha_efectiva'] ? $m['dias_activo'] : null;
 $ec=['ACTIVE'=>['#1E7A5C','#EAF5F0'],'CANCELED'=>['#B83232','#FDF0EE'],'DENIED'=>['#B83232','#FDF0EE'],'CERRADO'=>['#888780','#F1EFE8'],'DISENROLLED'=>['#993C1D','#FAECE7'],'IN PROCESS'=>['#1B5E8C','#EBF5FB']];
 [$ec_color,$ec_bg]=$ec[$m['estado']]??['#7A90A4','#EBF4F9'];
 ?>
-<tr class="portal-tab-row" data-estado="<?=$m['estado']?>" data-carrier="<?=strtoupper($m['carrier']??'')?>" data-nombre="<?=strtolower(h($m['apellido'].' '.$m['nombre']))?>">
+<tr class="portal-tab-row" data-estado="<?=h($m['estado'])?>" data-carrier="<?=h(strtoupper($m['carrier']??''))?>" data-nombre="<?=strtolower(h($m['apellido'].' '.$m['nombre']))?>">
 <td style="font-weight:900;font-size:9px;color:<?=$P2?>;cursor:pointer" onclick="openProfile(<?=$m['id']?>)"><?=h($m['apellido'].', '.$m['nombre'])?></td>
 <td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($m['carrier']??'—')?></span></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h(substr($m['plan']??'—',0,28))?></td>
@@ -10989,7 +10989,7 @@ if ($dias === null): ?>
 <?php else: ?>
     <td style="font-size:9px;font-weight:900;color:<?=$dias>90?'#1E7A5C':($dias>30?'#C07A1A':'#B83232')?>"><?=$dias?> días</td>
 <?php endif; ?>
-<td><span style="background:<?=$ec_bg?>;color:<?=$ec_color?>;border:1px solid <?=$ec_color?>40;border-radius:20px;padding:2px 9px;font-size:9px;font-weight:900"><?=$m['estado']?></span></td>
+<td><span style="background:<?=$ec_bg?>;color:<?=$ec_color?>;border:1px solid <?=$ec_color?>40;border-radius:20px;padding:2px 9px;font-size:9px;font-weight:900"><?=h($m['estado'])?></span></td>
 <td style="font-size:8px;color:<?=$MU?>"><?=h($m['app_estado_cms']??'—')?></td>
 <td><button class="btn btn-b btn-sm" onclick="openProfile(<?=$m['id']?>)">◉</button></td>
 </tr>
@@ -12703,7 +12703,7 @@ function cambiarQuincena() {
 <?php $all_pols=$pdo->query("SELECT p.*,m.nombre,m.apellido,u.iniciales,u.color FROM polizas p LEFT JOIN miembros m ON p.miembro_id=m.id LEFT JOIN usuarios u ON m.agente_id=u.id ORDER BY p.tipo,m.apellido")->fetchAll();
 foreach(['MEDICARE ADVANTAGE','MEDICARE SUPPLEMENT','PART D','DENTAL','SEGURO DE VIDA','VISIÓN','OTRO'] as $pt):$items=array_filter($all_pols,fn($p)=>$p['tipo']===$pt);if(!count($items))continue;?>
 <div class="card pol-section" style="margin-bottom:11px"><div class="card-header"><div class="card-title"><?=$pt?></div><div class="card-sub"><span class="pol-count"><?=count($items)?></span> PÓLIZAS</div></div><div style="overflow-x:auto"><table class="pol-table"><tr><th>MIEMBRO</th><th>CARRIER</th><th>PLAN</th><th>EFECTIVA</th><th>PRIMA</th><th>ESTADO</th></tr>
-<?php foreach($items as $p):?><tr class="pol-row" data-carrier="<?=strtolower($p['carrier']??'')?>" data-estado="<?=strtolower($p['estado']??'')?>" onclick="openProfile(<?=$p['miembro_id']?>)" style="cursor:pointer"><td><div style="display:flex;gap:6px;align-items:center"><?=av(h($p['iniciales']??'?'),h($p['color']??$P2),20)?><span style="font-weight:900;font-size:9px;color:<?=$P2?>"><?=h($p['apellido'].', '.$p['nombre'])?></span></div></td><td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($p['carrier']??'—')?></span></td><td style="font-size:9px"><?=h($p['plan']??'—')?></td><td style="font-size:8px;color:<?=$MU?>"><?=$p['fecha_efectiva']??'—'?></td><td style="font-weight:900;color:#1E7A5C"><?=$p['prima']>0?'$'.number_format($p['prima'],0):'$0'?></td><td><?=badge($p['estado'],true)?></td></tr><?php endforeach;?>
+<?php foreach($items as $p):?><tr class="pol-row" data-carrier="<?=h(strtolower($p['carrier']??''))?>" data-estado="<?=h(strtolower($p['estado']??''))?>" onclick="openProfile(<?=$p['miembro_id']?>)" style="cursor:pointer"><td><div style="display:flex;gap:6px;align-items:center"><?=av(h($p['iniciales']??'?'),h($p['color']??$P2),20)?><span style="font-weight:900;font-size:9px;color:<?=$P2?>"><?=h($p['apellido'].', '.$p['nombre'])?></span></div></td><td><span style="background:#EBF5FB;color:#1B5E8C;border:1px solid #A9D0E8;border-radius:20px;padding:2px 8px;font-size:8px;font-weight:900"><?=h($p['carrier']??'—')?></span></td><td style="font-size:9px"><?=h($p['plan']??'—')?></td><td style="font-size:8px;color:<?=$MU?>"><?=$p['fecha_efectiva']??'—'?></td><td style="font-weight:900;color:#1E7A5C"><?=$p['prima']>0?'$'.number_format($p['prima'],0):'$0'?></td><td><?=badge($p['estado'],true)?></td></tr><?php endforeach;?>
 </table></div></div>
 <?php endforeach;?>
 </div><!-- /POLIZAS -->
@@ -14376,7 +14376,7 @@ function showRepDetalle(agId) {
                 </div>
                 <span style="flex:1;font-size:9px;font-weight:700;color:${item.completado?'#1E7A5C':'#7A90A4'};
                              text-decoration:${item.completado?'none':'none'};line-height:1.4">
-                    ${item.texto}
+                    ${escapeHtml(item.texto)}
                 </span>
                 ${item.hora ? `<span style="font-size:7px;color:#1E7A5C;font-weight:900;flex-shrink:0">${item.hora}</span>` : ''}
             </div>
@@ -17505,12 +17505,12 @@ function buscarHistorial() {
                     <div style="padding:10px 14px;background:#EBF4F9;display:flex;align-items:center;gap:10px">
                         <div style="width:34px;height:34px;border-radius:50%;background:${r.color||'#2876A8'};display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:900;color:#fff;flex-shrink:0">${r.iniciales||'?'}</div>
                         <div style="flex:1">
-                            <div style="font-size:10px;font-weight:900;color:#1B4A6B">${r.nombre||'—'}</div>
+                            <div style="font-size:10px;font-weight:900;color:#1B4A6B">${escapeHtml(r.nombre||'—')}</div>
                             <div style="font-size:7px;color:${r.enviado==1?'#7A90A4':'#C07A1A'};text-transform:uppercase;margin-top:1px">${r.enviado==1?'REPORTE ENVIADO':'REABIERTO — PENDIENTE DE REENVÍO'}</div>
                             ${r.editado_por ? `<div style="font-size:7px;color:#5B3FAF;text-transform:uppercase;margin-top:1px">✏️ EDITADO POR ${(r.editor_nombre||'ADMIN').split(' ')[0].toUpperCase()}${r.editado_at?(' · '+String(r.editado_at).substr(0,16).replace('T',' ')):''}</div>` : ''}
                         </div>
                         <div style="display:flex;flex-direction:column;align-items:flex-end;gap:5px">
-                            ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:220px;text-align:right;font-style:italic" title="${r.nota}">"${r.nota}"</div>` : ''}
+                            ${r.nota ? `<div style="font-size:8px;color:#7A90A4;max-width:220px;text-align:right;font-style:italic" title="${escapeHtml(r.nota)}">"${escapeHtml(r.nota)}"</div>` : ''}
                             <button onclick="openAdminRepEdit(${r.agente_id}, '${r.fecha}')" style="background:#F3F0FB;color:#5B3FAF;border:1px solid #C2B0E8;border-radius:7px;padding:4px 9px;font-size:7px;font-weight:900;cursor:pointer;font-family:'DM Sans',sans-serif;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap">✏️ EDITAR</button>
                         </div>
                     </div>
@@ -17896,7 +17896,7 @@ setInterval(()=>{
   }).catch(()=>{});
 }, 20000);
 function toggleNotifPanel(){const p=document.getElementById('notif-dropdown');p.classList.toggle('open');if(p.classList.contains('open'))loadNotifs();}
-function loadNotifs(){fetch('api.php?action=get_notifs').then(r=>r.json()).then(d=>{if(!d.ok)return;const list=document.getElementById('notif-list');if(!d.data.notifs||!d.data.notifs.length){list.innerHTML='<div style="padding:14px;text-align:center;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN NOTIFICACIONES</div>';return;}list.innerHTML=d.data.notifs.map(n=>'<div style="padding:9px 14px;border-bottom:1px solid #EBF4F9;background:'+(n.leido?'#fff':'#FEF8EE')+'" onclick="markNotifRead('+n.id+',this)"><div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase">'+n.tipo+'<span style="float:right;color:#7A90A4;font-weight:400">'+n.created_at.substr(5,11)+'</span></div><div style="font-size:9px;color:#1B3A5C;margin-top:3px">'+n.mensaje+'</div></div>').join('');});}
+function loadNotifs(){fetch('api.php?action=get_notifs').then(r=>r.json()).then(d=>{if(!d.ok)return;const list=document.getElementById('notif-list');if(!d.data.notifs||!d.data.notifs.length){list.innerHTML='<div style="padding:14px;text-align:center;font-size:8px;color:#7A90A4;text-transform:uppercase">SIN NOTIFICACIONES</div>';return;}list.innerHTML=d.data.notifs.map(n=>'<div style="padding:9px 14px;border-bottom:1px solid #EBF4F9;background:'+(n.leido?'#fff':'#FEF8EE')+'" onclick="markNotifRead('+n.id+',this)"><div style="font-size:8px;font-weight:900;color:#1B4A6B;text-transform:uppercase">'+escapeHtml(n.tipo)+'<span style="float:right;color:#7A90A4;font-weight:400">'+n.created_at.substr(5,11)+'</span></div><div style="font-size:9px;color:#1B3A5C;margin-top:3px">'+escapeHtml(n.mensaje)+'</div></div>').join('');});}
 function markNotifRead(id,el){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id})});if(el)el.style.background='#fff';}
 function markAllNotifRead(){fetch('api.php',{method:'POST',body:new URLSearchParams({action:'mark_notif_read',id:0})});document.getElementById('notif-dropdown').classList.remove('open');const b=document.querySelector('.hbadge');if(b)b.remove();toast('✓ LEÍDAS');}
 function sendObservacion(){
@@ -18419,9 +18419,9 @@ function renderBonos(rows, totalPagado, totalPend){
     const fecha = r.fecha ? r.fecha.slice(0,10) : '—';
     return `<tr>
       <td style="font-size:8px;color:#7A90A4">${r.id}</td>
-      ${isAdmin?`<td style="font-size:9px;font-weight:900;color:#1B4A6B">${r.agente_nombre||'—'}</td>`:''}
+      ${isAdmin?`<td style="font-size:9px;font-weight:900;color:#1B4A6B">${escapeHtml(r.agente_nombre||'—')}</td>`:''}
       <td>${tipoBadge(r.tipo)}</td>
-      <td style="font-size:9px">${r.cliente||'—'}</td>
+      <td style="font-size:9px">${escapeHtml(r.cliente||'—')}</td>
       <td style="font-size:8px;color:#7A90A4">${fecha}</td>
       <td><span style="border-radius:20px;padding:2px 8px;font-size:7px;font-weight:900;${mesBg(r.mes)}">${(r.mes||'').toUpperCase()}</span></td>
       <td style="font-weight:900;font-size:9px">${parseFloat(r.total||0)>0?fmt(r.total):'—'}</td>
