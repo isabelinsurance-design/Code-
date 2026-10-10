@@ -173,18 +173,21 @@ update `AEP_PERIODS`/`AEP_MILESTONES` for AEP 2027.
 **Marketing employee (scheduled routines, Oct 2026 pilot):** two Claude Code routines (a fresh cloud session per run,
 managed in the Claude app under Routines or with the `*_trigger` tools) do the work without Isabel opening the app.
 They only **draft**: she approves and publishes. Nothing goes out, no lead is contacted, no connectors are granted.
-- **Borradores diarios de Marketing**: Mon–Sat, about 6:20 am Pacific, Oct–Dec. Follows `agent/TRABAJO-DIARIO.md`: runs
+- **Borradores diarios de Marketing** (`trig_011D2QqKZsZJawpRbquWpnjs`): Mon–Sat, 6:16 am Pacific, Oct–Dec. Follows `agent/TRABAJO-DIARIO.md`: runs
   `node agent/empleado.cjs hoy` (headless Chromium over `index.html`: today's and tomorrow's AEP items, with the same
   per-item instructions and coach voice as the "Hoy" card), writes the drafts, checks them with
   `node agent/empleado.cjs revisar` (`cmsRegexIssues`) and appends the TPMO and license disclaimers.
-- **Radar semanal de Marketing**: Mondays, before 6 am Pacific, Oct–Dec. Follows `agent/RADAR-SEMANAL.md`. Market only: the
+- **Radar semanal de Marketing** (`trig_01DeKgkogVtytuzQsJQwaA6S`): Mondays, 5:51 am Pacific, Oct–Dec. Follows `agent/RADAR-SEMANAL.md`. Market only: the
   app's Chief-of-Staff part needs browser data (usage, leads, memory) that a routine cannot see. Web search, no connectors.
 - The result is the run's final message (push/email notification plus the session in the app). Runs use Isabel's Claude
   plan usage and fail when the limit is reached (one of her older routines failed that way on 9 Oct 2026).
 - To change the work, edit `agent/*.md` or `agent/empleado.cjs` here (tests: `tests/agent.cjs`). The routine prompts only
   say "read the file and follow it" plus the never-break rules. The Live time lives in Isabel's browser, so drafts show
   `[hora]` until her time is added to the daily routine's prompt (`--live HH:MM`).
-- Routine sessions load this CLAUDE.md. They must never commit or push (see Git below).
+- A routine session starts with no repository (`config:no-git-repo`), so its prompt tells it to attach this repo with
+  `add_repo` and only read it. Connectors cannot be granted through `create_trigger` in this org, so the runs have none.
+  Test a change with `fire_trigger` (its `text` argument adds test-only instructions) and check the run with `get_session`.
+- Routine sessions must never commit or push (see Git below).
 
 ## Testing
 

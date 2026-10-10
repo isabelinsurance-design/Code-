@@ -44,8 +44,13 @@ run('Security', async (t) => {
 
     t.section('T65 tracker');
     await p.evaluate(() => { document.getElementById('toolsToggle').click(); openTool('t65-lead-machine.html', null, 'x'); });
-    await p.waitForTimeout(900);
-    const fr = p.frames().find(f => f.url().includes('t65') || f.url().startsWith('blob:'));
+    // wait for the tool's own page (a fixed sleep was flaky when the machine was busy)
+    let fr = null;
+    for (let i = 0; i < 40 && !fr; i++) {
+      fr = p.frames().find(f => f.url().includes('t65') || f.url().startsWith('blob:')) || null;
+      if (fr) { try { await fr.waitForSelector('#leadName', { state: 'attached', timeout: 500 }); } catch (_) { fr = null; } }
+      if (!fr) await p.waitForTimeout(250);
+    }
     await fr.evaluate((h) => { document.getElementById('leadName').value = h; addLead(); }, evil);
     await p.waitForTimeout(250);
     t.ok(!(await fr.evaluate(() => window.__xssT65)), 'T65 tracker payload does not execute');
