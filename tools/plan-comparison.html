@@ -395,14 +395,26 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
    workbook into plan objects, reads a client description, and ranks plans.
    ═══════════════════════════════════════════════════════════════════ */
 const COUNTIES = [
-  {id:'LA', name:'Los Angeles', re:/\b(los angeles|l\.?a\.?(?! care)|east la|pasadena|glendale|burbank|long beach|santa clarita|valencia|northridge|porter ranch|mission hills|tarzana|san fernando|sylmar|pacoima|van nuys|reseda|panorama city|north hollywood|whittier|pomona|torrance|inglewood|compton|downey|norwalk|el monte|west covina|covina|lancaster|palmdale|hollywood|encino|sherman oaks|woodland hills|canoga park|chatsworth|granada hills|montebello|pico rivera|huntington park|south gate|lynwood|bellflower|lakewood|cerritos|carson|hawthorne|alhambra|monterey park|arcadia|el sereno|boyle heights|wilmington|san pedro)\b/i},
-  {id:'OC', name:'Orange', re:/\b(orange county|o\.?c\.?|anaheim|santa ana|irvine|garden grove|huntington beach|fullerton|costa mesa|mission viejo|westminster|newport beach|buena park|lake forest|tustin|yorba linda|laguna|san clemente|la habra|fountain valley|placentia|rancho santa margarita|aliso viejo|cypress|stanton|seal beach|los alamitos|dana point|san juan capistrano|brea)\b/i},
+  {id:'LA', name:'Los Angeles', re:/\b(los angeles|east la|la puente|la mirada|la canada(?: flintridge)?|la verne|la crescenta|la habra heights|lawndale|pasadena|glendale|burbank|long beach|santa clarita|valencia|northridge|porter ranch|mission hills|tarzana|san fernando|sylmar|pacoima|van nuys|reseda|panorama city|north hollywood|whittier|pomona|torrance|inglewood|compton|downey|norwalk|el monte|west covina|covina|lancaster|palmdale|hollywood|encino|sherman oaks|woodland hills|canoga park|chatsworth|granada hills|montebello|pico rivera|huntington park|south gate|lynwood|bellflower|lakewood|cerritos|carson|hawthorne|alhambra|monterey park|arcadia|el sereno|boyle heights|wilmington|san pedro)\b/i},
+  {id:'OC', name:'Orange', re:/\b(orange county|condado de orange|(?:in|en|city of|ciudad de) orange|o\.?c\.?|la palma|anaheim|santa ana|irvine|garden grove|huntington beach|fullerton|costa mesa|mission viejo|westminster|newport beach|buena park|lake forest|tustin|yorba linda|laguna|san clemente|la habra|fountain valley|placentia|rancho santa margarita|aliso viejo|cypress|stanton|seal beach|los alamitos|dana point|san juan capistrano|brea)\b/i},
   {id:'RIV', name:'Riverside', re:/\b(riverside|moreno valley|corona|temecula|murrieta|menifee|jurupa|hemet|perris|indio|palm springs|palm desert|cathedral city|coachella|lake elsinore|beaumont|banning|eastvale|norco|san jacinto|la quinta)\b/i},
   {id:'SB', name:'San Bernardino', re:/\b(san bernardino|s\.?b\.? county|inland empire|fontana|rancho cucamonga|ontario|victorville|rialto|hesperia|chino|upland|apple valley|redlands|highland|colton|yucaipa|montclair|loma linda|adelanto|barstow|twentynine palms)\b/i},
-  {id:'SD', name:'San Diego', re:/\b(san diego|s\.?d\.?|chula vista|oceanside|escondido|carlsbad|el cajon|vista|san marcos|encinitas|national city|la mesa|santee|poway|spring valley|imperial beach|lemon grove|coronado|ramona|fallbrook)\b/i},
+  {id:'SD', name:'San Diego', re:/\b(san diego|s\.?d\.?|chula vista|oceanside|escondido|carlsbad|el cajon|vista|san marcos|encinitas|national city|la mesa|la jolla|santee|poway|spring valley|imperial beach|lemon grove|coronado|ramona|fallbrook)\b/i},
   {id:'VEN', name:'Ventura', re:/\b(ventura|oxnard|thousand oaks|simi valley|camarillo|moorpark|santa paula|port hueneme|fillmore|ojai)\b/i},
 ];
 const COUNTY_BY_ID = Object.fromEntries(COUNTIES.map(c => [c.id, c]));
+/* The county a text names. "LA" / "L.A." counts only as written that way — a lowercase "la" is Spanish, and "La Habra" is
+   Orange County. Accents don't matter ("Los Ángeles"). The place after "lives in" wins; otherwise the first place named. */
+const LA_ABBR = /(?:^|[^A-Za-z0-9.])(L\.A\.?|LA|l\.a\.)(?![A-Za-z0-9])(?!\s*[Cc][Aa][Rr][Ee]\b)/g;
+const plainText = s => String(s == null ? '' : s).normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+function countyOf(text) {
+  const t = ' ' + plainText(text) + ' ', hits = [];
+  for (const c of COUNTIES) { const m = c.re.exec(t); if (m) hits.push({id: c.id, at: m.index, len: m[0].length}); }
+  for (const m of t.matchAll(LA_ABBR)) { hits.push({id: 'LA', at: m.index + m[0].indexOf(m[1]), len: m[1].length}); break; }
+  const home = h => /\b(?:lives?|living|resides?|vive|reside|home is|located)\s+(?:in|en|at)\s+(?:the\s+)?(?:city of\s+|ciudad de\s+|(?:el\s+)?condado de\s+)?$/i.test(t.slice(Math.max(0, h.at - 30), h.at));
+  hits.sort((a, b) => home(b) - home(a) || a.at - b.at || b.len - a.len);
+  return hits.length ? hits[0].id : '';
+}
 
 const CONDITIONS = [
   {id:'diabetes', label:'Diabetes', re:/\b(diabet\w*|a1c|type ?(1|2|i|ii)\b|az[uú]car)/i},
@@ -659,12 +671,21 @@ function normalize(plan) {
   const inp = g('Inpatient Hospital');
   n.inpatient5 = (() => {
     if (/original medicare|fee-for-service|1,?736/i.test(inp)) return 1736;
-    const day = inp.match(/\$(\d[\d,]*)\s*\/\s*day\s*\((?:days\s*)?1\s*-\s*(\d+)\)/i);
-    if (day) return parseFloat(day[1].replace(/,/g, '')) * Math.min(5, parseInt(day[2], 10));
+    // e.g. "$0/day (1-2); $80/day (3-6); $0/day (7-90)" → days 1-5 cost $240. A later range that repeats days already
+    // counted ("OON: $400/day (1-10)") is another network's price, not more days.
+    const segs = [...inp.matchAll(/\$(\d[\d,]*(?:\.\d+)?)\s*\/\s*day\s*\((?:days\s*)?(\d+)\s*-\s*(\d+)\+?\)/gi)];
+    if (segs.length) {
+      let sum = 0, upTo = 0;
+      for (const m of segs) {
+        const a = parseInt(m[2], 10), b = parseInt(m[3], 10);
+        if (a <= upTo) break;
+        if (a <= 5) sum += parseFloat(m[1].replace(/,/g, '')) * (Math.min(5, b) - a + 1);
+        upTo = b;
+      }
+      return sum;
+    }
     const stay = inp.match(/\$(\d[\d,]*)\s*per (stay|admission)/i);
     if (stay) return parseFloat(stay[1].replace(/,/g, ''));
-    const d2 = inp.match(/\$0\/day \(1-(\d)\); \$(\d+)\/day \((\d)-(\d+)\)/);
-    if (d2) { const free = parseInt(d2[1], 10), paid = Math.max(0, Math.min(5, parseInt(d2[4], 10)) - free); return paid * parseFloat(d2[2]); }
     return money(inp) ?? null;
   })();
   n.er = money(g('Worldwide Emergency Coverage') || g('ER / Urgent Care'));
@@ -788,13 +809,15 @@ function parseClientText(text, groups = []) {
   const p = blankProfile();
   const t = ' ' + T(text) + ' ';
   const tl = t.toLowerCase();
-  for (const c of COUNTIES) if (c.re.test(t)) { p.county = c.id; break; }
+  p.county = countyOf(t);
   for (const c of CONDITIONS) if (c.re.test(t)) p.conditions.push(c.id);
   if (p.conditions.includes('esrd') && !p.conditions.includes('kidney')) p.conditions.push('kidney');
   // "Medi-Cal", "Medi Cal", "MediCal" — but "medical group / copays / center" is not Medi-Cal (a bare "medical" counts only as "has medical")
   const MEDICAL_NOT = '(?!\\s+(?:group|center|centre|copays?|foundation|clinic|doctors?|care|records|conditions?|history|plan|bills|expenses|office|equipment|supplies|deductible|issues|problems|team|staff|needs))';
   const MEDICAL = '(?:medi[- ]cal|medicaid|medi-?medi|(?<=\\b(?:has|have|with|on|tiene|full|partial|and|plus|y|con)\\s)medical' + MEDICAL_NOT + ')';
-  if (new RegExp('\\b(?:no|not|without|doesn\'?t have|does not have|sin)\\s+(?:' + MEDICAL + '|medical' + MEDICAL_NOT + '|MediCal)(?![\\w-])', 'i').test(t)) p.mediCal = 'none';
+  // "no Medi-Cal", "doesn't qualify for Medi-Cal", "lost her Medi-Cal", "no tiene / no califica para Medi-Cal"
+  const MC_NEG = '\\b(?:no|not|without|doesn\'?t|does not|don\'?t|do not|isn\'?t|is not|never|lost|losing|sin|ya no)\\s+(?:(?:have|has|had|get|gets|got|qualify|qualifies|qualified|eligible|for|her|his|their|the|any|on|longer|currently|yet|tiene|ten[ií]a|califica|calific[oó]|para|con|cuenta|recibe|est[aá]|en)\\s+){0,3}';
+  if (new RegExp(MC_NEG + '(?:' + MEDICAL + '|medical' + MEDICAL_NOT + '|MediCal)(?![\\w-])', 'i').test(t)) p.mediCal = 'none';
   else if (new RegExp('\\b(?:' + MEDICAL + '|dual|(?<!\\b(?:no|not)\\s)qmb|full benefit)(?![\\w-])', 'i').test(t) || /\bMediCal\b/.test(t)) p.mediCal = /share of cost|\bsoc\b|partial|slmb/i.test(t) || /\bQI\b/.test(t) ? 'partial' : 'full';
   else if (/\b(medicare only|only medicare|solo medicare)\b/i.test(t)) p.mediCal = 'none';
   const NO_HELP = /\b(?:no|not|without|doesn'?t (?:have|get|qualify for)|does not (?:have|get|qualify for)|sin|not on)\s+(?:\w+\s+){0,2}(?:extra help|lis\b|low income subsidy|ayuda extra|qmb|slmb|msp|medicare savings)/i;
@@ -849,14 +872,19 @@ function parseClientText(text, groups = []) {
   if (/\b(keep|stay with|loves|must keep|wants to keep|has to keep|mantener)\b[^.]{0,40}(doctor|dr\.?|group|medical)/i.test(t)) p.keepDoctor = true;
   // Medical group: known names first, then the Costco list, then "goes to X" phrasing.
   const allGroups = [...new Set(KNOWN_GROUPS.concat(groups.map(g => g.network)))];
-  const tNoCounty = t.replace(/\blos angeles\b|\bsan bernardino\b|\bsan diego\b|\briverside\b|\borange county\b|\bventura\b/ig, ' ');   // "Los Angeles" is not the Angeles IPA
+  const tNoCounty = t.replace(/\blos [aá]ngeles\b|\bsan bernardino\b|\bsan diego\b|\briverside\b|\borange county\b|\bventura\b/ig, ' ');   // "Los Angeles" is not the Angeles IPA
+  // "doesn't want Kaiser", "Kaiser is out", "leaving Optum" — a group the client is avoiding is not their group
+  const GROUP_NEG = /(?:\b(?:hates?|dislikes?|leaving|left|leave|away from|anything but|except|other than|not with|no more|instead of|switching from|moving from|unhappy with|tired of|dejar|dej[oó]|sali[oó] de|no le gusta)\s+(?:[\w'-]+\s+)?)$/i;
+  const groupAvoided = (str, i, len) => { const before = str.slice(Math.max(0, i - 40), i); return NEG_BEFORE.test(before) || GROUP_NEG.test(before) || /^\s+(?:is|was|are)\s+(?:out|not an option|off the table|a no|no good)\b|^\s+no\b(?!\s+(?:copays?|premium|referrals?))/i.test(str.slice(i + len, i + len + 25)); };
   for (const gname of allGroups) {
     const core = gname.replace(/\b(medical (group|foundation)|mg|ipa|medical|foundation|health)\b/ig, '').trim();
-    if (core.length >= 4 && new RegExp('\\b' + core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i').test(tNoCounty)) { p.medicalGroup = titleCase(core); break; }
+    if (core.length < 4) continue;
+    const re = new RegExp('\\b' + core.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'ig');
+    if ([...tNoCounty.matchAll(re)].some(m => !groupAvoided(tNoCounty, m.index, m[0].length))) { p.medicalGroup = titleCase(core); break; }
   }
   if (!p.medicalGroup) {
     const m = t.match(/\b(?:goes to|sees doctors? at|doctor is (?:at|with)|with|medical group(?: is)?|va (?:a|con))\s+([A-Z][\w.&'-]+(?:\s+[A-Z][\w.&'-]+){0,3})/);
-    if (m && !COUNTIES.some(c => c.re.test(m[1])) && !/^(Medi|Medicare|Part|Extra|Diab|Costco|The)\b/i.test(m[1]) && !drugsIn(m[1], true).length) p.medicalGroup = m[1].trim();
+    if (m && !countyOf(m[1]) && !groupAvoided(t, m.index + m[0].length - m[1].length, m[1].length) && !/\b(?:not|no|never)\s+$/i.test(t.slice(Math.max(0, m.index - 12), m.index)) && !/^(Medi|Medicare|Part|Extra|Diab|Costco|The)\b/i.test(m[1]) && !drugsIn(m[1], true).length) p.medicalGroup = m[1].trim();
   }
   // Hospital: the known name closest to the word "hospital" (or a hospital-only name); city names count only right next to it
   const hosWord = [...t.matchAll(/hospital|\bhosp\b|medical center|\ber\b|emergency room/ig)].map(m => m.index);
@@ -870,7 +898,7 @@ function parseClientText(text, groups = []) {
       if (dist <= 30 || !alsoGroup) cands.push({hn, core, dist});
     }
   }
-  cands = cands.filter(c => !(COUNTIES.some(co => co.re.test(' ' + c.core + ' ')) && c.dist > 12));
+  cands = cands.filter(c => !(countyOf(c.core) && c.dist > 12));
   if (cands.length) p.hospital = cands.sort((x, y) => x.dist - y.dist)[0].hn;
   if (!p.hospital) {
     const hm = t.match(/\b([A-Z][\w.'&-]+(?:\s+[A-Z][\w.'&-]+){0,3})\s+(?:Hospital|Medical Center)\b/) || t.match(/\bhospital(?:\s+is|\s+es)?:?\s+([A-Z][\w.'&-]+(?:\s+[A-Z][\w.'&-]+){0,3})/i);
@@ -1480,9 +1508,9 @@ const CARRIER_ALIASES = [
   ['Aetna', /\baetna\b/i], ['Alignment Health', /\balignment\b/i], ['Anthem', /\banthem\b/i], ['Astiva Health', /\bastiva\b/i],
   ['CalOptima Health', /\bcal ?optima\b/i], ['Clever Care', /\bclever\b/i], ['Humana', /\bhumana\b|\busaa\b/i],
   ['Imperial Health Plan', /\bimperial\b/i], ['L.A. Care', /\bl\.? ?a\.? care\b/i], ['SCAN', /\bscan\b/i],
-  ['UCLA Health', /\bucla\b/i], ['UHC', /\buhc\b|\baarp\b|united ?healthcare|\bsharp\b/i],
+  ['UCLA Health', /\bucla\b/i], ['UHC', /\buhc\b|\baarp\b|united ?healthcare|\bsharp\b/i], ['Blue Shield', /\bblue ?shield\b/i],
 ];
-const CARRIER_WORDS = new Set(['aetna', 'alignment', 'anthem', 'astiva', 'caloptima', 'clever', 'humana', 'imperial', 'scan', 'ucla', 'uhc', 'aarp', 'sharp', 'usaa']);
+const CARRIER_WORDS = new Set(['aetna', 'alignment', 'anthem', 'astiva', 'caloptima', 'clever', 'humana', 'imperial', 'scan', 'ucla', 'uhc', 'aarp', 'sharp', 'usaa', 'blue', 'shield']);
 const GENERIC_WORDS = new Set(['health', 'medicare', 'advantage', 'plan', 'plans', 'from', 'by', 'the', 'of', 'and', 'hmo', 'ppo', 'pos', 'snp', 'new', 'care', 'plus', 'with', 'for', 'complete']);
 const STOP_WORDS = new Set('a an the and or of to in on at for with without by from is are was were be been do does did can could would should will what which who whom where when how why that this these those it its i me my we our you your any all some there their his her him she he they them has have had get gets got want wants need needs please tell show list find also plan plans one ones kind sort about cover covers covered include includes offer offers best most lowest highest least cheapest biggest tell give gives much many'.split(' '));
 
@@ -1511,7 +1539,7 @@ const FEATURES = [
   {id: 'rxded', re: /(?<!(?:medical|doctor|dental|hospital|inpatient|part b|medicare)\s)deductible|deducible/i, label: 'drug deductible', dir: 'min', fields: ['Rx Deductible'],
     metric: r => r.plan.n.noPartD ? null : (r.v.lis ? 0 : r.plan.n.rxDeductible), has: r => !r.plan.n.noPartD && (r.v.lis || r.plan.n.rxDeductible === 0), name: 'a $0 drug deductible',
     say: r => r.plan.n.noPartD ? 'no Part D' : r.v.lis && r.plan.n.rxDeductible ? `drug deductible $0 with Extra Help (plan's: ${fmt$(r.plan.n.rxDeductible)})` : `drug deductible ${fmt$(r.plan.n.rxDeductible)}${r.plan.n.rxDed && r.plan.n.rxDed.amount && r.plan.n.rxDed.tiers.length < 5 ? ' (tiers ' + r.plan.n.rxDed.tiers[0] + '–' + r.plan.n.rxDed.tiers[r.plan.n.rxDed.tiers.length - 1] + ')' : ''}`},
-  {id: 'drugs', re: /drugs?|\brx\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
+  {id: 'drugs', re: /drugs?|\brx\b|\bparte? d\b|medications?|medicines?|prescriptions?|brand|formulary|medicin|f[aá]rmacos?/i, label: 'drug costs', dir: 'min', fields: ['Rx Deductible', 'Tier 1: Preferred Generic', 'Tier 3: Preferred Brand', 'Insulin (Part D)'],
     metric: r => r.v.drugsYear != null ? r.v.drugsYear : r.v.rx, has: r => !r.plan.n.noPartD, name: 'Part D drug coverage',
     say: r => r.plan.n.noPartD ? (r.v.drugsYear === 0 ? 'drugs through VA/TRICARE' : 'no Part D')
       : r.drugs ? `≈${fmt$(r.drugs.yearly)}/yr for this client's drugs (est.) — ${r.drugs.text}`
@@ -1550,8 +1578,28 @@ const FEATURES = [
 const FIT_RANKED = new Set(['worldwide', 'ppo', 'csnp', 'dsnp', 'fitness']);   // yes/no benefits: best = best overall fit
 const FEATURE_BY_ID = Object.fromEntries(FEATURES.map(f => [f.id, f]));
 
-const SUP_HI = /\b(most|highest|biggest|largest|greatest|best|richest|top|max(imum)?|more|m[aá]s (alto|grande)|mayor|mejor)\b/i;
-const SUP_LO = /\b(lowest|least|cheapest|smallest|fewest|min(imum)?|less|worst|m[aá]s (bajo|barato)|menor|menos)\b/i;
+const SUP_HI = /\b(most|highest|biggest|largest|greatest|best|richest|top|max(imum)?|more|m[aá]s (alt[oa]s?|grandes?|car[oa]s?)|mayor|mejor)\b/i;
+const SUP_LO = /\b(lowest|least|cheapest|smallest|fewest|min(imum)?|less|worst|m[aá]s (baj[oa]s?|barat[oa]s?|peque[ñn][oa]s?)|menor|menos)\b/i;
+/* "cheapest plan with dental" asks for the lowest cost among plans that HAVE dental */
+const CHEAP_ASK = /\b(cheap\w*|lowest[- ]cost|low[- ]cost|least expensive|inexpensive|affordable|barat\w*|econ[oó]mic\w*|menos caro)\b/i;
+/* "plans without Part D", "which plans don't have dental" */
+const NEGATABLE = new Set(['drugs', 'dental', 'implants', 'vision', 'hearing', 'otc', 'rides', 'acupuncture', 'chiro', 'fitness', 'giveback', 'worldwide', 'csnp', 'dsnp']);
+const NEG_FEAT = /\b(?:without|no|sin|lacks?|lacking|(?:do|does)(?:n'?t| not) (?:have|include|cover|offer)|don'?t (?:have|include|cover|offer)|no (?:tiene|tienen|incluye|incluyen))\s+(?:a\s+|an\s+|any\s+|el\s+|la\s+)?$/i;
+const featNegated = (f, ql) => { const at = ql.search(f.re); return NEGATABLE.has(f.id) && at >= 0 && NEG_FEAT.test(ql.slice(Math.max(0, at - 30), at)); };
+/* "the top plan", "#2", "number one", "el plan número uno" → the client's ranked plans */
+function ordinalRefs(q, ranked) {
+  if (!ranked.length) return [];
+  const W = {one: 1, uno: 1, first: 1, primer: 1, primero: 1, top: 1, leading: 1, two: 2, dos: 2, second: 2, segundo: 2, three: 3, tres: 3, third: 3, tercer: 3, tercero: 3,
+    four: 4, cuatro: 4, fourth: 4, cuarto: 4, five: 5, cinco: 5, fifth: 5, quinto: 5};
+  const out = [], num = w => W[w.toLowerCase()] || +w;
+  const add = n => { const r = ranked[n - 1]; if (r && !out.includes(r.plan)) out.push(r.plan); };
+  const hits = [];
+  for (const m of q.matchAll(/#\s*(\d)(?!\d)/g)) hits.push([m.index, +m[1]]);
+  for (const m of q.matchAll(/\b(?:number|n[uú]mero)\s+(\d|one|two|three|four|five|uno|dos|tres|cuatro|cinco)\b/gi)) hits.push([m.index, num(m[1])]);
+  for (const m of q.matchAll(/\b(?:the|el|la)\s+(top|first|second|third|fourth|fifth|leading|primer|primero|segundo|tercer|tercero|cuarto|quinto)\s+(?:plan|one|option|choice|pick|opci[oó]n)\b(?!\s+(?:for|para|with|con)\b)/gi)) hits.push([m.index, num(m[1])]);
+  hits.sort((a, b) => a[0] - b[0]).forEach(h => add(h[1]));
+  return out;
+}
 
 function planTokens(plan) {
   return normName(plan.name).split(' ').filter(w => w.length >= 2 && !GENERIC_WORDS.has(w) && !CARRIER_WORDS.has(w) && !/^ca$/.test(w));
@@ -1587,15 +1635,16 @@ function matchPlansInQuestion(q, plans, prefCounty, ctx, split = true) {
   for (const plan of plans) {
     const pid = plan.id.replace(/[^a-z0-9]/ig, '').toLowerCase().slice(0, 8);
     if (ids.length && ids.includes(pid)) { hits.push({plan, cov: 1000}); continue; }
-    const core = normName(plan.name);
-    if (core.length > 12 && qn.includes(core)) { hits.push({plan, cov: 900}); continue; }
+    // the full name, without "(HMO)": "Blue Shield Advantage" is all generic words; the longest full name wins ("… 65 Plus Plan 2" over "… 65 Plus")
+    const core = normName(plan.name.replace(/\([^)]*\)/g, ' '));
+    if (core.length > 12 && (' ' + qn + ' ').includes(' ' + core + ' ')) { hits.push({plan, cov: 900 + Math.min(core.length, 99)}); continue; }
     const tok = planTokens(plan);
     if (!tok.length) continue;
     const matched = tok.filter(w => qTok.has(w));
     const words = tok.filter(w => !/\d/.test(w)), codes = tok.filter(w => /\d/.test(w));
     // every name word must be in the question; the plan number (055, 18p…) is a bonus — or, alone, specific enough
     const wordsOk = words.length ? words.every(w => qTok.has(w)) : matched.length > 0;
-    const codeOnly = !words.length || (!wordsOk && codes.some(c => qTok.has(c) && c.length >= 3 && !featureish(c)) && words.some(w => qTok.has(w)));
+    const codeOnly = words.length > 0 && !wordsOk && codes.some(c => qTok.has(c) && c.length >= 3 && !featureish(c)) && words.some(w => qTok.has(w));
     if (!wordsOk && !codeOnly) continue;
     const carrierSaid = CARRIER_ALIASES.some(([cn, re]) => cn === plan.carrier && re.test(q));
     if (matched.every(featureish) && !carrierSaid) continue; // "flex card" is not the Imperial Flex plan
@@ -1624,7 +1673,7 @@ function answerQuestion(question, ctx) {
   if (!q) return A({headline: 'Type a question — for example “Which plan has the lowest max out-of-pocket?”', followUps: defaultFollowUps(ctx)});
 
   // scope: county override, carrier filter, "all plans" switch
-  const qCounty = (COUNTIES.find(c => c.re.test(' ' + q + ' ')) || {}).id;
+  const qCounty = countyOf(q);
   const carrier = (CARRIER_ALIASES.find(([, re]) => re.test(q)) || [])[0] || null;
   const wantAll = /\b(all|every|any) (the )?plans?\b|whole workbook|entire workbook|every plan|all carriers/i.test(q);
   if (qCounty && qCounty !== profile.county) profile = Object.assign({}, profile, {county: qCounty});
@@ -1653,7 +1702,10 @@ function answerQuestion(question, ctx) {
   let planRefs = [];
   const topN = ql.match(/\b(?:top|first)\s*(\d|two|three|four)\b/);
   if (topN && ranked.length) { const n = ({two: 2, three: 3, four: 4})[topN[1]] || +topN[1]; planRefs = ranked.slice(0, Math.min(4, Math.max(1, n))).map(r => r.plan); }
-  else planRefs = matchPlansInQuestion(q.replace(/\b(?:with|without|no|sin|con|gets?|has)?\s*(?:extra help|ayuda extra)\b/gi, ' '), data.plans, profile.county, {inResults});
+  else {
+    const ord = usingClient ? ordinalRefs(q, ranked) : [];
+    planRefs = ord.concat(matchPlansInQuestion(q.replace(/\b(?:with|without|no|sin|con|gets?|has)?\s*(?:extra help|ayuda extra)\b/gi, ' '), data.plans, profile.county, {inResults}).filter(p => !ord.includes(p)));
+  }
 
   const qDrugs = findDrugsIn(q);
   // ── how many
@@ -1665,13 +1717,13 @@ function answerQuestion(question, ctx) {
   if (/how many|cu[aá]ntos|number of plans/i.test(q) && !planRefs.length) {
     const byCarrier = {}; for (const r of rows) byCarrier[r.plan.carrier] = (byCarrier[r.plan.carrier] || 0) + 1;
     let n = rows.length, text = '';
-    if (feats.length) { n = rows.filter(r => feats.every(f => f.has(r))).length; text = ` with ${feats.map(f => f.name).join(' and ')}`; }
+    if (feats.length) { const neg = feats.map(f => featNegated(f, ql)); n = rows.filter(r => feats.every((f, i) => f.has(r) !== neg[i])).length; text = ` with ${feats.map((f, i) => (neg[i] ? 'no ' : '') + f.name).join(' and ')}`; }
     return A({headline: `${scopeNote}: ${n} plan${n === 1 ? '' : 's'}${text}.`,
       notes: [Object.entries(byCarrier).sort((a, b) => b[1] - a[1]).map(([c, k]) => `${c} ${k}`).join(' · ') + (usingClient ? ` — ${result.excluded.length} more ruled out for this client.` : '')], followUps: follow});
   }
 
   // ── what to verify
-  if (/verify|check before|confirm|before (i )?enrol|checklist|what should i (check|ask)/i.test(q) && !planRefs.length) return verifyAnswer(ctx, A, follow);
+  if (/verify|check before|confirm|before (i )?enrol|checklist|what should i (check|ask)|verificar|confirmar|qu[eé] (debo|tengo que) (revisar|preguntar|checar)|antes de inscribir/i.test(q) && !planRefs.length) return verifyAnswer(ctx, A, follow);
 
   // ── network / medical group
   const mention = findGroupIn(q, data, notes);
@@ -1728,14 +1780,29 @@ function answerQuestion(question, ctx) {
 
   // ── superlative on a feature (a yes/no benefit like "D-SNP" or "worldwide" only filters; the number decides)
   const numeric = feats.filter(f => !FIT_RANKED.has(f.id));
+  if (numeric.length && wantsLo && CHEAP_ASK.test(q) && numeric.every(f => f.dir === 'max') && !feats.some(f => featNegated(f, ql))) {
+    // "cheapest plan with dental": the plans that have it, lowest yearly cost first
+    const yearly = r => r.v.premium * 12 + (r.v.drugsYear || 0) - (r.v.giveback || 0) * 12;
+    let pool = rows.filter(r => feats.every(f => f.has(r))), wide = false;
+    if (!pool.length && usingClient) { pool = widen().filter(r => feats.every(f => f.has(r))); wide = pool.length > 0; }
+    const what = feats.map(f => f.name).join(' and ');
+    if (!pool.length) return A({headline: `No plan in this list has ${what}.`, notes: [scopeNote + '.'], followUps: follow});
+    pool.sort((a, b) => yearly(a) - yearly(b) || (b.score || 0) - (a.score || 0));
+    const top = pool.slice(0, 6), withDrugs = top.some(r => r.v.drugsYear);
+    return A({headline: wide ? `None of the ${rows.length} plans that fit this client have ${what} — the lowest-cost plans sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} that do:` : `Lowest cost with ${what}: **${rowLabel(top[0], rows)}**`,
+      rows: top.map(r => ({idx: r.plan.idx, text: `${fmt$(r.v.premium)}/mo premium${r.v.drugsYear ? ` · drugs ≈${fmt$(r.v.drugsYear)}/yr` : ''}${r.v.giveback ? ` · giveback ${fmt$(r.v.giveback)}/mo` : ''} · ${numeric.map(f => f.say(r)).join(' · ')}${wide ? ruledOut(r) : r.score != null ? ` · fit ${Math.round(r.score)}` : ''}`})),
+      notes: [scopeNote + (pool.length > top.length ? `; showing ${top.length} of ${pool.length}.` : '.'), `Cost = the year's premiums${withDrugs ? ' + this client\'s drugs (est.)' : ''}, minus any Part B giveback.`]
+        .concat(!wide && top[0].score != null && ranked[0] && top[0].plan.idx !== ranked[0].plan.idx ? [`Best overall fit for this client is still ${ranked[0].plan.name}.`] : []),
+      compare: top.length >= 2 ? top.slice(0, 3).map(r => r.plan.idx) : null, followUps: follow});
+  }
   if (numeric.length && (wantsHi || wantsLo)) {
     const f = numeric[0], others = feats.filter(x => x !== f);
-    let desc = f.dir === 'max' ? !wantsLo : (wantsHi && !wantsLo && /\b(highest|largest|biggest|most expensive)\b/i.test(q));
+    let desc = f.dir === 'max' ? !wantsLo : (wantsHi && !wantsLo && /\b(highest|largest|biggest|most expensive|m[aá]s (?:alt[oa]s?|car[oa]s?)|mayor)\b/i.test(q));
     let pool = rows.filter(r => others.every(o => o.has(r)));
-    pool = pool.map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && desc && x.m <= 0));
+    pool = pool.map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && x.m <= 0));
     let wideNote = '';
     if (!pool.length && usingClient) {
-      pool = widen().filter(r => others.every(o => o.has(r))).map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && desc && x.m <= 0));
+      pool = widen().filter(r => others.every(o => o.has(r))).map(r => ({r, m: f.metric(r)})).filter(x => x.m != null && !(f.dir === 'max' && x.m <= 0));
       if (pool.length) wideNote = `None of the ${rows.length} plans that fit this client have ${f.name} — these other plans sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} do (tap one to see why it isn't on this client's list):`;
     }
     if (!pool.length) return A({headline: `No plan in this list has ${f.name}.`, notes: [scopeNote + '.'], followUps: follow});
@@ -1750,16 +1817,17 @@ function answerQuestion(question, ctx) {
 
   // ── which plans have X (filter)
   if (feats.length) {
-    let pool = rows.filter(r => feats.every(f => f.has(r)));
-    const what = feats.map(f => f.name).join(' and ');
+    const neg = feats.map(f => featNegated(f, ql)), hasAll = r => feats.every((f, i) => f.has(r) !== neg[i]);
+    let pool = rows.filter(hasAll);
+    const what = feats.map((f, i) => (neg[i] ? 'no ' : '') + f.name).join(' and ');
     if (!pool.length && usingClient) {
-      const wide = widen().filter(r => feats.every(f => f.has(r))).sort((a, b) => (feats[0].metric(b) || 0) - (feats[0].metric(a) || 0));
-      if (wide.length) return A({headline: `None of the ${rows.length} plans that fit this client have ${what} — but ${wide.length} other plan${wide.length > 1 ? 's' : ''} sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} do:`,
+      const wide = widen().filter(hasAll).sort((a, b) => (feats[0].metric(b) || 0) - (feats[0].metric(a) || 0));
+      if (wide.length) return A({headline: (neg.every(Boolean) ? `All ${rows.length} plans that fit this client have ${feats.map(f => f.name).join(' and ')} — but ${wide.length} other plan${wide.length > 1 ? 's' : ''} sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} ${wide.length > 1 ? 'don\'t' : 'doesn\'t'}:` : `None of the ${rows.length} plans that fit this client have ${what} — but ${wide.length} other plan${wide.length > 1 ? 's' : ''} sold in ${profile.county ? COUNTY_BY_ID[profile.county].name : 'the area'} do:`),
         rows: wide.slice(0, 8).map(r => ({idx: r.plan.idx, text: feats.map(f => f.say(r)).join(' · ') + ruledOut(r)})),
         notes: ['Tap a plan to see its benefits and why it isn\'t on this client\'s list.' + (wide.length > 8 ? ` Showing 8 of ${wide.length}.` : '')], followUps: follow});
     }
     pool.sort((a, b) => (b.score || 0) - (a.score || 0) || feats[0].metric(b) - feats[0].metric(a));
-    if (!pool.length) return A({headline: `No plan in this list has ${what}.`, notes: [scopeNote + '.'], followUps: follow});
+    if (!pool.length) return A({headline: neg.every(Boolean) ? `Every plan in this list has ${feats.map(f => f.name).join(' and ')}.` : `No plan in this list has ${what}.`, notes: [scopeNote + '.'], followUps: follow});
     const shown = pool.slice(0, 8);
     const one = pool.length === 1 && rows.length === 1;
     return A({headline: `${pool.length} of ${rows.length} plan${rows.length === 1 ? '' : 's'} ${one ? 'has' : 'have'} ${what}${pool.length > 1 && pool[0].score != null ? ' — best fit for this client first' : ''}:`,
@@ -1838,12 +1906,17 @@ function findGroupIn(q, data, notes) {
 /* Drugs named in a question (from the common-drug list). */
 function findDrugsIn(q) { return drugsIn(q).slice(0, 5); }
 function drugAnswer(drugs, planRefs, rows, profile, ctx, A, follow, scopeNote, usingClient, q = '') {
-  const lisNeg = /\b(?:without|no|not|sin|doesn'?t (?:get|have)|does not (?:get|have)|if (?:she|he|they) (?:does not|doesn'?t) get)\s+(?:\w+\s+)?(?:extra help|lis\b|ayuda extra|low income subsidy)/i.test(q);
+  const lisNeg = /\b(?:without|no|not|sin|doesn'?t (?:get|have)|does not (?:get|have)|if (?:she|he|they) (?:does not|doesn'?t) get|los(?:e|es|ing|t)|drop(?:s|ped|ping)?|comes? off|off|pierde|perdi[oó]|ya no tiene|ya no)\s+(?:\w+\s+)?(?:extra help|lis\b|ayuda extra|low income subsidy)/i.test(q)
+    || /(?:extra help|\blis|ayuda extra|low income subsidy)\s+(?:ends?|ended|stops?|stopped|goes away|went away|runs out|is (?:gone|lost|removed|taken away)|termina|se (?:acaba|termina|le quita))\b/i.test(q);
   const lisAsk = !lisNeg && /extra help|\blis\b|ayuda extra|low income subsidy/i.test(q);
   const base = Object.assign({}, profile, lisAsk ? {extraHelp: true} : lisNeg ? {extraHelp: false, mediCal: profile.mediCal === 'full' ? 'none' : profile.mediCal} : {});
   const lisNote = lisAsk ? ['Priced with Extra Help.'] : lisNeg ? ['Priced without Extra Help.'] : [];
   const mcOk = ['full', 'partial'].includes(base.mediCal) || base.extraHelp;
   if (!usingClient && !mcOk && rows.some(r => r.plan.n.dsnp)) { rows = rows.filter(r => !r.plan.n.dsnp); lisNote.push('D-SNPs (for Medi-Cal members) are left out — say “with Medi-Cal” to include them.'); }
+  // C-SNPs only for a condition the client has (or the drug is for), as in the ranking
+  const conds = [...new Set((profile.conditions || []).concat(drugs.map(d => d[1] === 'insulin' ? 'diabetes' : DRUG_COND[d[0]]).filter(Boolean)))];
+  const csnpOk = r => conds.some(c => r.plan.n.snpConditions.includes(c)) || (conds.length && r.plan.n.snpConditionsUnconfirmed);
+  if (!usingClient && rows.some(r => r.plan.n.csnp && !csnpOk(r))) { rows = rows.filter(r => !r.plan.n.csnp || csnpOk(r)); lisNote.push(`C-SNPs (for chronic conditions) are left out${conds.length ? ' unless they cover ' + conds.map(c => COND_BY_ID[c].label.toLowerCase()).join(' / ') : ''} — say the client's condition to include them.`); }
   // "Eliquis or Xarelto?", "Eliquis vs Xarelto" — each drug on its own, not added together
   const ms = DRUG_RE ? [...T(q).matchAll(DRUG_RE)] : [];
   const between = ms.length >= 2 ? T(q).slice(ms[0].index + ms[0][0].length, ms[1].index) : '';
@@ -2419,6 +2492,7 @@ async function findPlans(opts) {
   if (keep.length) S.profile.priorities.drugs = Math.max(S.profile.priorities.drugs || 0, 2);
   S.profile.rxStandard = opts.rxStandard !== undefined ? !!opts.rxStandard : (same && !!prev.rxStandard);
   S.lastFindText = text;
+  if (!same || opts.drugs !== undefined) S.compare = [];   // a different client starts with an empty compare tray
   S.aiRead = false; S.showAll = false; S.expanded.clear();
   addRecent(text);
   rerank();
