@@ -123,5 +123,46 @@ print(max(len(s) for ws in wb.worksheets for row in ws.iter_rows() for c in row 
   }
 }
 
-console.log(`\nAnuncios: ${pass} passed, ${fail} failed`);
-process.exit(fail ? 1 : 0);
+console.log('\n— guía para subir la campaña (ads/tutorial.cjs)');
+(async () => {
+  let chromium;
+  try { ({ chromium } = require('playwright')); } catch (_) { ({ chromium } = require(process.env.PLAYWRIGHT_PATH || '/opt/node22/lib/node_modules/playwright')); }
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'guia-'));
+  const r = spawnSync(process.execPath, [path.join(ADS, 'tutorial.cjs'), '--img', path.join(tmp, 'img'), '--out', path.join(tmp, 'out')], { cwd: ROOT, encoding: 'utf-8', timeout: 300000 });
+  const html = path.join(tmp, 'out', 'index.html');
+  ok(r.status === 0 && fs.existsSync(html), 'tutorial.cjs arma la guía (genera las imágenes si faltan)');
+  if (!fs.existsSync(html)) return;
+  const frag = fs.readFileSync(html, 'utf8');
+  ok(!/<!doctype|<html|<body/i.test(frag.slice(0, 2000)) && /^<title>[^<]{3,40}<\/title>/.test(frag), 'la guía empieza con su <title> y sin esqueleto propio (lo pone la publicación)');
+  const doc = '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body>' + frag + '</body></html>';
+  fs.writeFileSync(path.join(tmp, 'out', 'wrapped.html'), doc);
+  const browser = await chromium.launch();
+  try {
+    const ctx = await browser.newContext({ viewport: { width: 390, height: 900 }, permissions: ['clipboard-read', 'clipboard-write'] });
+    await ctx.route('**/*', (rt) => (rt.request().url().startsWith('file:') || rt.request().url().startsWith('data:') ? rt.continue() : rt.abort()));
+    const p = await ctx.newPage();
+    const errs = [];
+    p.on('pageerror', (e) => errs.push(e.message));
+    await p.goto('file://' + path.join(tmp, 'out', 'wrapped.html'));
+    const antes = await p.evaluate(() => ({ campos: document.querySelectorAll('.field[data-f]').length, faltan: document.querySelectorAll('.field.is-missing').length,
+      miniaturas: document.querySelectorAll('.thumbs img').length, ancho: document.documentElement.scrollWidth - window.innerWidth, texto: document.body.innerText }));
+    ok(errs.length === 0, 'la guía abre sin errores de JavaScript' + (errs.length ? ': ' + errs[0] : ''));
+    ok(antes.campos === 84 && antes.miniaturas === 18, 'trae 84 textos para copiar y las 18 miniaturas (' + antes.campos + ', ' + antes.miniaturas + ')');
+    ok(antes.faltan === 20, 'sin números TPMO ni enlace de privacidad marca 20 campos pendientes (' + antes.faltan + ')');
+    ok(antes.ancho <= 0, 'en el celular (390 px) no se sale de lado');
+    ok(!/gratis|garantizad|el mejor plan/i.test(antes.texto), 'la guía no dice «gratis», «garantizado» ni «el mejor plan»');
+    await p.fill('#in-org', '8'); await p.fill('#in-planes', '45'); await p.fill('#in-priv', 'https://withisabelfuentes.com/privacidad');
+    ok(await p.evaluate(() => document.querySelectorAll('.field.is-missing').length) === 0, 'con los números TPMO y el enlace ya no queda nada pendiente');
+    await p.click('[data-f="ad0-A"] .copy');
+    const copiado = await p.evaluate(() => navigator.clipboard.readText());
+    ok(copiado.startsWith(A[0].textos.A[0]) && /representamos a 8 organizaciones que ofrecen 45 productos/.test(copiado) && copiado.includes(datos.legal.licencia), 'el botón Copiar del texto A copia el texto, la licencia y el aviso TPMO con sus números, sin comillas');
+    await p.reload();
+    ok(await p.inputValue('#in-org') === '8', 'recuerda los números en esa computadora');
+  } finally {
+    await browser.close();
+  }
+})().catch((e) => ok(false, 'guía: ' + e.message)).finally(() => {
+  console.log(`\nAnuncios: ${pass} passed, ${fail} failed`);
+  process.exit(fail ? 1 : 0);
+});
+

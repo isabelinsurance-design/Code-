@@ -1,0 +1,418 @@
+<title>AEP 2026 Ad Launch</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600;700&family=Poppins:wght@500;600&display=swap">
+<style>
+/* Layout: one reading column with a sticky progress bar; each numbered step is a real sequence in Meta Ads Manager.
+   Brand: Medicare with Isabel palette (CLAUDE.md). Peach only for the one main action; copy buttons use the blue. */
+:root{
+  --bg:#EAF4FB; --surface:#FFFFFF; --ink:#333A4D; --muted:#5C6270; --line:#C9DDEC; --well:#F3F8FC;
+  --accent:#2B73B3; --on-accent:#FFFFFF; --brand:#3D8FD6; --cta:#F2A977; --cta-ink:#3A2212;
+  --ok:#1E7B4F; --ok-bg:#E6F4EC; --warn:#B42318; --warn-bg:#FDECEA; --ui-bg:#E3EEF8;
+  --head:'Poppins','Segoe UI',system-ui,sans-serif; --body:'Open Sans','Segoe UI',system-ui,sans-serif;
+  --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141925; --surface:#1E2433; --ink:#E8EEF7; --muted:#A6B0C2; --line:#313A50; --well:#181E2C;
+    --accent:#7DB9EE; --on-accent:#0E2236; --brand:#5AA6E6; --cta:#F2A977; --cta-ink:#2A1608;
+    --ok:#6FD3A0; --ok-bg:#1B2E26; --warn:#FF8A7A; --warn-bg:#3A1F1F; --ui-bg:#24324A; color-scheme:dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141925; --surface:#1E2433; --ink:#E8EEF7; --muted:#A6B0C2; --line:#313A50; --well:#181E2C;
+  --accent:#7DB9EE; --on-accent:#0E2236; --brand:#5AA6E6; --cta:#F2A977; --cta-ink:#2A1608;
+  --ok:#6FD3A0; --ok-bg:#1B2E26; --warn:#FF8A7A; --warn-bg:#3A1F1F; --ui-bg:#24324A; color-scheme:dark;
+}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:15.5px;line-height:1.6}
+.wrap{max-width:46rem;margin-inline:auto;padding-inline:max(16px,4vw);padding-block:0 64px}
+h1,h2,h3{font-family:var(--head);font-weight:600;line-height:1.25;text-wrap:balance;margin:0}
+h1{font-size:clamp(1.6rem,5vw,2.1rem)}
+h2{font-size:1.2rem}
+h3{font-size:1rem;font-weight:500}
+p{margin:0}
+a{color:var(--accent)}
+.top{display:flex;align-items:center;gap:10px;padding-block:22px 6px;color:var(--muted);font:500 .95rem var(--head)}
+.lede{color:var(--muted);max-width:62ch;margin-top:8px}
+/* sticky progress */
+.progress{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--bg);padding-block:12px;margin-top:14px;border-bottom:1px solid var(--line)}
+.progress-row{display:flex;justify-content:space-between;gap:12px;align-items:baseline;font-size:.9rem;color:var(--muted)}
+.progress-row strong{color:var(--ink)}
+.bar{height:8px;border-radius:99px;background:var(--line);overflow:hidden;margin-top:6px}
+.bar span{display:block;height:100%;width:0;background:var(--ok);transition:width .3s ease}
+@media (prefers-reduced-motion:reduce){.bar span{transition:none}}
+.steps-nav{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.steps-nav a{display:inline-grid;place-items:center;min-width:30px;height:30px;border-radius:99px;border:1px solid var(--line);background:var(--surface);color:var(--ink);text-decoration:none;font:600 .82rem var(--body);font-variant-numeric:tabular-nums}
+.steps-nav a.is-done{background:var(--ok-bg);border-color:var(--ok);color:var(--ok)}
+/* sections */
+.step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:20px;margin-top:18px;display:grid;gap:14px;scroll-margin-top:110px}
+.step.is-done{border-color:var(--ok)}
+.step-head{display:flex;gap:14px;align-items:flex-start}
+.num{flex:none;width:34px;height:34px;border-radius:99px;background:var(--brand);color:#fff;display:grid;place-items:center;font:600 1rem var(--head)}
+.step.is-done .num{background:var(--ok);color:var(--surface)}
+.step-head .when{color:var(--muted);font-size:.85rem;margin-top:2px}
+ol.do{margin:0;padding-left:1.35rem;display:grid;gap:12px}
+ol.do>li{padding-left:4px}
+ol.do>li>p+.field,ol.do>li>p+.fields,ol.do>li>p+.thumbs{margin-top:8px}
+.ui{display:inline;font-weight:700;background:var(--ui-bg);border-radius:5px;padding:0 5px;white-space:nowrap}
+.es{color:var(--muted);font-size:.92em}
+.note{background:var(--well);border:1px solid var(--line);border-radius:10px;padding:12px 14px;font-size:.93rem;color:var(--muted)}
+.warn{background:var(--warn-bg);border:1px solid var(--warn);color:var(--warn);border-radius:10px;padding:10px 14px;font-weight:600;font-size:.93rem}
+.ok-note{background:var(--ok-bg);border:1px solid var(--ok);color:var(--ok);border-radius:10px;padding:10px 14px;font-weight:600;font-size:.93rem}
+/* copy fields */
+.fields{display:grid;gap:10px}
+.field{display:grid;gap:4px;min-width:0}
+.field .lab{font-size:.74rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted);font-weight:700}
+.field .box{display:flex;gap:10px;align-items:flex-start;background:var(--well);border:1px solid var(--line);border-radius:9px;padding:9px 9px 9px 12px;min-width:0}
+.field .val{flex:1;min-width:0;margin:0;font:inherit;font-size:.95rem;white-space:pre-wrap;overflow-wrap:anywhere;max-height:14rem;overflow:auto}
+.field.is-missing .box{border-color:var(--warn)}
+.field.is-empty .val{color:var(--warn);font-weight:600}
+.field .why{color:var(--warn);text-transform:none;letter-spacing:0;font-weight:700}
+.copy{flex:none;border:0;border-radius:7px;background:var(--accent);color:var(--on-accent);font:700 .82rem var(--body);padding:7px 12px;min-height:34px;cursor:pointer}
+.copy.is-copied{background:var(--ok);color:var(--surface)}
+button:focus-visible,a:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* inputs */
+.inputs{display:grid;grid-template-columns:repeat(auto-fit,minmax(15rem,1fr));gap:14px}
+.inp{display:grid;gap:5px;min-width:0}
+.inp label{font-weight:700;font-size:.92rem}
+.inp input{font:inherit;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:9px 11px;min-height:42px;width:100%}
+.inp small{color:var(--muted);font-size:.84rem}
+/* buttons and images */
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--cta);color:var(--cta-ink);border-radius:9px;padding:11px 18px;font:700 .98rem var(--body);text-decoration:none;min-height:44px}
+.thumbs{display:flex;flex-wrap:wrap;gap:12px}
+.thumbs figure{margin:0;display:grid;gap:4px;max-width:150px}
+.thumbs img{border-radius:6px;border:1px solid var(--line);display:block;max-width:100%;height:auto}
+.thumbs figcaption{font:600 .72rem var(--mono);color:var(--muted);overflow-wrap:anywhere}
+.done{display:flex;align-items:center;gap:10px;font-weight:700;cursor:pointer;justify-self:start;border:1px solid var(--line);border-radius:9px;padding:9px 14px;background:var(--well)}
+.done input{width:20px;height:20px;accent-color:var(--ok)}
+.step.is-done .done{border-color:var(--ok);color:var(--ok);background:var(--ok-bg)}
+details{border:1px solid var(--line);border-radius:10px;padding:10px 14px;background:var(--surface)}
+details+details{margin-top:10px}
+summary{cursor:pointer;font-weight:700}
+details[open] summary{margin-bottom:12px}
+.weeks{width:100%;border-collapse:collapse;font-size:.93rem}
+.weeks th,.weeks td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.weeks th{font-size:.74rem;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.weeks td:first-child{white-space:nowrap;font-variant-numeric:tabular-nums;font-weight:700}
+.table-wrap{overflow-x:auto}
+.help{margin-top:24px;color:var(--muted);font-size:.93rem;display:grid;gap:8px;max-width:62ch}
+</style>
+
+<div class="wrap">
+  <div class="top"><span aria-hidden="true">🦋</span><span>Medicare with Isabel</span></div>
+  <h1>Your AEP Facebook campaign, step by step</h1>
+  <p class="lede">Keep this page open next to Ads Manager. Every text is ready: press <b>Copy</b> and paste it in Meta. Meta's buttons are shown in English with the Spanish name next to them, so it works in either language. About 45 minutes on a computer.</p>
+
+  <nav class="progress" aria-label="Progress">
+    <div class="progress-row"><span><strong id="prog-txt">0 of 9 steps done</strong></span><span id="prog-next"></span></div>
+    <div class="bar" aria-hidden="true"><span id="prog-bar"></span></div>
+    <div class="steps-nav" id="steps-nav"></div>
+  </nav>
+
+  <section class="step" id="paso-0" aria-labelledby="h0">
+    <div class="step-head"><div class="num">✓</div><div><h2 id="h0">Before you start</h2><p class="when">5 minutes</p></div></div>
+    <p>Fill in these boxes once. Every text below updates by itself, and this page remembers them on this computer.</p>
+    <div class="inputs">
+      <div class="inp"><label for="in-org">Organizations you represent (TPMO)</label><input id="in-org" inputmode="numeric" autocomplete="off" placeholder="e.g. 8"><small>The first number of your TPMO notice. Your FMO confirms it.</small></div>
+      <div class="inp"><label for="in-planes">Products in your area (TPMO)</label><input id="in-planes" inputmode="numeric" autocomplete="off" placeholder="e.g. 45"><small>The second number of the same notice.</small></div>
+      <div class="inp"><label for="in-priv">Your privacy-policy link</label><input id="in-priv" type="url" autocomplete="off" placeholder="https://withisabelfuentes.com/privacidad"><small>Meta requires it for the form. If your last campaign had a form, the same link works: open the old form (Meta Business Suite → All tools → Instant forms) and copy it.</small></div>
+      <div class="inp"><label for="in-budget">Daily budget, all areas ($)</label><input id="in-budget" inputmode="decimal" autocomplete="off" placeholder="39"><small>Suggested $39 a day (about $2,145 until Dec 7). The small option is $15. You decide.</small></div>
+    </div>
+    <div class="warn" id="warn-tpmo">Your 2 TPMO numbers are missing. The ad texts show [número de…] until you type them. Don't publish with brackets.</div>
+    <div class="note"><b>Your images:</b> I sent them in our chat (the 6 pictures for ads 1, 2 and 3, and the zip <b>Anuncios-AEP-2026-imagenes</b> with all 18). Save them in one folder on your computer. The names start with 01, 02 and 03.</div>
+    <div class="note"><b>Make a new campaign. Don't duplicate your old one:</b> this one needs the special category for insurance and the new form, and an old copy carries the old settings.</div>
+    <label class="done"><input type="checkbox" id="done-0"> I'm ready</label>
+  </section>
+
+  <section class="step" id="paso-1" aria-labelledby="h1x">
+    <div class="step-head"><div class="num">1</div><div><h2 id="h1x">Start a new campaign</h2><p class="when">2 minutes</p></div></div>
+    <ol class="do">
+      <li><p><a class="cta" href="https://adsmanager.facebook.com/" target="_blank" rel="noopener">Open Ads Manager</a></p><p class="es" style="margin-top:6px">It opens in a new tab. Log in with your Facebook if it asks.</p></li>
+      <li><p>At the top left, check that the ad account is the one you used for your last campaign.</p></li>
+      <li><p>Click the green <span class="ui">+ Create</span> <span class="es">(Crear)</span> button.</p></li>
+      <li><p>Choose <span class="ui">Leads</span> <span class="es">(Clientes potenciales)</span> and click <span class="ui">Continue</span> <span class="es">(Continuar)</span>.</p></li>
+      <li><p>If Meta asks how to set it up, choose <span class="ui">Manual leads campaign</span> <span class="es">(Campaña manual de clientes potenciales)</span> so you can pick the cities and the language. Click <span class="ui">Continue</span>.</p></li>
+    </ol>
+    <label class="done"><input type="checkbox" id="done-1"> Done</label>
+  </section>
+
+  <section class="step" id="paso-2" aria-labelledby="h2x">
+    <div class="step-head"><div class="num">2</div><div><h2 id="h2x">Campaign settings</h2><p class="when">3 minutes</p></div></div>
+    <ol class="do">
+      <li><p>Campaign name: delete what's there and paste this.</p><div class="field" data-f="camp-nombre" data-l="Campaign name"></div></li>
+      <li><p>Find <span class="ui">Special Ad Categories</span> <span class="es">(Categorías de anuncios especiales)</span>. Choose <span class="ui">Financial products and services</span> <span class="es">(Productos y servicios financieros)</span> and country <span class="ui">United States</span>. Meta requires it for insurance ads. Because of it, age and gender can't be chosen later. That's normal.</p></li>
+      <li><p>If <span class="ui">Advantage campaign budget</span> <span class="es">(Presupuesto de campaña Advantage)</span> is on here, choose <span class="ui">Daily budget</span> <span class="es">(Presupuesto diario)</span> and type the amount. If Meta asks for the budget on the next screen instead, type it there.</p><div class="field" data-f="presupuesto" data-l="Daily budget (type only the number)"></div></li>
+      <li><p>Click <span class="ui">Next</span> <span class="es">(Siguiente)</span>.</p></li>
+    </ol>
+    <label class="done"><input type="checkbox" id="done-2"> Done</label>
+  </section>
+
+  <section class="step" id="paso-3" aria-labelledby="h3x">
+    <div class="step-head"><div class="num">3</div><div><h2 id="h3x">Ad set: where, when and who</h2><p class="when">8 minutes</p></div></div>
+    <ol class="do">
+      <li><p>Ad set name:</p><div class="field" data-f="conj-nombre" data-l="Ad set name"></div></li>
+      <li><p><span class="ui">Conversion location</span> <span class="es">(Ubicación de la conversión)</span>: choose <span class="ui">Instant forms</span> <span class="es">(Formularios instantáneos)</span>. This can't be changed later.</p></li>
+      <li><p><span class="ui">Performance goal</span> <span class="es">(Objetivo de rendimiento)</span>: leave <span class="ui">Maximize number of leads</span>.</p></li>
+      <li><p><span class="ui">Facebook Page</span>: choose your page.</p></li>
+      <li><p><span class="ui">Schedule</span> <span class="es">(Programación)</span>: start date and time, then turn on <span class="ui">End date</span> <span class="es">(Fecha de finalización)</span>.</p><div class="fields"><div class="field" data-f="inicio" data-l="Start"></div><div class="field" data-f="fin" data-l="End"></div></div></li>
+      <li><p><span class="ui">Locations</span> <span class="es">(Ubicaciones)</span>: if "United States" is listed, remove it. Then add these cities one by one. After adding each one, set its radius in miles. Meta's minimum is 15.</p><div class="fields" id="ciudades"></div></li>
+      <li><p><span class="ui">Languages</span> <span class="es">(Idiomas)</span>, under <span class="ui">Show more options</span> <span class="es">(Mostrar más opciones)</span>: type and choose <span class="ui">Spanish</span> <span class="es">(Español)</span>. If you see "Spanish (All)", take that one.</p></li>
+      <li><p>Age and gender are locked. That's the special category, not a mistake.</p></li>
+      <li><p><span class="ui">Placements</span> <span class="es">(Ubicaciones de los anuncios)</span>: leave <span class="ui">Advantage+ placements</span>. Click <span class="ui">Next</span>.</p></li>
+    </ol>
+    <label class="done"><input type="checkbox" id="done-3"> Done</label>
+  </section>
+
+  <section class="step" id="paso-4" aria-labelledby="h4x">
+    <div class="step-head"><div class="num">4</div><div><h2 id="h4x">Ad 1: <span id="ad1-name"></span></h2><p class="when">10 minutes</p></div></div>
+    <ol class="do" id="ad1-steps"></ol>
+    <label class="done"><input type="checkbox" id="done-4"> Done</label>
+  </section>
+
+  <section class="step" id="paso-5" aria-labelledby="h5x">
+    <div class="step-head"><div class="num">5</div><div><h2 id="h5x">The form (only once)</h2><p class="when">10 minutes · it opens from the ad in step 4</p></div></div>
+    <ol class="do">
+      <li><p>Form name:</p><div class="field" data-f="form-nombre" data-l="Form name"></div></li>
+      <li><p><span class="ui">Form type</span> <span class="es">(Tipo de formulario)</span>: <span class="ui">Higher intent</span> <span class="es">(Mayor intención)</span>. It adds a review screen, so fewer but more serious leads come in.</p></li>
+      <li><p><span class="ui">Intro</span> <span class="es">(Introducción)</span>:</p><div class="fields"><div class="field" data-f="form-titulo" data-l="Headline"></div><div class="field" data-f="form-intro" data-l="Description"></div></div></li>
+      <li><p><span class="ui">Questions</span> <span class="es">(Preguntas)</span>: keep <span class="ui">Full name</span>. Add <span class="ui">Phone number</span> and <span class="ui">Zip code</span>. You can delete <span class="ui">Email</span>.</p></li>
+      <li id="preguntas"></li>
+      <li><p><span class="ui">Privacy policy</span> <span class="es">(Política de privacidad)</span>:</p><div class="fields"><div class="field" data-f="form-priv-texto" data-l="Link text"></div><div class="field" data-f="form-priv-url" data-l="Link URL"></div></div></li>
+      <li><p><span class="ui">Custom disclaimer</span> <span class="es">(Aviso legal personalizado)</span>: turn it on and add a checkbox. Mark the checkbox as required if Meta asks.</p><div class="fields"><div class="field" data-f="form-aviso-titulo" data-l="Title"></div><div class="field" data-f="form-aviso" data-l="Disclaimer text"></div><div class="field" data-f="form-aceptar" data-l="Checkbox text"></div></div></li>
+      <li><p><span class="ui">Ending</span> <span class="es">(Pantalla final)</span>: headline and description, then the button <span class="ui">Call business</span> <span class="es">(Llamar a la empresa)</span> with your number. Meta allows one button.</p><div class="fields"><div class="field" data-f="form-fin-titulo" data-l="Headline"></div><div class="field" data-f="form-fin-texto" data-l="Description"></div><div class="field" data-f="form-fin-boton" data-l="Button text"></div><div class="field" data-f="form-fin-tel" data-l="Phone number"></div></div></li>
+      <li><p>Click <span class="ui">Publish</span> <span class="es">(Publicar)</span> at the top right of the form. You go back to the ad, with the form selected.</p></li>
+    </ol>
+    <div class="note">The form never asks for a Medicare number, birth date, health, medicines, doctor, current plan or income. Meta doesn't allow it in forms, and you ask on the call, after the SOA.</div>
+    <label class="done"><input type="checkbox" id="done-5"> Done</label>
+  </section>
+
+  <section class="step" id="paso-6" aria-labelledby="h6x">
+    <div class="step-head"><div class="num">6</div><div><h2 id="h6x">Ads 2 and 3</h2><p class="when">8 minutes</p></div></div>
+    <ol class="do">
+      <li><p>In the left column, under your ad set, find Ad 1. Click its three dots (…) and <span class="ui">Duplicate</span> <span class="es">(Duplicar)</span>, 1 copy.</p></li>
+      <li><p>Open the copy and change the name, the image, the texts, the headlines and the description with the ones below. The form stays the same.</p></li>
+      <li><p>Do it once more for Ad 3.</p></li>
+    </ol>
+    <div id="ads-23"></div>
+    <label class="done"><input type="checkbox" id="done-6"> Done</label>
+  </section>
+
+  <section class="step" id="paso-7" aria-labelledby="h7x">
+    <div class="step-head"><div class="num">7</div><div><h2 id="h7x">Review and publish</h2><p class="when">2 minutes</p></div></div>
+    <ol class="do">
+      <li><p>Look at the preview of each ad on the right: check that the text has no brackets [ ] and that the image looks right.</p></li>
+      <li><p>Click <span class="ui">Publish</span> <span class="es">(Publicar)</span> at the bottom right.</p></li>
+      <li><p>Meta reviews the ads, usually within a day. They show <span class="ui">In review</span> <span class="es">(En revisión)</span>, then <span class="ui">Active</span> <span class="es">(Activo)</span> from your start date.</p></li>
+      <li><p>If one says <span class="ui">Rejected</span> <span class="es">(Rechazado)</span>, don't change things at random. Copy Meta's reason and send it to me in our chat. I'll fix the text.</p></li>
+    </ol>
+    <label class="done"><input type="checkbox" id="done-7"> Published</label>
+  </section>
+
+  <section class="step" id="paso-8" aria-labelledby="h8x">
+    <div class="step-head"><div class="num">8</div><div><h2 id="h8x">Once it's running</h2><p class="when">a few minutes a day</p></div></div>
+    <ol class="do">
+      <li><p>Take a screenshot of each published ad and keep it, in case your FMO or a carrier asks.</p></li>
+      <li><p>New leads appear in <span class="ui">Meta Business Suite</span> → <span class="ui">All tools</span> → <span class="ui">Leads Center</span> <span class="es">(Centro de clientes potenciales)</span>. Meta doesn't email them to you, so look a few times a day.</p></li>
+      <li><p>Call each new lead within the first hour, between 8 am and 9 pm. On the call: the TPMO notice before any benefit, and the SOA before talking about specific plans. If they don't answer, send this text:</p><div class="field" data-f="sms" data-l="Text message (change [nombre])"></div></li>
+      <li><p>Optional: Meta's <a href="https://developers.facebook.com/tools/lead-ads-testing" target="_blank" rel="noopener">lead testing tool</a> sends a fake lead through your form so you can see how one arrives.</p></li>
+      <li><p>Every Monday: write the spend and the leads from Ads Manager in the <b>Seguimiento</b> tab of the Excel. Your morning employee reminds you.</p></li>
+    </ol>
+    <label class="done"><input type="checkbox" id="done-8"> Done</label>
+  </section>
+
+  <section class="step" id="paso-9" aria-labelledby="h9x">
+    <div class="step-head"><div class="num">9</div><div><h2 id="h9x">A new ad each week</h2><p class="when">8 minutes each time</p></div></div>
+    <p>On each date, do the same as step 6: duplicate an ad, change the name, the image and the texts, and publish. All of them stop on Dec 7.</p>
+    <div class="table-wrap"><table class="weeks"><thead><tr><th>Date</th><th>Ad</th><th>Why</th></tr></thead><tbody id="semanas"></tbody></table></div>
+    <div id="ads-later"></div>
+    <div class="note"><b>Turn off what doesn't work:</b> in the first 3 days don't touch anything. After that, an ad that spent $50 with 0 leads gets turned off, and so does one whose cost per lead is more than double the best one.</div>
+    <label class="done"><input type="checkbox" id="done-9"> Got it</label>
+  </section>
+
+  <div class="help">
+    <p><b>Stuck, or the screen looks different?</b> Send me a screenshot in our chat and tell me the step number. I'll tell you exactly what to click. I can't log into your Meta account, but I can read your screenshots.</p>
+    <p>Everything here follows the CMS rules for plan year 2027 and Meta's rules for insurance ads. Your FMO has the last word on the material.</p>
+  </div>
+</div>
+
+<script type="application/json" id="datos">/*DATOS*/</script>
+<script>
+(function(){
+  var D = JSON.parse(document.getElementById('datos').textContent);
+  var THUMBS = D.thumbs || {};
+  var KEY = 'aep2026-launch-v1';
+  var S = { org:'', planes:'', priv:'', budget:'', done:{} };
+  try { var saved = JSON.parse(localStorage.getItem(KEY) || 'null'); if (saved && typeof saved === 'object') { S = Object.assign(S, saved); S.done = saved.done || {}; } } catch (e) {}
+  function save(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
+
+  var MESES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var DIAS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  function fecha(ymd){ var p = ymd.split('-').map(Number); var d = new Date(p[0], p[1]-1, p[2]); return DIAS[d.getDay()] + ', ' + MESES[p[1]-1] + ' ' + p[2] + ', ' + p[0]; }
+  function pad(n){ return String(n).padStart(2,'0'); }
+  function tpmo(){
+    var o = (S.org || '').trim() || '[número de organizaciones]';
+    var p = (S.planes || '').trim() || '[número de planes]';
+    return D.legal.tpmo.replace('{ORG}', o).replace('{PLANES}', p);
+  }
+  function tpmoListo(){ return !!((S.org || '').trim() && (S.planes || '').trim()); }
+  function legal(){ return D.legal.licencia + '\n\n' + tpmo(); }
+  function adText(ad, v){ return ad.textos[v].join('\n') + '\n\n' + legal(); }
+  function adName(i, ad){ return pad(i + 1) + ' · ' + ad.nombre; }
+  function file(i, ad, fmt){ return pad(i + 1) + '-' + ad.id + '_' + fmt + '-1080x' + (fmt === 'feed' ? '1350' : '1920') + '.png'; }
+  var esc = function(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); };
+
+  // Every copyable value is computed when shown and when copied, so it always carries the current inputs.
+  var FIELDS = {
+    'camp-nombre': function(){ return D.campana.campana; },
+    'conj-nombre': function(){ return D.campana.conjunto; },
+    'presupuesto': function(){ return String((S.budget || '').trim() || '39').replace(/[^0-9.]/g,''); },
+    'inicio': function(){ return fecha(D.campana.inicio) + ', 12:00 AM'; },
+    'fin': function(){ return fecha(D.campana.fin) + ', 11:59 PM'; },
+    'form-nombre': function(){ return D.formulario.nombre; },
+    'form-titulo': function(){ return D.formulario.titulo; },
+    'form-intro': function(){ return D.formulario.intro; },
+    'form-priv-texto': function(){ return D.formulario.privacidad_texto; },
+    'form-priv-url': function(){ return (S.priv || '').trim(); },
+    'form-aviso-titulo': function(){ return D.formulario.aviso_titulo; },
+    'form-aviso': function(){ return D.formulario.aviso.join('\n\n') + '\n\n' + legal(); },
+    'form-aceptar': function(){ return D.formulario.aceptar; },
+    'form-fin-titulo': function(){ return D.formulario.gracias.titulo; },
+    'form-fin-texto': function(){ return D.formulario.gracias.texto; },
+    'form-fin-boton': function(){ return D.formulario.gracias.boton; },
+    'form-fin-tel': function(){ return D.formulario.gracias.telefono; },
+    'sms': function(){ return D.formulario.sms.join('\n'); }
+  };
+  var USES_TPMO = { 'form-aviso': true };
+  D.campana.ciudades.forEach(function(c, i){ FIELDS['ciudad-' + i] = function(){ return c.lugar; }; });
+  D.formulario.preguntas.forEach(function(q, i){
+    FIELDS['preg-' + i] = function(){ return q.texto; };
+    q.opciones.forEach(function(o, j){ FIELDS['preg-' + i + '-' + j] = function(){ return o; }; });
+  });
+  D.anuncios.forEach(function(ad, i){
+    var k = 'ad' + i + '-';
+    FIELDS[k + 'nombre'] = function(){ return adName(i, ad); };
+    FIELDS[k + 'A'] = function(){ return adText(ad, 'A'); };
+    FIELDS[k + 'B'] = function(){ return adText(ad, 'B'); };
+    FIELDS[k + 't1'] = function(){ return ad.titulares[0]; };
+    FIELDS[k + 't2'] = function(){ return ad.titulares[1]; };
+    FIELDS[k + 'desc'] = function(){ return ad.descripcion; };
+    USES_TPMO[k + 'A'] = USES_TPMO[k + 'B'] = true;
+  });
+
+  function field(key, label){ return '<div class="field" data-f="' + key + '" data-l="' + esc(label) + '"></div>'; }
+  function thumbs(i, ad){
+    return '<div class="thumbs">' + ['feed','historia'].map(function(fmt){
+      var f = file(i, ad, fmt), src = THUMBS[f];
+      return '<figure>' + (src ? '<img src="' + src + '" alt="' + esc((fmt === 'feed' ? 'Feed image' : 'Stories image') + ' of ad ' + (i + 1)) + '" width="' + (fmt === 'feed' ? 150 : 106) + '">' : '') + '<figcaption>' + esc(f) + '</figcaption></figure>';
+    }).join('') + '</div>';
+  }
+  function adFields(i, ad){
+    var k = 'ad' + i + '-';
+    return '<div class="fields">' + field(k + 'nombre', 'Ad name') + field(k + 'A', 'Primary text A') + field(k + 'B', 'Primary text B (Add text option)') +
+      field(k + 't1', 'Headline 1') + field(k + 't2', 'Headline 2 (Add headline option)') + field(k + 'desc', 'Description') + '</div>';
+  }
+
+  // Step 4: the full walk-through for ad 1
+  var a0 = D.anuncios[0];
+  document.getElementById('ad1-name').textContent = a0.nombre;
+  document.getElementById('ad1-steps').innerHTML = [
+    '<li><p>Ad name:</p>' + field('ad0-nombre', 'Ad name') + '</li>',
+    '<li><p><span class="ui">Identity</span> <span class="es">(Identidad)</span>: your Facebook Page, and your Instagram account if it is connected.</p></li>',
+    '<li><p><span class="ui">Ad setup</span>: <span class="ui">Create ad</span> <span class="es">(Crear anuncio)</span>. Format: <span class="ui">Single image or video</span> <span class="es">(Imagen o video único)</span>.</p></li>',
+    '<li><p><span class="ui">Media</span>: <span class="ui">Add media</span> → <span class="ui">Add image</span> → <span class="ui">Upload</span>, and choose the feed picture. If Meta lets you pick a different image for Stories and Reels, choose the tall one. If you don\'t see that option, skip it.</p>' + thumbs(0, a0) + '</li>',
+    '<li><p><span class="ui">Primary text</span> <span class="es">(Texto principal)</span>: paste text A. Then click <span class="ui">Add text option</span> <span class="es">(Agregar opción de texto)</span> and paste text B.</p><div class="fields">' + field('ad0-A', 'Primary text A') + field('ad0-B', 'Primary text B') + '</div></li>',
+    '<li><p><span class="ui">Headline</span> <span class="es">(Título)</span>: paste headline 1, click <span class="ui">Add headline option</span> and paste headline 2.</p><div class="fields">' + field('ad0-t1', 'Headline 1') + field('ad0-t2', 'Headline 2') + '</div></li>',
+    '<li><p><span class="ui">Description</span> <span class="es">(Descripción)</span>:</p>' + field('ad0-desc', 'Description') + '</li>',
+    '<li><p><span class="ui">Call to action</span> <span class="es">(Llamada a la acción)</span>: <span class="ui">Learn more</span> <span class="es">(Más información)</span>.</p></li>',
+    '<li><p><span class="ui">Instant form</span> <span class="es">(Formulario instantáneo)</span>: click <span class="ui">Create form</span> <span class="es">(Crear formulario)</span> and do step 5. Then come back here.</p></li>'
+  ].join('');
+
+  // Step 3: cities
+  document.getElementById('ciudades').innerHTML = D.campana.ciudades.map(function(c, i){
+    return field('ciudad-' + i, 'City ' + (i + 1) + ' · radius ' + c.millas + ' miles');
+  }).join('');
+
+  // Step 5: questions
+  document.getElementById('preguntas').innerHTML = D.formulario.preguntas.map(function(q, i){
+    return '<p>' + (i ? 'Again ' : '') + 'Click <span class="ui">Add question</span> → <span class="ui">Multiple choice</span> <span class="es">(Opción múltiple)</span>. Paste the question and each answer:</p><div class="fields" style="margin-top:8px">' +
+      field('preg-' + i, 'Question ' + (i + 1)) + q.opciones.map(function(o, j){ return field('preg-' + i + '-' + j, 'Answer ' + (j + 1)); }).join('') + '</div>';
+  }).join('<div style="height:12px"></div>');
+
+  // Step 6: ads 2 and 3; step 9: the rest
+  function adBlock(i, open){
+    var ad = D.anuncios[i];
+    return '<details' + (open ? ' open' : '') + '><summary>Ad ' + (i + 1) + ': ' + esc(ad.nombre) + '</summary>' + thumbs(i, ad) + '<div style="height:10px"></div>' + adFields(i, ad) + '</details>';
+  }
+  document.getElementById('ads-23').innerHTML = adBlock(1, false) + adBlock(2, false);
+  var later = D.anuncios.map(function(ad, i){ return i; }).filter(function(i){ return D.anuncios[i].enciende > D.campana.inicio; });
+  document.getElementById('semanas').innerHTML = later.map(function(i){
+    var ad = D.anuncios[i];
+    return '<tr><td>' + esc(fecha(ad.enciende).replace(/, \d{4}$/, '')) + '</td><td>' + (i + 1) + ' · ' + esc(ad.nombre) + '</td><td>' + esc(ad.fase) + '</td></tr>';
+  }).join('');
+  document.getElementById('ads-later').innerHTML = later.map(function(i){ return adBlock(i, false); }).join('');
+
+  // Render all fields
+  function render(){
+    document.querySelectorAll('.field[data-f]').forEach(function(el){
+      var key = el.getAttribute('data-f'), get = FIELDS[key];
+      if (!get) return;
+      if (!el.firstChild) {
+        el.innerHTML = '<span class="lab">' + esc(el.getAttribute('data-l') || '') + ' <span class="why"></span></span><div class="box"><pre class="val"></pre><button type="button" class="copy">Copy</button></div>';
+      }
+      var v = get(), sinTpmo = !!(USES_TPMO[key] && !tpmoListo()), missing = !v || sinTpmo;
+      el.classList.toggle('is-missing', missing);
+      el.classList.toggle('is-empty', !v);
+      el.querySelector('.why').textContent = !v ? '· missing' : (sinTpmo ? '· add your TPMO numbers at the top first' : '');
+      el.querySelector('.val').textContent = v || (key === 'form-priv-url' ? 'Type your privacy link at the top (Before you start)' : '');
+    });
+    document.getElementById('warn-tpmo').hidden = tpmoListo();
+  }
+
+  function flash(btn, txt){
+    var old = 'Copy'; btn.textContent = txt; btn.classList.add('is-copied');
+    setTimeout(function(){ btn.textContent = old; btn.classList.remove('is-copied'); }, 1600);
+  }
+  function selectEl(el){ var r = document.createRange(); r.selectNodeContents(el); var s = window.getSelection(); s.removeAllRanges(); s.addRange(r); }
+  document.addEventListener('click', function(e){
+    var btn = e.target.closest('.copy'); if (!btn) return;
+    var fieldEl = btn.closest('.field'), key = fieldEl.getAttribute('data-f'), v = FIELDS[key] ? FIELDS[key]() : '';
+    var pre = fieldEl.querySelector('.val');
+    if (!v) { flash(btn, 'Nothing yet'); return; }
+    function fallback(){ selectEl(pre); var ok = false; try { ok = document.execCommand('copy'); } catch (err) {} flash(btn, ok ? 'Copied' : 'Selected: Ctrl+C'); }
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(v).then(function(){ flash(btn, 'Copied'); }, fallback);
+    else fallback();
+  });
+
+  // Inputs
+  [['in-org','org'],['in-planes','planes'],['in-priv','priv'],['in-budget','budget']].forEach(function(pair){
+    var el = document.getElementById(pair[0]);
+    el.value = S[pair[1]] || '';
+    el.addEventListener('input', function(){ S[pair[1]] = el.value; save(); render(); });
+  });
+
+  // Progress and "done" checkboxes
+  var TOTAL = 10;
+  var nav = document.getElementById('steps-nav');
+  nav.innerHTML = Array.from({length: TOTAL}, function(_, i){ return '<a href="#paso-' + i + '" data-s="' + i + '">' + (i === 0 ? '✓' : i) + '</a>'; }).join('');
+  function progress(){
+    var n = 0, next = null;
+    for (var i = 0; i < TOTAL; i++) {
+      var d = !!S.done[i];
+      if (d) n++; else if (next === null) next = i;
+      var sec = document.getElementById('paso-' + i); if (sec) sec.classList.toggle('is-done', d);
+      var cb = document.getElementById('done-' + i); if (cb) cb.checked = d;
+      var a = nav.querySelector('[data-s="' + i + '"]'); if (a) a.classList.toggle('is-done', d);
+    }
+    var steps = n - (S.done[0] ? 1 : 0);
+    document.getElementById('prog-txt').textContent = steps + ' of 9 steps done';
+    document.getElementById('prog-bar').style.width = Math.round(n / TOTAL * 100) + '%';
+    document.getElementById('prog-next').textContent = next === null ? 'All done' : (next === 0 ? 'Next: Before you start' : 'Next: step ' + next);
+  }
+  for (var i = 0; i < TOTAL; i++) (function(i){
+    var cb = document.getElementById('done-' + i);
+    if (cb) cb.addEventListener('change', function(){ S.done[i] = cb.checked; save(); progress(); });
+  })(i);
+
+  render();
+  progress();
+})();
+</script>

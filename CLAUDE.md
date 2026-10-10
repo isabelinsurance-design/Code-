@@ -28,7 +28,7 @@ her finished files over technical steps.
 | `build.py` | Regenerates the UNICO file (and `bot/isabel_system.txt`). See "Build step". |
 | `agent/` | The Marketing employee. `empleado.cjs` compiles the routine prompts (`compilar`) and has `hoy` / `revisar` helpers; `TRABAJO-DIARIO.md` / `RADAR-SEMANAL.md` are the job texts; `config.json` holds Isabel's Live time and TPMO numbers; `generado/` is the exact text installed in the routines. These are the agent's instructions, not docs. See "Marketing employee". |
 | `ads/` | The Facebook/Instagram ad pack (AEP 2026). `anuncios.json` is the single source of truth (9 angles: image text, 2 headlines, description, texts A/B, dates); `render.cjs` draws the 18 PNGs (feed 1080x1350 + stories 1080x1920) with the brand fonts in `fuentes/`; `libro.py` builds the 9-sheet Excel. Outputs go to `ads/salida/` (git-ignored, regenerate). See "Facebook ads". |
-| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ads`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈400 checks). |
+| `tests/` | Browser tests (Playwright + a fake Anthropic server): `aep`, `ads`, `ai`, `security`, `smoke`, `features`, `agent`. `node tests/run.cjs` runs them all (≈410 checks). |
 | `AUDIT.md` | Security/architecture audit with task status. |
 | `serve.sh` | Local web server helper (`python3 -m http.server`). |
 
@@ -229,6 +229,13 @@ content, receive leads and manage audiences, none creates paid ads. What the pac
   → Gmail "Send an email" to Isabel), written as the "Segunda tarea" on Sammy's page (artifact RJBY5aMmy5wb78ckzwLJRS) and step 13
   of "Cómo subirlo". A person with admin access to her Page has to connect it; Claude cannot log in to Meta, Make or Zapier.
 - The daily routine's Tuesday `[ad]` job follows the pack: `node agent/empleado.cjs compilar` appends an "ANUNCIOS DE META" section built from `ads/anuncios.json` (which ad to switch on this week, 2 new texts to test, the Monday tracking reminder).
+- **Launch guide for Isabel** (artifact "AEP 2026 Ad Launch", https://claude.ai/artifact/B2s33kx1qt2kZ5z6FCZzsJ): on 10 Oct she had no
+  helper, so she sets the campaign up herself from this page. `node ads/tutorial.cjs` fills `ads/tutorial.html` with `anuncios.json`
+  (`campana`, `formulario`, `anuncios`) plus JPEG thumbnails and writes `ads/salida/tutorial/index.html`; publish that file (from
+  another session pass the `url`). The page builds every copy text live with her TPMO numbers, privacy link and budget, which it
+  keeps in her browser's localStorage with the step checkmarks. It uses ONE ad set with 4 city radii (LA 25 mi, Santa Ana 20,
+  San Bernardino 25, Riverside 20) instead of the Excel's 3 regional ad sets, to keep her first setup simple. The form and
+  campaign texts live in `anuncios.json` and `libro.py` reads them too (Meta's form ending allows ONE button: Call business).
 - To change copy: edit `ads/anuncios.json`, then `node ads/render.cjs --out ads/salida/imagenes` and
   `python3 ads/libro.py ads/salida/Anuncios-Facebook-AEP-2026.xlsx --planes <her xlsx>`; `node tests/ads.cjs` checks limits, CMS
   alerts, Meta wording, the legal text against the app, image sizes and the workbook. The scratch tooling used to eyeball the Excel
@@ -237,7 +244,7 @@ content, receive leads and manage audiences, none creates paid ads. What the pac
 ## Testing
 
 `python3 build.py && node tests/run.cjs` — runs `aep`, `ai`, `security`, `smoke`, `features` (≈315 checks) against both
-`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈40 checks on `agent/`, including that `agent/generado` is in sync with `index.html`) and `ads` (≈40 checks on `ads/` and on the ad guidance inside `index.html`). A fake Anthropic server streams real SSE events, so streaming, web search,
+`index.html` and the UNICO build (`features` covers the Hoy card, Revisor and voice), plus `agent` (≈40 checks on `agent/`, including that `agent/generado` is in sync with `index.html`) and `ads` (≈50 checks on `ads/`, the launch guide in a browser, and the ad guidance inside `index.html`). A fake Anthropic server streams real SSE events, so streaming, web search,
 `pause_turn`, fallbacks and errors are all exercised. Add a test with every feature.
 The bot has its own offline tests: `python bot/test_bot.py` (needs `pip install -r bot/requirements.txt`).
 

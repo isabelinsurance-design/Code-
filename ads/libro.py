@@ -499,15 +499,14 @@ ws.row_dimensions[2].height = 30
 fila = 4
 banda(ws, fila, "Datos del formulario", 3)
 fila += 1
+F = DATOS["formulario"]
 formulario = [
-    ("Tipo", "Mayor intención (agrega una pantalla para revisar antes de enviar: llegan menos leads, pero más serios)"),
-    ("Nombre interno", "AEP 2026 · Revisión de plan · español"),
-    ("Título", "Pide tu revisión de Medicare en español"),
-    ("Introducción", "Déjame tus datos y te llamo para explicarte tus opciones de Medicare, en español y sin compromiso."),
-    ("Campos de siempre (Meta los llena del perfil)", "Nombre completo · Número de teléfono · Código postal"),
-    ("Pregunta 1 (opción múltiple)", "¿Qué te gustaría revisar?  →  Mi plan para 2027  /  Doctores y medicinas de mi plan  /  Mi primer Medicare  /  Ayudar a un familiar"),
-    ("Pregunta 2 (opción múltiple)", "¿Cómo prefieres que te contacte?  →  Llamada  /  Mensaje de texto"),
-]
+    ("Tipo", f"{F['tipo']} ({F['tipo_nota']})"),
+    ("Nombre interno", F["nombre"]),
+    ("Título", F["titulo"]),
+    ("Introducción", F["intro"]),
+    ("Campos de siempre (Meta los llena del perfil)", " · ".join(F["campos"])),
+] + [(f"Pregunta {i + 1} (opción múltiple)", p["texto"] + "  →  " + "  /  ".join(p["opciones"])) for i, p in enumerate(F["preguntas"])]
 for et, val in formulario:
     celda(ws, fila, 1, et, negrita=True, fondo=FONDO)
     celda(ws, fila, 2, val)
@@ -518,22 +517,17 @@ fila += 1
 banda(ws, fila, "Permiso para contactarte (aviso legal personalizado de Meta)", 3, color=AZUL)
 fila += 1
 celda(ws, fila, 1, "Título del aviso", negrita=True, fondo=FONDO)
-celda(ws, fila, 2, "Permiso para contactarte")
+celda(ws, fila, 2, F["aviso_titulo"])
 ws.merge_cells(start_row=fila, start_column=2, end_row=fila, end_column=3)
 fila += 1
 celda(ws, fila, 1, "Casilla de aceptación", negrita=True, fondo=FONDO)
-celda(ws, fila, 2, "Acepto (obligatoria)")
+celda(ws, fila, 2, F["aceptar"] + " (obligatoria)")
 ws.merge_cells(start_row=fila, start_column=2, end_row=fila, end_column=3)
 fila += 1
 celda(ws, fila, 1, "Texto del aviso: copia desde ▼ hasta ▲", negrita=True, borde=False, color=GRIS)
 ws.merge_cells(start_row=fila, start_column=1, end_row=fila, end_column=3)
 fila += 1
-permiso = [
-    "Al enviar este formulario, autorizo a Isabel Fuentes, agente de seguros con licencia en California (#0D96598), a comunicarse conmigo por llamada o mensaje de texto, incluidos mensajes automáticos, al número que escribí, para hablar sobre opciones de Medicare, incluidos planes Medicare Advantage y de medicinas.",
-    "Esto no me inscribe en ningún plan ni me obliga a comprar nada. Pueden aplicar tarifas de mensajes y datos. Puedo pedir que dejen de contactarme en cualquier momento.",
-    "@LICENCIA",
-    "@TPMO",
-]
+permiso = F["aviso"] + ["@LICENCIA", "@TPMO"]
 for k, ln in enumerate(permiso):
     if ln == "@LICENCIA":
         v, est = f"={q(HOJA_ANUN)}!$B$5", LEGAL["licencia"]
@@ -556,16 +550,16 @@ ws.conditional_formatting.add(f"B{fila}", FormulaRule(formula=[f'LEFT(B{fila},1)
 ws.merge_cells(start_row=fila, start_column=2, end_row=fila, end_column=3)
 fila += 1
 celda(ws, fila, 1, "Texto del enlace", negrita=True, fondo=FONDO)
-celda(ws, fila, 2, "Política de privacidad")
+celda(ws, fila, 2, F["privacidad_texto"])
 ws.merge_cells(start_row=fila, start_column=2, end_row=fila, end_column=3)
 fila += 2
 banda(ws, fila, "Pantalla de gracias", 3, color=AZUL)
 fila += 1
+G = F["gracias"]
 gracias = [
-    ("Título", "¡Gracias!"),
-    ("Texto", "Recibí tus datos. Te llamo pronto desde el +1 (310) 270-0626. Si prefieres, llámame tú ahora."),
-    ("Botón 1", "Llamar a Isabel  →  +1 (310) 270-0626"),
-    ("Botón 2", "Ver mi sitio  →  withisabelfuentes.com"),
+    ("Título", G["titulo"]),
+    ("Texto", G["texto"]),
+    ("Botón (Meta deja uno solo)", f"«Llamar a la empresa»: {G['boton']}  →  {G['telefono']}  (o, en su lugar, «Ver sitio web» → {G['sitio']})"),
 ]
 for et, val in gracias:
     celda(ws, fila, 1, et, negrita=True, fondo=FONDO)
@@ -585,10 +579,7 @@ ws.row_dimensions[fila].height = lineas_est(no_preguntar, sum(W.values())) * 13.
 fila += 2
 banda(ws, fila, "Primer mensaje de texto (solo a quien dejó sus datos y no contestó) · copia desde ▼ hasta ▲", 3, color=AZUL)
 fila += 1
-sms = [
-    "Hola [nombre], soy Isabel Fuentes, agente de seguros con licencia en California. Recibí tu solicitud para revisar Medicare. ¿Te puedo llamar hoy? Responde SÍ o dime a qué hora te conviene.",
-    "Responde STOP para no recibir más mensajes.",
-]
+sms = F["sms"]
 for k, ln in enumerate(sms):
     c = celda(ws, fila, 2, ln, borde=False)
     c.border = Border(left=fino, right=fino, top=fino if k == 0 else None, bottom=fino if k == len(sms) - 1 else None)

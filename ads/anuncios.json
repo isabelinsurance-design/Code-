@@ -8,6 +8,84 @@
       "No afiliada ni respaldada por el gobierno de EE. UU. ni por el programa federal de Medicare. No ofrecemos todos los planes disponibles en su área. Medicare.gov · 1-800-MEDICARE"
     ]
   },
+  "campana": {
+    "campana": "AEP 2026 · Clientes potenciales · español",
+    "conjunto": "Sur de California · español",
+    "ciudades": [
+      {
+        "lugar": "Los Angeles, California",
+        "millas": 25
+      },
+      {
+        "lugar": "Santa Ana, California",
+        "millas": 20
+      },
+      {
+        "lugar": "San Bernardino, California",
+        "millas": 25
+      },
+      {
+        "lugar": "Riverside, California",
+        "millas": 20
+      }
+    ],
+    "inicio": "2026-10-14",
+    "fin": "2026-12-07"
+  },
+  "formulario": {
+    "nombre": "AEP 2026 · Revisión de plan · español",
+    "tipo": "Mayor intención",
+    "tipo_en": "Higher intent",
+    "tipo_nota": "agrega una pantalla para revisar antes de enviar: llegan menos leads, pero más serios",
+    "titulo": "Pide tu revisión de Medicare en español",
+    "intro": "Déjame tus datos y te llamo para explicarte tus opciones de Medicare, en español y sin compromiso.",
+    "campos": [
+      "Nombre completo",
+      "Número de teléfono",
+      "Código postal"
+    ],
+    "campos_en": [
+      "Full name",
+      "Phone number",
+      "Zip code"
+    ],
+    "preguntas": [
+      {
+        "texto": "¿Qué te gustaría revisar?",
+        "opciones": [
+          "Mi plan para 2027",
+          "Doctores y medicinas de mi plan",
+          "Mi primer Medicare",
+          "Ayudar a un familiar"
+        ]
+      },
+      {
+        "texto": "¿Cómo prefieres que te contacte?",
+        "opciones": [
+          "Llamada",
+          "Mensaje de texto"
+        ]
+      }
+    ],
+    "aviso_titulo": "Permiso para contactarte",
+    "aviso": [
+      "Al enviar este formulario, autorizo a Isabel Fuentes, agente de seguros con licencia en California (#0D96598), a comunicarse conmigo por llamada o mensaje de texto, incluidos mensajes automáticos, al número que escribí, para hablar sobre opciones de Medicare, incluidos planes Medicare Advantage y de medicinas.",
+      "Esto no me inscribe en ningún plan ni me obliga a comprar nada. Pueden aplicar tarifas de mensajes y datos. Puedo pedir que dejen de contactarme en cualquier momento."
+    ],
+    "aceptar": "Acepto",
+    "privacidad_texto": "Política de privacidad",
+    "gracias": {
+      "titulo": "¡Gracias!",
+      "texto": "Recibí tus datos. Te llamo pronto desde el +1 (310) 270-0626. Si prefieres, llámame tú ahora.",
+      "boton": "Llamar a Isabel",
+      "telefono": "+1 3102700626",
+      "sitio": "withisabelfuentes.com"
+    },
+    "sms": [
+      "Hola [nombre], soy Isabel Fuentes, agente de seguros con licencia en California. Recibí tu solicitud para revisar Medicare. ¿Te puedo llamar hoy? Responde SÍ o dime a qué hora te conviene.",
+      "Responde STOP para no recibir más mensajes."
+    ]
+  },
   "anuncios": [
     {
       "id": "carta-de-cambios",
@@ -23,7 +101,10 @@
         "sub": "Te explico en español qué cambia para 2027.",
         "cta": "Pide tu revisión"
       },
-      "titulares": ["Revisa tu carta de cambios 2027", "Medicare 2027, explicado en español"],
+      "titulares": [
+        "Revisa tu carta de cambios 2027",
+        "Medicare 2027, explicado en español"
+      ],
       "descripcion": "Revisión sin compromiso",
       "boton": "Más información",
       "textos": {
@@ -60,7 +141,10 @@
         "sub": "Agente de seguros con licencia en California.",
         "cta": "Hablemos"
       },
-      "titulares": ["Medicare en español, claro", "Te lo explico con paciencia"],
+      "titulares": [
+        "Medicare en español, claro",
+        "Te lo explico con paciencia"
+      ],
       "descripcion": "Agente con licencia en CA",
       "boton": "Más información",
       "textos": {
@@ -95,7 +179,10 @@
         "sub": "Explicado en español, paso a paso.",
         "cta": "Hablemos"
       },
-      "titulares": ["Primer Medicare, paso a paso", "Medicare al cumplir 65 años"],
+      "titulares": [
+        "Primer Medicare, paso a paso",
+        "Medicare al cumplir 65 años"
+      ],
       "descripcion": "Te explico en español",
       "boton": "Más información",
       "textos": {
@@ -132,7 +219,10 @@
         "sub": "Puede cambiar de un año a otro. Te ayudo a revisarla.",
         "cta": "Revisa tu plan"
       },
-      "titulares": ["Medicinas en tu plan 2027", "Revisa la lista de tu plan"],
+      "titulares": [
+        "Medicinas en tu plan 2027",
+        "Revisa la lista de tu plan"
+      ],
       "descripcion": "Te explico en español",
       "boton": "Más información",
       "textos": {
@@ -169,7 +259,10 @@
         "sub": "Los beneficios dependen del plan y del área.",
         "cta": "Pregúntame"
       },
-      "titulares": ["Beneficios extra: según el plan", "Dental, visión y más: revísalo"],
+      "titulares": [
+        "Beneficios extra: según el plan",
+        "Dental, visión y más: revísalo"
+      ],
       "descripcion": "Según el plan y el área",
       "boton": "Más información",
       "textos": {
@@ -207,7 +300,10 @@
         "sub": "Cada plan tiene su propia red de doctores y hospitales.",
         "cta": "Revisa tu plan"
       },
-      "titulares": ["¿Tu doctor está en la red?", "Revisa la red de tu plan 2027"],
+      "titulares": [
+        "¿Tu doctor está en la red?",
+        "Revisa la red de tu plan 2027"
+      ],
       "descripcion": "Te ayudo en español",
       "boton": "Más información",
       "textos": {
@@ -242,7 +338,10 @@
         "sub": "Compártele este anuncio. Yo le explico en español.",
         "cta": "Compártelo"
       },
-      "titulares": ["Medicare en español, con paciencia", "Comparte con quien lo necesite"],
+      "titulares": [
+        "Medicare en español, con paciencia",
+        "Comparte con quien lo necesite"
+      ],
       "descripcion": "Yo le explico en español",
       "boton": "Más información",
       "textos": {
@@ -276,7 +375,10 @@
         "sub": "Lo revisamos juntos, en español.",
         "cta": "Agenda una llamada"
       },
-      "titulares": ["Medicare en familia", "Ayuda a tus papás con su plan"],
+      "titulares": [
+        "Medicare en familia",
+        "Ayuda a tus papás con su plan"
+      ],
       "descripcion": "Explicado en español",
       "boton": "Más información",
       "textos": {
@@ -311,7 +413,10 @@
         "sub": "Revisa tu plan con tiempo y en español.",
         "cta": "Hablemos hoy"
       },
-      "titulares": ["Termina el 7 de diciembre", "Últimos días para revisar tu plan"],
+      "titulares": [
+        "Termina el 7 de diciembre",
+        "Últimos días para revisar tu plan"
+      ],
       "descripcion": "Inscripción abierta Medicare",
       "boton": "Más información",
       "textos": {
