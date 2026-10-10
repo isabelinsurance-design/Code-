@@ -73,12 +73,16 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 [$fecha_inicio, $fecha_fin] = quincena_rango($year, $month, $q);
 
 // ── AGENTES CON HORARIO DEFINIDO ───────────────────────────────────────────
-$agents = $pdo->query(
-    "SELECT * FROM usuarios
-     WHERE activo=1 AND rol='agent'
-       AND salario_quincenal IS NOT NULL
-     ORDER BY nombre"
-)->fetchAll();
+// Activos, MÁS los inactivos que sí trabajaron en esta quincena (antes alguien
+// desactivado a media quincena desaparecía y su último pago no salía).
+$_st_ag = $pdo->prepare(
+    "SELECT * FROM usuarios u
+     WHERE u.rol='agent' AND u.salario_quincenal IS NOT NULL
+       AND (u.activo=1 OR EXISTS (SELECT 1 FROM asistencia a WHERE a.agente_id=u.id AND a.fecha BETWEEN ? AND ?))
+     ORDER BY u.activo DESC, u.nombre"
+);
+$_st_ag->execute([$fecha_inicio, $fecha_fin]);
+$agents = $_st_ag->fetchAll();
 
 // ── CONSTRUIR DATOS POR AGENTE ─────────────────────────────────────────────
 $nomina = [];

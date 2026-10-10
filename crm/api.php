@@ -2504,7 +2504,9 @@ case 'toggle_checklist':
         exit; 
     }
     
-    $nuevo = $row['completado'] ? 0 : 1;
+    // Si el navegador dice qué estado quiere (0/1), se usa ese; si no (pantalla
+    // vieja en caché), se voltea como antes.
+    $nuevo = isset($_POST['completado']) ? ((int)$_POST['completado'] ? 1 : 0) : ($row['completado'] ? 0 : 1);
     if ($nuevo) {
         $pdo->prepare("UPDATE checklist_diario SET completado=1, completado_at=NOW() WHERE id=?")
             ->execute([$row['id']]);
@@ -3474,8 +3476,9 @@ case 'busqueda_general':
                                           CONCAT(m.apellido,', ',m.nombre) as miembro_nombre
                                    FROM tickets t LEFT JOIN miembros m ON t.miembro_id=m.id
                                    WHERE t.cliente LIKE ? OR t.descripcion LIKE ?
+                                      OR m.nombre LIKE ? OR m.apellido LIKE ? OR CONCAT(m.nombre,' ',m.apellido) LIKE ?
                                    ORDER BY t.id DESC LIMIT 25");
-            $stm->execute([$like, $like]);
+            $stm->execute([$like, $like, $like, $like, $like]);
             $resultados['tickets'] = $stm->fetchAll(PDO::FETCH_ASSOC);
         } catch (Exception $e) { $resultados['tickets'] = []; }
     }

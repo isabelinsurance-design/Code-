@@ -214,7 +214,8 @@ if (($_SERVER['REQUEST_METHOD'] ?? '') === 'POST') {
 // ── AGENTES (para el selector) ──────────────────────────────────────────────
 // Un empleado solo puede ver/traer sus propios datos, nunca los de otro.
 if ($admin) {
-    $agents = $pdo->query("SELECT * FROM usuarios WHERE activo=1 AND rol='agent' ORDER BY nombre")->fetchAll();
+    // Incluye inactivos (marcados) para poder hacer el último recibo de quien ya se fue.
+    $agents = $pdo->query("SELECT * FROM usuarios WHERE rol='agent' ORDER BY activo DESC, nombre")->fetchAll();
 } else {
     $st = $pdo->prepare("SELECT * FROM usuarios WHERE id=? AND rol='agent'");
     $st->execute([$agente_id]);
@@ -385,7 +386,7 @@ body{background:<?=$BG?>;font-family:'DM Sans',sans-serif;font-size:13px;color:<
     <label>EMPLEADO</label>
     <select name="a">
       <?php foreach($agents as $a): ?>
-      <option value="<?=$a['id']?>" <?=$a['id']==$agente_id?'selected':''?>><?=h($a['nombre'])?></option>
+      <option value="<?=$a['id']?>" <?=$a['id']==$agente_id?'selected':''?>><?=h($a['nombre'])?><?=((int)($a['activo']??1)===1)?'':' (INACTIVA)'?></option>
       <?php endforeach; ?>
     </select>
   </div>

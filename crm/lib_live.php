@@ -45,6 +45,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         $usuariosInactivos = $pdo->query("SELECT id,nombre,rol,color,iniciales FROM usuarios WHERE activo=0 ORDER BY nombre")->fetchAll();
     } catch (Throwable $e) {}
     $idsInactivos = array_fill_keys(array_column($usuariosInactivos, 'id'), true);
+    $usuariosActivos = $usuarios; // para totales y el carrusel: solo personal activo
     $usuarios = array_merge($usuarios, $usuariosInactivos);
 
     // Asistencia de hoy — quién está trabajando/en break/salió ahora mismo
@@ -292,7 +293,7 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         $midsCita = array_filter(array_unique(array_column($citasCompletadas, 'miembro_id')));
         if ($midsCita) {
             $ph = implode(',', array_fill(0, count($midsCita), '?'));
-            $q = $pdo->prepare("SELECT DISTINCT miembro_id FROM pago_bonos WHERE miembro_id IN ($ph)");
+            $q = $pdo->prepare("SELECT DISTINCT miembro_id FROM pago_bonos WHERE miembro_id IN ($ph) AND COALESCE(venta_cancelada,0)=0");
             $q->execute(array_values($midsCita));
             foreach ($q->fetchAll(PDO::FETCH_COLUMN) as $mvid) $miembrosConVenta[(int)$mvid] = true;
         }
@@ -300,10 +301,12 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
 
     // Total de VENTAS para la tarjetita — aclaración de Isabel: solo cuentan
     // las citas de PROSPECTO, las de miembro ya existente NO cuentan como venta.
-    $totVentasHoy = 0;
+    $totVentasHoy = 0; $_ventaContada = [];
     foreach ($citasCompletadas as $c) {
         $esProsp = ($c['tipo_persona'] ?? 'MIEMBRO') === 'PROSPECTO';
-        if ($esProsp && !empty($c['miembro_id']) && !empty($miembrosConVenta[(int)$c['miembro_id']])) $totVentasHoy++;
+        $mv = (int)($c['miembro_id'] ?? 0);
+        // Cada persona cuenta una sola vez aunque tenga dos citas completadas ese día.
+        if ($esProsp && $mv && !empty($miembrosConVenta[$mv]) && empty($_ventaContada[$mv])) { $totVentasHoy++; $_ventaContada[$mv] = true; }
     }
 
     // ── Estado de asistencia "ahora mismo" ──────────────────────────
@@ -360,11 +363,11 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
          dejarlo en una pantalla de la oficina). La tabla de abajo sigue
          igual, aparte, para ver a todos de un jalón. Solo aplica a HOY —
          no tiene sentido "rotar" un reporte de un día que ya pasó. -->
-    <?php if ($esHoy && count($usuarios)):?>
+    <?php if ($esHoy && count($usuariosActivos)):?>
     <div style="margin-bottom:18px">
       <div style="font-size:9px;font-weight:900;color:<?=$MU?>;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">👤 CÓMO VA CADA QUIEN HOY</div>
       <div id="live-carrusel-wrap" style="position:relative">
-        <?php foreach ($usuarios as $idx => $u):
+        <?php foreach ($usuariosActivos as $idx => $u):
             $aid = (int)$u['id'];
             // Mismo dato que la columna "CITAS PROSPECTO (AGENDADAS HOY)"
             // de la tabla de abajo — a propósito, para que coincidan
@@ -403,9 +406,9 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
         </div>
         <?php endforeach;?>
       </div>
-      <?php if (count($usuarios) > 1):?>
+      <?php if (count($usuariosActivos) > 1):?>
       <div id="live-carrusel-dots" style="display:flex;justify-content:center;gap:5px;margin-top:9px">
-        <?php foreach ($usuarios as $idx => $u):?>
+        <?php foreach ($usuariosActivos as $idx => $u):?>
         <span class="live-carrusel-dot" style="width:6px;height:6px;border-radius:50%;background:<?=$idx===0?$P1:$CB?>"></span>
         <?php endforeach;?>
       </div>
@@ -425,13 +428,13 @@ function render_live_panel(PDO $pdo, ?string $fecha = null): array {
     <div style="display:flex;flex-wrap:wrap;gap:7px;margin-bottom:11px">
       <?php
       if ($esHoy) {
-          $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuarios), $G);
+          $kpi('● TRABAJANDO AHORA', $totTrabajando . '/' . count($usuariosActivos), $G);
       } else {
           // "Ahora mismo" no aplica a un día que ya pasó — se cambia por
           // quién sí marcó asistencia ese día (eso sí se puede saber).
           $trabajaronEseDia = 0;
           foreach ($asis as $a) { if (!empty($a['check_in'])) $trabajaronEseDia++; }
-          $kpi('TRABAJARON ESE DÍA', $trabajaronEseDia . '/' . count($usuarios), $G);
+          $kpi('TRABAJARON ESE DÍA', $trabajaronEseDia . '/' . count($usuariosActivos), $G);
       }
       $kpi('CITAS HOY', $totCitasHoy, $P1);
       $kpi('💰 VENTAS', $totVentasHoy, $G);

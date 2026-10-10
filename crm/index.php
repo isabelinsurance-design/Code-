@@ -8295,9 +8295,12 @@ $stmt_act = $pdo->prepare("
           AND a.fecha_hora >= ? AND a.fecha_hora < DATE_ADD(?, INTERVAL 1 DAY)
           AND (t.asignado_a = ? OR ((t.asignado_a IS NULL OR t.asignado_a = 0) AND t.agente_id = ?))
           AND t.tipo IN ($tipos_miembro_sql)
+          -- Una nota en el miembro ya NO cuenta sus tickets viejos cerrados:
+          -- solo los que siguen abiertos o se cerraron hoy.
+          AND (t.estado <> 'CERRADO' OR t.fecha_cierre >= ?)
     ) combined
 ");
-$stmt_act->execute([$uid, $today, $today, $uid, $today, $today, $uid, $uid]);
+$stmt_act->execute([$uid, $today, $today, $uid, $today, $today, $uid, $uid, $today]);
 $tkt_act_count = $mis_actualizados_hoy = (int)$stmt_act->fetchColumn();
 
 
@@ -8932,7 +8935,7 @@ if ($admin) {
 <?=$alertas_hoy?> LLAMADA<?=$alertas_hoy>1?'S':''?> DE RETENCIÓN PENDIENTE<?=$alertas_hoy>1?'S':''?> PARA HOY (7/30/60/90 DÍAS)
 </div>
 <?php endif;?>
-<?php $aitems=array_filter([$urgent_tks>0?" $urgent_tks URGENTE".($urgent_tks>1?'S':''):null,$mis_tickets_abiertos>0?"◈ $mis_tickets_abiertos TICKETS ABIERTOS":null,$pending_llam>0?"◌ $pending_llam LLAMADAS PENDIENTES":null,$t65_count>0?" $t65_count T65 URGENTE":null,$apps_proceso>0?" $apps_proceso APPS EN PROCESO":null]);if($aitems):?><div class="alert-bar"><?php foreach($aitems as $a)echo"<span>$a</span>";?></div><?php endif;?>
+<?php $aitems=array_filter([$urgent_tks>0?" $urgent_tks URGENTE".($urgent_tks>1?'S':''):null,$mis_tickets_abiertos>0?"◈ $mis_tickets_abiertos TICKETS ABIERTOS":null,$pending_llam>0?"◌ $pending_llam LLAMADAS PENDIENTES":null,$t65_count>0?" $t65_count PAPELEO PENDIENTE (SIN HACER / SIN FIRMAR)":null,$apps_proceso>0?" $apps_proceso APPS EN PROCESO":null]);if($aitems):?><div class="alert-bar"><?php foreach($aitems as $a)echo"<span>$a</span>";?></div><?php endif;?>
 <?php if(!empty($rec_dash)): ?>
 <div class="card" style="margin-bottom:13px;border-left:4px solid #B83232">
   <div class="card-header"><div class="card-title" style="color:#B83232">📌 RECORDATORIOS PARA HOY (<?=count($rec_dash)?>)</div><button onclick="showTab('RECURSOS')" class="btn btn-gh btn-sm">VER TODOS →</button></div>
@@ -10792,7 +10795,9 @@ function bindChecklist() {
       fetch('api.php', {
         method: 'POST',
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: 'action=toggle_checklist&item_key=' + encodeURIComponent(itemKey)
+        // Se manda el estado que se ve en pantalla (antes solo "voltear",
+        // y con dos ventanas abiertas quedaba al revés de lo que se veía).
+        body: 'action=toggle_checklist&item_key=' + encodeURIComponent(itemKey) + '&completado=' + (isChecked ? 1 : 0)
       })
       .then(function(r) {
         if (!r.ok) throw new Error('HTTP ' + r.status);
@@ -10835,7 +10840,7 @@ window.resetChecklist = function() {
     fetch('api.php', {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      body: 'action=toggle_checklist&item_key=' + encodeURIComponent(item.dataset.key)
+      body: 'action=toggle_checklist&item_key=' + encodeURIComponent(item.dataset.key) + '&completado=0'
     });
   });
   updateProgress();
@@ -15777,7 +15782,10 @@ function _renderBusqResultados(resultados, q){
       var nombre = t.miembro_nombre || t.cliente || '(sin nombre)';
       var sub = [t.tipo, t.estado].filter(Boolean).join(' · ');
       var extra = t.descripcion ? _busqResalta(t.descripcion.substring(0,140), q) : null;
-      return _busqCard(_busqResalta(nombre, q), esc(sub), extra, "showTab('TICKETS')");
+      // Abre el perfil del miembro del ticket (antes solo cambiaba de pestaña y
+      // había que buscar el ticket a mano). Sin miembro: va a TICKETS.
+      var accion = t.miembro_id ? ('openProfile('+parseInt(t.miembro_id,10)+')') : "showTab('TICKETS')";
+      return _busqCard(_busqResalta(nombre, q), esc(sub) + ' · #' + parseInt(t.id,10), extra, accion);
     });
     total += items.length;
     secciones.push(_busqSeccion('◈ TICKETS', '#1B5E8C', items));
