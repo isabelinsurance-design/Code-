@@ -17,6 +17,19 @@ header('Content-Type: application/json');
 if (empty($_SESSION['user'])) { echo json_encode(['error'=>'No autorizado']); exit; }
 if (!csrf_check_post()) { echo json_encode(['ok'=>false,'error'=>'Sesión desactualizada — recarga la página (Ctrl+F5) e intenta de nuevo']); exit; }
 $user = $_SESSION['user'];
+// Re-validar la cuenta en cada petición: si se desactivó (o cambió de rol) después
+// de iniciar sesión, la sesión vieja ya no sirve. Antes seguía funcionando — y el
+// refresco automático la mantenía viva.
+try {
+    $__ck = db()->prepare("SELECT activo, rol FROM usuarios WHERE id=?");
+    $__ck->execute([(int)($user['id'] ?? 0)]);
+    $__u = $__ck->fetch(PDO::FETCH_ASSOC);
+    if (!$__u || (int)$__u['activo'] !== 1) {
+        http_response_code(401);
+        echo json_encode(['ok'=>false,'error'=>'Tu cuenta fue desactivada. Cierra sesión.']); exit;
+    }
+    $user['rol'] = $__u['rol'];
+} catch (Exception $e) {}
 $admin = $user['rol'] === 'admin';
 $uid = $user['id'];
 $action = $_POST['action'] ?? $_GET['action'] ?? '';
@@ -598,6 +611,10 @@ case 'get_members_table':
 case 'save_member':
     $d = $_POST;
     $pdo = db();
+    // Seguro social: solo un admin puede escribirlo, y vacío = "no cambiar" (el
+    // formulario ya no muestra el número completo, así que llega vacío).
+    if (!$admin || trim((string)($d['ss'] ?? '')) === '') unset($d['ss']);
+    $ESTADOS_VALIDOS = ['ACTIVE','READY TO ENROLL','IN PROCESS','PLAN CHANGE','PROSPECT','PENDING','CANCELED','DENIED','CERRADO','DISENROLLED'];
     // Antes esto corría afuera de cualquier try/catch — un tropiezo pasajero
     // de la base de datos aquí (conexión, lock, timeout) tronaba la petición
     // completa sin responder nada, y el navegador solo veía "ERROR DE RED"
@@ -643,6 +660,18 @@ case 'save_member':
             $pre = $pdo->prepare("SELECT * FROM miembros WHERE id=?");
             $pre->execute([$d['id']]);
             $old_data = $pre->fetch(PDO::FETCH_ASSOC);
+
+            // Un agente NO puede pasarle a otra persona un miembro que ya tiene dueño
+            // (el bono de $250 va a quien sea el dueño). Solo un admin reasigna.
+            if (!$admin && isset($d['agente_id'])) {
+                $old_ag = (int)($old_data['agente_id'] ?? 0);
+                if ($old_ag !== 0 && (int)$d['agente_id'] !== $old_ag) unset($d['agente_id']);
+            }
+            // El estado solo puede ser uno de la lista (o quedarse como estaba).
+            if (isset($d['estado']) && $d['estado'] !== '' && !in_array($d['estado'], $ESTADOS_VALIDOS, true)
+                && ($old_data['estado'] ?? '') !== $d['estado']) {
+                jsonErr('Estado no válido');
+            }
 
             // Auto-guardar plan_anterior si es RE-SIGNED
             if (($d['subestado'] ?? '') === 'RE-SIGNED') {

@@ -10,6 +10,14 @@ require_once 'lib_followups.php';
 require_once 'lib_google_calendar.php';
 $chat_msgs = []; $chat_unread = 0;
 $user=auth();$admin=isAdmin();$uid=$user['id'];$today=today();$pdo=db();
+// Si la cuenta se desactivó después de iniciar sesión, se cierra la sesión aquí mismo.
+try {
+    $__ck=$pdo->prepare("SELECT activo, rol FROM usuarios WHERE id=?");
+    $__ck->execute([(int)$uid]);
+    $__u=$__ck->fetch(PDO::FETCH_ASSOC);
+    if(!$__u || (int)$__u['activo']!==1){ header('Location: logout.php'); exit; }
+    $admin = ($__u['rol']==='admin');
+} catch (Exception $e) {}
 // Ya leímos lo que hacía falta de la sesión — soltamos el candado del
 // archivo de sesión ya mismo, en vez de tenerlo agarrado durante TODA esta
 // página (150-200 consultas en una carga completa). El chat y los SMS se

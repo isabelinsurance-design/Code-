@@ -156,7 +156,12 @@ $P1='#1B4A6B';$P2='#2876A8';$CB='#C8DFF0';$BG='#EBF4F9';$MU='#7A90A4';$TX='#1B3A
     <div class="grid-3">
       <div class="form-group"><label class="form-label">MBI</label><input type="text" name="mbi" class="form-input" value="<?= h($m['mbi']??'') ?>" placeholder="1EG4-TE5-MK72"></div>
       <div class="form-group"><label class="form-label">MEMBER ID</label><input type="text" name="member_id" class="form-input" value="<?= h($m['member_id']??'') ?>" placeholder="ID DEL PLAN"></div>
-      <div class="form-group"><label class="form-label">SOCIAL SECURITY (SS)</label><input type="text" name="ss" class="form-input" value="<?= h($m['ss']??'') ?>" placeholder="XXX-XX-XXXX" autocomplete="off"></div>
+      <div class="form-group"><label class="form-label">SOCIAL SECURITY (SS)</label><?php $__ss=preg_replace('/\D/','',(string)($m['ss']??'')); $__ss_mask=strlen($__ss)>=4?('XXX-XX-'.substr($__ss,-4)):($__ss===''?'':'XXX-XX-XXXX'); ?>
+        <?php if($admin): ?>
+        <input type="text" name="ss" class="form-input" value="" placeholder="<?= h($__ss_mask ?: 'XXX-XX-XXXX') ?> (déjalo vacío para no cambiarlo)" autocomplete="off">
+        <?php else: ?>
+        <input type="text" class="form-input" value="<?= h($__ss_mask ?: '—') ?>" disabled title="Solo un administrador puede ver o cambiar el número completo">
+        <?php endif; ?></div>
     </div>
     <div class="grid-3">
       <div class="form-group"><label class="form-label">PARTE A</label><input type="date" name="parte_a" class="form-input" value="<?= $m['parte_a']??'' ?>"></div>
