@@ -323,7 +323,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
 .ap-count{font-size:13px;color:var(--text-mid)}
 .ap-top{margin-top:4px;font-size:13.5px}
 .ap-top .k{font-family:'DM Mono',monospace;font-size:9.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold-dk);margin-right:4px}
-@media (max-width:900px){.ap-two{grid-template-columns:1fr}.ap-sec .chip,.ap-sec .seg button{min-height:40px}.ap-bar .btn{min-height:40px}}
+@media (max-width:900px){.ap-bar{margin-bottom:-16px;padding-bottom:18px}.ap-two{grid-template-columns:1fr}.ap-sec .chip,.ap-sec .seg button{min-height:40px}.ap-bar .btn{min-height:40px}}
 /* member card */
 .mc-eyebrow{font-family:'DM Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--gold-dk);margin-bottom:4px}
 .mc-lines{margin-top:14px;border:1.5px solid var(--border);border-radius:12px;overflow:hidden}
@@ -336,6 +336,7 @@ table.cmp{border-collapse:collapse;width:100%;font-size:12.5px}
 .mc-ok{color:var(--green);font-weight:600}.mc-no{color:var(--red);font-weight:600}.mc-unk{color:var(--amber);font-weight:600}
 .mc-conf{margin-top:14px;background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:10px 14px;font-size:13px}
 .mc-conf ul{margin:6px 0 0 18px}
+.mc-know{background:var(--amber-lt);border-color:#f3d9a4}
 @media (max-width:600px){.mc-line{grid-template-columns:1fr;gap:2px}}
 @media print{.mc-lines{border-color:#999}.mc-line{border-color:#ddd}}
 @media print{
@@ -465,7 +466,7 @@ const PRIORITIES = [
   {id:'vision', label:'Vision / glasses', icon:'👓', re:/(vision|glasses|eyewear|contacts|lentes|anteojos|ojos|eye exam)/i},
   {id:'hearing', label:'Hearing aids', icon:'🦻', re:/(hearing|deaf|aud[ií]fonos|o[ií]do|sordo)/i},
   {id:'otc', label:'OTC / grocery card', icon:'🛒', re:/(otc|over the counter|grocer|food card|flex card|benefit card|tarjeta|comida|despensa|mandado|utilities|gas card)/i},
-  {id:'rides', label:'Transportation', icon:'🚐', re:/(ride|transport|doesn'?t drive|does not drive|can'?t drive|no car|no maneja|transporte|raite|viajes al doctor)/i},
+  {id:'rides', label:'Transportation', icon:'🚐', re:/(\brides?\b|transport|doesn'?t drive|does not drive|can'?t drive|no car|no maneja|transporte|raite|viajes al doctor)/i},
   {id:'acupuncture', label:'Acupuncture', icon:'📍', re:/(acupunct|acupuntura)/i},
   {id:'chiro', label:'Chiropractic', icon:'🦴', re:/(chiro|quiropr[aá]ctic)/i},
   {id:'fitness', label:'Gym / fitness', icon:'🏋️', re:/(gym|fitness|silver ?sneakers|gimnasio|ejercicio)/i},
@@ -858,10 +859,12 @@ function parseClientText(text, groups = []) {
   else if (/chinese|mandarin|cantonese|chino/i.test(t)) p.language = 'chinese';
   else if (/vietnam/i.test(t)) p.language = 'vietnamese';
   else if (/spanish|espa[ñn]ol|only speaks spanish/i.test(t)) p.language = 'spanish';
-  const prem = t.match(/(?:premium|prima)[^$\d]{0,25}\$?\s?(\d{1,3})|\$\s?(\d{1,3})\s*(?:a|per|\/)\s*month/i);
+  const prem = t.match(/(?:premium|prima)[^$\d]{0,25}\$?\s?(\d{1,4})\b|\$\s?(\d{1,4})\s*(?:a|per|\/)\s*month/i);
   if (prem) p.maxPremium = parseInt(prem[1] || prem[2], 10);
   for (const pr of PRIORITIES) if (pr.re.test(t)) p.priorities[pr.id] = 2;
-  if (/\bppo\b/i.test(t) && !/\b(no|not|doesn'?t want( a)?)\s+ppo\b/i.test(t)) p.priorities.ppo = 3;
+  if (/\bppo\b/i.test(t) && !/\b(no|not|doesn'?t want( a)?)\s+ppo\b/i.test(t) && !/\bppo[^,.]*\(important\)/i.test(t)) p.priorities.ppo = 3;
+  // "wants dental (must have), rides" — the appointment writes the level after each wish
+  for (const m of t.matchAll(/([^,.;:()]+?)\s*\((must have|important)\)/gi)) for (const pr of PRIORITIES) if (pr.re.test(m[1])) p.priorities[pr.id] = m[2].toLowerCase() === 'must have' ? 3 : 2;
   // Drugs: insulin, Tier 3 / brand-name drugs (brand counts as Tier 3 — the formulary decides the real tier)
   if ((/\b(qmb|slmb|medicare savings(?: program)?|msp|qualifying individual)\b/i.test(t) || /\bQI(?:-1)?\b(?!\s*gong)/.test(t)) && !NO_HELP.test(t)) { p.extraHelp = true; if (p.mediCal === 'unknown') p.mediCal = 'partial'; }   // MSP members get Extra Help automatically
   const insulinSaid = [...t.matchAll(/\binsulina?\b(?!\s+resist)/gi)].some(m => !NEG_BEFORE.test(t.slice(Math.max(0, m.index - 40), m.index)));
@@ -897,8 +900,8 @@ function parseClientText(text, groups = []) {
   p.tier3 = Math.min(tier3, 6);
   if (hasDrugs(p)) p.priorities.drugs = Math.max(p.priorities.drugs || 0, 2);
   if (/implant/i.test(t)) p.dentalImplants = true;
-  if (/\b(must|has to|needs to|necesita|tiene que)\b[^.]{0,30}(give ?back|part b)/i.test(t) || /(doesn'?t|does not|don'?t|won'?t|no) (want to )?pay(ing)? (for )?(the )?part b/i.test(t)) p.priorities.giveback = 3;
-  if (/\b(keep|stay with|loves|must keep|wants to keep|has to keep|mantener)\b[^.]{0,40}(doctor|dr\.?|group|medical)/i.test(t)) p.keepDoctor = true;
+  if (/\b(must|has to|needs to|necesita|tiene que)\b[^.,)]{0,30}(give ?back|part b)/i.test(t) || /(doesn'?t|does not|don'?t|won'?t|no) (want to )?pay(ing)? (for )?(the )?part b/i.test(t)) p.priorities.giveback = 3;
+  if (/\b(keep|stay with|loves|must keep|wants to keep|has to keep|mantener)\b[^.]{0,40}(doctor|dr\.?|group|medical)/i.test(t) || /\(must keep this doctor\)/i.test(t)) p.keepDoctor = true;
   // Medical group: known names first, then the Costco list, then "goes to X" phrasing.
   const allGroups = [...new Set(KNOWN_GROUPS.concat(groups.map(g => g.network)))];
   const tNoCounty = t.replace(/\blos [aá]ngeles\b|\bsan bernardino\b|\bsan diego\b|\briverside\b|\borange county\b|\bventura\b/ig, ' ');   // "Los Angeles" is not the Angeles IPA
@@ -936,6 +939,11 @@ function parseClientText(text, groups = []) {
   // "goes to PIH hospital": PIH is the hospital, not a doctor group
   if (p.hospital && p.medicalGroup) { const hk = groupKey(p.hospital), gk2 = groupKey(p.medicalGroup); if (hk.includes(gk2) || gk2.includes(hk)) { const gi = t.search(new RegExp('\\b' + p.medicalGroup.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i')); if (gi >= 0 && hosWord.some(i => Math.abs(i - gi) <= 30)) p.medicalGroup = ''; } }
   if (p.hospital && groupKey(p.hospital) === groupKey(p.medicalGroup)) p.medicalGroup = '';
+  // the appointment writes "medical group: X" / "hospital: Y" — those are exact
+  const LAB = '([^,;(]+?)\\s*(?=[,;(]|\\.?\\s*$)';   // up to the next comma or the end ("St. Joseph Heritage" keeps its dot)
+  const labG = t.match(new RegExp('\\bmedical group:\\s*' + LAB, 'i')), labH = t.match(new RegExp('\\bhospital:\\s*' + LAB, 'i'));
+  if (labG) p.medicalGroup = T(labG[1]);
+  if (labH) p.hospital = T(labH[1]);
   const dr = t.match(/\b(dr\.?|doctor)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)/);
   if (dr) p.doctors = 'Dr. ' + dr[2];
   p.notes = T(text);
@@ -1545,7 +1553,7 @@ const STOP_WORDS = new Set('a an the and or of to in on at for with without by f
 
 const shortTxt = (s, n) => { const t = T(s); return t.length > n ? t.slice(0, n - 1).replace(/[\s;,(]+\S*$/, '') + '…' : t; };
 const FIELD = (plan, ...keys) => { for (const k of keys) if (plan.fields[k] && !isMissing(plan.fields[k])) return T(plan.fields[k]); return ''; };
-const cardText = plan => FIELD(plan, 'Flex Benefits (OTC + Grocery)') && !/^(n\/a|not|no flex|optional)/i.test(plan.fields['Flex Benefits (OTC + Grocery)'] || '')
+const cardText = plan => FIELD(plan, 'Flex Benefits (OTC + Grocery)') && !/^(n\/a|not|no flex|no added funds|optional)/i.test(plan.fields['Flex Benefits (OTC + Grocery)'] || '')
   ? T(plan.fields['Flex Benefits (OTC + Grocery)']) : FIELD(plan, 'OTC Allowance', 'OTC Allowance (+ Healthy Food for C-SNPs)');
 
 /* What a question can be about. dir: which way is "better" for superlatives. */
@@ -2504,8 +2512,8 @@ async function findPlans(opts) {
   const prev = S.profile, typed = manualDrugs(), same = sameClient(S.lastFindText || '', text);
   const keep = opts.drugs !== undefined ? (Array.isArray(opts.drugs) ? opts.drugs : []) : (same ? typed : []);
   S.droppedDrugs = opts.drugs === undefined && !same && typed.length ? {drugs: typed, rxStandard: !!prev.rxStandard} : null;
-  S.profile = parseClientText(text, S.data.groups);
-  for (const d of keep) {
+  S.profile = opts.profile ? cleanProfile(opts.profile) : parseClientText(text, S.data.groups);   // a saved appointment keeps its exact answers
+  for (const d of opts.profile ? [] : keep) {
     if (!d || !T(d.name)) continue;
     const i = S.profile.drugs.findIndex(x => lc(x.name) === lc(d.name));
     if (i >= 0) S.profile.drugs[i] = d;   // the agent's tier / price wins over the usual one
@@ -3141,13 +3149,14 @@ function apptText(p) {
   if (p.mediCal === 'full') bits.push('has full Medi-Cal'); else if (p.mediCal === 'partial') bits.push('has partial Medi-Cal (share of cost)'); else if (p.mediCal === 'none') bits.push('Medicare only');
   if (p.extraHelp) bits.push('gets Extra Help');
   for (const c of p.conditions) bits.push({diabetes: 'diabetic', heart: 'heart disease', lung: 'COPD', kidney: 'kidney disease', esrd: 'on dialysis', dementia: 'dementia'}[c] || COND_BY_ID[c].label.toLowerCase());
-  if (p.medicalGroup) bits.push(p.keepDoctor ? `must keep their doctor at ${p.medicalGroup}` : `goes to ${p.medicalGroup}`);
+  if (p.medicalGroup) bits.push(`medical group: ${p.medicalGroup}${p.keepDoctor ? ' (must keep this doctor)' : ''}`);
   if (p.hospital) bits.push(`hospital: ${p.hospital}`);
-  const named = (p.drugs || []).map(d => d.name);
-  if (named.length) bits.push('takes ' + named.join(', '));
+  const known = (p.drugs || []).filter(d => findDrug(d.name)), unknown = (p.drugs || []).length - known.length;
+  if (known.length) bits.push('takes ' + known.map(d => d.name).join(', '));
   if (p.insulin && !(p.drugs || []).some(d => String(d.tier) === 'insulin')) bits.push('takes insulin');
-  if (p.tier3 > 0) bits.push(`${p.tier3} other brand name drug${p.tier3 > 1 ? 's' : ''}`);
-  const wants = Object.entries(p.priorities || {}).filter(([k, v]) => v >= 2 && k !== 'drugs').map(([k, v]) => (PRI_BY_ID[k] ? PRI_BY_ID[k].label.toLowerCase() : k) + (v >= 3 ? ' (must have)' : ''));
+  const extra3 = (p.tier3 || 0) + unknown;
+  if (extra3 > 0) bits.push(`${extra3} other brand name drug${extra3 > 1 ? 's' : ''}`);
+  const wants = Object.entries(p.priorities || {}).filter(([k, v]) => v >= 2 && !(k === 'drugs' && v === 2 && hasDrugs(p))).map(([k, v]) => (PRI_BY_ID[k] ? PRI_BY_ID[k].label.toLowerCase().replace(' / ', ' or ') : k) + (v >= 3 ? ' (must have)' : ' (important)'));
   if (wants.length) bits.push('wants ' + wants.join(', '));
   if (p.maxPremium != null) bits.push(`premium up to $${p.maxPremium}/mo`);
   if (p.veteran) bits.push('veteran'); if (p.vaDrugCoverage) bits.push('gets drugs through the VA'); if (p.costco) bits.push('Costco member'); if (p.dentalImplants) bits.push('needs implants');
@@ -3236,21 +3245,30 @@ $('modalBody').addEventListener('click', e => {
   const t = e.target, p = S.profile;
   const co = t.closest('[data-ap-county]'); if (co) { apptApply(x => { x.county = x.county === co.dataset.apCounty ? '' : co.dataset.apCounty; }); return; }
   const md = t.closest('[data-ap-medi]'); if (md) { apptApply(x => { x.mediCal = md.dataset.apMedi; }); return; }
-  const cd = t.closest('[data-ap-cond]'); if (cd) { apptApply(x => { const id = cd.dataset.apCond; x.conditions = x.conditions.includes(id) ? x.conditions.filter(c => c !== id) : x.conditions.concat(id); }); return; }
+  const cd = t.closest('[data-ap-cond]'); if (cd) { apptApply(x => { const id = cd.dataset.apCond; x.conditions = x.conditions.includes(id) ? x.conditions.filter(c => c !== id) : x.conditions.concat(id); if (id === 'esrd' && x.conditions.includes('esrd') && !x.conditions.includes('kidney')) x.conditions.push('kidney'); }); return; }
   const pr = t.closest('[data-ap-pri]'); if (pr) { apptApply(x => { const id = pr.dataset.apPri, lv = x.priorities[id] || 0; if (lv >= 3) delete x.priorities[id]; else x.priorities[id] = lv >= 2 ? 3 : 2; }); return; }
   const t3 = t.closest('[data-ap-tier3]'); if (t3) { apptApply(x => { x.tier3 = +t3.dataset.apTier3; }); return; }
   const dr = t.closest('[data-ap-drop]'); if (dr) { apptApply(x => { const d = effectiveDrugs(x)[+dr.dataset.apDrop]; if (!d) return; if (d.placeholder === 'tier3') x.tier3 = Math.max(0, (x.tier3 || 0) - 1); else if (d.placeholder === 'insulin') x.insulin = false; else { x.drugs = (x.drugs || []).filter(y => lc(y.name) !== lc(d.name)); if (d.tier === 'insulin' && !x.drugs.some(y => y.tier === 'insulin')) x.insulin = false; } }); return; }
   if (t.id === 'apDrugAdd') { const nm = T($('apDrug').value); if (!nm) { $('apDrug').focus(); return; } apptApply(x => apptAddDrugs(nm)); const f = $('apDrug'); if (f) f.focus(); return; }
   const nw = t.closest('[data-ap-networks]'); if (nw) { backFrom('Appointment', () => renderAppointment(false)); showNetworks(nw.dataset.apNetworks, nw.dataset.kind); return; }
-  if (t.id === 'apSeePlans') { addRecent($('clientText').value.trim()); closeModal(); if (isPhone()) setTab('plans'); return; }
+  if (t.id === 'apSeePlans') {
+    const txt = $('clientText').value.trim(); if (txt) addRecent(txt);
+    if (history.state && history.state.pcModal) { if (isPhone()) addEventListener('popstate', () => setTab('plans'), {once: true}); closeModal(); }
+    else { hideModal(); if (isPhone()) setTab('plans'); }
+    return;
+  }
   if (t.id === 'apCompare') { backFrom('Appointment', () => renderAppointment(false)); showCompare(S.result.results.slice(0, 3).map(r => r.plan)); return; }
-  if (t.id === 'apReset') { $('newClient').click(); renderAppointment(true); return; }
+  if (t.id === 'apReset') { S.lastFree = null; S.showAll = false; S.expanded.clear(); BN.picked = []; const out = $('aiOut'); if (out) { out.hidden = true; out.innerHTML = ''; }
+    apptApply(x => { const county = x.county; for (const k of Object.keys(x)) delete x[k]; Object.assign(x, blankProfile(), {county}); }); renderAppointment(true); return; }
   const mb = t.closest('[data-member]'); if (mb) { backFrom('Appointment', () => renderAppointment(false)); showMemberCard(+mb.dataset.member); return; }
 });
 $('modalBody').addEventListener('change', e => {
   if (!$('apBar')) return;
   const t = e.target;
-  if (t.dataset.apFlag) { apptApply(x => { x[t.dataset.apFlag] = t.checked; if (t.dataset.apFlag === 'insulin' && t.checked && !x.conditions.includes('diabetes')) x.conditions.push('diabetes'); }, t.dataset.apFlag === 'keepDoctor' ? 'bar' : undefined); return; }
+  if (t.dataset.apFlag) { apptApply(x => { const k = t.dataset.apFlag; x[k] = t.checked;
+      if (k === 'insulin' && t.checked && !x.conditions.includes('diabetes')) x.conditions.push('diabetes');
+      if (k === 'vaDrugCoverage' && t.checked) x.veteran = true;
+      if (k === 'dentalImplants' && t.checked) x.priorities.dental = Math.max(x.priorities.dental || 0, 2); }, t.dataset.apFlag === 'keepDoctor' ? 'bar' : undefined); return; }
   if (t.id === 'apGroup') { apptApply(x => { x.medicalGroup = T(t.value); }, 'bar'); return; }
   if (t.id === 'apHosp') { apptApply(x => { x.hospital = T(t.value); }, 'bar'); return; }
   if (t.id === 'apMaxPrem') { apptApply(x => { x.maxPremium = t.value === '' ? null : Math.max(0, +t.value); }, 'bar'); return; }
@@ -3268,13 +3286,13 @@ function showMemberCard(idx, lang) {
   const plan = S.data.plans[idx], p = S.profile, n = plan.n, f = plan.fields;
   const r = S.result.results.find(x => x.plan.idx === idx) || {plan, v: planValues(plan, p), fit: [], warn: [], verify: [], net: networkStatus(plan, p, S.data, S.notes), hosp: networkStatus(plan, p, S.data, S.notes, p.hospital, 'hospital'), drugs: drugEstimate(plan, p), score: null};
   const v = r.v, rank = S.result.results.findIndex(x => x.plan.idx === idx) + 1;
-  const money = x => x == null ? '—' : fmt$(x);
+  const money = x => x == null ? '—' : fmt$(x), cents = x => x == null ? '—' : fmtc(x);
   const raw = s => T(s) ? `<span class="mc-raw">${esc(shortTxt(s, 140))}</span>` : '';
   const yn = (ok, en, sp, unk) => ok === 'in' ? `<span class="mc-ok">✓ ${t(en, sp)}</span>` : ok === 'out' ? `<span class="mc-no">✕ ${t('not in network', 'fuera de la red')}</span>` : `<span class="mc-unk">? ${t(unk, 'por confirmar')}</span>`;
   const lines = [];
   const L = (k, val, note) => lines.push(`<div class="mc-line"><div class="mc-k">${k}</div><div class="mc-v">${val}${note ? `<div class="hint" style="margin:2px 0 0">${note}</div>` : ''}</div></div>`);
-  L(t('Monthly premium', 'Prima mensual'), v.premium === 0 ? `<b>$0</b>` : `<b>${money(v.premium)}</b>`, p.mediCal === 'full' && n.premium !== v.premium ? t('with Medi-Cal', 'con Medi-Cal') : '');
-  if (v.giveback > 0) L(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), `<b>${money(v.giveback)}/${t('mo', 'mes')}</b> · ${money(v.giveback * 12)}/${t('yr', 'año')}`, t('added back to your Social Security check', 'se le regresa en su cheque del Seguro Social'));
+  L(t('Monthly premium', 'Prima mensual'), `<b>${cents(v.premium)}</b>`, n.premium !== v.premium ? (p.mediCal === 'full' ? t('with Medi-Cal', 'con Medi-Cal') : t('with Extra Help', 'con Ayuda Adicional')) : '');
+  if (v.giveback > 0) L(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), `<b>${cents(v.giveback)}/${t('mo', 'mes')}</b> · ${cents(v.giveback * 12)}/${t('yr', 'año')}`, t('added back to your Social Security check', 'se le regresa en su cheque del Seguro Social'));
   else if ((p.priorities.giveback || 0) > 0 && p.mediCal !== 'full') L(t('Money back on Part B', 'Dinero de vuelta de la Parte B'), t('none on this plan', 'no en este plan'));
   if (p.medicalGroup) L(t('Your doctor', 'Su doctor'), `${esc(p.medicalGroup)} — ${yn(r.net && r.net.status, 'in network', 'en la red', 'check with the plan')}`, r.net && r.net.source ? esc(r.net.source) : '');
   else L(t('Your doctor', 'Su doctor'), t('we will confirm your doctors are in the network', 'confirmaremos que sus doctores estén en la red'));
@@ -3285,6 +3303,7 @@ function showMemberCard(idx, lang) {
   const dl = effectiveDrugs(p);
   if (n.noPartD) L(t('Your medicines', 'Sus medicinas'), p.vaDrugCoverage ? t('through the VA — this plan has no drug coverage', 'por el VA — este plan no cubre medicinas') : `<span class="mc-no">${t('this plan has no drug coverage', 'este plan no cubre medicinas')}</span>`);
   else if (dl.length && r.drugs) L(t('Your medicines', 'Sus medicinas'), `<b>≈${money(r.drugs.yearly)}/${t('yr', 'año')}</b> ${t('estimate', 'estimado')}`, esc(r.drugs.text) + (r.drugs.lis ? '' : '') + ` · ${t('we will check each one on the plan\'s drug list', 'revisaremos cada una en la lista del plan')}`);
+  else if (getsLIS(p)) L(t('Medicines', 'Medicinas'), `${t('With Extra Help', 'Con Ayuda Adicional')}: ${t('deductible', 'deducible')} <b>$0</b> · ${t('generic up to', 'genérico hasta')} <b>${fmtc(PARTD.lisGeneric)}</b> · ${t('brand up to', 'marca hasta')} <b>${fmtc(PARTD.lisBrand)}</b> ${t('per fill', 'por surtido')}`);
   else L(t('Medicines', 'Medicinas'), `${t('Drug deductible', 'Deducible')} <b>${money(n.rxDeductible)}</b> · ${t('brand (Tier 3)', 'marca (Nivel 3)')} ${esc(n.tier3Text || '—')}${p.insulin || p.conditions.includes('diabetes') ? ` · ${t('insulin', 'insulina')} <b>${n.insulin === 0 ? '$0' : money(n.insulin) + '/' + t('mo', 'mes')}</b>` : ''}`);
   const ben = [['Dental', 'Dental', 'dental'], ['Vision', 'Visión', 'vision'], ['Hearing', 'Audición', 'hearing'], ['Transportation', 'Transporte', 'rides'], ['Worldwide Emergency Coverage', 'Emergencias al viajar', 'travel'], ['Fitness Benefit', 'Gimnasio', 'fitness'], ['Acupuncture', 'Acupuntura', 'acupuncture'], ['Chiropractic', 'Quiropráctico', 'chiro']];
   const cardTxt = cardText(plan);
@@ -3295,18 +3314,23 @@ function showMemberCard(idx, lang) {
     if (['dental', 'vision', 'hearing', 'rides'].includes(pid) || want) L(t(key, esk) + (want ? ' ★' : ''), txt ? raw(txt) : t('not listed', 'no aparece'));
   }
   const conf = [];
-  if (!p.medicalGroup || !(r.net && r.net.status === 'in')) conf.push(t('Your doctors and specialists are in the network.', 'Que sus doctores y especialistas estén en la red.'));
-  if (p.hospital && !(r.hosp && r.hosp.status === 'in')) conf.push(t(`${p.hospital} is in the network.`, `Que ${p.hospital} esté en la red.`));
-  if (dl.length) conf.push(t('Each medicine is on the plan\'s drug list at the cost shown.', 'Que cada medicina esté en la lista del plan al costo indicado.'));
+  const netSt = r.net ? r.net.status : 'unknown', hospSt = r.hosp ? r.hosp.status : 'unknown';
+  if (!p.medicalGroup || netSt === 'unknown') conf.push(t('Your doctors and specialists are in the network.', 'Que sus doctores y especialistas estén en la red.'));
+  if (p.hospital && hospSt === 'unknown') conf.push(t(`${p.hospital} is in the network.`, `Que ${p.hospital} esté en la red.`));
+  if (dl.length && !n.noPartD) conf.push(t('Each medicine is on the plan\'s drug list at the cost shown.', 'Que cada medicina esté en la lista del plan al costo indicado.'));
+  const know = [];
+  if (p.medicalGroup && netSt === 'out') know.push(t(`${p.medicalGroup} is not in this plan's network — another plan or another doctor would be needed.`, `${p.medicalGroup} no está en la red de este plan — se necesitaría otro plan u otro doctor.`));
+  if (p.hospital && hospSt === 'out') know.push(t(`${p.hospital} is not in this plan's network.`, `${p.hospital} no está en la red de este plan.`));
   if (n.csnp) conf.push(t('Your doctor confirms the condition for this plan (C-SNP).', 'Que su doctor confirme la condición para este plan (C-SNP).'));
   if (n.dsnp) conf.push(t('Your Medi-Cal is active and matches this plan.', 'Que su Medi-Cal esté activo y corresponda a este plan.'));
-  for (const w of r.warn.slice(0, 2)) conf.push((es ? '(nota, en inglés) ' : '') + w);
+  for (const w of r.warn.filter(x => !/NOT in network/i.test(x)).slice(0, 2)) know.push((es ? '(nota, en inglés) ' : '') + w);
   const title = `${t('Why', 'Por qué')} ${esc(plan.name)}`;
-  openModal(`<div class="mc" id="memberCard">
+  openModal(`<div class="mc" id="memberCard" data-plan="${idx}">
     <div class="mc-head"><div><div class="mc-eyebrow">${t('Plan for', 'Plan para')} ${esc(profileLine(p) || t('this member', 'este miembro'))}</div><h2>${title}</h2><div class="hint">${esc(plan.carrier)} · ${plan.counties.map(c => es ? ES_COUNTY[c] : countyName(c)).join(', ')} · <span class="mono">${esc(plan.id)}</span>${rank ? ` · ${t('ranked', 'puesto')} #${rank} ${t('for this member', 'para este miembro')}` : ''}</div></div></div>
     <div class="row no-print">${backBtn()}<div class="seg" style="width:auto"><button class="${!es ? 'on' : ''}" data-mc-lang="en">English</button><button class="${es ? 'on' : ''}" data-mc-lang="es">Español</button></div>
-      <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button></div>
+      <button class="btn small" id="mcCopy">${t('Copy text', 'Copiar texto')}</button><button class="btn small" onclick="window.print()">${t('Print', 'Imprimir')}</button><button class="btn small" data-mc-details="${idx}">${t('All benefits', 'Todos los beneficios')}</button></div>
     <div class="mc-lines">${lines.join('')}</div>
+    ${know.length ? `<div class="mc-conf mc-know"><b>${t('Good to know:', 'Tenga en cuenta:')}</b><ul>${know.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     ${conf.length ? `<div class="mc-conf"><b>${t('Before we enroll, we confirm:', 'Antes de inscribir, confirmamos:')}</b><ul>${conf.map(x => `<li>${esc(x)}</li>`).join('')}</ul></div>` : ''}
     <p class="hint">${t('Benefit wording comes from the carrier workbook; amounts are estimates until confirmed with the plan.', 'Los beneficios vienen del libro de la aseguradora (texto en inglés); los montos son estimados hasta confirmarlos con el plan.')}</p>
   </div>`);
@@ -3314,9 +3338,13 @@ function showMemberCard(idx, lang) {
 $('modalBody').addEventListener('click', e => {
   const card = $('memberCard'); if (!card) return;
   const lg = e.target.closest('[data-mc-lang]');
-  if (lg) { const idx = S.data.plans.findIndex(x => x.id === card.querySelector('.mono').textContent) ; const keepBack = S.modalBack; showMemberCard(idx >= 0 ? idx : 0, lg.dataset.mcLang); S.modalBack = keepBack; return; }
+  const idx = +card.dataset.plan;
+  if (lg) { const keepBack = S.modalBack; showMemberCard(idx, lg.dataset.mcLang); S.modalBack = keepBack; return; }
+  const det = e.target.closest('[data-mc-details]'); if (det) { const outer = S.modalBack; backFrom('Member card', () => { S.modalBack = outer; showMemberCard(idx); }); showDetails(idx); return; }
   if (e.target.id === 'mcCopy') {
-    const text = [...card.querySelectorAll('h2, .mc-line, .mc-conf li')].map(el => el.classList.contains('mc-line') ? `${el.querySelector('.mc-k').textContent}: ${el.querySelector('.mc-v').textContent.replace(/\s+/g, ' ').trim()}` : el.textContent.trim()).join('\n');
+    const text = [...card.querySelectorAll('h2, .mc-line, .mc-conf b, .mc-conf li')].map(el => { if (!el.classList.contains('mc-line')) return (el.tagName === 'LI' ? '- ' : '') + el.textContent.trim();
+      const val = el.querySelector('.mc-v'), hint = val.querySelector('.hint'), main = [...val.childNodes].filter(x => x !== hint).map(x => x.textContent).join('').replace(/\s+/g, ' ').trim();
+      return `${el.querySelector('.mc-k').textContent}: ${main}${hint ? ' — ' + hint.textContent.replace(/\s+/g, ' ').trim() : ''}`; }).join('\n');
     const done = () => { e.target.textContent = AP.lang === 'es' ? 'Copiado' : 'Copied'; setTimeout(() => { if ($('mcCopy')) $('mcCopy').textContent = AP.lang === 'es' ? 'Copiar texto' : 'Copy text'; }, 1500); };
     const fallback = () => { const sel = window.getSelection(), rg = document.createRange(); rg.selectNodeContents(card.querySelector('.mc-lines')); sel.removeAllRanges(); sel.addRange(rg); };
     try { navigator.clipboard.writeText(text).then(done, fallback); } catch (_) { fallback(); }
@@ -3351,7 +3379,7 @@ function renderNetworks(keepScroll) {
       }).join('');
     }).join('') + `</tbody></table></div>`;
   } else body = `<p class="hint" style="margin-top:10px">Type a doctor group (Facey, Optum, Regal…) or a hospital (Cedars-Sinai, PIH…) and tap Show.</p>`;
-  openModal(`<h2>Networks</h2>
+  openModal(`<h2>Networks</h2>${S.modalBack ? `<div class="row no-print" style="margin-top:6px">${backBtn()}</div>` : ''}
     <div class="hint">Which plans take a doctor group or hospital. Mark it once — from the carrier's provider search or your contracting grid — and every client with that group or hospital gets it. Saved on this computer. “From your workbook” comes from the Costco Medical Groups tab, the UHC provider-network row and plans built on one system (UCLA, Sharp, DaVita).</div>
     <div class="row no-print">
       <input class="inp" id="nwName" list="nwList" placeholder="Doctor group or hospital" value="${esc(NW.name)}" style="flex:1;min-width:180px"/>
@@ -3659,7 +3687,7 @@ addEventListener('popstate', e => {
 const RECENT = 'pc_recent_v1';
 const readRecent = () => { try { const x = JSON.parse(store.get(RECENT) || '[]'); return Array.isArray(x) ? x.filter(r => r && typeof r.text === 'string') : []; } catch (_) { return []; } };
 function addRecent(text) {
-  const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard}].concat(readRecent().filter(r => r && r.text !== text)).slice(0, 5);
+  const list = [{text, at: Date.now(), drugs: manualDrugs(), rxStandard: !!S.profile.rxStandard, profile: S.profile}].concat(readRecent().filter(r => r && r.text !== text)).slice(0, 5);
   store.set(RECENT, JSON.stringify(list)); renderRecent();
 }
 function ago(t) {
@@ -3680,7 +3708,7 @@ $('recent').addEventListener('click', e => {
     rerank(); renderRecent(); return;
   }
   const b = e.target.closest('[data-recent]'); if (!b) return;
-  const r = readRecent()[+b.dataset.recent]; if (r && typeof r.text === 'string') { dropDictation(); $('clientText').value = r.text; findPlans({drugs: Array.isArray(r.drugs) ? r.drugs : [], rxStandard: !!r.rxStandard}); }
+  const r = readRecent()[+b.dataset.recent]; if (r && typeof r.text === 'string') { dropDictation(); $('clientText').value = r.text; findPlans({drugs: Array.isArray(r.drugs) ? r.drugs : [], rxStandard: !!r.rxStandard, profile: r.profile && typeof r.profile === 'object' ? r.profile : undefined}); }
 });
 document.addEventListener('visibilitychange', () => { if (!document.hidden && S.data) renderRecent(); });
 setInterval(() => { if (S.data && !document.hidden) renderRecent(); }, 60000);
